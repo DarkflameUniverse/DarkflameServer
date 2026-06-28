@@ -1,26 +1,17 @@
-#define _VARIADIC_MAX 10
 #include "ZoneInstanceManager.h"
 
 // Custom Classes
 #include "MasterPackets.h"
-#include "dServer.h"
-
-// C++
-#include <future>
 
 // Static Variables
 ZoneInstanceManager* ZoneInstanceManager::m_Address = nullptr;
 
 //! Requests a zone transfer
-void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, uint32_t zoneClone, bool mythranShift, std::function<void(bool, uint32_t, uint32_t, uint32_t, std::string, uint16_t)> callback) {
+void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, uint32_t zoneClone, bool mythranShift, TransferCallback callback) {
+	const auto nextID = ++currentRequestID;
+	requests[nextID] = callback;
 
-	ZoneTransferRequest* request = new ZoneTransferRequest();
-	request->requestID = ++currentRequestID;
-	request->callback = callback;
-
-	this->requests.push_back(request);
-
-	MasterPackets::SendZoneTransferRequest(server, request->requestID, mythranShift, zoneID, zoneClone);
+	MasterPackets::SendZoneTransferRequest(server, nextID, mythranShift, zoneID, zoneClone);
 }
 
 //! Handles a zone transfer response
@@ -43,18 +34,11 @@ void ZoneInstanceManager::HandleRequestZoneTransferResponse(Packet* packet) {
 	LUString serverIP(255);
 	inStream.Read(serverIP);
 
-	for (uint32_t i = 0; i < this->requests.size(); ++i) {
-		if (this->requests[i]->requestID == requestID) {
-
-			// Call the request callback
-			this->requests[i]->callback(mythranShift, zoneID, zoneInstance, zoneClone, serverIP.string, serverPort);
-
-			delete this->requests[i];
-			this->requests.erase(this->requests.begin() + i);
-			return;
-		}
+	const auto entry = requests.find(requestID);
+	if (entry != requests.end()) {
+		entry->second(mythranShift, zoneID, zoneInstance, zoneClone, serverIP.string, serverPort);
+		requests.erase(entry);
 	}
-
 }
 
 void ZoneInstanceManager::CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password) {
@@ -65,12 +49,9 @@ void ZoneInstanceManager::RequestPrivateZone(
 	dServer* server,
 	bool mythranShift,
 	const std::string& password,
-	std::function<void(bool, uint32_t, uint32_t, uint32_t, std::string, uint16_t)> callback) {
-	ZoneTransferRequest* request = new ZoneTransferRequest();
-	request->requestID = ++currentRequestID;
-	request->callback = callback;
+	TransferCallback callback) {
+	const auto nextID = ++currentRequestID;
+	requests[nextID] = callback;
 
-	this->requests.push_back(request);
-
-	MasterPackets::SendZoneRequestPrivate(server, request->requestID, mythranShift, password);
+	MasterPackets::SendZoneRequestPrivate(server, nextID, mythranShift, password);
 }

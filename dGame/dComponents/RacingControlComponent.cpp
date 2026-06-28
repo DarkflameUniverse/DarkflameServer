@@ -26,6 +26,7 @@
 #include "dZoneManager.h"
 #include "CDActivitiesTable.h"
 #include "eStateChangeType.h"
+#include <ranges>
 #include <ctime>
 
 #ifndef M_PI
@@ -33,7 +34,7 @@
 #endif
 
 RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t componentID)
-	: Component(parent, componentID) {
+	: ActivityComponent(parent, componentID) {
 	m_PathName = u"MainPath";
 	m_NumberOfLaps = 3;
 	m_RemainingLaps = m_NumberOfLaps;
@@ -57,6 +58,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t com
 	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
 	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
+	RegisterMsg(&RacingControlComponent::MsgConfigureRacingControl);
 }
 
 RacingControlComponent::~RacingControlComponent() {}
@@ -70,7 +72,7 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 	auto* vehicle = inventoryComponent->FindItemByLot(8092);
 
 	// If the race has already started, send the player back to the main world.
-	if (m_Loaded || !vehicle) {
+	if (m_Loaded || !vehicle || !TakeCost(player)) {
 		auto* characterComponent = player->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SendToZone(m_MainWorld);
 		return;
@@ -178,11 +180,10 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		moduleAssemblyComponent->SetSubKey(item->GetSubKey());
 		moduleAssemblyComponent->SetUseOptionalParts(false);
 
-		for (auto* config : item->GetConfig()) {
-			if (config->GetKey() == u"assemblyPartLOTs") {
-				moduleAssemblyComponent->SetAssemblyPartsLOTs(
-					GeneralUtils::ASCIIToUTF16(config->GetValueAsString()));
-			}
+		const auto& lnv = item->GetConfig().values;
+		const auto itr = lnv.find(u"assemblyPartLOTs");
+		if (itr != lnv.end()) {
+			moduleAssemblyComponent->SetAssemblyPartsLOTs(GeneralUtils::ASCIIToUTF16(itr->second->GetValueAsString()));
 		}
 	}
 
@@ -306,7 +307,7 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 				eKillType::VIOLENT, deathType, 0, 0, 90.0f, false, true, 0);
 
 			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
-			uint32_t respawnImagination = 0;
+			int32_t respawnImagination = 0;
 			// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
 			// Do not actually change the value yet.  Do that on respawn.
 			if (destroyableComponent) {
@@ -871,10 +872,10 @@ void RacingControlComponent::Update(float deltaTime) {
 	}
 }
 
-void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
-	for (const auto& dataUnique : msg.racingSettings) {
+bool RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
+	for (const auto& dataUnique : msg.racingSettings | std::views::values) {
 		if (!dataUnique) continue;
-		const auto* const data = dataUnique.get(); 
+		const auto* const data = dataUnique.get();
 		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
 			m_PathName = static_cast<const LDFData<std::u16string>*>(data)->GetValue();
 		} else if (data->GetKey() == u"activityID" && data->GetValueType() == LDF_TYPE_S32) {
@@ -886,4 +887,5 @@ void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::Confi
 			m_MinimumPlayersForGroupAchievements = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 		}
 	}
+	return true;
 }

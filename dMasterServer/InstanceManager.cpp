@@ -308,7 +308,7 @@ const InstancePtr& InstanceManager::FindPrivateInstance(const std::string& passw
 			continue;
 		}
 
-		LOG("Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
+		LOG("Checking private zone password match (result: %d)", password == instance->GetPassword());
 
 		if (instance->GetPassword() == password) {
 			return instance;
@@ -330,6 +330,12 @@ int InstanceManager::GetHardCap(LWOMAPID mapID) {
 
 	// Default to 12 which is the cap for most worlds.
 	return zone ? zone->population_hard_cap : 12;
+}
+
+void InstanceManager::PruneUnreadyInstances() {
+	for (int i = static_cast<int>(m_Instances.size()) - 1; i >= 0; i--) {
+		if (!m_Instances[i]->GetIsReady()) m_Instances.erase(m_Instances.cbegin() + i);
+	}
 }
 
 void Instance::SetShutdownComplete(const bool value) {
@@ -359,4 +365,3 @@ bool Instance::IsFull(bool isFriendTransfer) const {
 
 	return true;
 }
-

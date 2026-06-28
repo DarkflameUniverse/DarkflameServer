@@ -8,14 +8,15 @@
 #include "eReplicaComponentType.h"
 
 #include "CDActivitiesTable.h"
+#include <array>
 
 namespace GameMessages {
 	class GameMsg;
 };
 
- /**
-  * Represents an instance of an activity, having participants and score
-  */
+/**
+ * Represents an instance of an activity, having participants and score
+ */
 class ActivityInstance {
 public:
 	ActivityInstance(Entity* parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
@@ -104,7 +105,7 @@ struct LobbyPlayer {
 	/**
 	 * The ID of the entity that is in the lobby
 	 */
-	LWOOBJID entityID;
+	LWOOBJID entityID = LWOOBJID_EMPTY;
 
 	/**
 	 * Whether or not the entity is ready
@@ -126,12 +127,12 @@ struct Lobby {
 	/**
 	 * The lobby of players
 	 */
-	std::vector<LobbyPlayer*> players;
+	std::vector<LobbyPlayer> players;
 
 	/**
 	 * The timer that determines when the activity should start
 	 */
-	float timer;
+	float timer{};
 };
 
 /**
@@ -142,12 +143,12 @@ struct ActivityPlayer {
 	/**
 	 * The entity that the score is tracked for
 	 */
-	LWOOBJID playerID;
+	LWOOBJID playerID{};
 
 	/**
 	 * The list of score for this entity
 	 */
-	float values[10];
+	float values[10]{};
 };
 
 /**
@@ -194,13 +195,13 @@ public:
 	 * @param instance the instance to load the players into
 	 * @param lobby the players to load into the instance
 	 */
-	void LoadPlayersIntoInstance(ActivityInstance* instance, const std::vector<LobbyPlayer*>& lobby) const;
+	void LoadPlayersIntoInstance(ActivityInstance& instance, const std::vector<LobbyPlayer>& lobby) const;
 
 	/**
 	 * Removes a lobby from the activity manager
 	 * @param lobby the lobby to remove
 	 */
-	void RemoveLobby(Lobby* lobby);
+	void RemoveLobby(const LWOOBJID lobbyID);
 
 	/**
 	 * Marks a player as (un)ready in a lobby
@@ -246,7 +247,7 @@ public:
 	 */
 	bool IsPlayedBy(LWOOBJID playerID) const;
 
-	/** 
+	/**
 	 * Checks if the entity has enough cost to play this activity
 	 * @param player the entity to check
 	 * @return true if the entity has enough cost to play this activity, false otherwise
@@ -271,20 +272,14 @@ public:
 	 * Creates a new instance for this activity
 	 * @return a new instance for this activity
 	 */
-	ActivityInstance* NewInstance();
-
-	/**
-	 * Returns all the currently active instances of this activity
-	 * @return all the currently active instances of this activity
-	 */
-	const std::vector<ActivityInstance*>& GetInstances() const;
+	ActivityInstance& NewInstance();
 
 	/**
 	 * Returns the instance that some entity is currently playing in
 	 * @param playerID the entity to check for
 	 * @return if any, the instance that the entity is currently in
 	 */
-	ActivityInstance* GetInstance(const LWOOBJID playerID);
+	const ActivityInstance& GetInstance(const LWOOBJID playerID) const;
 
 	/**
 	 * @brief Reloads the config settings for this component
@@ -293,22 +288,11 @@ public:
 	void ReloadConfig();
 
 	/**
-	 * Removes all the instances
-	 */
-	void ClearInstances();
-
-	/**
-	 * Returns all the score for the players that are currently playing this activity
-	 * @return
-	 */
-	std::vector<ActivityPlayer*> GetActivityPlayers() { return m_ActivityPlayers; };
-
-	/**
 	 * Returns activity data for a specific entity (e.g. score and such).
 	 * @param playerID the entity to get data for
 	 * @return the activity data (score) for the passed player in this activity, if it exists
 	 */
-	ActivityPlayer* GetActivityPlayerData(LWOOBJID playerID);
+	bool PlayerHasActivityData(LWOOBJID playerID) const;
 
 	/**
 	 * Sets some score value for an entity
@@ -324,7 +308,7 @@ public:
 	 * @param index the index to get score for
 	 * @return activity score for the passed parameters
 	 */
-	float_t GetActivityValue(LWOOBJID playerID, uint32_t index);
+	float_t GetActivityValue(LWOOBJID playerID, uint32_t index) const;
 
 	/**
 	 * Removes activity score tracking for some entity
@@ -333,21 +317,13 @@ public:
 	void RemoveActivityPlayerData(LWOOBJID playerID);
 
 	/**
-	 * Adds activity score tracking for some entity
-	 * @param playerID the entity to add the activity score for
-	 * @return the created entry
-	 */
-	ActivityPlayer* AddActivityPlayerData(LWOOBJID playerID);
-
-	/**
 	 * Sets the mapID that this activity points to
 	 * @param mapID the map ID to set
 	 */
 	void SetInstanceMapID(uint32_t mapID) { m_ActivityInfo.instanceMapID = mapID; };
 
 private:
-
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& msg);
 	/**
 	 * The database information for this activity
 	 */
@@ -356,17 +332,17 @@ private:
 	/**
 	 * All the active instances of this activity
 	 */
-	std::vector<ActivityInstance*> m_Instances;
+	std::vector<ActivityInstance> m_Instances;
 
 	/**
 	 * The current lobbies for this activity
 	 */
-	std::vector<Lobby*> m_Queue;
+	std::map<LWOOBJID, Lobby> m_Queue;
 
 	/**
 	 * All the activity score for the players in this activity
 	 */
-	std::vector<ActivityPlayer*> m_ActivityPlayers;
+	std::map<LWOOBJID, std::array<float, 10>> m_ActivityPlayers;
 
 	/**
 	 * The activity id

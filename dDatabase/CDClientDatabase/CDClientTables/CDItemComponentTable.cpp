@@ -154,8 +154,8 @@ std::map<LOT, uint32_t> CDItemComponentTable::ParseCraftingCurrencies(const CDIt
 			// Checking for 2 here, not sure what to do when there's more stuff than expected
 			if (amountSplit.size() == 2) {
 				currencies.insert({
-					std::stoull(amountSplit[0]),
-					std::stoi(amountSplit[1])
+					GeneralUtils::TryParse<LOT>(amountSplit[0], LOT_NULL),
+					GeneralUtils::TryParse<uint32_t>(amountSplit[1], 0)
 					});
 			}
 		}

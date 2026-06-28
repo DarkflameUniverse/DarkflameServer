@@ -17,6 +17,10 @@ enum class eGameActivity : uint32_t;
 
 class Item;
 
+namespace GameMessages {
+	struct GetObjectReportInfo;
+}
+
 /**
  * The statistics that can be achieved per zone
  */
@@ -331,7 +335,7 @@ public:
 	void LoadVisitedLevelsXml(const tinyxml2::XMLElement& doc);
 private:
 
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	/**
 	 * The map of active venture vision effects
@@ -446,7 +450,7 @@ private:
 	 * @param index the statistics ID in the string
 	 * @return the integer value of this statistic, parsed from the string
 	 */
-	static uint64_t GetStatisticFromSplit(std::vector<std::string> split, uint32_t index);
+	static uint64_t GetStatisticFromSplit(const std::vector<std::string>& split, const uint32_t index);
 
 	/**
 	 * Gets all the statistics for a certain map, if it doesn't exist, it creates empty stats
@@ -522,6 +526,7 @@ private:
 
 	/**
 	 * Total amount of meters traveled by this character
+	 * Should be a double and then truncated so decimals can be tracked
 	 */
 	uint64_t m_MetersTraveled;
 

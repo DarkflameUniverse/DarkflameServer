@@ -4,7 +4,6 @@
 #include "dCommonVars.h"
 #include "Logger.h"
 #include "Game.h"
-
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -368,9 +367,37 @@ public:
 	}
 
 	template<typename AmfType = AMFArrayValue>
-	AmfType& PushDebug(const std::string_view name) {
+	AmfType& PushDebug(const std::string_view name, const std::string& objectType = "", const uint32_t warningLevel = 0) {
+		size_t i = 0;
+		for (; i < m_Dense.size(); i++) {
+			const auto& cast = dynamic_cast<AMFArrayValue*>(m_Dense[i].get());
+			if (!cast) continue;
+
+			const auto& nameValue = cast->Get<std::string>("name");
+			if (!nameValue || nameValue->GetValue() != name) continue;
+
+			if (!objectType.empty()) {
+				cast->Insert<std::string>("type", objectType);
+			}
+
+			if (warningLevel != 0) {
+				cast->Insert<double>("warningLevel", warningLevel);
+			}
+
+			// found a duplicate, return this instead
+			auto valueCast = dynamic_cast<AmfType*>(cast->Get("value"));
+			if (valueCast) return *valueCast;
+		}
+
 		auto* value = PushArray();
-		value->Insert("name", name.data());
+		value->Insert<std::string>("name", name.data());
+		if (!objectType.empty()) {
+			value->Insert<std::string>("type", objectType);
+		}
+
+		if (warningLevel != 0) {
+			value->Insert<double>("warningLevel", warningLevel);
+		}
 		return value->Insert<AmfType>("value", std::make_unique<AmfType>());
 	}
 

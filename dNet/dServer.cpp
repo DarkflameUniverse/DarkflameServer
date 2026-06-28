@@ -215,6 +215,8 @@ bool dServer::Startup() {
 	mPeer = RakNetworkFactory::GetRakPeerInterface();
 
 	if (!mPeer) return false;
+
+	if (mUseEncryption) mPeer->InitializeSecurity(nullptr, nullptr, nullptr, nullptr);
 	if (!mPeer->Startup(mMaxConnections, 10, &mSocketDescriptor, 1)) return false;
 
 	if (mIsInternal) {
@@ -226,19 +228,16 @@ bool dServer::Startup() {
 	}
 
 	mPeer->SetMaximumIncomingConnections(mMaxConnections);
-	if (mUseEncryption) mPeer->InitializeSecurity(NULL, NULL, NULL, NULL);
 
 	return true;
 }
 
 void dServer::UpdateMaximumMtuSize() {
-	auto maxMtuSize = mConfig->GetValue("maximum_mtu_size");
-	mPeer->SetMTUSize(maxMtuSize.empty() ? 1228 : std::stoi(maxMtuSize));
+	mPeer->SetMTUSize(mConfig->GetValue<int32_t>("maximum_mtu_size", 1228));
 }
 
 void dServer::UpdateBandwidthLimit() {
-	auto newBandwidth = mConfig->GetValue("maximum_outgoing_bandwidth");
-	mPeer->SetPerConnectionOutgoingBandwidthLimit(!newBandwidth.empty() ? std::stoi(newBandwidth) : 0);
+	mPeer->SetPerConnectionOutgoingBandwidthLimit(mConfig->GetValue<int32_t>("maximum_outgoing_bandwidth", 0));
 }
 
 void dServer::Shutdown() {

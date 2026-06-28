@@ -46,6 +46,7 @@
 #include <sstream>
 #include <future>
 #include <chrono>
+#include <ranges>
 #include "RakString.h"
 
 //CDB includes:
@@ -365,18 +366,19 @@ void GameMessages::SendResetMissions(Entity* entity, const SystemAddress& sysAdd
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	eMovementPlatformState movementState) {
+	eMovementPlatformState movementState, bool special) {
 	CBITSTREAM;
 	CMSGHEADER;
 
+	const auto objID = entity->GetObjectID();
 	const auto lot = entity->GetLOT();
 
-	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449 || lot == 11306 || lot == 11308) {
+	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449 || lot == 11306 || lot == 11308 || lot == 9483) {
 		iDesiredWaypointIndex = (lot == 11306 || lot == 11308) ? 1 : 0;
-		iIndex = 0;
-		nextIndex = 0;
+		iIndex = lot == 9483 ? 1 : 0;
+		nextIndex = lot == 9483 && !special ? 1 : 0;
 		bStopAtDesiredWaypoint = true;
-		movementState = eMovementPlatformState::Stationary;
+		movementState = lot == 9483 && !special ? eMovementPlatformState::Stopped : eMovementPlatformState::Stationary;
 	}
 
 	bitStream.Write(entity->GetObjectID());
@@ -465,20 +467,20 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 
 	bitStream.Write(lootSourceType != eLootSourceType::NONE); // Loot source
 	if (lootSourceType != eLootSourceType::NONE) bitStream.Write(lootSourceType);
-	LWONameValue extraInfo;
+	std::u16string extraInfo;
 
-	auto config = item->GetConfig();
+	const auto& config = item->GetConfig();
 
-	for (auto* data : config) {
-		extraInfo.name += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
+	for (const auto& data : config.values | std::views::values) {
+		extraInfo += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
 	}
 
-	if (extraInfo.name.length() > 0) extraInfo.name.pop_back(); // remove the last comma
+	if (extraInfo.length() > 0) extraInfo.pop_back(); // remove the last comma
 
-	bitStream.Write<uint32_t>(extraInfo.name.size());
-	if (extraInfo.name.size() > 0) {
-		for (uint32_t i = 0; i < extraInfo.name.size(); ++i) {
-			bitStream.Write<uint16_t>(extraInfo.name[i]);
+	bitStream.Write<uint32_t>(extraInfo.size());
+	if (extraInfo.size() > 0) {
+		for (uint32_t i = 0; i < extraInfo.size(); ++i) {
+			bitStream.Write<uint16_t>(extraInfo[i]);
 		}
 		bitStream.Write<uint16_t>(0x00);
 	}
@@ -743,13 +745,9 @@ void GameMessages::SendBroadcastTextToChatbox(Entity* entity, const SystemAddres
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::BROADCAST_TEXT_TO_CHATBOX);
 
-	LWONameValue attribs;
-	attribs.name = attrs;
-	attribs.length = attrs.size();
-
-	bitStream.Write<uint32_t>(attribs.length);
-	for (uint32_t i = 0; i < attribs.length; ++i) {
-		bitStream.Write<uint16_t>(attribs.name[i]);
+	bitStream.Write<uint32_t>(attrs.size());
+	for (uint32_t i = 0; i < attrs.size(); ++i) {
+		bitStream.Write<uint16_t>(attrs[i]);
 	}
 	bitStream.Write<uint16_t>(0x00); // Null Terminator
 
@@ -2137,6 +2135,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 	inStream.Read(worldId);
 
 	inStream.Read(descriptionLength);
+	if (descriptionLength > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < descriptionLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -2144,6 +2143,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 	}
 
 	inStream.Read(nameLength);
+	if (nameLength > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < nameLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -2405,11 +2405,25 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	AMFDeserialize reader;
-	std::unique_ptr<AMFArrayValue> amfArguments{ static_cast<AMFArrayValue*>(reader.Read(inStream).release()) };
+	std::unique_ptr<AMFArrayValue> amfArguments;
+	try {
+		auto deserializedData = reader.Read(inStream);
+		if (!deserializedData || deserializedData->GetValueType() != eAmf::Array) {
+			LOG("Failed to deserialize AMF data for control behaviors command: not an array");
+			return;
+		}
+
+		amfArguments.reset(static_cast<AMFArrayValue*>(deserializedData.release()));
+	} catch (...) {
+		LOG("Failed to deserialize AMF data for control behaviors command");
+		return;
+	}
 	if (amfArguments->GetValueType() != eAmf::Array) return;
 
 	uint32_t commandLength{};
 	inStream.Read(commandLength);
+
+	if (commandLength > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded command buffer
 
 	std::string command;
 	command.reserve(commandLength);
@@ -2460,9 +2474,15 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	uint32_t sd0Size;
 	inStream.Read(sd0Size);
-	std::unique_ptr<char[]> sd0Data(new char[sd0Size]);
 
-	if (sd0Data == nullptr) return;
+	// For the sake of letting players make models as big as they want, only reject if we cant allocate the required memory.
+	std::unique_ptr<char[]> sd0Data;
+	try {
+		sd0Data.reset(new char[sd0Size]);
+	} catch (std::exception& e) {
+		LOG("Failed to allocate sd0 of size %u", sd0Size);
+		return;
+	}
 
 	inStream.ReadAlignedBytes(reinterpret_cast<unsigned char*>(sd0Data.get()), sd0Size);
 
@@ -2599,11 +2619,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintIDs[i]));
-		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-		info.settings.push_back(new LDFData<int>(u"modelType", 2));
-		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", modelIDs[i]));
+		info.settings.Insert<LWOOBJID>(u"blueprintid", blueprintIDs[i]);
+		info.settings.Insert<int>(u"componentWhitelist", 1);
+		info.settings.Insert<int>(u"modelType", 2);
+		info.settings.Insert<bool>(u"propertyObjectID", true);
+		info.settings.Insert<LWOOBJID>(u"userModelID", modelIDs[i]);
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
 			Game::entityManager->ConstructEntity(newEntity);
@@ -2638,6 +2658,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream& inStream, Entit
 	inStream.Read(startIndex);
 	inStream.Read(filterTextLength);
 
+	if (filterTextLength > MAX_MESSAGE_LENGTH) return;
 	for (auto i = 0u; i < filterTextLength; i++) {
 		char c;
 		inStream.Read(c);
@@ -3026,6 +3047,7 @@ void GameMessages::HandleVerifyAck(RakNet::BitStream& inStream, Entity* entity, 
 
 	uint32_t sBitStreamLength = 0;
 	inStream.Read(sBitStreamLength);
+	if (sBitStreamLength > MAX_MESSAGE_LENGTH) return;
 	for (uint64_t k = 0; k < sBitStreamLength; k++) {
 		uint8_t character;
 		inStream.Read(character);
@@ -3197,7 +3219,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 
 		LOG("Trade request to (%llu)", i64Invitee);
 
-		auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+		const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 		if (trade != nullptr) {
 			if (!trade->IsParticipant(i64Invitee)) {
@@ -3220,7 +3242,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 }
 
 void GameMessages::HandleClientTradeCancel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3234,7 +3256,7 @@ void GameMessages::HandleClientTradeAccept(RakNet::BitStream& inStream, Entity* 
 
 	LOG("Trade accepted from (%llu) -> (%d)", entity->GetObjectID(), bFirst);
 
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3247,6 +3269,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* 
 
 	inStream.Read(currency);
 	inStream.Read(itemCount);
+	if (itemCount > MAX_MESSAGE_LENGTH) return;
 
 	LOG("Trade update from (%llu) -> (%llu), (%i)", entity->GetObjectID(), currency, itemCount);
 
@@ -3299,7 +3322,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* 
 		LOG("Trade item from (%llu) -> (%llu)/(%llu), (%i), (%llu), (%i), (%i)", entity->GetObjectID(), itemId, itemId2, lot, unknown1, unknown2, unknown3);
 	}
 
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3616,6 +3639,8 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream& inStream, Entity* 
 
 	inStream.Read(brickCount);
 
+	if (brickCount > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded brick count
+
 	bricks.reserve(brickCount);
 
 	for (uint32_t i = 0; i < brickCount; i++) {
@@ -3657,6 +3682,7 @@ void GameMessages::HandleRequestSetPetName(RakNet::BitStream& inStream, Entity* 
 
 	inStream.Read(nameLength);
 
+	if (nameLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < nameLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3726,6 +3752,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity*
 	inStream.Read(iButton);
 
 	inStream.Read(identifierLength);
+	if (identifierLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < identifierLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3733,6 +3760,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity*
 	}
 
 	inStream.Read(userDataLength);
+	if (userDataLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < userDataLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3780,6 +3808,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* e
 	std::u16string identifier;
 
 	inStream.Read(buttonIdentifierLength);
+	if (buttonIdentifierLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < buttonIdentifierLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3789,6 +3818,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* e
 	inStream.Read(iButton);
 
 	inStream.Read(identifierLength);
+	if (identifierLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < identifierLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3914,11 +3944,19 @@ void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objec
 	CMSGHEADER;
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::SET_MOUNT_INVENTORY_ID);
-	bitStream.Write(objectID);
+	bitStream.Write(objectID != LWOOBJID_EMPTY);
+	if (objectID != LWOOBJID_EMPTY) bitStream.Write(objectID);
 
 	SEND_PACKET_BROADCAST;
 }
 
+void GameMessages::UseSkillSet::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(bRemove);
+	bitStream.Write(possessedId != LWOOBJID_EMPTY);
+	if (possessedId != LWOOBJID_EMPTY) bitStream.Write(possessedId);
+	bitStream.Write(setId != -1);
+	if (setId != -1) bitStream.Write(setId);
+}
 
 void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	// Get the objectID from the bitstream
@@ -3954,9 +3992,6 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* e
 
 			// Update the entity that was possessing
 			Game::entityManager->SerializeEntity(entity);
-
-			// We aren't mounted so remove the stun
-			GameMessages::SendSetStunned(entity->GetObjectID(), eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }
@@ -3964,10 +3999,14 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* e
 
 void GameMessages::HandleAcknowledgePossession(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	Game::entityManager->SerializeEntity(entity);
-	LWOOBJID objectId{};
-	inStream.Read(objectId);
-	auto* mount = Game::entityManager->GetEntity(objectId);
-	if (mount) Game::entityManager->SerializeEntity(mount);
+	bool hasObjectId{};
+	inStream.Read(hasObjectId);
+	if (hasObjectId) {
+		LWOOBJID objectId{};
+		inStream.Read(objectId);
+		auto* mount = Game::entityManager->GetEntity(objectId);
+		if (mount) Game::entityManager->SerializeEntity(mount);
+	}
 }
 
 //Racing
@@ -4142,7 +4181,13 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream& inStre
 		return;
 	}
 
-	Database::Get()->UpdatePerformanceCost(zone->GetZoneID(), performanceCost);
+	const auto* const propertyManagementComponent = entity->GetComponent<PropertyManagementComponent>();
+	const auto* const ownerEntity = propertyManagementComponent ? propertyManagementComponent->GetOwner() : nullptr;
+	const auto* const character = ownerEntity ? ownerEntity->GetCharacter() : nullptr;
+	const auto& zoneID = zone->GetZoneID();
+	if (character && character->GetPropertyCloneID() == zoneID.GetCloneID()) {
+		Database::Get()->UpdatePerformanceCost(zoneID, performanceCost);
+	}
 }
 
 void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4767,13 +4812,19 @@ void GameMessages::HandleParseChatMessage(RakNet::BitStream& inStream, Entity* e
 
 	uint32_t wsStringLength;
 	inStream.Read(wsStringLength);
+
+	if (wsStringLength > MAX_MESSAGE_LENGTH) {
+		LOG("Max message length reached, capping message.");
+		wsStringLength = MAX_MESSAGE_LENGTH;
+	}
+
 	for (uint32_t i = 0; i < wsStringLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
 		wsString.push_back(character);
 	}
 
-	if (wsString[0] == L'/') {
+	if (!wsString.empty() && wsString[0] == L'/') {
 		SlashCommandHandler::HandleChatCommand(wsString, entity, sysAddr);
 	}
 }
@@ -4790,6 +4841,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 	LWOOBJID senderID{};
 
 	inStream.Read(argsLength);
+	if (argsLength > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < argsLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -5221,7 +5273,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	int eInvType = INVENTORY_MAX;
 	bool eLootTypeSourceIsDefault = false;
 	int eLootTypeSource = LOOTTYPE_NONE;
-	LWONameValue extraInfo;
+	int32_t extraInfoLength = 0;
+	std::u16string extraInfo;
 	bool forceDeletion = true;
 	bool iLootTypeSourceIsDefault = false;
 	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
@@ -5247,12 +5300,12 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	if (eInvTypeIsDefault) inStream.Read(eInvType);
 	inStream.Read(eLootTypeSourceIsDefault);
 	if (eLootTypeSourceIsDefault) inStream.Read(eLootTypeSource);
-	inStream.Read(extraInfo.length);
-	if (extraInfo.length > 0) {
-		for (uint32_t i = 0; i < extraInfo.length; ++i) {
+	inStream.Read(extraInfoLength);
+	if (extraInfoLength > 0) {
+		for (uint32_t i = 0; i < extraInfoLength; ++i) {
 			uint16_t character;
 			inStream.Read(character);
-			extraInfo.name.push_back(character);
+			extraInfo.push_back(character);
 		}
 		uint16_t nullTerm;
 		inStream.Read(nullTerm);
@@ -5420,7 +5473,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 	std::vector<LOT> modList;
 	auto& oldPartList = character->GetVar<std::string>(u"currentModifiedBuild");
 	bool everyPieceSwapped = !oldPartList.empty(); // If the player didn't put a build in initially, then they should not get this achievement.
-	if (count >= 3) {
+	if (count >= 3 && count < 8) {
 		std::u16string modules;
 
 		for (uint32_t k = 0; k < count; k++) {
@@ -5460,10 +5513,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 		//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
 		//Game::entityManager->SerializeEntity(entity);
 
-		const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
-
-		std::vector<LDFBaseData*> config;
-		config.push_back(moduleAssembly);
+		LwoNameValue config;
+		config.Insert(u"assemblyPartLOTs", modules);
 
 		LWOOBJID newID = ObjectIDManager::GetPersistentID();
 
@@ -5709,7 +5760,6 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream& inStream, Entity
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity) {
 	LWOOBJID activator;
-	//std::map<LWOOBJID, LWONameValue> additionalPlayers;
 	uint32_t playerChoicesLen;
 	std::string playerChoices;
 	int type;
@@ -5717,6 +5767,7 @@ void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entit
 
 	inStream.Read(activator);
 	inStream.Read(playerChoicesLen);
+	if (playerChoicesLen > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < playerChoicesLen; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -5806,6 +5857,8 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 	uint32_t messageLength;
 	inStream.Read(messageLength);
 
+	if (messageLength > MAX_MESSAGE_LENGTH) return;
+
 	for (uint32_t i = 0; i < (messageLength); ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -5817,6 +5870,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t clientVersionLength;
 	inStream.Read(clientVersionLength);
+	if (clientVersionLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < clientVersionLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5825,6 +5879,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t nOtherPlayerIDLength;
 	inStream.Read(nOtherPlayerIDLength);
+	if (nOtherPlayerIDLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < nOtherPlayerIDLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5833,6 +5888,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t selectionLength;
 	inStream.Read(selectionLength);
+	if (selectionLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < selectionLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5869,7 +5925,7 @@ void GameMessages::HandlePlayerRailArrivedNotification(RakNet::BitStream& inStre
 	const SystemAddress& sysAddr) {
 	uint32_t pathNameLength;
 	inStream.Read(pathNameLength);
-
+	if (pathNameLength > MAX_MESSAGE_LENGTH) return;
 	std::u16string pathName;
 	for (auto k = 0; k < pathNameLength; k++) {
 		uint16_t c;
@@ -6135,14 +6191,17 @@ void GameMessages::HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entit
 
 	uint32_t size{};
 	if (!inStream.Read(size)) return;
+	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
 	action.resize(size);
 	if (!inStream.Read(action.data(), size)) return;
 
 	if (!inStream.Read(size)) return;
+	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
 	groupUpdate.groupId.resize(size);
 	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
 
 	if (!inStream.Read(size)) return;
+	if (size > MAX_MESSAGE_LENGTH / 2) return; // Bounds check: size * 2 would overflow or exceed limit
 	groupName.resize(size);
 	if (!inStream.Read(reinterpret_cast<char*>(groupName.data()), size * 2)) return;
 
@@ -6255,7 +6314,7 @@ namespace GameMessages {
 		bitStream.Write(id);
 
 		std::string toWrite;
-		for (const auto* item : localizeParams) {
+		for (const auto& item : localizeParams | std::views::values) {
 			toWrite += item->GetString() + "\n";
 		}
 		if (!toWrite.empty()) toWrite.pop_back();
@@ -6435,8 +6494,8 @@ namespace GameMessages {
 	}
 
 	void TeamPickupItem::Serialize(RakNet::BitStream& stream) const {
-		stream.Write(lootID);	
-		stream.Write(lootOwnerID);	
+		stream.Write(lootID);
+		stream.Write(lootOwnerID);
 	}
 
 	void ToggleGMInvis::Serialize(RakNet::BitStream& stream) const {

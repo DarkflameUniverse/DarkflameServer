@@ -75,7 +75,8 @@ uint32_t Inventory::GetLotCount(const LOT lot) const {
 }
 
 void Inventory::SetSize(const uint32_t value) {
-	free += static_cast<int32_t>(value) - static_cast<int32_t>(size);
+	const auto delta = static_cast<int32_t>(value) - static_cast<int32_t>(size);
+	free = static_cast<uint32_t>(std::max(0, static_cast<int32_t>(free) + delta));
 
 	size = value;
 

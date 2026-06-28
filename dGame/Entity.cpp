@@ -198,11 +198,12 @@ Entity::~Entity() {
 }
 
 void Entity::Initialize() {
-	RegisterMsg<GameMessages::RequestServerObjectInfo>(this, &Entity::MsgRequestServerObjectInfo);
-	RegisterMsg<GameMessages::DropClientLoot>(this, &Entity::MsgDropClientLoot);
-	RegisterMsg<GameMessages::GetFactionTokenType>(this, &Entity::MsgGetFactionTokenType);
-	RegisterMsg<GameMessages::PickupItem>(this, &Entity::MsgPickupItem);
-	RegisterMsg<GameMessages::ChildRemoved>(this, &Entity::MsgChildRemoved);
+	RegisterMsg(&Entity::MsgRequestServerObjectInfo);
+	RegisterMsg(&Entity::MsgDropClientLoot);
+	RegisterMsg(&Entity::MsgGetFactionTokenType);
+	RegisterMsg(&Entity::MsgPickupItem);
+	RegisterMsg(&Entity::MsgChildRemoved);
+	RegisterMsg(&Entity::MsgGetFlag);
 	/**
 	 * Setup trigger
 	 */
@@ -315,15 +316,16 @@ void Entity::Initialize() {
 			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
 			const auto mapID = Game::server->GetZoneID();
+			const auto& targetSceneName = m_Character->GetTargetScene();
 
 			//If we came from another zone, put us in the starting loc
-			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
+			// Exception for Moon Base as you tend to spawn on the roof.
+			// second exception if we have a specified targetScene since that would only be possible in a test map
+			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603 || !targetSceneName.empty()) {
 				NiPoint3 pos;
 				NiQuaternion rot = QuatUtils::IDENTITY;
 
-				const auto& targetSceneName = m_Character->GetTargetScene();
 				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
 					rot = Game::zoneManager->GetZone()->GetSpawnRot();
@@ -426,7 +428,7 @@ void Entity::Initialize() {
 					comp->SetMaxArmor(destCompData[0].armor);
 					comp->SetDeathBehavior(destCompData[0].death_behavior);
 
-					comp->SetIsSmashable(destCompData[0].isSmashable);
+					comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
 					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
@@ -611,13 +613,14 @@ void Entity::Initialize() {
 
 			if (rebuildResetTime != 0.0f) {
 				quickBuildComponent->SetResetTime(rebuildResetTime);
-
-				// Known bug with moving platform in FV that casues it to build at the end instead of the start.
-				// This extends the smash time so players can ride up the lift.
-				if (m_TemplateID == 9483) {
-					quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 25);
-				}
 			}
+
+			const auto objectID = GetObjectID();
+			// FV tree handler for when built so it sets the state to moving at the correct time
+			if (GetLOT() == 9483) quickBuildComponent->AddQuickBuildCompleteCallback([objectID](Entity* user) {
+				auto* const entity = Game::entityManager->GetEntity(objectID);
+				if (entity) GameMessages::SendPlatformResync(entity, UNASSIGNED_SYSTEM_ADDRESS, false, 0, 1, 1, eMovementPlatformState::Moving, true);
+				});
 
 			const auto activityID = GetVar<int32_t>(u"activityID");
 
@@ -948,13 +951,13 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 }
 
-void Entity::WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStream& outBitStream) const {
+void Entity::WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const {
 	RakNet::BitStream settingStream;
-	int32_t numberOfValidKeys = ldf.size();
+	int32_t numberOfValidKeys = ldf.values.size();
 
 	// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
 	// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
-	for (LDFBaseData* data : ldf) {
+	for (const auto& data : ldf.values | std::views::values) {
 		if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
 			data->WriteToPacket(settingStream);
 		} else {
@@ -986,16 +989,16 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
-		if (!m_Settings.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
+		if (!m_Settings.values.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream.Write1(); // Has ldf data
 			WriteLDFData(m_Settings, outBitStream);
 		} else if (!syncLDF.empty()) {
 			// Find all the ldf data we need to write
-			std::vector<LDFBaseData*> ldfData;
-			ldfData.reserve(m_Settings.size());
+			LwoNameValue ldfData;
 
 			for (const auto& data : syncLDF) {
-				ldfData.push_back(GetVarData(data));
+				const auto* toInsert = GetVarData(data);
+				if (toInsert) ldfData.values.insert_or_assign(data, toInsert->Copy());
 			}
 
 			outBitStream.Write1(); // Has ldf data
@@ -1016,6 +1019,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		const bool hasParent = m_ParentEntity != nullptr || m_SpawnerID != 0;
 		outBitStream.Write(hasParent);
 		if (hasParent) {
+			// 触るな！
 			if (m_ParentEntity != nullptr) outBitStream.Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream.Write(m_SpawnerID);
 			else outBitStream.Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
@@ -1612,26 +1616,10 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		else Game::entityManager->DestroyEntity(this);
 	}
 
-	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
-
+	const auto& grpNameQBShowBricks = GetVarAsString(u"grpNameQBShowBricks");
 	if (!grpNameQBShowBricks.empty()) {
-		auto spawners = Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks);
-
-		Spawner* spawner = nullptr;
-
-		if (!spawners.empty()) {
-			spawner = spawners[0];
-		} else {
-			spawners = Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks);
-
-			if (!spawners.empty()) {
-				spawner = spawners[0];
-			}
-		}
-
-		if (spawner != nullptr) {
-			spawner->Spawn();
-		}
+		for (auto* const spawner : Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
+		for (auto* const spawner : Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
 	}
 
 	// Track a player being smashed
@@ -2045,13 +2033,7 @@ void Entity::SetI64(const std::u16string& name, const int64_t value) {
 }
 
 bool Entity::HasVar(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data->GetKey() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return m_Settings.values.contains(name);
 }
 
 uint16_t Entity::GetNetworkId() const {
@@ -2083,24 +2065,13 @@ void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAdd
 	GameMessages::SendSetNetworkScriptVar(this, sysAddr, data);
 }
 
-LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data == nullptr) {
-			continue;
-		}
-
-		if (data->GetKey() != name) {
-			continue;
-		}
-
-		return data;
-	}
-
-	return nullptr;
+const LDFBaseData* const Entity::GetVarData(const std::u16string& name) const {
+	const auto itr = m_Settings.values.find(name);
+	return itr != m_Settings.values.cend() ? itr->second.get() : nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
-	auto* data = GetVarData(name);
+	const auto* const data = GetVarData(name);
 	return data ? data->GetValueAsString() : "";
 }
 
@@ -2251,8 +2222,7 @@ void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameM
 	m_MsgHandlers.emplace(msgId, handler);
 }
 
-bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
-	auto& requestInfo = static_cast<GameMessages::RequestServerObjectInfo&>(msg);
+bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& requestInfo) {
 	AMFArrayValue response;
 	response.Insert("visible", true);
 	response.Insert("objectID", std::to_string(m_ObjectID));
@@ -2266,10 +2236,16 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 
 	const auto& objTableInfo = table->GetByID(GetLOT());
 
-	objectInfo.PushDebug<AMFStringValue>("Name") = objTableInfo.name;
-	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)") = GetLOT();
-	objectInfo.PushDebug<AMFStringValue>("Object ID") = std::to_string(GetObjectID());
-	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID") = std::to_string(GetSpawnerID());
+	objectInfo.PushDebug<AMFStringValue>("Name", "name") = objTableInfo.name;
+	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)", "LOT") = GetLOT();
+	objectInfo.PushDebug<AMFStringValue>("Object ID", "LWOOBJID") = std::to_string(GetObjectID());
+	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID", "LWOOBJID") = std::to_string(GetSpawnerID());
+	objectInfo.PushDebug<AMFStringValue>("Owner override", "LWOOBJID") = std::to_string(m_OwnerOverride);
+	auto& children = objectInfo.PushDebug("Child Objects");
+	int i = 1;
+	for (const auto* child : m_ChildEntities) {
+		if (child) children.PushDebug<AMFStringValue>("Child " + std::to_string(i++), "LWOOBJID") = std::to_string(child->GetObjectID());
+	}
 
 	auto& componentDetails = objectInfo.PushDebug("Component Information");
 	for (const auto [id, component] : m_Components) {
@@ -2277,7 +2253,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	}
 
 	auto& configData = objectInfo.PushDebug("Config Data");
-	for (const auto config : m_Settings) {
+	for (const auto& config : m_Settings.values | std::views::values) {
 		configData.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(config->GetKey())) = config->GetValueAsString();
 	}
 
@@ -2288,9 +2264,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	return true;
 }
 
-bool Entity::MsgDropClientLoot(GameMessages::GameMsg& msg) {
-	auto& dropLootMsg = static_cast<GameMessages::DropClientLoot&>(msg);
-
+bool Entity::MsgDropClientLoot(GameMessages::DropClientLoot& dropLootMsg) {
 	if (dropLootMsg.item != LOT_NULL && dropLootMsg.item != 0) {
 		Loot::Info info{
 			.id = dropLootMsg.lootID,
@@ -2307,13 +2281,11 @@ bool Entity::MsgDropClientLoot(GameMessages::GameMsg& msg) {
 	return true;
 }
 
-bool Entity::MsgGetFlag(GameMessages::GameMsg& msg) {
-	auto& flagMsg = static_cast<GameMessages::GetFlag&>(msg);
+bool Entity::MsgGetFlag(GameMessages::GetFlag& flagMsg) {
 	if (m_Character) flagMsg.flag = m_Character->GetPlayerFlag(flagMsg.flagID);
 	return true;
 }
-bool Entity::MsgGetFactionTokenType(GameMessages::GameMsg& msg) {
-	auto& tokenMsg = static_cast<GameMessages::GetFactionTokenType&>(msg);
+bool Entity::MsgGetFactionTokenType(GameMessages::GetFactionTokenType& tokenMsg) {
 	GameMessages::GetFlag getFlagMsg{};
 
 	getFlagMsg.flagID = ePlayerFlag::ASSEMBLY_FACTION;
@@ -2336,8 +2308,7 @@ bool Entity::MsgGetFactionTokenType(GameMessages::GameMsg& msg) {
 	return tokenMsg.tokenType != LOT_NULL;
 }
 
-bool Entity::MsgPickupItem(GameMessages::GameMsg& msg) {
-	auto& pickupItemMsg = static_cast<GameMessages::PickupItem&>(msg);
+bool Entity::MsgPickupItem(GameMessages::PickupItem& pickupItemMsg) {
 	if (GetObjectID() == pickupItemMsg.lootOwnerID) {
 		PickupItem(pickupItemMsg.lootID);
 	} else {
@@ -2358,7 +2329,7 @@ bool Entity::MsgPickupItem(GameMessages::GameMsg& msg) {
 	return true;
 }
 
-bool Entity::MsgChildRemoved(GameMessages::GameMsg& msg) {
-	GetScript()->OnChildRemoved(*this, static_cast<GameMessages::ChildRemoved&>(msg));
+bool Entity::MsgChildRemoved(GameMessages::ChildRemoved& msg) {
+	GetScript()->OnChildRemoved(*this, msg);
 	return true;
 }

@@ -14,7 +14,7 @@ void VisToggleNotifierServer::OnMissionDialogueOK(Entity* self, Entity* target, 
 		auto spawners = Game::zoneManager->GetSpawnersByName(itr->second);
 		if (spawners.empty()) return;
 		for (const auto spawner : spawners) {
-			auto spawnedObjIds = spawner->GetSpawnedObjectIDs();
+			const auto& spawnedObjIds = spawner->GetSpawnedObjectIDs();
 			for (const auto& objId : spawnedObjIds) {
 				GameMessages::SendNotifyClientObject(objId, u"SetVisibility", visible);
 			}

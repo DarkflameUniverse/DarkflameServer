@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags:
+      - "v*.*.*"
   pull_request:
     branches: [ main ]
 
@@ -10,38 +12,51 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-22.04, macos-13 ]
+        include:
+          - os: windows-2025
+            artifact: windows
+            debug_preset: windows-msvc-relwithdebinfo
+          - os: ubuntu-24.04
+            artifact: linux
+            debug_preset: linux-gnu-relwithdebinfo
+          - os: macos-15-intel
+            artifact: macos
+            debug_preset: macos-relwithdebinfo
 
     steps:
-    - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         submodules: true
     - name: Add msbuild to PATH (Windows only)
-      if: ${{ matrix.os == 'windows-2022' }}
-      uses: microsoft/setup-msbuild@767f00a3f09872d96a0cb9fcd5e6a4ff33311330
+      if: ${{ matrix.os == 'windows-2025' }}
+      uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
       with:
-        vs-version: '[17,18)'
+        vs-version: '[18,19)'
         msbuild-architecture: x64
-    - name: Install libssl and switch to XCode 15.2 (Mac Only)
-      if: ${{ matrix.os == 'macos-13' }}
-      run: |
-        brew install openssl@3
-        sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
-    - name: Get CMake 3.x
-      uses: lukka/get-cmake@28983e0d3955dba2bb0a6810caae0c6cf268ec0c
+    - name: Get CMake
+      uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
       with:
-        cmakeVersion: "~3.25.0"  # <--= optional, use most recent 3.25.x version
+        cmakeVersion: "latest"
     - name: cmake
-      uses: lukka/run-cmake@67c73a83a46f86c4e0b96b741ac37ff495478c38
+      uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
-        workflowPreset: "ci-${{matrix.os}}"
+        workflowPreset: "${{ matrix.debug_preset }}"
+
+    - name: Extract Linux debug symbols
+      if: matrix.os == 'ubuntu-24.04'
+      run: |
+        find build -type f -name '*Server' | while read bin; do
+          objcopy --only-keep-debug "$bin" "${bin}.debug"
+          objcopy --strip-debug --add-gnu-debuglink="${bin}.debug" "$bin"
+        done
+
     - name: artifacts
-      uses: actions/upload-artifact@6027e3dd177782cd8ab9af838c04fd81a07f1d47
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: build-${{matrix.os}}
+        name: build-${{matrix.artifact}}
         path: |
           build/*/*Server*
           build/*/*.ini
@@ -52,5 +67,30 @@ jobs:
           build/*/navmeshes/
           build/*/migrations/
           build/*/*.dcf
-          !build/*/*.pdb
           !build/*/d*/
+          !build/*/*.dSYM/
+          !build/**/*.debug
+
+    - name: debug symbols (Windows)
+      if: matrix.os == 'windows-2025'
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: debug-${{matrix.artifact}}
+        path: |
+          build/*/*.pdb
+          build/*/d*/
+        retention-days: 30
+    - name: debug symbols (Linux)
+      if: matrix.os == 'ubuntu-24.04'
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: debug-${{matrix.artifact}}
+        path: build/**/*.debug
+        retention-days: 30
+    - name: debug symbols (macOS)
+      if: matrix.os == 'macos-15-intel'
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: debug-${{matrix.artifact}}
+        path: build/**/*.dSYM/
+        retention-days: 30

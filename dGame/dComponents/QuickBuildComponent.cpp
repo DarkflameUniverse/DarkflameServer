@@ -22,6 +22,8 @@
 #include "RenderComponent.h"
 
 #include "CppScripts.h"
+#include "StringifiedEnum.h"
+#include "Amf3.h"
 
 QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : Component{ entity, componentID } {
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
@@ -42,6 +44,7 @@ QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t com
 	}
 
 	SpawnActivator();
+	RegisterMsg(&QuickBuildComponent::OnGetObjectReportInfo);
 }
 
 QuickBuildComponent::~QuickBuildComponent() {
@@ -380,7 +383,7 @@ void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 		m_Builder = user->GetObjectID();
 
 		auto* character = user->GetComponent<CharacterComponent>();
-		character->SetCurrentActivity(eGameActivity::QUICKBUILDING);
+		if (character) character->SetCurrentActivity(eGameActivity::QUICKBUILDING);
 
 		Game::entityManager->SerializeEntity(user);
 
@@ -567,4 +570,31 @@ void QuickBuildComponent::AddQuickBuildCompleteCallback(const std::function<void
 
 void QuickBuildComponent::AddQuickBuildStateCallback(const std::function<void(eQuickBuildState state)>& callback) {
 	m_QuickBuildStateCallbacks.push_back(callback);
+}
+
+bool QuickBuildComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+	auto& quickbuild = reportInfo.info->PushDebug("Quick Build");
+	quickbuild.PushDebug<AMFStringValue>("State") = StringifiedEnum::ToString(m_State).data();
+	quickbuild.PushDebug<AMFDoubleValue>("Timer") = m_Timer;
+	quickbuild.PushDebug<AMFDoubleValue>("Timer Incomplete") = m_TimerIncomplete;
+	quickbuild.PushDebug("Activator Position").PushDebug(m_ActivatorPosition);
+	quickbuild.PushDebug<AMFStringValue>("Activator ID", "LWOOBJID") = std::to_string(m_ActivatorId);
+	quickbuild.PushDebug<AMFBoolValue>("Show Reset Effect") = m_ShowResetEffect;
+	quickbuild.PushDebug<AMFDoubleValue>("Taken") = m_Taken;
+	quickbuild.PushDebug<AMFDoubleValue>("Reset Time") = m_ResetTime;
+	quickbuild.PushDebug<AMFDoubleValue>("Complete Time") = m_CompleteTime;
+	quickbuild.PushDebug<AMFIntValue>("Take Imagination") = m_TakeImagination;
+	quickbuild.PushDebug<AMFBoolValue>("Interruptible") = m_Interruptible;
+	quickbuild.PushDebug<AMFBoolValue>("Self Activator") = m_SelfActivator;
+	auto& modules = quickbuild.PushDebug("Custom Modules");
+	for (const auto cmodule : m_CustomModules) modules.PushDebug<AMFIntValue>("Module") = cmodule;
+	quickbuild.PushDebug<AMFIntValue>("Activity Id") = m_ActivityId;
+	quickbuild.PushDebug<AMFIntValue>("Post Imagination Cost") = m_PostImaginationCost;
+	quickbuild.PushDebug<AMFDoubleValue>("Time Before Smash") = m_TimeBeforeSmash;
+	quickbuild.PushDebug<AMFDoubleValue>("Time Before Drain") = m_TimeBeforeDrain;
+	quickbuild.PushDebug<AMFIntValue>("Drained Imagination") = m_DrainedImagination;
+	quickbuild.PushDebug<AMFBoolValue>("Reposition Player") = m_RepositionPlayer;
+	quickbuild.PushDebug<AMFDoubleValue>("Soft Timer") = m_SoftTimer;
+	quickbuild.PushDebug<AMFStringValue>("Builder", "LWOOBJID") = std::to_string(m_Builder);
+	return true;
 }

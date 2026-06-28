@@ -135,8 +135,11 @@
 #include "FvMaelstromCavalry.h"
 #include "FvHorsemenTrigger.h"
 #include "FvFlyingCreviceDragon.h"
+#include "FvDragonInstanceServer.h"
 #include "FvMaelstromDragon.h"
+#include "DragonRonin.h"
 #include "FvDragonSmashingGolemQb.h"
+#include "CountdownDestroyAI.h"
 #include "TreasureChestDragonServer.h"
 #include "InstanceExitTransferPlayerToLastNonInstance.h"
 #include "FvFreeGfNinjas.h"
@@ -166,6 +169,7 @@
 #include "AgSalutingNpcs.h"
 #include "BossSpiderQueenEnemyServer.h"
 #include "RockHydrantSmashable.h"
+#include "HatchlingPets.h"
 
 // Misc Scripts
 #include "ExplodingAsset.h"
@@ -273,11 +277,13 @@
 #include "MonCoreNookDoors.h"
 #include "MonCoreSmashableDoors.h"
 #include "FlameJetServer.h"
+#include "LightningOrbServer.h"
 #include "BurningTile.h"
 #include "NjEarthDragonPetServer.h"
 #include "NjEarthPetServer.h"
 #include "NjDragonEmblemChestServer.h"
 #include "NjNyaMissionitems.h"
+#include "OldManNPC.h"
 
 // Scripted equipment
 #include "AnvilOfArmor.h"
@@ -337,6 +343,8 @@
 #include "TrialFactionArmorServer.h"
 #include "ImaginationBackPack.h"
 #include "NsWinterRaceServer.h"
+
+#include "RegisterWithZoneControl.h"
 
 #include <map>
 #include <string>
@@ -420,6 +428,7 @@ namespace {
 		{"scripts\\ai\\NS\\L_NS_CONCERT_INSTRUMENT_QB.lua", []() {return new NsConcertInstrument();}},
 		{"scripts\\ai\\NS\\L_NS_JONNY_FLAG_MISSION_SERVER.lua", []() {return new NsJohnnyMissionServer();}},
 		{"scripts\\02_server\\Objects\\L_STINKY_FISH_TARGET.lua", []() {return new StinkyFishTarget();}},
+		{"scripts\\02_server\\Objects\\Hatchlings\\L_HATCHLING_PETS.lua", []() {return new HatchlingPets();}},
 		{"scripts\\zone\\PROPERTY\\NS\\L_ZONE_NS_PROPERTY.lua", []() {return new ZoneNsProperty();}},
 		{"scripts\\02_server\\Map\\Property\\NS_Med\\L_ZONE_NS_MED_PROPERTY.lua", []() {return new ZoneNsMedProperty();}},
 		{"scripts\\02_server\\Map\\NS\\L_NS_TOKEN_CONSOLE_SERVER.lua", []() {return new NsTokenConsoleServer();}},
@@ -485,7 +494,10 @@ namespace {
 		{"scripts\\ai\\FV\\L_ACT_NINJA_TURRET_1.lua", []() {return new ActNinjaTurret();}},
 		{"scripts\\02_server\\Map\\FV\\L_FV_HORSEMEN_TRIGGER.lua", []() {return new FvHorsemenTrigger();}},
 		{"scripts\\ai\\FV\\L_FV_FLYING_CREVICE_DRAGON.lua", []() {return new FvFlyingCreviceDragon();}},
+		{"scripts\\ai\\FV\\Dragon_Instance\\L_FV_DRAGON_INSTANCE_SERVER.lua", []() {return new FvDragonInstanceServer();}},
+		{"scripts\\02_server\\Enemy\\FV\\L_FV_DRAGON_RONIN.lua", []() {return new DragonRonin();}},
 		{"scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_DRAGON.lua", []() {return new FvMaelstromDragon();}},
+		{"scripts\\02_server\\Enemy\\General\\L_COUNTDOWN_DESTROY_AI.lua", []() {return new CountdownDestroyAI();}},
 		{"scripts\\ai\\FV\\L_FV_DRAGON_SMASHING_GOLEM_QB.lua", []() {return new FvDragonSmashingGolemQb();}},
 		{"scripts\\02_server\\Enemy\\General\\L_TREASURE_CHEST_DRAGON_SERVER.lua", []() {return new TreasureChestDragonServer();}},
 		{"scripts\\ai\\GENERAL\\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua", []() {return new InstanceExitTransferPlayerToLastNonInstance();}},
@@ -623,11 +635,13 @@ namespace {
 		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua", []() {return new MonCoreSmashableDoors();}},
 		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua", []() {return new MonCoreSmashableDoors();}},
 		{"scripts\\02_server\\Map\\njhub\\L_FLAME_JET_SERVER.lua", []() {return new FlameJetServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_LIGHTNING_ORB_SERVER.lua", []() {return new LightningOrbServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_BURNING_TILE.lua", []() {return new BurningTile();}},
 		{"scripts\\02_server\\Map\\njhub\\L_SPAWN_EARTH_PET_SERVER.lua", []() {return new NjEarthDragonPetServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_EARTH_PET_SERVER.lua", []() {return new NjEarthPetServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_DRAGON_EMBLEM_CHEST_SERVER.lua", []() {return new NjDragonEmblemChestServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_NYA_MISSION_ITEMS.lua", []() {return new NjNyaMissionitems();}},
+		{"scripts\\02_server\\Map\\njhub\\L_OLD_MAN_NPC.lua", []() {return new OldManNPC();}},
 
 		//DLU
 		{"scripts\\02_server\\DLU\\DLUVanityTeleportingObject.lua", []() {return new DLUVanityTeleportingObject();}},
@@ -661,6 +675,7 @@ namespace {
 
 		//WBL
 		{"scripts\\zone\\LUPs\\WBL_generic_zone.lua", []() {return new WblGenericZone();}},
+		{"scripts\\zone\\LUPs\\Moonbase Intro\\MOONBASE-INTRO_INTRO_CINEMATIC.lua", []() {return new WblGenericZone();}},
 
 		//Alpha
 		{"scripts\\ai\\FV\\L_TRIGGER_GAS.lua", []() {return new TriggerGas();}},
@@ -706,7 +721,8 @@ namespace {
 		{"scripts\\ai\\RACING\\OBJECTS\\VEHICLE_DEATH_TRIGGER_WATER_SERVER.lua", []() {return new VehicleDeathTriggerWaterServer();}},
 		{"scripts\\equipmenttriggers\\L_TRIAL_FACTION_ARMOR_SERVER.lua", []() {return new TrialFactionArmorServer();}},
 		{"scripts\\equipmenttriggers\\ImaginationBackPack.lua", []() {return new ImaginationBackPack();}},
-
+		{"scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON_INSTANCE_ACTOR.lua", [](){return new RegisterWithZoneControl();}},
+		{"scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON_INSTANCE_EFFECT.lua", [](){return new RegisterWithZoneControl();}},
 	};
 
 	std::set<std::string> g_ExcludedScripts = {
@@ -730,6 +746,11 @@ namespace {
 		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_InfectedCitizen.lua",
 		"scripts\\ai\\MINIGAME\\SIEGE\\OBJECTS\\ATTACKER_BOUNCER_SERVER.lua",
 		"scripts\\ai\\AG\\L_AG_ZONE_PLAYER.lua",
+		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_MOVEMENT.lua", // Really old alpha script
+		"scripts\\zone\\LUPs\\DeepFreeze Intro\\WBL_Enemy_Beaver.lua", // Really old alpha script
+		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_WANDER_SMALL.lua", // Really old alpha script
+		"scripts\\ai\\NP\\L_NPC_NP_OLD_MAN_SHERLAND.lua", // This NPC doesn't even exist in modern crux, the only place this is used...
+		"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua", // This platform does not exist even when moved manually on a client
 	};
 };
 
@@ -743,7 +764,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 	Script* script = itrTernary != scriptLoader.cend() ? itrTernary->second() : &InvalidToReturn;
 
 	if (script == &InvalidToReturn && !scriptName.empty() && !g_ExcludedScripts.contains(scriptName)) {
-		LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
+		const auto [x, y, z] = parent->GetPosition();
+		LOG_DEBUG("LOT %i at %f %f %f attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), x, y, z, scriptName.c_str());
 	}
 
 	g_Scripts[scriptName] = script;

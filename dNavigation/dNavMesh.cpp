@@ -37,6 +37,10 @@ dNavMesh::~dNavMesh() {
 
 
 void dNavMesh::LoadNavmesh() {
+	struct FPClose {
+		FILE* fp{};
+		~FPClose() { if (fp) fclose(fp); }
+	} fp;
 
 	std::string path = (BinaryPathFinder::GetBinaryDir() / "navmeshes/" / (std::to_string(m_ZoneId) + ".bin")).string();
 
@@ -44,55 +48,48 @@ void dNavMesh::LoadNavmesh() {
 		return;
 	}
 
-	FILE* fp;
-
 #ifdef _WIN32
-	fopen_s(&fp, path.c_str(), "rb");
+	fopen_s(&fp.fp, path.c_str(), "rb");
 #elif __APPLE__
 	// macOS has 64bit file IO by default
-	fp = fopen(path.c_str(), "rb");
+	fp.fp = fopen(path.c_str(), "rb");
 #else
-	fp = fopen64(path.c_str(), "rb");
+	fp.fp = fopen64(path.c_str(), "rb");
 #endif
 
-	if (!fp) {
+	if (!fp.fp) {
 		return;
 	}
 
 	// Read header.
 	NavMeshSetHeader header;
-	size_t readLen = fread(&header, sizeof(NavMeshSetHeader), 1, fp);
+	size_t readLen = fread(&header, sizeof(NavMeshSetHeader), 1, fp.fp);
 	if (readLen != 1) {
-		fclose(fp);
 		return;
 	}
 
 	if (header.magic != NAVMESHSET_MAGIC) {
-		fclose(fp);
 		return;
 	}
 
 	if (header.version != NAVMESHSET_VERSION) {
-		fclose(fp);
 		return;
 	}
 
 	dtNavMesh* mesh = dtAllocNavMesh();
 	if (!mesh) {
-		fclose(fp);
 		return;
 	}
 
 	dtStatus status = mesh->init(&header.params);
 	if (dtStatusFailed(status)) {
-		fclose(fp);
 		return;
 	}
 
 	// Read tiles.
 	for (int i = 0; i < header.numTiles; ++i) {
 		NavMeshTileHeader tileHeader;
-		readLen = fread(&tileHeader, sizeof(tileHeader), 1, fp);
+		readLen = fread(&tileHeader, sizeof(tileHeader), 1, fp.fp);
 		if (readLen != 1) return;
 
 		if (!tileHeader.tileRef || !tileHeader.dataSize)
@@ -101,13 +98,14 @@ void dNavMesh::LoadNavmesh() {
 		unsigned char* data = static_cast<unsigned char*>(dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM));
 		if (!data) break;
 		memset(data, 0, tileHeader.dataSize);
-		readLen = fread(data, tileHeader.dataSize, 1, fp);
-		if (readLen != 1) return;
+		readLen = fread(data, tileHeader.dataSize, 1, fp.fp);
+		if (readLen != 1) {
+			dtFree(data);
+			return;
+		}
 
 		mesh->addTile(data, tileHeader.dataSize, DT_TILE_FREE_DATA, tileHeader.tileRef, 0);
 	}
-
-	fclose(fp);
 
 	m_NavMesh = mesh;
 }
@@ -187,13 +185,18 @@ std::vector<NiPoint3> dNavMesh::GetPath(const NiPoint3& startPos, const NiPoint3
 		path.push_back(startPos); //insert the start pos
 
 		// Linearly interpolate between these two points:
-		for (int i = 0; i < numPoints; i++) {
-			NiPoint3 newPoint{ startPos };
+		const auto yDist = endPos.y - startPos.y;
+		// Ensure we cannot divide by zero
+		const auto xDist = endPos.x - startPos.x;
+		if (xDist != 0.0f) {
+			for (int i = 0; i < numPoints; i++) {
+				NiPoint3 newPoint{ startPos };
 
-			newPoint.x += speed;
-			newPoint.y = newPoint.y + (((endPos.y - startPos.y) / (endPos.x - startPos.x)) * (newPoint.x - startPos.x));
+				newPoint.x += speed;
+				newPoint.y = newPoint.y + ((yDist / xDist) * (newPoint.x - startPos.x));
 
-			path.push_back(newPoint);
+				path.push_back(newPoint);
+			}
 		}
 
 		path.push_back(endPos); //finally insert our end pos
@@ -212,16 +215,16 @@ std::vector<NiPoint3> dNavMesh::GetPath(const NiPoint3& startPos, const NiPoint3
 	ePos[2] = endPos.z;
 
 	dtStatus pathFindStatus;
-	dtPolyRef startRef;
-	dtPolyRef endRef;
+	dtPolyRef startRef{};
+	dtPolyRef endRef{};
 	float polyPickExt[3] = { 32.0f, 32.0f, 32.0f };
 	dtQueryFilter filter{};
 
 	//Find our start poly
-	m_NavQuery->findNearestPoly(sPos, polyPickExt, &filter, &startRef, 0);
+	const auto startResult = m_NavQuery->findNearestPoly(sPos, polyPickExt, &filter, &startRef, 0);
 
 	//Find our end poly
-	m_NavQuery->findNearestPoly(ePos, polyPickExt, &filter, &endRef, 0);
+	const auto endResult = m_NavQuery->findNearestPoly(ePos, polyPickExt, &filter, &endRef, 0);
 
 	pathFindStatus = DT_FAILURE;
 	int m_nstraightPath = 0;
@@ -232,7 +235,7 @@ std::vector<NiPoint3> dNavMesh::GetPath(const NiPoint3& startPos, const NiPoint3
 	dtPolyRef m_straightPathPolys[MAX_POLYS];
 	int m_straightPathOptions = 0;
 
-	if (startRef && endRef) {
+	if (dtStatusSucceed(startResult) && dtStatusSucceed(endResult)) {
 		m_NavQuery->findPath(startRef, endRef, sPos, ePos, &filter, m_polys, &m_npolys, MAX_POLYS);
 
 		if (m_npolys) {

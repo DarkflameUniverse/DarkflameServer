@@ -48,7 +48,6 @@ Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
 Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
 
 DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
-	using namespace GameMessages;
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
 	m_iImagination = 0;
@@ -86,9 +85,9 @@ DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t compone
 
 	m_DamageCooldownTimer = 0.0f;
 
-	RegisterMsg<GetObjectReportInfo>(this, &DestroyableComponent::OnGetObjectReportInfo);
-	RegisterMsg<GameMessages::SetFaction>(this, &DestroyableComponent::OnSetFaction);
-	RegisterMsg<GameMessages::IsDead>(this, &DestroyableComponent::OnIsDead);
+	RegisterMsg(&DestroyableComponent::OnGetObjectReportInfo);
+	RegisterMsg(&DestroyableComponent::OnSetFaction);
+	RegisterMsg(&DestroyableComponent::OnIsDead);
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -794,7 +793,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
-			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+			if (!zoneControl || scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				scriptEntity->GetScript()->OnPlayerDied(scriptEntity, m_Parent);
 			}
 		}
@@ -882,9 +881,9 @@ void DestroyableComponent::FixStats() {
 	int32_t currentImagination = destroyableComponent->GetImagination();
 
 	// Unequip all items
-	auto equipped = inventoryComponent->GetEquippedItems();
+	const auto equipped = inventoryComponent->GetEquippedItems();
 
-	for (auto& equippedItem : equipped) {
+	for (const auto& equippedItem : equipped) {
 		// Get the item with the item ID
 		auto* item = inventoryComponent->FindItemById(equippedItem.second.id);
 
@@ -925,7 +924,7 @@ void DestroyableComponent::FixStats() {
 	buffComponent->ReApplyBuffs();
 
 	// Requip all items
-	for (auto& equippedItem : equipped) {
+	for (const auto& equippedItem : equipped) {
 		// Get the item with the item ID
 		auto* item = inventoryComponent->FindItemById(equippedItem.second.id);
 
@@ -965,6 +964,8 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	if (m_Parent->IsPlayer()) {
 		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
 		auto* character = m_Parent->GetComponent<CharacterComponent>();
+		if (!character) return;
+
 		auto uscore = character->GetUScore();
 
 		auto uscoreToLose = static_cast<uint64_t>(uscore * (Game::entityManager->GetHardcoreLoseUscoreOnDeathPercent() / 100.0f));
@@ -1061,8 +1062,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	}
 }
 
-bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	auto& destroyableInfo = reportInfo.info->PushDebug("Destroyable");
 	destroyableInfo.PushDebug<AMFIntValue>("DestructibleComponent DB Table Template ID") = m_ComponentID;
 
@@ -1146,7 +1146,7 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	destroyableInfo.PushDebug<AMFDoubleValue>("Explode Factor") = m_ExplodeFactor;
 	destroyableInfo.PushDebug<AMFBoolValue>("Has Threats") = m_HasThreats;
 
-	destroyableInfo.PushDebug<AMFStringValue>("Killer ID") = std::to_string(m_KillerID);
+	destroyableInfo.PushDebug<AMFStringValue>("Killer ID", "LWOOBJID") = std::to_string(m_KillerID);
 
 	// "Scripts"; idk what to do about scripts yet
 	auto& immuneCounts = destroyableInfo.PushDebug("Immune Counts");
@@ -1184,16 +1184,14 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	return true;
 }
 
-bool DestroyableComponent::OnSetFaction(GameMessages::GameMsg& msg) {
-	auto& modifyFaction = static_cast<GameMessages::SetFaction&>(msg);
+bool DestroyableComponent::OnSetFaction(GameMessages::SetFaction& setFaction) {
 	m_DirtyHealth = true;
 	Game::entityManager->SerializeEntity(m_Parent);
-	SetFaction(modifyFaction.factionID, modifyFaction.bIgnoreChecks);
+	SetFaction(setFaction.factionID, setFaction.bIgnoreChecks);
 	return true;
 }
 
-bool DestroyableComponent::OnIsDead(GameMessages::GameMsg& msg) {
-	auto& isDeadMsg = static_cast<GameMessages::IsDead&>(msg);
-	isDeadMsg.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
+bool DestroyableComponent::OnIsDead(GameMessages::IsDead& isDead) {
+	isDead.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
 	return true;
 }

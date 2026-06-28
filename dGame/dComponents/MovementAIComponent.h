@@ -31,27 +31,27 @@ struct MovementAIInfo {
 	/**
 	 * The radius that the entity can wander in
 	 */
-	float wanderRadius;
+	float wanderRadius{};
 
 	/**
 	 * The speed at which the entity wanders
 	 */
-	float wanderSpeed;
+	float wanderSpeed{};
 
 	/**
 	 * This is only used for the emotes
 	 */
-	float wanderChance;
+	float wanderChance{};
 
 	/**
 	 * The min amount of delay before wandering
 	 */
-	float wanderDelayMin;
+	float wanderDelayMin{};
 
 	/**
 	 * The max amount of delay before wandering
 	 */
-	float wanderDelayMax;
+	float wanderDelayMax{};
 };
 
 /**
@@ -211,7 +211,18 @@ public:
 
 	bool IsPaused() const { return m_Paused; }
 
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
+
+	bool HasPath() const { return m_Path != nullptr; }
+
+	void FollowTarget(const LWOOBJID target);
 private:
+
+	/**
+	 * @brief
+	 * Runs the commands on a waypoint if a path exists
+	 */
+	void RunWaypointCommands(uint32_t waypointNum);
 
 	/**
 	 * Sets the current position of the entity
@@ -328,6 +339,8 @@ private:
 
 	// The number of waypoints that were on the path in the call to SetPath
 	uint32_t m_CurrentPathWaypointCount{ 0 };
+
+	LWOOBJID m_FollowedTarget{ LWOOBJID_EMPTY };
 };
 
 #endif // MOVEMENTAICOMPONENT_H

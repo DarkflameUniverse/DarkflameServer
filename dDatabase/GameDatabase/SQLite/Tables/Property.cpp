@@ -18,8 +18,8 @@ IProperty::Info ReadPropertyInfo(CppSQLite3Query& propertyEntry) {
 	return toReturn;
 }
 
-std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(const IProperty::PropertyLookup& params) {
-	std::optional<IProperty::PropertyEntranceResult> result;
+IProperty::PropertyEntranceResult SQLiteDatabase::GetProperties(const IProperty::PropertyLookup& params) {
+	IProperty::PropertyEntranceResult result;
 	std::string query;
 	std::pair<CppSQLite3Statement, CppSQLite3Query> propertiesRes;
 
@@ -73,8 +73,7 @@ std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(c
 			params.playerId
 		);
 		if (!count.eof()) {
-			result = IProperty::PropertyEntranceResult();
-			result->totalEntriesMatchingQuery = count.getIntField("count");
+			result.totalEntriesMatchingQuery = count.getIntField("count");
 		}
 	} else {
 		if (params.sortChoice == SORT_TYPE_REPUTATION) {
@@ -127,15 +126,13 @@ std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(c
 			params.playerSort
 		);
 		if (!count.eof()) {
-			result = IProperty::PropertyEntranceResult();
-			result->totalEntriesMatchingQuery = count.getIntField("count");
+			result.totalEntriesMatchingQuery = count.getIntField("count");
 		}
 	}
 
 	auto& [_, properties] = propertiesRes;
-	if (!properties.eof() && !result.has_value()) result = IProperty::PropertyEntranceResult();
 	while (!properties.eof()) {
-		result->entries.push_back(ReadPropertyInfo(properties));
+		result.entries.push_back(ReadPropertyInfo(properties));
 		properties.nextRow();
 	}
 

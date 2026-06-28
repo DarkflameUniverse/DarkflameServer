@@ -13,6 +13,7 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "eMissionState.h"
+#include "PetComponent.h"
 
 std::map<uint32_t, Precondition*> Preconditions::cache = {};
 
@@ -79,6 +80,9 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const {
 	case PreconditionType::DoesNotHaveRacingLicence:
 	case PreconditionType::LegoClubMember:
 	case PreconditionType::NoInteraction:
+	case PreconditionType::NotFreeTrial:
+	case PreconditionType::MissionActive:
+	case PreconditionType::DoesNotHaveFlag:
 		any = true;
 		break;
 	case PreconditionType::DoesNotHaveItem:
@@ -114,11 +118,13 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const {
 
 
 bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluateCosts) const {
-	auto* missionComponent = player->GetComponent<MissionComponent>();
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
-	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
-	auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 	auto* character = player->GetCharacter();
+	auto [missionComponent, inventoryComponent, destroyableComponent, levelComponent] =
+		player->GetComponentsMut<const MissionComponent, /* not const */ InventoryComponent, const DestroyableComponent, const LevelProgressionComponent>();
+	
+	if (!missionComponent || !inventoryComponent || !destroyableComponent || !levelComponent || !character) {
+		return false;
+	}
 
 	Mission* mission;
 
@@ -152,7 +158,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 		if (missionComponent == nullptr) return false;
 		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::PetDeployed:
-		return false; // TODO
+		return PetComponent::GetActivePet(player->GetObjectID()) != nullptr;
 	case PreconditionType::HasFlag:
 		return character->GetPlayerFlag(value);
 	case PreconditionType::WithinShape:
@@ -160,9 +166,9 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::InBuild:
 		return character->GetBuildMode();
 	case PreconditionType::TeamCheck:
-		return false; // TODO
+		return false; // TODO: requires knowing the player's minigame team assignment (red/blue etc.); DLU does not track this per-player
 	case PreconditionType::IsPetTaming:
-		return false; // TODO
+		return PetComponent::GetTamingPet(player->GetObjectID()) != nullptr;
 	case PreconditionType::HasFaction:
 		for (const auto faction : destroyableComponent->GetFactionIDs()) {
 			if (faction == static_cast<int>(value)) {
@@ -180,15 +186,24 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 
 		return true;
 	case PreconditionType::HasRacingLicence:
-		return false; // TODO
+		return false; // TODO: requires a racing licence level on the player; DLU does not track this
 	case PreconditionType::DoesNotHaveRacingLicence:
-		return false; // TODO
+		return false; // TODO: requires a racing licence level on the player; DLU does not track this
 	case PreconditionType::LegoClubMember:
-		return false; // TODO
+		return true; // Live LU opened LEGO CLUB to All players at some point, so always return true
 	case PreconditionType::NoInteraction:
-		return false; // TODO
+		return false; // TODO: requires tracking the player's currently active interaction object; DLU does not track this
 	case PreconditionType::HasLevel:
 		return levelComponent->GetLevel() >= value;
+	case PreconditionType::NotFreeTrial:
+		return true; // DLU does not support free trial accounts; all players pass this check
+	case PreconditionType::MissionActive: {
+		if (missionComponent == nullptr) return false;
+		const auto state = missionComponent->GetMissionState(value);
+		return state == eMissionState::ACTIVE || state == eMissionState::COMPLETE_ACTIVE;
+	}
+	case PreconditionType::DoesNotHaveFlag:
+		return !character->GetPlayerFlag(value);
 	default:
 		return true; // There are a couple more unknown preconditions. Always return true in this case.
 	}
@@ -228,6 +243,7 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions) {
 		case '&':
 		case ';':
 		case '(':
+		case ':':
 			b << conditions.substr(i + 1);
 			done = true;
 			break;

@@ -11,14 +11,16 @@ ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 
 	ChatMessage message;
-	uint32_t messageLength;
+	int32_t messageLength{};
 
 	inStream.Read(message.chatChannel);
 	inStream.Read(message.unknown);
 	inStream.Read(messageLength);
 
-	for (uint32_t i = 0; i < (messageLength - 1); ++i) {
-		uint16_t character;
+	if (messageLength > MAX_MESSAGE_LENGTH || messageLength < 0) return message;
+
+	for (int32_t i = 0; i < (messageLength - 1); ++i) {
+		char16_t character;
 		inStream.Read(character);
 		message.message.push_back(character);
 	}
@@ -106,6 +108,7 @@ ChatModerationRequest ClientPackets::HandleChatModerationRequest(Packet* packet)
 
 	uint16_t messageLength;
 	inStream.Read(messageLength);
+	if (messageLength > MAX_MESSAGE_LENGTH) return request;
 	for (uint32_t i = 0; i < messageLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);

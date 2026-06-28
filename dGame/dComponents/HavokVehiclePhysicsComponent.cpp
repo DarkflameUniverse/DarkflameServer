@@ -3,7 +3,7 @@
 #include "Amf3.h"
 
 HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
-	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
+	RegisterMsg(&HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Velocity = NiPoint3Constant::ZERO;
 	m_AngularVelocity = NiPoint3Constant::ZERO;
@@ -102,24 +102,17 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	outBitStream.Write0();
 }
 
-bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	PhysicsComponent::OnGetObjectReportInfo(msg);
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+	PhysicsComponent::OnGetObjectReportInfo(reportInfo);
 	if (!reportInfo.subCategory) {
 		return false;
 	}
 
 	auto& info = reportInfo.subCategory->PushDebug("Havok Vehicle Physics Info");
 
-	auto& velocity = info.PushDebug("Velocity");
-	velocity.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
-	velocity.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
-	velocity.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
+	auto& velocity = info.PushDebug("Velocity").PushDebug(m_Velocity);
 
-	auto& angularVelocity = info.PushDebug("Angular Velocity");
-	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
-	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
-	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+	auto& angularVelocity = info.PushDebug("Angular Velocity").PushDebug(m_AngularVelocity);
 
 	info.PushDebug<AMFBoolValue>("Is On Ground") = m_IsOnGround;
 	info.PushDebug<AMFBoolValue>("Is On Rail") = m_IsOnRail;

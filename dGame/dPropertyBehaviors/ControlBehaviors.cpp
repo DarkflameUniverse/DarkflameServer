@@ -164,7 +164,12 @@ void ControlBehaviors::ProcessCommand(Entity* const modelEntity, const AMFArrayV
 		LOG("Unknown behavior command (%s)", command.data());
 	}
 
-	if (needsNewBehaviorID) RequestUpdatedID(context);
+	// If we need a new behaviorID, request it and progress the mission for adding a behavior.
+	// "add" takes care of this in the ModelComponent directly so we do not need to do it here for that command.
+	if (needsNewBehaviorID) {
+		RequestUpdatedID(context);
+		context.modelComponent->ProgressAddBehaviorMission(*context.modelOwner);
+	}
 }
 
 ControlBehaviors::ControlBehaviors() {

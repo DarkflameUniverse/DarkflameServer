@@ -8,3 +8,5 @@ target_include_directories(dServer PUBLIC ".")
 target_include_directories(dServer PRIVATE
 	"${PROJECT_SOURCE_DIR}/dCommon/" # BinaryPathFinder.h
 )
+
+target_link_libraries(dServer PRIVATE dCommon)

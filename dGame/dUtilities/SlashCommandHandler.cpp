@@ -261,7 +261,7 @@ void SlashCommandHandler::Startup() {
 
 	Command TestMapCommand{
 		.help = "Transfers you to the given zone",
-		.info = "Transfers you to the given zone by id and clone id. Add \"force\" to skip checking if the zone is accessible (this can softlock your character, though, if you e.g. try to teleport to Frostburgh).",
+		.info = "Transfers you to the given zone by id and clone id and then spawns you at the specified spawn point if one was specified. Ignores instance-id for now.",
 		.aliases = { "testmap", "tm" },
 		.handle = DEVGMCommands::TestMap,
 		.requiredLevel = eGameMasterLevel::FORUM_MODERATOR
@@ -468,7 +468,7 @@ void SlashCommandHandler::Startup() {
 
 	Command InspectCommand{
 		.help = "Inspect an object",
-		.info = "Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See detailed usage in the DLU docs",
+		.info = "Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the IDs of all components the entity has. Use `localCharacter` or `zoneControl` to inspect your current character or the zone control object.",
 		.aliases = { "inspect" },
 		.handle = DEVGMCommands::Inspect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER

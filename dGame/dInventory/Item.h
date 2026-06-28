@@ -40,7 +40,7 @@ public:
 		uint32_t slot,
 		uint32_t count,
 		bool bound,
-		const std::vector<LDFBaseData*>& config,
+		const LwoNameValue& config,
 		LWOOBJID parent,
 		LWOOBJID subKey,
 		eLootSourceType lootSourceType = eLootSourceType::NONE
@@ -64,7 +64,7 @@ public:
 		Inventory* inventory,
 		uint32_t slot = 0,
 		uint32_t count = 1,
-		const std::vector<LDFBaseData*>& config = {},
+		const LwoNameValue& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,
 		bool showFlyingLoot = true,
 		bool isModMoveAndEquip = false,
@@ -118,13 +118,13 @@ public:
 	 * Returns current config info for this item, e.g. for rockets
 	 * @return current config info for this item
 	 */
-	std::vector<LDFBaseData*>& GetConfig();
+	LwoNameValue& GetConfig();
 
 	/**
 	 * Returns current config info for this item, e.g. for rockets
 	 * @return current config info for this item
 	 */
-	std::vector<LDFBaseData*> GetConfig() const;
+	const LwoNameValue& GetConfig() const;
 
 	/**
 	 * Returns the database info for this item
@@ -269,7 +269,7 @@ private:
 	/**
 	 * Config data for this item, e.g. for rocket parts and car parts
 	 */
-	std::vector<LDFBaseData*> config;
+	LwoNameValue config;
 
 	/**
 	 * The inventory this item belongs to

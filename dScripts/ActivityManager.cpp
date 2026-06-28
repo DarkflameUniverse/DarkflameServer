@@ -7,6 +7,7 @@
 #include "Logger.h"
 #include "Loot.h"
 #include "ShootingGalleryComponent.h"
+#include "RacingControlComponent.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {
 	const auto* sac = self->GetComponent<ScriptedActivityComponent>();
@@ -99,6 +100,8 @@ bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID player
 		activityComponent = self->GetComponent<ShootingGalleryComponent>();
 	}
 
+	if (!activityComponent) return false;
+
 	auto* player = Game::entityManager->GetEntity(playerID);
 	if (player == nullptr)
 		return false;
@@ -111,7 +114,7 @@ uint32_t ActivityManager::CalculateActivityRating(Entity* self, const LWOOBJID p
 	if (sac == nullptr)
 		return 0;
 
-	return sac->GetInstance(playerID)->GetParticipants().size();
+	return sac->GetInstance(playerID).GetParticipants().size();
 }
 
 uint32_t ActivityManager::GetActivityID(const Entity* self) {

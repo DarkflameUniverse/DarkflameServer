@@ -26,12 +26,10 @@ void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
 	info.rot = spawner->GetRotation();
 	info.lot = self->GetVar<LOT>(u"petLOT");
 	info.spawnerID = self->GetObjectID();
-	info.settings = {
-		new LDFData<LWOOBJID>(u"tamer", user->GetObjectID()),
-		new LDFData<std::u16string>(u"groupID", petType + (GeneralUtils::to_u16string(user->GetObjectID())) + u";" + petType + u"s"),
-		new LDFData<std::u16string>(u"spawnAnim", self->GetVar<std::u16string>(u"spawnAnim")),
-		new LDFData<float_t>(u"spawnTimer", 1.0f)
-	};
+	info.settings.Insert<LWOOBJID>(u"tamer", user->GetObjectID());
+	info.settings.Insert<std::u16string>(u"groupID", petType + (GeneralUtils::to_u16string(user->GetObjectID())) + u";" + petType + u"s");
+	info.settings.Insert<std::u16string>(u"spawnAnim", self->GetVar<std::u16string>(u"spawnAnim"));
+	info.settings.Insert<float_t>(u"spawnTimer", 1.0f);
 
 	auto* pet = Game::entityManager->CreateEntity(info);
 	Game::entityManager->ConstructEntity(pet);
@@ -57,7 +55,7 @@ bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {
 		if (petID.empty())
 			continue;
 
-		const auto* spawnedPet = Game::entityManager->GetEntity(std::stoull(petID));
+		const auto* spawnedPet = Game::entityManager->GetEntity(GeneralUtils::TryParse(petID, LWOOBJID_EMPTY));
 		if (spawnedPet == nullptr)
 			continue;
 

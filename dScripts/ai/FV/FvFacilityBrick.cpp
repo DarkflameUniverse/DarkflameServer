@@ -9,9 +9,12 @@ void FvFacilityBrick::OnStartup(Entity* self) {
 }
 
 void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	auto* brickSpawner = Game::zoneManager->GetSpawnersByName("ImaginationBrick")[0];
-	auto* bugSpawner = Game::zoneManager->GetSpawnersByName("MaelstromBug")[0];
-	auto* canisterSpawner = Game::zoneManager->GetSpawnersByName("BrickCanister")[0];
+	const auto brickObjs = Game::zoneManager->GetSpawnersByName("ImaginationBrick");
+	auto* const brickSpawner = brickObjs.empty() ? nullptr : brickObjs[0];
+	const auto bugObjs = Game::zoneManager->GetSpawnersByName("MaelstromBug");
+	auto* const bugSpawner = bugObjs.empty() ? nullptr : bugObjs[0];
+	const auto canisterObjs = Game::zoneManager->GetSpawnersByName("BrickCanister");
+	auto* const canisterSpawner = canisterObjs.empty() ? nullptr : canisterObjs[0];
 
 	if (name == "ConsoleLeftUp") {
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeOff");
@@ -62,7 +65,7 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 		canisterSpawner->Reset();
 		canisterSpawner->Deactivate();
 	} else if (self->GetVar<bool>(u"ConsoleLEFTActive") || self->GetVar<bool>(u"ConsoleRIGHTActive")) {
-		brickSpawner->Activate();
+		if (brickSpawner) brickSpawner->Activate();
 
 		auto* object = Game::entityManager->GetEntitiesInGroup("Brick")[0];
 
@@ -70,17 +73,25 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 			GameMessages::SendStopFXEffect(object, true, "bluebrick");
 		}
 
-		bugSpawner->Reset();
-		bugSpawner->Deactivate();
+		if (bugSpawner) {
+			bugSpawner->Reset();
+			bugSpawner->Deactivate();
+		}
 
-		canisterSpawner->Reset();
-		canisterSpawner->Activate();
+		if (canisterSpawner) {
+			canisterSpawner->Reset();
+			canisterSpawner->Activate();
+		}
 	} else {
-		brickSpawner->Reset();
-		brickSpawner->Deactivate();
+		if (brickSpawner) {
+			brickSpawner->Reset();
+			brickSpawner->Deactivate();
+		}
 
-		bugSpawner->Reset();
-		bugSpawner->Activate();
+		if (bugSpawner) {
+			bugSpawner->Reset();
+			bugSpawner->Activate();
+		}
 	}
 }
 

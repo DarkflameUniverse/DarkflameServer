@@ -241,7 +241,7 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 
 void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
-		const auto spawnNumber = static_cast<uint32_t>(std::stoi(name.substr(7)));
+		const auto spawnNumber = GeneralUtils::TryParse(name.substr(7), 0);
 		const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
 		if (activeSpawns.size() <= spawnNumber) {
 			LOG_DEBUG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
@@ -261,15 +261,13 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		info.spawnerID = self->GetObjectID();
 		info.pos = path->pathWaypoints[0].position;
 
-		info.settings = {
-			new LDFData<SGEnemy>(u"SpawnData", toSpawn),
-			new LDFData<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"), // this script is never loaded
-			new LDFData<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua"),
-			new LDFData<std::string>(u"attached_path", path->pathName),
-			new LDFData<uint32_t>(u"attached_path_start", 0),
-			new LDFData<std::u16string>(u"groupID", u"SGEnemy"),
-			new LDFData<uint32_t>(u"wave", self->GetVar<uint32_t>(ThisWaveVariable)),
-		};
+		info.settings.Insert<SGEnemy>(u"SpawnData", toSpawn);
+		info.settings.Insert<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"); // this script is never loaded;
+		info.settings.Insert<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua");
+		info.settings.Insert<std::string>(u"attached_path", path->pathName);
+		info.settings.Insert<uint32_t>(u"attached_path_start", 0);
+		info.settings.Insert<std::u16string>(u"groupID", u"SGEnemy");
+		info.settings.Insert<uint32_t>(u"wave", self->GetVar<uint32_t>(ThisWaveVariable));
 
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
@@ -621,10 +619,11 @@ void SGCannon::OnActivityNotify(Entity* self, GameMessages::ActivityNotify& noti
 	if (!self->GetVar<bool>(GameStartedVariable)) return;
 
 	const auto& params = notify.notification;
-	if (params.empty()) return;
+	const auto itr = params.values.find(u"shot_done");
+	if (itr == params.values.end()) return;
 
-	const auto& param = params[0];
-	if (param->GetValueType() != LDF_TYPE_S32 || param->GetKey() != u"shot_done") return;
+	const auto& param = itr->second;
+	if (param->GetValueType() != LDF_TYPE_S32) return;
 
 	const auto superChargeShotDone = static_cast<LDFData<int32_t>*>(param.get())->GetValue() == GetConstants().cannonSuperChargeSkill;
 

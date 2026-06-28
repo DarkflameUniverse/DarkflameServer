@@ -24,6 +24,7 @@
 #include "WorldPackets.h"
 #include "MessageType/Game.h"
 #include <ctime>
+#include <ranges>
 
 CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress) : Component(parent, componentID) {
 	m_Character = character;
@@ -49,11 +50,10 @@ CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID
 	m_LastUpdateTimestamp = std::time(nullptr);
 	m_SystemAddress = systemAddress;
 
-	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &CharacterComponent::OnGetObjectReportInfo);
+	RegisterMsg(&CharacterComponent::OnGetObjectReportInfo);
 }
 
-bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 
 	auto& cmptType = reportInfo.info->PushDebug("Character");
 
@@ -492,7 +492,7 @@ Item* CharacterComponent::RocketEquip(Entity* player) {
 	if (!rocket) return rocket;
 
 	// build and define the rocket config
-	for (LDFBaseData* data : rocket->GetConfig()) {
+	for (const auto& data : rocket->GetConfig().values | std::views::values) {
 		if (data->GetKey() == u"assemblyPartLOTs") {
 			std::string newRocketStr = data->GetValueAsString() + ";";
 			GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
@@ -798,8 +798,14 @@ std::string CharacterComponent::StatisticsToString() const {
 	return result.str();
 }
 
-uint64_t CharacterComponent::GetStatisticFromSplit(std::vector<std::string> split, uint32_t index) {
-	return split.size() > index ? std::stoull(split.at(index)) : 0;
+uint64_t CharacterComponent::GetStatisticFromSplit(const std::vector<std::string>& split, const uint32_t index) {
+	uint64_t toReturn = 0;
+	if (index < split.size()) {
+		const auto parsed = GeneralUtils::TryParse<uint64_t>(split[index]);
+		if (parsed) toReturn = *parsed;
+	}
+	
+	return toReturn;
 }
 
 ZoneStatistics& CharacterComponent::GetZoneStatisticsForMap(LWOMAPID mapID) {

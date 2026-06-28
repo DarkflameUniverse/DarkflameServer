@@ -56,7 +56,7 @@ CDRailActivatorComponent CDRailActivatorComponentTable::GetEntryByID(int32_t id)
 std::pair<uint32_t, std::u16string> CDRailActivatorComponentTable::EffectPairFromString(std::string& str) {
 	const auto split = GeneralUtils::SplitString(str, ':');
 	if (split.size() == 2) {
-		return { std::stoi(split.at(0)), GeneralUtils::ASCIIToUTF16(split.at(1)) };
+		return { GeneralUtils::TryParse(split.at(0), 0), GeneralUtils::ASCIIToUTF16(split.at(1)) };
 	}
 
 	return {};
