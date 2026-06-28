@@ -1,0 +1,112 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Characters - DarkflameServer{% endblock %}
+
+{% block css %}{% endblock %}
+
+{% block content %}
+	<div class="characters-container">
+		<div class="container-fluid">
+			<div class="card">
+				<div class="card-header">
+					<h2>Characters</h2>
+					<p class="text-muted">View and manage player characters - <span class="character-count">0</span> total</p>
+				</div>
+				<div class="card-body">
+				<table id="charactersTable" class="table table-dark table-striped table-hover">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Name</th>
+							<th>Account</th>
+							<th>Last Login</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Data populated by DataTables -->
+					</tbody>
+				</table>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script src="/js/realtime.js"></script>
+	<script>
+		$(document).ready(function() {
+			// Initialize DataTable with server-side processing
+			const table = $('#charactersTable').DataTable({
+				processing: true,
+				serverSide: true,
+				pageLength: 25,
+				lengthMenu: [10, 25, 50, 100],
+				ajax: {
+					url: '/api/tables/characters',
+					type: 'POST',
+					contentType: 'application/json',
+					data: function(d) {
+						return JSON.stringify(d);
+					}
+				},
+				columns: [
+					{ data: 'id' },
+					{ data: 'name' },
+					{ data: 'account_name' },
+					{
+						data: 'last_login',
+						render: function(data) {
+							if (data === 0) return 'Never';
+							const date = new Date(data * 1000);
+							return date.toLocaleString();
+						}
+					},
+					{
+						data: 'id',
+						render: function(data) {
+							return '<div class="account-actions">' +
+								'<button class="btn btn-sm btn-info" onclick="viewCharacter(' + data + ')" title="View">👁️</button>' +
+								'<button class="btn btn-sm btn-warning" onclick="editCharacter(' + data + ')" title="Edit">✏️</button>' +
+								'</div>';
+						},
+						orderable: false,
+						searchable: false
+					}
+				],
+				order: [[0, 'asc']],
+				stateSave: false
+			});
+
+			// Register table for real-time updates
+			realtimeManager.RegisterTable('character', table);
+
+			// Update character count when DataTable loads
+			table.on('draw.dt', function() {
+				const info = table.page.info();
+				const countEl = document.querySelector('.character-count');
+				if (countEl && info) {
+					countEl.textContent = info.recordsTotal;
+				}
+			});
+
+			// Initialize WebSocket realtime updates
+			const waitForWS = setInterval(() => {
+				if (typeof realtimeManager !== 'undefined' && wsConnectionReady) {
+					clearInterval(waitForWS);
+				}
+			}, 100);
+		});
+
+		function viewCharacter(id) {
+			alert('View character: ' + id);
+			// TODO: Implement character view modal
+		}
+
+		function editCharacter(id) {
+			alert('Edit character: ' + id);
+			// TODO: Implement character edit modal
+		}
+	</script>
+{% endblock %}

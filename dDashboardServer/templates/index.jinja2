@@ -1,0 +1,35 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Dashboard - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5 px-4">
+	<div class="dashboard-header mb-4">
+		<div>
+			<h1>Welcome to DarkflameServer Dashboard</h1>
+			<p class="text-muted">Real-time server monitoring and administration</p>
+		</div>
+	</div>
+
+	<div class="row g-3">
+		{% include "server_status.jinja2" %}
+		{% include "statistics.jinja2" %}
+	</div>
+
+	{% include "world_instances.jinja2" %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+	<script>
+		// Initialize dashboard when dashboard.js is loaded
+		document.addEventListener('DOMContentLoaded', () => {
+			// Wait a bit for dashboard.js to load
+			setTimeout(() => {
+				if (typeof checkAuthentication === 'function') {
+					checkAuthentication();
+				}
+			}, 100);
+		});
+	</script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Properties - DarkflameServer{% endblock %}
+
+{% block css %}{% endblock %}
+
+{% block content %}
+	<div class="properties-container">
+		<div class="container-fluid">
+			<div class="card">
+				<div class="card-header">
+					<h2>Properties <span class="property-count">0</span></h2>
+					<p class="text-muted">View and manage player properties</p>
+				</div>
+				<div class="card-body">
+				<table id="propertiesTable" class="table table-dark table-striped table-hover">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Name</th>
+							<th>Owner ID</th>
+							<th>Moderation Status</th>
+							<th>Reputation</th>
+							<th>Zone</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Data populated by DataTables -->
+					</tbody>
+				</table>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script src="/js/realtime.js"></script>
+	<script>
+		$(document).ready(function() {
+			// Initialize DataTable with server-side processing
+			const table = $('#propertiesTable').DataTable({
+				processing: true,
+				serverSide: true,
+				pageLength: 25,
+				lengthMenu: [10, 25, 50, 100],
+				ajax: {
+					url: '/api/tables/properties',
+					type: 'POST',
+					contentType: 'application/json',
+					data: function(d) {
+						return JSON.stringify(d);
+					}
+				},
+				columns: [
+					{ data: 'id' },
+					{ data: 'name' },
+					{ data: 'owner_id' },
+					{
+						data: 'mod_approved',
+						render: function(data) {
+							return data ? '<span class="badge badge-approved">Approved</span>' : '<span class="badge badge-pending">Pending</span>';
+						}
+					},
+					{ data: 'reputation' },
+					{ data: 'zone_id' },
+					{
+						data: 'id',
+						render: function(data) {
+							return '<div class="account-actions">' +
+								'<button class="btn btn-sm btn-info" onclick="viewProperty(' + data + ')" title="View">👁️</button>' +
+								'<button class="btn btn-sm btn-warning" onclick="editProperty(' + data + ')" title="Edit">✏️</button>' +
+								'</div>';
+						},
+						orderable: false,
+						searchable: false
+					}
+				],
+				order: [[0, 'asc']],
+				stateSave: false
+			});
+
+			// Register table for real-time updates
+			realtimeManager.RegisterTable('property', table);
+
+			// Update property count on table draw
+			table.on('draw.dt', function() {
+				const info = table.page.info();
+				const countEl = document.querySelector('.property-count');
+				if (countEl && info) {
+					countEl.textContent = info.recordsTotal;
+				}
+			});
+
+			// Initialize real-time listener when WebSocket is ready
+			const waitForWS = setInterval(() => {
+				if (typeof realtimeManager !== 'undefined' && wsConnectionReady) {
+					clearInterval(waitForWS);
+				}
+			}, 100);
+		});
+
+		function viewProperty(id) {
+			alert('View property: ' + id);
+			// TODO: Implement property view modal
+		}
+
+		function editProperty(id) {
+			alert('Edit property: ' + id);
+			// TODO: Implement property edit modal
+		}
+	</script>
+{% endblock %}

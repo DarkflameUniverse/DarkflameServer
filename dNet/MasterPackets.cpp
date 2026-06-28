@@ -94,6 +94,7 @@ void MasterPackets::HandleServerInfo(Packet* packet) {
 }
 
 void MasterPackets::SendServerInfo(dServer* server, Packet* packet) {
+	LOG("SendServerInfo called for server type %i", static_cast<int>(server->GetServerType()));
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SERVER_INFO);
 

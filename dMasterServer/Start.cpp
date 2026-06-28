@@ -107,6 +107,42 @@ uint32_t StartAuthServer() {
 	return auth_pid;
 }
 
+uint32_t StartDashboardServer() {
+	if (Game::ShouldShutdown()) {
+		LOG("Currently shutting down.  DashboardServer will not be restarted.");
+		return 0;
+	}
+	auto web_path = BinaryPathFinder::GetBinaryDir() / "DashboardServer";
+#ifdef _WIN32
+	web_path.replace_extension(".exe");
+	auto web_startup = startup;
+	auto web_info = PROCESS_INFORMATION{};
+	if (!CreateProcessW(web_path.wstring().data(), web_path.wstring().data(),
+						nullptr, nullptr, false, 0, nullptr, nullptr,
+						&web_startup, &web_info))
+	{
+		LOG("Failed to launch DashboardServer");
+		return 0;
+	}
+
+	// get pid and close unused handles
+	auto web_pid = web_info.dwProcessId;
+	CloseHandle(web_info.hProcess);
+	CloseHandle(web_info.hThread);
+#else // *nix systems
+	const auto web_pid = fork();
+	if (web_pid < 0) {
+		LOG("Failed to launch DashboardServer");
+		return 0;
+	} else if (web_pid == 0) {
+		// We are the child process
+		execl(web_path.string().c_str(), web_path.string().c_str(), nullptr);
+	}
+#endif
+	LOG("DashboardServer PID is %d", web_pid);
+	return web_pid;
+}
+
 uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 	auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
 #ifdef _WIN32

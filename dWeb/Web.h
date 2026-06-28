@@ -4,9 +4,13 @@
 #include <functional>
 #include <string>
 #include <optional>
+#include <vector>
+#include <memory>
 #include "mongoose.h"
 #include "json_fwd.hpp"
 #include "eHTTPStatusCode.h"
+#include "HTTPContext.h"
+#include "IHTTPMiddleware.h"
 
 // Forward declarations for game namespace
 // so that we can access the data anywhere
@@ -20,20 +24,35 @@ enum class eHTTPMethod;
 // Forward declaration for mongoose manager
 typedef struct mg_mgr mg_mgr;
 
+// Content type enum for HTTP responses
+enum class eContentType {
+	APPLICATION_JSON,
+	TEXT_HTML,
+	TEXT_CSS,
+	TEXT_JAVASCRIPT,
+	TEXT_PLAIN,
+	IMAGE_PNG,
+	IMAGE_JPEG,
+	APPLICATION_OCTET_STREAM
+};
+
 // For passing HTTP messages between functions
 struct HTTPReply {
 	eHTTPStatusCode status = eHTTPStatusCode::NOT_FOUND;
 	std::string message = "{\"error\":\"Not Found\"}";
+	eContentType contentType = eContentType::APPLICATION_JSON;
+	std::string location = "";  // For redirect responses (Location header)
 };
 
 // HTTP route structure
 // This structure is used to register HTTP routes
-// with the server. Each route has a path, method, and a handler function
-// that will be called when the route is matched.
+// with the server. Each route has a path, method, optional middleware,
+// and a handler function that will be called when the route is matched.
 struct HTTPRoute {
 	std::string path;
 	eHTTPMethod method;
-	std::function<void(HTTPReply&, const std::string&)> handle;
+	std::vector<MiddlewarePtr> middleware;
+	std::function<void(HTTPReply&, const HTTPContext&)> handle;
 };
 
 // WebSocket event structure
@@ -50,6 +69,10 @@ enum SubscriptionStatus {
 	UNSUBSCRIBED = 0,
 	SUBSCRIBED = 1
 };
+
+// WebSocket authentication callback function type
+// Returns true if token is valid, false otherwise
+using WSAuthCallback = std::function<bool(const std::string&)>;
 
 class Web {
 public:
@@ -68,15 +91,25 @@ public:
 	void RegisterWSEvent(WSEvent event);
 	// Register WebSocket subscription to be handled by the server
 	void RegisterWSSubscription(const std::string& subscription);
+	// Add global middleware that applies to all routes
+	void AddGlobalMiddleware(MiddlewarePtr middleware);
+	// Set WebSocket authentication callback for token validation
+	void SetWSAuthCallback(WSAuthCallback callback) { wsAuthCallback = callback; }
 	// Returns if the web server is enabled
 	bool IsEnabled() const { return enabled; };
 	// Send a message to all connected WebSocket clients that are subscribed to the given topic
 	void static SendWSMessage(std::string sub, nlohmann::json& message);
+	// Get mongoose manager for direct access
+	mg_mgr& GetManager() { return mgr; };
+	// Get WebSocket auth callback (used during WebSocket upgrade)
+	WSAuthCallback GetWSAuthCallback() const { return wsAuthCallback; }
 private:
 	// mongoose manager
 	mg_mgr mgr;
 	// If the web server is enabled
 	bool enabled = false;
+	// WebSocket authentication callback
+	WSAuthCallback wsAuthCallback = nullptr;
 };
 
 #endif // !__WEB_H__

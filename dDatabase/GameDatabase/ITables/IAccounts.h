@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include "json.hpp"
 
 enum class eGameMasterLevel : uint8_t;
 
@@ -39,6 +40,30 @@ public:
 	virtual void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) = 0;
 
 	virtual uint32_t GetAccountCount() = 0;
+
+	// Login attempt tracking methods
+	// Record a failed login attempt
+	virtual void RecordFailedAttempt(const uint32_t accountId) = 0;
+
+	// Clear failed login attempts and update last login time
+	virtual void ClearFailedAttempts(const uint32_t accountId) = 0;
+
+	// Set account lockout
+	virtual void SetLockout(const uint32_t accountId, const int64_t lockoutUntil) = 0;
+
+	// Check if account is locked out
+	virtual bool IsLockedOut(const uint32_t accountId) = 0;
+
+	// Get failed attempt count
+	virtual uint8_t GetFailedAttempts(const uint32_t accountId) = 0;
+
+	// Get paginated list of accounts with optional search/filtering for DataTables
+	// Returns a JSON object with the account data and metadata
+	virtual nlohmann::json GetAccountsTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) = 0;
+
+	// Get a single account by ID
+	// Returns a JSON object with the account details
+	virtual nlohmann::json GetAccountById(uint32_t accountId) = 0;
 };
 
 #endif  //!__IACCOUNTS__H__

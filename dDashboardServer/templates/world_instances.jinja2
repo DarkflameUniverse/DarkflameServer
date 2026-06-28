@@ -1,0 +1,37 @@
+<div class="card mt-4">
+	<div class="card-header">
+		<h2>Active World Instances</h2>
+	</div>
+	<div class="card-body">
+		<div id="world-list">
+			{% if length(worlds) == 0 %}
+				<p class="text-muted text-center mb-0">No active world instances</p>
+			{% else %}
+				<div class="table-responsive">
+					<table class="table table-dark table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Zone</th>
+								<th>Instance</th>
+								<th>Clone</th>
+								<th>Players</th>
+								<th>Type</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for world in worlds %}
+							<tr>
+								<td>{{ world.mapID }}</td>
+								<td>{{ world.instanceID }}</td>
+								<td>{{ world.cloneID }}</td>
+								<td><span class="badge badge-primary">{{ world.players }}</span></td>
+								<td>{% if world.isPrivate %}<span class="badge badge-warning">Private</span>{% else %}<span class="badge badge-success">Public</span>{% endif %}</td>
+							</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			{% endif %}
+		</div>
+	</div>
+</div>

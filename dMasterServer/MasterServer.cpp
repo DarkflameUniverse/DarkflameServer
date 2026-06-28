@@ -68,6 +68,7 @@ void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
+SystemAddress dashboardServerMasterPeerSysAddr;
 
 int GenerateBCryptPassword(const std::string& password, const int workFactor, char salt[BCRYPT_HASHSIZE], char hash[BCRYPT_HASHSIZE]) {
 	int32_t bcryptState = ::bcrypt_gensalt(workFactor, salt);
@@ -375,6 +376,11 @@ int main(int argc, char** argv) {
 		StartAuthServer();
 	}
 
+	// Start web dashboard if enabled
+	if (Game::config->GetValue("enable_dashboard") == "1") {
+		StartDashboardServer();
+	}
+
 	auto t = std::chrono::high_resolution_clock::now();
 	Packet* packet = nullptr;
 	constexpr uint32_t logFlushTime = 15 * masterFramerate;
@@ -499,6 +505,11 @@ void HandlePacket(Packet* packet) {
 			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartAuthServer();
 		}
+
+		if (packet->systemAddress == dashboardServerMasterPeerSysAddr) {
+			dashboardServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			StartDashboardServer();
+		}
 	}
 
 	if (packet->data[0] == ID_CONNECTION_LOST) {
@@ -519,6 +530,11 @@ void HandlePacket(Packet* packet) {
 		if (packet->systemAddress == authServerMasterPeerSysAddr) {
 			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartAuthServer();
+		}
+
+		if (packet->systemAddress == dashboardServerMasterPeerSysAddr) {
+			dashboardServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			StartDashboardServer();
 		}
 	}
 
@@ -600,6 +616,9 @@ void HandlePacket(Packet* packet) {
 				break;
 			case ServiceType::AUTH:
 				authServerMasterPeerSysAddr = packet->systemAddress;
+				break;
+			case ServiceType::DASHBOARD:
+				dashboardServerMasterPeerSysAddr = packet->systemAddress;
 				break;
 			default:
 				// We just ignore any other server type
@@ -866,11 +885,11 @@ int ShutdownSequence(int32_t signal) {
 		instance->SetIsShuttingDown(true);
 	}
 
-	LOG("Attempting to shutdown instances, max 60 seconds...");
+	LOG("Attempting to shutdown instances, max 10 seconds...");
 
 	auto t = std::chrono::high_resolution_clock::now();
 	uint32_t framesSinceShutdownStart = 0;
-	constexpr uint32_t maxShutdownTime = 60 * mediumFramerate;
+	constexpr uint32_t maxShutdownTime = 10 * mediumFramerate;
 	bool allInstancesShutdown = false;
 	Packet* packet = nullptr;
 	while (true) {
@@ -893,7 +912,10 @@ int ShutdownSequence(int32_t signal) {
 			}
 		}
 
-		if (allInstancesShutdown && authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+		if (allInstancesShutdown && \
+			authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && \
+			chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && \
+			dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 			LOG("Finished shutting down MasterServer!");
 			break;
 		}
@@ -905,6 +927,26 @@ int ShutdownSequence(int32_t signal) {
 
 		if (framesSinceShutdownStart == maxShutdownTime) {
 			LOG("Finished shutting down by timeout!");
+			// log what we were waiting on: worlds, chat, auth, dashboard, etc
+			if (authServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+				LOG("Auth server did not shutdown in time");
+			}
+			if (chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+				LOG("Chat server did not shutdown in time");
+			}
+			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+				LOG("Dashboard server did not shutdown in time");
+			}
+			for (const auto& instance : Game::im->GetInstances()) {
+				if (instance == nullptr) {
+					continue;
+				}
+
+				if (!instance->GetShutdownComplete()) {
+					LOG("Instance zone %i clone %i instance %i port %i did not shutdown in time", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+				}
+			}
+
 			break;
 		}
 	}

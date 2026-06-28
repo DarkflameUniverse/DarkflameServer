@@ -1,0 +1,65 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Dashboard Login - DarkflameServer{% endblock %}
+
+{% block css %}
+	<link rel="stylesheet" href="/css/login.css">
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+	<div class="login-wrapper">
+		<div class="login-left">
+			<div class="login-branding">
+				<div class="logo">⚙️</div>
+				<h1>DarkflameServer</h1>
+				<p>Administration Dashboard</p>
+			</div>
+			<div class="login-info">
+				<h3>Welcome Back</h3>
+				<p>Manage your DarkflameServer infrastructure with ease. Secure access to server administration tools.</p>
+			</div>
+		</div>
+
+		<div class="login-right">
+			<div class="login-form-wrapper">
+				<h2>Sign In</h2>
+				
+				<div id="alert" class="alert-box" role="alert" style="display: none;"></div>
+				
+				<form id="loginForm" class="login-form">
+					<div class="form-group">
+						<label for="username">Username</label>
+						<input type="text" id="username" name="username" required autofocus placeholder="Enter your username">
+						<div class="form-focus"></div>
+					</div>
+					
+					<div class="form-group">
+						<label for="password">Password</label>
+						<input type="password" id="password" name="password" required maxlength="40" placeholder="Enter your password">
+						<div class="form-focus"></div>
+					</div>
+					
+					<div class="form-checkbox">
+						<input type="checkbox" id="rememberMe" name="rememberMe">
+						<label for="rememberMe">Remember me for 30 days</label>
+					</div>
+					
+					<button type="submit" class="btn-login" id="loginBtn">
+						<span id="loading" class="spinner" style="display: none;"></span>
+						<span class="btn-text">Sign In</span>
+					</button>
+				</form>
+				
+				<div class="login-footer">
+					<p>Contact your administrator if you don't have access</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+	<script src="/js/login.js"></script>
+{% endblock %}

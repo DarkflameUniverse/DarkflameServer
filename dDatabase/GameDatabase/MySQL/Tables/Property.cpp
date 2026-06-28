@@ -195,3 +195,79 @@ std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOOBJID id)
 
 	return ReadPropertyInfo(propertyEntry);
 }
+
+#include "json.hpp"
+
+std::string MySQLDatabase::GetPropertiesTable(uint32_t start, uint32_t length, const std::string_view search, uint32_t orderColumn, bool orderAsc) {
+	// Build base query
+	std::string baseQuery = "SELECT id, owner_id, name, mod_approved, reputation, zone_id FROM properties";
+	std::string whereClause;
+	std::string orderClause;
+
+	// Add search filter if provided
+	if (!search.empty()) {
+		whereClause = " WHERE name LIKE CONCAT('%', ?, '%')";
+	}
+
+	// Map column indices to database columns
+	std::string orderColumnName = "id";
+	switch (orderColumn) {
+		case 0: orderColumnName = "id"; break;
+		case 1: orderColumnName = "name"; break;
+		case 2: orderColumnName = "owner_id"; break;
+		case 3: orderColumnName = "mod_approved"; break;
+		case 4: orderColumnName = "reputation"; break;
+		case 5: orderColumnName = "zone_id"; break;
+		default: orderColumnName = "id";
+	}
+
+	orderClause = " ORDER BY " + orderColumnName + (orderAsc ? " ASC" : " DESC");
+
+	// Build the main query
+	std::string mainQuery = baseQuery + whereClause + orderClause + " LIMIT ?, ?;";
+
+	// Get total count
+	std::string totalCountQuery = "SELECT COUNT(*) as count FROM properties;";
+	auto totalCountResult = ExecuteSelect(totalCountQuery);
+	uint32_t totalRecords = totalCountResult->next() ? totalCountResult->getUInt("count") : 0;
+
+	// Get filtered count
+	uint32_t filteredRecords = totalRecords;
+	if (!search.empty()) {
+		std::string filteredCountQuery = "SELECT COUNT(*) as count FROM properties WHERE name LIKE CONCAT('%', ?, '%');";
+		auto filteredCountResult = ExecuteSelect(filteredCountQuery, search);
+		filteredRecords = filteredCountResult->next() ? filteredCountResult->getUInt("count") : 0;
+	}
+
+	// Execute main query
+	std::unique_ptr<sql::ResultSet> result;
+	if (!search.empty()) {
+		result = ExecuteSelect(mainQuery, search, start, length);
+	} else {
+		result = ExecuteSelect(mainQuery, start, length);
+	}
+
+	// Build response JSON
+	nlohmann::json propertiesArray = nlohmann::json::array();
+
+	while (result->next()) {
+		nlohmann::json property = {
+			{"id", result->getUInt64("id")},
+			{"owner_id", result->getUInt64("owner_id")},
+			{"name", result->getString("name")},
+			{"mod_approved", result->getBoolean("mod_approved")},
+			{"reputation", result->getUInt64("reputation")},
+			{"zone_id", result->getUInt("zone_id")}
+		};
+		propertiesArray.push_back(property);
+	}
+
+	nlohmann::json response = {
+		{"draw", 0},
+		{"recordsTotal", totalRecords},
+		{"recordsFiltered", filteredRecords},
+		{"data", propertiesArray}
+	};
+
+	return response.dump();
+}

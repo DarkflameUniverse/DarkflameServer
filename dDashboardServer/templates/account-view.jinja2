@@ -1,0 +1,154 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Account - DarkflameServer{% endblock %}
+
+{% block css %}{% endblock %}
+
+{% block content %}
+	<div class="account-view-container">
+		<div class="container-fluid">
+			<a href="/accounts" class="back-link">← Back to Accounts</a>
+
+			<div class="card">
+				<div class="card-header">
+					<h2>Account #{{ account.id }} - <span class="account-name">{{ account.name }}</span></h2>
+					<p class="text-muted">View account details and manage settings</p>
+				</div>
+				<div class="card-body">
+					<div class="detail-grid">
+						<div class="detail-item">
+							<div class="detail-label">Account ID</div>
+							<div class="detail-value">{{ account.id }}</div>
+						</div>
+
+						<div class="detail-item">
+							<div class="detail-label">Username</div>
+							<div class="detail-value"><span class="account-name">{{ account.name }}</span></div>
+						</div>
+
+						<div class="detail-item">
+							<div class="detail-label">Created</div>
+							<div class="detail-value">{{ account.created_at }}</div>
+						</div>
+
+						<div class="detail-item">
+							<div class="detail-label">GM Level</div>
+							<div class="detail-value">
+								{% if account.gm_level > 0 %}
+									<span class="account-gm-level badge badge-gm">GM {{ account.gm_level }}</span>
+								{% else %}
+									<span class="account-gm-level badge badge-inactive">User</span>
+								{% endif %}
+							</div>
+						</div>
+
+						<div class="detail-item">
+							<div class="detail-label">Ban Status</div>
+							<div class="detail-value">
+								{% if account.banned %}
+									<span class="account-banned badge badge-banned">BANNED</span>
+								{% else %}
+									<span class="account-banned badge badge-active">Active</span>
+								{% endif %}
+							</div>
+						</div>
+
+						<div class="detail-item">
+							<div class="detail-label">Lock Status</div>
+							<div class="detail-value">
+								{% if account.locked %}
+									<span class="account-locked badge badge-locked">LOCKED</span>
+								{% else %}
+									<span class="account-locked badge badge-active">Unlocked</span>
+								{% endif %}
+							</div>
+						</div>
+
+						<div class="detail-item">
+							<div class="detail-label">Mute Expires</div>
+							<div class="detail-value">
+								<span class="account-mute-expire">
+									{% if account.mute_expire > 0 %}
+										Muted until {{ account.mute_expire }}
+									{% else %}
+										Not muted
+									{% endif %}
+								</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="button-group">
+						<button class="btn btn-primary" onclick="EditAccount()">Edit Account</button>
+						{% if not account.banned %}
+							<button class="btn btn-danger" onclick="BanAccount()">Ban Account</button>
+						{% else %}
+							<button class="btn btn-secondary" onclick="UnbanAccount()">Unban Account</button>
+						{% endif %}
+						{% if not account.locked %}
+							<button class="btn btn-danger" onclick="LockAccount()">Lock Account</button>
+						{% else %}
+							<button class="btn btn-secondary" onclick="UnlockAccount()">Unlock Account</button>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+
+			<!-- TODO: Add modals for edit, ban, lock operations -->
+			<!-- TODO: Add character list for this account -->
+			<!-- TODO: Add login history -->
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script src="/js/realtime.js"></script>
+	<script>
+		// Set current account for real-time detail panel updates
+		document.addEventListener('DOMContentLoaded', () => {
+			realtimeManager.SetCurrentEntity('account', {{ account.id }});
+
+			// Clean up when leaving the page
+			window.addEventListener('beforeunload', () => {
+				realtimeManager.ClearCurrentEntity();
+			});
+		});
+
+		function EditAccount() {
+			alert("Edit functionality coming soon");
+			// TODO: Open edit modal
+		}
+
+		function BanAccount() {
+			if (confirm("Are you sure you want to ban this account?")) {
+				alert("Ban functionality coming soon");
+				// TODO: Call ban API endpoint
+				// After successful ban, call: BroadcastAccountUpdate({{ account.id }})
+			}
+		}
+
+		function UnbanAccount() {
+			if (confirm("Are you sure you want to unban this account?")) {
+				alert("Unban functionality coming soon");
+				// TODO: Call unban API endpoint
+				// After successful unban, call: BroadcastAccountUpdate({{ account.id }})
+			}
+		}
+
+		function LockAccount() {
+			if (confirm("Are you sure you want to lock this account?")) {
+				alert("Lock functionality coming soon");
+				// TODO: Call lock API endpoint
+				// After successful lock, call: BroadcastAccountUpdate({{ account.id }})
+			}
+		}
+
+		function UnlockAccount() {
+			if (confirm("Are you sure you want to unlock this account?")) {
+				alert("Unlock functionality coming soon");
+				// TODO: Call unlock API endpoint
+				// After successful unlock, call: BroadcastAccountUpdate({{ account.id }})
+			}
+		}
+	</script>
+{% endblock %}
