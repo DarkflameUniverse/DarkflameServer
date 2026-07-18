@@ -65,7 +65,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 
 		if (!componentResult.fieldIsNull("hardTetherRadius"))
 			m_HardTetherRadius = componentResult.getFloatField("hardTetherRadius");
-		
+
 		m_MinRoundLength = componentResult.getFloatField("minRoundLength");
 		m_MaxRoundLength = componentResult.getFloatField("maxRoundLength");
 		m_CombatRoundLength = componentResult.getFloatField("combatRoundLength");
@@ -161,15 +161,10 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	// Check if we should stop the tether effect
 	if (m_TetherEffectActive) {
 		m_TetherTime -= deltaTime;
-		if (m_Target != LWOOBJID_EMPTY || (NiPoint3::DistanceSquared(
-			m_StartPosition,
-			m_Parent->GetPosition()) < 20 * 20 && m_TetherTime <= 0)
-			) {
-			GameMessages::SendStopFXEffect(m_Parent, true, "tether");
-			m_TetherEffectActive = false;
-		}
 		m_ForcedTetherTime -= deltaTime;
 		if (m_ForcedTetherTime >= 0) return;
+		GameMessages::SendStopFXEffect(m_Parent, true, "tether");
+		m_TetherEffectActive = false;
 	}
 
 	for (auto entry = m_RemovedThreatList.begin(); entry != m_RemovedThreatList.end();) {
@@ -316,14 +311,17 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		SetAiState(AiState::aggro);
 	} else {
 		SetAiState(AiState::idle);
-		if (m_MovementAI) m_MovementAI->SetMaxSpeed(1.0f);
+		// Don't clobber the pursuit speed set by TetherLogic while the tether is still active,
+		// otherwise the entity slows to wander speed and takes far longer than m_TetherTime to
+		// return to its spawn point.
+		if (m_MovementAI && !m_TetherEffectActive) m_MovementAI->SetMaxSpeed(1.0f);
 	}
 
 	if (!hasSkillToCast) return;
 
 	if (m_Target == LWOOBJID_EMPTY) {
 		SetAiState(AiState::idle);
-		if (m_MovementAI) m_MovementAI->SetMaxSpeed(1.0f);
+		if (m_MovementAI && !m_TetherEffectActive) m_MovementAI->SetMaxSpeed(1.0f);
 
 		return;
 	}
@@ -810,7 +808,9 @@ void BaseCombatAIComponent::Wake() {
 void BaseCombatAIComponent::TetherLogic() {
 	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
-	if (destroyableComponent != nullptr && destroyableComponent->HasFaction(4)) {
+	const bool applyTetherEffect = destroyableComponent != nullptr && destroyableComponent->HasFaction(4);
+
+	if (applyTetherEffect) {
 		auto serilizationRequired = false;
 
 		if (destroyableComponent->GetHealth() != destroyableComponent->GetMaxHealth()) {
@@ -832,15 +832,26 @@ void BaseCombatAIComponent::TetherLogic() {
 		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
 
 		m_TetherEffectActive = true;
-
-		m_TetherTime = 3.0f;
 	}
 
 	// Speed towards start position
 	if (m_MovementAI != nullptr) {
 		m_MovementAI->SetHaltDistance(0);
 		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
+		m_MovementAI->SetCurrentSpeed(m_PursuitSpeed);
 		m_MovementAI->SetDestination(m_StartPosition);
+	}
+
+	if (applyTetherEffect) {
+		// Use the actual navmesh path length (populated by SetDestination above) instead of the
+		// straight-line distance, otherwise the tether timer expires before the entity can walk
+		// around obstacles back to its spawn point.
+		const auto distance = m_MovementAI != nullptr
+			? m_MovementAI->GetRemainingPathDistance()
+			: NiPoint3::Distance(m_Parent->GetPosition(), m_StartPosition);
+		const auto speed = m_PursuitSpeed * MovementAIComponent::GetBaseSpeed(m_Parent->GetLOT());
+		m_TetherTime = speed > 0.0f ? distance / speed : 0.0f;
+		m_ForcedTetherTime = m_TetherTime;
 	}
 }
 

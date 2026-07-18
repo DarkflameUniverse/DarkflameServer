@@ -131,9 +131,13 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	const auto approxPos = ApproximateLocation();
 	SetPosition(approxPos);
-	// Set the AIs new home based on where our current waypoint is IF we're idle, that way we can return to this
+	// Set the AIs new home based on where our current waypoint is IF wehave a path, we're idle, not out of combat (grace period if you left the radius),
+	// and we're not tethering to home, that way we can return to this
 	// when resuming the pathing after losing aggro while moving the aggro hitbox with us
-	if (m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle) m_BaseCombatAI->SetStartingPosition(approxPos);
+	const bool idleNotResetting = m_Path && m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle && !m_BaseCombatAI->GetOutOfCombat() && !m_BaseCombatAI->GetIsTethering();
+	if (idleNotResetting) {
+		m_BaseCombatAI->SetStartingPosition(approxPos);
+	}
 
 	if (m_TimeTravelled < m_TimeToTravel) return;
 	m_TimeTravelled = 0.0f;
@@ -169,7 +173,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		}
 	} else {
 		// Only try to renew or continue the path if we're in the idle or spawn state and we actually have a combatAI component
-		if (!m_BaseCombatAI || (m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle)) {
+		if (!m_BaseCombatAI || (idleNotResetting)) {
 			// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 			const auto waypointNum = m_IsBounced ? m_CurrentPath.size() : m_CurrentPathWaypointCount - m_CurrentPath.size() - 1;
 			RunWaypointCommands(waypointNum);
@@ -205,6 +209,8 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 				m_CurrentPath.pop();
 			}
+		} else {
+			Stop();
 		}
 	}
 
@@ -339,6 +345,18 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 	m_PhysicsSpeedCache[lot] = speed;
 
 	return speed;
+}
+
+float MovementAIComponent::GetRemainingPathDistance() const {
+	if (m_InterpolatedWaypoints.empty() || m_PathIndex >= m_InterpolatedWaypoints.size()) {
+		return 0.0f;
+	}
+
+	float total = NiPoint3::Distance(m_Parent->GetPosition(), m_InterpolatedWaypoints[m_PathIndex]);
+	for (size_t i = m_PathIndex; i + 1 < m_InterpolatedWaypoints.size(); ++i) {
+		total += NiPoint3::Distance(m_InterpolatedWaypoints[i], m_InterpolatedWaypoints[i + 1]);
+	}
+	return total;
 }
 
 void MovementAIComponent::SetPosition(const NiPoint3& value) {

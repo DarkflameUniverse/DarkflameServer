@@ -209,6 +209,13 @@ public:
 	 */
 	static float GetBaseSpeed(LOT lot);
 
+	/**
+	 * Returns the total distance remaining along the current path, following the
+	 * interpolated waypoints from the entity's current position to the final destination.
+	 * @return the total remaining path distance in world units
+	 */
+	float GetRemainingPathDistance() const;
+
 	bool IsPaused() const { return m_Paused; }
 
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);

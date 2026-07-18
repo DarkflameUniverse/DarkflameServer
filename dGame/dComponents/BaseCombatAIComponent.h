@@ -241,6 +241,10 @@ public:
 
 	void SetStartingPosition(const NiPoint3& pos) { m_StartPosition = pos; }
 
+	bool GetOutOfCombat() const { return m_OutOfCombat; }
+
+	bool GetIsTethering() const { return m_TetherEffectActive; }
+
 private:
 	/**
 	 * Returns the current target or the target that currently is the largest threat to this entity
