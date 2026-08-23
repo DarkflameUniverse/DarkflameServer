@@ -2153,7 +2153,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	// Handle statistics
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) {
-		characterComponent->TrackPositionUpdate(update.position);
+		characterComponent->TrackPositionUpdate(update.position, update.onGround);
 	}
 
 	controllablePhysicsComponent->SetPosition(update.position);

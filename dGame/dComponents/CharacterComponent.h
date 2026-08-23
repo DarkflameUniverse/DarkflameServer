@@ -6,6 +6,7 @@
 #include "Character.h"
 #include "Component.h"
 #include <string>
+#include <chrono>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
@@ -142,7 +143,10 @@ public:
 	 * Sets the state of whether the character is racing
 	 * @param isRacing whether the character is racing
 	 */
-	void SetIsRacing(bool isRacing) { m_IsRacing = isRacing; }
+	void SetIsRacing(bool isRacing) {
+		if (!isRacing) FlushAirborneTime();
+		m_IsRacing = isRacing;
+	}
 
 	/**
 	 * Gets whether this character has PvP enabled, allowing combat between players
@@ -253,7 +257,12 @@ public:
 	/**
 	 * Tracks an updated position for a player
 	 */
-	void TrackPositionUpdate(const NiPoint3& newPosition);
+	void TrackPositionUpdate(const NiPoint3& newPosition, bool onGround = true);
+
+	/**
+	 * Flushes any pending race car airborne time
+	 */
+	void FlushAirborneTime();
 
 	/**
 	 * Handles a zone statistic update
@@ -567,10 +576,12 @@ private:
 	uint64_t m_DistanceDriven;
 
 	/**
-	 * Time airborne in a car, currently untracked.
-	 * Honestly, who even cares about this.
+	 * Total time airborne in a race car (in seconds).
 	 */
 	uint64_t m_TimeAirborneInCar;
+	bool m_IsCarAirborne = false;
+	double m_CarAirborneFractionalSeconds = 0.0;
+	std::chrono::time_point<std::chrono::steady_clock> m_CarAirborneStartTime;
 
 	/**
 	 * Amount of imagination powerups found on racing tracks being collected, generally triggered by scripts

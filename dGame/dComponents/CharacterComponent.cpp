@@ -590,13 +590,46 @@ void CharacterComponent::TrackRaceCompleted(bool won) {
 		m_FirstPlaceRaceFinishes++;
 }
 
-void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
+void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition, bool onGround) {
 	const auto distance = NiPoint3::Distance(newPosition, m_Parent->GetPosition());
 
 	if (m_IsRacing) {
 		UpdatePlayerStatistic(DistanceDriven, static_cast<uint64_t>(distance));
+
+		const auto now = std::chrono::steady_clock::now();
+		if (!onGround) {
+			if (!m_IsCarAirborne) {
+				m_IsCarAirborne = true;
+				m_CarAirborneStartTime = now;
+			} else {
+				const auto elapsed = std::chrono::duration<double>(now - m_CarAirborneStartTime).count();
+				m_CarAirborneStartTime = now;
+				m_CarAirborneFractionalSeconds += elapsed;
+				if (m_CarAirborneFractionalSeconds >= 1.0) {
+					const auto wholeSeconds = static_cast<uint64_t>(m_CarAirborneFractionalSeconds);
+					m_CarAirborneFractionalSeconds -= wholeSeconds;
+					UpdatePlayerStatistic(TimeAirborneInCar, wholeSeconds);
+				}
+			}
+		} else {
+			FlushAirborneTime();
+		}
 	} else {
 		UpdatePlayerStatistic(MetersTraveled, static_cast<uint64_t>(distance));
+	}
+}
+
+void CharacterComponent::FlushAirborneTime() {
+	if (m_IsCarAirborne) {
+		const auto now = std::chrono::steady_clock::now();
+		const auto elapsed = std::chrono::duration<double>(now - m_CarAirborneStartTime).count();
+		m_CarAirborneFractionalSeconds += elapsed;
+		if (m_CarAirborneFractionalSeconds >= 1.0) {
+			const auto wholeSeconds = static_cast<uint64_t>(m_CarAirborneFractionalSeconds);
+			m_CarAirborneFractionalSeconds -= wholeSeconds;
+			UpdatePlayerStatistic(TimeAirborneInCar, wholeSeconds);
+		}
+		m_IsCarAirborne = false;
 	}
 }
 
@@ -725,7 +758,7 @@ void CharacterComponent::InitializeStatisticsFromString(const std::string& stati
 	m_TotalImaginationRestored = GetStatisticFromSplit(split, 16);
 	m_TotalImaginationUsed = GetStatisticFromSplit(split, 17);
 	m_DistanceDriven = GetStatisticFromSplit(split, 18);
-	m_TimeAirborneInCar = GetStatisticFromSplit(split, 19); // WONTFIX
+	m_TimeAirborneInCar = GetStatisticFromSplit(split, 19);
 	m_RacingImaginationPowerUpsCollected = GetStatisticFromSplit(split, 20);
 	m_RacingImaginationCratesSmashed = GetStatisticFromSplit(split, 21);
 	m_RacingCarBoostsActivated = GetStatisticFromSplit(split, 22);
