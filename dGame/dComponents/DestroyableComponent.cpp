@@ -121,6 +121,8 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 			SetMaxArmor(destCompData[0].armor);
 
 			SetIsSmashable(destCompData[0].isSmashable);
+			SetLootMatrixID(destCompData[0].LootMatrixIndex);
+			SetCurrencyIndex(destCompData[0].CurrencyIndex);
 		}
 	} else {
 		SetHealth(1);

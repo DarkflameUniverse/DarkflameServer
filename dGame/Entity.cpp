@@ -402,7 +402,7 @@ void Entity::Initialize() {
 
 
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
-	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
+	if (buffComponentID > 0 || collectibleComponentID > 0 || quickBuildComponentID > 0 || isSmashable) {
 		DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
 		auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
 		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
