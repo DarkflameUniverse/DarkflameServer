@@ -2,6 +2,7 @@
 
 // C++
 #include <cmath>
+#include <algorithm>
 
 #include <glm/gtx/quaternion.hpp>
 
@@ -21,33 +22,57 @@ NiQuaternion QuatUtils::LookAt(const NiPoint3& sourcePoint, const NiPoint3& dest
 	source.y = 0.0f;
 	dest.y = 0.0f;
 
-	NiPoint3 forwardVector = NiPoint3(dest - source).Unitize();
+	NiPoint3 diff = dest - source;
+	if (diff.SquaredLength() == 0.0f) {
+		return QuatUtils::IDENTITY;
+	}
 
+	NiPoint3 forwardVector = diff.Unitize();
 	NiPoint3 posZ = NiPoint3Constant::UNIT_Z;
-	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
 
-	float dot = posZ.DotProduct(forwardVector);
-	float rotAngle = static_cast<float>(acos(dot));
+	float dot = std::clamp(posZ.DotProduct(forwardVector), -1.0f, 1.0f);
+
+	if (dot > 0.999999f) {
+		return QuatUtils::IDENTITY;
+	}
+	if (dot < -0.999999f) {
+		return glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+
+	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
+	float rotAngle = static_cast<float>(std::acos(dot));
 
 	NiPoint3 vecB = vecA.CrossProduct(posZ);
 
-	if (vecB.DotProduct(forwardVector) < 0) rotAngle = -rotAngle;
+	if (vecB.DotProduct(forwardVector) < 0.0f) rotAngle = -rotAngle;
 	return glm::angleAxis(rotAngle, glm::vec3{vecA.x, vecA.y, vecA.z});
 }
 
 //! Look from a specific point in space to another point in space
 NiQuaternion QuatUtils::LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint) {
-	NiPoint3 forwardVector = NiPoint3(destPoint - sourcePoint).Unitize();
+	NiPoint3 diff = destPoint - sourcePoint;
+	if (diff.SquaredLength() == 0.0f) {
+		return QuatUtils::IDENTITY;
+	}
 
+	NiPoint3 forwardVector = diff.Unitize();
 	NiPoint3 posZ = NiPoint3Constant::UNIT_Z;
-	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
 
-	float dot = posZ.DotProduct(forwardVector);
-	float rotAngle = static_cast<float>(acos(dot));
+	float dot = std::clamp(posZ.DotProduct(forwardVector), -1.0f, 1.0f);
+
+	if (dot > 0.999999f) {
+		return QuatUtils::IDENTITY;
+	}
+	if (dot < -0.999999f) {
+		return glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+
+	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
+	float rotAngle = static_cast<float>(std::acos(dot));
 
 	NiPoint3 vecB = vecA.CrossProduct(posZ);
 
-	if (vecB.DotProduct(forwardVector) < 0) rotAngle = -rotAngle;
+	if (vecB.DotProduct(forwardVector) < 0.0f) rotAngle = -rotAngle;
 	return glm::angleAxis(rotAngle, glm::vec3{vecA.x, vecA.y, vecA.z});
 }
 

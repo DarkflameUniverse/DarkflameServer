@@ -2,6 +2,7 @@
 
 // C++
 #include <cmath>
+#include <algorithm>
 
 // MARK: Member Functions
 
@@ -21,9 +22,11 @@ NiPoint3 NiPoint3::Unitize() const {
 
 float NiPoint3::Angle(const NiPoint3& a, const NiPoint3& b) {
 	const auto dot = a.DotProduct(b);
-	const auto lenA = a.SquaredLength();
-	const auto lenB = a.SquaredLength();
-	return acos(dot / sqrt(lenA * lenB));
+	const auto lenProduct = std::sqrt(a.SquaredLength() * b.SquaredLength());
+	if (lenProduct == 0.0f) {
+		return 0.0f;
+	}
+	return std::acos(std::clamp(dot / lenProduct, -1.0f, 1.0f));
 }
 
 float NiPoint3::Distance(const NiPoint3& a, const NiPoint3& b) {
