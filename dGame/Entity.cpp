@@ -761,7 +761,7 @@ void Entity::Initialize() {
 
 			AddComponent<MovementAIComponent>(movementAIID, moveInfo);
 		}
-	} else if (petComponentID > 0 || combatAiID > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0) {
+	} else if (petComponentID > 0 || (combatAiID > 0 && GetComponent<BaseCombatAIComponent>() != nullptr && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0)) {
 		MovementAIInfo moveInfo{
 			.movementType = "",
 			.wanderRadius = 16,

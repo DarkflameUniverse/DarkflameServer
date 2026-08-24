@@ -386,7 +386,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 void BaseWavesServer::GameWon(Entity* self) {
 	ActivityTimerStopAllTimers(self);
 
-	const auto winDelay = waves.back().winDelay;
+	const auto winDelay = !waves.empty() ? waves.back().winDelay : 0.0f;
 	ActivityTimerStart(self, GameOverWinTimer, 1, winDelay);
 	self->SetNetworkVar<uint32_t>(StartTimedWaveVariable, { winDelay, state.waveNumber });
 }
