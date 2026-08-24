@@ -93,6 +93,30 @@ public:
 	void SetMaxSpeed(float value);
 
 	/**
+	 * Adds an active speed boost/alteration to the entity (e.g. from buffs or speed behaviors)
+	 * @param value the speed value to add (reference base speed is 500)
+	 */
+	void AddSpeedboost(float value);
+
+	/**
+	 * Removes an active speed boost/alteration from the entity
+	 * @param value the speed value to remove
+	 */
+	void RemoveSpeedboost(float value);
+
+	/**
+	 * Returns the current speed multiplier
+	 * @return the speed multiplier
+	 */
+	float GetSpeedMultiplier() const { return m_SpeedMultiplier; }
+
+	/**
+	 * Returns active speedboost values
+	 * @return active speedboosts list
+	 */
+	std::vector<float> GetActiveSpeedboosts() const { return m_ActiveSpeedBoosts; }
+
+	/**
 	 * Sets how fast the entity will accelerate when not running at full speed
 	 * @param value the acceleration to set
 	 */
@@ -348,6 +372,8 @@ private:
 	uint32_t m_CurrentPathWaypointCount{ 0 };
 
 	LWOOBJID m_FollowedTarget{ LWOOBJID_EMPTY };
+	float m_SpeedMultiplier{ 1.0f };
+	std::vector<float> m_ActiveSpeedBoosts{};
 };
 
 #endif // MOVEMENTAICOMPONENT_H

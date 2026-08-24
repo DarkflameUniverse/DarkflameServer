@@ -8,6 +8,7 @@
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
+#include "MovementAIComponent.h"
 #include "EntityManager.h"
 #include "CDClientManager.h"
 #include "CDSkillBehaviorTable.h"
@@ -259,10 +260,15 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination);
 		} else if (parameter.name == "speed") {
-			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-			if (!controllablePhysicsComponent) return;
 			const auto speed = parameter.value;
-			controllablePhysicsComponent->AddSpeedboost(speed);
+			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
+			if (controllablePhysicsComponent) {
+				controllablePhysicsComponent->AddSpeedboost(speed);
+			}
+			auto* movementAIComponent = this->GetParent()->GetComponent<MovementAIComponent>();
+			if (movementAIComponent) {
+				movementAIComponent->AddSpeedboost(speed);
+			}
 		}
 	}
 }
@@ -296,10 +302,15 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
 		} else if (parameter.name == "speed") {
-			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-			if (!controllablePhysicsComponent) return;
 			const auto speed = parameter.value;
-			controllablePhysicsComponent->RemoveSpeedboost(speed);
+			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
+			if (controllablePhysicsComponent) {
+				controllablePhysicsComponent->RemoveSpeedboost(speed);
+			}
+			auto* movementAIComponent = this->GetParent()->GetComponent<MovementAIComponent>();
+			if (movementAIComponent) {
+				movementAIComponent->RemoveSpeedboost(speed);
+			}
 		}
 	}
 }

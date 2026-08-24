@@ -1,6 +1,7 @@
 #include "SpeedBehavior.h"
 
 #include "ControllablePhysicsComponent.h"
+#include "MovementAIComponent.h"
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"
 #include "Logger.h"
@@ -13,10 +14,16 @@ void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 	if (!target) return;
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
-	if (!controllablePhysicsComponent) return;
+	if (controllablePhysicsComponent) {
+		controllablePhysicsComponent->AddSpeedboost(m_RunSpeed);
+		Game::entityManager->SerializeEntity(target);
+	}
 
-	controllablePhysicsComponent->AddSpeedboost(m_RunSpeed);
-	Game::entityManager->SerializeEntity(target);
+	auto* movementAIComponent = target->GetComponent<MovementAIComponent>();
+	if (movementAIComponent) {
+		movementAIComponent->AddSpeedboost(m_RunSpeed);
+		Game::entityManager->SerializeEntity(target);
+	}
 
 	if (branch.duration > 0.0f) {
 		context->RegisterTimerBehavior(this, branch);
@@ -42,10 +49,16 @@ void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, 
 	if (!target) return;
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
-	if (!controllablePhysicsComponent) return;
+	if (controllablePhysicsComponent) {
+		controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);
+		Game::entityManager->SerializeEntity(target);
+	}
 
-	controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);
-	Game::entityManager->SerializeEntity(target);
+	auto* movementAIComponent = target->GetComponent<MovementAIComponent>();
+	if (movementAIComponent) {
+		movementAIComponent->RemoveSpeedboost(m_RunSpeed);
+		Game::entityManager->SerializeEntity(target);
+	}
 }
 
 void SpeedBehavior::Load() {

@@ -61,6 +61,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t component
 	m_Paused = false;
 	m_SavedVelocity = NiPoint3Constant::ZERO;
 	m_IsBounced = false;
+	m_SpeedMultiplier = 1.0f;
 
 	RegisterMsg(&MovementAIComponent::OnGetObjectReportInfo);
 
@@ -155,7 +156,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		} else {
 			m_CurrentSpeed = std::min(m_CurrentSpeed + m_Acceleration, m_MaxSpeed);
 
-			const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
+			const auto speed = m_CurrentSpeed * m_BaseSpeed * m_SpeedMultiplier; // scale speed based on base speed and active speed alterations
 
 			const auto delta = m_NextWaypoint - source;
 
@@ -460,6 +461,29 @@ void MovementAIComponent::SetMaxSpeed(const float value) {
 	if (value == m_MaxSpeed) return;
 	m_MaxSpeed = value;
 	m_Acceleration = value / 5.0f;
+}
+
+void MovementAIComponent::AddSpeedboost(float value) {
+	m_ActiveSpeedBoosts.push_back(value);
+	m_SpeedMultiplier = value / 500.0f;
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void MovementAIComponent::RemoveSpeedboost(float value) {
+	const auto pos = std::find(m_ActiveSpeedBoosts.begin(), m_ActiveSpeedBoosts.end(), value);
+	if (pos != m_ActiveSpeedBoosts.end()) {
+		m_ActiveSpeedBoosts.erase(pos);
+	} else {
+		LOG_DEBUG("Warning: Could not find speedboost %f in list of active speedboosts.", value);
+		return;
+	}
+
+	if (m_ActiveSpeedBoosts.empty()) {
+		m_SpeedMultiplier = 1.0f;
+	} else {
+		m_SpeedMultiplier = m_ActiveSpeedBoosts.back() / 500.0f;
+	}
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovementAIComponent::RunWaypointCommands(uint32_t waypointNum) {
