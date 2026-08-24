@@ -141,7 +141,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 
 		return inventoryComponent->GetLotCount(value) >= count;
 	case PreconditionType::DoesNotHaveItem:
-		return inventoryComponent->IsEquipped(value) && count > 0;
+		return inventoryComponent->GetLotCount(value) < count;
 	case PreconditionType::HasAchievement:
 		if (missionComponent == nullptr) return false;
 		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
@@ -290,14 +290,33 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
 	}
 
 	const auto a = Preconditions::Check(player, condition, evaluateCosts);
-
-	if (!a) {
-		GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
+	if (next == nullptr) {
+		if (!a) {
+			GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
+		}
+		return a;
 	}
 
-	const auto b = next == nullptr ? true : next->Check(player, evaluateCosts);
+	if (m_or) {
+		if (a) {
+			return true;
+		}
 
-	return m_or ? a || b : a && b;
+		const auto b = next->Check(player, evaluateCosts);
+		if (!b) {
+			GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
+			return false;
+		}
+
+		return true;
+	} else {
+		if (!a) {
+			GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
+			return false;
+		}
+
+		return next->Check(player, evaluateCosts);
+	}
 }
 
 PreconditionExpression::~PreconditionExpression() {
