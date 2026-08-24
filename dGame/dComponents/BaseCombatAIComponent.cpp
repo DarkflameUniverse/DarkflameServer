@@ -399,7 +399,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	for (const auto& entry : possibleTargets) {
 		auto* entity = Game::entityManager->GetEntity(entry);
 
-		if (entity == nullptr) {
+		if (entity == nullptr || entity->GetIsDead()) {
 			continue;
 		}
 
@@ -445,7 +445,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	for (const auto& threatTarget : m_ThreatEntries) {
 		auto* entity = Game::entityManager->GetEntity(threatTarget.first);
 
-		if (entity == nullptr) {
+		if (entity == nullptr || entity->GetIsDead()) {
 			deadThreats.push_back(threatTarget.first);
 
 			continue;
@@ -483,7 +483,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 
 	for (auto id : m_Parent->GetTargetsInPhantom()) {
 		auto* other = Game::entityManager->GetEntity(id);
-		if (!other) continue;
+		if (!other || other->GetIsDead()) continue;
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
@@ -531,9 +531,7 @@ void BaseCombatAIComponent::SetAiState(AiState newState) {
 bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* entity = Game::entityManager->GetEntity(target);
 
-	if (entity == nullptr) {
-		LOG("Invalid entity for checking validity (%llu)!", target);
-
+	if (entity == nullptr || entity->GetIsDead()) {
 		return false;
 	}
 
@@ -582,7 +580,11 @@ void BaseCombatAIComponent::SetTarget(const LWOOBJID target) {
 }
 
 Entity* BaseCombatAIComponent::GetTargetEntity() const {
-	return Game::entityManager->GetEntity(m_Target);
+	auto* entity = Game::entityManager->GetEntity(m_Target);
+	if (entity == nullptr || entity->GetIsDead()) {
+		return nullptr;
+	}
+	return entity;
 }
 
 void BaseCombatAIComponent::Taunt(LWOOBJID offender, float threat) {
