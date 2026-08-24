@@ -19,7 +19,8 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 
 	if (!missionComponent || !inventoryComponent) return;
 
-	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == eMissionState::COMPLETE) {
+	auto* const mission979 = missionComponent->GetMission(979);
+	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || (mission979 != nullptr && mission979->GetMissionState() == eMissionState::COMPLETE)) {
 		return;
 	}
 
@@ -28,6 +29,7 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 
 void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
 	const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
+	if (myGroup.length() < 11) return;
 
 	const auto pipeNum = GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1));
 	if (!pipeNum) return;
