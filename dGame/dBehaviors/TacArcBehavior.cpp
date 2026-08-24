@@ -69,7 +69,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStre
 
 			if (id != LWOOBJID_EMPTY) {
 				auto* canidate = Game::entityManager->GetEntity(id);
-				if (canidate) targets.push_back(canidate);
+				if (canidate && std::find(targets.begin(), targets.end(), canidate) == targets.end()) targets.push_back(canidate);
 			} else {
 				LOG("Bitstream has LWOOBJID_EMPTY as a target!");
 			}

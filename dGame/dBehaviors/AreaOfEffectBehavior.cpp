@@ -44,7 +44,9 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& b
 			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
 			continue;
 		};
-		targets.push_back(target);
+		if (target != LWOOBJID_EMPTY && std::find(targets.begin(), targets.end(), target) == targets.end()) {
+			targets.push_back(target);
+		}
 	}
 
 	for (auto target : targets) {
