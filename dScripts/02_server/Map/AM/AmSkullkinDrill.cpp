@@ -6,6 +6,7 @@
 #include "MissionComponent.h"
 #include "EntityInfo.h"
 #include "RenderComponent.h"
+#include "TeamManager.h"
 #include "eStateChangeType.h"
 
 void AmSkullkinDrill::OnStartup(Entity* self) {
@@ -238,13 +239,26 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 
 	auto* activator = Game::entityManager->GetEntity(activaterID);
 
-	// TODO: Missions
 	if (activator != nullptr) {
-		auto* missionComponent = activator->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr) {
-			for (const auto missionID : m_MissionsToUpdate) {
-				missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
+		const auto* const team = TeamManager::Instance()->GetTeam(activator->GetObjectID());
+		if (team) {
+			for (const auto& member : team->members) {
+				auto* const memberEntity = Game::entityManager->GetEntity(member);
+				if (!memberEntity) continue;
+				auto* missionComponent = memberEntity->GetComponent<MissionComponent>();
+				if (!missionComponent) continue;
+				missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT(), self->GetObjectID());
+				for (const auto missionID : m_MissionsToUpdate) {
+					missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
+				}
+			}
+		} else {
+			auto* missionComponent = activator->GetComponent<MissionComponent>();
+			if (missionComponent != nullptr) {
+				missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT(), self->GetObjectID());
+				for (const auto missionID : m_MissionsToUpdate) {
+					missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
+				}
 			}
 		}
 	}

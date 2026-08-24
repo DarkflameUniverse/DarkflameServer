@@ -20,16 +20,18 @@ void ExplodingAsset::OnStartup(Entity* self) {
 }
 
 void ExplodingAsset::ProgressPlayerMissions(Entity& self, Entity& player) {
-	const auto missionID = self.GetVar<int32_t>(u"missionID");
-	auto achievementIDs = self.GetVarAsString(u"achieveID");
 	auto* const missionComponent = player.GetComponent<MissionComponent>();
 	if (missionComponent) {
+		missionComponent->Progress(eMissionTaskType::SCRIPT, self.GetLOT(), self.GetObjectID());
+
+		const auto missionID = self.GetVar<int32_t>(u"missionID");
 		if (missionID != 0) {
 			missionComponent->ForceProgressValue(missionID,
 				static_cast<uint32_t>(eMissionTaskType::SCRIPT),
 				self.GetLOT(), false);
 		}
 
+		auto achievementIDs = self.GetVarAsString(u"achieveID");
 		if (!achievementIDs.empty()) {
 			for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
 				const auto achievementIDInt = GeneralUtils::TryParse<int32_t>(achievementID);

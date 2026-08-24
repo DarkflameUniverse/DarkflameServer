@@ -743,10 +743,12 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 					if (memberMissions == nullptr) continue;
 
 					memberMissions->Progress(eMissionTaskType::SMASH, m_Parent->GetLOT());
+					memberMissions->Progress(eMissionTaskType::SCRIPT, m_Parent->GetLOT(), m_Parent->GetObjectID());
 					memberMissions->Progress(eMissionTaskType::USE_SKILL, m_Parent->GetLOT(), skillID);
 				}
 			} else {
 				missions->Progress(eMissionTaskType::SMASH, m_Parent->GetLOT());
+				missions->Progress(eMissionTaskType::SCRIPT, m_Parent->GetLOT(), m_Parent->GetObjectID());
 				missions->Progress(eMissionTaskType::USE_SKILL, m_Parent->GetLOT(), skillID);
 			}
 		}

@@ -6,6 +6,8 @@
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
+#include "TeamManager.h"
+#include "eMissionTaskType.h"
 
 void AmSkullkinTower::OnStartup(Entity* self) {
 	self->SetProximityRadius(20, "Tower");
@@ -159,17 +161,28 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 				continue;
 			}
 
-			auto* missionComponent = player->GetComponent<MissionComponent>();
-
-			if (missionComponent == nullptr) {
-				continue;
+			const auto* const team = TeamManager::Instance()->GetTeam(player->GetObjectID());
+			if (team) {
+				for (const auto& member : team->members) {
+					auto* const memberEntity = Game::entityManager->GetEntity(member);
+					if (!memberEntity) continue;
+					auto* missionComponent = memberEntity->GetComponent<MissionComponent>();
+					if (!missionComponent) continue;
+					missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT(), self->GetObjectID());
+					for (const auto missionID : missionIDs) {
+						missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
+					}
+				}
+			} else {
+				auto* missionComponent = player->GetComponent<MissionComponent>();
+				if (missionComponent == nullptr) {
+					continue;
+				}
+				missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT(), self->GetObjectID());
+				for (const auto missionID : missionIDs) {
+					missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
+				}
 			}
-
-			for (const auto missionID : missionIDs) {
-				missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
-			}
-
-			//missionComponent->ForceProgressValue(1305, 1, self->GetLOT());
 		}
 	}
 
