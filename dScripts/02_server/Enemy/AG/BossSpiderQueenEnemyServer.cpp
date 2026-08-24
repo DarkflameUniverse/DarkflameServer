@@ -19,6 +19,8 @@
 #include "eStateChangeType.h"
 
 #include <vector>
+#include <cmath>
+#include <algorithm>
 
 //----------------------------------------------------------------
 //--On Startup, process necessary AI events
@@ -365,16 +367,15 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 
 		self->AddTimer("RFSTauntComplete", animationTime);
 
-		ToggleForSpecial(self, false);
-
 		return;
 	}
 
 	const auto target = attackTargetTable[0];
 
 	auto* skillComponent = self->GetComponent<SkillComponent>();
-
-	skillComponent->CalculateBehavior(1394, 32612, target, true);
+	if (skillComponent) {
+		skillComponent->CalculateBehavior(1394, 32612, target, true);
+	}
 
 	attackTargetTable.erase(attackTargetTable.begin());
 
@@ -400,21 +401,43 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 
 	ToggleForSpecial(self, true);
 
-	const auto randomTarget = GeneralUtils::GenerateRandomNumber<int32_t>(0, targets.size() - 1);
+	attackTargetTable.clear();
 
+	const auto randomTarget = GeneralUtils::GenerateRandomNumber<int32_t>(0, targets.size() - 1);
 	auto attackFocus = targets[randomTarget];
 
-	attackTargetTable.push_back(attackFocus);
+	// 1 = Clockwise (Right), 2 = Counter-Clockwise (Left)
+	const int dirSelect = GeneralUtils::GenerateRandomNumber<int>(1, 2);
+
+	std::vector<LWOOBJID> sortedTargets = targets;
+	const auto bossPos = self->GetPosition();
+	std::sort(sortedTargets.begin(), sortedTargets.end(), [&](LWOOBJID a, LWOOBJID b) {
+		auto* entA = Game::entityManager->GetEntity(a);
+		auto* entB = Game::entityManager->GetEntity(b);
+		if (!entA || !entB) return a < b;
+		const auto posA = entA->GetPosition();
+		const auto posB = entB->GetPosition();
+		const float angleA = std::atan2(posA.z - bossPos.z, posA.x - bossPos.x);
+		const float angleB = std::atan2(posB.z - bossPos.z, posB.x - bossPos.x);
+		return (dirSelect == 1) ? (angleA < angleB) : (angleA > angleB);
+	});
+
+	constexpr size_t barrageCount = 8;
+	for (size_t i = 0; i < barrageCount; ++i) {
+		attackTargetTable.push_back(sortedTargets[i % sortedTargets.size()]);
+	}
 
 	auto* skillComponent = self->GetComponent<SkillComponent>();
+	if (skillComponent) {
+		skillComponent->CalculateBehavior(1480, 36652, attackFocus, true);
+	}
 
-	skillComponent->CalculateBehavior(1480, 36652, attackFocus, true);
+	const auto& anim = (dirSelect == 1) ? spiderShootRght : spiderShootLeft;
+	PlayAnimAndReturnTime(self, anim);
 
 	RapidFireShooterManager(self);
 
-	PlayAnimAndReturnTime(self, spiderSingleShot);
-
-	self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(10, 15));
+	self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(s1DelayMin, s1DelayMax));
 }
 
 void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string timerName) {
@@ -476,17 +499,8 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 	} else if (timerName == "ROF") {
 		RunRainOfFire(self);
 	} else if (timerName == "RFSTauntComplete") {
-		//Determine an appropriate random time to check our manager again
-	   // local spiderCooldownDelay = math.random(s1DelayMin, s1DelayMax)
-
-		//Set a timer based on our random cooldown determination
-		//to pulse the SpiderSkillManager again
-
-		//GAMEOBJ:GetTimer():AddTimerWithCancel(spiderCooldownDelay, "PollSpiderSkillManager", self)
-
 		//Re-enable Spider Boss
-		//ToggleForSpecial(self, false);
-
+		ToggleForSpecial(self, false);
 	} else if (timerName == "WithdrawComplete") {
 		//Play the Spider Boss' mountain idle anim
 		PlayAnimAndReturnTime(self, spiderWithdrawIdle);
