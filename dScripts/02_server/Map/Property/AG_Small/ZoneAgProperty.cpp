@@ -1,4 +1,5 @@
 #include "ZoneAgProperty.h"
+#include "GeneralUtils.h"
 #include "EntityManager.h"
 #include "Character.h"
 #include "Entity.h"
@@ -110,6 +111,23 @@ void ZoneAgProperty::LoadProperty(Entity* self) {
 }
 
 void ZoneAgProperty::ProcessGroupObjects(Entity* self, std::string group) {
+	std::string setVarNom = group;
+	if (group == self->GetVar<std::string>(LandTargetGroup)) {
+		setVarNom = "LandingTarget";
+	} else if (group == self->GetVar<std::string>(SpiderScreamGroup)) {
+		setVarNom = "ScreamEmitter";
+	}
+
+	auto bossId = self->GetVar<LWOOBJID>(u"SpiderBossID");
+	auto* boss = Game::entityManager->GetEntity(bossId);
+	if (!boss) return;
+
+	for (auto* obj : Game::entityManager->GetEntitiesInGroup(group)) {
+		if (obj) {
+			boss->SetVar<LWOOBJID>(GeneralUtils::ASCIIToUTF16(setVarNom), obj->GetObjectID());
+			break;
+		}
+	}
 }
 
 void ZoneAgProperty::SpawnSpots(Entity* self) {

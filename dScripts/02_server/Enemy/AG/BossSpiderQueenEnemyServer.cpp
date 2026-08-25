@@ -195,6 +195,8 @@ void BossSpiderQueenEnemyServer::SpawnSpiderWave(Entity* self, int spiderCount) 
 	hatchCounter = spiderCount;
 	hatchList = {};
 
+	self->SetVar<int32_t>(u"lastSpiderCount", spiderCount);
+
 	// Run the wave manager
 	SpiderWaveManager(self);
 }
@@ -443,10 +445,29 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 
 		rot = controllable->GetRotation();
 
-		//If there are still baby spiders, don't do anyhting either
+		//If there are still baby spiders, check for deaths and emit scream
 		const auto spiders = Game::entityManager->GetEntitiesInGroup("BabySpider");
-		if (spiders.size() > 0)
-			self->AddTimer("checkForSpiders", time);
+		auto lastCount = self->GetVar<int32_t>(u"lastSpiderCount");
+		if (static_cast<int>(spiders.size()) < lastCount) {
+			int deaths = lastCount - static_cast<int>(spiders.size());
+			self->SetVar<int32_t>(u"lastSpiderCount", static_cast<int32_t>(spiders.size()));
+
+			auto screamEmitter = self->GetVar<LWOOBJID>(u"ScreamEmitter");
+			if (screamEmitter == LWOOBJID_EMPTY) {
+				auto screamObjs = Game::entityManager->GetEntitiesInGroup("Spider_Scream");
+				if (!screamObjs.empty()) {
+					screamEmitter = screamObjs.front()->GetObjectID();
+					self->SetVar<LWOOBJID>(u"ScreamEmitter", screamEmitter);
+				}
+			}
+
+			for (int i = 0; i < deaths; ++i) {
+				GameMessages::SendNotifyClientObject(self->GetObjectID(), u"EmitScream", 0, 0, screamEmitter, "", UNASSIGNED_SYSTEM_ADDRESS);
+			}
+		}
+
+		if (!spiders.empty())
+			self->AddTimer("checkForSpiders", 0.5f);
 		else
 			WithdrawSpider(self, false);
 	} else if (timerName == "PollROFManager") {
