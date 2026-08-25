@@ -4909,6 +4909,8 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
 				character->SetZoneClone(zoneClone);
+
+				character->SaveXMLToDatabase();
 			}
 
 			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);

@@ -1154,6 +1154,8 @@ void HandlePacket(Packet* packet) {
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);
 
 				characterComponent->RocketUnEquip(player);
+				characterComponent->SetLastRocketConfig(u"");
+				c->SaveXMLToDatabase();
 
 				player->GetCharacter()->SetTargetScene("");
 

@@ -362,13 +362,7 @@ void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	if (!m_Character) return;
 
 	//Check to see if we're landing:
-	if (m_Character->GetZoneID() != Game::server->GetZoneID()) {
-		m_IsLanding = true;
-	}
-
-	if (LandingAnimDisabled(m_Character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
-		m_IsLanding = false; //Don't make us land on VE/minigames lol
-	}
+	m_IsLanding = !m_LastRocketConfig.empty() && !LandingAnimDisabled(Game::server->GetZoneID());
 }
 
 void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
@@ -890,7 +884,6 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 			character->SetZoneInstance(zoneInstance);
 			character->SetZoneClone(zoneClone);
 
-			characterComponent->SetLastRocketConfig(u"");
 			characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
 
 			character->SaveXMLToDatabase();
