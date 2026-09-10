@@ -6,6 +6,7 @@
 #include <chrono>
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
+#include "eFunnessTypes.h"
 
 #include <unordered_map>
 
@@ -55,7 +56,7 @@ public:
 	// Added for GameMessageHandler
 	std::unordered_map<uint32_t, BehaviorParams> uiBehaviorHandles;
 
-	void UserOutOfSync();
+	void UserOutOfSync(const CaughtFunness& funness);
 
 private:
 	uint32_t m_AccountID;
@@ -75,6 +76,7 @@ private:
 	const int m_MaxDesyncAllowed = 12;
 	uint64_t m_MuteExpire;
 	std::chrono::steady_clock::time_point m_LastMuteCheck{};
+	std::vector<CaughtFunness> m_CaughtFunness{};
 };
 
 #endif // USER_H
