@@ -1440,6 +1440,7 @@ void HandlePacket(Packet* packet) {
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) {
 			Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::KICK);
+			return;
 		}
 
 		const auto* const character = user->GetLastUsedChar();
