@@ -1480,7 +1480,7 @@ void HandlePacket(Packet* packet) {
 				LOG("Detected run multiplier difference of %f which is greater than the expected value 0.0f, not normal!", cheatInfo);
 			}
 
-			if (!disabledCheats) user->UserOutOfSync(funness);
+			if (!disabledCheats && user->GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) user->UserOutOfSync(funness);
 		}
 
 		break;
