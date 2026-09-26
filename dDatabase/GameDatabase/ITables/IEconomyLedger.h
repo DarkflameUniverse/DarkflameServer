@@ -160,6 +160,10 @@ public:
 	// Zones and clones with map events of a kind in the range: {zone, clone, events, quantity}
 	virtual nlohmann::json GetMapZones(eMapEvent kind, uint32_t fromDay, uint32_t toDay) = 0;
 
+	// GetMapZones for every kind at once, in one pass over the range: {kind, zone, clone, events, quantity}, by kind and then
+	// in GetMapZones' order
+	virtual nlohmann::json GetMapZonesAllKinds(uint32_t fromDay, uint32_t toDay) = 0;
+
 	// LOTs with the most events of a kind in a zone (one clone, or every instance): {lot, events, quantity}
 	virtual nlohmann::json GetMapLots(uint32_t zone, std::optional<uint32_t> clone, eMapEvent kind, uint32_t fromDay, uint32_t toDay, uint32_t limit) = 0;
 

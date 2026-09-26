@@ -223,10 +223,9 @@ namespace EconomyPlaces {
 		// Every (zone, clone) with map events or statistics in the range
 		std::map<std::pair<uint32_t, uint32_t>, PlaceTotals> PlacesWithData(uint32_t from, uint32_t to) {
 			std::map<std::pair<uint32_t, uint32_t>, PlaceTotals> places;
-			for (const auto kind : magic_enum::enum_values<IEconomyLedger::eMapEvent>()) {
-				for (const auto& row : Database::Get()->GetMapZones(kind, from, to)) {
-					places[{ row.value("zone", 0u), row.value("clone", 0u) }].events += row.value("events", int64_t{ 0 });
-				}
+			for (const auto& row : Database::Get()->GetMapZonesAllKinds(from, to)) {
+				if (!magic_enum::enum_cast<IEconomyLedger::eMapEvent>(row.value("kind", 0))) continue;
+				places[{ row.value("zone", 0u), row.value("clone", 0u) }].events += row.value("events", int64_t{ 0 });
 			}
 			for (const auto& row : Database::Get()->GetPlayerStatsPerZone(from, to, false)) {
 				places[{ row.value("zone", 0u), row.value("clone", 0u) }].stats += row.value("amount", int64_t{ 0 });

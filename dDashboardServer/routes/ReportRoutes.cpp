@@ -1025,11 +1025,9 @@ void RegisterReportRoutes() {
 
 			auto statRows = Database::Get()->GetPlayerStatsPerZone(from, to, excludeStaff);
 			nlohmann::json mapRows = nlohmann::json::array();
-			for (const auto kind : magic_enum::enum_values<IEconomyLedger::eMapEvent>()) {
-				for (auto& row : Database::Get()->GetMapZones(kind, from, to)) {
-					row["kind"] = static_cast<int>(kind);
-					mapRows.push_back(std::move(row));
-				}
+			// One pass over the range for every kind (a query per kind read it once each)
+			for (auto& row : Database::Get()->GetMapZonesAllKinds(from, to)) {
+				if (magic_enum::enum_cast<IEconomyLedger::eMapEvent>(row.value("kind", 0))) mapRows.push_back(std::move(row));
 			}
 			std::set<uint32_t> clones;
 			for (const auto* rows : { &statRows, &mapRows }) for (const auto& row : *rows) clones.insert(row.value("clone", 0u));

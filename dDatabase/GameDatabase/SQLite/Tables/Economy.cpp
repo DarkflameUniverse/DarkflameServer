@@ -214,6 +214,17 @@ nlohmann::json SQLiteDatabase::GetMapZones(eMapEvent kind, uint32_t fromDay, uin
 	return rows;
 }
 
+nlohmann::json SQLiteDatabase::GetMapZonesAllKinds(uint32_t fromDay, uint32_t toDay) {
+	auto [_, result] = ExecuteSelect("SELECT kind, zone, clone_id, SUM(events) AS events, SUM(quantity) AS quantity FROM map_events_daily "
+		"WHERE day BETWEEN ? AND ? GROUP BY kind, zone, clone_id ORDER BY kind, events DESC, zone, clone_id;", fromDay, toDay);
+	nlohmann::json rows = nlohmann::json::array();
+	for (; !result.eof(); result.nextRow()) {
+		rows.push_back({ {"kind", result.getIntField("kind")}, {"zone", result.getIntField("zone")}, {"clone", static_cast<uint32_t>(result.getInt64Field("clone_id"))},
+			{"events", result.getInt64Field("events")}, {"quantity", result.getInt64Field("quantity")} });
+	}
+	return rows;
+}
+
 nlohmann::json SQLiteDatabase::GetMapLots(uint32_t zone, std::optional<uint32_t> clone, eMapEvent kind, uint32_t fromDay, uint32_t toDay, uint32_t limit) {
 	auto [_, result] = ExecuteSelect("SELECT lot, SUM(events) AS events, SUM(quantity) AS quantity FROM map_events_daily "
 		"WHERE zone = ? AND kind = ? AND day BETWEEN ? AND ?" + CloneSql(clone) + " GROUP BY lot ORDER BY events DESC, lot LIMIT ?;", zone, static_cast<uint32_t>(kind), fromDay, toDay, limit);

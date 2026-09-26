@@ -819,6 +819,7 @@ TEST_F(ParitySeeded, Economy) {
 	Both("GetTransfers without inventory moves", [](GameDatabase& db) { return json{ db.GetTransfers(0, 10, 0, 0), db.GetTransfers(0, 10, CHAR_ALICE2, 0) }; });
 	Both("GetTransfersForCharacters", [](GameDatabase& db) { return json{ db.GetTransfersForCharacters({ CHAR_ALICE, CHAR_ALICE2 }, 0, 10), db.GetTransfersForCharacters({}, 0, 10) }; });
 	Both("GetMapZones", [&](GameDatabase& db) { return json{ db.GetMapZones(IEconomyLedger::eMapEvent::ENEMY_KILLS, day, day + 1), db.GetMapZones(IEconomyLedger::eMapEvent::POWERUP_DROPS, day, day + 1) }; });
+	Both("GetMapZonesAllKinds", [&](GameDatabase& db) { return json{ db.GetMapZonesAllKinds(day, day + 1), db.GetMapZonesAllKinds(day + 5, day + 6) }; });
 	Both("GetMapLots", [&](GameDatabase& db) {
 		return json{ db.GetMapLots(1100, std::nullopt, IEconomyLedger::eMapEvent::ENEMY_KILLS, day, day + 1, 10), db.GetMapLots(1150, std::nullopt, IEconomyLedger::eMapEvent::ENEMY_KILLS, day, day + 1, 10),
 			db.GetMapLots(1150, 3u, IEconomyLedger::eMapEvent::ENEMY_KILLS, day, day + 1, 10), db.GetMapLots(1150, 0u, IEconomyLedger::eMapEvent::ENEMY_KILLS, day, day + 1, 10) };

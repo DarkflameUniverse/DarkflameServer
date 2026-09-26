@@ -274,6 +274,7 @@ public:
 	uint32_t GetMaxBugReportId() override;
 	nlohmann::json GetTransfersForCharacters(const std::vector<LWOOBJID>& characterIds, uint32_t start, uint32_t length) override;
 	nlohmann::json GetMapZones(eMapEvent kind, uint32_t fromDay, uint32_t toDay) override;
+	nlohmann::json GetMapZonesAllKinds(uint32_t fromDay, uint32_t toDay) override;
 	nlohmann::json GetMapLots(uint32_t zone, std::optional<uint32_t> clone, eMapEvent kind, uint32_t fromDay, uint32_t toDay, uint32_t limit) override;
 	nlohmann::json GetMapCells(uint32_t zone, std::optional<uint32_t> clone, eMapEvent kind, uint32_t fromDay, uint32_t toDay, LOT lot) override;
 	nlohmann::json GetMapEventsPerDay(uint32_t fromDay, uint32_t toDay, const PlaceFilter& place) override;

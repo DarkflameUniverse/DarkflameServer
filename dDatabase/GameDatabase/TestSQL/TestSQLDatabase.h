@@ -304,6 +304,7 @@ class TestSQLDatabase : public GameDatabase {
 	uint32_t GetMaxBugReportId() override { return 0; }
 	nlohmann::json GetTransfersForCharacters(const std::vector<LWOOBJID>& characterIds, uint32_t start, uint32_t length) override { return nlohmann::json::array(); }
 	nlohmann::json GetMapZones(eMapEvent kind, uint32_t fromDay, uint32_t toDay) override { return nlohmann::json::array(); };
+	nlohmann::json GetMapZonesAllKinds(uint32_t fromDay, uint32_t toDay) override { return nlohmann::json::array(); };
 	nlohmann::json GetMapLots(uint32_t zone, std::optional<uint32_t> clone, eMapEvent kind, uint32_t fromDay, uint32_t toDay, uint32_t limit) override { return nlohmann::json::array(); };
 	nlohmann::json GetMapCells(uint32_t zone, std::optional<uint32_t> clone, eMapEvent kind, uint32_t fromDay, uint32_t toDay, LOT lot) override { return nlohmann::json::array(); };
 	nlohmann::json GetMapEventsPerDay(uint32_t fromDay, uint32_t toDay, const PlaceFilter& place) override { return nlohmann::json::array(); };

@@ -2,8 +2,10 @@
 
 namespace {
 	// Staff (GM 3+) are excluded from player reports, matching NexusDashboard. Deleted characters still count.
-	constexpr const char* STAFF_FILTER =
-		" LEFT JOIN charinfo c ON c.id = f.character_id LEFT JOIN accounts a ON a.id = c.account_id WHERE COALESCE(a.gm_level, 0) < 3 AND ";
+	// The few staff characters are looked up once; joining every ledger row to its character and account took several
+	// times as long on a large ledger.
+	constexpr const char* STAFF_CHARACTERS = "SELECT c.id FROM charinfo c JOIN accounts a ON a.id = c.account_id WHERE a.gm_level >= 3";
+	const std::string STAFF_FILTER = std::string(" WHERE f.character_id NOT IN (") + STAFF_CHARACTERS + ") AND ";
 	constexpr const char* NO_FILTER = " WHERE ";
 }
 
@@ -89,11 +91,12 @@ nlohmann::json MySQLDatabase::GetItemFlows(uint32_t fromDay, uint32_t toDay, LOT
 
 nlohmann::json MySQLDatabase::GetTopEarners(uint32_t fromDay, uint32_t toDay, uint32_t limit, bool excludeStaff) {
 	// Trades and mail move coins between players rather than creating them, so they are left out of "income"
+	// Totals per character first, names for the top ones only
 	auto result = ExecuteSelect(std::string(
-		"SELECT f.character_id, COALESCE(c.name, '') AS name, SUM(f.gained) AS gained, SUM(f.spent) AS spent FROM economy_currency_daily f "
-		"LEFT JOIN charinfo c ON c.id = f.character_id LEFT JOIN accounts a ON a.id = c.account_id "
-		"WHERE f.day BETWEEN ? AND ? AND f.source NOT IN (3, 6)") + (excludeStaff ? " AND COALESCE(a.gm_level, 0) < 3" : "") +
-		" GROUP BY f.character_id ORDER BY gained DESC LIMIT ?;", fromDay, toDay, limit);
+		"SELECT t.character_id, COALESCE(c.name, '') AS name, t.gained, t.spent FROM (SELECT f.character_id, SUM(f.gained) AS gained, "
+		"SUM(f.spent) AS spent FROM economy_currency_daily f WHERE f.day BETWEEN ? AND ? AND f.source NOT IN (3, 6)") +
+		(excludeStaff ? std::string(" AND f.character_id NOT IN (") + STAFF_CHARACTERS + ")" : std::string()) +
+		" GROUP BY f.character_id ORDER BY gained DESC LIMIT ?) t LEFT JOIN charinfo c ON c.id = t.character_id ORDER BY t.gained DESC;", fromDay, toDay, limit);
 	nlohmann::json rows = nlohmann::json::array();
 	while (result->next()) {
 		rows.push_back({ {"character_id", std::to_string(result->getInt64("character_id"))}, {"name", std::string(result->getString("name").c_str())},
@@ -202,6 +205,17 @@ nlohmann::json MySQLDatabase::GetMapZones(eMapEvent kind, uint32_t fromDay, uint
 	nlohmann::json rows = nlohmann::json::array();
 	while (result->next()) {
 		rows.push_back({ {"zone", result->getInt("zone")}, {"clone", result->getUInt("clone_id")}, {"events", result->getInt64("events")}, {"quantity", result->getInt64("quantity")} });
+	}
+	return rows;
+}
+
+nlohmann::json MySQLDatabase::GetMapZonesAllKinds(uint32_t fromDay, uint32_t toDay) {
+	auto result = ExecuteSelect("SELECT kind, zone, clone_id, SUM(events) AS events, SUM(quantity) AS quantity FROM map_events_daily "
+		"WHERE day BETWEEN ? AND ? GROUP BY kind, zone, clone_id ORDER BY kind, events DESC, zone, clone_id;", fromDay, toDay);
+	nlohmann::json rows = nlohmann::json::array();
+	while (result->next()) {
+		rows.push_back({ {"kind", result->getInt("kind")}, {"zone", result->getInt("zone")}, {"clone", result->getUInt("clone_id")},
+			{"events", result->getInt64("events")}, {"quantity", result->getInt64("quantity")} });
 	}
 	return rows;
 }
