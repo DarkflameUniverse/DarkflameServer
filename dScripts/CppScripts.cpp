@@ -136,6 +136,8 @@
 #include "FvHorsemenTrigger.h"
 #include "FvFlyingCreviceDragon.h"
 #include "FvDragonInstanceServer.h"
+#include "ForceFieldEffect.h"
+#include "NpcNpJetpackGuy.h"
 #include "FvMaelstromDragon.h"
 #include "DragonRonin.h"
 #include "FvDragonSmashingGolemQb.h"
@@ -251,6 +253,7 @@
 #include "AmDarklingDragon.h"
 #include "AmBlueX.h"
 #include "AmTeapotServer.h"
+#include "AmSkeletonSpawnerVolume.h"
 #include "WanderingVendor.h"
 
 // NJ Scripts
@@ -608,6 +611,7 @@ namespace {
 		{"scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua", []() {return new BaseEnemyApe();}},
 		{"scripts\\02_server\\Map\\AM\\L_BLUE_X.lua", []() {return new AmBlueX();}},
 		{"scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua", []() {return new AmTeapotServer();}},
+		{"scripts\\02_server\\Map\\AM\\L_SKELETON_SPAWNER_VOLUME.lua", []() {return new AmSkeletonSpawnerVolume();}},
 
 		//Ninjago
 		{"scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua", []() {return new NjGarmadonCelebration();}},
@@ -723,6 +727,8 @@ namespace {
 		{"scripts\\equipmenttriggers\\ImaginationBackPack.lua", []() {return new ImaginationBackPack();}},
 		{"scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON_INSTANCE_ACTOR.lua", [](){return new RegisterWithZoneControl();}},
 		{"scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON_INSTANCE_EFFECT.lua", [](){return new RegisterWithZoneControl();}},
+		{"scripts\\ai\\LS\\ForceFieldEffect.lua", []() {return new ForceFieldEffect();}},
+		{"scripts\\ai\\NP\\L_NPC_NP_JETPACK_GUY.lua", []() {return new NpcNpJetpackGuy();}},
 	};
 
 	std::set<std::string> g_ExcludedScripts = {
@@ -749,6 +755,7 @@ namespace {
 		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_MOVEMENT.lua", // Really old alpha script
 		"scripts\\zone\\LUPs\\DeepFreeze Intro\\WBL_Enemy_Beaver.lua", // Really old alpha script
 		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_WANDER_SMALL.lua", // Really old alpha script
+		"scripts\\zone\\LUPs\\Moonbase Intro\\WBL_Enemy_Grabbler.lua", // Really old alpha script, only sets wander variables
 		"scripts\\ai\\NP\\L_NPC_NP_OLD_MAN_SHERLAND.lua", // This NPC doesn't even exist in modern crux, the only place this is used...
 		"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua", // This platform does not exist even when moved manually on a client
 	};

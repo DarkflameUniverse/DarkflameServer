@@ -1,5 +1,6 @@
 set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM 
 	"AmConsoleTeleportServer.cpp"
+	"AmSkeletonSpawnerVolume.cpp"
 	"RandomSpawnerFin.cpp"
 	"RandomSpawnerPit.cpp"
 	"RandomSpawnerStr.cpp"

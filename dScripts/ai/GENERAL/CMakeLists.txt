@@ -1,4 +1,5 @@
 set(DSCRIPTS_SOURCES_AI_GENERAL 
+	"ForceFieldEffect.cpp"
 	"InstanceExitTransferPlayerToLastNonInstance.cpp"
 	"LegoDieRoll.cpp")
 
