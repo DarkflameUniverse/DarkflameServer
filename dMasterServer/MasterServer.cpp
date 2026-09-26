@@ -640,6 +640,10 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(mythranShift);
 			inStream.Read(zoneID);
 			inStream.Read(zoneClone);
+			// The login stamps travelling with the request (see Stamps.h); master adds its steps
+			Stamps stamps;
+			if (!stamps.Deserialize(inStream)) stamps = {};
+			if (!stamps.empty()) stamps.Add(eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED, zoneID);
 			if (shutdownSequenceStarted) {
 				LOG("Shutdown sequence has been started.  Not creating a new zone.");
 				break;
@@ -652,14 +656,15 @@ void HandlePacket(Packet* packet) {
 
 			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
 			{
-				in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), packet->systemAddress });
+				if (!stamps.empty()) stamps.Add(eStamps::PASSPORT_AUTH_IM_LOGIN_QUEUED, in->GetInstanceID());
+				in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), packet->systemAddress, stamps });
 				LOG("Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
 				break;
 			}
 
 			//Instance is ready, transfer
 			LOG("Responding to transfer request %llu for zone %i %i", requestID, zoneID, zoneClone);
-			Game::im->RequestAffirmation(in, { requestID, static_cast<bool>(mythranShift), packet->systemAddress });
+			Game::im->RequestAffirmation(in, { requestID, static_cast<bool>(mythranShift), packet->systemAddress, stamps });
 			break;
 		}
 

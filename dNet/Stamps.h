@@ -37,10 +37,12 @@
  *   BYPASS (1)                      no play key needed (keys off, or a GM account)
  *   DB_INSERT_START / _FINISH       writing to the database (lifting an expired ban, recording the address)
  *   WORLD_DISCONNECT (1)            no master server to ask for a world
- *   WORLD_COMMUNICATION_START (0)   asked master for a world server
- *   WORLD_PACKET_RECEIVED (instance) master answered
- *   IM_COMMUNICATION_START / IM_LOGIN_START / IM_COMMUNICATION_END (1)  the session key was given to master
- *   WORLD_SESSION_CONFIRM_TO_AUTH (1), WORLD_COMMUNICATION_FINISH (world port)  the player is sent to the world
+ *   WORLD_COMMUNICATION_START (0)   auth asked master for a world server (the stamps go along)
+ *   WORLD_PACKET_RECEIVED (zone)    master: got the request
+ *   IM_LOGIN_QUEUED (instance)      master: the world is still starting, the request waits for it
+ *   WORLD_SESSION_CONFIRM_TO_AUTH (instance)  master: answered auth with the world (the stamps come back)
+ *   IM_COMMUNICATION_START / IM_LOGIN_START / IM_COMMUNICATION_END (1)  auth gave the session key to master
+ *   WORLD_COMMUNICATION_FINISH (world port)  auth sends the player to the world
  * The auth server logs the same lines as the client (debug log) when it sends the response.
  */
 enum class eStamps : uint32_t {
@@ -102,8 +104,9 @@ struct Stamp {
 };
 
 // The stamps of one login. Each step adds its stamp when it happens, on whichever server performs it: the list
-// travels with the login from auth to master and back inside the server messages (REQUEST_ZONE_TRANSFER and its
-// response), and the login response finally carries it to the client.
+// travels with the login from auth to master and back inside the server messages (REQUEST_ZONE_TRANSFER and
+// REQUEST_ZONE_TRANSFER_RESPONSE end with it; empty when a world asks), and the login response finally carries it
+// to the client.
 // Written as a u32 holding 16 * count + 4, then the stamps (the login response's layout).
 struct Stamps {
 	std::vector<Stamp> list{};

@@ -244,8 +244,8 @@ void AuthPackets::LoginRequest::Handle() {
 		}
 		// Ask master for a world server to send the player to
 		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_START);
-		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username, stamps](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) mutable {
-			stamps.Add(eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED, zoneInstance);
+		// The stamps go along: master adds its steps and sends them back with the world server
+		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, stamps, [system, server, username](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort, Stamps stamps) mutable {
 			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username, stamps);
 			});
 	}
@@ -304,7 +304,6 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 
 		LOG("Set session key for user %s", username.c_str());
 
-		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, 1);
 		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, wServerPort);
 	}
 

@@ -6,6 +6,7 @@
 #include "dCommonVars.h"
 #include "IServerOperations.h"
 #include "RakNetTypes.h"
+#include "Stamps.h"
 #include "dZMCommon.h"
 #include "Logger.h"
 
@@ -18,6 +19,7 @@ struct PendingInstanceRequest {
 	uint64_t id;
 	bool mythranShift;
 	SystemAddress sysAddr;
+	Stamps stamps; // The login stamps that came with the request; they go back in the response
 };
 
 class Instance {

@@ -156,6 +156,8 @@ void InstanceManager::ReadyInstance(const InstancePtr& instance) {
 
 		LOG("Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
 
+		auto stamps = request.stamps;
+		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, zoneId.GetInstanceID());
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,
 			request.sysAddr,
@@ -165,7 +167,8 @@ void InstanceManager::ReadyInstance(const InstancePtr& instance) {
 			zoneId.GetInstanceID(),
 			zoneId.GetCloneID(),
 			instance->GetIP(),
-			instance->GetPort()
+			instance->GetPort(),
+			stamps
 		);
 	}
 
@@ -199,6 +202,8 @@ void InstanceManager::AffirmTransfer(const InstancePtr& instance, const uint64_t
 
 		const auto& zoneId = instance->GetZoneID();
 
+		auto stamps = request.stamps;
+		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, zoneId.GetInstanceID());
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,
 			request.sysAddr,
@@ -208,7 +213,8 @@ void InstanceManager::AffirmTransfer(const InstancePtr& instance, const uint64_t
 			zoneId.GetInstanceID(),
 			zoneId.GetCloneID(),
 			instance->GetIP(),
-			instance->GetPort()
+			instance->GetPort(),
+			stamps
 		);
 
 		pending.erase(pending.begin() + i);

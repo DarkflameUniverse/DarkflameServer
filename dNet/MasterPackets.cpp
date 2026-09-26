@@ -8,7 +8,7 @@
 
 #include <string>
 
-void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t cloneID) {
+void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t cloneID, const Stamps& stamps) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_ZONE_TRANSFER);
 
@@ -16,6 +16,7 @@ void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID,
 	bitStream.Write<uint8_t>(mythranShift);
 	bitStream.Write(zoneID);
 	bitStream.Write(cloneID);
+	stamps.Serialize(bitStream);
 
 	server->SendToMaster(bitStream);
 }
@@ -60,7 +61,7 @@ void MasterPackets::SendWorldReady(dServer* server, LWOMAPID zoneId, LWOINSTANCE
 	server->SendToMaster(bitStream);
 }
 
-void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, const std::string& serverIP, uint32_t serverPort) {
+void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, const std::string& serverIP, uint32_t serverPort, const Stamps& stamps) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE);
 
@@ -71,6 +72,7 @@ void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddres
 	bitStream.Write(zoneClone);
 	bitStream.Write<uint16_t>(serverPort);
 	bitStream.Write(LUString(serverIP, 255));
+	stamps.Serialize(bitStream);
 
 	server->Send(bitStream, sysAddr, false);
 }

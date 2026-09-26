@@ -2,6 +2,7 @@
 #include "ClientPackets.h"
 #include "CommonPackets.h"
 #include "GameDependencies.h"
+#include "MasterPackets.h"
 #include "PacketTestUtils.h"
 #include "Legacy/CommonAuthPacketsLegacy.h"
 
@@ -429,4 +430,48 @@ TEST_F(CommonAuthPacketsTests, StampsRoundTrip) {
 	bad.Write<uint64_t>(0);
 	Stamps rejected;
 	EXPECT_FALSE(rejected.Deserialize(bad));
+}
+
+TEST_F(CommonAuthPacketsTests, ZoneTransferResponseCarriesStamps) {
+	Stamps stamps;
+	stamps.list = { Stamp(eStamps::PASSPORT_AUTH_START, 0, 10), Stamp(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, 7, 11) };
+	const auto sent = Capture([&] { MasterPackets::SendZoneTransferResponse(Game::server, TestAddress(), 99, true, 1000, 7, 0, "127.0.0.1", 2001, stamps); });
+	ASSERT_EQ(sent.size(), 1);
+
+	RakNet::BitStream bitStream(const_cast<uint8_t*>(sent[0].bytes.data()), sent[0].bytes.size(), true);
+	LUBitStream header;
+	ASSERT_TRUE(header.ReadHeader(bitStream));
+	EXPECT_EQ(header.connectionType, ServiceType::MASTER);
+	uint64_t requestID{};
+	uint8_t mythranShift{};
+	uint32_t zoneID{};
+	uint32_t zoneInstance{};
+	uint32_t zoneClone{};
+	uint16_t port{};
+	LUString ip(255);
+	ASSERT_TRUE(bitStream.Read(requestID));
+	ASSERT_TRUE(bitStream.Read(mythranShift));
+	ASSERT_TRUE(bitStream.Read(zoneID));
+	ASSERT_TRUE(bitStream.Read(zoneInstance));
+	ASSERT_TRUE(bitStream.Read(zoneClone));
+	ASSERT_TRUE(bitStream.Read(port));
+	ASSERT_TRUE(bitStream.Read(ip));
+	EXPECT_EQ(requestID, 99);
+	EXPECT_EQ(port, 2001);
+	EXPECT_EQ(ip.string, "127.0.0.1");
+
+	Stamps copy;
+	ASSERT_TRUE(copy.Deserialize(bitStream));
+	EXPECT_EQ(bitStream.GetNumberOfUnreadBits(), 0);
+	ASSERT_EQ(copy.size(), 2);
+	EXPECT_EQ(copy.list[1].type, eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH);
+	EXPECT_EQ(copy.list[1].value, 7);
+	EXPECT_EQ(copy.list[1].timestamp, 11);
+
+	// Without a login the list is empty: just its size field
+	const auto plain = Capture([&] { MasterPackets::SendZoneTransferResponse(Game::server, TestAddress(), 99, true, 1000, 7, 0, "127.0.0.1", 2001); });
+	ASSERT_EQ(plain.size(), 1);
+	EXPECT_EQ(plain[0].bytes.size() + 32, sent[0].bytes.size());
+	const std::vector<uint8_t> tail(plain[0].bytes.end() - 4, plain[0].bytes.end());
+	EXPECT_EQ(tail, (std::vector<uint8_t>{ 4, 0, 0, 0 }));
 }

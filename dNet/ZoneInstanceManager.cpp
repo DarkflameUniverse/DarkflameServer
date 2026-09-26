@@ -8,10 +8,16 @@ ZoneInstanceManager* ZoneInstanceManager::m_Address = nullptr;
 
 //! Requests a zone transfer
 void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, uint32_t zoneClone, bool mythranShift, TransferCallback callback) {
+	RequestZoneTransfer(server, zoneID, zoneClone, mythranShift, Stamps{}, [callback](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort, Stamps) {
+		callback(mythranShift, zoneID, zoneInstance, zoneClone, serverIP, serverPort);
+	});
+}
+
+void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, uint32_t zoneClone, bool mythranShift, const Stamps& stamps, StampedTransferCallback callback) {
 	const auto nextID = ++currentRequestID;
 	requests[nextID] = callback;
 
-	MasterPackets::SendZoneTransferRequest(server, nextID, mythranShift, zoneID, zoneClone);
+	MasterPackets::SendZoneTransferRequest(server, nextID, mythranShift, zoneID, zoneClone, stamps);
 }
 
 //! Handles a zone transfer response
@@ -33,10 +39,12 @@ void ZoneInstanceManager::HandleRequestZoneTransferResponse(Packet* packet) {
 	inStream.Read(serverPort);
 	LUString serverIP(255);
 	inStream.Read(serverIP);
+	Stamps stamps;
+	if (!stamps.Deserialize(inStream)) stamps = {};
 
 	const auto entry = requests.find(requestID);
 	if (entry != requests.end()) {
-		entry->second(mythranShift, zoneID, zoneInstance, zoneClone, serverIP.string, serverPort);
+		entry->second(mythranShift, zoneID, zoneInstance, zoneClone, serverIP.string, serverPort, stamps);
 		requests.erase(entry);
 	}
 }
@@ -51,7 +59,9 @@ void ZoneInstanceManager::RequestPrivateZone(
 	const std::string& password,
 	TransferCallback callback) {
 	const auto nextID = ++currentRequestID;
-	requests[nextID] = callback;
+	requests[nextID] = [callback](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort, Stamps) {
+		callback(mythranShift, zoneID, zoneInstance, zoneClone, serverIP, serverPort);
+	};
 
 	MasterPackets::SendZoneRequestPrivate(server, nextID, mythranShift, password);
 }
