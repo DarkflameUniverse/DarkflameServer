@@ -266,3 +266,15 @@ TEST_F(MissionMessagesTests, GoldenBytes) {
 	task.updates = { 1.5f, 2.0f };
 	EXPECT_PACKET_EQ(FromHex("01 00 00 00 04 00 00 00 02 00 00 c0 3f 00 00 00 40"), Payload(task));
 }
+
+// Behaviour fix: a MissionDialogueOK naming a responder that does not exist used to dereference a null player.
+TEST_F(MissionMessagesTests, MissionDialogueOKWithUnknownResponderDoesNotCrash) {
+	Entity missionGiver(15, info);
+	GameMessages::MissionDialogueOK ok;
+	ok.bIsComplete = false;
+	ok.iMissionState = eMissionState::AVAILABLE;
+	ok.missionID = 1727;
+	ok.responder = 0x7777; // no such entity
+	ok.Handle(missionGiver, UNASSIGNED_SYSTEM_ADDRESS);
+	SUCCEED();
+}

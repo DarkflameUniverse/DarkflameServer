@@ -125,8 +125,12 @@ namespace GameMessages {
 	void MissionDialogueOK::Handle(Entity& entityRef, const SystemAddress& sysAddr) {
 		Entity* entity = &entityRef;
 		Entity* player = Game::entityManager->GetEntity(responder);
+		if (!player) {
+			LOG("MissionDialogueOK for mission %i from unknown responder %llu", missionID, responder);
+			return;
+		}
 
-		if (entity) entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
+		entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
 
 		// Get the player's mission component
 		MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
