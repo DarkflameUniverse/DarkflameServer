@@ -1,6 +1,7 @@
 #include "CarBoostBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "GameMessages.h"
+#include "RacingMessages.h"
 #include "EntityManager.h"
 #include "BehaviorContext.h"
 #include "CharacterComponent.h"
@@ -9,7 +10,9 @@
 #include "PossessableComponent.h"
 
 void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
-	GameMessages::SendVehicleAddPassiveBoostAction(branch.target, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::VehicleAddPassiveBoostAction addBoost;
+	addBoost.target = branch.target;
+	addBoost.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto* entity = Game::entityManager->GetEntity(context->originator);
 
@@ -37,7 +40,9 @@ void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitSt
 	m_Action->Handle(context, bitStream, branch);
 
 	entity->AddCallbackTimer(m_Time, [entity]() {
-		GameMessages::SendVehicleRemovePassiveBoostAction(entity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::VehicleRemovePassiveBoostAction removeBoost;
+		removeBoost.target = entity->GetObjectID();
+		removeBoost.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		});
 }
 

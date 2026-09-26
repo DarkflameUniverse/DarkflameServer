@@ -134,8 +134,6 @@ namespace GameMessages {
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
 	void SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector);
-	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.VehicleStopBoost.html
-	void SendVehicleStopBoost(Entity* targetEntity, const SystemAddress& playerSysAddr, bool affectPassive);
 	void SendStartArrangingWithItem(
 		Entity* entity,
 		const SystemAddress& sysAddr,
@@ -584,39 +582,7 @@ namespace GameMessages {
 	void SendGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Racing:
-	void HandleModuleAssemblyQueryData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleModularAssemblyNIFCompleted(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleVehicleSetWheelLockState(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleRacingClientReady(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleVehicleNotifyServerAddPassiveBoostAction(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleVehicleNotifyServerRemovePassiveBoostAction(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleRacingPlayerInfoResetFinished(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleVehicleNotifyHitImaginationServer(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void SendModuleAssemblyDBDataForClient(LWOOBJID objectId, LWOOBJID assemblyID, const std::u16string& data, const SystemAddress& sysAddr);
-
-	void SendNotifyVehicleOfRacingObject(LWOOBJID objectId, LWOOBJID racingObjectID, const SystemAddress& sysAddr);
-
-	void SendRacingPlayerLoaded(LWOOBJID objectId, LWOOBJID playerID, LWOOBJID vehicleID, const SystemAddress& sysAddr);
-
-	void SendVehicleUnlockInput(LWOOBJID objectId, bool bLockWheels, const SystemAddress& sysAddr);
-
-	void SendVehicleSetWheelLockState(LWOOBJID objectId, bool bExtraFriction, bool bLocked, const SystemAddress& sysAddr);
-
-	void SendRacingSetPlayerResetInfo(LWOOBJID objectId, int32_t currentLap, uint32_t furthestResetPlane, LWOOBJID playerID, NiPoint3 respawnPos, uint32_t upcomingPlane, const SystemAddress& sysAddr);
-
-	void SendRacingResetPlayerToLastReset(LWOOBJID objectId, LWOOBJID playerID, const SystemAddress& sysAddr);
-
-	void SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, int32_t param1, LWOOBJID paramObj, std::u16string paramStr, LWOOBJID singleClient, const SystemAddress& sysAddr);
 
 	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, eUseItemResponse itemResponse);
 
@@ -656,12 +622,6 @@ namespace GameMessages {
 		const int32_t& resultsStart = 0, bool weekly = false);
 	void HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleActivityStateChangeRequest(RakNet::BitStream& inStream, Entity* entity);
-
-	void SendVehicleAddPassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendVehicleRemovePassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendVehicleNotifyFinishedRace(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	//NT:
 

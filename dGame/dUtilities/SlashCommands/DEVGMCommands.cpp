@@ -6,6 +6,7 @@
 #include "AssetManager.h"
 #include "Character.h"
 #include "ChatPackets.h"
+#include "RacingMessages.h"
 #include "dConfig.h"
 #include "dNavMesh.h"
 #include "dpWorld.h"
@@ -1176,14 +1177,20 @@ namespace DEVGMCommands {
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid boost time.");
 				return;
 			} else {
-				GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::VehicleAddPassiveBoostAction addBoost;
+				addBoost.target = vehicle->GetObjectID();
+				addBoost.Send(UNASSIGNED_SYSTEM_ADDRESS);
 				entity->AddCallbackTimer(time.value(), [vehicle]() {
 					if (!vehicle) return;
-					GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+					GameMessages::VehicleRemovePassiveBoostAction removeBoost;
+					removeBoost.target = vehicle->GetObjectID();
+					removeBoost.Send(UNASSIGNED_SYSTEM_ADDRESS);
 					});
 			}
 		} else {
-			GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::VehicleAddPassiveBoostAction addBoost;
+			addBoost.target = vehicle->GetObjectID();
+			addBoost.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 
@@ -1194,7 +1201,9 @@ namespace DEVGMCommands {
 		auto* vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) return;
-		GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::VehicleRemovePassiveBoostAction removeBoost;
+		removeBoost.target = vehicle->GetObjectID();
+		removeBoost.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void ActivateSpawner(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

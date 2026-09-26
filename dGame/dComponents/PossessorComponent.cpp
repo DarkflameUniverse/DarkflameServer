@@ -4,6 +4,7 @@
 #include "HavokVehiclePhysicsComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "RacingMessages.h"
 #include "eUnequippableActiveType.h"
 
 PossessorComponent::PossessorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
@@ -60,7 +61,10 @@ void PossessorComponent::Mount(Entity* mount) {
 	if (mount->GetComponent<HavokVehiclePhysicsComponent>()) {
 		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SetIsRacing(true);
-		GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
+		GameMessages::VehicleUnlockInput unlockInput;
+		unlockInput.target = mount->GetObjectID();
+		unlockInput.bLockWheels = false;
+		unlockInput.Send(m_Parent->GetSystemAddress());
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);

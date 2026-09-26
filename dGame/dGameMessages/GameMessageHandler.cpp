@@ -31,6 +31,7 @@
 #include "EchoStartSkill.h"
 #include "EchoSyncSkill.h"
 #include "ActivityMessages.h"
+#include "RacingMessages.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
@@ -51,6 +52,16 @@ namespace {
 		{ SHOOTING_GALLERY_FIRE, []() { return std::make_unique<ShootingGalleryFire>(); } },
 		{ PICKUP_ITEM, []() { return std::make_unique<PickupItem>(); } },
 		{ REQUEST_ACTIVITY_EXIT, []() { return std::make_unique<RequestActivityExit>(); } },
+
+		// Racing
+		{ MODULE_ASSEMBLY_QUERY_DATA, []() { return std::make_unique<ModuleAssemblyQueryData>(); } },
+		{ VEHICLE_SET_WHEEL_LOCK_STATE, []() { return std::make_unique<VehicleSetWheelLockState>(); } },
+		{ MODULAR_ASSEMBLY_NIF_COMPLETED, []() { return std::make_unique<ModularAssemblyNIFCompleted>(); } },
+		{ RACING_CLIENT_READY, []() { return std::make_unique<RacingClientReady>(); } },
+		{ NOTIFY_SERVER_VEHICLE_ADD_PASSIVE_BOOST_ACTION, []() { return std::make_unique<VehicleNotifyServerAddPassiveBoostAction>(); } },
+		{ NOTIFY_SERVER_VEHICLE_REMOVE_PASSIVE_BOOST_ACTION, []() { return std::make_unique<VehicleNotifyServerRemovePassiveBoostAction>(); } },
+		{ RACING_PLAYER_INFO_RESET_FINISHED, []() { return std::make_unique<RacingPlayerInfoResetFinished>(); } },
+		{ VEHICLE_NOTIFY_HIT_IMAGINATION_SERVER, []() { return std::make_unique<VehicleNotifyHitImaginationServer>(); } },
 	};
 };
 
@@ -614,45 +625,13 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::HandleSetPropertyAccess(inStream, entity, sysAddr);
 		break;
 
-		// Racing
-	case MessageType::Game::MODULE_ASSEMBLY_QUERY_DATA:
-		GameMessages::HandleModuleAssemblyQueryData(inStream, entity, sysAddr);
-		break;
-
+		// Racing: most racing messages are registered in g_MessageHandlers
 	case MessageType::Game::ACKNOWLEDGE_POSSESSION:
 		GameMessages::HandleAcknowledgePossession(inStream, entity, sysAddr);
 		break;
 
-	case MessageType::Game::VEHICLE_SET_WHEEL_LOCK_STATE:
-		GameMessages::HandleVehicleSetWheelLockState(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::MODULAR_ASSEMBLY_NIF_COMPLETED:
-		GameMessages::HandleModularAssemblyNIFCompleted(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::RACING_CLIENT_READY:
-		GameMessages::HandleRacingClientReady(inStream, entity, sysAddr);
-		break;
-
 	case MessageType::Game::REQUEST_DIE:
 		GameMessages::HandleRequestDie(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::NOTIFY_SERVER_VEHICLE_ADD_PASSIVE_BOOST_ACTION:
-		GameMessages::HandleVehicleNotifyServerAddPassiveBoostAction(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::NOTIFY_SERVER_VEHICLE_REMOVE_PASSIVE_BOOST_ACTION:
-		GameMessages::HandleVehicleNotifyServerRemovePassiveBoostAction(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::RACING_PLAYER_INFO_RESET_FINISHED:
-		GameMessages::HandleRacingPlayerInfoResetFinished(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::VEHICLE_NOTIFY_HIT_IMAGINATION_SERVER:
-		GameMessages::HandleVehicleNotifyHitImaginationServer(inStream, entity, sysAddr);
 		break;
 	case MessageType::Game::UPDATE_PROPERTY_PERFORMANCE_COST:
 		GameMessages::HandleUpdatePropertyPerformanceCost(inStream, entity, sysAddr);

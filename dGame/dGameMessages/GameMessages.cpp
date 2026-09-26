@@ -3974,51 +3974,8 @@ void GameMessages::HandleAcknowledgePossession(RakNet::BitStream& inStream, Enti
 
 //Racing
 
-void GameMessages::HandleModuleAssemblyQueryData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	auto* moduleAssemblyComponent = entity->GetComponent<ModuleAssemblyComponent>();
-
-	LOG("Got Query from %i", entity->GetLOT());
-
-	if (moduleAssemblyComponent != nullptr) {
-		LOG("Returning assembly %s", GeneralUtils::UTF16ToWTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()).c_str());
-
-		SendModuleAssemblyDBDataForClient(entity->GetObjectID(), moduleAssemblyComponent->GetSubKey(), moduleAssemblyComponent->GetAssemblyPartsLOTs(), UNASSIGNED_SYSTEM_ADDRESS);
-	}
-}
 
 
-void GameMessages::HandleModularAssemblyNIFCompleted(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID objectID;
-
-	inStream.Read(objectID);
-}
-
-
-void GameMessages::HandleVehicleSetWheelLockState(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bExtraFriction = inStream.ReadBit();
-	bool bLocked = inStream.ReadBit();
-}
-
-
-void GameMessages::HandleRacingClientReady(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID playerID;
-
-	inStream.Read(playerID);
-
-	auto* player = Game::entityManager->GetEntity(playerID);
-
-	if (player == nullptr) {
-		return;
-	}
-
-	auto* racingControlComponent = Game::zoneManager->GetZoneControlObject()->GetComponent<RacingControlComponent>();
-
-	if (racingControlComponent == nullptr) {
-		return;
-	}
-
-	racingControlComponent->OnRacingClientReady(player);
-}
 
 
 void GameMessages::HandleRequestDie(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4087,37 +4044,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream& inStream, Entity* entity,
 }
 
 
-void GameMessages::HandleVehicleNotifyServerAddPassiveBoostAction(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	//SendVehicleAddPassiveBoostAction(entity->GetObjectID(), sysAddr);
-}
 
-
-void GameMessages::HandleVehicleNotifyServerRemovePassiveBoostAction(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	//SendVehicleRemovePassiveBoostAction(entity->GetObjectID(), sysAddr);
-}
-
-
-void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID playerID;
-
-	inStream.Read(playerID);
-
-	auto* player = Game::entityManager->GetEntity(playerID);
-
-	if (player == nullptr) {
-		return;
-	}
-
-	auto* zoneController = Game::zoneManager->GetZoneControlObject();
-
-	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
-
-	LOG("Got finished: %i", entity->GetLOT());
-
-	if (racingControlComponent != nullptr) {
-		racingControlComponent->OnRacingPlayerInfoResetFinished(player);
-	}
-}
 
 void GameMessages::SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -4153,164 +4080,12 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream& inStre
 	}
 }
 
-void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID pickupObjID = LWOOBJID_EMPTY;
-	LWOOBJID pickupSpawnerID = LWOOBJID_EMPTY;
-	int32_t pickupSpawnerIndex = -1;
-	NiPoint3 vehiclePosition = NiPoint3Constant::ZERO;
-
-	if (inStream.ReadBit()) inStream.Read(pickupObjID);
-	if (inStream.ReadBit()) inStream.Read(pickupSpawnerID);
-	if (inStream.ReadBit()) inStream.Read(pickupSpawnerIndex);
-	if (inStream.ReadBit()) inStream.Read(vehiclePosition);
-
-	auto* pickup = Game::entityManager->GetEntity(pickupObjID);
-
-	if (pickup == nullptr) {
-		return;
-	}
-
-	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
-
-	if (possessableComponent != nullptr) {
-		entity = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
-
-		if (entity == nullptr) {
-			return;
-		}
-	}
-
-	auto* characterComponent = entity->GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
-		characterComponent->UpdatePlayerStatistic(RacingImaginationPowerUpsCollected);
-	}
-
-	pickup->OnFireEventServerSide(entity, "powerup");
-
-	pickup->Kill(entity);
-}
 
 
-void GameMessages::SendModuleAssemblyDBDataForClient(LWOOBJID objectId, LWOOBJID assemblyID, const std::u16string& data, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::MODULE_ASSEMBLY_DB_DATA_FOR_CLIENT);
-
-	bitStream.Write(assemblyID);
-
-	bitStream.Write<uint32_t>(data.size());
-	for (auto character : data) {
-		bitStream.Write(character);
-	}
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 
-void GameMessages::SendNotifyVehicleOfRacingObject(LWOOBJID objectId, LWOOBJID racingObjectID, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::NOTIFY_VEHICLE_OF_RACING_OBJECT);
-
-	bitStream.Write(racingObjectID != LWOOBJID_EMPTY);
-	if (racingObjectID != LWOOBJID_EMPTY) bitStream.Write(racingObjectID);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 
-void GameMessages::SendRacingPlayerLoaded(LWOOBJID objectId, LWOOBJID playerID, LWOOBJID vehicleID, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::RACING_PLAYER_LOADED);
-
-	bitStream.Write(playerID);
-	bitStream.Write(vehicleID);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendVehicleUnlockInput(LWOOBJID objectId, bool bLockWheels, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::VEHICLE_UNLOCK_INPUT);
-
-	bitStream.Write(bLockWheels);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendVehicleSetWheelLockState(LWOOBJID objectId, bool bExtraFriction, bool bLocked, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::VEHICLE_SET_WHEEL_LOCK_STATE);
-
-	bitStream.Write(bExtraFriction);
-	bitStream.Write(bLocked);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendRacingSetPlayerResetInfo(LWOOBJID objectId, int32_t currentLap, uint32_t furthestResetPlane, LWOOBJID playerID, NiPoint3 respawnPos, uint32_t upcomingPlane, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::RACING_SET_PLAYER_RESET_INFO);
-
-	bitStream.Write(currentLap);
-	bitStream.Write(furthestResetPlane);
-	bitStream.Write(playerID);
-	bitStream.Write(respawnPos);
-	bitStream.Write(upcomingPlane);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendRacingResetPlayerToLastReset(LWOOBJID objectId, LWOOBJID playerID, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::RACING_RESET_PLAYER_TO_LAST_RESET);
-
-	bitStream.Write(playerID);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendVehicleStopBoost(Entity* targetEntity, const SystemAddress& playerSysAddr, bool affectPassive) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(targetEntity->GetObjectID());
-	bitStream.Write(MessageType::Game::VEHICLE_STOP_BOOST);
-
-	bitStream.Write(affectPassive);
-
-	SEND_PACKET_BROADCAST;
-}
 
 void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore) {
 	CBITSTREAM;
@@ -4331,70 +4106,12 @@ void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t a
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, int32_t param1, LWOOBJID paramObj, std::u16string paramStr, LWOOBJID singleClient, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::NOTIFY_RACING_CLIENT);
-
-	bitStream.Write(eventType != 0);
-	if (eventType != 0) bitStream.Write(eventType);
-
-	bitStream.Write(param1);
-
-	bitStream.Write(paramObj);
-
-	bitStream.Write<uint32_t>(paramStr.size());
-	for (auto character : paramStr) {
-		bitStream.Write(character);
-	}
-
-	bitStream.Write(singleClient);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 
 
 
 
 
-void GameMessages::SendVehicleAddPassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::VEHICLE_ADD_PASSIVE_BOOST_ACTION);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendVehicleRemovePassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::VEHICLE_REMOVE_PASSIVE_BOOST_ACTION);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendVehicleNotifyFinishedRace(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::VEHICLE_NOTIFY_FINISHED_RACE);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 	bool addImmunity, bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout,
