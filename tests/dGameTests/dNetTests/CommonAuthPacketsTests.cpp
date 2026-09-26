@@ -220,7 +220,14 @@ TEST_F(CommonAuthPacketsTests, LoginResponseMatchesLegacy) {
 				const auto sysAddr = TestAddress();
 				ExpectSameOutput(
 					[&] { auto copy = legacyStamps; LegacyAuthPackets::SendLoginResponse(Game::server, sysAddr, code, text, text, 2001, "user", copy); },
-					[&] { auto copy = stamps; AuthPackets::SendLoginResponse(Game::server, sysAddr, code, text, text, 2001, "user", copy); });
+					[&] {
+						// The old function appended these two to every response; now the login steps stamp themselves
+						auto copy = stamps;
+						copy.emplace_back(eStamps::PASSPORT_AUTH_IM_LOGIN_START, 1);
+						copy.emplace_back(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, 1);
+						Stamps loginStamps(copy);
+						AuthPackets::SendLoginResponse(Game::server, sysAddr, code, text, text, 2001, "user", loginStamps);
+					});
 			}
 		}
 	}
@@ -241,7 +248,7 @@ TEST_F(CommonAuthPacketsTests, LoginResponseRoundTrip) {
 	response.worldServerIP = LUString("192.168.1.2");
 	response.worldServerPort = 2000;
 	response.errorMessage = "Something went wrong";
-	response.stamps = { Stamp(eStamps::PASSPORT_AUTH_START, 0, 5), Stamp(eStamps::NO_WORLD_SERVER, 1, 6) };
+	response.stamps.list = { Stamp(eStamps::PASSPORT_AUTH_START, 0, 5), Stamp(eStamps::NO_WORLD_SERVER, 1, 6) };
 	const auto copy = RoundTrip(response);
 	EXPECT_EQ(copy.responseCode, eLoginResponse::SUCCESS);
 	EXPECT_EQ(copy.events[0].string, "Talk_Like_A_Pirate");
@@ -251,13 +258,13 @@ TEST_F(CommonAuthPacketsTests, LoginResponseRoundTrip) {
 	EXPECT_EQ(copy.cdnTicket.string, ClientPackets::LoginResponse::DEFAULT_CDN_TICKET);
 	EXPECT_EQ(copy.localization.string, "US");
 	EXPECT_EQ(copy.errorMessage, "Something went wrong");
-	ASSERT_EQ(copy.stamps.size(), 2);
-	EXPECT_EQ(copy.stamps[1].type, eStamps::NO_WORLD_SERVER);
-	EXPECT_EQ(copy.stamps[1].timestamp, 6);
+	ASSERT_EQ(copy.stamps.list.size(), 2);
+	EXPECT_EQ(copy.stamps.list[1].type, eStamps::NO_WORLD_SERVER);
+	EXPECT_EQ(copy.stamps.list[1].timestamp, 6);
 	ExpectTruncatedFails(response);
 
 	response.errorMessage.clear();
-	response.stamps.clear();
+	response.stamps.list.clear();
 	EXPECT_TRUE(RoundTrip(response).errorMessage.empty());
 }
 
@@ -283,10 +290,52 @@ TEST_F(CommonAuthPacketsTests, LoginRequestMatchesLegacy) {
 		request.WritePacket(bytes);
 		const auto sysAddr = TestAddress();
 
-		// The test database knows no accounts, so both answer INVALID_USER
-		ExpectSameOutput(
-			[&] { auto packet = MakePacket(bytes, sysAddr); LegacyAuthPackets::HandleLoginRequest(Game::server, &packet); },
-			[&] { Dispatch(bytes, sysAddr, AuthPackets::Handle); });
+		// The test database knows no accounts, so both answer INVALID_USER. Everything but the stamps is the same.
+		Game::randomEngine.seed(1234);
+		const auto legacy = Capture([&] { auto packet = MakePacket(bytes, sysAddr); LegacyAuthPackets::HandleLoginRequest(Game::server, &packet); });
+		Game::randomEngine.seed(1234);
+		const auto before = static_cast<uint64_t>(std::time(nullptr));
+		const auto converted = Capture([&] { Dispatch(bytes, sysAddr, AuthPackets::Handle); });
+		const auto after = static_cast<uint64_t>(std::time(nullptr));
+		ASSERT_EQ(legacy.size(), 1);
+		ASSERT_EQ(converted.size(), 1);
+		EXPECT_EQ(legacy[0].sysAddr, converted[0].sysAddr);
+
+		const auto read = [](const CapturedPacket& captured) {
+			RakNet::BitStream bitStream(const_cast<uint8_t*>(captured.bytes.data()), captured.bytes.size(), true);
+			ClientPackets::LoginResponse response;
+			EXPECT_TRUE(response.ReadHeader(bitStream));
+			EXPECT_TRUE(response.Deserialize(bitStream));
+			return response;
+		};
+		auto legacyResponse = read(legacy[0]);
+		auto convertedResponse = read(converted[0]);
+		const auto stamps = convertedResponse.stamps.list;
+		legacyResponse.stamps.list.clear();
+		convertedResponse.stamps.list.clear();
+		RakNet::BitStream legacyBytes;
+		legacyResponse.WritePacket(legacyBytes);
+		RakNet::BitStream convertedBytes;
+		convertedResponse.WritePacket(convertedBytes);
+		EXPECT_PACKET_EQ(FromBitStream(legacyBytes), FromBitStream(convertedBytes));
+		EXPECT_EQ(convertedResponse.responseCode, eLoginResponse::INVALID_USER);
+
+		// The steps the login went through, in order, stamped as they happened
+		const std::vector<std::pair<eStamps, uint32_t>> expected = {
+			{ eStamps::PASSPORT_AUTH_START, 0 },
+			{ eStamps::PASSPORT_AUTH_CLIENT_OS, static_cast<uint32_t>(ClientOS::WINDOWS) },
+			{ eStamps::PASSPORT_AUTH_DB_SELECT_START, 0 },
+			{ eStamps::PASSPORT_AUTH_DB_SELECT_FINISH, 0 }, // not found
+			{ eStamps::PASSPORT_AUTH_ERROR, 1 },
+		};
+		ASSERT_EQ(stamps.size(), expected.size());
+		for (size_t i = 0; i < stamps.size(); i++) {
+			EXPECT_EQ(stamps[i].type, expected[i].first) << i;
+			EXPECT_EQ(stamps[i].value, expected[i].second) << i;
+			EXPECT_GE(stamps[i].timestamp, before);
+			EXPECT_LE(stamps[i].timestamp, after);
+			if (i > 0) EXPECT_GE(stamps[i].timestamp, stamps[i - 1].timestamp);
+		}
 
 		const auto copy = RoundTrip(request);
 		EXPECT_EQ(copy.username.GetAsString(), username.substr(0, 33));
@@ -296,4 +345,88 @@ TEST_F(CommonAuthPacketsTests, LoginRequestMatchesLegacy) {
 		EXPECT_EQ(copy.platformID, 2);
 		ExpectTruncatedFails(request);
 	}
+}
+
+TEST_F(CommonAuthPacketsTests, LoginStampsRecordStepsAsTheyHappen) {
+	const auto before = static_cast<uint64_t>(std::time(nullptr));
+	Stamps stamps;
+	EXPECT_TRUE(stamps.empty());
+	stamps.Log("nobody"); // nothing to log
+	stamps.Add(eStamps::PASSPORT_AUTH_START);
+	stamps.Add(eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED, 42);
+	stamps.Add(eStamps::NO_WORLD_SERVER, 1);
+	const auto after = static_cast<uint64_t>(std::time(nullptr));
+	stamps.Log("somebody");
+
+	const auto& list = stamps.list;
+	ASSERT_EQ(list.size(), 3);
+	EXPECT_EQ(list[0].type, eStamps::PASSPORT_AUTH_START);
+	EXPECT_EQ(list[0].value, 0);
+	EXPECT_EQ(list[1].type, eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED);
+	EXPECT_EQ(list[1].value, 42);
+	EXPECT_EQ(list[2].type, eStamps::NO_WORLD_SERVER);
+	for (const auto& stamp : list) {
+		EXPECT_GE(stamp.timestamp, before);
+		EXPECT_LE(stamp.timestamp, after);
+	}
+
+	// A failed response carries exactly the stamps of the steps that ran, nothing appended
+	const auto sent = Capture([&] { AuthPackets::SendLoginResponse(Game::server, TestAddress(), eLoginResponse::WRONG_PASS, "", "", 2001, "somebody", stamps); });
+	ASSERT_EQ(sent.size(), 1);
+	RakNet::BitStream bitStream(const_cast<uint8_t*>(sent[0].bytes.data()), sent[0].bytes.size(), true);
+	ClientPackets::LoginResponse response;
+	ASSERT_TRUE(response.ReadHeader(bitStream));
+	ASSERT_TRUE(response.Deserialize(bitStream));
+	ASSERT_EQ(response.stamps.list.size(), 3);
+	for (size_t i = 0; i < 3; i++) {
+		EXPECT_EQ(response.stamps.list[i].type, list[i].type);
+		EXPECT_EQ(response.stamps.list[i].value, list[i].value);
+		EXPECT_EQ(response.stamps.list[i].timestamp, list[i].timestamp);
+	}
+}
+
+TEST_F(CommonAuthPacketsTests, StampGoldenBytes) {
+	ClientPackets::LoginResponse response;
+	response.stamps.list = { Stamp(eStamps::PASSPORT_AUTH_CLIENT_OS, 1, 0x0102030405060708) };
+	RakNet::BitStream bytes;
+	response.WritePacket(bytes);
+	// ... | error length 0 | stamps size 16 * 1 + 4 | CLIENT_OS (20) | value 1 | timestamp
+	const auto all = FromBitStream(bytes);
+	const std::vector<uint8_t> tail(all.bytes.end() - 22, all.bytes.end());
+	EXPECT_PACKET_EQ(FromHex("00 00 14 00 00 00 14 00 00 00 01 00 00 00 08 07 06 05 04 03 02 01"), (PacketBytes{ tail, 22 * 8 }));
+}
+
+TEST_F(CommonAuthPacketsTests, StampsRoundTrip) {
+	for (const size_t count : { size_t{ 0 }, size_t{ 1 }, size_t{ 7 } }) {
+		Stamps stamps;
+		for (size_t i = 0; i < count; i++) stamps.list.emplace_back(static_cast<eStamps>(i), static_cast<uint32_t>(i + 100), 1790000000 + i);
+		RakNet::BitStream bytes;
+		stamps.Serialize(bytes);
+		EXPECT_EQ(bytes.GetNumberOfBytesUsed(), 4 + 16 * count);
+
+		Stamps copy;
+		ASSERT_TRUE(copy.Deserialize(bytes));
+		EXPECT_EQ(bytes.GetNumberOfUnreadBits(), 0);
+		ASSERT_EQ(copy.size(), count);
+		for (size_t i = 0; i < count; i++) {
+			EXPECT_EQ(copy.list[i].type, stamps.list[i].type);
+			EXPECT_EQ(copy.list[i].value, stamps.list[i].value);
+			EXPECT_EQ(copy.list[i].timestamp, stamps.list[i].timestamp);
+		}
+
+		// Every truncation fails
+		for (uint32_t cut = 0; cut < bytes.GetNumberOfBytesUsed(); cut++) {
+			RakNet::BitStream truncated(bytes.GetData(), cut, true);
+			Stamps partial;
+			EXPECT_FALSE(partial.Deserialize(truncated)) << cut;
+		}
+	}
+
+	// A size that is not 4 + 16 * n is rejected
+	RakNet::BitStream bad;
+	bad.Write<uint32_t>(4 + 15);
+	bad.Write<uint64_t>(0);
+	bad.Write<uint64_t>(0);
+	Stamps rejected;
+	EXPECT_FALSE(rejected.Deserialize(bad));
 }

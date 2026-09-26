@@ -67,7 +67,7 @@ namespace AuthPackets {
 
 	// Answers a login with a ClientPackets::LoginResponse filled from the server's settings (event gating, client
 	// version) and a new session key; on success also registers that session key with the master server.
-	void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps);
+	void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, Stamps& stamps);
 	void LoadClaimCodes();
 }
 

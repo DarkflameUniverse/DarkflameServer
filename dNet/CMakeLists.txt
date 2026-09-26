@@ -7,6 +7,7 @@ set(DNET_SOURCES "AuthPackets.cpp"
 	"MailInfo.cpp"
 	"MasterPackets.cpp"
 	"PacketUtils.cpp"
+	"Stamps.cpp"
 	"WorldPackets.cpp"
 	"ZoneInstanceManager.cpp")
 

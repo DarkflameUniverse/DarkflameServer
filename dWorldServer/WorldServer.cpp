@@ -1239,7 +1239,8 @@ void HandlePacket(Packet* packet) {
 
 				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
 					LOG("Client's database checksum does not match the server's, aborting connection.");
-					std::vector<Stamp> stamps;
+					Stamps stamps;
+					stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 
 					// Using the LoginResponse here since the UI is still in the login screen state
 					// and we have a way to send a message about the client mismatch.

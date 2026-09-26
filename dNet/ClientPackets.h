@@ -13,71 +13,13 @@
 
 #include "BitStreamUtils.h"
 #include "MessageType/Client.h"
+#include "Stamps.h"
 
 enum class eLoginResponse : uint8_t;
 
 class PositionUpdate;
 
 struct Packet;
-
-enum class eStamps : uint32_t {
-	PASSPORT_AUTH_START,
-	PASSPORT_AUTH_BYPASS,
-	PASSPORT_AUTH_ERROR,
-	PASSPORT_AUTH_DB_SELECT_START,
-	PASSPORT_AUTH_DB_SELECT_FINISH,
-	PASSPORT_AUTH_DB_INSERT_START,
-	PASSPORT_AUTH_DB_INSERT_FINISH,
-	PASSPORT_AUTH_LEGOINT_COMMUNICATION_START,
-	PASSPORT_AUTH_LEGOINT_RECEIVED,
-	PASSPORT_AUTH_LEGOINT_THREAD_SPAWN,
-	PASSPORT_AUTH_LEGOINT_WEBSERVICE_START,
-	PASSPORT_AUTH_LEGOINT_WEBSERVICE_FINISH,
-	PASSPORT_AUTH_LEGOINT_LEGOCLUB_START,
-	PASSPORT_AUTH_LEGOINT_LEGOCLUB_FINISH,
-	PASSPORT_AUTH_LEGOINT_THREAD_FINISH,
-	PASSPORT_AUTH_LEGOINT_REPLY,
-	PASSPORT_AUTH_LEGOINT_ERROR,
-	PASSPORT_AUTH_LEGOINT_COMMUNICATION_END,
-	PASSPORT_AUTH_LEGOINT_DISCONNECT,
-	PASSPORT_AUTH_WORLD_COMMUNICATION_START,
-	PASSPORT_AUTH_CLIENT_OS,
-	PASSPORT_AUTH_WORLD_PACKET_RECEIVED,
-	PASSPORT_AUTH_IM_COMMUNICATION_START,
-	PASSPORT_AUTH_IM_LOGIN_START,
-	PASSPORT_AUTH_IM_LOGIN_ALREADY_LOGGED_IN,
-	PASSPORT_AUTH_IM_OTHER_LOGIN_REMOVED,
-	PASSPORT_AUTH_IM_LOGIN_QUEUED,
-	PASSPORT_AUTH_IM_LOGIN_RESPONSE,
-	PASSPORT_AUTH_IM_COMMUNICATION_END,
-	PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH,
-	PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH,
-	PASSPORT_AUTH_WORLD_DISCONNECT,
-	NO_LEGO_INTERFACE,
-	DB_ERROR,
-	GM_REQUIRED,
-	NO_LEGO_WEBSERVICE_XML,
-	LEGO_WEBSERVICE_TIMEOUT,
-	LEGO_WEBSERVICE_ERROR,
-	NO_WORLD_SERVER
-};
-
-struct Stamp {
-	eStamps type{};
-	uint32_t value{};
-	uint64_t timestamp{};
-
-	Stamp() = default;
-	Stamp(eStamps type, uint32_t value, uint64_t timestamp = time(nullptr)){
-		this->type = type;
-		this->value = value;
-		this->timestamp = timestamp;
-	}
-
-	void Serialize(RakNet::BitStream& outBitStream) const;
-	bool Deserialize(RakNet::BitStream& inBitStream);
-};
-
 
 enum class Language : uint32_t {
 	en_US,
@@ -123,8 +65,8 @@ namespace ClientPackets {
 		uint64_t freeToPlayTimeRemaining{};
 		// Written as a u16 character count followed by that many UTF-16 characters
 		std::string errorMessage{};
-		// Written after a u32 holding their size in bytes plus 4
-		std::vector<Stamp> stamps{};
+		// The login's stamps (see Stamps.h)
+		Stamps stamps{};
 
 		LoginResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::LOGIN_RESPONSE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

@@ -117,15 +117,16 @@ void AuthPackets::LoginRequest::Handle() {
 	auto* const server = Game::server;
 	const auto& packet = *this; // the old handler's sysAddr
 
-	std::vector<Stamp> stamps;
-	stamps.emplace_back(eStamps::PASSPORT_AUTH_START, 0);
+	// Each step of the login stamps itself here as it happens; the response carries them to the client
+	Stamps stamps;
+	stamps.Add(eStamps::PASSPORT_AUTH_START);
 
 	const auto username = this->username.GetAsString();
 
 	LOG_DEBUG("Locale ID: %s", StringifiedEnum::ToString(localeID).data());
 
 	LOG_DEBUG("Operating System: %s", StringifiedEnum::ToString(clientOS).data());
-	stamps.emplace_back(eStamps::PASSPORT_AUTH_CLIENT_OS, 0);
+	stamps.Add(eStamps::PASSPORT_AUTH_CLIENT_OS, static_cast<uint32_t>(clientOS));
 
 	LOG_DEBUG("Memory Stats [%s]", CleanReceivedString(memoryStats.GetAsString()).c_str());
 
@@ -138,19 +139,24 @@ void AuthPackets::LoginRequest::Handle() {
 	LOG_DEBUG("OS Info: [Size: %i, Major: %i, Minor %i, Buid#: %i, platformID: %i]", osVersionInfoSize, majorVersion, minorVersion, buildNumber, platformID);
 
 	// Fetch account details
+	stamps.Add(eStamps::PASSPORT_AUTH_DB_SELECT_START);
 	auto accountInfo = Database::Get()->GetAccountInfo(username);
+	stamps.Add(eStamps::PASSPORT_AUTH_DB_SELECT_FINISH, accountInfo ? 1 : 0);
 
 	if (!accountInfo) {
 		LOG("No user by name %s found!", username.c_str());
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 		AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::INVALID_USER, "", "", 2001, username, stamps);
 		return;
 	}
 
 	// The password first: someone who doesn't know it learns nothing about the account (ban details, lock, play key),
 	// and a failed attempt changes nothing (an expired ban is only lifted for the real owner)
-	if (::bcrypt_checkpw(password.GetAsString().c_str(), accountInfo->bcryptPassword.c_str()) != 0) {
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+	stamps.Add(eStamps::PASSPORT_AUTH_LEGOINT_WEBSERVICE_START);
+	const bool passwordMatches = ::bcrypt_checkpw(password.GetAsString().c_str(), accountInfo->bcryptPassword.c_str()) == 0;
+	stamps.Add(eStamps::PASSPORT_AUTH_LEGOINT_WEBSERVICE_FINISH, passwordMatches ? 1 : 0);
+	if (!passwordMatches) {
+		stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 		AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::WRONG_PASS, "", "", 2001, username, stamps);
 		LOG("Wrong password used");
 		return;
@@ -158,7 +164,7 @@ void AuthPackets::LoginRequest::Handle() {
 
 	//If we aren't running in live mode, then only GMs are allowed to enter:
 	if (Game::config->GetValue<bool>("closed_to_non_devs", false) && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
-		stamps.emplace_back(eStamps::GM_REQUIRED, 1);
+		stamps.Add(eStamps::GM_REQUIRED, 1);
 		AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username, stamps);
 		return;
 	}
@@ -166,7 +172,7 @@ void AuthPackets::LoginRequest::Handle() {
 	if (Game::config->GetValue("dont_use_keys") != "1" && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
 		//Check to see if we have a play key:
 		if (accountInfo->playKeyId == 0) {
-			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+			stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 			AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username, stamps);
 			LOG("User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
@@ -176,31 +182,33 @@ void AuthPackets::LoginRequest::Handle() {
 		auto playKeyStatus = Database::Get()->IsPlaykeyActive(accountInfo->playKeyId);
 
 		if (!playKeyStatus) {
-			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+			stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 			AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a valid play key associated with it!", "", 2001, username, stamps);
 			return;
 		}
 
 		if (!playKeyStatus.value()) {
-			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+			stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 			AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username, stamps);
 			LOG("User %s tried to log in, but their play key was disabled", username.c_str());
 			return;
 		}
 	} else if (Game::config->GetValue("dont_use_keys") == "1" || accountInfo->maxGmLevel > eGameMasterLevel::CIVILIAN){
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_BYPASS, 1);
+		stamps.Add(eStamps::PASSPORT_AUTH_BYPASS, 1);
 	}
 
 	// A temporary ban that has run out is lifted as the player logs in
 	if (accountInfo->banned && accountInfo->banExpires > 0 && accountInfo->banExpires <= static_cast<int64_t>(std::time(nullptr))) {
+		stamps.Add(eStamps::PASSPORT_AUTH_DB_INSERT_START);
 		Database::Get()->SetAccountBan(accountInfo->id, false, 0, "");
 		Database::Get()->InsertAccountNote({ 0, accountInfo->id, "unban", "Temporary ban ended", "[server]", static_cast<int64_t>(std::time(nullptr)) });
+		stamps.Add(eStamps::PASSPORT_AUTH_DB_INSERT_FINISH, 1);
 		accountInfo->banned = false;
 		LOG("Temporary ban of %s ended", username.c_str());
 	}
 
 	if (accountInfo->banned) {
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 		std::string message;
 		if (accountInfo->banExpires > 0) {
 			char until[32];
@@ -214,7 +222,7 @@ void AuthPackets::LoginRequest::Handle() {
 	}
 
 	if (accountInfo->locked) {
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
 		AuthPackets::SendLoginResponse(server, sysAddr, eLoginResponse::ACCOUNT_LOCKED, "", "", 2001, username, stamps);
 		return;
 	}
@@ -224,16 +232,20 @@ void AuthPackets::LoginRequest::Handle() {
 
 		// Where accounts log in from, so staff can see accounts that share a connection (log_login_addresses, on by default)
 		if (Game::config->GetValue("log_login_addresses") != "0") {
+			stamps.Add(eStamps::PASSPORT_AUTH_DB_INSERT_START);
 			Database::Get()->RecordLoginAddress(accountInfo->id, system.ToString(false), static_cast<int64_t>(std::time(nullptr)));
+			stamps.Add(eStamps::PASSPORT_AUTH_DB_INSERT_FINISH, 1);
 		}
 
 		if (!server->GetIsConnectedToMaster()) {
-			stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_DISCONNECT, 1);
+			stamps.Add(eStamps::PASSPORT_AUTH_WORLD_DISCONNECT, 1);
 			AuthPackets::SendLoginResponse(server, system, eLoginResponse::GENERAL_FAILED, "", "", 0, username, stamps);
 			return;
 		}
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, 1);
+		// Ask master for a world server to send the player to
+		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_START);
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username, stamps](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) mutable {
+			stamps.Add(eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED, zoneInstance);
 			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username, stamps);
 			});
 	}
@@ -243,8 +255,7 @@ void AuthPackets::LoginRequest::Handle() {
 	}
 }
 
-void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps) {
-	stamps.emplace_back(eStamps::PASSPORT_AUTH_IM_LOGIN_START, 1);
+void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, Stamps& stamps) {
 	ClientPackets::LoginResponse loginResponse;
 
 	loginResponse.responseCode = responseCode;
@@ -280,18 +291,24 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	// Custom error message
 	loginResponse.errorMessage = errorMsg;
 
-	stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, 1);
-	loginResponse.stamps = stamps;
-
-	loginResponse.Send(sysAddr);
-	//Inform the master server that we've created a session for this user:
+	//Inform the master server that we've created a session for this user, before the client can reach the world server:
 	if (responseCode == eLoginResponse::SUCCESS) {
+		stamps.Add(eStamps::PASSPORT_AUTH_IM_COMMUNICATION_START);
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
 		bitStream.Write(LUString(username));
+		stamps.Add(eStamps::PASSPORT_AUTH_IM_LOGIN_START);
 		server->SendToMaster(bitStream);
+		stamps.Add(eStamps::PASSPORT_AUTH_IM_COMMUNICATION_END, 1);
 
 		LOG("Set session key for user %s", username.c_str());
+
+		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, 1);
+		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, wServerPort);
 	}
+
+	stamps.Log("Login of " + username);
+	loginResponse.stamps = stamps;
+	loginResponse.Send(sysAddr);
 }
