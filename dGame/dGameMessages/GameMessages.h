@@ -618,13 +618,6 @@ namespace GameMessages {
 
 	void SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, int32_t param1, LWOOBJID paramObj, std::u16string paramStr, LWOOBJID singleClient, const SystemAddress& sysAddr);
 
-	void SendActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr);
-	void SendActivityStart(LWOOBJID objectId, const SystemAddress& sysAddr);
-	void SendActivityExit(LWOOBJID objectId, const SystemAddress& sysAddr);
-	void SendActivityStop(LWOOBJID objectId, bool bExit, bool bUserCancel, const SystemAddress& sysAddr);
-	void SendActivityPause(LWOOBJID objectId, bool pause = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-	void SendStartActivityTime(LWOOBJID objectId, float_t startTime, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-	void SendRequestActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr, bool bStart, LWOOBJID userID);
 	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, eUseItemResponse itemResponse);
 
 	// SG:
@@ -674,8 +667,6 @@ namespace GameMessages {
 
 	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response);
-
-	void SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr);
 
 	//Handlers:
 
@@ -741,7 +732,6 @@ namespace GameMessages {
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream& inStream, Entity* entity);
-	void HandleRequestActivityExit(RakNet::BitStream& inStream, Entity* entity);
 
 	// Donation vendor
 	void HandleAddDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);

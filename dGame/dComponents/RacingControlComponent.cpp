@@ -8,6 +8,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "InventoryComponent.h"
 #include "Item.h"
 #include "MissionComponent.h"
@@ -700,8 +701,9 @@ void RacingControlComponent::Update(float deltaTime) {
 				}
 
 				// Start the race
-				GameMessages::SendActivityStart(m_Parent->GetObjectID(),
-					UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::ActivityStart activityStart;
+				activityStart.target = m_Parent->GetObjectID();
+				activityStart.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 				m_Started = true;
 

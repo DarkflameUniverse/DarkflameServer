@@ -1460,43 +1460,6 @@ void GameMessages::SendRequestActivitySummaryLeaderboardData(const LWOOBJID& obj
 	SEND_PACKET;
 }
 
-void GameMessages::SendActivityPause(LWOOBJID objectId, bool pause, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::ACTIVITY_PAUSE);
-	bitStream.Write(pause);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendStartActivityTime(LWOOBJID objectId, float_t startTime, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::START_ACTIVITY_TIME);
-	bitStream.Write<float_t>(startTime);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendRequestActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr, bool bStart, LWOOBJID userID) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::REQUEST_ACTIVITY_ENTER);
-	bitStream.Write<bool>(bStart);
-	bitStream.Write<LWOOBJID>(userID);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
 void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -4394,55 +4357,8 @@ void GameMessages::SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, 
 }
 
 
-void GameMessages::SendActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::ACTIVITY_ENTER);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 
-void GameMessages::SendActivityStart(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::ACTIVITY_START);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendActivityExit(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::ACTIVITY_EXIT);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-
-void GameMessages::SendActivityStop(LWOOBJID objectId, bool bExit, bool bUserCancel, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::ACTIVITY_STOP);
-
-	bitStream.Write(bExit);
-	bitStream.Write(bUserCancel);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 
 void GameMessages::SendVehicleAddPassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr) {
@@ -4602,28 +4518,6 @@ void GameMessages::SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, 
 	SEND_PACKET;
 }
 
-
-void GameMessages::SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::SHOW_ACTIVITY_COUNTDOWN);
-
-	bitStream.Write(bPlayAdditionalSound);
-
-	bitStream.Write(bPlayCountdownSound);
-
-	bitStream.Write<uint32_t>(sndName.size());
-	for (auto character : sndName) {
-		bitStream.Write(character);
-	}
-
-	bitStream.Write(stateToPlaySoundOn);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -6059,18 +5953,6 @@ void GameMessages::SendShowBillboardInteractIcon(const SystemAddress& sysAddr, L
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
 	else SEND_PACKET
-}
-
-void GameMessages::HandleRequestActivityExit(RakNet::BitStream& inStream, Entity* entity) {
-	bool canceled = false;
-	inStream.Read(canceled);
-	if (!canceled) return;
-
-	LWOOBJID player_id = LWOOBJID_EMPTY;
-	inStream.Read(player_id);
-	auto player = Game::entityManager->GetEntity(player_id);
-	if (!entity || !player) return;
-	entity->RequestActivityExit(entity, player_id, canceled);
 }
 
 void GameMessages::HandleAddDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {

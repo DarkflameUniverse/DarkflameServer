@@ -1,6 +1,7 @@
 #include "SGCannon.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "dZoneManager.h"
 #include "Character.h"
 #include "ShootingGalleryComponent.h"
@@ -83,7 +84,9 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 		if (player != nullptr) {
 			LOG("Player is ready");
 
-			GameMessages::SendActivityEnter(self->GetObjectID(), player->GetSystemAddress());
+			GameMessages::ActivityEnter activityEnter;
+			activityEnter.target = self->GetObjectID();
+			activityEnter.Send(player->GetSystemAddress());
 
 			auto* shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
 
@@ -186,10 +189,16 @@ void SGCannon::SpawnWaveTimerFunc(Entity* self) {
 		if (player != nullptr) {
 			GameMessages::SendPlayFXEffect(player->GetObjectID(), -1, u"SG-start", "");
 
-			GameMessages::SendStartActivityTime(self->GetObjectID(), timeLimit, player->GetSystemAddress());
+			GameMessages::StartActivityTime startActivityTime;
+			startActivityTime.target = self->GetObjectID();
+			startActivityTime.startTime = timeLimit;
+			startActivityTime.Send(player->GetSystemAddress());
 			LOG("Sending ActivityPause false");
 
-			GameMessages::SendActivityPause(self->GetObjectID(), false, player->GetSystemAddress());
+			GameMessages::ActivityPause activityPause;
+			activityPause.target = self->GetObjectID();
+			activityPause.bPause = false;
+			activityPause.Send(player->GetSystemAddress());
 		}
 	}
 }
@@ -199,8 +208,12 @@ void SGCannon::EndWaveTimerFunc(Entity* self) {
 	TimerToggle(self);
 	RecordPlayerScore(self);
 
+	GameMessages::ActivityPause activityPause;
+	activityPause.target = self->GetObjectID();
+	activityPause.bPause = true;
+
 	if (self->GetVar<uint32_t>(ThisWaveVariable) >= 2) {
-		GameMessages::SendActivityPause(self->GetObjectID(), true);
+		activityPause.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		ActivityTimerStart(self, GameOverTimer, 0.1, 0.1);
 		return;
 	}
@@ -220,7 +233,7 @@ void SGCannon::EndWaveTimerFunc(Entity* self) {
 
 	LOG("Sending ActivityPause true");
 
-	GameMessages::SendActivityPause(self->GetObjectID(), true);
+	activityPause.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	if (self->GetVar<bool>(SuperChargeActiveVariable) && !self->GetVar<bool>(SuperChargePausedVariable)) {
 		PauseChargeCannon(self);
 	}
@@ -231,7 +244,10 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 	if (player != nullptr) {
 		LOG_DEBUG("Sending ActivityPause true");
 
-		GameMessages::SendActivityPause(self->GetObjectID(), true, player->GetSystemAddress());
+		GameMessages::ActivityPause activityPause;
+		activityPause.target = self->GetObjectID();
+		activityPause.bPause = true;
+		activityPause.Send(player->GetSystemAddress());
 
 		ActivityTimerStart(self, EndGameBufferTimer, 1, 1);
 
@@ -342,7 +358,9 @@ void SGCannon::StartGame(Entity* self) {
 		// The client cant accept more than 10 results.
 		GetLeaderboardData(self, player->GetObjectID(), GetConstants().activityID, 10);
 		LOG("Sending ActivityStart");
-		GameMessages::SendActivityStart(self->GetObjectID(), player->GetSystemAddress());
+		GameMessages::ActivityStart activityStart;
+		activityStart.target = self->GetObjectID();
+		activityStart.Send(player->GetSystemAddress());
 
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"start", "");
 
@@ -602,7 +620,11 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		self->SetNetworkVar<std::u16string>(u"UI_Rewards", GeneralUtils::ASCIIToUTF16(stream.str()));
 	}
 
-	GameMessages::SendActivityStop(self->GetObjectID(), false, cancel, player->GetSystemAddress());
+	GameMessages::ActivityStop activityStop;
+	activityStop.target = self->GetObjectID();
+	activityStop.bExit = false;
+	activityStop.bUserCancel = cancel;
+	activityStop.Send(player->GetSystemAddress());
 	self->SetVar<bool>(GameStartedVariable, false);
 	ActivityTimerStopAllTimers(self);
 

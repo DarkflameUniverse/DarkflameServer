@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "LeaderboardManager.h"
 #include "dServer.h"
 #include "eMissionTaskType.h"
@@ -43,7 +44,9 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"player_dialog_start_course" && button == 1) {
 		GameMessages::SendNotifyClientObject(selfId, u"start_timer", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
-		GameMessages::SendActivityStart(selfId, senderSysAddr);
+		GameMessages::ActivityStart activityStart;
+		activityStart.target = selfId;
+		activityStart.Send(senderSysAddr);
 
 		const auto score = scriptedActivityComponent->GetActivityValue(senderId, 1);
 		if (score != 0 && score != -1.0f) return;

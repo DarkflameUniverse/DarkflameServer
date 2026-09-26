@@ -1,5 +1,6 @@
 #include "BaseSurvivalServer.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -278,7 +279,9 @@ void BaseSurvivalServer::PlayerAccepted(Entity* self, LWOOBJID playerID) {
 }
 
 void BaseSurvivalServer::StartWaves(Entity* self) {
-	GameMessages::SendActivityStart(self->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::ActivityStart activityStart;
+	activityStart.target = self->GetObjectID();
+	activityStart.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->SetVar<bool>(PlayersReadyVariable, true);
 	self->SetVar<uint32_t>(BaseMobSetIndexVariable, 0);

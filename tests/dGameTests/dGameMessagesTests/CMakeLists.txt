@@ -1,4 +1,5 @@
 SET(DGAMEMESSAGES_TESTS
+	"ActivityMessagesTests.cpp"
 	"GameMessageTests.cpp"
 	"GameMsgSplitTests.cpp"
 	"UnSmashTests.cpp"

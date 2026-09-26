@@ -1,5 +1,6 @@
 #include "NtCombatChallengeServer.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "InventoryComponent.h"
@@ -58,7 +59,9 @@ void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender,
 
 		self->AddTimer("start_delay", 2.0f);
 
-		GameMessages::SendShowActivityCountdown(self->GetObjectID(), false, false, u"", 0, sender->GetSystemAddress());
+		GameMessages::ShowActivityCountdown countdown;
+		countdown.target = self->GetObjectID();
+		countdown.Send(sender->GetSystemAddress());
 
 		self->SetNetworkVar(u"toggle", true);
 	} else if (identifier == u"CloseButton") {

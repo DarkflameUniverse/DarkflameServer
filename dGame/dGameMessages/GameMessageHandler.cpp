@@ -30,6 +30,7 @@
 #include "StartSkill.h"
 #include "EchoStartSkill.h"
 #include "EchoSyncSkill.h"
+#include "ActivityMessages.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
@@ -49,6 +50,7 @@ namespace {
 		{ REQUEST_SERVER_OBJECT_INFO, []() { return std::make_unique<RequestServerObjectInfo>(); } },
 		{ SHOOTING_GALLERY_FIRE, []() { return std::make_unique<ShootingGalleryFire>(); } },
 		{ PICKUP_ITEM, []() { return std::make_unique<PickupItem>(); } },
+		{ REQUEST_ACTIVITY_EXIT, []() { return std::make_unique<RequestActivityExit>(); } },
 	};
 };
 
@@ -717,9 +719,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 	case MessageType::Game::ZONE_SUMMARY_DISMISSED:
 		GameMessages::HandleZoneSummaryDismissed(inStream, entity);
-		break;
-	case MessageType::Game::REQUEST_ACTIVITY_EXIT:
-		GameMessages::HandleRequestActivityExit(inStream, entity);
 		break;
 	case MessageType::Game::ADD_DONATION_ITEM:
 		GameMessages::HandleAddDonationItem(inStream, entity, sysAddr);

@@ -1,5 +1,6 @@
 #include "BaseWavesServer.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -273,7 +274,9 @@ void BaseWavesServer::PlayerAccepted(Entity* self, LWOOBJID playerID) {
 
 // Done
 void BaseWavesServer::StartWaves(Entity* self) {
-	GameMessages::SendActivityStart(self->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::ActivityStart activityStart;
+	activityStart.target = self->GetObjectID();
+	activityStart.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->SetNetworkVar<std::string>(WatchingIntroVariable, "");
 	self->SetVar<bool>(PlayersReadyVariable, true);
