@@ -4,7 +4,8 @@
 #include <string_view>
 
 namespace Server {
-	void SetupLogger(const std::string_view serviceName);
+	// takes in an optional argument of folder should you want to place the logs in a sub-folder
+	void SetupLogger(const std::string_view serviceName, std::string_view folder = "");
 };
 
 #endif  //!__SERVER__H__

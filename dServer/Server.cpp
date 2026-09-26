@@ -5,17 +5,18 @@
 #include "Logger.h"
 #include "dConfig.h"
 
-void Server::SetupLogger(const std::string_view serviceName) {
+void Server::SetupLogger(const std::string_view serviceName, std::string_view folder) {
 	if (Game::logger) {
 		LOG("A logger has already been setup, skipping.");
 		return;
 	}
 
-	const auto logsDir = BinaryPathFinder::GetBinaryDir() / "logs";
+	auto logsDir = BinaryPathFinder::GetBinaryDir() / "logs";
+	if (!folder.empty()) logsDir /= folder;
 
 	if (!std::filesystem::exists(logsDir)) std::filesystem::create_directories(logsDir);
 
-	std::string logPath = (logsDir / serviceName).string() + "_" + std::to_string(time(nullptr)) + ".log";
+	std::string logPath = (logsDir / serviceName).string() + ".log";
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG
