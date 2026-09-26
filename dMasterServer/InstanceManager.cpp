@@ -46,8 +46,6 @@ const InstancePtr& InstanceManager::CreateInstance(LWOMAPID mapID, LWOCLONEID cl
 			cloneID);
 		return g_Empty;
 	}
-	//TODO: Update this so that the IP is read from a configuration file instead
-
 	int softCap = 8;
 	int maxPlayers = 12;
 
