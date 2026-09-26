@@ -100,14 +100,28 @@ Friends, the team and guild live on the chat server, which the world forwards to
 itself; the new world sends them again. Anything tied to objects is rebuilt: the pet, missions shown in the UI,
 buffs, and possession.
 
-### Packet captures
+### What live servers sent (packet captures)
 
-* `found.zip` in lcdr-utils holds 9,730 files, all `[24]` (replica constructions). It contains no world-connect or
-  transfer packets. The full live capture folder those were extracted from was not accessible to this investigation.
-* lu_packets' test packet `src/world/client/tests/TransferToWorld.bin` is a live transfer: ip `"171.20.35.42"` (the rest
-  of the 33 bytes is uninitialised stack), port 2005, flag 0. Its `LoadStaticZone` sample (map 1450, clone 376426) shows
-  that live sent `LOAD_STATIC_ZONE` after transfers. lu_packets' notes also describe the "no `LoadStaticZone`" takeover
-  architecture as theoretical.
+These are live captures of 242 world connections from several players (the lcdr capture archive). They were read
+locally, and none of it is in this repository. They agree with the client:
+
+* **`TRANSFER_TO_WORLD`**: 168 captured. Every one is 44 bytes (8-byte header, `char[33]` ip, `u16` port, `u8`
+  flag). All 168 have the Mythran shift flag at 0, and none were failures (empty ip). Ports were 2001-2009, one world
+  server each. No maintenance transfer (flag 1) and no `LocalizedAnnouncementServerToSingleClient` (1580) is in the
+  captures.
+* **What followed a transfer on the old connection**: nothing in 89 of them. The rest show replica destructions (`0x25`,
+  about 2,500) and disconnection notifications (`0x13`). Live took its objects away from the leaving client, but only
+  after the transfer, when the client had already left. The experimental seamless mode sends them before it.
+* **Every new world connection** started the same way: handshake, `MSG_WORLD_CLIENT_VALIDATION`, then at once
+  `LOAD_STATIC_ZONE`. After that came the client's `LEVEL_LOAD_COMPLETE`, `CREATE_CHARACTER`, `SERVER_STATES` and the
+  replica constructions. Some clients sent a few game messages in between.
+  * A character list request appears in only 6 connections, the ones at character select. So after a transfer the
+    client did not ask for its characters, as `WorldValidation` predicts.
+* **Transfers within the same map**: 4 transfers went to another instance of the same map, all property → property
+  (map 1150, different clones). Live still sent `LOAD_STATIC_ZONE`, a full reload. No live transfer kept the scene.
+
+lu_packets' test packet `src/world/client/tests/TransferToWorld.bin` shows the same shape (ip `"171.20.35.42"` with
+the rest of the 33 bytes uninitialised, port 2005, flag 0). lcdr-utils' `found.zip` has only replica constructions.
 
 ## What DarkflameServer does
 
