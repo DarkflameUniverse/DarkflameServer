@@ -1,4 +1,5 @@
 #include "AgPropGuard.h"
+#include "GameMessages.h"
 #include "Entity.h"
 #include "Character.h"
 #include "EntityManager.h"
@@ -14,8 +15,9 @@ void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionI
 
 	const auto state = missionComponent->GetMissionState(320);
 	if (missionID == 768 && missionState == eMissionState::AVAILABLE) {
-		if (!character->GetPlayerFlag(71)) {
-			// TODO: Cinematic "MissionCam"
+		// Players who have not touched the orb yet get a camera pan showing where it is.
+		if (character && !character->GetPlayerFlag(71)) {
+			GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
 		}
 	} else if (missionID == 768 && missionState >= eMissionState::READY_TO_COMPLETE) {
 		//remove the inventory items

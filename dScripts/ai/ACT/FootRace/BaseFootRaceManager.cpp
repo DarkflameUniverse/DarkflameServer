@@ -4,7 +4,8 @@
 #include "Entity.h"
 
 void BaseFootRaceManager::OnStartup(Entity* self) {
-	// TODO: Add to FootRaceStarter group
+	// Other foot race objects find the starters through this group (L_ACT_BASE_FOOT_RACE.lua).
+	self->AddToGroup("FootRaceStarter");
 }
 
 void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
