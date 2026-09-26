@@ -10,9 +10,6 @@
 #include "TeamManager.h"
 #include "ProximityMonitorComponent.h"
 
-//TODO: this has to be updated so that you only get killed if you're in a certain radius.
-//And so that all entities in a certain radius are killed, not just the attacker.
-
 void ExplodingAsset::OnStartup(Entity* self) {
 	self->SetProximityRadius(20.0f, "outRadius");
 	self->SetVar<int32_t>(u"playersNearChest", 0);
@@ -46,14 +43,16 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	const auto* const proximityComponent = self->GetComponent<ProximityMonitorComponent>();
 	if (!proximityComponent) return;
 
-	if (!self->GetBoolean(u"bIsHit")) {
-		for (const auto objID : proximityComponent->GetProximityObjects("crateHitters")) {
-			auto* const entity = Game::entityManager->GetEntity(objID);
-			if (!entity || entity->GetObjectID() != attacker->GetObjectID()) continue;
+	// Like the live script, the asset only explodes once. Only the attacker is smashed directly, and only when
+	// standing close to the asset; everyone else in range is hit by the explosion skill.
+	if (!attacker || self->GetBoolean(u"bIsHit")) return;
 
-			auto* const destroyable = entity->GetComponent<DestroyableComponent>();
-			if (destroyable) destroyable->Smash(attacker->GetObjectID());
-		}
+	for (const auto objID : proximityComponent->GetProximityObjects("crateHitters")) {
+		auto* const entity = Game::entityManager->GetEntity(objID);
+		if (!entity || entity->GetObjectID() != attacker->GetObjectID()) continue;
+
+		auto* const destroyable = entity->GetComponent<DestroyableComponent>();
+		if (destroyable) destroyable->Smash(attacker->GetObjectID());
 	}
 
 	attacker = attacker->GetOwner();
