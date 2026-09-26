@@ -180,7 +180,9 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 
 	if (command->target == "self") entities.push_back(m_Parent);
 	else if (command->target == "zone") {
-		/*TODO*/
+		// The zone itself is represented by the zone control object.
+		auto* const zoneControl = Game::zoneManager->GetZoneControlObject();
+		if (zoneControl) entities.push_back(zoneControl);
 	} else if (command->target == "target" && optionalTarget) {
 		entities.push_back(optionalTarget);
 	} else if (command->target == "targetTeam" && optionalTarget) {
