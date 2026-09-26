@@ -226,7 +226,7 @@ void AmSkullkinDrill::PlayAnim(Entity* self, Entity* player, const std::string& 
 void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {
 	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 
-	if (destroyableComponent == nullptr || !attacker->IsPlayer()) {
+	if (destroyableComponent == nullptr || attacker == nullptr || !attacker->IsPlayer()) {
 		return;
 	}
 
@@ -234,19 +234,22 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 		return;
 	}
 
-	const auto activaterID = self->GetVar<LWOOBJID>(u"activaterID");
+	const auto updateMissions = [this, self](Entity* player) {
+		auto* missionComponent = player->GetComponent<MissionComponent>();
+		if (!missionComponent) return;
 
-	auto* activator = Game::entityManager->GetEntity(activaterID);
-
-	// TODO: Missions
-	if (activator != nullptr) {
-		auto* missionComponent = activator->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr) {
-			for (const auto missionID : m_MissionsToUpdate) {
-				missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
-			}
+		for (const auto missionID : m_MissionsToUpdate) {
+			missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
 		}
+	};
+
+	// The player who broke the drill gets credit, and so does the player who started it if that was someone else.
+	updateMissions(attacker);
+
+	const auto activaterID = self->GetVar<LWOOBJID>(u"activaterID");
+	if (activaterID != LWOOBJID_EMPTY && activaterID != attacker->GetObjectID()) {
+		auto* activator = Game::entityManager->GetEntity(activaterID);
+		if (activator) updateMissions(activator);
 	}
 
 	self->Smash(attacker->GetObjectID(), eKillType::SILENT);
