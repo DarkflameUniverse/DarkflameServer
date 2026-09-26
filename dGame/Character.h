@@ -489,6 +489,14 @@ private:
 	LWOOBJID m_ObjectID{ LWOOBJID_EMPTY };
 
 	/**
+	 * Gets a child of the root obj tag of the character xml, or nullptr if either is missing.
+	 */
+	tinyxml2::XMLElement* GetXmlObjChild(const char* name) {
+		auto* const obj = m_Doc.FirstChildElement("obj");
+		return obj ? obj->FirstChildElement(name) : nullptr;
+	}
+
+	/**
 	 * The user that owns this character.
 	 */
 	User* m_ParentUser{};

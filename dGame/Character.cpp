@@ -88,7 +88,13 @@ void Character::DoQuickXMLDataParse() {
 		return;
 	}
 
-	tinyxml2::XMLElement* mf = m_Doc.FirstChildElement("obj")->FirstChildElement("mf");
+	auto* const obj = m_Doc.FirstChildElement("obj");
+	if (!obj) {
+		LOG("Character %s (%llu) xml has no obj tag!", m_Name.c_str(), m_ID);
+		return;
+	}
+
+	tinyxml2::XMLElement* mf = obj->FirstChildElement("mf");
 	if (!mf) {
 		LOG("Failed to find mf tag!");
 		return;
@@ -107,13 +113,14 @@ void Character::DoQuickXMLDataParse() {
 	mf->QueryAttribute("ess", &m_Eyes);
 	mf->QueryAttribute("ms", &m_Mouth);
 
-	tinyxml2::XMLElement* inv = m_Doc.FirstChildElement("obj")->FirstChildElement("inv");
+	tinyxml2::XMLElement* inv = obj->FirstChildElement("inv");
 	if (!inv) {
 		LOG("Char has no inv!");
 		return;
 	}
 
-	tinyxml2::XMLElement* bag = inv->FirstChildElement("items")->FirstChildElement("in");
+	auto* const items = inv->FirstChildElement("items");
+	tinyxml2::XMLElement* bag = items ? items->FirstChildElement("in") : nullptr;
 
 	if (!bag) {
 		LOG("Couldn't find bag0!");
@@ -140,7 +147,7 @@ void Character::DoQuickXMLDataParse() {
 	}
 
 
-	tinyxml2::XMLElement* character = m_Doc.FirstChildElement("obj")->FirstChildElement("char");
+	tinyxml2::XMLElement* character = GetXmlObjChild("char");
 	if (character) {
 		character->QueryAttribute("cc", &m_Coins);
 		int32_t gm_level = 0;
@@ -204,7 +211,7 @@ void Character::DoQuickXMLDataParse() {
 		character->QueryAttribute("lzrw", &m_OriginalRotation.w);
 	}
 
-	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
+	auto* flags = GetXmlObjChild("flag");
 	if (flags) {
 		auto* currentChild = flags->FirstChildElement();
 		while (currentChild) {
@@ -212,13 +219,15 @@ void Character::DoQuickXMLDataParse() {
 			const auto* id = currentChild->Attribute("id");
 			const auto* si = currentChild->Attribute("si");
 			if (temp && id) {
-				uint32_t index = 0;
-				uint64_t value = 0;
+				// A malformed flag in the save should skip that flag, not throw out of the whole load.
+				const auto index = GeneralUtils::TryParse<uint32_t>(id);
+				const auto value = GeneralUtils::TryParse<uint64_t>(temp);
 
-				index = std::stoul(id);
-				value = std::stoull(temp);
-
-				m_PlayerFlags.insert(std::make_pair(index, value));
+				if (index && value) {
+					m_PlayerFlags.insert(std::make_pair(index.value(), value.value()));
+				} else {
+					LOG("Skipping malformed flag (id %s, v %s) for character %llu", id, temp, m_ObjectID);
+				}
 			} else if (si) {
 				auto value = GeneralUtils::TryParse<uint32_t>(si);
 				if (value) m_SessionFlags.insert(value.value());
@@ -248,10 +257,17 @@ void Character::SaveXMLToDatabase() {
 		return;
 	}
 
+	// Without an obj tag the xml never loaded, so there is nothing valid to write back.
+	auto* const obj = m_Doc.FirstChildElement("obj");
+	if (!obj) {
+		LOG("%llu:%s has no loaded xml while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		return;
+	}
+
 	//For metrics, we'll record the time it took to save:
 	auto start = std::chrono::system_clock::now();
 
-	tinyxml2::XMLElement* character = m_Doc.FirstChildElement("obj")->FirstChildElement("char");
+	tinyxml2::XMLElement* character = GetXmlObjChild("char");
 	if (character) {
 		character->SetAttribute("gm", static_cast<uint32_t>(m_GMLevel));
 		character->SetAttribute("cc", m_Coins);
@@ -287,10 +303,10 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	//Export our flags:
-	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
+	auto* flags = GetXmlObjChild("flag");
 	if (!flags) {
 		flags = m_Doc.NewElement("flag"); //Create a flags tag if we don't have one
-		m_Doc.FirstChildElement("obj")->LinkEndChild(flags); //Link it to the obj tag so we can find next time
+		obj->LinkEndChild(flags); //Link it to the obj tag so we can find next time
 	}
 
 	flags->DeleteChildren(); //Clear it if we have anything, so that we can fill it up again without dupes
@@ -319,7 +335,7 @@ void Character::SaveXMLToDatabase() {
 
 void Character::SetIsNewLogin() {
 	// If we dont have a flag element, then we cannot have a s element as a child of flag.
-	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
+	auto* flags = GetXmlObjChild("flag");
 	if (!flags) return;
 
 	auto* currentChild = flags->FirstChildElement();
@@ -437,10 +453,13 @@ void Character::SetRetroactiveFlags() {
 
 void Character::SaveXmlRespawnCheckpoints() {
 	//Export our respawn points:
-	auto* points = m_Doc.FirstChildElement("obj")->FirstChildElement("res");
+	auto* const obj = m_Doc.FirstChildElement("obj");
+	if (!obj) return;
+
+	auto* points = obj->FirstChildElement("res");
 	if (!points) {
 		points = m_Doc.NewElement("res");
-		m_Doc.FirstChildElement("obj")->LinkEndChild(points);
+		obj->LinkEndChild(points);
 	}
 
 	points->DeleteChildren();
@@ -459,7 +478,7 @@ void Character::SaveXmlRespawnCheckpoints() {
 void Character::LoadXmlRespawnCheckpoints() {
 	m_WorldRespawnCheckpoints.clear();
 
-	auto* points = m_Doc.FirstChildElement("obj")->FirstChildElement("res");
+	auto* points = GetXmlObjChild("res");
 	if (!points) {
 		return;
 	}
