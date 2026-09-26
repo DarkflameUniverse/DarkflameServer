@@ -18,43 +18,43 @@ RawChunk::RawChunk(std::ifstream& stream) {
 
 	// We can just skip the rest of the data so we can read the next chunks, we don't need anymore data
 
-	// Possible overflow here? TODO make reasonable upper bound or confirm big numbers arent necessary to have
+	// Skips are relative and done in 64 bit math so large sizes can't wrap around and seek backwards.
 	uint32_t colorMapSize;
 	BinaryIO::BinaryRead(stream, colorMapSize);
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize * colorMapSize * 4));
+	stream.seekg(static_cast<std::streamoff>(colorMapSize) * colorMapSize * 4, std::ios::cur);
 
 	uint32_t lightmapSize;
 	BinaryIO::BinaryRead(stream, lightmapSize);
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (lightmapSize));
+	stream.seekg(static_cast<std::streamoff>(lightmapSize), std::ios::cur);
 
 	uint32_t colorMapSize2;
 	BinaryIO::BinaryRead(stream, colorMapSize2);
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize2 * colorMapSize2 * 4));
+	stream.seekg(static_cast<std::streamoff>(colorMapSize2) * colorMapSize2 * 4, std::ios::cur);
 
 	uint8_t unknown;
 	BinaryIO::BinaryRead(stream, unknown);
 
 	uint32_t blendmapSize;
 	BinaryIO::BinaryRead(stream, blendmapSize);
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (blendmapSize));
+	stream.seekg(static_cast<std::streamoff>(blendmapSize), std::ios::cur);
 
 	uint32_t pointSize;
 	BinaryIO::BinaryRead(stream, pointSize);
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (pointSize * 9 * 4));
+	stream.seekg(static_cast<std::streamoff>(pointSize) * 9 * 4, std::ios::cur);
 
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize * colorMapSize));
+	stream.seekg(static_cast<std::streamoff>(colorMapSize) * colorMapSize, std::ios::cur);
 
 	uint32_t endCounter;
 	BinaryIO::BinaryRead(stream, endCounter);
-	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (endCounter * 2));
+	stream.seekg(static_cast<std::streamoff>(endCounter) * 2, std::ios::cur);
 
 	if (endCounter != 0) {
-		stream.seekg(static_cast<uint32_t>(stream.tellg()) + (32));
+		stream.seekg(32, std::ios::cur);
 
 		for (int i = 0; i < 0x10; i++) {
 			uint16_t finalCountdown;
 			BinaryIO::BinaryRead(stream, finalCountdown);
-			stream.seekg(static_cast<uint32_t>(stream.tellg()) + (finalCountdown * 2));
+			stream.seekg(static_cast<std::streamoff>(finalCountdown) * 2, std::ios::cur);
 		}
 	}
 
