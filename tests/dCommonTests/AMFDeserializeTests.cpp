@@ -7,6 +7,7 @@
 
 #include "Game.h"
 #include "Logger.h"
+#include "dCommonDependencies.h"
 
 /**
  * Helper method that all tests use to get their respective AMF.
@@ -436,3 +437,149 @@ args: amf3!
 	],
 }
  */
+
+namespace {
+	// Writes an inline AMF string of at most 63 characters (single byte U29 header).
+	void WriteShortAmfString(RakNet::BitStream& bitStream, const std::string& str) {
+		bitStream.Write<uint8_t>(static_cast<uint8_t>((str.size() << 1) | 1));
+		for (const auto e : str) bitStream.Write<char>(e);
+	}
+
+	// Writes a U29 integer the way AMF3 encodes it.
+	void WriteU29(RakNet::BitStream& bitStream, uint32_t value) {
+		if (value < 0x80) {
+			bitStream.Write<uint8_t>(value);
+		} else if (value < 0x4000) {
+			bitStream.Write<uint8_t>(((value >> 7) & 0x7F) | 0x80);
+			bitStream.Write<uint8_t>(value & 0x7F);
+		} else if (value < 0x200000) {
+			bitStream.Write<uint8_t>(((value >> 14) & 0x7F) | 0x80);
+			bitStream.Write<uint8_t>(((value >> 7) & 0x7F) | 0x80);
+			bitStream.Write<uint8_t>(value & 0x7F);
+		} else {
+			bitStream.Write<uint8_t>(((value >> 22) & 0x7F) | 0x80);
+			bitStream.Write<uint8_t>(((value >> 15) & 0x7F) | 0x80);
+			bitStream.Write<uint8_t>(((value >> 8) & 0x7F) | 0x80);
+			bitStream.Write<uint8_t>(value & 0xFF);
+		}
+	}
+}
+
+// The limit checks log before throwing, so these tests need a logger.
+class AMFDeserializeLimitsTest : public dCommonDependenciesTest {
+protected:
+	void SetUp() override { SetUpDependencies(); }
+	void TearDown() override {
+		TearDownDependencies();
+		Game::logger = nullptr;
+	}
+};
+
+/**
+ * @brief Arrays nested past the depth limit must be rejected instead of recursing until the stack runs out.
+ */
+TEST_F(AMFDeserializeLimitsTest, NestingLimitTest) {
+	const auto writeNested = [](RakNet::BitStream& bitStream, uint32_t depth) {
+		// Each level is an array with no dense part whose only associative value is the next level.
+		for (uint32_t i = 0; i < depth; i++) {
+			bitStream.Write<uint8_t>(0x09);
+			bitStream.Write<uint8_t>(0x01);
+			if (i + 1 < depth) WriteShortAmfString(bitStream, "a");
+		}
+		for (uint32_t i = 0; i < depth; i++) bitStream.Write<uint8_t>(0x01);
+	};
+
+	{
+		CBITSTREAM;
+		writeNested(bitStream, AMFDeserialize::MaxDepth);
+		std::unique_ptr<AMFBaseValue> res;
+		ASSERT_NO_THROW(res = ReadFromBitStream(bitStream));
+		ASSERT_EQ(res->GetValueType(), eAmf::Array);
+	}
+	{
+		CBITSTREAM;
+		writeNested(bitStream, AMFDeserialize::MaxDepth + 1);
+		ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
+	}
+	{
+		// Far past the limit, what a malicious client would send to overflow the stack.
+		CBITSTREAM;
+		writeNested(bitStream, 100'000);
+		ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
+	}
+}
+
+/**
+ * @brief The associative part of an array is bounded the same way the dense part is.
+ */
+TEST_F(AMFDeserializeLimitsTest, AssociativeLimitTest) {
+	const auto writeArray = [](RakNet::BitStream& bitStream, uint32_t entries) {
+		bitStream.Write<uint8_t>(0x09);
+		bitStream.Write<uint8_t>(0x01);
+		for (uint32_t i = 0; i < entries; i++) {
+			WriteShortAmfString(bitStream, std::to_string(i));
+			bitStream.Write<uint8_t>(0x03); // true
+		}
+		bitStream.Write<uint8_t>(0x01);
+	};
+
+	{
+		CBITSTREAM;
+		writeArray(bitStream, AMFDeserialize::MaxArraySize);
+		std::unique_ptr<AMFBaseValue> res;
+		ASSERT_NO_THROW(res = ReadFromBitStream(bitStream));
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociative().size(), AMFDeserialize::MaxArraySize);
+	}
+	{
+		CBITSTREAM;
+		writeArray(bitStream, AMFDeserialize::MaxArraySize + 1);
+		ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
+	}
+}
+
+/**
+ * @brief The dense size is checked before any of the associative part is read.
+ */
+TEST_F(AMFDeserializeLimitsTest, DenseLimitTest) {
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x09);
+	WriteU29(bitStream, ((AMFDeserialize::MaxArraySize + 1) << 1) | 1);
+	bitStream.Write<uint8_t>(0x01);
+	ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
+}
+
+/**
+ * @brief Many small arrays that are each within limits still count toward one total budget.
+ */
+TEST_F(AMFDeserializeLimitsTest, TotalValueLimitTest) {
+	CBITSTREAM;
+	// An outer array of 20 arrays with 10,000 values each is 200,000 values.
+	bitStream.Write<uint8_t>(0x09);
+	WriteU29(bitStream, (20 << 1) | 1);
+	bitStream.Write<uint8_t>(0x01);
+	for (int i = 0; i < 20; i++) {
+		bitStream.Write<uint8_t>(0x09);
+		WriteU29(bitStream, (AMFDeserialize::MaxArraySize << 1) | 1);
+		bitStream.Write<uint8_t>(0x01);
+		for (uint32_t j = 0; j < AMFDeserialize::MaxArraySize; j++) bitStream.Write<uint8_t>(0x03);
+	}
+	ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
+}
+
+/**
+ * @brief Sending a key twice keeps the last value, and the returned reference is to a live value.
+ */
+TEST_F(AMFDeserializeLimitsTest, DuplicateKeyTest) {
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x09);
+	bitStream.Write<uint8_t>(0x01);
+	WriteShortAmfString(bitStream, "key");
+	bitStream.Write<uint8_t>(0x02); // false
+	WriteShortAmfString(bitStream, "key");
+	bitStream.Write<uint8_t>(0x03); // true
+	bitStream.Write<uint8_t>(0x01);
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
+	auto* const array = static_cast<AMFArrayValue*>(res.get());
+	ASSERT_EQ(array->GetAssociative().size(), 1);
+	ASSERT_TRUE(array->Get<bool>("key")->GetValue());
+}

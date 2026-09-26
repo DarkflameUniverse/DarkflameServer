@@ -5,7 +5,7 @@
 #include "Logger.h"
 #include "Game.h"
 #include <type_traits>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 enum class eAmf : uint8_t {
@@ -115,8 +115,9 @@ using AMFDoubleValue = AMFValue<double>;
  * and are not to be deleted by a caller.
  */
 class AMFArrayValue : public AMFBaseValue {
-	using AMFAssociative =
-		std::unordered_map<std::string, std::unique_ptr<AMFBaseValue>, GeneralUtils::transparent_string_hash, std::equal_to<>>;
+	// An ordered map keeps lookups and inserts O(log n) no matter which keys a client sends.
+	// A hash map here let a client pick colliding keys and make decoding quadratic (HashDoS).
+	using AMFAssociative = std::map<std::string, std::unique_ptr<AMFBaseValue>, std::less<>>;
 
 	using AMFDense = std::vector<std::unique_ptr<AMFBaseValue>>;
 
@@ -222,9 +223,9 @@ public:
 	 */
 	template<typename AmfType>
 	AmfType& Insert(const std::string_view key, std::unique_ptr<AmfType> value) {
-		const auto element = m_Associative.find(key);
 		auto& toReturn = *value;
-		if (element != m_Associative.cend() && element->second) {
+		const auto element = m_Associative.find(key);
+		if (element != m_Associative.cend()) {
 			element->second = std::move(value);
 		} else {
 			m_Associative.emplace(key, std::move(value));

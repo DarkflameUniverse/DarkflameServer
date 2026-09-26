@@ -9,6 +9,15 @@
 
 class AMFDeserialize {
 public:
+	// Most entries one array may hold, in each of its dense and associative parts.
+	static constexpr uint32_t MaxArraySize = 10'000;
+
+	// Deepest nesting of arrays allowed. Client UI messages nest a handful of levels.
+	static constexpr uint32_t MaxDepth = 32;
+
+	// Most values one deserializer will read over its lifetime.
+	static constexpr uint32_t MaxValues = 100'000;
+
 	/**
 	 * Read an AMF3 value from a bitstream.
 	 *
@@ -69,4 +78,10 @@ private:
 	 * List of strings read so far saved to be read by reference.
 	 */
 	std::vector<std::string> accessedElements;
+
+	// How deeply nested the array being read is.
+	uint32_t m_Depth = 0;
+
+	// How many values have been read so far.
+	uint32_t m_ValuesRead = 0;
 };

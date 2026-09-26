@@ -11,6 +11,13 @@
  */
 
 std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream& inStream) {
+	// Every value counts against the budget for this deserializer, so one message
+	// cannot make the server build an unbounded tree of values.
+	if (++m_ValuesRead > MaxValues) {
+		LOG("AMF value budget of %u exceeded, possible spoof, aborting deserialize.", MaxValues);
+		throw std::invalid_argument("AMF value budget exceeded");
+	}
+
 	// Read in the value type from the bitStream
 	eAmf marker;
 	inStream.Read(marker);
@@ -112,27 +119,41 @@ std::unique_ptr<AMFDoubleValue> AMFDeserialize::ReadAmfDouble(RakNet::BitStream&
 }
 
 std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream& inStream) {
+	// Arrays are the only values that nest, so bound the recursion here.
+	if (m_Depth >= MaxDepth) {
+		LOG("AMF arrays nested deeper than %u, possible spoof, aborting deserialize.", MaxDepth);
+		throw std::invalid_argument("AMF arrays nested too deeply");
+	}
+	++m_Depth;
+
 	auto arrayValue = std::make_unique<AMFArrayValue>();
 
 	// Read size of dense array
 	const auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
+	if (sizeOfDenseArray > MaxArraySize) {
+		LOG("Someone sent %u dense array entries, probably a bad packet.", sizeOfDenseArray);
+		throw std::invalid_argument("Too many dense AMF array entries");
+	}
+
 	// Then read associative portion
+	uint32_t associativeEntries = 0;
 	while (true) {
 		const auto key = ReadString(inStream);
 		// No more associative values when we encounter an empty string key
 		if (key.size() == 0) break;
+		if (++associativeEntries > MaxArraySize) {
+			LOG("Someone sent more than %u associative array entries, probably a bad packet.", MaxArraySize);
+			throw std::invalid_argument("Too many associative AMF array entries");
+		}
 		arrayValue->Insert(key, Read(inStream));
 	}
 
-	constexpr int32_t maxArraySize = 10'000;
-	if (sizeOfDenseArray > maxArraySize) {
-		LOG("Someone sent 10,000 dense array entries, probably a bad packet.");
-		throw std::invalid_argument("Someone sent 10,000 dense array entries, probably a bad packet.");
-	}
 	// Finally read dense portion
 	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
 		arrayValue->Insert(i, Read(inStream));
 	}
+
+	--m_Depth;
 	return arrayValue;
 }
 
