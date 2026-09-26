@@ -248,7 +248,4 @@ private:
 
 	// Per axis -1, 0 or 1. Non-zero means a behavior currently owns rotation on that axis.
 	NiPoint3 m_RotationDirection{};
-
-	// Whether the client is sent an angular velocity to extrapolate rotation between updates
-	bool m_SendAngularVelocity{ true };
 };

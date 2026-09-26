@@ -6,7 +6,6 @@
 
 #include "Game.h"
 #include "Logger.h"
-#include "dConfig.h"
 #include "dMath.h"
 
 #include "BehaviorStates.h"
@@ -323,10 +322,7 @@ bool ModelComponent::TryStartRotation(const int axis, const float direction) {
 	if (m_RotationDirection[axis] != 0.0f) return false;
 
 	// Rebase only when nothing is rotating so simultaneous rotations stay relative to the same base
-	if (m_RotationDirection == NiPoint3Constant::ZERO) {
-		ResetRotationState(m_Parent->GetRotation());
-		m_SendAngularVelocity = Game::config->GetValue("model_rotation_send_angular_velocity") != "0";
-	}
+	if (m_RotationDirection == NiPoint3Constant::ZERO) ResetRotationState(m_Parent->GetRotation());
 
 	m_RotationDegrees[axis] = std::fmod(m_RotationDegrees[axis], 360.0f);
 	m_RotationActionStart[axis] = m_RotationDegrees[axis];
@@ -362,7 +358,7 @@ void ModelComponent::SetSpeed(const float newSpeed) {
 void ModelComponent::SyncAngularVelocity() const {
 	GameMessages::SetAngularVelocity setAngVel{};
 	setAngVel.target = m_Parent->GetObjectID();
-	setAngVel.angVelocity = m_SendAngularVelocity ? m_RotationDirection * Math::DegToRad(GetAngularSpeed()) : NiPoint3Constant::ZERO;
+	setAngVel.angVelocity = m_RotationDirection * Math::DegToRad(GetAngularSpeed());
 	setAngVel.Send();
 }
 
