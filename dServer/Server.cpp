@@ -5,7 +5,7 @@
 #include "Logger.h"
 #include "dConfig.h"
 
-void Server::SetupLogger(const std::string_view serviceName, std::string_view folder) {
+void Server::SetupLogger(const std::string_view serviceName, const std::string_view folder) {
 	if (Game::logger) {
 		LOG("A logger has already been setup, skipping.");
 		return;
