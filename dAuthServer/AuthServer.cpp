@@ -21,6 +21,8 @@
 
 //Auth includes:
 #include "AuthPackets.h"
+#include "BitStreamUtils.h"
+#include "CommonPackets.h"
 #include "ServiceType.h"
 #include "MessageType/Server.h"
 #include "MessageType/Auth.h"
@@ -172,16 +174,20 @@ int main(int argc, char** argv) {
 
 void HandlePacket(Packet* packet) {
 	if (packet->length < 4) return;
+	if (packet->data[0] != ID_USER_PACKET_ENUM) return;
 
-	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (static_cast<ServiceType>(packet->data[1]) == ServiceType::COMMON) {
-			if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
-				AuthPackets::HandleHandshake(Game::server, packet);
-			}
-		} else if (static_cast<ServiceType>(packet->data[1]) == ServiceType::AUTH) {
-			if (static_cast<MessageType::Auth>(packet->data[3]) == MessageType::Auth::LOGIN_REQUEST) {
-				AuthPackets::HandleLoginRequest(Game::server, packet);
-			}
-		}
+	RakNet::BitStream inStream(packet->data, packet->length, false);
+	LUBitStream header;
+	if (!header.ReadHeader(inStream)) return;
+
+	switch (header.connectionType) {
+	case ServiceType::COMMON:
+		CommonPackets::Handle(inStream, packet->systemAddress, header.internalPacketID);
+		break;
+	case ServiceType::AUTH:
+		AuthPackets::Handle(inStream, packet->systemAddress, header.internalPacketID);
+		break;
+	default:
+		break;
 	}
 }

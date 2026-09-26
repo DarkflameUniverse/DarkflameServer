@@ -1,4 +1,5 @@
 set(DNET_SOURCES "AuthPackets.cpp"
+	"CommonPackets.cpp"
 	"BitStreamUtils.cpp"
 	"ChatPackets.cpp"
 	"ClientPackets.cpp"

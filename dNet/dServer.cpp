@@ -12,6 +12,7 @@
 
 #include "BinaryPathFinder.h"
 #include "BitStreamUtils.h"
+#include "CommonPackets.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
 #include "StringifiedEnum.h"
@@ -204,9 +205,10 @@ void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 }
 
 void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {
+	CommonPackets::DisconnectNotify notify;
+	notify.disconnectID = disconNotifyID;
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::COMMON, MessageType::Server::DISCONNECT_NOTIFY);
-	bitStream.Write(disconNotifyID);
+	notify.WritePacket(bitStream);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
 
 	mPeer->CloseConnection(sysAddr, true);

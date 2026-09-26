@@ -38,6 +38,7 @@
 #include <csignal>
 
 #include "AuthPackets.h"
+#include "CommonPackets.h"
 #include "BitStreamUtils.h"
 #include "WorldPackets.h"
 #include "UserManager.h"
@@ -1207,9 +1208,7 @@ void HandlePacket(Packet* packet) {
 	luBitStream.ReadHeader(inStream);
 
 	if (luBitStream.connectionType == ServiceType::COMMON) {
-		if (static_cast<MessageType::Server>(luBitStream.internalPacketID) == MessageType::Server::VERSION_CONFIRM) {
-			AuthPackets::HandleHandshake(Game::server, packet);
-		}
+		CommonPackets::Handle(inStream, packet->systemAddress, luBitStream.internalPacketID);
 	}
 
 	if (luBitStream.connectionType != ServiceType::WORLD) return;

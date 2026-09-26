@@ -6,6 +6,84 @@
 #include "ClientPackets.h"
 #include "dCommonVars.h"
 #include "PositionUpdate.h"
+#include "eLoginResponse.h"
+
+static_assert(sizeof(Stamp) == 16, "the login response's stamp size field has always been 16 bytes per stamp");
+
+void Stamp::Serialize(RakNet::BitStream& outBitStream) const {
+	outBitStream.Write(type);
+	outBitStream.Write(value);
+	outBitStream.Write(timestamp);
+}
+
+bool Stamp::Deserialize(RakNet::BitStream& inBitStream) {
+	VALIDATE_READ(inBitStream.Read(type));
+	VALIDATE_READ(inBitStream.Read(value));
+	VALIDATE_READ(inBitStream.Read(timestamp));
+	return true;
+}
+
+namespace ClientPackets {
+	void LoginResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseCode);
+		for (const auto& event : events) bitStream.Write(event);
+		bitStream.Write(versionMajor);
+		bitStream.Write(versionCurrent);
+		bitStream.Write(versionMinor);
+		bitStream.Write(userKey);
+		bitStream.Write(worldServerIP);
+		bitStream.Write(chatServerIP);
+		bitStream.Write(worldServerPort);
+		bitStream.Write(chatServerPort);
+		bitStream.Write(cdnKey);
+		bitStream.Write(cdnTicket);
+		bitStream.Write(language);
+		bitStream.Write(localization);
+		bitStream.Write<uint8_t>(justUpgradedFromF2P);
+		bitStream.Write<uint8_t>(isFreeToPlay);
+		bitStream.Write(freeToPlayTimeRemaining);
+		bitStream.Write<uint16_t>(errorMessage.length());
+		bitStream.Write(LUWString(errorMessage, static_cast<uint32_t>(errorMessage.length())));
+		bitStream.Write<uint32_t>((sizeof(Stamp) * stamps.size()) + sizeof(uint32_t));
+		for (const auto& stamp : stamps) stamp.Serialize(bitStream);
+	}
+
+	bool LoginResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(responseCode));
+		for (auto& event : events) VALIDATE_READ(bitStream.Read(event));
+		VALIDATE_READ(bitStream.Read(versionMajor));
+		VALIDATE_READ(bitStream.Read(versionCurrent));
+		VALIDATE_READ(bitStream.Read(versionMinor));
+		VALIDATE_READ(bitStream.Read(userKey));
+		VALIDATE_READ(bitStream.Read(worldServerIP));
+		VALIDATE_READ(bitStream.Read(chatServerIP));
+		VALIDATE_READ(bitStream.Read(worldServerPort));
+		VALIDATE_READ(bitStream.Read(chatServerPort));
+		VALIDATE_READ(bitStream.Read(cdnKey));
+		VALIDATE_READ(bitStream.Read(cdnTicket));
+		VALIDATE_READ(bitStream.Read(language));
+		VALIDATE_READ(bitStream.Read(localization));
+		uint8_t flag{};
+		VALIDATE_READ(bitStream.Read(flag));
+		justUpgradedFromF2P = flag != 0;
+		VALIDATE_READ(bitStream.Read(flag));
+		isFreeToPlay = flag != 0;
+		VALIDATE_READ(bitStream.Read(freeToPlayTimeRemaining));
+		uint16_t errorLength{};
+		VALIDATE_READ(bitStream.Read(errorLength));
+		LUWString error(errorLength);
+		if (errorLength > 0) VALIDATE_READ(bitStream.Read(error)); // RakNet fails reads of 0 bits
+		errorMessage = error.GetAsString();
+		uint32_t stampsSize{};
+		VALIDATE_READ(bitStream.Read(stampsSize));
+		if (stampsSize < sizeof(uint32_t) || (stampsSize - sizeof(uint32_t)) % sizeof(Stamp) != 0) return false;
+		const uint32_t stampCount = (stampsSize - sizeof(uint32_t)) / sizeof(Stamp);
+		if (stampCount > BITS_TO_BYTES(bitStream.GetNumberOfUnreadBits()) / sizeof(Stamp)) return false;
+		stamps.resize(stampCount);
+		for (auto& stamp : stamps) VALIDATE_READ(stamp.Deserialize(bitStream));
+		return true;
+	}
+}
 
 ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;

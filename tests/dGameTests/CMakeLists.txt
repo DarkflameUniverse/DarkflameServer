@@ -13,6 +13,9 @@ list(APPEND DGAMETEST_SOURCES ${DCOMPONENTS_TESTS})
 add_subdirectory(dGameMessagesTests)
 list(APPEND DGAMETEST_SOURCES ${DGAMEMESSAGES_TESTS})
 
+add_subdirectory(dNetTests)
+list(APPEND DGAMETEST_SOURCES ${DNET_TESTS})
+
 file(COPY ${GAMEMESSAGE_TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${COMPONENT_TEST_DATA} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -27,7 +30,7 @@ if(APPLE)
 endif()
 
 target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
-	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation)
+	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation bcrypt MD5)
 
 # Discover the tests
 gtest_discover_tests(dGameTests)
