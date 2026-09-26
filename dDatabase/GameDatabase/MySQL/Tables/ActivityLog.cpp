@@ -13,6 +13,9 @@ std::string MySQLDatabase::GetActivityLogTable(uint32_t start, uint32_t length, 
 	std::string baseQuery = "SELECT a.id, a.character_id, c.name as character_name, a.activity, a.time, a.map_id FROM activity_log a LEFT JOIN charinfo c ON a.character_id = c.id";
 	std::string whereClause;
 	if (!search.empty()) whereClause = " WHERE (c.name LIKE CONCAT('%', ?, '%') OR a.character_id = ?)";
+	// The same search as the characters it matches: few characters are read through the character_id index instead of
+	// joining every row of the log to a name to test it
+	const std::string matchJoin = " JOIN (SELECT id FROM charinfo WHERE name LIKE CONCAT('%', ?, '%') UNION SELECT ?) m ON m.id = a.character_id";
 
 	std::string orderColumnName = "a.id";
 	switch (orderColumn) {
@@ -30,6 +33,10 @@ std::string MySQLDatabase::GetActivityLogTable(uint32_t start, uint32_t length, 
 	if (search.empty() && orderColumn != 1) {
 		mainQuery = "SELECT a.id, a.character_id, c.name as character_name, a.activity, a.time, a.map_id FROM (SELECT * FROM activity_log a" + orderClause + " LIMIT ?, ?) a "
 			"LEFT JOIN charinfo c ON a.character_id = c.id" + orderClause + ";";
+	} else if (search.empty()) {
+		// Sorted by name, every row has to be joined to its name, but only the ids need sorting; the page's rows are read after
+		mainQuery = "SELECT a.id, a.character_id, c.name as character_name, a.activity, a.time, a.map_id FROM activity_log a JOIN (SELECT a.id FROM activity_log a "
+			"LEFT JOIN charinfo c ON a.character_id = c.id" + orderClause + " LIMIT ?, ?) p ON p.id = a.id LEFT JOIN charinfo c ON a.character_id = c.id" + orderClause + ";";
 	}
 
 	auto totalCountResult = ExecuteSelect("SELECT COUNT(*) as count FROM activity_log;");
@@ -37,8 +44,14 @@ std::string MySQLDatabase::GetActivityLogTable(uint32_t start, uint32_t length, 
 
 	uint32_t filteredRecords = totalRecords;
 	if (!search.empty()) {
-		auto filteredCountResult = ExecuteSelect("SELECT COUNT(*) as count FROM activity_log a LEFT JOIN charinfo c ON a.character_id = c.id WHERE (c.name LIKE CONCAT('%', ?, '%') OR a.character_id = ?);", search, searchId);
+		auto filteredCountResult = ExecuteSelect("SELECT COUNT(*) as count FROM activity_log a" + matchJoin + ";", search, searchId);
 		filteredRecords = filteredCountResult->next() ? filteredCountResult->getUInt("count") : 0;
+		// When the matches are a small part of the log, sorting just them beats walking the log in order until a page of
+		// them turns up (which reads nearly all of it when there are few or none)
+		if (static_cast<uint64_t>(filteredRecords) * 20 < totalRecords) {
+			mainQuery = "SELECT a.id, a.character_id, c.name as character_name, a.activity, a.time, a.map_id FROM activity_log a" + matchJoin +
+				" LEFT JOIN charinfo c ON a.character_id = c.id" + orderClause + " LIMIT ?, ?;";
+		}
 	}
 
 	auto result = !search.empty()
@@ -50,9 +63,9 @@ std::string MySQLDatabase::GetActivityLogTable(uint32_t start, uint32_t length, 
 		dataArray.push_back({
 			{"id", result->getUInt("id")},
 			{"character_name", result->getString("character_name")},
-			{"activity", result->getUInt("activity")},
+			{"activity", result->getInt("activity")},
 			{"time", result->getUInt64("time")},
-			{"map_id", result->getUInt("map_id")}
+			{"map_id", result->getInt("map_id")}
 		});
 	}
 	return nlohmann::json({{"draw", 0}, {"recordsTotal", totalRecords}, {"recordsFiltered", filteredRecords}, {"data", dataArray}}).dump();
