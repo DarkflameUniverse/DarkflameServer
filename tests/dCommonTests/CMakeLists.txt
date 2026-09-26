@@ -14,6 +14,18 @@ set(DCOMMONTEST_SOURCES
 	"MessageIdPinTests.cpp"
 	"dCommonDependencies.cpp"
 	"LxfmlTests.cpp"
+	"MigrationSplitTests.cpp"
+	"ConfigLayerTests.cpp"
+	"SlashCommandLevelsTests.cpp"
+	"AccountRulesTests.cpp"
+	"VanityXmlTests.cpp"
+	"EventPartsTests.cpp"
+	"ScheduleRulesTests.cpp"
+	"VanityEventsTests.cpp"
+	"ZoneFileTests.cpp"
+	"LiveOpsRulesTests.cpp"
+	"ProcessAndLimitsTests.cpp"
+	"HotPropertySlotsTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)
@@ -32,12 +44,17 @@ endif()
 
 # Link needed libraries
 target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
+# SpareBackoff.h (header only)
+target_include_directories(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dMasterServer")
 
 # Copy test files to testing directory
 add_subdirectory(TestBitStreams)
 file(COPY ${TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(LxfmlTestFiles)
 file(COPY ${LXFMLTESTFILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+# VanityXmlTests reads the shipped vanity files
+target_compile_definitions(dCommonTests PRIVATE DLU_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 # Discover the tests
 gtest_discover_tests(dCommonTests)

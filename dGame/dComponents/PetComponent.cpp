@@ -1,4 +1,5 @@
 #include "PetComponent.h"
+#include "DashboardNotify.h"
 #include "GameMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
@@ -566,7 +567,8 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 			if (autoRejectNames && owner && owner->GetCharacter() && owner->GetCharacter()->GetParentUser()->GetIsMuted()) {
 				m_ModerationStatus = 2; // Approved
 				std::string forcedName = "Pet";
-				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus) });
+				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Owner });
+				DashboardNotify::Changed("pet_names", m_DatabaseId);
 				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
 				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
 			} else {
@@ -574,7 +576,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 				m_Name = "";
 
 				//Save our pet's new name to the db:
-				SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+				SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name), m_Owner);
 
 				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
 				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
@@ -606,14 +608,15 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Name = "";
 		std::string forcedName = "Pet";
 
-		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus) });
+		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Tamer });
+		DashboardNotify::Changed("pet_names", m_DatabaseId);
 		LOG("AccountID: %i is muted, forcing use of predefined pet name", tamer->GetCharacter()->GetParentUser()->GetAccountID());
 	} else {
 		m_ModerationStatus = 1; // Pending
 		m_Name = "";
 
 		//Save our pet's new name to the db:
-		SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+		SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name), m_Tamer);
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -1046,7 +1049,7 @@ PetComponent::~PetComponent() {
 	m_Owner = LWOOBJID_EMPTY;
 }
 
-void PetComponent::SetPetNameForModeration(const std::string& petName) {
+void PetComponent::SetPetNameForModeration(const std::string& petName, const LWOOBJID owner) {
 	int approved = 1; //default, in mod
 
 	//Make sure that the name isn't already auto-approved:
@@ -1055,7 +1058,8 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	}
 
 	//Save to db:
-	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ petName, approved });
+	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ petName, approved, owner });
+	DashboardNotify::Changed("pet_names", m_DatabaseId);
 }
 
 void PetComponent::LoadPetNameFromModeration() {
@@ -1070,4 +1074,27 @@ void PetComponent::LoadPetNameFromModeration() {
 
 void PetComponent::SetPreconditions(const std::string& preconditions) {
 	m_Preconditions = std::make_optional<PreconditionExpression>(preconditions);
+}
+
+void PetComponent::ApplyNameModeration(const bool approved) {
+	auto* owner = GetOwner();
+	if (approved) {
+		LoadPetNameFromModeration();
+	} else {
+		// Rejected names are removed; the pet goes back to having no name until a new one is chosen
+		m_ModerationStatus = 0;
+		m_Name = "";
+	}
+	if (owner) {
+		if (auto* inventoryComponent = owner->GetComponent<InventoryComponent>()) {
+			auto data = inventoryComponent->GetDatabasePet(m_DatabaseId);
+			data.name = m_Name;
+			data.moderationState = m_ModerationStatus;
+			inventoryComponent->SetDatabasePet(m_DatabaseId, data);
+		}
+		GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
+		GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+	}
+	GameMessages::SendPetNameChanged(m_Parent->GetObjectID(), m_ModerationStatus, GeneralUtils::UTF8ToUTF16(m_Name), GeneralUtils::UTF8ToUTF16(m_OwnerName), UNASSIGNED_SYSTEM_ADDRESS);
+	Game::entityManager->SerializeEntity(m_Parent);
 }

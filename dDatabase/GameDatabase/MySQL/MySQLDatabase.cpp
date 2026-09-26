@@ -6,16 +6,11 @@
 #include "Logger.h"
 #include "dPlatforms.h"
 
-namespace {
-	std::string databaseName;
-	sql::Properties properties;
-	sql::Driver* driver = nullptr;
-	sql::Connection* con = nullptr;
-};
 
 void MySQLDatabase::Connect() {
 	LOG("Using MySQL database");
-	driver = sql::mariadb::get_driver_instance();
+	auto* driver = sql::mariadb::get_driver_instance();
+	sql::Properties properties;
 
 	// The mariadb connector is *supposed* to handle unix:// and pipe:// prefixes to hostName, but there are bugs where
 	// 1) it tries to parse a database from the connection string (like in tcp://localhost:3001/darkflame) based on the
@@ -40,64 +35,68 @@ void MySQLDatabase::Connect() {
 	properties["password"] = Game::config->GetValue("mysql_password").c_str();
 	properties["autoReconnect"] = "true";
 
-	databaseName = Game::config->GetValue("mysql_database").c_str();
+	const std::string databaseName = Game::config->GetValue("mysql_database");
 	// `connect(const Properties& props)` segfaults in windows debug, but
 	// `connect(const SQLString& host, const SQLString& user, const SQLString& pwd)` doesn't handle pipes/unix sockets correctly
 #if defined(DARKFLAME_PLATFORM_WIN32) && defined(_DEBUG)
-		con = driver->connect(properties["hostName"].c_str(), properties["user"].c_str(), properties["password"].c_str());
+		m_Con = driver->connect(properties["hostName"].c_str(), properties["user"].c_str(), properties["password"].c_str());
 #else
-		con = driver->connect(properties);
+		m_Con = driver->connect(properties);
 #endif
-	con->setSchema(databaseName.c_str());
+	m_Con->setSchema(databaseName.c_str());
 }
 
 void MySQLDatabase::Destroy(std::string source) {
-	if (!con) return;
+	if (!m_Con) return;
 
 	if (source.empty()) LOG("Destroying MySQL connection!");
 	else LOG("Destroying MySQL connection from %s!", source.c_str());
 
-	con->close();
-	delete con;
-	con = nullptr;
+	m_Con->close();
+	delete m_Con;
+	m_Con = nullptr;
 }
 
 void MySQLDatabase::ExecuteCustomQuery(const std::string_view query) {
-	std::unique_ptr<sql::Statement>(con->createStatement())->execute(query.data());
+	std::unique_ptr<sql::Statement>(m_Con->createStatement())->execute(query.data());
 }
 
 sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& query) {
-	if (!con) {
-		Database::Get()->Connect();
+	if (!m_Con) {
+		Connect();
 		LOG("Trying to reconnect to MySQL");
 	}
 
-	if (!con->isValid() || con->isClosed()) {
-		delete con;
+	if (!m_Con->isValid() || m_Con->isClosed()) {
+		delete m_Con;
 
-		con = nullptr;
+		m_Con = nullptr;
 
-		Database::Get()->Connect();
+		Connect();
 		LOG("Trying to reconnect to MySQL from invalid or closed connection");
 	}
 
-	return con->prepareStatement(sql::SQLString(query.c_str(), query.length()));
+	return m_Con->prepareStatement(sql::SQLString(query.c_str(), query.length()));
 }
 
 void MySQLDatabase::Commit() {
-	con->commit();
+	m_Con->commit();
 }
 
 bool MySQLDatabase::GetAutoCommit() {
 	// TODO This should not just access a pointer.  A future PR should update this
 	// to check for null and throw an error if the connection is not valid.
-	return con->getAutoCommit();
+	return m_Con->getAutoCommit();
 }
 
 void MySQLDatabase::SetAutoCommit(bool value) {
 	// TODO This should not just access a pointer.  A future PR should update this
 	// to check for null and throw an error if the connection is not valid.
-	con->setAutoCommit(value);
+	m_Con->setAutoCommit(value);
+}
+
+void MySQLDatabase::Rollback() {
+	m_Con->rollback();
 }
 
 void MySQLDatabase::DeleteCharacter(const LWOOBJID characterId) {
@@ -110,5 +109,9 @@ void MySQLDatabase::DeleteCharacter(const LWOOBJID characterId) {
 	ExecuteDelete("DELETE FROM ugc WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM activity_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM mail WHERE receiver_id=?;", characterId);
+	ExecuteDelete("DELETE FROM ignore_list WHERE player_id=? OR ignored_player_id=?;", characterId, characterId);
+	ExecuteDelete("DELETE FROM ugc_modular_build WHERE character_id=?;", characterId);
+	ExecuteDelete("DELETE FROM pet_names WHERE owner_id=?;", characterId);
+	ExecuteDelete("DELETE FROM player_positions WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM charinfo WHERE id=? LIMIT 1;", characterId);
 }

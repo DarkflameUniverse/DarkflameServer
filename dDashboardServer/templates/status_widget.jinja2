@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+{# A small status box for other sites to show in an iframe (PublicRoutes.cpp). No scripts: it reloads itself when the status is next refreshed. #}
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="refresh" content="{{ refresh }}">
+	<title>{{ name }} status</title>
+	<style>
+		:root { color-scheme: dark; --bg: #1e2126; --fg: #e9ecef; --muted: #adb5bd; --border: #373b3e; --up: #20c997; --down: #dc3545; }
+		{% if light %}:root { color-scheme: light; --bg: #ffffff; --fg: #212529; --muted: #6c757d; --border: #dee2e6; --up: #198754; --down: #dc3545; }{% endif %}
+		html, body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+		a.box { display: block; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; color: inherit; text-decoration: none; }
+		.name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+		.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--down); flex: none; }
+		.dot.up { background: var(--up); }
+		.line { color: var(--muted); margin-top: 2px; }
+	</style>
+</head>
+<body>
+	<a class="box" href="/status" target="_blank" rel="noopener">
+		<div class="name"><span class="dot{% if online %} up{% endif %}"></span>{{ name }}</div>
+		<div class="line">{% if online %}Online{% else %}Offline{% endif %}{% if show_players %} &middot; {{ players }} player{% if players != 1 %}s{% endif %} online{% endif %}</div>
+		{% if show_uptime and uptime_text != "" %}<div class="line">Up for {{ uptime_text }}</div>{% endif %}
+	</a>
+</body>
+</html>

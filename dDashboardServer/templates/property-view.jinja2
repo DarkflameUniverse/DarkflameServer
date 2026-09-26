@@ -1,0 +1,281 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Property - DarkflameServer{% endblock %}
+
+{% block content %}
+{% if can.properties_view %}
+<a href="/properties" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Properties</a>
+{% endif %}
+
+<div id="property" data-property-id="{{ property_id }}">
+	<div class="card mb-4">
+		<div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+			<h4 class="mb-0 text-break" id="propName">Loading&hellip;</h4>
+			<span id="propStatus" class="d-flex gap-1 flex-wrap"></span>
+		</div>
+		<div class="card-body">
+			<p id="propDescription" class="text-body-secondary mb-0 text-break"></p>
+			<div id="propRejection" class="alert alert-warning mt-3 mb-0 d-none"></div>
+			<div class="d-flex gap-2 mt-3 flex-wrap">
+				{% if can.moderate_properties %}
+				<button class="btn btn-success btn-sm" onclick="approveProperty()">Approve</button>
+				<button class="btn btn-outline-danger btn-sm" onclick="rejectProperty()">Reject</button>
+				{% endif %}
+				<a class="btn btn-sm btn-primary" href="/properties/{{ property_id }}/3d">Open 3D view</a>
+				{% if can.reports_view %}
+				<a class="btn btn-sm btn-outline-secondary d-none" id="propEconomy" href="#">Economy &amp; map</a>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<div class="card mb-4">
+		<div class="card-header"><h5 class="mb-0">Details</h5></div>
+		<div class="card-body">
+			<div class="row g-3 prop-details" id="propDetails"></div>
+			<h6 class="text-body-secondary text-uppercase small mt-4 mb-3">Template <span class="text-body-secondary fw-normal" id="templateHeading"></span></h6>
+			<div class="row g-3 prop-details" id="templateDetails"></div>
+		</div>
+	</div>
+
+	<div class="card mb-4">
+		<div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+			<h5 class="mb-0">Models <span class="text-body-secondary fw-normal small" id="modelCount"></span></h5>
+		</div>
+		<div class="card-body">
+			<div class="table-responsive">
+				<table id="modelsTable" class="table table-striped table-hover align-middle table-stack w-100">
+					<thead><tr><th>Model</th><th>LOT</th><th>Behaviors</th><th>Creator</th><th>Blueprint</th><th>Position</th><th></th></tr></thead>
+					<tbody></tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div class="card mb-4">
+		<div class="card-header">
+			<button class="btn btn-link p-0 text-decoration-none fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#allFields" aria-expanded="false" aria-controls="allFields">All fields &#9662;</button>
+		</div>
+		<div class="collapse" id="allFields">
+			<div class="card-body">
+				<div class="row g-4">
+					<div class="col-lg-6">
+						<h6 class="text-body-secondary text-uppercase small">Property record</h6>
+						<table class="table table-sm mb-0 prop-fields"><tbody id="recordFields"></tbody></table>
+					</div>
+					<div class="col-lg-6">
+						<h6 class="text-body-secondary text-uppercase small">PropertyTemplate row</h6>
+						<table class="table table-sm mb-0 prop-fields"><tbody id="templateFields"></tbody></table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	{% if can.properties_import %}
+	<div class="card mb-4">
+		<div class="card-header"><h5 class="mb-0">Import models</h5></div>
+		<div class="card-body">
+			<p class="small text-body-secondary">Add models from an LXFML file (LEGO Digital Designer or an exported LU model) as player-built models owned by the property's owner. Separate models in the file become separate models on the property. Not possible while the property is loaded in a world.</p>
+			<div class="row g-2 align-items-end">
+				<div class="col-md-5"><input type="file" class="form-control form-control-sm" id="importFile" accept=".lxfml"></div>
+				<div class="col-md-5">
+					<div class="input-group input-group-sm">
+						<span class="input-group-text">Position</span>
+						<input type="number" step="0.1" class="form-control" id="importX" placeholder="x">
+						<input type="number" step="0.1" class="form-control" id="importY" placeholder="y">
+						<input type="number" step="0.1" class="form-control" id="importZ" placeholder="z">
+					</div>
+					<div class="form-text">Leave empty to use the positions stored in the file.</div>
+				</div>
+				<div class="col-md-2"><button class="btn btn-sm btn-primary w-100" id="importBtn">Import</button></div>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+	.prop-details .label { color: var(--bs-secondary-color); font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
+	.prop-details .value { overflow-wrap: anywhere; }
+	.prop-details .hint { color: var(--bs-secondary-color); font-size: .8rem; }
+	.prop-fields th { width: 40%; font-weight: normal; color: var(--bs-secondary-color); font-family: var(--bs-font-monospace); font-size: .8rem; }
+	.prop-fields td { overflow-wrap: anywhere; font-family: var(--bs-font-monospace); font-size: .8rem; }
+	.prop-fields pre { max-height: 12rem; overflow: auto; margin: 0; white-space: pre-wrap; font-size: .75rem; }
+	#modelsTable .model-desc { color: var(--bs-secondary-color); font-size: .8rem; overflow-wrap: anywhere; }
+	#modelsTable .actions { white-space: nowrap; }
+	#modelsTable .dt-type-numeric { text-align: left; }
+	@media (max-width: 575.98px) { #modelsTable .actions { white-space: normal; } #modelsTable .actions .btn { margin-bottom: .25rem; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+const propertyId = document.getElementById('property').getAttribute('data-property-id');
+const UGC_LOT = 14;
+const setText = (id, value) => { document.getElementById(id).textContent = value; };
+const muted = (text) => '<span class="text-body-secondary">' + esc(text) + '</span>';
+const num = (v, digits) => (v === null || v === undefined || v === '') ? muted('-') : esc(typeof v === 'number' && digits !== undefined ? v.toLocaleString(undefined, { maximumFractionDigits: digits }) : Number(v).toLocaleString());
+const bytes = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
+
+// One labelled value in a details grid; html is already escaped
+const field = (label, html, hint) => '<div class="col-6 col-md-4 col-xl-3"><div class="label">' + esc(label) + '</div><div class="value">' + html + '</div>' +
+	(hint ? '<div class="hint">' + esc(hint) + '</div>' : '') + '</div>';
+
+// Default model names are locale keys like "Objects_14_name"; only a player-given one is worth showing
+const playerName = (name) => name && !/^Objects_\d+_name$/.test(name) ? name : '';
+
+// A value of the "All fields" tables: arrays/objects as JSON, everything else as text
+function rawValue(v) {
+	if (v === null || v === undefined) return muted('null');
+	if (typeof v === 'object') return '<pre>' + esc(JSON.stringify(v)) + '</pre>';
+	if (v === '') return muted('(empty)');
+	return esc(v);
+}
+const fieldRows = (obj) => obj && Object.keys(obj).length
+	? Object.keys(obj).map((k) => '<tr><th scope="row">' + esc(k) + '</th><td>' + rawValue(obj[k]) + '</td></tr>').join('')
+	: '<tr><td class="text-body-secondary">Not available</td></tr>';
+
+function renderDetails(p) {
+	const r = p.record || {};
+	const perf = r.performance_cost !== undefined ? r.performance_cost : p.performance_cost;
+	document.getElementById('propDetails').innerHTML = [
+		field('Owner', fmt.character(p.owner_id, p.owner_name)),
+		field('Zone', fmt.zone(p.zone_id, p.zone_name)),
+		field('Privacy', esc(Labels.name('privacy', p.privacy_option) || p.privacy_option)),
+		field('Moderation', p.mod_approved ? fmt.badge('Approved', 'success') : (p.rejection_reason ? fmt.badge('Rejected', 'danger') : fmt.badge('Unapproved', 'warning')) +
+			(p.rejection_reason ? ' <span class="small">' + esc(p.rejection_reason) + '</span>' : '')),
+		field('Reputation', num(p.reputation)),
+		field('Performance cost', perf ? num(perf, 2) : muted('Not reported'), 'Load estimate of the placed models, reported by the owner\'s game client after building'),
+		field('Claimed', esc(fmt.unix(p.claimed))),
+		field('Last updated', esc(fmt.unix(p.last_updated))),
+		field('Rent amount', p.rent_amount ? num(p.rent_amount) + ' coins' : muted('None')),
+		field('Rent due', p.rent_due ? esc(fmt.unix(p.rent_due)) : muted('None')),
+		field('Clone ID', esc(p.clone_id)),
+		field('Property ID', '<code>' + esc(p.id) + '</code>'),
+		field('Models placed', num((p.models || []).length))
+	].join('');
+
+	const t = p.template;
+	const heading = document.getElementById('templateHeading');
+	if (!t) {
+		heading.textContent = '#' + (p.template_id || '?');
+		document.getElementById('templateDetails').innerHTML = '<div class="col-12 text-body-secondary">Template ' + esc(p.template_id) + ' not found in the client database</div>';
+		return;
+	}
+	heading.textContent = '#' + t.id;
+	const zoneOf = (id, name) => id ? fmt.zone(id, name) : muted('-');
+	document.getElementById('templateDetails').innerHTML = [
+		field('Name', t.localized_name ? esc(t.localized_name) + ' <span class="small text-body-secondary">(' + esc(t.spawnName) + ')</span>' : esc(t.spawnName || '-')),
+		field('Map', zoneOf(t.mapID, t.mapID_name)),
+		field('Vendor map', zoneOf(t.vendorMapID, t.vendorMapID_name)),
+		// PropertyType and PropertyRentalPeriod in dZoneManager/Zone.h
+		field('Type', esc(['Premiere', 'Prize', 'LUP', 'Headspace'][t.type] || t.type)),
+		field('Size code', num(t.sizecode)),
+		field('Minimum price', num(t.minimumPrice) + ' coins'),
+		field('Rent duration', Number(t.durationType) === 0 ? 'Forever' : num(t.rentDuration) + ' ' + esc(['forever', 'seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'][t.durationType] || '(type ' + t.durationType + ')')),
+		field('Clone limit', num(t.cloneLimit)),
+		field('Achievement required', t.achievementRequired ? esc(t.achievementRequired) : muted('None')),
+		field('Max build height', num(t.maxBuildHeight, 1)),
+		field('Reputation per minute', num(t.reputationPerMinute)),
+		field('Zone position', [t.zoneX, t.zoneY, t.zoneZ].every((v) => typeof v === 'number') ? esc([t.zoneX, t.zoneY, t.zoneZ].map((v) => v.toFixed(1)).join(', ')) : muted('-')),
+		field('Build area outline', Array.isArray(t.path) ? esc(t.path.length + ' points') : muted('-'))
+	].concat(t.localized_description ? [ '<div class="col-12"><div class="label">Template description</div><div class="value small">' + esc(t.localized_description) + '</div></div>' ] : []).join('');
+}
+
+let loaded = null; // the property as last loaded, for the reject dialog
+function load() {
+	api.get('/api/properties/' + propertyId).then((p) => {
+		if (p.success === false) { setText('propName', p.error); return; }
+		loaded = p;
+		setText('propName', p.name || 'Unnamed property');
+		// This property's own events and statistics (each property is its own instance of the zone, told apart by the clone)
+		const economy = document.getElementById('propEconomy');
+		if (economy && p.clone_id) {
+			economy.href = '/reports?place=' + encodeURIComponent(p.zone_id + ':' + p.clone_id) + '#map';
+			economy.classList.remove('d-none');
+		}
+		setText('propDescription', p.description);
+		document.getElementById('propStatus').innerHTML = (p.mod_approved ? fmt.badge('Approved', 'success') : fmt.badge('Unapproved', 'warning')) + ' ' +
+			fmt.badge(Labels.name('privacy', p.privacy_option) || 'Privacy ' + p.privacy_option, 'secondary');
+		const rejection = document.getElementById('propRejection');
+		rejection.classList.toggle('d-none', !p.rejection_reason);
+		rejection.textContent = p.rejection_reason ? 'Rejected: ' + p.rejection_reason : '';
+		renderDetails(p);
+		document.getElementById('recordFields').innerHTML = fieldRows(p.record);
+		document.getElementById('templateFields').innerHTML = fieldRows(p.template);
+		setText('modelCount', '(' + (p.models || []).length + ')');
+		$('#modelsTable').DataTable().clear().rows.add(p.models || []).draw();
+	});
+}
+
+const labels = $('#modelsTable thead th').map(function () { return $(this).text().trim(); }).get();
+const columns = [
+	{ data: null, render: (m, type) => {
+		const given = playerName(m.model_name);
+		if (type !== 'display') return (given || m.name) + ' ' + (m.model_description || '');
+		return (given ? '<div class="fw-semibold text-break">' + esc(given) + '</div><div class="small text-body-secondary">' + esc(m.name) + '</div>' : '<div>' + esc(m.name) + '</div>') +
+			(m.model_description ? '<div class="model-desc">' + esc(m.model_description) + '</div>' : '');
+	} },
+	{ data: 'lot' },
+	{ data: 'behaviors', render: (d, type) => type === 'display' ? (d.length ? d.length + ': ' + d.map((b) => esc(b.name || 'Behavior')).join(', ') : muted('-')) : d.length },
+	{ data: null, render: (m, type) => {
+		if (!m.ugc_character_id) return type === 'display' ? muted('-') : '';
+		return type === 'display' ? fmt.character(m.ugc_character_id, m.creator_name) : (m.creator_name || m.ugc_character_id);
+	} },
+	{ data: null, render: (m, type) => {
+		if (m.lxfml_size === null || m.lxfml_size === undefined) {
+			if (type !== 'display') return m.ldf_config || '';
+			return m.ldf_config ? '<span class="small">Modular: <code>' + esc(m.ldf_config) + '</code></span>' : muted(m.lot === UGC_LOT ? 'Missing' : 'Prebuilt');
+		}
+		if (type !== 'display') return m.lxfml_size;
+		return '<span class="small">' + esc(bytes(m.lxfml_size)) + '</span> ' +
+			(m.is_optimized ? fmt.badge('Optimized', 'info') + ' ' : '') + (m.bake_ao ? fmt.badge('Baked AO', 'secondary') + ' ' : '') +
+			(m.ldf_config ? '<div class="small">Modular: <code>' + esc(m.ldf_config) + '</code></div>' : '') +
+			'<div class="small text-body-secondary">UGC ' + esc(m.ugc_id) + (m.filename ? ' &middot; ' + esc(m.filename) : '') + '</div>';
+	} },
+	{ data: 'position', orderable: false, render: (d) => '<span class="small text-nowrap">' + d.map((v) => v.toFixed(1)).join(', ') + '</span>' },
+	{ data: 'id', orderable: false, className: 'actions', render: (d) =>
+		'<a class="btn btn-sm btn-outline-primary me-1" href="/properties/' + esc(propertyId) + '/3d#model=' + esc(d) + '">View in 3D</a>' +
+		'<a class="btn btn-sm btn-outline-secondary" href="/api/property_models/' + esc(d) + '/lxfml">Download LXFML</a>' }
+].map((c, i) => Object.assign(c, { createdCell: (td) => td.setAttribute('data-label', labels[i] || '') }));
+
+$('#modelsTable').DataTable({
+	data: [],
+	pageLength: 25,
+	autoWidth: false,
+	columns,
+	language: { emptyTable: 'Nothing placed on this property' }
+});
+
+const importBtn = document.getElementById('importBtn');
+if (importBtn) importBtn.addEventListener('click', async () => {
+	const file = document.getElementById('importFile').files[0];
+	if (!file) { toast('Choose an .lxfml file', 'danger'); return; }
+	const coords = ['importX', 'importY', 'importZ'].map((id) => document.getElementById(id).value);
+	const body = { lxfml: await file.text() };
+	if (coords.every((v) => v !== '')) body.position = coords.map(Number);
+	else if (coords.some((v) => v !== '')) { toast('Enter all three coordinates or none', 'danger'); return; }
+	importBtn.disabled = true;
+	api.action('/api/properties/' + propertyId + '/import', body).then((d) => { toast(d.message, 'success'); load(); })
+		.catch(() => {}).finally(() => { importBtn.disabled = false; });
+});
+
+window.approveProperty = () => api.action('/api/properties/' + propertyId + '/approve', {}, 'Property approved').catch(() => {});
+window.rejectProperty = () => {
+	Decide({
+		title: 'Reject ' + (loaded && loaded.name ? '“' + loaded.name + '”' : 'this property'),
+		text: 'It is made private until the owner changes it and asks again.',
+		reasonLabel: 'Reason (shown to the player)',
+		reasonRequired: true,
+		characterId: loaded ? loaded.owner_id : null
+	}).then((choice) => {
+		if (!choice) return;
+		api.action('/api/properties/' + propertyId + '/reject', { reason: choice.reason, strike: choice.strike }, choice.strike ? 'Property rejected, with a strike' : 'Property rejected').catch(() => {});
+	});
+};
+
+load();
+Live.on('properties', (e) => { if (!e.id || e.id === propertyId) load(); });
+</script>
+{% endblock %}

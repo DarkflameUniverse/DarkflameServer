@@ -236,7 +236,7 @@ void TestSQLDatabase::UpdateAccountPassword(const uint32_t accountId, const std:
 
 }
 
-void TestSQLDatabase::InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) {
+void TestSQLDatabase::InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword, const eGameMasterLevel gmLevel) {
 
 }
 

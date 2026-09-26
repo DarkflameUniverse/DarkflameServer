@@ -1,0 +1,73 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Chat Filter - DarkflameServer{% endblock %}
+
+{% block content %}
+<div id="chatFilterPage">
+	<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+		<div>
+			<h2 class="mb-1">Chat Filter</h2>
+			<p class="text-body-secondary mb-0">Words added here go on top of the filter's files. <strong>Blocked</strong> words are stopped in every kind of chat,
+				even when the files allow them. <strong>Allowed</strong> words can be used in normal (whitelisted) chat, like the words in <code>chatplus_en_us.txt</code>.
+				Running worlds pick up changes straight away. Before blocking a word, check which recent messages it would have stopped.</p>
+		</div>
+		<button type="button" class="btn btn-sm btn-outline-secondary" id="reloadWorlds">Apply in running worlds again</button>
+	</div>
+
+	<div class="card mb-3">
+		<div class="card-body">
+			<form class="row g-2 align-items-end" id="wordForm">
+				<div class="col-md-5"><label class="form-label small mb-1" for="wordInput">Word</label>
+					<input class="form-control form-control-sm" id="wordInput" maxlength="64" required autocomplete="off" placeholder="One word, no spaces"></div>
+				<div class="col-md-7 d-flex flex-wrap gap-2">
+					<button type="button" class="btn btn-sm btn-outline-secondary" data-check="0">What would blocking it stop?</button>
+					<button type="button" class="btn btn-sm btn-outline-secondary" data-check="1">What did the filter stop with it?</button>
+					<button type="submit" class="btn btn-sm btn-danger" data-allowed="0">Block</button>
+					<button type="submit" class="btn btn-sm btn-success" data-allowed="1">Allow</button>
+				</div>
+			</form>
+			<div class="small mt-2 d-none" id="lookupResult"></div>
+			<div class="mt-3 d-none" id="checkResult">
+				<h6 class="mb-1" id="checkTitle"></h6>
+				<p class="small text-body-secondary mb-2" id="checkHelp"></p>
+				<table class="table table-sm align-middle w-100 table-stack mb-0">
+					<thead><tr><th>Time</th><th>Where</th><th>From</th><th>Message</th><th></th></tr></thead>
+					<tbody id="checkRows"></tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div class="row g-3">
+		<div class="col-lg-6">
+			<div class="card h-100 panel-fill panel-cap">
+				<div class="card-header"><h5 class="mb-0">Blocked <span class="badge rounded-pill text-bg-danger align-middle" id="blockedCount"></span></h5></div>
+				<ul class="list-group list-group-flush" id="blockedList"></ul>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="card h-100 panel-fill panel-cap">
+				<div class="card-header"><h5 class="mb-0">Allowed <span class="badge rounded-pill text-bg-success align-middle" id="allowedCount"></span></h5></div>
+				<ul class="list-group list-group-flush" id="allowedList"></ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="card mt-3">
+		<div class="card-header d-flex flex-wrap align-items-center gap-2">
+			<h5 class="mb-0 me-auto">From the files <span class="badge rounded-pill text-bg-secondary align-middle" id="fileCount"></span></h5>
+			<input type="search" class="form-control form-control-sm w-auto" id="fileSearch" placeholder="Search the allowed words" aria-label="Search the files' words">
+			<button type="button" class="btn btn-sm btn-outline-primary" id="importFile">Copy into the Allowed list</button>
+		</div>
+		<div class="card-body">
+			<p class="small text-body-secondary mb-2" id="fileHelp"></p>
+			<div class="d-flex flex-wrap gap-1" id="fileWords"></div>
+			<button type="button" class="btn btn-sm btn-link px-0 d-none" id="fileMore">Show more</button>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/chat-filter.js"></script>
+{% endblock %}

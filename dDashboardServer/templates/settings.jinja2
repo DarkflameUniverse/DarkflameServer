@@ -1,0 +1,80 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Settings - DarkflameServer{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/css/settings.css">
+{% endblock %}
+
+{% block content %}
+<div class="settings-page" id="settingsPage">
+	{% include "settings_tabs.jinja2" %}
+	<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-2">
+		<div>
+			<h2 class="mb-1">Settings</h2>
+			<p class="text-body-secondary mb-0">Every server setting, including ones the .ini files leave out. Saved changes reach the servers
+				straight away, except ones marked <span class="setting-tag restart ms-0">restart</span>, which are read when a server starts.</p>
+		</div>
+		<button type="button" class="btn btn-outline-secondary btn-sm" id="addSetting">Add a custom setting</button>
+	</div>
+
+	<div class="alert alert-warning d-none d-flex flex-wrap align-items-center gap-2" id="restartNotice" role="status">
+		<span>Saved, but the servers only read these at startup: <strong id="restartList"></strong>.</span>
+		{% if can.server_restart %}<a class="alert-link" href="/#restart">Schedule a restart</a>{% else %}<span>Restart the servers for them to take effect.</span>{% endif %}
+	</div>
+
+	<div class="settings-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+		<input type="search" class="form-control form-control-sm" id="settingsSearch" placeholder="Search every setting by name or description" aria-label="Search settings">
+		<select class="form-select form-select-sm w-auto" id="settingsFilter" aria-label="Show">
+			<option value="all">All settings</option>
+			<option value="changed">Changed from default</option>
+			<option value="restart">Read at startup only</option>
+		</select>
+		<div class="form-check form-switch mb-0 ms-1">
+			<input class="form-check-input" type="checkbox" role="switch" id="showUnused" data-pref="settings.showUnused"><label class="form-check-label small" for="showUnused">Show unused</label>
+		</div>
+	</div>
+
+	<div class="settings-layout">
+		<nav class="settings-nav" aria-label="Setting categories">
+			<div class="list-group list-group-flush" id="settingsNav"></div>
+		</nav>
+		<div id="settingsBody"><p class="text-body-secondary">Loading&hellip;</p></div>
+	</div>
+
+	<details class="small text-body-secondary mt-3">
+		<summary>Where a value comes from</summary>
+		<p class="mt-2 mb-0">Strongest first: a value set here with <em>override</em> ticked, an environment variable (the setting's name in
+			capitals), the server's own .ini, <code>sharedconfig.ini</code>, a value set here, then the built-in default. The database connection
+			and the dashboard's keys can only be set in the files or the environment. Secrets are never shown, only whether they're set.</p>
+	</details>
+
+	<div class="settings-savebar d-none" id="settingsSaveBar">
+		<div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+			<span class="me-auto small" id="settingsSaveCount"></span>
+			<span class="small text-body-secondary d-none d-md-inline">Ctrl+S</span>
+			<button type="button" class="btn btn-outline-secondary btn-sm" id="settingsDiscard">Discard</button>
+			<button type="button" class="btn btn-primary btn-sm" id="settingsSave">Save changes</button>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addTitle" aria-hidden="true">
+	<div class="modal-dialog">
+		<form class="modal-content" id="addForm">
+			<div class="modal-header"><h5 class="modal-title" id="addTitle">Add a custom setting</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<p class="small text-body-secondary">For settings this page doesn't know, e.g. from a modified server.</p>
+				<div class="mb-2"><label class="form-label small" for="addFile">File</label><select class="form-select form-select-sm" id="addFile"></select></div>
+				<div class="mb-2"><label class="form-label small" for="addName">Name</label><input class="form-control form-control-sm font-monospace" id="addName" pattern="[a-z0-9_]{1,128}" required placeholder="lowercase_with_underscores"></div>
+				<div><label class="form-label small" for="addValue">Value</label><input class="form-control form-control-sm" id="addValue" required></div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/settings.js"></script>
+{% endblock %}

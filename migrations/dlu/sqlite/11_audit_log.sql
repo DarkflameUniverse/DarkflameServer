@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL DEFAULT 0,
+    account_name TEXT NOT NULL DEFAULT '',
+    action TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    timestamp BIGINT NOT NULL DEFAULT 0
+);

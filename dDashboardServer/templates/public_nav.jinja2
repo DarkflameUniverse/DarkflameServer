@@ -1,0 +1,9 @@
+{# Top bar of the pages open to visitors who aren't signed in (base.jinja2). public_page: {name, status, showcase} from PublicRoutes.cpp #}
+<header class="d-flex flex-wrap align-items-center gap-2 border-bottom px-3 py-2 bg-body-tertiary">
+	<span class="fw-semibold me-auto">{{ public_page.name }}</span>
+	<nav class="d-flex flex-wrap gap-1" aria-label="Public pages">
+		{% if public_page.status %}<a class="btn btn-sm btn-link text-body text-decoration-none{% if current_page == "status" %} fw-semibold{% endif %}" href="/status">Server status</a>{% endif %}
+		{% if public_page.showcase %}<a class="btn btn-sm btn-link text-body text-decoration-none{% if current_page == "showcase" %} fw-semibold{% endif %}" href="/showcase">Property showcase</a>{% endif %}
+		<a class="btn btn-sm btn-outline-primary" href="/login">Sign in</a>
+	</nav>
+</header>

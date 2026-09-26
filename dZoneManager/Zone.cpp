@@ -53,54 +53,47 @@ void Zone::LoadZoneIntoMemory() {
 	}
 
 	if (file) {
-		BinaryIO::BinaryRead(file, m_FileFormatVersion);
-
-		uint32_t mapRevision = 0;
-		if (m_FileFormatVersion >= Zone::FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
-
-		BinaryIO::BinaryRead(file, m_WorldID);
+		// The file itself is read by ZoneFile (dCommon), which the dashboard uses too
+		ZoneFile zoneFile;
+		zoneFile.Read(file);
+		m_FileFormatVersion = zoneFile.fileFormatVersion;
+		m_WorldID = zoneFile.worldID;
 		if (static_cast<LWOMAPID>(m_WorldID) != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
-		AddRevision(LWOSCENEID_INVALID, mapRevision);
+		AddRevision(LWOSCENEID_INVALID, zoneFile.mapRevision);
 
-		if (m_FileFormatVersion >= Zone::FileFormatVersion::Beta) {
-			BinaryIO::BinaryRead(file, m_Spawnpoint);
-			BinaryIO::BinaryRead(file, m_SpawnpointRotation);
+		m_Spawnpoint = zoneFile.spawnpoint;
+		m_SpawnpointRotation = zoneFile.spawnpointRotation;
+
+		m_SceneCount = zoneFile.scenes.size();
+		for (auto& scene : zoneFile.scenes) {
+			LoadScene(std::move(scene));
 		}
 
-		if (m_FileFormatVersion <= Zone::FileFormatVersion::LateAlpha) {
-			uint8_t sceneCount;
-			BinaryIO::BinaryRead(file, sceneCount);
-			m_SceneCount = sceneCount;
-		} else BinaryIO::BinaryRead(file, m_SceneCount);
+		m_ZoneRawPath = zoneFile.zoneRawPath;
+		m_ZoneName = zoneFile.zoneName;
+		m_ZoneDesc = zoneFile.zoneDesc;
 
-		for (uint32_t i = 0; i < m_SceneCount; ++i) {
-			LoadScene(file);
-		}
+		m_SceneTransitions = std::move(zoneFile.sceneTransitions);
+		m_NumberOfSceneTransitionsLoaded = m_SceneTransitions.size();
 
-		//Read generic zone info:
-		BinaryIO::ReadString<uint8_t>(file, m_ZonePath, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneRawPath, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneName, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneDesc, BinaryIO::ReadType::String);
+		m_PathDataLength = zoneFile.pathDataLength;
+		m_PathChunkVersion = zoneFile.pathChunkVersion;
+		m_Paths = std::move(zoneFile.paths);
 
-		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
-			BinaryIO::BinaryRead(file, m_NumberOfSceneTransitionsLoaded);
-			for (uint32_t i = 0; i < m_NumberOfSceneTransitionsLoaded; ++i) {
-				LoadSceneTransition(file);
+		// We verify the waypoint heights against the navmesh because in many movement paths,
+		// the waypoint is located near 0 height, 
+		if (dpWorld::IsLoaded()) {
+			for (auto& path : m_Paths) {
+				if (path.pathType != PathType::Movement) continue;
+				for (auto& waypoint : path.pathWaypoints) {
+					// 2000 should be large enough for every world.
+					waypoint.position.y = dpWorld::GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
+				}
 			}
 		}
 
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::EarlyAlpha) {
-			BinaryIO::BinaryRead(file, m_PathDataLength);
-			BinaryIO::BinaryRead(file, m_PathChunkVersion); // always should be 1
-
-			uint32_t pathCount;
-			BinaryIO::BinaryRead(file, pathCount);
-
-			m_Paths.reserve(pathCount);
-			for (uint32_t i = 0; i < pathCount; ++i) LoadPath(file);
-
 			for (const Path& path : m_Paths) {
 				if (path.pathType != PathType::Spawner) continue;
 				SpawnerInfo info{};
@@ -220,37 +213,15 @@ void Zone::AddRevision(LWOSCENEID sceneID, uint32_t revision) {
 	}
 }
 
-void Zone::LoadScene(std::istream& file) {
+void Zone::LoadScene(ZoneScene&& zoneScene) {
 	SceneRef scene;
+	static_cast<ZoneScene&>(scene) = std::move(zoneScene);
 	scene.level = nullptr;
-	LWOSCENEID lwoSceneID(LWOZONEID_INVALID, 0);
-
-	BinaryIO::ReadString<uint8_t>(file, scene.filename, BinaryIO::ReadType::String);
+	// Older files have no scene ID or layer; those stay 0
+	LWOSCENEID lwoSceneID(scene.id, scene.sceneType);
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
 	if (Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) LoadLUTriggers(luTriggersPath, scene);
-
-	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.id);
-		lwoSceneID.SetSceneID(scene.id);
-	}
-	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.sceneType);
-		lwoSceneID.SetLayerID(scene.sceneType);
-
-		BinaryIO::ReadString<uint8_t>(file, scene.name, BinaryIO::ReadType::String);
-	}
-
-	if (m_FileFormatVersion == Zone::FileFormatVersion::LatePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.unknown1);
-		BinaryIO::BinaryRead(file, scene.unknown2);
-	}
-
-	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.color_r);
-		BinaryIO::BinaryRead(file, scene.color_b);
-		BinaryIO::BinaryRead(file, scene.color_g);
-	}
 
 	m_Scenes[lwoSceneID] = std::move(scene);
 }
@@ -328,169 +299,4 @@ const Path* Zone::GetPath(std::string name) const {
 	}
 
 	return nullptr;
-}
-
-void Zone::LoadSceneTransition(std::istream& file) {
-	SceneTransition sceneTrans;
-	if (m_FileFormatVersion < Zone::FileFormatVersion::Auramar) {
-		BinaryIO::ReadString<uint8_t>(file, sceneTrans.name, BinaryIO::ReadType::String);
-		BinaryIO::BinaryRead(file, sceneTrans.width);
-	}
-
-	//BR�THER MAY I HAVE SOME L��PS?
-	uint8_t loops = (m_FileFormatVersion <= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion >= Zone::FileFormatVersion::Launch) ? 2 : 5;
-
-	sceneTrans.points.reserve(loops);
-	for (uint8_t i = 0; i < loops; ++i) {
-		sceneTrans.points.push_back(LoadSceneTransitionInfo(file));
-	}
-
-	m_SceneTransitions.push_back(sceneTrans);
-}
-
-SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
-	SceneTransitionInfo info;
-	BinaryIO::BinaryRead(file, info.sceneID);
-	BinaryIO::BinaryRead(file, info.position);
-	return info;
-}
-
-void Zone::LoadPath(std::istream& file) {
-	Path path = Path();
-
-	BinaryIO::BinaryRead(file, path.pathVersion);
-
-	BinaryIO::ReadString<uint8_t>(file, path.pathName, BinaryIO::ReadType::WideString);
-
-	BinaryIO::BinaryRead(file, path.pathType);
-	BinaryIO::BinaryRead(file, path.flags);
-	BinaryIO::BinaryRead(file, path.pathBehavior);
-
-	if (path.pathType == PathType::MovingPlatform) {
-		if (path.pathVersion >= 18) {
-			BinaryIO::BinaryRead(file, path.movingPlatform.timeBasedMovement);
-		} else if (path.pathVersion >= 13) {
-			BinaryIO::ReadString<uint8_t>(file, path.movingPlatform.platformTravelSound, BinaryIO::ReadType::WideString);
-		}
-	} else if (path.pathType == PathType::Property) {
-		BinaryIO::BinaryRead(file, path.property.pathType);
-		BinaryIO::BinaryRead(file, path.property.price);
-		BinaryIO::BinaryRead(file, path.property.rentalTime);
-		BinaryIO::BinaryRead(file, path.property.associatedZone);
-
-		if (path.pathVersion >= 5) {
-			BinaryIO::ReadString<uint8_t>(file, path.property.displayName, BinaryIO::ReadType::WideString);
-			BinaryIO::ReadString<uint32_t>(file, path.property.displayDesc, BinaryIO::ReadType::WideString);
-		}
-
-		if (path.pathVersion >= 6) BinaryIO::BinaryRead(file, path.property.type);
-
-		if (path.pathVersion >= 7) {
-			BinaryIO::BinaryRead(file, path.property.cloneLimit);
-			BinaryIO::BinaryRead(file, path.property.repMultiplier);
-			BinaryIO::BinaryRead(file, path.property.rentalPeriod);
-		}
-
-		if (path.pathVersion >= 8) {
-			BinaryIO::BinaryRead(file, path.property.achievementRequired);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords);
-			BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
-		}
-	} else if (path.pathType == PathType::Camera) {
-		BinaryIO::ReadString<uint8_t>(file, path.camera.nextPath, BinaryIO::ReadType::WideString);
-		if (path.pathVersion >= 14) {
-			BinaryIO::BinaryRead(file, path.camera.rotatePlayer);
-
-		}
-	} else if (path.pathType == PathType::Spawner) {
-		BinaryIO::BinaryRead(file, path.spawner.spawnedLOT);
-		BinaryIO::BinaryRead(file, path.spawner.respawnTime);
-		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
-		BinaryIO::BinaryRead(file, path.spawner.amountMaintained);
-		BinaryIO::BinaryRead(file, path.spawner.spawnerObjID);
-		BinaryIO::BinaryRead(file, path.spawner.spawnerNetActive);
-	}
-
-	// Read waypoints
-
-	BinaryIO::BinaryRead(file, path.waypointCount);
-	path.pathWaypoints.reserve(path.waypointCount);
-	for (uint32_t i = 0; i < path.waypointCount; ++i) {
-		PathWaypoint waypoint = PathWaypoint();
-
-		BinaryIO::BinaryRead(file, waypoint.position.x);
-		BinaryIO::BinaryRead(file, waypoint.position.y);
-		BinaryIO::BinaryRead(file, waypoint.position.z);
-
-
-		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
-			BinaryIO::BinaryRead(file, waypoint.rotation.w);
-			BinaryIO::BinaryRead(file, waypoint.rotation.x);
-			BinaryIO::BinaryRead(file, waypoint.rotation.y);
-			BinaryIO::BinaryRead(file, waypoint.rotation.z);
-		}
-
-		if (path.pathType == PathType::MovingPlatform) {
-			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
-			BinaryIO::BinaryRead(file, waypoint.speed);
-			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
-			if (path.pathVersion >= 13) {
-				BinaryIO::ReadString<uint8_t>(file, waypoint.movingPlatform.departSound, BinaryIO::ReadType::WideString);
-				BinaryIO::ReadString<uint8_t>(file, waypoint.movingPlatform.arriveSound, BinaryIO::ReadType::WideString);
-			}
-		} else if (path.pathType == PathType::Camera) {
-			BinaryIO::BinaryRead(file, waypoint.camera.time);
-			BinaryIO::BinaryRead(file, waypoint.camera.fov);
-			BinaryIO::BinaryRead(file, waypoint.camera.tension);
-			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
-			BinaryIO::BinaryRead(file, waypoint.camera.bias);
-		} else if (path.pathType == PathType::Race) {
-			BinaryIO::BinaryRead(file, waypoint.racing.isResetNode);
-			BinaryIO::BinaryRead(file, waypoint.racing.isNonHorizontalCamera);
-			BinaryIO::BinaryRead(file, waypoint.racing.planeWidth);
-			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
-			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
-		} else if (path.pathType == PathType::Rail) {
-			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.speed);
-		}
-
-		// object LDF configs
-		if (path.pathType == PathType::Movement || path.pathType == PathType::Spawner || path.pathType == PathType::Rail) {
-			uint32_t count;
-			BinaryIO::BinaryRead(file, count);
-			for (uint32_t i = 0; i < count; ++i) {
-				std::string parameter;
-				BinaryIO::ReadString<uint8_t>(file, parameter, BinaryIO::ReadType::WideString);
-
-				std::string value;
-				BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
-
-				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
-					// cause NetDevil puts spaces in things that don't need spaces
-					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
-					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
-					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
-					if (waypointCommand != eWaypointCommandType::INVALID) {
-						auto& command = waypoint.commands.emplace_back();
-						command.command = waypointCommand;
-						command.data = value;
-					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
-				} else {
-					waypoint.config.ParseInsert(parameter + "=" + value);
-				}
-
-			}
-		}
-
-		// We verify the waypoint heights against the navmesh because in many movement paths,
-		// the waypoint is located near 0 height, 
-		if (path.pathType == PathType::Movement) {
-			if (dpWorld::IsLoaded()) {
-				// 2000 should be large enough for every world.
-				waypoint.position.y = dpWorld::GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
-			}
-		}
-		path.pathWaypoints.push_back(waypoint);
-	}
-	m_Paths.push_back(path);
 }

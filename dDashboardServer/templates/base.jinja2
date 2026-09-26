@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{% block title %}DarkflameServer{% endblock %}</title>
+	<link rel="icon" href="data:,">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.7/b-3.2.6/fh-4.0.6/sc-2.4.3/datatables.min.css" rel="stylesheet" integrity="sha384-XMNDGLb5fN9IqhIrVXOAtGKcz4KCr+JSHXGZ1TDXQPDukbEAfmLPjHdCXhgK93fv" crossorigin="anonymous">
+	<link rel="stylesheet" href="/css/dashboard.css">
+	{% block css %}{% endblock %}
+</head>
+<body data-username="{{ username }}" data-gm-level="{{ gmLevel }}" data-account-id="{{ accountId }}" data-prefs="{{ prefs }}" data-labels="{{ labelsJson }}" data-can="{% for key, allowed in can %}{% if allowed %}{{ key }} {% endif %}{% endfor %}">
+	{% if username and username != "" %}
+	<div class="d-flex">
+		{% include "header.jinja2" %}
+		<div class="flex-grow-1 d-flex flex-column min-vh-100 main-column">
+			<header class="topbar d-flex align-items-center gap-2 border-bottom px-3 py-2 sticky-top bg-body-tertiary">
+				<button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">&#9776; Menu</button>
+				<a href="/" class="fw-semibold text-body text-decoration-none d-lg-none">DarkflameServer</a>
+				<div class="dropdown ms-auto">
+					<button class="btn btn-sm btn-link text-body text-decoration-none dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+						<span class="user-avatar" aria-hidden="true" data-initial></span>
+						<span class="d-none d-sm-inline">{{ username }}</span>
+					</button>
+					<ul class="dropdown-menu dropdown-menu-end shadow">
+						<li><h6 class="dropdown-header">{{ username }} &middot; GM level {{ gmLevel }}</h6></li>
+						<li><a class="dropdown-item" href="/account">My account</a></li>
+						<li><hr class="dropdown-divider"></li>
+						<li><a class="dropdown-item" href="/api_docs">API</a></li>
+						<li><a class="dropdown-item" href="/about">About</a></li>
+						<li><hr class="dropdown-divider"></li>
+						<li><a class="dropdown-item" href="#" id="logoutBtn">Log out</a></li>
+					</ul>
+				</div>
+			</header>
+			<main class="flex-grow-1 p-2 p-sm-3 p-lg-4">
+	{% else if exists("public_page") %}
+	{# Pages open to visitors who aren't signed in (public_page: {name, status, showcase}) show their normal content under a small top bar #}
+	<div class="d-flex flex-column min-vh-100">
+		{% include "public_nav.jinja2" %}
+			<main class="flex-grow-1 p-2 p-sm-3 p-lg-4">
+	{% endif %}
+	{% if (username and username != "") or exists("public_page") %}
+				{% block content %}{% endblock %}
+			</main>
+	{% else %}
+	{% block content_noauth %}{% endblock %}
+	{% endif %}
+	{% if username and username != "" %}
+			<footer class="border-top border-secondary text-center py-3">
+				<p class="text-body-secondary small mb-0">DarkflameServer Dashboard &middot; <span id="live-indicator" class="text-body-secondary">connecting&hellip;</span></p>
+			</footer>
+		</div>
+	</div>
+	{% else if exists("public_page") %}
+	</div>
+	{% endif %}
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.7/b-3.2.6/fh-4.0.6/sc-2.4.3/datatables.min.js" integrity="sha384-BPUXtS4tH3onFfu5m+dPbFfpLOXQwSWGwrsNWxOAAwqqJx6tJHhFkGF6uitrmEui" crossorigin="anonymous"></script>
+	<script src="/js/common.js"></script>
+	{% if username and username != "" %}
+	<script src="/js/dashboard.js"></script>
+	<script src="/js/decide.js"></script>
+	<script src="/js/ai-suggest.js"></script>
+	{% endif %}
+
+	{% block scripts %}{% endblock %}
+</body>
+</html>

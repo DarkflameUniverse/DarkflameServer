@@ -1,3 +1,12 @@
+#include "DashboardActions.h"
+#include "ConfigSync.h"
+#include "EconomyLedger.h"
+#include "DashboardNotify.h"
+#include "DashboardMessages.h"
+#include "PlayerAction.h"
+#include "MessageCapture.h"
+#include "MessageInspector.h"
+#include "LiveEvents.h"
 #include <iostream>
 #include <string>
 #include <ctime>
@@ -227,6 +236,9 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	// Settings edited on the dashboard (server_config table) are layered over the files from here on
+	Game::config->SetDatabaseSync(ConfigSync::Sync);
+
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
 	uint32_t masterPort = 1000;
@@ -259,6 +271,7 @@ int main(int argc, char** argv) {
 		masterPassword,
 		zoneID);
 	WorldMigration::SetCleanupHandler(CleanupDisconnectedUser);
+	DashboardActions::SetLogoutHandler(CleanupDisconnectedUser);
 
 	//Connect to the chat server:
 	uint32_t chatPort = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("chat_server_port")).value_or(1501);
@@ -293,6 +306,7 @@ int main(int argc, char** argv) {
 
 	uint32_t ghostingStepCount = 0;
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
+	auto economyLastFlush = ghostingLastTime;
 
 	PerformanceManager::SelectProfile(zoneID);
 
@@ -347,7 +361,11 @@ int main(int argc, char** argv) {
 	uint32_t emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
 
 	// Register slash commands if not in zone 0
-	if (zoneID != 0) SlashCommandHandler::Startup();
+	if (zoneID != 0) {
+		SlashCommandHandler::Startup();
+		// So the dashboard can list the commands and change their levels
+		SlashCommandHandler::ReportCommands();
+	}
 
 	Game::logger->Flush(); // once immediately before the main loop
 	while (true) {
@@ -434,6 +452,16 @@ int main(int argc, char** argv) {
 				ghostingLastTime = currentTime;
 			}
 			Metrics::EndMeasurement(MetricVariable::Ghosting);
+
+			// Often, so drops, coins and kills show on the Economy page within seconds; each write is one small batch
+			if (currentTime - economyLastFlush >= std::chrono::seconds(5)) {
+				EconomyLedger::Flush();
+				economyLastFlush = currentTime;
+			}
+			DashboardNotify::Flush();
+			DashboardNotify::SendPlayerPositions(g_InstanceID);
+			MessageInspector::Update();
+			LiveEvents::Update();
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
 			Game::zoneManager->Update(deltaTime);
@@ -810,6 +838,37 @@ void HandleMasterPacket(Packet* packet) {
 		CINSTREAM_SKIP_HEADER;
 		MigrationStatus status;
 		if (status.Deserialize(inStream)) WorldMigration::HandleStatus(status);
+		break;
+	}
+
+	case MessageType::Master::PLAYER_ACTION: {
+		CINSTREAM_SKIP_HEADER;
+		PlayerActionRequest request;
+		if (!request.Deserialize(inStream)) break;
+
+		PlayerActionResult result;
+		result.requestId = request.requestId;
+		result.action = request.action;
+		result.affected = DashboardActions::Apply(request);
+
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ACTION_RESULT);
+		result.Serialize(bitStream);
+		Game::server->SendToMaster(bitStream);
+		break;
+	}
+
+	case MessageType::Master::MESSAGE_CAPTURE_CONTROL: {
+		CINSTREAM_SKIP_HEADER;
+		MessageCaptureControl control;
+		if (control.Deserialize(inStream)) MessageInspector::Control(control);
+		break;
+	}
+
+	case MessageType::Master::ANNOUNCE: {
+		CINSTREAM_SKIP_HEADER;
+		Announcement announcement;
+		if (announcement.Deserialize(inStream)) DashboardNotify::Announce(announcement.title, announcement.message);
 		break;
 	}
 
@@ -1481,6 +1540,25 @@ void HandlePacket(Packet* packet) {
 			bool isMythran = lastChar->GetGMLevel() > eGameMasterLevel::CIVILIAN;
 			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), lastChar->GetGMLevel()).empty();
 			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
+			// Kept for moderation and chat bridges, including what the filter stopped (log_chat=0 turns it off)
+			if (Game::config->GetValue("log_chat") != "0") {
+				IChatLog::ChatMessage entry;
+				entry.time = static_cast<int64_t>(std::time(nullptr));
+				entry.channel = "zone";
+				entry.senderId = user->GetLoggedInChar();
+				entry.senderName = lastChar->GetName();
+				entry.accountId = user->GetAccountID();
+				entry.zoneId = Game::server->GetZoneID();
+				entry.instanceId = static_cast<uint32_t>(Game::server->GetInstanceID());
+				entry.cloneId = Game::zoneManager->GetZoneID().GetCloneID();
+				entry.message = GeneralUtils::UTF16ToWTF8(chatMessage.message);
+				entry.blocked = !isOk;
+				try {
+					Database::Get()->InsertChatMessage(entry);
+				} catch (const std::exception& ex) {
+					LOG("Couldn't log a chat message: %s", ex.what());
+				}
+			}
 			if (!isOk) return;
 			if (!isOk && !isMythran) return;
 
@@ -1631,6 +1709,9 @@ void WorldShutdownProcess(uint32_t zoneId) {
 
 		Game::server->Disconnect(player, eServerDisconnectIdentifiers::SERVER_SHUTDOWN);
 	}
+	LiveEvents::Shutdown();
+	EconomyLedger::Flush();
+	DashboardNotify::Flush(true);
 	SendShutdownMessageToMaster();
 }
 

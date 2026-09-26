@@ -25,6 +25,7 @@ public:
 	User* CreateUser(const SystemAddress& sysAddr, const std::string& username, const std::string& sessionKey);
 	User* GetUser(const SystemAddress& sysAddr);
 	User* GetUser(const std::string& username);
+	std::vector<User*> GetUsersForAccount(uint32_t accountId);
 	bool DeleteUser(const SystemAddress& sysAddr); //Returns true on succesful deletion
 	void DeletePendingRemovals();
 

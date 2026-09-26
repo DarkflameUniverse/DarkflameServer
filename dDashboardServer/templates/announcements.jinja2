@@ -1,0 +1,219 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Scheduled Announcements - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Scheduled Announcements</h2>
+		<p class="text-body-secondary mb-0">Messages shown in game on a schedule, like the home page's announcement: a popup and a chat line for everyone
+			online, or only for players in the zones you pick. Schedules are in UTC; times below are in your time zone. For one said when something starts
+			or ends (or repeated while it is on), add it to a <a href="/events">scheduled event</a>; both show on its calendar.</p>
+	</div>
+	<button type="button" class="btn btn-primary btn-sm" id="addAnnouncement">Schedule an announcement</button>
+</div>
+
+<div class="card">
+	<div class="card-body table-responsive">
+		<table class="table table-hover align-middle mb-0 table-stack">
+			<thead><tr><th>Message</th><th>Where</th><th>Schedule</th><th>Next</th><th>Sent</th><th class="text-end">Actions</th></tr></thead>
+			<tbody id="announcementRows"><tr><td colspan="6" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+		</table>
+		<p class="small text-body-secondary mt-2 mb-0">A send that falls while the dashboard or the master server is down is skipped, not sent late.</p>
+	</div>
+</div>
+
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalTitle" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<form class="modal-content" id="announcementForm">
+			<div class="modal-header"><h5 class="modal-title" id="announcementModalTitle">Announcement</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<label class="form-label" for="annTitle">Title <span class="text-body-secondary small">(optional)</span></label>
+					<input class="form-control" id="annTitle" autocomplete="off">
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="annMessage">Message</label>
+					<textarea class="form-control" id="annMessage" rows="3" required></textarea>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="annZoneSearch">Where</label>
+					<div class="form-check"><input class="form-check-input" type="radio" name="annWhere" id="annEverywhere" value="all" checked><label class="form-check-label" for="annEverywhere">Every world</label></div>
+					<div class="form-check"><input class="form-check-input" type="radio" name="annWhere" id="annSomeZones" value="zones"><label class="form-check-label" for="annSomeZones">Only these zones</label></div>
+					<div class="mt-2 d-none" id="annZonePicker">
+						<div class="d-flex flex-wrap gap-1 mb-2" id="annZoneChips"></div>
+						<input class="form-control form-control-sm" id="annZoneSearch" list="annZoneList" placeholder="Type a zone name or ID and press Enter" autocomplete="off">
+						<datalist id="annZoneList"></datalist>
+					</div>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="annSchedule">Schedule (UTC)</label>
+					<input class="form-control font-monospace" id="annSchedule" maxlength="128" autocomplete="off" spellcheck="false" placeholder="@every 2h" required>
+					<div class="small mt-2" id="annPreview" aria-live="polite"></div>
+					<details class="small mt-1">
+						<summary>Schedule syntax</summary>
+						<p class="mt-2 mb-1">As for scheduled tasks. Cron: <code>minute hour day-of-month month day-of-week</code>, each <code>*</code>, a number, a range
+							<code>1-5</code>, a step <code>*/15</code> or a list <code>1,15</code>.</p>
+						<ul class="mb-0">
+							<li><code>0 */2 * * *</code>: every 2 hours, on the hour</li>
+							<li><code>0 18 * * fri</code>: Fridays at 18:00</li>
+							<li><code>@every 45m</code>: every 45 minutes from the start</li>
+						</ul>
+					</details>
+				</div>
+				<div class="row g-2 mb-3">
+					<div class="col-sm-6"><label class="form-label" for="annStarts">From <span class="text-body-secondary small">(optional)</span></label><input type="datetime-local" class="form-control" id="annStarts"></div>
+					<div class="col-sm-6"><label class="form-label" for="annEnds">Until <span class="text-body-secondary small">(optional)</span></label><input type="datetime-local" class="form-control" id="annEnds"></div>
+				</div>
+				<div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="annEnabled" checked><label class="form-check-label" for="annEnabled">On</label></div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var rows = [], zones = [], limits = {}, editing = null, picked = [];
+	var modal = new bootstrap.Modal(document.getElementById('announcementModal'));
+	var zoneName = {};
+
+	// datetime-local <-> unix seconds, in the viewer's time zone
+	function toInput(ts) {
+		if (!ts) return '';
+		var d = new Date(ts * 1000);
+		d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+		return d.toISOString().slice(0, 16);
+	}
+	function fromInput(value) { return value ? Math.floor(new Date(value).getTime() / 1000) : 0; }
+
+	function render() {
+		document.getElementById('announcementRows').innerHTML = rows.map(function (a) {
+			var span = (a.startsAt ? 'from ' + fmt.unix(a.startsAt) : '') + (a.endsAt ? (a.startsAt ? ' ' : '') + 'until ' + fmt.unix(a.endsAt) : '');
+			var next = !a.enabled ? fmt.badge('Off', 'secondary') : a.nextAt ? esc(fmt.unix(a.nextAt)) : fmt.badge('Finished', 'secondary');
+			return '<tr><td data-label="Message">' + (a.title ? '<strong>' + esc(a.title) + '</strong><br>' : '') + '<span class="small">' + esc(a.message) + '</span></td>' +
+				'<td data-label="Where">' + esc(a.zoneNames) + '</td>' +
+				'<td data-label="Schedule"><code>' + esc(a.schedule) + '</code>' + (span ? '<div class="small text-body-secondary">' + esc(span) + '</div>' : '') + '</td>' +
+				'<td data-label="Next" class="text-nowrap">' + next + '</td>' +
+				'<td data-label="Sent">' + esc(a.sentCount) + (a.lastSentAt ? '<div class="small text-body-secondary">last ' + esc(fmt.unix(a.lastSentAt)) + '</div>' : '') + '</td>' +
+				'<td class="text-end text-nowrap">' +
+				'<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-send="' + a.id + '">Send now</button>' +
+				'<button type="button" class="btn btn-sm btn-outline-primary me-1" data-edit="' + a.id + '">Edit</button>' +
+				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete="' + a.id + '">Delete</button></td></tr>';
+		}).join('') || '<tr><td colspan="6" class="text-body-secondary">Nothing scheduled.</td></tr>';
+	}
+
+	function load() {
+		return api.get('/api/announcements').then(function (d) {
+			if (!d.success) return;
+			rows = d.announcements;
+			limits = d.limits;
+			if (!zones.length) {
+				zones = d.zones;
+				zones.forEach(function (z) { zoneName[z.id] = z.name; });
+				document.getElementById('annZoneList').innerHTML = zones.map(function (z) { return '<option value="' + esc(z.name + ' (' + z.id + ')') + '">'; }).join('');
+				document.getElementById('annTitle').maxLength = limits.title;
+				document.getElementById('annMessage').maxLength = limits.message;
+			}
+			render();
+		});
+	}
+
+	function renderChips() {
+		document.getElementById('annZoneChips').innerHTML = picked.map(function (id) {
+			return '<span class="badge text-bg-secondary d-inline-flex align-items-center gap-1">' + esc(zoneName[id] || ('Zone ' + id)) +
+				' <button type="button" class="btn-close btn-close-white" style="font-size: .5rem" aria-label="Remove" data-unpick="' + id + '"></button></span>';
+		}).join('') || '<span class="small text-body-secondary">No zones yet</span>';
+	}
+
+	function whereChanged() {
+		document.getElementById('annZonePicker').classList.toggle('d-none', !document.getElementById('annSomeZones').checked);
+	}
+
+	function body() {
+		return {
+			title: document.getElementById('annTitle').value.trim(),
+			message: document.getElementById('annMessage').value.trim(),
+			zones: document.getElementById('annSomeZones').checked ? picked : [],
+			schedule: document.getElementById('annSchedule').value.trim(),
+			startsAt: fromInput(document.getElementById('annStarts').value),
+			endsAt: fromInput(document.getElementById('annEnds').value),
+			enabled: document.getElementById('annEnabled').checked
+		};
+	}
+
+	var previewTimer = null;
+	function preview() {
+		clearTimeout(previewTimer);
+		var out = document.getElementById('annPreview');
+		var b = body();
+		if (!b.schedule) { out.innerHTML = ''; return; }
+		previewTimer = setTimeout(function () {
+			api.post('/api/announcements/preview', { schedule: b.schedule, startsAt: b.startsAt, endsAt: b.endsAt }).then(function (d) {
+				if (!d.valid) { out.innerHTML = '<span class="text-danger">' + esc(d.error || 'Invalid schedule') + '</span>'; return; }
+				out.innerHTML = 'Next sends: ' + d.next.map(function (t) { return esc(fmt.unix(t)); }).join(', ');
+			});
+		}, 250);
+	}
+
+	function open(a) {
+		editing = a;
+		document.getElementById('announcementModalTitle').textContent = a ? 'Change announcement' : 'Schedule an announcement';
+		document.getElementById('annTitle').value = a ? a.title : '';
+		document.getElementById('annMessage').value = a ? a.message : '';
+		document.getElementById('annSchedule').value = a ? a.schedule : '';
+		document.getElementById('annStarts').value = a ? toInput(a.startsAt) : '';
+		document.getElementById('annEnds').value = a ? toInput(a.endsAt) : '';
+		document.getElementById('annEnabled').checked = a ? a.enabled : true;
+		picked = a ? a.zones.slice() : [];
+		document.getElementById(picked.length ? 'annSomeZones' : 'annEverywhere').checked = true;
+		whereChanged();
+		renderChips();
+		preview();
+		modal.show();
+	}
+
+	document.getElementById('addAnnouncement').addEventListener('click', function () { open(null); });
+	['annSchedule', 'annStarts', 'annEnds'].forEach(function (id) { document.getElementById(id).addEventListener('input', preview); });
+	document.querySelectorAll('input[name="annWhere"]').forEach(function (r) { r.addEventListener('change', whereChanged); });
+	document.getElementById('annZoneSearch').addEventListener('keydown', function (e) {
+		if (e.key !== 'Enter') return;
+		e.preventDefault();
+		var text = this.value.trim().toLowerCase();
+		var match = zones.filter(function (z) { return (z.name + ' (' + z.id + ')').toLowerCase() === text || String(z.id) === text; })[0] ||
+			zones.filter(function (z) { return z.name.toLowerCase().indexOf(text) !== -1; })[0];
+		if (!match) return toast('No zone matches', 'warning');
+		if (picked.indexOf(match.id) === -1) picked.push(match.id);
+		this.value = '';
+		renderChips();
+	});
+	document.getElementById('annZoneChips').addEventListener('click', function (e) {
+		var el = e.target.closest('[data-unpick]');
+		if (!el) return;
+		picked = picked.filter(function (id) { return String(id) !== el.dataset.unpick; });
+		renderChips();
+	});
+
+	document.getElementById('announcementForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var b = body();
+		if (document.getElementById('annSomeZones').checked && !b.zones.length) return toast('Pick at least one zone, or choose every world', 'warning');
+		api.action(editing ? '/api/announcements/' + editing.id : '/api/announcements', b, editing ? 'Saved' : 'Scheduled').then(function () { modal.hide(); load(); });
+	});
+
+	document.getElementById('announcementRows').addEventListener('click', function (e) {
+		var el = e.target.closest('[data-edit],[data-send],[data-delete]');
+		if (!el) return;
+		if (el.dataset.edit) return open(rows.filter(function (a) { return String(a.id) === el.dataset.edit; })[0]);
+		if (el.dataset.send) return api.action('/api/announcements/' + el.dataset.send + '/send', {}, 'Sent').then(load);
+		if (el.dataset.delete && confirm('Delete this scheduled announcement?')) api.action('/api/announcements/' + el.dataset.delete + '/delete', {}, 'Deleted').then(load);
+	});
+
+	if (window.Live) Live.on('scheduled_announcements', Live.throttle(load, 500));
+	setInterval(render, 30000);
+	load();
+})();
+</script>
+{% endblock %}

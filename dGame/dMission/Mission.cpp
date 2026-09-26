@@ -31,6 +31,7 @@
 #include "ChatPackets.h"
 #include "PlayerManager.h"
 #include "StringifiedEnum.h"
+#include "LiveEvents.h"
 
 namespace {
 	std::set<uint32_t> g_TestedMissions = { 773, 774, 775, 776, 777 }; // TODO Figure out why these missions are broken sometimes
@@ -482,8 +483,9 @@ void Mission::YieldRewards() {
 			// Since the character is at the level cap we reward them with coins instead of UScore.
 			coinsToSend += info.LegoScore * Game::zoneManager->GetWorldConfig().levelCapCurrencyConversion;
 		} else {
-			characterComponent->SetUScore(characterComponent->GetUScore() + info.LegoScore);
-			GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info.LegoScore, lootSource);
+			const auto uscore = LiveEvents::ScaleUScore(info.LegoScore); // a live event's U-score bonus, if one is running here
+			characterComponent->SetUScore(characterComponent->GetUScore() + uscore, static_cast<uint32_t>(lootSource));
+			GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootSource);
 		}
 	}
 

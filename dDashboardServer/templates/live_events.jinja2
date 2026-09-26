@@ -1,0 +1,319 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Live Events - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Live Events</h2>
+		<p class="text-body-secondary mb-0">Start something fun in game for a while: a treasure hunt, bonus coins, U-score or loot, an invasion or a
+			celebration. It is announced in its zones, runs in every instance of them (worlds that open later join in), and everything it spawned is removed
+			when it ends. Players can follow it with <code>/challenge</code>. To run one at set times, together with other things, add it to a
+			<a href="/events">scheduled event</a>.</p>
+	</div>
+	<button type="button" class="btn btn-primary btn-sm" id="startEvent">Start an event</button>
+</div>
+
+<h5>Running now</h5>
+<div class="row g-3 mb-4" id="runningEvents"><div class="col-12 text-body-secondary">Loading&hellip;</div></div>
+
+<div class="card">
+	<div class="card-header fw-semibold">Earlier events</div>
+	<div class="card-body table-responsive">
+		<table class="table table-hover align-middle mb-0 table-stack">
+			<thead><tr><th>Event</th><th>Where</th><th>When</th><th>Result</th><th>Top players</th></tr></thead>
+			<tbody id="pastEvents"></tbody>
+		</table>
+	</div>
+</div>
+
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalTitle" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<form class="modal-content" id="eventForm">
+			<div class="modal-header"><h5 class="modal-title" id="eventModalTitle">Start a live event</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<label class="form-label" for="evType">Kind of event</label>
+					<select class="form-select" id="evType">
+						<option value="treasure_hunt">Treasure hunt: hide objects for players to find</option>
+						<option value="bonus">Bonus: more coins, U-score or loot</option>
+						<option value="invasion">Invasion: waves of enemies</option>
+						<option value="celebration">Celebration: effects on every player</option>
+					</select>
+				</div>
+				<div class="row g-2 mb-3">
+					<div class="col-sm-8"><label class="form-label" for="evTitle">Title</label><input class="form-control" id="evTitle" maxlength="100" required autocomplete="off"></div>
+					<div class="col-sm-4"><label class="form-label" for="evMinutes">For (minutes)</label><input type="number" class="form-control" id="evMinutes" min="1" max="10080" value="30" required></div>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="evMessage">Announcement <span class="text-body-secondary small">(optional)</span></label>
+					<textarea class="form-control" id="evMessage" rows="2" maxlength="300"></textarea>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="evZoneSearch">Zones</label>
+					<div class="d-flex flex-wrap gap-1 mb-2" id="evZoneChips"></div>
+					<input class="form-control form-control-sm" id="evZoneSearch" list="evZoneList" placeholder="Type a zone name or ID and press Enter" autocomplete="off">
+					<datalist id="evZoneList"></datalist>
+					<div class="small text-body-secondary mt-1" id="evZoneHint"></div>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="evInstance">Only instance <span class="text-body-secondary small">(optional; empty: every instance)</span></label>
+					<input type="number" class="form-control form-control-sm" id="evInstance" min="0" style="max-width: 10rem">
+				</div>
+
+				<fieldset class="border rounded p-3" data-for="treasure_hunt">
+					<legend class="fs-6 float-none w-auto px-1 mb-0">Treasure</legend>
+					<div class="mb-2"><label class="form-label small" for="thLotSearch">Object to hide</label><div data-picker="treasure" id="thLot"></div></div>
+					<div class="row g-2">
+						<div class="col-sm-3"><label class="form-label small" for="thCount">How many (per instance)</label><input type="number" class="form-control form-control-sm" id="thCount" min="1" max="50" value="10"></div>
+						<div class="col-sm-3"><label class="form-label small" for="thRadius">Pickup distance</label><input type="number" class="form-control form-control-sm" id="thRadius" min="2" max="15" value="4"></div>
+						<div class="col-sm-3"><label class="form-label small" for="thCoins">Coins per find</label><input type="number" class="form-control form-control-sm" id="thCoins" min="0" max="100000" value="250"></div>
+						<div class="col-sm-3"><label class="form-label small" for="thItemCount">Items per find</label><input type="number" class="form-control form-control-sm" id="thItemCount" min="1" max="999" value="1"></div>
+					</div>
+					<div class="mt-2"><label class="form-label small" for="thItemSearch">Item reward <span class="text-body-secondary">(optional)</span></label><div data-picker="item" id="thItem"></div></div>
+					<div class="mt-2"><label class="form-label small" for="thEffectSearch">Effect on the finder <span class="text-body-secondary">(optional)</span></label><div data-picker="effect" id="thEffect"></div></div>
+					<p class="small text-body-secondary mb-0 mt-2">Treasures go on walkable ground the zone itself uses (where its NPCs walk and its enemies spawn), spread out.
+						Players find one by walking up to it, or by smashing it if it can be smashed.</p>
+				</fieldset>
+
+				<fieldset class="border rounded p-3" data-for="bonus">
+					<legend class="fs-6 float-none w-auto px-1 mb-0">Multipliers</legend>
+					<div class="row g-2">
+						<div class="col-sm-4"><label class="form-label small" for="bnCoins">Coins from loot</label><input type="number" class="form-control form-control-sm" id="bnCoins" min="1" max="10" step="0.25" value="2"></div>
+						<div class="col-sm-4"><label class="form-label small" for="bnUscore">U-score from missions</label><input type="number" class="form-control form-control-sm" id="bnUscore" min="1" max="10" step="0.25" value="1"></div>
+						<div class="col-sm-4"><label class="form-label small" for="bnLoot">Loot drop chance</label><input type="number" class="form-control form-control-sm" id="bnLoot" min="1" max="10" step="0.25" value="1"></div>
+					</div>
+					<p class="small text-body-secondary mb-0 mt-2">Leave the zones empty for every world. Bonuses running at once don't stack: the biggest one counts.</p>
+				</fieldset>
+
+				<fieldset class="border rounded p-3" data-for="invasion">
+					<legend class="fs-6 float-none w-auto px-1 mb-0">Invaders</legend>
+					<div class="mb-2"><label class="form-label small" for="ivLotsSearch">Enemies (up to 5 kinds)</label><div data-picker="enemy" data-multi="5" id="ivLots"></div></div>
+					<div class="row g-2">
+						<div class="col-sm-3"><label class="form-label small" for="ivWaves">Waves</label><input type="number" class="form-control form-control-sm" id="ivWaves" min="1" max="20" value="3"></div>
+						<div class="col-sm-3"><label class="form-label small" for="ivPerWave">Enemies per wave</label><input type="number" class="form-control form-control-sm" id="ivPerWave" min="1" max="30" value="6"></div>
+						<div class="col-sm-3"><label class="form-label small" for="ivInterval">Seconds between</label><input type="number" class="form-control form-control-sm" id="ivInterval" min="15" max="3600" value="90"></div>
+						<div class="col-sm-3"><label class="form-label small" for="ivRadius">Spread</label><input type="number" class="form-control form-control-sm" id="ivRadius" min="5" max="80" value="25"></div>
+					</div>
+					<div class="mt-2"><label class="form-label small" for="ivCenter">Attack</label>
+						<select class="form-select form-select-sm" id="ivCenter" style="max-width: 20rem"><option value="spawn">the zone's spawn point</option><option value="players">where a player is</option></select></div>
+				</fieldset>
+
+				<fieldset class="border rounded p-3" data-for="celebration">
+					<legend class="fs-6 float-none w-auto px-1 mb-0">Effect</legend>
+					<div class="mb-2"><label class="form-label small" for="ceEffectSearch">Effect played on every player</label><div data-picker="effect" id="ceEffect"></div></div>
+					<div><label class="form-label small" for="ceInterval">Every (seconds)</label><input type="number" class="form-control form-control-sm" id="ceInterval" min="3" max="600" value="10" style="max-width: 10rem"></div>
+				</fieldset>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Start</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var data = { events: [], zones: [], worlds: [] }, zoneName = {}, picked = [];
+	var modal = new bootstrap.Modal(document.getElementById('eventModal'));
+	var nf = new Intl.NumberFormat();
+
+	function left(ts) {
+		var s = Math.max(0, ts - Math.floor(Date.now() / 1000));
+		if (s >= 7200) return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm';
+		return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+	}
+	function zoneLabel(id) { return zoneName[id] || ('Zone ' + id); }
+
+	// What an event did, in words, from its totals
+	function result(e) {
+		var t = e.totals || {};
+		if (e.type === 'treasure_hunt') return nf.format(t.found || 0) + ' of ' + nf.format(t.treasures || 0) + ' treasures found';
+		if (e.type === 'invasion') return nf.format(t.kills || 0) + ' of ' + nf.format(t.spawned || 0) + ' invaders smashed, ' + nf.format(t.wavesSent || 0) + ' waves';
+		if (e.type === 'celebration') return nf.format(t.bursts || 0) + ' bursts';
+		var c = e.config || {};
+		return 'coins x' + c.coins + ', U-score x' + c.uscore + ', loot x' + c.lootChance;
+	}
+	function instanceStatus(e, i) {
+		var s = i.status || {};
+		var text = e.type === 'treasure_hunt' ? (s.left || 0) + ' left, ' + (s.found || 0) + ' found' :
+			e.type === 'invasion' ? 'wave ' + (s.wavesSent || 0) + ', ' + (s.alive || 0) + ' alive, ' + (s.kills || 0) + ' smashed' :
+			e.type === 'celebration' ? (s.bursts || 0) + ' bursts' : 'bonus on';
+		return text + ', ' + (s.players || 0) + ' players' + (s.closed ? ' ' + fmt.badge('closed', 'secondary') : '');
+	}
+	function scores(e) {
+		return (e.scores || []).slice(0, 5).map(function (s) { return fmt.character(s.characterId, s.name) + ' ' + nf.format(s.amount); }).join(', ') || '<span class="text-body-secondary">-</span>';
+	}
+
+	function render() {
+		var running = data.events.filter(function (e) { return e.state === 'running'; });
+		document.getElementById('runningEvents').innerHTML = running.map(function (e) {
+			var instances = e.instances.map(function (i) {
+				return '<tr><td>' + esc(zoneLabel(i.zone)) + ' <span class="text-body-secondary">#' + esc(i.instance) + '</span></td><td>' + instanceStatus(e, i) + '</td></tr>';
+			}).join('');
+			return '<div class="col-lg-6"><div class="card h-100 border-primary"><div class="card-header d-flex justify-content-between align-items-center gap-2">' +
+				'<span><strong>' + esc(e.title) + '</strong> ' + fmt.badge(e.typeLabel, 'primary') + '</span>' +
+				'<span class="text-nowrap"><span class="badge text-bg-secondary" data-left="' + e.endsAt + '">' + left(e.endsAt) + '</span> ' +
+				'<button type="button" class="btn btn-sm btn-outline-danger" data-end="' + e.id + '">End now</button></span></div>' +
+				'<div class="card-body"><p class="small mb-2">' + esc(e.zoneNames) + (e.instanceId >= 0 ? ', instance ' + esc(e.instanceId) : '') + ' &middot; by ' + esc(e.createdBy) + '</p>' +
+				'<p class="mb-2">' + esc(result(e)) + '</p>' +
+				(instances ? '<table class="table table-sm mb-2"><thead><tr><th>World</th><th>Progress</th></tr></thead><tbody>' + instances + '</tbody></table>'
+					: '<p class="small text-body-secondary">No world of its zones has picked it up yet; it starts in each one that opens.</p>') +
+				(e.type === 'treasure_hunt' || e.type === 'invasion' ? '<div class="small">Top players: ' + scores(e) + '</div>' : '') + '</div></div></div>';
+		}).join('') || '<div class="col-12 text-body-secondary">Nothing is running.</div>';
+
+		document.getElementById('pastEvents').innerHTML = data.events.filter(function (e) { return e.state !== 'running'; }).map(function (e) {
+			return '<tr><td data-label="Event"><strong>' + esc(e.title) + '</strong> ' + fmt.badge(e.typeLabel, 'secondary') + '</td>' +
+				'<td data-label="Where">' + esc(e.zoneNames) + '</td>' +
+				'<td data-label="When" class="small">' + esc(fmt.unix(e.startsAt)) + '<div class="text-body-secondary">' + esc(e.endReason || '') + '</div></td>' +
+				'<td data-label="Result">' + esc(result(e)) + '</td><td data-label="Top players" class="small">' + scores(e) + '</td></tr>';
+		}).join('') || '<tr><td colspan="5" class="text-body-secondary">None yet.</td></tr>';
+	}
+
+	function load() {
+		return api.get('/api/live-events').then(function (d) {
+			if (!d.success) return;
+			data = d;
+			if (!document.getElementById('evZoneList').options.length) {
+				d.zones.forEach(function (z) { zoneName[z.id] = z.name; });
+				document.getElementById('evZoneList').innerHTML = d.zones.map(function (z) { return '<option value="' + esc(z.name + ' (' + z.id + ')') + '">'; }).join('');
+			}
+			render();
+		});
+	}
+
+	// ---- zone chips ----
+	function renderChips() {
+		document.getElementById('evZoneChips').innerHTML = picked.map(function (id) {
+			return '<span class="badge text-bg-secondary d-inline-flex align-items-center gap-1">' + esc(zoneLabel(id)) +
+				' <button type="button" class="btn-close btn-close-white" style="font-size: .5rem" aria-label="Remove" data-unpick="' + id + '"></button></span>';
+		}).join('') || '<span class="small text-body-secondary">No zones yet</span>';
+		var running = {};
+		data.worlds.forEach(function (w) { if (picked.indexOf(w.zone) !== -1) running[w.zone] = (running[w.zone] || 0) + 1; });
+		var names = Object.keys(running).map(function (z) { return zoneLabel(z) + ' (' + running[z] + ')'; });
+		document.getElementById('evZoneHint').textContent = picked.length ? (names.length ? 'Running now: ' + names.join(', ') : 'None of these zones is running right now; it starts when one opens.') : '';
+	}
+	document.getElementById('evZoneSearch').addEventListener('keydown', function (e) {
+		if (e.key !== 'Enter') return;
+		e.preventDefault();
+		var text = this.value.trim().toLowerCase();
+		var match = data.zones.filter(function (z) { return (z.name + ' (' + z.id + ')').toLowerCase() === text || String(z.id) === text; })[0] ||
+			data.zones.filter(function (z) { return z.name.toLowerCase().indexOf(text) !== -1; })[0];
+		if (!match) return toast('No zone matches', 'warning');
+		if (picked.indexOf(match.id) === -1) picked.push(match.id);
+		this.value = '';
+		renderChips();
+	});
+	document.getElementById('evZoneChips').addEventListener('click', function (e) {
+		var el = e.target.closest('[data-unpick]');
+		if (!el) return;
+		picked = picked.filter(function (id) { return String(id) !== el.dataset.unpick; });
+		renderChips();
+	});
+
+	// ---- pickers: search the CDClient, pick one (or several) ----
+	var pickers = {};
+	document.querySelectorAll('[data-picker]').forEach(function (root) {
+		var kind = root.dataset.picker, multi = parseInt(root.dataset.multi || '1', 10);
+		var state = pickers[root.id] = { values: [] };
+		root.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-1" data-chips></div>' +
+			'<input class="form-control form-control-sm" id="' + root.id + 'Search" placeholder="Search by name or ID" autocomplete="off">' +
+			'<select class="form-select form-select-sm mt-1 d-none" size="6" aria-label="Results"></select>';
+		var input = root.querySelector('input'), list = root.querySelector('select'), chips = root.querySelector('[data-chips]');
+		function draw() {
+			chips.innerHTML = state.values.map(function (v, i) {
+				return '<span class="badge text-bg-info d-inline-flex align-items-center gap-1">' + esc(v.label) +
+					' <button type="button" class="btn-close" style="font-size: .5rem" aria-label="Remove" data-remove="' + i + '"></button></span>';
+			}).join('');
+		}
+		state.reset = function () { state.values = []; draw(); list.classList.add('d-none'); input.value = ''; };
+		var timer = null;
+		input.addEventListener('input', function () {
+			clearTimeout(timer);
+			timer = setTimeout(function () {
+				var q = encodeURIComponent(input.value.trim());
+				var url = kind === 'effect' ? '/api/live-events/effects?q=' + q : '/api/live-events/objects?kind=' + kind + '&q=' + q;
+				api.get(url).then(function (d) {
+					var rows = kind === 'effect' ? d.effects.map(function (f) { return { value: { id: f.id, type: f.type }, label: f.id + ' ' + f.type + (f.name ? ': ' + f.name : '') }; })
+						: d.objects.map(function (o) { return { value: o.lot, label: o.name + ' (' + o.lot + ', ' + o.type + ')' }; });
+					state.rows = rows;
+					list.innerHTML = rows.map(function (r, i) { return '<option value="' + i + '">' + esc(r.label) + '</option>'; }).join('');
+					list.classList.toggle('d-none', !rows.length);
+				});
+			}, 250);
+		});
+		list.addEventListener('change', function () {
+			var row = state.rows[parseInt(list.value, 10)];
+			if (!row) return;
+			if (multi === 1) state.values = [row];
+			else if (state.values.length < multi && !state.values.some(function (v) { return JSON.stringify(v.value) === JSON.stringify(row.value); })) state.values.push(row);
+			draw();
+		});
+		chips.addEventListener('click', function (e) {
+			var el = e.target.closest('[data-remove]');
+			if (!el) return;
+			state.values.splice(parseInt(el.dataset.remove, 10), 1);
+			draw();
+		});
+		draw();
+	});
+	function one(id) { var v = pickers[id].values[0]; return v ? v.value : null; }
+	function num(id) { return parseFloat(document.getElementById(id).value); }
+
+	function typeChanged() {
+		var type = document.getElementById('evType').value;
+		document.querySelectorAll('fieldset[data-for]').forEach(function (f) { f.classList.toggle('d-none', f.dataset.for !== type); });
+	}
+	document.getElementById('evType').addEventListener('change', typeChanged);
+
+	function config(type) {
+		if (type === 'treasure_hunt') {
+			var effect = one('thEffect');
+			return { lot: one('thLot'), count: num('thCount'), radius: num('thRadius'), coins: num('thCoins'), itemLot: one('thItem') || 0, itemCount: num('thItemCount'),
+				foundEffectId: effect ? effect.id : 0, foundEffectType: effect ? effect.type : '' };
+		}
+		if (type === 'bonus') return { coins: num('bnCoins'), uscore: num('bnUscore'), lootChance: num('bnLoot') };
+		if (type === 'invasion') return { lots: pickers.ivLots.values.map(function (v) { return v.value; }), waves: num('ivWaves'), perWave: num('ivPerWave'),
+			interval: num('ivInterval'), radius: num('ivRadius'), center: document.getElementById('ivCenter').value };
+		var fx = one('ceEffect');
+		return { effectId: fx ? fx.id : 0, effectType: fx ? fx.type : '', interval: num('ceInterval') };
+	}
+
+	document.getElementById('startEvent').addEventListener('click', function () {
+		document.getElementById('eventForm').reset();
+		Object.keys(pickers).forEach(function (k) { pickers[k].reset(); });
+		picked = [];
+		renderChips();
+		typeChanged();
+		modal.show();
+	});
+
+	document.getElementById('eventForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var type = document.getElementById('evType').value;
+		var instance = document.getElementById('evInstance').value;
+		var body = { type: type, title: document.getElementById('evTitle').value.trim(), message: document.getElementById('evMessage').value.trim(),
+			zones: picked, instance: instance === '' ? -1 : parseInt(instance, 10), minutes: parseInt(document.getElementById('evMinutes').value, 10), config: config(type) };
+		api.post('/api/live-events', body).then(function (d) {
+			if (!d.success) return toast(d.error || 'Could not start it', 'danger');
+			toast(d.message, 'success');
+			modal.hide();
+			load();
+		});
+	});
+
+	document.getElementById('runningEvents').addEventListener('click', function (e) {
+		var el = e.target.closest('[data-end]');
+		if (el && confirm('End this event now? Everything it spawned is removed.')) api.action('/api/live-events/' + el.dataset.end + '/end', {}, 'Ended').then(load);
+	});
+
+	setInterval(function () {
+		document.querySelectorAll('[data-left]').forEach(function (el) { el.textContent = left(parseInt(el.dataset.left, 10)); });
+	}, 1000);
+	if (window.Live) Live.on('live_events', Live.throttle(load, 1000));
+	setInterval(load, 15000);
+	typeChanged();
+	load();
+})();
+</script>
+{% endblock %}

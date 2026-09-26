@@ -1,4 +1,6 @@
 #include "Loot.h"
+#include "EconomyLedger.h"
+#include "LiveEvents.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -34,7 +36,8 @@ struct LootDropInfo {
 	uint32_t count{ 0 };
 };
 
-std::map<LOT, LootDropInfo> RollLootMatrix(uint32_t matrixIndex) {
+// chanceMultiplier: a live event's loot bonus (1: none)
+std::map<LOT, LootDropInfo> RollLootMatrix(uint32_t matrixIndex, float chanceMultiplier = 1.0f) {
 	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 	CDLootMatrixTable* lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
@@ -45,7 +48,7 @@ std::map<LOT, LootDropInfo> RollLootMatrix(uint32_t matrixIndex) {
 	const auto& matrix = lootMatrixTable->GetMatrix(matrixIndex);
 
 	for (const auto& entry : matrix) {
-		if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < entry.percent) {
+		if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < LiveOpsRules::ScaleChance(entry.percent, chanceMultiplier)) {
 			const auto& lootTable = lootTableTable->GetTable(entry.LootTableIndex);
 			const auto& rarityTable = rarityTableTable->GetRarityTable(entry.RarityTableIndex);
 
@@ -187,6 +190,7 @@ void DropPowerupLoot(Entity& player, GameMessages::DropClientLoot& lootMsg) {
 	GameMessages::DeliverLocally(lootMsg);
 	// Visually drop it for the player
 	lootMsg.Send(player.GetSystemAddress());
+	EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::POWERUP_DROPS, lootMsg.item, lootMsg.spawnPos, 1, &player);
 }
 
 // Drop the power up with no owner
@@ -196,6 +200,9 @@ void DropPowerupLoot(const Team& team, GameMessages::DropClientLoot& lootMsg, co
 	lootMsg.lootID = ObjectIDManager::GenerateObjectID();
 	lootMsg.ownerID = LWOOBJID_EMPTY; // By setting ownerID to empty, any client that gets this DropClientLoot message can pick up the item.
 	CalcFinalDropPos(lootMsg);
+
+	// One drop, however many teammates see it
+	EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::POWERUP_DROPS, lootMsg.item, lootMsg.spawnPos, 1);
 
 	// We want to drop the powerups as the same ID and the same position to all members of the team
 	for (const auto member : team.members) {
@@ -347,6 +354,10 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 	const auto spawnPosition = posMsg.pos;
 	auto* const objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
+	for (const auto& [lootLot, info] : rolledItems) {
+		if (info.count > 0) EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::ITEM_DROPS, lootLot, spawnPosition, info.count, player);
+	}
+
 	constexpr LOT TOKEN_PROXY = 13763;
 	// Go through the drops 1 at a time to drop them
 	for (auto it = rolledItems.begin(); it != rolledItems.end(); it++) {
@@ -391,9 +402,13 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 	}
 
 	// Coin roll is divided up between the members, rounded up, then dropped for each player
-	const uint32_t coinRoll = static_cast<uint32_t>(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
+	const uint32_t coinRoll = LiveEvents::ScaleCoins(static_cast<uint32_t>(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins)));
 	// Just in case its empty don't allow divide by 0
 	const auto droppedCoins = lootEarners.empty() ? coinRoll : static_cast<uint32_t>(std::ceil(static_cast<float>(coinRoll) / lootEarners.size()));
+
+	if (droppedCoins > 0 && !lootEarners.empty()) {
+		EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::COIN_DROPS, 0, spawnPosition, static_cast<int64_t>(droppedCoins) * lootEarners.size(), player);
+	}
 
 	// Drops coins for each alive member of a team (or just a player)
 	for (auto member : lootEarners) {
@@ -568,7 +583,7 @@ void Loot::DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex,
 	if (!inventoryComponent)
 		return;
 
-	const auto result = ::RollLootMatrix(matrixIndex);
+	const auto result = ::RollLootMatrix(matrixIndex, LiveEvents::LootChanceMultiplier());
 
 	::DropLoot(player, source, result, minCoins, maxCoins, noTeamLootOnDeath);
 }

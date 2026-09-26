@@ -1,0 +1,178 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Scheduled Events - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--bs-border-color); border: 1px solid var(--bs-border-color); }
+	.cal-head { background: var(--bs-tertiary-bg); font-size: .75rem; text-align: center; padding: .25rem; }
+	.cal-day { background: var(--bs-body-bg); min-height: 5.5rem; padding: .25rem; font-size: .75rem; overflow: hidden; }
+	.cal-day.other { background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); }
+	.cal-day.today .cal-num { background: var(--bs-primary); color: #fff; border-radius: 50%; padding: 0 .35rem; }
+	.cal-event { display: block; margin-top: 2px; padding: 0 .25rem; border-radius: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-decoration: none; }
+	.cal-other { border: 1px dashed var(--bs-border-color); color: var(--bs-secondary-color); }
+	@media (max-width: 575.98px) { .cal-day { min-height: 3.5rem; } .cal-event { font-size: .65rem; } }
+	.ev-mode { min-width: 9.5rem; }
+	.ev-parts .badge { font-weight: 500; white-space: normal; text-align: left; }
+	.ev-part { border: 1px solid var(--bs-border-color); border-left: 3px solid var(--bs-primary); border-radius: .375rem; padding: .6rem .75rem; margin-bottom: .6rem; }
+	.ev-part-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+	.ev-part-head strong { flex: 1 1 auto; }
+	.ev-rule { border: 1px solid var(--bs-border-color); border-radius: .375rem; padding: .5rem; margin-bottom: .5rem; }
+	.ev-rule .form-control, .ev-rule .form-select { width: auto; }
+	.ev-days .btn { min-width: 2.75rem; }
+	.ev-switch { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+	.ev-switch select { flex: 1 1 auto; min-width: 0; }
+	.ev-chips { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .35rem; }
+	.ev-zones { min-height: 6rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Scheduled Events</h2>
+		<p class="text-body-secondary mb-0">An event switches things on together while it is on and off again after: a game feature (<code>event_1</code>&ndash;<code>event_8</code>),
+			vanity changes, a live event, announcements, a restart. It is on once between two times, or again and again by its rules (every October, full-moon nights,
+			Friday evenings), or always until switched off. Each part needs the permission of the page that does the same by hand.</p>
+	</div>
+	<div class="d-flex gap-2">
+		<button type="button" class="btn btn-outline-secondary btn-sm" id="evImport">Import</button>
+		<button type="button" class="btn btn-primary btn-sm" id="evAdd">New event</button>
+	</div>
+</div>
+
+<div class="alert alert-info d-none" id="scanning" role="status">Reading the zones' scene files to find where each feature is used&hellip;</div>
+<div class="alert alert-warning d-none" id="evConflicts" role="status"></div>
+
+<div class="card mb-3">
+	<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+		<h5 class="mb-0">Events</h5>
+		<div class="d-flex gap-2 align-items-center">
+			<input type="search" class="form-control form-control-sm" id="evFilter" placeholder="Filter" aria-label="Filter events" style="max-width: 14rem">
+			<div class="form-check form-switch mb-0 text-nowrap"><input class="form-check-input" type="checkbox" role="switch" id="evShowOver" data-pref="events.showOver"><label class="form-check-label small" for="evShowOver">Show past ones</label></div>
+		</div>
+	</div>
+	<div class="card-body table-responsive">
+		<table class="table table-hover align-middle mb-0 table-stack">
+			<thead><tr><th>Event</th><th>When</th><th>Next</th><th>Priority</th><th>Mode</th><th class="text-end">Actions</th></tr></thead>
+			<tbody id="evRows"><tr><td colspan="6" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+		</table>
+	</div>
+	<div class="card-footer small text-body-secondary">Times are shown in your browser's time zone. Where several events that are on change the same vanity NPCs or files,
+		the one with the higher priority wins (the later one when priorities are equal).</div>
+</div>
+
+<div class="row g-3">
+	<div class="col-xxl-8">
+		<div class="card">
+			<div class="card-header d-flex justify-content-between align-items-center gap-2">
+				<button type="button" class="btn btn-sm btn-outline-secondary" id="calPrev" aria-label="Previous month">&lsaquo;</button>
+				<h5 class="mb-0" id="calTitle"></h5>
+				<button type="button" class="btn btn-sm btn-outline-secondary" id="calNext" aria-label="Next month">&rsaquo;</button>
+			</div>
+			<div class="card-body p-2"><div class="cal-grid" id="calendar"></div></div>
+			<div class="card-footer small text-body-secondary">Dashed: things scheduled on their own pages (live events, repeating announcements, a restart) that you may see.</div>
+		</div>
+	</div>
+	<div class="col-xxl-4">
+		<div class="card mb-3">
+			<div class="card-header"><h5 class="mb-0">Event settings now</h5></div>
+			<div class="card-body">
+				<ul class="list-unstyled small mb-2" id="slots"></ul>
+				<p class="small text-body-secondary mb-0">A feature part takes the first setting nothing gives a value (a file, the environment or the Settings page).
+					Client version <span id="clientVersion"></span> (<code>version_major/current/minor</code>).</p>
+			</div>
+		</div>
+		<div class="card d-none" id="evOverlapsCard">
+			<div class="card-header"><h5 class="mb-0">Events that change the same vanity NPCs or files</h5></div>
+			<ul class="list-group list-group-flush small" id="evOverlaps"></ul>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="evModal" tabindex="-1" aria-labelledby="evModalTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+		<form class="modal-content" id="evForm" novalidate>
+			<div class="modal-header"><h5 class="modal-title" id="evModalTitle">Event</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="row g-3">
+					<div class="col-lg-5">
+						<div class="mb-2"><label class="form-label small" for="evName">Name</label><input class="form-control form-control-sm" id="evName" maxlength="100" required autocomplete="off"></div>
+						<div class="mb-2"><label class="form-label small" for="evNote">Note <span class="text-body-secondary">(for staff)</span></label><input class="form-control form-control-sm" id="evNote" maxlength="500" autocomplete="off"></div>
+						<div class="row g-2 mb-3">
+							<div class="col-6"><label class="form-label small" for="evMode">Mode</label><select class="form-select form-select-sm" id="evMode"></select></div>
+							<div class="col-6"><label class="form-label small" for="evPriority">Priority</label><input type="number" class="form-control form-control-sm" id="evPriority" min="-1000" max="1000" step="1" value="0"></div>
+						</div>
+
+						<h6>When</h6>
+						<div class="btn-group btn-group-sm mb-2" role="group" aria-label="Once or repeating">
+							<input type="radio" class="btn-check" name="evWhen" id="evOnce" value="once" autocomplete="off" checked><label class="btn btn-outline-primary" for="evOnce">Once</label>
+							<input type="radio" class="btn-check" name="evWhen" id="evRepeat" value="repeat" autocomplete="off"><label class="btn btn-outline-primary" for="evRepeat">By rules</label>
+						</div>
+						<div id="evOnceBox" class="row g-2 mb-2">
+							<div class="col-sm-6"><label class="form-label small" for="evStarts">Starts <span class="text-body-secondary">(your time)</span></label><input type="datetime-local" class="form-control form-control-sm" id="evStarts"></div>
+							<div class="col-sm-6"><label class="form-label small" for="evEnds">Ends <span class="text-body-secondary">(your time)</span></label><input type="datetime-local" class="form-control form-control-sm" id="evEnds"></div>
+						</div>
+						<div id="evRepeatBox" class="d-none">
+							<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+								<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="evJsonMode"><label class="form-check-label small" for="evJsonMode">Edit as JSON</label></div>
+							</div>
+							<div id="evBuilder">
+								<div class="row g-2 mb-2">
+									<div class="col-sm-6"><label class="form-label small" for="evMatch">It is on when</label>
+										<select class="form-select form-select-sm" id="evMatch"><option value="any">any rule matches</option><option value="all">every rule matches</option></select></div>
+									<div class="col-sm-6"><label class="form-label small" for="evOffset">The rules' time zone</label><select class="form-select form-select-sm" id="evOffset"></select></div>
+								</div>
+								<div class="form-text mb-2" id="evOffsetInfo"></div>
+								<div id="evRules"></div>
+								<div class="input-group input-group-sm" style="max-width: 22rem">
+									<select class="form-select" id="evNewRule" aria-label="Kind of rule">
+										<option value="yearly">Every year, from a date to a date</option>
+										<option value="dates">Once, between two dates</option>
+										<option value="weekdays">Days of the week</option>
+										<option value="time_of_day">Times of day</option>
+										<option value="moon">A moon phase</option>
+										<option value="group">A group of rules</option>
+									</select>
+									<button type="button" class="btn btn-outline-secondary" id="evAddRule">Add rule</button>
+								</div>
+							</div>
+							<textarea class="form-control form-control-sm font-monospace d-none" id="evJson" rows="12" spellcheck="false" aria-label="Schedule as JSON"></textarea>
+						</div>
+						<div class="mt-2 small" id="evSchedulePreview"></div>
+					</div>
+					<div class="col-lg-7">
+						<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+							<h6 class="mb-0">What it switches on</h6>
+							<div class="input-group input-group-sm" style="max-width: 20rem">
+								<select class="form-select" id="evNewPart" aria-label="Kind of part"></select>
+								<button type="button" class="btn btn-outline-primary" id="evAddPart">Add</button>
+							</div>
+						</div>
+						<div id="evParts"></div>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+		</form>
+	</div>
+</div>
+
+<div class="modal fade" id="evImportModal" tabindex="-1" aria-labelledby="evImportTitle" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<form class="modal-content" id="evImportForm">
+			<div class="modal-header"><h5 class="modal-title" id="evImportTitle">Import events</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<p class="small text-body-secondary">Paste one event or a list of them, as <strong>Export</strong> gives them:
+					<code>{"name", "note", "mode", "schedule": {...} or null, "startsAt", "endsAt", "priority", "parts": [{"kind", "config"}]}</code>. The Dashboard documentation has examples.</p>
+				<textarea class="form-control font-monospace" id="evImportText" rows="12" spellcheck="false" aria-label="Events as JSON"></textarea>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Import</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/events.js"></script>
+{% endblock %}

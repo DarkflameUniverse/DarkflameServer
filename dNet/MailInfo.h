@@ -20,6 +20,8 @@ struct MailInfo {
 	uint64_t timeSent{};
 	bool wasRead{};
 	uint16_t languageCode{};
+	// Attachment item config (LDF "key=type:value" lines), kept so items keep their data through the mail
+	std::string itemConfig;
 	struct {
 		LWOOBJID itemID{};
 		int16_t itemCount{};

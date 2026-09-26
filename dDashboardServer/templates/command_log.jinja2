@@ -1,0 +1,38 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Command Log - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Command Log</h2>
+<p class="text-body-secondary mb-4">Slash commands executed by players</p>
+
+<div class="card">
+	<div class="card-body">
+		<table id="commandLogTable" class="table table-striped table-hover">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Character</th>
+					<th>Command</th>
+					<th>Time</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function () {
+	serverTable('#commandLogTable', '/api/tables/command_log', [
+		{ data: 'id' },
+		{ data: 'character_name', render: function (d, t, row) { return fmt.character(row.character_id, d); } },
+		{ data: 'command', render: function (d) { return '<code>' + esc(d) + '</code>'; } },
+		// Commands logged before times were recorded have none
+		{ data: 'time', render: function (d) { return d ? esc(fmt.unix(d)) : '<span class="text-body-secondary" title="Logged before the server recorded times">unknown</span>'; } }
+	], { liveTable: 'command_log', dataTable: { order: [[0, 'desc']] } });
+});
+</script>
+{% endblock %}

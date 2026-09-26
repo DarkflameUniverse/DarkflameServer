@@ -33,6 +33,7 @@ public:
 	SystemAddress& GetSystemAddress() { return m_SystemAddress; }
 
 	eGameMasterLevel GetMaxGMLevel() const { return m_MaxGMLevel; }
+	void SetMaxGMLevel(eGameMasterLevel value) { m_MaxGMLevel = value; }
 	uint32_t GetLastCharID() { return m_LastCharID; }
 	void SetLastCharID(uint32_t newCharID) { m_LastCharID = newCharID; }
 

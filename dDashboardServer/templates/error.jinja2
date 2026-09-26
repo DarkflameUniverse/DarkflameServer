@@ -1,0 +1,16 @@
+{% extends "base.jinja2" %}
+{% block title %}Error {{ status_code }} - DarkflameServer{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+	<h1 class="display-4">{{ status_code }}</h1>
+	<p class="lead text-body-secondary">{{ error_message }}</p>
+	<a href="/" class="btn btn-outline-primary mt-3">Back to dashboard</a>
+</div>
+{% endblock %}
+{% block content_noauth %}
+<div class="container text-center py-5">
+	<h1 class="display-4">{{ status_code }}</h1>
+	<p class="lead">{{ error_message }}</p>
+	<a href="/login" class="btn btn-outline-primary mt-3">Log in</a>
+</div>
+{% endblock %}

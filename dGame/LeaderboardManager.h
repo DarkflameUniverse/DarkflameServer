@@ -8,6 +8,7 @@
 
 #include "dCommonVars.h"
 #include "LDFFormat.h"
+#include "eLeaderboardType.h"
 
 namespace RakNet {
 	class BitStream;
@@ -25,19 +26,11 @@ public:
 		Friends    // Ranking between friends
 	};
 
-	enum Type : uint32_t {
-		ShootingGallery,
-		Racing,
-		MonumentRace,
-		FootRace,
-		UnusedLeaderboard4, // There is no 4 defined anywhere in the cdclient, but it takes a Score.
-		Survival,
-		SurvivalNS,
-		Donations,
-		None
-	};
+	// CDClient Activities.leaderboardType
+	using Type = eLeaderboardType;
+
 	Leaderboard() = delete;
-	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const uint32_t numResults, const Leaderboard::Type = None);
+	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const uint32_t numResults, const Leaderboard::Type = Leaderboard::Type::None);
 
 	~Leaderboard();
 

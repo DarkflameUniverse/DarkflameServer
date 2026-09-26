@@ -67,6 +67,12 @@ public:
 	 */
 	const std::string& GetUnapprovedName() const { return m_UnapprovedName; }
 
+	// A moderator decided on the requested name (from the dashboard): approved takes it, rejected drops the request
+	void ApplyNameModeration(bool approved) {
+		if (approved && !m_UnapprovedName.empty()) m_Name = m_UnapprovedName;
+		m_UnapprovedName.clear();
+	}
+
 	/**
 	 * Gets whether or not the custom name for this character was rejected
 	 * @return whether the custom name for this character was rejected
@@ -390,6 +396,12 @@ public:
 	 * @return the permissions for this character
 	 */
 	ePermissionMap GetPermissionMap() const;
+
+	/**
+	 * Sets the permissions of the character, e.g. when a moderator changes them while the character is online
+	 * @param permissionMap the new permissions
+	 */
+	void SetPermissionMap(ePermissionMap permissionMap) { m_PermissionMap = permissionMap; }
 
 	/**
 	 * Check if this character has a certain permission

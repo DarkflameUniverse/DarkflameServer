@@ -5,7 +5,8 @@ enum class ServiceType : uint16_t {
 	COMMON = 0,
 	AUTH,
 	CHAT,
-	WORLD = 4,
+	DASHBOARD,
+	WORLD,
 	CLIENT,
 	MASTER,
 	UNKNOWN

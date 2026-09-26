@@ -2,10 +2,12 @@
 #define __ILEADERBOARD__H__
 
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 #include "dCommonVars.h"
+#include "eLeaderboardType.h"
 
 class ILeaderboard {
 public:
@@ -30,6 +32,21 @@ public:
 		float tertiaryScore{ 0.0f };
 	};
 
+	// Whether a lower primary score ranks higher: races store the time taken. Foot races store the time left on
+	// their countdown, so more is better there, like points.
+	static bool LowerIsBetter(const eLeaderboardType type) {
+		return type == eLeaderboardType::Racing || type == eLeaderboardType::MonumentRace;
+	}
+
+	// Every score on an activity's leaderboard, best first, in the order the game ranks it (it numbers rows in this order)
+	std::vector<Entry> GetRankedLeaderboard(const eLeaderboardType type, const uint32_t activityId) {
+		switch (type) {
+		case eLeaderboardType::SurvivalNS: return GetNsLeaderboard(activityId);
+		case eLeaderboardType::Survival: return GetAgsLeaderboard(activityId);
+		default: return LowerIsBetter(type) ? GetAscendingLeaderboard(activityId) : GetDescendingLeaderboard(activityId);
+		}
+	}
+
 	// Get the donation total for the given activity id.
 	virtual std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) = 0;
 
@@ -43,6 +60,11 @@ public:
 	virtual void UpdateScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) = 0;
 	virtual void IncrementNumWins(const LWOOBJID playerId, const uint32_t gameId) = 0;
 	virtual void IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) = 0;
+
+	// For the dashboard: how many scores each activity has, and removing scores (e.g. cheated ones)
+	virtual std::map<uint32_t, uint32_t> GetLeaderboardSizes() = 0;
+	virtual void DeleteLeaderboardScore(const LWOOBJID playerId, const uint32_t gameId) = 0;
+	virtual void ResetLeaderboard(const uint32_t gameId) = 0;
 };
 
 #endif  //!__ILEADERBOARD__H__

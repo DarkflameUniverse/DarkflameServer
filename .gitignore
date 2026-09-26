@@ -128,3 +128,11 @@ docker-compose.override.yml
 !cmake/toolchains/*
 .mcp.json
 .claude/
+
+# Dashboard icon cache
+dDashboardServer/icon_cache/
+dashboard_jwt_secret
+dashboard_oauth2_token.json
+
+# CodeGraphContext generated report — regenerable, not committed (run `cgc report`).
+CGC_REPORT.md

@@ -14,4 +14,7 @@ public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	CDPropertyEntranceComponent GetByID(uint32_t id);
+
+	// Every row (the news screen's top property slots are chosen from them)
+	using CDTable::GetEntries;
 };

@@ -1,0 +1,85 @@
+/* Settings page. Sizes and colours are variables so the layout can be tuned in one place. */
+.settings-page {
+	--settings-nav-width: 15rem;
+	--settings-sticky-top: 3.25rem;            /* below the top bar */
+	--setting-input-width: 22rem;
+	--setting-label-min-width: 14rem;
+	--setting-padding: .85rem 1rem;
+	--setting-border: 1px solid var(--bs-border-color);
+	--setting-changed-accent: var(--bs-primary);
+	--setting-error-accent: var(--bs-danger);
+	--setting-locked-bg: var(--bs-tertiary-bg);
+	--setting-meta-color: var(--bs-secondary-color);
+	--settings-savebar-bg: var(--bs-body-bg);
+}
+
+/* ---- layout: category nav beside the sections ---- */
+.settings-layout { display: grid; grid-template-columns: var(--settings-nav-width) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.settings-nav { position: sticky; top: calc(var(--settings-sticky-top) + 4rem); }
+.settings-nav .list-group-item { display: flex; justify-content: space-between; align-items: center; gap: .5rem; cursor: pointer; border-radius: .375rem; }
+.settings-nav .count { font-size: .75rem; color: var(--setting-meta-color); }
+.settings-nav .list-group-item.active .count { color: inherit; }
+@media (max-width: 991.98px) {
+	.settings-layout { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+	/* Categories become one scrolling row */
+	.settings-nav { position: static; }
+	.settings-nav .list-group { flex-direction: row; overflow-x: auto; gap: .25rem; scrollbar-width: none; }
+	.settings-nav .list-group-item { flex: 0 0 auto; width: auto; white-space: nowrap; border: var(--setting-border); }
+}
+
+.settings-toolbar { position: sticky; top: var(--settings-sticky-top); z-index: 5; background: var(--bs-body-bg); padding: .5rem 0; }
+.settings-toolbar .form-control { max-width: 22rem; }
+
+/* ---- one setting ---- */
+/* Label beside the input when the card is wide enough, above it otherwise. Sized by the card (a container query),
+   not the window, since the sidebars take a varying share of the width. */
+.settings-page .card-body { container-type: inline-size; }
+.setting { display: grid; grid-template-columns: minmax(var(--setting-label-min-width), 1fr) minmax(0, var(--setting-input-width)); gap: .5rem 1.5rem; padding: var(--setting-padding); border-top: var(--setting-border); border-left: 3px solid transparent; }
+@container (max-width: 40rem) { .setting { grid-template-columns: minmax(0, 1fr); } }
+.setting:first-child { border-top: 0; }
+.setting.is-changed { border-left-color: var(--setting-changed-accent); background: rgba(var(--bs-primary-rgb), .06); }
+.setting.has-error { border-left-color: var(--setting-error-accent); }
+
+.setting-title { font-weight: 600; margin: 0; }
+.setting-description { font-size: .875rem; color: var(--setting-meta-color); margin: .15rem 0 0; }
+.setting-meta { font-size: .8rem; color: var(--setting-meta-color); margin-top: .25rem; }
+.setting-meta code { font-size: .95em; }
+.setting-tag { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding: .1rem .4rem; border-radius: .25rem; margin-left: .35rem; vertical-align: .1em; border: 1px solid currentColor; }
+.setting-tag.restart { color: var(--bs-warning-text-emphasis); }
+.setting-tag.unused { color: var(--setting-meta-color); }
+
+.setting-locked { background: var(--setting-locked-bg); border-radius: .375rem; padding: .5rem .75rem; font-size: .875rem; }
+.setting-locked .value { font-family: var(--bs-font-monospace); word-break: break-all; }
+.setting-note { font-size: .8rem; margin-top: .35rem; }
+.setting-names { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
+.setting-names .badge { font-weight: 500; }
+
+/* Sections that only matter when another setting is on */
+.settings-section-off { border-style: dashed; }
+.settings-section-off .card-body { color: var(--setting-meta-color); font-size: .875rem; }
+
+/* Grid layout (e.g. events 1-8) and pairs (help menu title + text) */
+.setting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .75rem 1rem; padding: var(--setting-padding); }
+.setting-grid .setting { display: block; padding: 0; border: 0; }
+.setting-pair { padding: var(--setting-padding); border-top: var(--setting-border); }
+.setting-pair:first-child { border-top: 0; }
+.setting-pair .setting { display: block; padding: 0; border: 0; margin-bottom: .5rem; }
+
+/* ---- save bar ---- */
+.settings-savebar { position: sticky; bottom: 0; z-index: 6; background: var(--settings-savebar-bg); border-top: var(--setting-border); padding: .75rem 0; margin-top: 1rem; box-shadow: 0 -.5rem 1rem rgba(0, 0, 0, .15); }
+
+/* Picking list values (zones, reward codes) from the client database */
+.pick-chips { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .35rem; }
+.pick-chip { display: inline-flex; align-items: center; gap: .35rem; font-weight: 500; }
+.pick-chip .btn-close { width: .5em; height: .5em; padding: 0; }
+.pick-panel > summary { list-style: none; }
+.pick-panel > summary::-webkit-details-marker { display: none; }
+.pick-body { margin-top: .35rem; border: var(--setting-border); border-radius: .375rem; padding: .35rem; }
+.pick-body [data-pick-list] { max-height: var(--pick-list-height, 18rem); overflow-y: auto; }
+.pick-option { display: flex; gap: .5rem; align-items: flex-start; padding: .3rem .4rem; border-radius: .25rem; cursor: pointer; }
+.pick-option:hover { background: var(--bs-tertiary-bg); }
+.pick-option .form-check-input { margin-top: .2rem; flex-shrink: 0; }
+
+/* A category with edits not saved yet */
+.unsaved-dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: var(--setting-changed-accent); vertical-align: .1em; margin-left: .25rem; }
+.settings-nav .list-group-item.active .unsaved-dot { background: #fff; }

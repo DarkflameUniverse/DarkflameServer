@@ -1,0 +1,27 @@
+{
+  "dashboard": {
+    "url": "http://localhost:2006",
+    "token": "$DLU_API_TOKEN"
+  },
+  "state_file": "chat-bridge.state.json",
+  "poll_seconds": 5,
+  "resync_seconds": 60,
+  "links": [
+    {
+      "adapter": "discord",
+      "label": "Discord",
+      "discord": {
+        "bot_token": "$DISCORD_BOT_TOKEN",
+        "channel_id": "123456789012345678",
+        "webhook_url": "$DISCORD_WEBHOOK_URL"
+      },
+      "game": {
+        "channels": ["zone"],
+        "zones": [],
+        "instances": [],
+        "send_zone": 0
+      },
+      "rate": { "to_game_per_minute": 20, "to_remote_per_minute": 60 }
+    }
+  ]
+}

@@ -53,6 +53,14 @@ GameDatabase* Database::Get() {
 	return database;
 }
 
+std::unique_ptr<GameDatabase> Database::CreateConnection() {
+	std::unique_ptr<GameDatabase> connection;
+	if (GetMigrationFolder() == "sqlite") connection = std::make_unique<SQLiteDatabase>();
+	else connection = std::make_unique<MySQLDatabase>();
+	connection->Connect();
+	return connection;
+}
+
 void Database::Destroy(std::string source) {
 	if (database) {
 		database->Destroy(source);

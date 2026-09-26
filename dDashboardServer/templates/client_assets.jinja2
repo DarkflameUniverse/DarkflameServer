@@ -1,0 +1,117 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Client Files - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Client Files</h2>
+<p class="text-body-secondary mb-3">Browse the game client's <code>res</code> folder (from <code>client_location</code>). Textures are previewed as PNG.</p>
+
+<div class="row g-3">
+	<div class="col-lg-7">
+		<div class="card">
+			<div class="card-header d-flex gap-2 align-items-center">
+				<button class="btn btn-sm btn-outline-secondary" id="upBtn">Up</button>
+				<code id="currentPath">res/</code>
+				<input type="search" id="filter" class="form-control form-control-sm ms-auto" style="max-width: 200px;" placeholder="Filter">
+			</div>
+			<div class="list-group list-group-flush" id="listing" style="max-height: 70vh; overflow-y: auto;"></div>
+		</div>
+	</div>
+	<div class="col-lg-5">
+		<div class="card mb-3">
+			<div class="card-header"><h6 class="mb-0">Preview</h6></div>
+			<div class="card-body text-center" id="preview"><span class="text-body-secondary small">Select a .dds or .png file</span></div>
+		</div>
+		<div class="card">
+			<div class="card-header"><h6 class="mb-0">Icon lookup</h6></div>
+			<div class="card-body">
+				<div class="input-group input-group-sm mb-2">
+					<span class="input-group-text">Item LOT</span>
+					<input type="number" class="form-control" id="lotInput">
+					<button class="btn btn-outline-primary" id="lotBtn">Show</button>
+				</div>
+				<div class="input-group input-group-sm mb-2">
+					<span class="input-group-text">Icon ID</span>
+					<input type="number" class="form-control" id="iconInput">
+					<button class="btn btn-outline-primary" id="iconBtn">Show</button>
+				</div>
+				<div id="iconResult" class="text-center"></div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var path = '';
+	var entries = [];
+	var listing = document.getElementById('listing');
+	var filter = document.getElementById('filter');
+
+	function render() {
+		var term = filter.value.toLowerCase();
+		listing.innerHTML = entries.filter(function (e) { return !term || e.name.toLowerCase().indexOf(term) !== -1; }).map(function (e) {
+			var size = e.dir ? '' : '<span class="text-body-secondary small">' + (e.size / 1024).toFixed(1) + ' KB</span>';
+			return '<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between" data-path="' + esc(e.path) + '" data-dir="' + (e.dir ? 1 : 0) + '">' +
+				'<span>' + (e.dir ? '&#128193; ' : '') + esc(e.name) + '</span>' + size + '</button>';
+		}).join('');
+	}
+
+	function open(newPath) {
+		api.get('/api/client/list?path=' + encodeURIComponent(newPath)).then(function (d) {
+			if (d.success === false) { toast(d.error, 'danger'); return; }
+			path = d.path;
+			entries = d.entries;
+			filter.value = '';
+			document.getElementById('currentPath').textContent = 'res/' + path;
+			render();
+			if (d.truncated) toast('Only the first 2000 entries are shown', 'warning');
+		});
+	}
+
+	function preview(filePath) {
+		var box = document.getElementById('preview');
+		var lower = filePath.toLowerCase();
+		var download = '<div class="mt-2"><a class="btn btn-sm btn-outline-secondary" href="/api/client/file?path=' + encodeURIComponent(filePath) + '">Download</a></div>';
+		box.innerHTML = '<div class="small text-break mb-2"><code>' + esc(filePath) + '</code></div>';
+		if (lower.endsWith('.dds') || lower.endsWith('.png')) {
+			var img = document.createElement('img');
+			img.className = 'img-fluid';
+			img.alt = filePath;
+			img.src = '/api/client/texture?size=512&path=' + encodeURIComponent(filePath);
+			img.onerror = function () { box.insertAdjacentHTML('beforeend', '<div class="text-danger small">Could not convert this texture (is ImageMagick installed?)</div>'); };
+			box.appendChild(img);
+		}
+		box.insertAdjacentHTML('beforeend', download);
+	}
+
+	listing.addEventListener('click', function (e) {
+		var item = e.target.closest('[data-path]');
+		if (!item) return;
+		if (item.getAttribute('data-dir') === '1') open(item.getAttribute('data-path'));
+		else preview(item.getAttribute('data-path'));
+	});
+	filter.addEventListener('input', render);
+	document.getElementById('upBtn').addEventListener('click', function () {
+		open(path.indexOf('/') === -1 ? '' : path.substring(0, path.lastIndexOf('/')));
+	});
+
+	function showIcon(url) {
+		var result = document.getElementById('iconResult');
+		result.innerHTML = '';
+		var img = document.createElement('img');
+		img.src = url;
+		img.width = 64;
+		img.height = 64;
+		img.onerror = function () { result.textContent = 'No icon found'; };
+		result.appendChild(img);
+	}
+	document.getElementById('lotBtn').addEventListener('click', function () { showIcon('/api/icon/' + parseInt(document.getElementById('lotInput').value, 10)); });
+	document.getElementById('iconBtn').addEventListener('click', function () { showIcon('/api/icon_id/' + parseInt(document.getElementById('iconInput').value, 10)); });
+
+	open('');
+})();
+</script>
+{% endblock %}

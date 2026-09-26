@@ -1,0 +1,585 @@
+openapi: 3.0.0
+info:
+  title: DarkflameServer Dashboard API
+  description: |
+    Game server management and monitoring API for DarkflameServer Dashboard.
+    All protected endpoints require JWT authentication.
+  version: 1.0.0
+  contact:
+    name: DarkflameServer Team
+    url: https://github.com/DarkflameUniverse/DarkflameServer
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User login and token verification
+  - name: Server
+    description: Server status and information
+  - name: Players
+    description: Player and character management
+  - name: Statistics
+    description: Server statistics and counts
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+    queryToken:
+      type: apiKey
+      in: query
+      name: token
+      description: JWT token as query parameter
+    cookieToken:
+      type: apiKey
+      in: cookie
+      name: dashboardToken
+      description: JWT token as HTTP-only cookie
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+          example: admin
+        password:
+          type: string
+          minLength: 1
+          example: password123
+        rememberMe:
+          type: boolean
+          default: false
+          description: Extends token expiration to 30 days
+
+    LoginResponse:
+      type: object
+      required:
+        - success
+        - token
+        - gmLevel
+        - expiresIn
+      properties:
+        success:
+          type: boolean
+          example: true
+        token:
+          type: string
+          description: JWT token for authenticated requests
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        gmLevel:
+          type: integer
+          minimum: 0
+          maximum: 9
+          example: 9
+          description: User's GM level (0-9)
+        expiresIn:
+          type: integer
+          description: Token expiration time in seconds
+          example: 86400
+
+    LoginError:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Invalid username or password
+
+    VerifyTokenRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: JWT token to verify
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    VerifyTokenResponse:
+      type: object
+      required:
+        - valid
+        - username
+        - gmLevel
+        - expiresAt
+      properties:
+        valid:
+          type: boolean
+          example: true
+        username:
+          type: string
+          example: admin
+        gmLevel:
+          type: integer
+          minimum: 0
+          maximum: 9
+          example: 9
+        expiresAt:
+          type: integer
+          description: Unix timestamp when token expires
+          example: 1705960800
+
+    VerifyTokenError:
+      type: object
+      required:
+        - valid
+        - error
+      properties:
+        valid:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Invalid or expired token
+
+    ServerStatus:
+      type: object
+      required:
+        - status
+        - version
+        - uptime
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum:
+            - running
+            - stopping
+            - restarting
+          example: running
+        version:
+          type: string
+          example: 1.0.0
+        uptime:
+          type: integer
+          description: Server uptime in seconds
+          example: 3600
+        timestamp:
+          type: integer
+          description: Current Unix timestamp
+          example: 1705960800
+
+    Player:
+      type: object
+      required:
+        - id
+        - name
+        - level
+        - character
+        - zone
+        - lastSeen
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: PlayerOne
+        level:
+          type: integer
+          minimum: 1
+          maximum: 999
+          example: 20
+        character:
+          type: string
+          example: Knight
+        zone:
+          type: string
+          example: Nimbus Station
+        lastSeen:
+          type: integer
+          description: Unix timestamp of last activity
+          example: 1705960750
+
+    PlayersResponse:
+      type: object
+      required:
+        - players
+        - total
+        - limit
+        - offset
+      properties:
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        total:
+          type: integer
+          description: Total number of players
+          example: 42
+        limit:
+          type: integer
+          description: Requested limit
+          example: 50
+        offset:
+          type: integer
+          description: Requested offset
+          example: 0
+
+    AccountsCountRequest:
+      type: object
+      properties:
+        includeInactive:
+          type: boolean
+          default: false
+          description: Include inactive accounts in count
+
+    AccountsCountResponse:
+      type: object
+      required:
+        - count
+        - active
+        - inactive
+        - timestamp
+      properties:
+        count:
+          type: integer
+          description: Total account count
+          example: 42
+        active:
+          type: integer
+          description: Number of active accounts
+          example: 35
+        inactive:
+          type: integer
+          description: Number of inactive accounts
+          example: 7
+        timestamp:
+          type: integer
+          description: Unix timestamp when data was collected
+          example: 1705960800
+
+    CharactersCountRequest:
+      type: object
+      properties:
+        includeDeleted:
+          type: boolean
+          default: false
+          description: Include deleted characters in count
+
+    CharactersCountResponse:
+      type: object
+      required:
+        - count
+        - active
+        - deleted
+        - timestamp
+      properties:
+        count:
+          type: integer
+          description: Total character count
+          example: 128
+        active:
+          type: integer
+          description: Number of active characters
+          example: 125
+        deleted:
+          type: integer
+          description: Number of deleted characters
+          example: 3
+        timestamp:
+          type: integer
+          description: Unix timestamp when data was collected
+          example: 1705960800
+
+    Error:
+      type: object
+      required:
+        - error
+        - code
+        - timestamp
+      properties:
+        error:
+          type: string
+          example: Authentication required
+        code:
+          type: integer
+          enum:
+            - 400
+            - 401
+            - 403
+            - 404
+            - 500
+          example: 401
+        timestamp:
+          type: integer
+          description: Unix timestamp
+          example: 1705960800
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Authentication required
+            code: 401
+            timestamp: 1705960800
+
+    Forbidden:
+      description: Authenticated but insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Insufficient permissions
+            code: 403
+            timestamp: 1705960800
+
+    BadRequest:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Invalid request body
+            code: 400
+            timestamp: 1705960800
+
+    NotFound:
+      description: Endpoint not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Not Found
+            code: 404
+            timestamp: 1705960800
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Internal server error
+            code: 500
+            timestamp: 1705960800
+
+  parameters:
+    tokenQuery:
+      name: token
+      in: query
+      description: JWT token (alternative to header/cookie)
+      schema:
+        type: string
+      required: false
+
+    limitParam:
+      name: limit
+      in: query
+      description: Maximum number of results to return
+      schema:
+        type: integer
+        default: 100
+        maximum: 100
+        minimum: 1
+      required: false
+
+    offsetParam:
+      name: offset
+      in: query
+      description: Pagination offset
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+      required: false
+
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT token for API access
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/auth/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Verify token
+      description: Check if a JWT token is valid and retrieve user information
+      operationId: verifyToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyTokenRequest'
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyTokenResponse'
+        '401':
+          description: Token is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyTokenError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/status:
+    get:
+      tags:
+        - Server
+      summary: Get server status
+      description: Get current server status and version information
+      operationId: getServerStatus
+      security:
+        - bearerAuth: []
+        - queryToken: []
+        - cookieToken: []
+      parameters:
+        - $ref: '#/components/parameters/tokenQuery'
+      responses:
+        '200':
+          description: Server status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/players:
+    get:
+      tags:
+        - Players
+      summary: List online players
+      description: Get list of currently online players on the server
+      operationId: listPlayers
+      security:
+        - bearerAuth: []
+        - queryToken: []
+        - cookieToken: []
+      parameters:
+        - $ref: '#/components/parameters/tokenQuery'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: Players list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayersResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/accounts/count:
+    post:
+      tags:
+        - Statistics
+      summary: Get total accounts count
+      description: Get total number of registered accounts on the server
+      operationId: getAccountsCount
+      security:
+        - bearerAuth: []
+        - queryToken: []
+        - cookieToken: []
+      parameters:
+        - $ref: '#/components/parameters/tokenQuery'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountsCountRequest'
+      responses:
+        '200':
+          description: Accounts count retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountsCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/characters/count:
+    post:
+      tags:
+        - Statistics
+      summary: Get total characters count
+      description: Get total number of characters on the server
+      operationId: getCharactersCount
+      security:
+        - bearerAuth: []
+        - queryToken: []
+        - cookieToken: []
+      parameters:
+        - $ref: '#/components/parameters/tokenQuery'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CharactersCountRequest'
+      responses:
+        '200':
+          description: Characters count retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharactersCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'

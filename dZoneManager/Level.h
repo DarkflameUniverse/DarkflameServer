@@ -3,37 +3,14 @@
 #include <map>
 #include <iostream>
 #include "Zone.h"
+#include "LevelFile.h"
 
 class Level {
 public:
-	enum ChunkTypeID : uint16_t {
-		FileInfo = 1000,
-		SceneEnviroment = 2000,
-		SceneObjectData,
-		SceneParticleData
-	};
+	using ChunkTypeID = LevelFile::ChunkTypeID;
+	using FileInfoChunk = LevelFile::FileInfoChunk;
 
-	enum ChunkTypes {
-		Enviroment,
-		Objects,
-		Particles
-	};
-
-	struct FileInfoChunk {
-		uint32_t version;
-		uint32_t revision;
-		uint32_t enviromentChunkStart;
-		uint32_t objectChunkStart;
-		uint32_t particleChunkStart;
-	};
-
-	struct Header {
-		uint32_t id;
-		uint16_t chunkVersion;
-		ChunkTypeID chunkType;
-		uint32_t size;
-		uint32_t startPosition;
-		FileInfoChunk fileInfo;
+	struct Header : LevelFile::ChunkHeader {
 		LWOSCENEID lwoSceneID;
 	};
 
@@ -47,7 +24,5 @@ private:
 	Zone* m_ParentZone;
 
 	//private functions:
-	void ReadChunks(std::istream& file);
-	void ReadFileInfoChunk(std::istream& file, Header& header);
-	void ReadSceneObjectDataChunk(std::istream& file, Header& header);
+	void LoadSceneObjects(const std::vector<SceneObject>& objects);
 };

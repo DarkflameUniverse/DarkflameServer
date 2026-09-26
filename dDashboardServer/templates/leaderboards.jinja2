@@ -1,0 +1,186 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Leaderboards - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.board-list .list-group-item { display: flex; justify-content: space-between; align-items: center; gap: .5rem; cursor: pointer; }
+	.board-list { max-height: 75vh; overflow-y: auto; }
+	@media (min-width: 992px) { .board-list { max-height: none; } #mineCard .card-body { max-height: 12rem; overflow: auto; } }
+	tr.mine > td { background-color: rgba(var(--bs-primary-rgb), .15) !important; }
+	.rank { width: 3.5rem; font-variant-numeric: tabular-nums; }
+	td.num { text-align: end; font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+	<h2 class="mb-1">Leaderboards</h2>
+	<p class="text-body-secondary mb-0">The same rankings the game shows. Your own characters are highlighted.</p>
+</div>
+
+<!-- Wide screens: the list and the board fill the window and scroll on their own -->
+<div class="row g-3 fill-viewport-lg">
+	<div class="col-lg-3">
+		<select class="form-select d-lg-none mb-2" id="boardSelect" aria-label="Leaderboard"></select>
+		<div class="card d-none d-lg-flex panel-fill h-100">
+			<div class="card-header d-flex justify-content-between align-items-center">
+				<h5 class="mb-0 fs-6">Activities</h5>
+				<div class="form-check form-switch small mb-0" title="Also list activities nobody has a score in yet">
+					<input class="form-check-input" type="checkbox" id="showEmpty" data-pref="leaderboards.showEmpty"><label class="form-check-label" for="showEmpty">Empty</label>
+				</div>
+			</div>
+			<div class="list-group list-group-flush board-list" id="boardList"></div>
+		</div>
+	</div>
+	<div class="col-lg-9 d-flex flex-column">
+		<div class="card mb-3 d-none flex-shrink-0" id="mineCard">
+			<div class="card-header"><h5 class="mb-0 fs-6">Your places</h5></div>
+			<div class="card-body p-0 table-responsive" id="mine"></div>
+		</div>
+		<div class="card panel-fill flex-grow-1">
+			<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+				<h5 class="mb-0" id="boardTitle">&nbsp;</h5>
+				<div class="d-flex gap-2 align-items-center">
+					<form id="searchForm" class="d-flex gap-1" role="search">
+						<input class="form-control form-control-sm" id="search" placeholder="Find a character" aria-label="Find a character">
+						<button class="btn btn-sm btn-outline-secondary">Find</button>
+					</form>
+					{% if can.leaderboards_manage %}
+					<button class="btn btn-sm btn-outline-danger text-nowrap" id="resetBoard">Clear board</button>
+					{% endif %}
+				</div>
+			</div>
+			<div class="card-body p-0">
+				<div id="found"></div>
+				<div class="table-responsive" id="top"><p class="text-body-secondary p-3 mb-0">Loading&hellip;</p></div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var nf = new Intl.NumberFormat();
+	var manage = DASH.can('leaderboards_manage');
+	var linkCharacters = DASH.can('characters_view');
+	var boards = [], current = null, data = null;
+
+	// m:ss, or m:ss.hh for race times
+	function time(seconds, hundredths) {
+		if (!seconds) return '-';
+		var m = Math.floor(seconds / 60), s = seconds - m * 60;
+		var text = hundredths ? s.toFixed(2) : String(Math.round(s));
+		return (m ? m + ':' + (s < 10 ? '0' : '') : '') + text + (m ? '' : 's');
+	}
+	function value(entry, column) {
+		var v = entry[column.key];
+		if (column.format === 'time' || column.format === 'laptime') return time(v, column.format === 'laptime');
+		if (column.format === 'percent') return (v * 100).toFixed(1) + '%';
+		return nf.format(Math.round(v));
+	}
+	function who(entry) {
+		return (linkCharacters || entry.mine) ? fmt.character(entry.character_id, entry.name) : esc(entry.name);
+	}
+
+	function table(entries, empty) {
+		if (!entries.length) return '<p class="text-body-secondary p-3 mb-0">' + esc(empty) + '</p>';
+		return '<table class="table table-sm table-hover align-middle mb-0 table-stack"><thead><tr><th class="rank">#</th><th>Character</th>' +
+			data.columns.map(function (c) { return '<th class="text-end"' + (c.hint ? ' title="' + esc(c.hint) + '"' : '') + '>' + esc(c.label) + '</th>'; }).join('') +
+			'<th>Last played</th>' + (manage ? '<th></th>' : '') + '</tr></thead><tbody>' +
+			entries.map(function (e) {
+				return '<tr class="' + (e.mine ? 'mine' : '') + '"><td class="rank" data-label="Rank">' + e.rank + '</td><td data-label="Character">' + who(e) + '</td>' +
+					data.columns.map(function (c) { return '<td class="num" data-label="' + esc(c.label) + '">' + esc(value(e, c)) + '</td>'; }).join('') +
+					'<td data-label="Last played">' + esc(fmt.unix(e.last_played)) + '</td>' +
+					(manage ? '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-remove="' + esc(e.character_id) + '" data-name="' + esc(e.name) + '">Remove</button></td>' : '') + '</tr>';
+			}).join('') + '</tbody></table>';
+	}
+
+	function renderList() {
+		var showEmpty = document.getElementById('showEmpty').checked;
+		var shown = boards.filter(function (b) { return showEmpty || b.scores || (current && b.id === current); });
+		document.getElementById('boardList').innerHTML = shown.map(function (b) {
+			return '<a class="list-group-item list-group-item-action' + (b.id === current ? ' active' : '') + '" data-board="' + b.id + '"><span>' + esc(b.name) + '</span>' +
+				'<span class="badge rounded-pill text-bg-secondary">' + nf.format(b.scores) + '</span></a>';
+		}).join('') || '<p class="text-body-secondary p-3 mb-0">No scores yet.</p>';
+		document.getElementById('boardSelect').innerHTML = shown.map(function (b) {
+			return '<option value="' + b.id + '"' + (b.id === current ? ' selected' : '') + '>' + esc(b.name) + ' (' + nf.format(b.scores) + ')</option>';
+		}).join('');
+	}
+
+	function loadBoard(id, search) {
+		current = id;
+		try { history.replaceState(null, '', '#' + id); } catch (e) {}
+		renderList();
+		var url = '/api/leaderboards/' + id + (search ? '?search=' + encodeURIComponent(search) : '');
+		return api.get(url).then(function (d) {
+			if (!d.success) { document.getElementById('top').innerHTML = '<p class="text-danger p-3 mb-0">' + esc(d.error) + '</p>'; return; }
+			data = d;
+			document.getElementById('boardTitle').textContent = d.name + ' · ' + nf.format(d.total) + ' score' + (d.total === 1 ? '' : 's');
+			document.getElementById('mineCard').classList.toggle('d-none', !d.mine.length);
+			document.getElementById('mine').innerHTML = d.mine.length ? table(d.mine, '') : '';
+			document.getElementById('found').innerHTML = search ? '<div class="border-bottom"><div class="px-3 pt-2 small text-body-secondary">Matching &ldquo;' + esc(search) + '&rdquo;</div>' + table(d.found, 'Nobody by that name on this board.') + '</div>' : '';
+			// What the game's columns mean where it isn't obvious (a foot race's time is the time left on its clock)
+			var hints = d.columns.filter(function (c) { return c.hint; }).map(function (c) { return esc(c.label) + ': ' + esc(c.hint); });
+			document.getElementById('top').innerHTML = (hints.length ? '<div class="px-3 pt-2 small text-body-secondary">' + hints.join(' · ') + '</div>' : '') + (d.total > d.top.length ? '<div class="px-3 pt-2 small text-body-secondary">Top ' + d.top.length + '</div>' : '') + table(d.top, 'Nobody has a score here yet.');
+			var reset = document.getElementById('resetBoard');
+			if (reset) reset.disabled = !d.total;
+		});
+	}
+
+	function loadBoards() {
+		return api.get('/api/leaderboards').then(function (d) {
+			if (!d.success) return;
+			boards = d.boards;
+			var fromHash = parseInt(location.hash.slice(1), 10);
+			var first = boards.filter(function (b) { return b.id === fromHash; })[0] || boards.filter(function (b) { return b.scores; })[0] || boards[0];
+			if (current === null && first) return loadBoard(first.id);
+			renderList();
+		});
+	}
+
+	document.getElementById('boardList').addEventListener('click', function (e) {
+		var item = e.target.closest('[data-board]');
+		if (item) { document.getElementById('search').value = ''; loadBoard(parseInt(item.getAttribute('data-board'), 10)); }
+	});
+	document.getElementById('boardSelect').addEventListener('change', function () { document.getElementById('search').value = ''; loadBoard(parseInt(this.value, 10)); });
+	document.getElementById('showEmpty').addEventListener('change', renderList);
+	document.getElementById('searchForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		if (current !== null) loadBoard(current, document.getElementById('search').value.trim());
+	});
+
+	document.addEventListener('click', function (e) {
+		var remove = e.target.closest('[data-remove]');
+		if (remove) {
+			var characterId = remove.getAttribute('data-remove'), board = current;
+			Decide({
+				title: 'Remove ' + remove.getAttribute('data-name') + '’s score',
+				text: 'From ' + data.name + '. This can’t be undone; they can set a new score by playing again.',
+				reasonLabel: 'Reason (for the audit log)',
+				action: 'Remove score',
+				characterId: characterId
+			}).then(function (choice) {
+				if (!choice) return;
+				api.action('/api/leaderboards/' + board + '/remove', { character_id: characterId, reason: choice.reason, strike: choice.strike }).then(function (d) { toast(d.message, 'success'); }).catch(function () {});
+			});
+		}
+		if (e.target.closest('#resetBoard') && data) {
+			var typed = prompt('This deletes all ' + data.total + ' scores on ' + data.name + ' and cannot be undone.\nType the activity ID (' + data.id + ') to confirm:');
+			if (typed === null) return;
+			api.action('/api/leaderboards/' + current + '/reset', { confirm: typed.trim() }, 'Leaderboard cleared').catch(function () {});
+		}
+	});
+
+	// Removals by anyone (and new scores are rare) refresh the board and the counts
+	if (window.Live) Live.on('leaderboard', Live.throttle(function () {
+		loadBoards();
+		if (current !== null) loadBoard(current, document.getElementById('search').value.trim());
+	}, 1000));
+
+	loadBoards();
+})();
+</script>
+{% endblock %}

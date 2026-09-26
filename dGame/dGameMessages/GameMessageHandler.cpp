@@ -43,6 +43,8 @@
 #include "GhostComponent.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
+#include "MessageInspector.h"
+#include "PlayerReports.h"
 
 namespace {
 	using enum MessageType::Game;
@@ -75,6 +77,8 @@ namespace {
 };
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, MessageType::Game messageID) {
+	// The dashboard's message inspector (sees every message a client sends; nothing to do unless a capture runs)
+	if (MessageInspector::IsCapturing()) MessageInspector::RecordReceived(sysAddr, objectID, messageID, inStream);
 
 	CBITSTREAM;
 
@@ -648,6 +652,14 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::REPORT_BUG:
 		GameMessages::HandleReportBug(inStream, entity);
+		break;
+
+	case MessageType::Game::REPORT_OFFENSIVE_MODEL:
+		PlayerReports::HandleReportOffensiveModel(inStream, entity);
+		break;
+
+	case MessageType::Game::REPORT_OFFENSIVE_PROPERTY:
+		PlayerReports::HandleReportOffensiveProperty(inStream, entity);
 		break;
 
 	case MessageType::Game::CLIENT_RAIL_MOVEMENT_READY:

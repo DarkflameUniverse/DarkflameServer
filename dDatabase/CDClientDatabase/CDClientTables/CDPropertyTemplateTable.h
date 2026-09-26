@@ -13,4 +13,7 @@ public:
 	void LoadValuesFromDatabase();
 
 	CDPropertyTemplate GetByMapID(uint32_t mapID);
+
+	// Every row (the news screen's top property slots are chosen from them)
+	using CDTable::GetEntries;
 };

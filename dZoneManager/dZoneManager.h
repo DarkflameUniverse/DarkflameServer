@@ -42,6 +42,8 @@ public:
 	void RemoveSpawner(LWOOBJID id);
 	std::vector<Spawner*> GetSpawnersByName(const std::string& spawnerName);
 	std::vector<Spawner*> GetSpawnersInGroup(const std::string& group);
+	// Every spawner in the zone (live events pick walkable places from their nodes)
+	const std::map<LWOOBJID, Spawner*>& GetSpawners() const { return m_Spawners; }
 	void Update(float deltaTime);
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }

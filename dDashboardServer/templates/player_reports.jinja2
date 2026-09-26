@@ -1,0 +1,33 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Player Reports - DarkflameServer{% endblock %}
+
+{% block content %}
+<div id="playerReportsPage">
+	<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+		<div>
+			<h2 class="mb-1">Player Reports</h2>
+			<p class="text-body-secondary mb-0">What players reported from the game's Report Abuse window: another player, a model, or a property.
+				Act on a report (optionally with a strike on the account it's about) or dismiss it. Mute, warn or ban from the account page.</p>
+		</div>
+		<div class="btn-group flex-wrap" role="group" id="statusFilter" aria-label="Status"></div>
+	</div>
+	<div class="alert alert-secondary py-2 d-none" id="accountFilter"></div>
+	<div class="card">
+		<div class="card-body">
+			<table class="table table-sm table-hover align-middle w-100 table-stack mb-0">
+				<thead><tr><th>Sent</th><th>What</th><th>From</th><th>About</th><th>Where</th><th>Report</th><th>Status</th><th></th></tr></thead>
+				<tbody id="reportRows"><tr><td colspan="8" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+			</table>
+			<div class="d-flex justify-content-between align-items-center mt-2">
+				<span class="small text-body-secondary" id="reportCount"></span>
+				<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary" id="prevPage">Newer</button><button type="button" class="btn btn-outline-secondary" id="nextPage">Older</button></div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/player-reports.js"></script>
+{% endblock %}

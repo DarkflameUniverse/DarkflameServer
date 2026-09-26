@@ -972,6 +972,31 @@ namespace GameMessages {
 		int32_t setId{ -1 };
 	};
 
+	/**
+	 * The news screen's "Today's Top Properties" (GM 1510), the answer to GetHotPropertyData (GM 1511).
+	 * Client: GameMessage::NewsSendHotPropertiesInfoToClient, entries read by NewsHotPropertyInfo::Deserialize
+	 * (0x00c0cc20 in 1.10.64) and shown by LWOCharacterComponent::HotPropertyData (0x00cf83f0). See HotPropertySlots.h.
+	 */
+	struct NewsSendHotPropertiesInfoToClient : public NetGameMsg {
+		NewsSendHotPropertiesInfoToClient() : NetGameMsg(MessageType::Game::SEND_HOT_PROPERTY_DATA) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+
+		struct HotPropertyInfo {
+			LWOOBJID propertyId{};
+			LWOOBJID ownerId{};
+			std::u16string ownerName;
+			uint64_t reputation{};
+			int32_t templateId{};        // PropertyTemplate id: picks the news screen slot
+			std::u16string name;
+			std::u16string description;
+			float performanceCost{};
+			uint64_t lastPublished{};    // unix time
+			uint32_t cloneId{};
+		};
+
+		std::vector<HotPropertyInfo> properties;
+	};
+
 	struct ObjectLoaded : public GameMsg {
 		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}
 

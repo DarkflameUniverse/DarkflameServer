@@ -144,7 +144,7 @@ Packet* dServer::ReceiveFromMaster() {
 			break;
 		}
 		case ID_CONNECTION_REQUEST_ACCEPTED: {
-			LOG("Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
+			LOG("Established connection to master: ServiceType (%s), Zone (%i), Instance (%i)", StringifiedEnum::ToString(this->GetServerType()).data(), this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
@@ -159,6 +159,11 @@ Packet* dServer::ReceiveFromMaster() {
 				}
 				case MessageType::Master::SHUTDOWN:
 					*mShouldShutdown = -2;
+					break;
+
+				case MessageType::Master::CONFIG_RELOAD:
+					LOG("Reloading settings (changed on the dashboard)");
+					if (mConfig) mConfig->ReloadConfig();
 					break;
 
 				// When we handle these packets in World instead dServer, we just return the packet's pointer.
@@ -189,6 +194,7 @@ void dServer::DeallocateMasterPacket(Packet* packet) {
 }
 
 void dServer::Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) {
+	if (mSendObserver) mSendObserver(bitStream, sysAddr, broadcast);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
 }
 

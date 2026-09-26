@@ -1,0 +1,153 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Backups - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Database Backups</h2>
+		<p class="text-body-secondary text-break mb-0" id="backupWhere">Loading&hellip;</p>
+	</div>
+	<button class="btn btn-primary" id="backupNow">Back up now</button>
+</div>
+
+<div class="alert d-flex flex-wrap align-items-center gap-2" id="scheduleBox"></div>
+
+<div class="card">
+	<div class="card-body table-responsive">
+		<table class="table table-hover align-middle mb-0">
+			<thead><tr><th>Backup</th><th>Made</th><th class="text-end">Size</th><th>Check</th><th class="text-end">Actions</th></tr></thead>
+			<tbody id="backupRows"><tr><td colspan="5" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+		</table>
+	</div>
+</div>
+<div class="card mt-3">
+	<div class="card-header"><h5 class="mb-0">Not in the backup: keep these too</h5></div>
+	<div class="card-body">
+		<p class="small text-body-secondary">A backup is the database only. These files next to the server change rarely; keep a copy of them
+			somewhere safe (not with the downloadable backups). Two-factor secrets in the database are encrypted with the two-factor key, so a
+			backup restored without that key locks out everyone who uses two-factor login.</p>
+		<ul class="small mb-0" id="keepFiles"><li class="text-body-secondary">Loading&hellip;</li></ul>
+	</div>
+</div>
+<p class="small text-body-secondary mt-3">A backup contains every account's password hash and email address. Downloading one asks for your
+	password (and two-factor code) again, and is written to the audit log and sent to security webhooks. Every new backup is checked before older
+	ones are deleted; <strong>Verify</strong> checks one again (read-only: integrity check and row counts for SQLite, a complete dump for MySQL).
+	<strong>To restore</strong>, stop all servers, then for SQLite put the file in place of the database <em>and delete the database's
+	<code>-wal</code> and <code>-shm</code> files</em> (left over, they corrupt the restored copy); for MySQL load the <code>.sql</code> file into
+	an empty database with <code>mariadb</code>/<code>mysql</code>. Start the servers: migrations bring an older backup up to date.</p>
+
+<div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadTitle" aria-hidden="true">
+	<div class="modal-dialog">
+		<form class="modal-content" id="downloadForm">
+			<div class="modal-header"><h5 class="modal-title" id="downloadTitle">Download backup</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<p class="small" id="downloadName"></p>
+				<div class="mb-2"><label class="form-label small" for="downloadPassword">Your password</label><input type="password" class="form-control" id="downloadPassword" autocomplete="current-password" required></div>
+				<div><label class="form-label small" for="downloadCode">Two-factor code <span class="text-body-secondary">(if you use it)</span></label><input class="form-control" id="downloadCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Download</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var modal = new bootstrap.Modal(document.getElementById('downloadModal'));
+	var downloading = null;
+	var canManageTasks = DASH.can('tasks_manage');
+
+	function size(bytes) {
+		if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+		if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+		return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+	}
+
+	function renderSchedule(task) {
+		var box = document.getElementById('scheduleBox');
+		if (!task) { box.className = 'd-none'; return; }
+		var on = task.enabled;
+		box.className = 'alert d-flex flex-wrap align-items-center gap-2 ' + (on ? 'alert-secondary' : 'alert-warning');
+		var text = on ? 'Scheduled backups are on (<code>' + esc(task.schedule) + '</code> UTC' + (task.next_at ? ', next ' + esc(fmt.unix(task.next_at)) : '') + ').'
+			: 'Scheduled backups are off. Backups are only made when someone presses Back up now.';
+		if (task.last_run) text += ' Last: ' + esc(task.last_run.summary || '') + ' (' + esc(fmt.unix(task.last_run.finished_at)) + ').';
+		if (task.running) text += ' <strong>A backup is running.</strong>';
+		box.innerHTML = '<span class="me-auto">' + text + '</span>' + (canManageTasks
+			? '<span class="d-flex flex-nowrap gap-2"><a class="btn btn-sm btn-link" href="/tasks">Change schedule</a><button class="btn btn-sm ' + (on ? 'btn-outline-secondary' : 'btn-warning') + '" id="toggleSchedule">' + (on ? 'Turn off' : 'Turn on daily backups') + '</button></span>' : '');
+		var toggle = document.getElementById('toggleSchedule');
+		if (toggle) toggle.addEventListener('click', function () {
+			api.action('/api/tasks/database_backup', { schedule: task.custom ? task.schedule : '', enabled: !on }, on ? 'Scheduled backups off' : 'Scheduled backups on').then(load).catch(function () {});
+		});
+	}
+
+	function checkCell(f) {
+		if (f.checking) return '<span class="text-body-secondary">Checking&hellip;</span>';
+		if (!f.check) return '<span class="text-body-secondary">Not checked since the dashboard started</span>';
+		var twoFactor = f.check.two_factor && f.check.two_factor.unreadable > 0;
+		var badge = !f.check.ok ? 'danger' : (twoFactor ? 'warning' : 'success');
+		return '<span class="badge text-bg-' + badge + '">' + (f.check.ok ? 'OK' : 'Failed') + '</span> <span title="' +
+			esc(fmt.unix(f.checked_at) + ' by ' + f.checked_by) + '">' + esc(f.check.summary || '') + '</span>';
+	}
+
+	function load() {
+		api.get('/api/backups').then(function (d) {
+			if (!d.success) return;
+			document.getElementById('backupWhere').innerHTML = 'Stored in <code>' + esc(d.folder) + '</code> on the server' +
+				(d.keep > 0 ? ', keeping the newest ' + esc(d.keep) : ', keeping all of them') + ' (<code>backup_folder</code>, <code>backup_keep</code>).';
+			document.getElementById('backupRows').innerHTML = d.files.map(function (f) {
+				return '<tr><td><code>' + esc(f.name) + '</code></td><td>' + esc(fmt.unix(f.time)) + '</td><td class="text-end">' + esc(size(f.size)) + '</td>' +
+					'<td class="small">' + checkCell(f) + '</td>' +
+					'<td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-secondary me-1" data-verify="' + esc(f.name) + '"' + (f.checking ? ' disabled' : '') + '>Verify</button>' +
+					'<button class="btn btn-sm btn-outline-primary me-1" data-download="' + esc(f.name) + '">Download</button>' +
+					'<button class="btn btn-sm btn-outline-danger" data-delete="' + esc(f.name) + '">Delete</button></td></tr>';
+			}).join('') || '<tr><td colspan="5" class="text-body-secondary">No backups yet.</td></tr>';
+			document.getElementById('keepFiles').innerHTML = (d.keep_with_backups || []).map(function (k) {
+				return '<li><code>' + esc(k.name) + '</code> ' + (k.present ? '' : '<span class="badge text-bg-' + (k.needed ? 'warning' : 'secondary') + '">not found</span> ') +
+					'<span class="text-body-secondary">' + esc(k.why) + '</span><br><code class="small text-body-secondary">' + esc(k.path) + '</code></li>';
+			}).join('');
+		});
+		if (DASH.can('tasks_view')) api.get('/api/tasks').then(function (d) {
+			renderSchedule((d.tasks || []).filter(function (t) { return t.name === 'database_backup'; })[0]);
+		});
+	}
+
+	document.getElementById('backupNow').addEventListener('click', function () {
+		api.action('/api/backups/run', {}, 'Backup started; it appears below when done').catch(function () {});
+	});
+	document.getElementById('backupRows').addEventListener('click', function (e) {
+		var del = e.target.closest('[data-delete]'), dl = e.target.closest('[data-download]'), verify = e.target.closest('[data-verify]');
+		if (verify) {
+			verify.disabled = true;
+			api.action('/api/backups/' + encodeURIComponent(verify.dataset.verify) + '/verify', {}, 'Checking the backup').then(load).catch(function () { verify.disabled = false; });
+		}
+		if (del && confirm('Delete ' + del.dataset.delete + '? This cannot be undone.')) {
+			api.action('/api/backups/' + encodeURIComponent(del.dataset.delete) + '/delete', {}).then(function (r) { toast(r.message, 'success'); load(); }).catch(function () {});
+		}
+		if (dl) {
+			downloading = dl.dataset.download;
+			document.getElementById('downloadName').textContent = downloading;
+			document.getElementById('downloadPassword').value = '';
+			document.getElementById('downloadCode').value = '';
+			modal.show();
+		}
+	});
+	document.getElementById('downloadForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		api.action('/api/backups/' + encodeURIComponent(downloading) + '/link', {
+			password: document.getElementById('downloadPassword').value, code: document.getElementById('downloadCode').value.trim()
+		}).then(function (r) {
+			modal.hide();
+			window.location.href = r.url;
+		}).catch(function () {});
+	});
+
+	if (window.Live) {
+		Live.on('scheduled_tasks', Live.throttle(load, 1000));
+		Live.on('backups', Live.throttle(load, 500));
+	}
+	load();
+})();
+</script>
+{% endblock %}

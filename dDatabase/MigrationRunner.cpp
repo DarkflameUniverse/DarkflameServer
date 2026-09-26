@@ -19,8 +19,11 @@ Migration LoadMigration(std::string folder, std::string path) {
 		std::string line;
 		std::string total = "";
 
+		// Keep the line ends: a -- comment runs to the end of its line, so without them it would swallow every
+		// statement after it (and, as the migrations are joined, every later migration too)
 		while (std::getline(file, line)) {
 			total += line;
+			total += '\n';
 		}
 
 		file.close();
@@ -80,7 +83,7 @@ void MigrationRunner::RunMigrations() {
 	}
 
 	if (!finalSQL.empty()) {
-		auto migration = GeneralUtils::SplitString(finalSQL, ';');
+		auto migration = SplitStatements(finalSQL, migrationFolder == "mysql");
 		for (auto& query : migration) {
 			try {
 				if (query.empty()) continue;
@@ -148,7 +151,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
 		LOG("Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
 		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
-		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
+		for (const auto& dml : SplitStatements(migration.data, false)) {
 			if (dml.empty()) continue;
 			try {
 				CDClientDatabase::ExecuteDML(dml.c_str());

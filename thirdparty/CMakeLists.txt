@@ -80,3 +80,51 @@ FetchContent_MakeAvailable(glm)
 add_subdirectory(MD5)
 
 add_subdirectory(mongoose)
+
+# libcurl, used by the dashboard to send email over SMTP. Built statically with only SMTP (and HTTP, for
+# future outgoing HTTPS requests) enabled. TLS uses the OS certificate store: Schannel on Windows, OpenSSL elsewhere.
+# Options are set inside a function so they don't leak into our own build (e.g. BUILD_TESTING from CTest).
+function(dlu_fetch_curl)
+	set(BUILD_SHARED_LIBS OFF)
+	set(BUILD_TESTING OFF)
+	set(BUILD_CURL_EXE OFF)
+	set(BUILD_LIBCURL_DOCS OFF)
+	set(BUILD_MISC_DOCS OFF)
+	set(ENABLE_CURL_MANUAL OFF)
+	set(BUILD_EXAMPLES OFF)
+	set(CURL_DISABLE_INSTALL ON)
+	set(CURL_ENABLE_EXPORT_TARGET OFF)
+
+	foreach(protocol DICT FILE FTP GOPHER IMAP LDAP LDAPS MQTT POP3 RTSP SMB TELNET TFTP WEBSOCKETS IPFS)
+		set(CURL_DISABLE_${protocol} ON)
+	endforeach()
+
+	set(CURL_USE_LIBPSL OFF)
+	set(CURL_USE_LIBSSH2 OFF)
+	set(CURL_USE_LIBSSH OFF)
+	set(CURL_USE_GSSAPI OFF)
+	set(CURL_ZLIB OFF)
+	set(CURL_BROTLI OFF)
+	set(CURL_ZSTD OFF)
+	set(USE_NGHTTP2 OFF)
+	set(USE_LIBIDN2 OFF)
+	set(USE_WIN32_IDN OFF)
+	set(ENABLE_ARES OFF)
+
+	if(WIN32)
+		set(CURL_USE_SCHANNEL ON)
+		set(CURL_USE_OPENSSL OFF)
+	else()
+		set(CURL_USE_OPENSSL ON)
+	endif()
+
+	FetchContent_Declare(
+		curl
+		GIT_REPOSITORY https://github.com/curl/curl.git
+		GIT_TAG curl-8_22_0
+		GIT_PROGRESS TRUE
+		GIT_SHALLOW 1
+	)
+	FetchContent_MakeAvailable(curl)
+endfunction()
+dlu_fetch_curl()

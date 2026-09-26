@@ -1,0 +1,191 @@
+{% extends "base.jinja2" %}
+
+{% block title %}World 3D - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	/* The view fills the window below the top bar and the page itself never scrolls: panels scroll inside */
+	body:has(#world3d) .main-column { height: 100vh; min-height: 0 !important; overflow: hidden; }
+	body:has(#world3d) main { display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: .5rem !important; }
+	#world3d { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+	.world-layout { flex: 1 1 auto; display: flex; gap: .5rem; min-height: 0; }
+	#worldWrap { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+	#worldWrap > .world-canvas { flex: 1 1 auto; min-height: 0; }
+	#worldWrap:fullscreen { padding: .5rem; }
+	.world-panel-wrap { width: 22rem; flex: 0 0 auto; }
+	@media (min-width: 1400px) { .world-panel-wrap { width: 25rem; } }
+	@media (max-width: 991.98px) { .world-panel-wrap.offcanvas-lg { height: 60vh; width: auto; } }
+	.world-panel .tab-pane { overflow-y: auto; overflow-x: hidden; }
+	.world-panel .list-group-item { cursor: pointer; }
+	.world-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); padding: 0 .35rem; border-radius: .25rem; font-size: .75rem;
+		white-space: nowrap; pointer-events: none; background: rgba(20, 22, 26, .72); color: #fff; will-change: transform; }
+	.world-label.spawn { background: rgba(20, 22, 26, .5); color: #c3c2b7; font-size: .7rem; }
+	.world-label.picked { outline: 2px solid #ffd166; }
+	.world-legend { max-height: 14rem; overflow-y: auto; }
+	.world-swatch { display: inline-block; width: .8rem; height: .8rem; border-radius: .2rem; vertical-align: -.1rem; margin-right: .35rem; }
+	.world-status { position: absolute; left: .5rem; top: .5rem; pointer-events: none; font-size: .8rem; background: rgba(20, 22, 26, .6); color: #fff;
+		padding: .1rem .5rem; border-radius: .25rem; }
+	.world-status:empty { display: none; }
+	.heat-legend { height: .6rem; width: 8rem; border-radius: .2rem; display: inline-block; vertical-align: middle; }
+	#timeline input[type=range] { min-width: 10rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Live player positions need players_view (the page's permission); replays need players_history; heat maps need reports_view #}
+<div id="world3d">
+	<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+		<h5 class="mb-0 me-1">World 3D</h5>
+		<label class="visually-hidden" for="zoneSelect">Zone</label>
+		<select id="zoneSelect" class="form-select form-select-sm w-auto" data-pref="world3d.zone" style="max-width: 18rem"></select>
+		<label class="visually-hidden" for="instanceSelect">Instance</label>
+		<select id="instanceSelect" class="form-select form-select-sm w-auto" title="Instance"><option value="0">All instances</option></select>
+		<div class="btn-group btn-group-sm" role="group" aria-label="What to show">
+			<input type="radio" class="btn-check" name="worldMode" id="modeLive" value="live" checked>
+			<label class="btn btn-outline-primary" for="modeLive">Live</label>
+			{% if can.players_history %}
+			<input type="radio" class="btn-check" name="worldMode" id="modeReplay" value="replay">
+			<label class="btn btn-outline-primary" for="modeReplay">Replay</label>
+			{% endif %}
+			{% if can.reports_view %}
+			<input type="radio" class="btn-check" name="worldMode" id="modeHeat" value="heat">
+			<label class="btn btn-outline-primary" for="modeHeat">Heat map</label>
+			{% endif %}
+		</div>
+		<span class="small text-body-secondary me-auto" id="worldMeta"></span>
+		<button class="btn btn-sm btn-outline-secondary" id="resetViewBtn">Reset view</button>
+		<button class="btn btn-sm btn-outline-secondary" id="fullscreenBtn">Full screen</button>
+		<button class="btn btn-sm btn-outline-primary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#worldPanel" aria-controls="worldPanel">Panel</button>
+	</div>
+
+	<div class="world-layout">
+			<div id="worldWrap" class="bg-body">
+				<div class="position-relative world-canvas">
+					<div id="world" class="rounded overflow-hidden h-100" title="Drag to orbit, right-drag to pan, scroll to zoom. Click a player to see who it is, double-click to follow them. Click an object for its name and LOT."></div>
+					<div id="labels" class="position-absolute top-0 start-0 w-100 h-100 overflow-hidden" style="pointer-events: none"></div>
+					<div class="world-status" id="worldStatus"></div>
+				</div>
+				<div id="timeline" class="d-none mt-2">
+					{% if can.players_history %}
+					<form class="d-none flex-wrap align-items-center gap-2 small" id="replayBar" aria-label="Replay">
+						<select id="replayRange" class="form-select form-select-sm w-auto" data-pref="world3d.replayRange" title="How far back">
+							<option value="900">Last 15 minutes</option>
+							<option value="3600" selected>Last hour</option>
+							<option value="21600">Last 6 hours</option>
+							<option value="86400">Last 24 hours</option>
+							<option value="259200">Last 3 days</option>
+							<option value="custom">Between&hellip;</option>
+						</select>
+						<span id="replayCustom" class="d-none align-items-center gap-1">
+							<input type="datetime-local" class="form-control form-control-sm w-auto" id="replayFrom" aria-label="From">
+							<span>to</span>
+							<input type="datetime-local" class="form-control form-control-sm w-auto" id="replayTo" aria-label="To">
+						</span>
+						<button class="btn btn-sm btn-primary" id="replayLoad">Load</button>
+						<button type="button" class="btn btn-sm btn-outline-secondary" id="replayPlay" disabled title="Play or pause (space)">Play</button>
+						<select id="replaySpeed" class="form-select form-select-sm w-auto" data-pref="world3d.replaySpeed" title="Speed">
+							<option value="1">1&times;</option><option value="10">10&times;</option><option value="60" selected>60&times;</option>
+							<option value="300">300&times;</option><option value="1800">1800&times;</option>
+						</select>
+						<input type="range" class="form-range flex-grow-1 w-auto" id="replayScrub" min="0" max="1" step="1" value="0" disabled aria-label="Replay time">
+						<span id="replayTime" class="text-nowrap font-monospace"></span>
+						<select id="trailLength" class="form-select form-select-sm w-auto" data-pref="world3d.trail" title="Trail">
+							<option value="0">No trails</option><option value="60">1 minute trails</option><option value="300" selected>5 minute trails</option>
+							<option value="1800">30 minute trails</option><option value="1000000000">Whole trails</option>
+						</select>
+					</form>
+					{% endif %}
+					{% if can.reports_view %}
+					<form class="d-none flex-wrap align-items-center gap-2 small" id="heatBar" aria-label="Heat map timelapse">
+						<select id="heatKind" class="form-select form-select-sm w-auto" data-pref="world3d.heatKind" title="Event"></select>
+						<select id="heatProperty" class="form-select form-select-sm w-auto" title="Property: each property is its own instance of this zone" hidden></select>
+						<select id="heatDays" class="form-select form-select-sm w-auto" data-pref="world3d.heatDays" title="Days">
+							<option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option>
+						</select>
+						<select id="heatWindow" class="form-select form-select-sm w-auto" data-pref="world3d.heatWindow" title="Each frame shows">
+							<option value="1" selected>One day a frame</option><option value="7">Seven days a frame</option><option value="100000">Everything so far</option>
+						</select>
+						<button class="btn btn-sm btn-primary" id="heatLoad">Load</button>
+						<button type="button" class="btn btn-sm btn-outline-secondary" id="heatPlay" disabled>Play</button>
+						<input type="range" class="form-range flex-grow-1 w-auto" id="heatScrub" min="0" max="0" step="1" value="0" disabled aria-label="Day">
+						<span id="heatTime" class="text-nowrap font-monospace"></span>
+						<span class="text-nowrap"><span id="heatMin">0</span> <span class="heat-legend" id="heatLegend"></span> <span id="heatMax"></span></span>
+					</form>
+					{% endif %}
+				</div>
+			</div>
+		<div class="offcanvas-lg offcanvas-bottom world-panel-wrap" tabindex="-1" id="worldPanel" aria-label="Players, selection and layers">
+			<div class="card world-panel h-100 w-100 d-flex flex-column">
+				<div class="card-header p-1">
+					<ul class="nav nav-pills nav-fill small" role="tablist">
+						<li class="nav-item" role="presentation"><button class="nav-link active py-1" data-bs-toggle="pill" data-bs-target="#tabPlayers" type="button" role="tab">Players <span class="badge text-bg-secondary" id="playerCount">0</span></button></li>
+						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabSelected" type="button" role="tab" id="selectedTabBtn">Selected</button></li>
+						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabLayers" type="button" role="tab">Layers</button></li>
+					</ul>
+				</div>
+				<div class="tab-content flex-grow-1 overflow-hidden">
+					<div class="tab-pane show active h-100 p-2" id="tabPlayers" role="tabpanel">
+						<input type="search" class="form-control form-control-sm mb-2" id="playerSearch" placeholder="Filter players" aria-label="Filter players">
+						<div class="list-group list-group-flush small" id="playerList"></div>
+					</div>
+					<div class="tab-pane h-100 p-2 small" id="tabSelected" role="tabpanel">
+						<div id="selectionInfo"><span class="text-body-secondary">Click a player or an object.</span></div>
+					</div>
+					<div class="tab-pane h-100 p-2 small" id="tabLayers" role="tabpanel">
+						<div class="fw-semibold mb-1">View</div>
+						<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="terrainToggle" data-pref="world3d.terrain" checked><label class="form-check-label" for="terrainToggle">Terrain</label></div>
+							<label class="visually-hidden" for="terrainLook">Terrain layer</label>
+							<select id="terrainLook" class="form-select form-select-sm w-auto" data-pref="world3d.terrainLook" title="Which layer of the zone's terrain file to show">
+								<option value="0" selected>Textured</option>
+								<option value="1">Color map</option>
+								<option value="2">Texture blend map</option>
+								<option value="3">Scenes</option>
+							</select>
+							<div class="form-check form-switch mb-0 small" title="Every object's model, drawn from the game client's files"><input class="form-check-input" type="checkbox" id="sceneryToggle" data-pref="world3d.models" checked><label class="form-check-label" for="sceneryToggle">Scenery</label></div>
+							<label class="visually-hidden" for="sceneryDetail">Detail</label>
+							<select id="sceneryDetail" class="form-select form-select-sm w-auto" data-pref="world3d.modelDetail" title="Detail: how far scenery is drawn and how sharp">
+								<option value="0">High detail</option>
+								<option value="1" selected>Medium detail</option>
+								<option value="2">Low detail</option>
+							</select>
+							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="labelsToggle" data-pref="world3d.labels" checked><label class="form-check-label" for="labelsToggle">Names</label></div>
+							<div class="form-check form-switch mb-0 small" title="The zone's sky, as the game draws it (with Scenery on)"><input class="form-check-input" type="checkbox" id="skyToggle" data-pref="world3d.sky" checked><label class="form-check-label" for="skyToggle">Sky</label></div>
+							<div class="form-check form-switch mb-0 small" title="Also draw, see-through, the models of objects the game doesn't draw: trigger and blocking volumes (with Scenery on)"><input class="form-check-input" type="checkbox" id="hiddenToggle" data-pref="world3d.hidden"><label class="form-check-label" for="hiddenToggle">Hidden objects</label></div>
+						</div>
+						<div class="fw-semibold mb-1">Terrain</div>
+						<div class="form-check" title="The grass, flowers and small rocks the terrain file strews over the ground, drawn near the camera like the game does (with Models on)"><input class="form-check-input" type="checkbox" id="flairToggle" data-pref="world3d.flairs" checked><label class="form-check-label" for="flairToggle">Flairs <span class="text-body-secondary" id="flairCount"></span></label></div>
+						<div id="sceneLegend" class="mt-1 mb-3"></div>
+						<div class="fw-semibold mb-1">Objects</div>
+						<div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="clientOnlyToggle" data-pref="world3d.clientOnly"><label class="form-check-label" for="clientOnlyToggle">Objects only the client loads</label></div>
+						<div class="form-check mb-1" title="With Models on, objects drawn with their model get no marker unless this is on (they can still be clicked)"><input class="form-check-input" type="checkbox" id="modelMarkersToggle" data-pref="world3d.modelMarkers"><label class="form-check-label" for="modelMarkersToggle">Markers on objects with a model</label></div>
+						<div id="kindList" class="mb-3"></div>
+						<div class="fw-semibold mb-1">Paths</div>
+						<div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="pathsToggle" data-pref="world3d.paths"><label class="form-check-label" for="pathsToggle">Paths from the zone file <span class="text-body-secondary" id="pathCount"></span></label></div>
+						<div id="pathList" class="mb-3 ms-3"></div>
+						<div class="fw-semibold mb-1">Places</div>
+						<div class="form-check"><input class="form-check-input" type="checkbox" id="spawnToggle" data-pref="world3d.spawns" checked><label class="form-check-label" for="spawnToggle">Spawn points <span class="text-body-secondary" id="spawnCount"></span></label></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="importmap">
+{
+	"imports": {
+		"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+		"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+	},
+	"integrity": {
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js": "sha384-IDC7sAMAIMB/TZ6dgKKPPAKZ2bXXXP8+FBMBC8cU319eBhKITx+PaalhfDkDNH28",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js": "sha384-aJoe4qqS/DgF2jh9njAuvA6QIveJYoCuYOfYjdFY8P3eawzmc9bEQ40jq2TvOyuP",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/environments/RoomEnvironment.js": "sha384-9ItPPH2vgKbkvgrqTKq7ptGYe+WuAnqlZtlqleJW4/CJjnM5R7C+efD6iS7ADPJ9"
+	}
+}
+</script>
+<script type="module" src="/js/world3d.js"></script>
+{% endblock %}

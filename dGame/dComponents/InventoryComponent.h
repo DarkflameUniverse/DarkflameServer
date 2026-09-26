@@ -40,6 +40,21 @@ namespace GameMessages {
  * of different types, each type representing a different group of items, see `eInventoryType` for a list of
  * inventories.
  */
+// Where and how ReceiveItem puts items; the defaults suit items arriving from someone else
+struct ReceiveItemOptions {
+	eInventoryType inventory = INVALID;        // INVALID: the item's usual inventory
+	bool showFlyingLoot = true;
+	bool equip = false;
+	int32_t preferredSlot = -1;
+	eInventoryType sourceInventory = INVALID;  // set when moving between the player's own inventories
+};
+
+// Which item or stack ReceiveItem put the items in
+struct ReceivedItem {
+	LWOOBJID id = LWOOBJID_EMPTY;  // LWOOBJID_EMPTY if nothing could be added
+	bool merged = false;           // joined a stack that was already there (and has a history of its own)
+};
+
 class InventoryComponent final : public Component {
 public:
 	struct Group {
@@ -144,6 +159,19 @@ public:
 		bool bound = false,
 		int32_t preferredSlot = -1
 	);
+
+	/**
+	 * Receive items that already exist elsewhere (another player's inventory, the mail), keeping them traceable:
+	 * - a unique item (does not stack, or carries config/subkey) keeps its object id
+	 * - stackable items merge into this inventory's stack of the same LOT if there is one, taking that stack's id;
+	 *   with nothing to merge into, a whole stack keeps its id and a partial one gets a new id
+	 * @param id the items' current object id, or LWOOBJID_EMPTY for part of a stack
+	 * @return the object id of the item or stack that received them, and whether that stack was already there
+	 */
+	ReceivedItem ReceiveItem(LWOOBJID id, LOT lot, uint32_t count, eLootSourceType lootSourceType, const LwoNameValue& config = {}, LWOOBJID subKey = LWOOBJID_EMPTY, bool bound = false, const ReceiveItemOptions& options = {});
+
+	// Whether items of this LOT are one of a kind rather than stacking
+	static bool IsUniqueLot(LOT lot);
 
 	/**
 	 * Removes a LOT from the inventory

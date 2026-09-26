@@ -1,5 +1,7 @@
 #include "InstanceManager.h"
 #include <string>
+#include <algorithm>
+#include <chrono>
 #include "Game.h"
 #include "dServer.h"
 #include "Logger.h"
@@ -7,6 +9,7 @@
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
+#include "Database.h"
 #include "MasterPackets.h"
 #include "BitStreamUtils.h"
 #include "ServiceType.h"
@@ -323,17 +326,77 @@ const InstancePtr& InstanceManager::FindPrivateInstance(const std::string& passw
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
+	const auto limit = m_ZoneLimits.find(mapID);
+	if (limit != m_ZoneLimits.end() && limit->second.softCap) return std::min(static_cast<int>(*limit->second.softCap), GetHardCap(mapID));
+
 	const CDZoneTable* zone = CDZoneTableTable::Query(mapID);
 
 	// Default to 8 which is the cap for most worlds.
-	return zone ? zone->population_soft_cap : 8;
+	return std::min(zone ? static_cast<int>(zone->population_soft_cap) : 8, GetHardCap(mapID));
 }
 
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
+	const auto limit = m_ZoneLimits.find(mapID);
+	if (limit != m_ZoneLimits.end() && limit->second.hardCap) return static_cast<int>(*limit->second.hardCap);
+
 	const CDZoneTable* zone = CDZoneTableTable::Query(mapID);
 
 	// Default to 12 which is the cap for most worlds.
 	return zone ? zone->population_hard_cap : 12;
+}
+
+void InstanceManager::LoadZoneLimits() {
+	std::vector<IServerOperations::ZoneLimit> rows;
+	try {
+		rows = Database::Get()->GetZoneLimits();
+	} catch (const std::exception& ex) {
+		LOG("Could not load zone limits, using the client's caps: %s", ex.what());
+		return;
+	}
+	m_ZoneLimits.clear();
+	for (auto& row : rows) {
+		if (row.zoneId == 0) continue; // character selection is never capped
+		LOG("Zone %u: soft cap %s, hard cap %s, %u spare instance(s)", row.zoneId, row.softCap ? std::to_string(*row.softCap).c_str() : "default",
+			row.hardCap ? std::to_string(*row.hardCap).c_str() : "default", row.spareInstances);
+		m_ZoneLimits[row.zoneId] = std::move(row);
+	}
+	for (const auto& instance : m_Instances) {
+		if (!instance || instance->GetIsPrivate() || instance->GetMapID() == 0) continue;
+		instance->SetCaps(GetSoftCap(instance->GetMapID()), GetHardCap(instance->GetMapID()));
+	}
+}
+
+void InstanceManager::KeepSpareInstances() {
+	if (m_IsShuttingDown) return;
+	const auto now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	for (const auto& [mapID, limit] : m_ZoneLimits) {
+		if (limit.spareInstances == 0) continue;
+		// Follow the spare we started last: one that stops soon after starting counts as a failure and delays the next
+		auto& backoff = m_SpareBackoff[mapID];
+		if (const auto watched = backoff.Watched()) {
+			const auto it = std::find_if(m_Instances.begin(), m_Instances.end(), [&](const InstancePtr& instance) {
+				return instance && instance->GetMapID() == mapID && instance->GetInstanceID() == watched && !instance->GetShutdownComplete();
+			});
+			if (it == m_Instances.end()) {
+				backoff.Lost(now);
+				LOG("Spare instance %u of zone %u stopped soon after starting; waiting %lld s before starting another", watched, mapID,
+					static_cast<long long>(SpareBackoff::Delay(backoff.Failures())));
+			} else {
+				backoff.Running((*it)->GetIsReady(), now);
+			}
+		}
+		if (!backoff.CanStart(now)) continue;
+		uint32_t withRoom = 0;
+		for (const auto& instance : m_Instances) {
+			// One still starting counts: it has room, and starting another would double up
+			if (instance && instance->GetMapID() == mapID && instance->GetCloneID() == 0 && !instance->GetIsPrivate() &&
+				!instance->GetShutdownComplete() && !instance->GetIsShuttingDown() && !instance->IsFull(false)) withRoom++;
+		}
+		if (withRoom >= limit.spareInstances) continue;
+		LOG("Zone %u has %u instance(s) with room and should have %u; starting one", mapID, withRoom, limit.spareInstances);
+		const auto& started = CreateInstance(mapID, 0);
+		if (started) backoff.Started(started->GetInstanceID());
+	}
 }
 
 void InstanceManager::PruneUnreadyInstances() {

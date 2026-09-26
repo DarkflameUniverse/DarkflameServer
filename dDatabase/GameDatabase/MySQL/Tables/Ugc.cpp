@@ -71,7 +71,8 @@ void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstrea
 }
 
 std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
-	auto result = ExecuteSelect("SELECT u.id AS ugcID, lxfml, pc.id AS modelID FROM ugc AS u JOIN properties_contents AS pc ON pc.ugc_id = u.id WHERE u.id = ?", ugcId);
+	// LEFT JOIN: a model that is in someone's inventory rather than placed on a property still exists
+	auto result = ExecuteSelect("SELECT u.id AS ugcID, lxfml, pc.id AS modelID FROM ugc AS u LEFT JOIN properties_contents AS pc ON pc.ugc_id = u.id WHERE u.id = ? LIMIT 1;", ugcId);
 
 	std::optional<IUgc::Model> toReturn = std::nullopt;
 	if (result->next()) {

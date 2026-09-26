@@ -1,0 +1,16 @@
+# Example Prometheus scrape config for the DarkflameServer dashboard's /metrics.
+# Switch metrics_enabled on (Settings > Dashboard > Metrics) first. Then either:
+#  - set metrics_token on the Settings page and put the same value in the file below, or
+#  - make an API token on the account page of an account with the metrics_view permission and use that.
+# The dashboard works the numbers out at most every metrics_cache_seconds (10), so scraping more often gains nothing.
+scrape_configs:
+  - job_name: darkflame
+    scrape_interval: 30s
+    metrics_path: /metrics
+    # https if the dashboard is behind a reverse proxy with TLS
+    scheme: http
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/darkflame_metrics_token
+    static_configs:
+      - targets: ["127.0.0.1:2006"]

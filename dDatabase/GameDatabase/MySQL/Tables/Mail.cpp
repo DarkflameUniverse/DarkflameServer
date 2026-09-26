@@ -4,8 +4,8 @@
 void MySQLDatabase::InsertNewMail(const MailInfo& mail) {
 	ExecuteInsert(
 		"INSERT INTO `mail` "
-		"(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`)"
-		" VALUES (?,?,?,?,?,?,?,?,?,?,?,0)",
+		"(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `attachment_config`, `was_read`)"
+		" VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0)",
 		mail.senderId,
 		mail.senderUsername,
 		mail.receiverId,
@@ -15,8 +15,9 @@ void MySQLDatabase::InsertNewMail(const MailInfo& mail) {
 		mail.body,
 		mail.itemID,
 		mail.itemLOT,
-		0,
-		mail.itemCount);
+		mail.itemSubkey,
+		mail.itemCount,
+		mail.itemConfig);
 }
 
 std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) {
@@ -34,9 +35,9 @@ std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const LWOOBJID characterId
 		mail.subject = res->getString("subject").c_str();
 		mail.body = res->getString("body").c_str();
 		mail.senderUsername = res->getString("sender_name").c_str();
-		mail.itemID = res->getUInt("attachment_id");
+		mail.itemID = res->getInt64("attachment_id");
 		mail.itemLOT = res->getInt("attachment_lot");
-		mail.itemSubkey = res->getInt("attachment_subkey");
+		mail.itemSubkey = res->getInt64("attachment_subkey");
 		mail.itemCount = res->getInt("attachment_count");
 		mail.timeSent = res->getUInt64("time_sent");
 		mail.wasRead = res->getBoolean("was_read");
@@ -48,15 +49,20 @@ std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const LWOOBJID characterId
 }
 
 std::optional<MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
-	auto res = ExecuteSelect("SELECT attachment_lot, attachment_count, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
+	auto res = ExecuteSelect("SELECT sender_id, attachment_id, attachment_lot, attachment_subkey, attachment_count, attachment_config, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
 
 	if (!res->next()) {
 		return std::nullopt;
 	}
 
 	MailInfo toReturn;
+	toReturn.id = mailId;
+	toReturn.senderId = res->getInt64("sender_id");
+	toReturn.itemID = res->getInt64("attachment_id");
 	toReturn.itemLOT = res->getInt("attachment_lot");
+	toReturn.itemSubkey = res->getInt64("attachment_subkey");
 	toReturn.itemCount = res->getInt("attachment_count");
+	toReturn.itemConfig = res->isNull("attachment_config") ? "" : std::string(res->getString("attachment_config").c_str());
 	toReturn.receiverId = res->getUInt64("receiver_id");
 
 	return toReturn;

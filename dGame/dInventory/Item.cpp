@@ -1,4 +1,5 @@
 #include "Item.h"
+#include "EconomyLedger.h"
 
 #include <sstream>
 
@@ -105,6 +106,7 @@ Item::Item(
 	inventory->AddManagedItem(this);
 
 	auto* entity = inventoryComponent->GetParent();
+	if (parent == LWOOBJID_EMPTY) EconomyLedger::RecordItems(entity, lot, this->count, static_cast<uint32_t>(lootSourceType));
 	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
 
 	if (isModMoveAndEquip) {
@@ -189,6 +191,11 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 		} else {
 			GameMessages::SendRemoveItemFromInventory(entity, entity->GetSystemAddress(), id, lot, inventory->GetType(), delta, value);
 		}
+	}
+
+	// Proxies (sub-items of a set) come and go with their parent and are not items of their own
+	if (parent == LWOOBJID_EMPTY) {
+		EconomyLedger::RecordItems(inventory->GetComponent()->GetParent(), lot, static_cast<int64_t>(value) - static_cast<int64_t>(count), static_cast<uint32_t>(lootSourceType));
 	}
 
 	count = value;

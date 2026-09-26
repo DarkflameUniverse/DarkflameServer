@@ -1,0 +1,235 @@
+.sidebar {
+	width: 250px;
+	background-color: var(--bs-tertiary-bg);
+}
+
+@media (min-width: 992px) {
+	nav.sidebar {
+		position: sticky;
+		top: 0;
+		height: 100vh;
+		overflow-y: auto;
+	}
+}
+
+/* Narrow screens: the sidebar slides out (offcanvas-lg), and wide tables scroll sideways */
+@media (max-width: 991.98px) {
+	nav.sidebar.offcanvas-lg { width: min(280px, 85vw); overflow-y: auto; }
+	.dt-container .dt-layout-table, .dt-container .dt-layout-row:has(table) { overflow-x: auto; }
+}
+
+/* .table-stack: on phones every row becomes a small card, each cell labelled with its column */
+@media (max-width: 575.98px) {
+	.table-stack thead { display: none; }
+	.table-stack, .table-stack tbody, .table-stack tr, .table-stack td { display: block; width: 100% !important; }
+	.table-stack tr { border: 1px solid var(--bs-border-color); border-radius: .5rem; margin-bottom: .5rem; padding: .25rem 0; }
+	.table-stack td { border: 0; padding: .15rem .6rem; text-align: left !important; }
+	.table-stack td[data-label]:not([data-label=""])::before { content: attr(data-label) ": "; color: var(--bs-secondary-color); font-size: .8rem; }
+	.table-stack td:last-child { padding-top: .4rem; }
+	h2 { font-size: 1.4rem; }
+	.card-body { padding: .75rem; }
+	.table { font-size: .875rem; }
+	.table .btn-sm { padding: .15rem .4rem; }
+}
+
+.list-group-item {
+	border: none;
+	background-color: transparent;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+	background: var(--bs-primary) !important;
+	border-color: var(--bs-primary) !important;
+	color: #fff !important;
+}
+
+.item-icon {
+	width: 32px;
+	height: 32px;
+	object-fit: contain;
+}
+
+pre.log-output {
+	max-height: 70vh;
+	overflow: auto;
+	white-space: pre-wrap;
+	word-break: break-all;
+	font-size: 0.8rem;
+}
+
+.item-tooltip {
+	--bs-tooltip-bg: #11141a;
+	--bs-tooltip-color: #e9ecef;
+	--bs-tooltip-opacity: 0.97;
+}
+
+.item-tooltip .tooltip-inner {
+	max-width: 320px;
+	border: 1px solid #3a3f4b;
+	text-align: left;
+}
+
+.rarity-2 { color: #4fc948; }
+.rarity-3 { color: #3e8ee8; }
+.rarity-4 { color: #b44be1; }
+.item-equipped { color: #d16f05; }
+
+/* ---- Reports charts (palette validated against the dark card surface #212529) ---- */
+:root {
+	--viz-surface: #212529;
+	--viz-up: #3987e5;
+	--viz-down: #d95926;
+	--viz-grid: #2c2c2a;
+	--viz-baseline: #6c757d;
+	--viz-tick: #898781;
+	--viz-hover: rgba(255, 255, 255, 0.06);
+}
+
+.viz { width: 100%; min-height: 60px; }
+.viz svg { display: block; }
+.viz-grid { stroke: var(--viz-grid); stroke-width: 1; }
+.viz-baseline { stroke: var(--viz-baseline); stroke-width: 1; }
+.viz-tick { fill: var(--viz-tick); font-size: 11px; font-variant-numeric: tabular-nums; }
+.viz-up { fill: var(--viz-up); background: var(--viz-up); }
+.viz-down { fill: var(--viz-down); background: var(--viz-down); }
+.viz-hit { fill: transparent; cursor: crosshair; }
+.viz-hit.viz-hover { fill: var(--viz-hover); }
+.viz-num { font-variant-numeric: tabular-nums; }
+.viz-hero { font-size: 1.75rem; font-weight: 600; line-height: 1.2; }
+
+.viz-legend { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--bs-secondary-color); }
+.viz-key { display: inline-flex; align-items: center; gap: 0.4rem; }
+.viz-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+.viz-tooltip {
+	position: fixed;
+	z-index: 1080;
+	pointer-events: none;
+	min-width: 160px;
+	padding: 0.5rem 0.65rem;
+	font-size: 0.85rem;
+	color: var(--bs-body-color);
+	background: #11141a;
+	border: 1px solid #3a3f4b;
+	border-radius: 6px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.viz-tip-row { display: flex; align-items: center; gap: 0.4rem; }
+
+.viz-map { position: relative; width: 100%; }
+.viz-map canvas { display: block; max-width: 100%; border-radius: 4px; cursor: crosshair; }
+.viz-scale { display: inline-flex; align-items: center; gap: 0.5rem; }
+.viz-ramp {
+	display: inline-block;
+	width: 120px;
+	height: 8px;
+	border-radius: 4px;
+	background: linear-gradient(to right, #184f95, #2a78d6, #6da7ec, #cde2fb);
+}
+.viz-scroll { max-height: 22rem; overflow-y: auto; }
+/* In a card that fills the window (.panel-fill) the map takes the room left and reports.js fits the canvas, centred, into it */
+@media (min-width: 992px) {
+	.panel-fill .viz-map { flex: 1 1 auto; min-height: 0; }
+	.panel-fill .viz-map canvas { position: absolute; inset: 0; margin: auto; }
+}
+@media (min-width: 1200px) { .panel-stack-xl .viz-scroll { max-height: none; } }
+
+#itemLot { min-width: 18rem; }
+#traceId { min-width: 16rem; }
+
+.qr-box { width: 180px; height: 180px; background: #fff; border-radius: 6px; padding: 0; }
+.qr-box svg { width: 100%; height: 100%; display: block; }
+
+/* Sidebar groups that fold away; the dot shows while a closed group holds a waiting badge */
+.nav-group { margin-top: .25rem; }
+.nav-group-toggle {
+	display: flex; align-items: center; gap: .4rem; width: 100%;
+	padding: .45rem 1rem; border: 0; background: none;
+	color: var(--bs-secondary-color); font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; text-align: left;
+}
+.nav-group-toggle:hover { color: var(--bs-body-color); }
+.nav-group-toggle::after {
+	content: ""; margin-left: auto; width: .45rem; height: .45rem;
+	border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+	transform: rotate(45deg); transition: transform .15s;
+}
+.nav-group-toggle[aria-expanded="false"]::after { transform: rotate(-45deg); }
+.nav-group-dot { display: none; width: .45rem; height: .45rem; border-radius: 50%; background: var(--bs-danger); }
+.nav-group:has(.collapse:not(.show) [data-badge]:not(.d-none)) .nav-group-dot { display: inline-block; }
+.sidebar .list-group-item { padding: .4rem 1rem; border-radius: .375rem; }
+.sidebar .nav-group .list-group-item { padding-left: 1.5rem; }
+
+/* Top bar: the signed-in user's menu sits at the right */
+.topbar { z-index: 1020; min-height: 3rem; }
+.user-avatar {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 1.9rem; height: 1.9rem; border-radius: 50%;
+	background: var(--bs-primary); color: #fff; font-weight: 600; font-size: .85rem;
+}
+
+/* The page column: clip wide content sideways without becoming a scroll container (that would stop position: sticky) */
+.main-column { min-width: 0; overflow-x: clip; }
+
+/* ---- Layout helpers that save page scrolling (dashboard.js keeps --topbar-h and --fill-top current) ---- */
+:root { --topbar-h: 3.5rem; }
+
+/* .fill-viewport[-lg|-xl]: reaches from where it starts to the bottom of the window, so the page needn't scroll while you
+   work in it (a map, a list with its details). The -lg/-xl forms only do so from that width up; below it they size to their content. */
+.fill-viewport { height: calc(100dvh - var(--fill-top, 12rem)); min-height: var(--fill-min, 20rem); }
+@media (min-width: 992px) { .fill-viewport-lg { height: calc(100dvh - var(--fill-top, 12rem)); min-height: var(--fill-min, 20rem); } }
+@media (min-width: 1200px) { .fill-viewport-xl { height: calc(100dvh - var(--fill-top, 12rem)); min-height: var(--fill-min, 20rem); } }
+/* A filling .row passes its height on to its columns */
+.row.fill-viewport > * { height: 100%; }
+@media (min-width: 992px) { .row.fill-viewport-lg > * { height: 100%; } }
+@media (min-width: 1200px) { .row.fill-viewport-xl > * { height: 100%; } }
+
+/* .panel-fill: a card whose body takes the height left under its header and scrolls inside (.panel-scroll does the same for any box) */
+.panel-fill { display: flex; flex-direction: column; min-height: 0; }
+.panel-fill > .card-body, .panel-fill > .list-group, .panel-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.panel-fill > .card-header, .panel-fill > .card-footer { flex: none; }
+/* .panel-cap: a .panel-fill card that grows with its content up to most of a window, then scrolls inside (lists that can get long) */
+.panel-cap { max-height: min(36rem, 70dvh); }
+/* Table headers stay at the top of a scrolling panel (a .table-responsive inside would otherwise become the scroll box) */
+.panel-fill > .card-body .table-responsive, .panel-scroll .table-responsive { overflow: visible; }
+.panel-fill thead th, .panel-scroll thead th, .sticky-head thead th {
+	position: sticky; top: 0; z-index: 2;
+	background: var(--bs-card-bg, var(--bs-body-bg)); box-shadow: inset 0 -1px 0 var(--bs-border-color);
+}
+
+/* .panel-stack-xl: a side column whose cards share the height of the row's main content (its tallest neighbour) from xl up,
+   each .panel-fill card scrolling inside; below xl the cards just stack. Wrap the cards in .panel-stack-xl > .panel-stack-inner. */
+@media (min-width: 1200px) {
+	.panel-stack-xl { position: relative; height: 100%; min-height: 20rem; }
+	.panel-stack-xl > .panel-stack-inner { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 1rem; }
+	.panel-stack-xl > .panel-stack-inner > * { margin: 0 !important; }
+	.panel-stack-xl > .panel-stack-inner > .panel-fill { flex: 1 1 0; }
+	.panel-stack-xl > .panel-stack-inner > .panel-fit { flex: 0 1 auto; max-height: 50%; }
+}
+
+/* .sticky-toolbar: filters and buttons that stay under the top bar while the content below scrolls */
+.sticky-toolbar { position: sticky; top: var(--topbar-h); z-index: 5; background: var(--bs-body-bg); padding-top: .5rem; padding-bottom: .5rem; }
+
+/* Long lists in DataTables keep their column headers in view under the top bar (on narrow screens the table scrolls sideways instead) */
+@media (min-width: 992px) {
+	table.dataTable > thead > tr > th {
+		position: sticky; top: var(--topbar-h); z-index: 2;
+		background: var(--bs-card-bg, var(--bs-body-bg)); box-shadow: inset 0 -1px 0 var(--bs-border-color);
+	}
+	.panel-fill table.dataTable > thead > tr > th, .panel-scroll table.dataTable > thead > tr > th { top: 0; }
+	.modal table.dataTable > thead > tr > th { position: static; }
+}
+
+/* details.about-text: a page's longer explanation, folded to one line until asked for (Ctrl+F still finds and opens it) */
+details.about-text > summary {
+	display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; list-style: none;
+	color: var(--bs-secondary-color); font-size: .875rem;
+}
+details.about-text > summary::-webkit-details-marker { display: none; }
+details.about-text > summary::before {
+	content: "?"; display: inline-flex; align-items: center; justify-content: center; width: 1.1rem; height: 1.1rem; border-radius: 50%;
+	border: 1px solid currentColor; font-size: .7rem; font-weight: 600;
+}
+details.about-text > summary:hover { color: var(--bs-body-color); }
+details.about-text[open] > summary { margin-bottom: .35rem; }
+details.about-text > :not(summary) { color: var(--bs-secondary-color); font-size: .875rem; }

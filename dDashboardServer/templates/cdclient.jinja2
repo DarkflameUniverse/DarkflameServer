@@ -1,0 +1,60 @@
+{% extends "base.jinja2" %}
+
+{% block title %}CDClient Browser - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.cdc-kv th { width: 14rem; font-weight: normal; color: var(--bs-secondary-color); }
+	.cdc-kv td, .cdc-rows td { font-family: var(--bs-font-monospace); font-size: .82rem; }
+	.cdc-kv td { word-break: break-word; }
+	.cdc-rows { font-size: .82rem; }
+	.cdc-rows th { white-space: nowrap; }
+	.cdc-rows-wrap { overflow-x: auto; }
+	.cdc-tables { columns: 14rem auto; column-gap: 1rem; }
+	.cdc-tables a { display: block; break-inside: avoid; }
+	.cdc-tree details { margin-left: 1rem; border-left: 2px solid var(--bs-border-color); padding-left: .5rem; }
+	.cdc-tree summary { cursor: pointer; }
+	.cdc-tree .params { font-size: .8rem; margin: .25rem 0 .25rem 1rem; }
+	.cdc-tree .params td { padding: 0 .75rem 0 0; font-family: var(--bs-font-monospace); }
+	.cdc-model { height: 420px; }
+	.cdc-chip { display: inline-block; margin: 0 .25rem .25rem 0; }
+	.cdc-null { color: var(--bs-tertiary-color); }
+	.cdc-icon { width: 20px; height: 20px; object-fit: contain; vertical-align: -4px; margin-right: .25rem; }
+	.cdc-odds td, .cdc-odds th { font-size: .85rem; }
+	.cdc-odds .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+	.cdc-stat { font-size: 1.25rem; font-weight: 600; }
+	.cdc-expr { line-height: 2; }
+	details > summary { cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="cdclientPage">
+	<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+		<h2 class="mb-0 me-auto"><a href="#/" class="text-decoration-none text-body">CDClient Browser</a></h2>
+		<form class="d-flex gap-2" id="searchForm" role="search">
+			<input class="form-control form-control-sm" id="searchInput" placeholder="Name or ID" aria-label="Search the CDClient" style="min-width: 16rem">
+			<button class="btn btn-sm btn-primary">Search</button>
+		</form>
+	</div>
+	<div id="view"><div class="text-body-secondary">Loading&hellip;</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="importmap">
+{
+	"imports": {
+		"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+		"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+	},
+	"integrity": {
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js": "sha384-IDC7sAMAIMB/TZ6dgKKPPAKZ2bXXXP8+FBMBC8cU319eBhKITx+PaalhfDkDNH28",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js": "sha384-aJoe4qqS/DgF2jh9njAuvA6QIveJYoCuYOfYjdFY8P3eawzmc9bEQ40jq2TvOyuP",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/environments/RoomEnvironment.js": "sha384-9ItPPH2vgKbkvgrqTKq7ptGYe+WuAnqlZtlqleJW4/CJjnM5R7C+efD6iS7ADPJ9"
+	}
+}
+</script>
+<script src="/js/ldd-materials.js"></script>
+<script src="/js/cdclient.js"></script>
+{% endblock %}

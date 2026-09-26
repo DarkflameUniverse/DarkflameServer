@@ -1,0 +1,159 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Server Health - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.health-chart { width: 100%; height: 170px; display: block; }
+	.health-chart .grid { stroke: var(--bs-border-color); stroke-width: 1; }
+	.health-chart .axis { fill: var(--bs-secondary-color); font-size: 11px; }
+	.health-chart .line { fill: none; stroke-width: 2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Server Health</h2>
+		<p class="text-body-secondary mb-0">Recorded once a minute by the dashboard. Prometheus can read these and more from <code>/metrics</code> once <code>metrics_enabled</code> is on in Settings (API token with <code>metrics_view</code>, or <code>metrics_token</code>).</p>
+	</div>
+	<div class="btn-group btn-group-sm" role="group" aria-label="Range">
+		<input type="radio" class="btn-check" name="healthRange" id="range24h" value="24h" checked><label class="btn btn-outline-secondary" for="range24h">24 hours</label>
+		<input type="radio" class="btn-check" name="healthRange" id="range7d" value="7d"><label class="btn btn-outline-secondary" for="range7d">7 days</label>
+		<input type="radio" class="btn-check" name="healthRange" id="range30d" value="30d"><label class="btn btn-outline-secondary" for="range30d">30 days</label>
+	</div>
+</div>
+
+<div class="row g-3 mb-3" id="healthNow"></div>
+
+<div class="row g-3">
+	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Players online (highest)</h5></div><div class="card-body"><svg class="health-chart" id="chartPlayers" role="img" aria-label="Players online over time"></svg></div></div></div>
+	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Worlds running</h5></div><div class="card-body"><svg class="health-chart" id="chartWorlds" role="img" aria-label="Worlds running over time"></svg></div></div></div>
+	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Memory (all servers)</h5></div><div class="card-body"><svg class="health-chart" id="chartMemory" role="img" aria-label="Memory over time"></svg></div></div></div>
+	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Auth and chat servers</h5></div><div class="card-body" id="uptime"></div></div></div>
+</div>
+
+{% if can.logs_system %}
+<div class="card mt-3">
+	<div class="card-header"><h5 class="mb-0">Crash dumps</h5></div>
+	<div class="card-body table-responsive" id="dumps"><p class="text-body-secondary mb-0">Loading&hellip;</p></div>
+</div>
+<div class="modal fade" id="dumpModal" tabindex="-1" aria-labelledby="dumpTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title font-monospace fs-6" id="dumpTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body"><pre class="log-output mb-0" id="dumpText"></pre></div>
+		</div>
+	</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var nf = new Intl.NumberFormat();
+	var range = '24h';
+
+	function size(kb) {
+		if (kb >= 1048576) return (kb / 1048576).toFixed(2) + ' GB';
+		if (kb >= 1024) return Math.round(kb / 1024) + ' MB';
+		return Math.max(1, Math.round(kb)) + ' kB';
+	}
+
+	// A simple line chart: x is time, y from 0 to the highest value
+	function chart(svg, points, from, to, color, format) {
+		var width = svg.clientWidth || 600, height = 170, left = 44, bottom = 20, top = 8;
+		var max = Math.max(1, Math.max.apply(null, points.map(function (p) { return p[1]; })));
+		max = Math.max(2, Math.ceil(max / 2) * 2); // whole numbers at the half-way line
+		var x = function (t) { return left + (t - from) / (to - from) * (width - left - 6); };
+		var y = function (v) { return top + (1 - v / max) * (height - top - bottom); };
+		var html = '';
+		[0, 0.5, 1].forEach(function (f) {
+			html += '<line class="grid" x1="' + left + '" x2="' + width + '" y1="' + y(max * f) + '" y2="' + y(max * f) + '"/>' +
+				'<text class="axis" x="' + (left - 4) + '" y="' + (y(max * f) + 4) + '" text-anchor="end">' + esc(format(max * f)) + '</text>';
+		});
+		[from, (from + to) / 2, to].forEach(function (t, i) {
+			var d = new Date(t * 1000);
+			var label = range === '24h' ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+			html += '<text class="axis" x="' + x(t) + '" y="' + (height - 4) + '" text-anchor="' + ['start', 'middle', 'end'][i] + '">' + esc(label) + '</text>';
+		});
+		if (points.length) {
+			html += '<polyline class="line" stroke="' + color + '" points="' + points.map(function (p) { return x(p[0]).toFixed(1) + ',' + y(p[1]).toFixed(1); }).join(' ') + '"/>';
+			// With few samples (e.g. just after the first start) show each one, since a line needs two
+			if (points.length < 60) html += points.map(function (p) { return '<circle cx="' + x(p[0]).toFixed(1) + '" cy="' + y(p[1]).toFixed(1) + '" r="4" fill="' + color + '"><title>' + esc(new Date(p[0] * 1000).toLocaleString() + ': ' + format(p[1])) + '</title></circle>'; }).join('');
+		} else {
+			html += '<text class="axis" x="' + (width / 2) + '" y="' + (height / 2) + '" text-anchor="middle">No samples yet</text>';
+		}
+		svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+		svg.innerHTML = html;
+	}
+
+	function uptime(samples, from, to) {
+		var rows = [['auth', 'Auth server'], ['chat', 'Chat server']].map(function (s) {
+			var up = samples.filter(function (p) { return p[s[0]]; }).length;
+			var percent = samples.length ? (up / samples.length * 100) : 0;
+			var bars = samples.map(function (p) {
+				return '<span title="' + esc(new Date(p.time * 1000).toLocaleString()) + '" style="flex: 1; min-width: 1px; background: var(--bs-' + (p[s[0]] ? 'success' : 'danger') + ')"></span>';
+			}).join('');
+			return '<div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span>' + s[1] + '</span><span>' + (samples.length ? percent.toFixed(1) + '% up' : 'no samples') + '</span></div>' +
+				'<div class="d-flex rounded overflow-hidden" style="height: 18px">' + bars + '</div></div>';
+		});
+		document.getElementById('uptime').innerHTML = rows.join('') + '<p class="small text-body-secondary mb-0">Red means the server was not connected when the sample was taken.</p>';
+	}
+
+	function load() {
+		api.get('/api/health?range=' + range).then(function (d) {
+			if (!d.success) return;
+			var c = d.current;
+			document.getElementById('healthNow').innerHTML = [
+				['Players online', nf.format(c.players)], ['Worlds running', nf.format(c.worlds)],
+				['Auth / chat', (c.auth ? 'up' : 'DOWN') + ' / ' + (c.chat ? 'up' : 'DOWN')], ['Memory', c.memory_kb ? size(c.memory_kb) : 'n/a']
+			].map(function (s) {
+				return '<div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-3"><div class="text-body-secondary small text-uppercase mb-1">' + s[0] + '</div><div class="fs-4 fw-bold">' + esc(s[1]) + '</div></div></div></div>';
+			}).join('');
+			chart(document.getElementById('chartPlayers'), d.samples.map(function (s) { return [s.time, s.players]; }), d.from, d.to, 'var(--bs-primary)', function (v) { return nf.format(v); });
+			chart(document.getElementById('chartWorlds'), d.samples.map(function (s) { return [s.time, s.worlds]; }), d.from, d.to, 'var(--bs-info)', function (v) { return nf.format(v); });
+			chart(document.getElementById('chartMemory'), d.samples.map(function (s) { return [s.time, s.memory_kb]; }), d.from, d.to, 'var(--bs-warning)', size);
+			uptime(d.samples, d.from, d.to);
+		});
+	}
+
+	function loadDumps() {
+		var box = document.getElementById('dumps');
+		if (!box) return;
+		api.get('/api/crash_dumps').then(function (d) {
+			if (!d.success) { box.innerHTML = '<p class="text-danger mb-0">' + esc(d.error) + '</p>'; return; }
+			if (!d.folder) { box.innerHTML = '<p class="text-body-secondary mb-0">Set <code>dump_folder</code> (and <code>generate_dump</code> for world servers) on the Settings page to keep crash dumps.</p>'; return; }
+			box.innerHTML = d.files.length ? '<table class="table table-sm align-middle mb-0"><thead><tr><th>File</th><th>When</th><th class="text-end">Size</th><th></th></tr></thead><tbody>' +
+				d.files.map(function (f) {
+					var url = '/api/crash_dumps/' + encodeURIComponent(f.name);
+					// Linux writes a text backtrace (.log); Windows memory dumps (.dmp) can only be downloaded
+					var readable = /\.(log|txt)$/i.test(f.name);
+					return '<tr><td><code>' + esc(f.name) + '</code></td><td>' + esc(fmt.unix(f.time)) + '</td><td class="text-end">' + esc(size(f.size / 1024)) + '</td>' +
+						'<td class="text-end text-nowrap">' + (readable ? '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-view-dump="' + esc(url) + '" data-name="' + esc(f.name) + '">View</button>' : '') +
+						'<a class="btn btn-sm btn-outline-secondary" href="' + esc(url) + '">Download</a></td></tr>';
+				}).join('') + '</tbody></table>' : '<p class="text-body-secondary mb-0">No crash dumps in <code>' + esc(d.folder) + '</code>. Good.</p>';
+		});
+	}
+
+	document.addEventListener('click', function (e) {
+		var view = e.target.closest('[data-view-dump]');
+		if (!view) return;
+		fetch(view.dataset.viewDump, { credentials: 'same-origin', headers: { 'X-Requested-With': 'dashboard' } }).then(function (r) { return r.text(); }).then(function (text) {
+			document.getElementById('dumpTitle').textContent = view.dataset.name;
+			document.getElementById('dumpText').textContent = text;
+			bootstrap.Modal.getOrCreateInstance(document.getElementById('dumpModal')).show();
+		});
+	});
+
+	document.querySelectorAll('input[name="healthRange"]').forEach(function (r) {
+		r.addEventListener('change', function () { range = r.value; load(); });
+	});
+	window.addEventListener('resize', Live.throttle(load, 500));
+	setInterval(load, 60000);
+	load();
+	loadDumps();
+})();
+</script>
+{% endblock %}

@@ -250,3 +250,47 @@ TEST_F(LDFTests, LDFSpeedTest) {
 }
 
 #endif //PERF
+
+TEST_F(LDFTests, LwoNameValueLinesRoundTrip) {
+	LwoNameValue config;
+	config.Insert<int32_t>("modelType", 2);
+	config.Insert<LWOOBJID>("userModelID", 1152921510436607007);
+	config.Insert<std::u16string>("userModelName", u"My House: v2");
+	config.Insert<bool>("userModelHasBhvr", true);
+
+	LwoNameValue parsed;
+	parsed.InsertLines(config.ToLines());
+	ASSERT_EQ(parsed.values.size(), 4);
+	for (const auto& [key, value] : config.values) {
+		const auto it = parsed.find(key);
+		ASSERT_NE(it, parsed.end());
+		EXPECT_EQ(it->second->GetString(), value->GetString());
+	}
+}
+
+TEST_F(LDFTests, LwoNameValueLinesSkipsBadLines) {
+	LwoNameValue parsed;
+	parsed.InsertLines("\nnot an ldf line\ncount=1:5\n");
+	ASSERT_EQ(parsed.values.size(), 1);
+	EXPECT_NE(parsed.find(u"count"), parsed.end());
+	EXPECT_TRUE(LwoNameValue{}.ToLines().empty());
+}
+
+TEST_F(LDFTests, LwoNameValueLinesKeepNewlinesAndBackslashes) {
+	LwoNameValue config;
+	config.Insert<std::u16string>("userModelDesc", u"Line one\nLine two");
+	config.Insert<std::string>("path", "scripts\\02_server\\thing.lua");
+	config.Insert<std::u16string>("tricky", u"ends with a backslash\\");
+
+	const auto lines = config.ToLines();
+	EXPECT_EQ(std::count(lines.begin(), lines.end(), '\n'), 2); // one line per value
+
+	LwoNameValue parsed;
+	parsed.InsertLines(lines);
+	ASSERT_EQ(parsed.values.size(), 3);
+	for (const auto& [key, value] : config.values) {
+		const auto it = parsed.find(key);
+		ASSERT_NE(it, parsed.end());
+		EXPECT_EQ(it->second->GetString(), value->GetString());
+	}
+}

@@ -1,4 +1,5 @@
 #include "Character.h"
+#include "DashboardNotify.h"
 #include "User.h"
 #include "Database.h"
 #include "GeneralUtils.h"
@@ -23,6 +24,7 @@
 #include "eGameMasterLevel.h"
 #include "ePlayerFlag.h"
 #include "CDPlayerFlagsTable.h"
+#include "EconomyLedger.h"
 
 Character::Character(LWOOBJID id, User* parentUser) {
 	//First load the name, etc:
@@ -342,6 +344,7 @@ void Character::WriteToDatabase() {
 
 	//Finally, save to db:
 	Database::Get()->UpdateCharacterXml(m_ID, m_XMLData);
+	DashboardNotify::Changed("characters", m_ID);
 }
 
 void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
@@ -536,6 +539,7 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 		newCoins = 0;
 	}
 
+	EconomyLedger::RecordCoins(m_ID, newCoins - m_Coins, lootSource);
 	m_Coins = newCoins;
 
 	GameMessages::SendSetCurrency(Game::entityManager->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);

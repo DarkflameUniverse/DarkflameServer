@@ -89,3 +89,18 @@ void SQLiteDatabase::IncrementNumWins(const LWOOBJID playerId, const uint32_t ga
 void SQLiteDatabase::IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET timesPlayed = timesPlayed + 1, last_played = CURRENT_TIMESTAMP WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }
+
+std::map<uint32_t, uint32_t> SQLiteDatabase::GetLeaderboardSizes() {
+	std::map<uint32_t, uint32_t> sizes;
+	auto [_, result] = ExecuteSelect("SELECT game_id, COUNT(*) AS scores FROM leaderboard GROUP BY game_id;");
+	for (; !result.eof(); result.nextRow()) sizes[result.getIntField("game_id")] = result.getIntField("scores");
+	return sizes;
+}
+
+void SQLiteDatabase::DeleteLeaderboardScore(const LWOOBJID playerId, const uint32_t gameId) {
+	ExecuteDelete("DELETE FROM leaderboard WHERE character_id = ? AND game_id = ?;", playerId, gameId);
+}
+
+void SQLiteDatabase::ResetLeaderboard(const uint32_t gameId) {
+	ExecuteDelete("DELETE FROM leaderboard WHERE game_id = ?;", gameId);
+}

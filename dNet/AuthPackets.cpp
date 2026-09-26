@@ -1,4 +1,6 @@
 #include "AuthPackets.h"
+
+#include <ctime>
 #include "BitStreamUtils.h"
 
 #include "dNetCommon.h"
@@ -156,6 +158,15 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		return;
 	}
 
+	// The password first: someone who doesn't know it learns nothing about the account (ban details, lock, play key),
+	// and a failed attempt changes nothing (an expired ban is only lifted for the real owner)
+	if (::bcrypt_checkpw(password.GetAsString().c_str(), accountInfo->bcryptPassword.c_str()) != 0) {
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username, stamps);
+		LOG("Wrong password used");
+		return;
+	}
+
 	//If we aren't running in live mode, then only GMs are allowed to enter:
 	if (Game::config->GetValue<bool>("closed_to_non_devs", false) && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
 		stamps.emplace_back(eStamps::GM_REQUIRED, 1);
@@ -191,9 +202,25 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		stamps.emplace_back(eStamps::PASSPORT_AUTH_BYPASS, 1);
 	}
 
+	// A temporary ban that has run out is lifted as the player logs in
+	if (accountInfo->banned && accountInfo->banExpires > 0 && accountInfo->banExpires <= static_cast<int64_t>(std::time(nullptr))) {
+		Database::Get()->SetAccountBan(accountInfo->id, false, 0, "");
+		Database::Get()->InsertAccountNote({ 0, accountInfo->id, "unban", "Temporary ban ended", "[server]", static_cast<int64_t>(std::time(nullptr)) });
+		accountInfo->banned = false;
+		LOG("Temporary ban of %s ended", username.c_str());
+	}
+
 	if (accountInfo->banned) {
 		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, "", "", 2001, username, stamps);
+		std::string message;
+		if (accountInfo->banExpires > 0) {
+			char until[32];
+			const std::time_t expires = accountInfo->banExpires;
+			std::strftime(until, sizeof(until), "%Y-%m-%d %H:%M UTC", std::gmtime(&expires));
+			message = std::string("You are banned until ") + until + ".";
+		}
+		if (!accountInfo->banReason.empty()) message += (message.empty() ? "" : " ") + std::string("Reason: ") + accountInfo->banReason;
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, message, "", 2001, username, stamps);
 		return;
 	}
 
@@ -203,14 +230,13 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		return;
 	}
 
-	bool loginSuccess = ::bcrypt_checkpw(password.GetAsString().c_str(), accountInfo->bcryptPassword.c_str()) == 0;
-
-	if (!loginSuccess) {
-		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username, stamps);
-		LOG("Wrong password used");
-	} else {
+	{
 		SystemAddress system = packet->systemAddress; //Copy the sysAddr before the Packet gets destroyed from main
+
+		// Where accounts log in from, so staff can see accounts that share a connection (log_login_addresses, on by default)
+		if (Game::config->GetValue("log_login_addresses") != "0") {
+			Database::Get()->RecordLoginAddress(accountInfo->id, system.ToString(false), static_cast<int64_t>(std::time(nullptr)));
+		}
 
 		if (!server->GetIsConnectedToMaster()) {
 			stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_DISCONNECT, 1);

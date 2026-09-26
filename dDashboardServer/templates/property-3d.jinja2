@@ -1,0 +1,437 @@
+{% extends "base.jinja2" %}
+
+{% block title %}3D View - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	/* The view fills the window below the top bar and the page itself never scrolls: panels scroll inside */
+	body:has(#property) .main-column { height: 100vh; min-height: 0 !important; overflow: hidden; }
+	body:has(#property) main { display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: .5rem !important; }
+	#property { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+	.viewer-layout { flex: 1 1 auto; display: flex; gap: .5rem; min-height: 0; }
+	.viewer-column { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+	#viewerWrap { flex: 1 1 auto; min-height: 0; }
+	#viewerWrap:fullscreen #viewer { height: 100vh; }
+	.viewer-panel-wrap { width: 22rem; flex: 0 0 auto; }
+	@media (min-width: 1400px) { .viewer-panel-wrap { width: 25rem; } }
+	@media (max-width: 991.98px) { .viewer-panel-wrap.offcanvas-lg { height: 60vh; width: auto; } }
+	.viewer-panel .list-group-item { cursor: pointer; }
+	.viewer-panel .tab-pane { overflow-y: auto; overflow-x: hidden; }
+	#propDescription { max-height: 3em; overflow-y: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Also the showcase's read-only view of approved public properties (Showcase.cpp passes showcase) #}
+<div id="property" data-property-id="{{ property_id }}" data-behavior-rules="{{ behavior_rules }}" data-showcase="{% if exists("showcase") %}1{% endif %}">
+	<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+		{% if exists("showcase") %}<a href="/showcase" class="btn btn-sm btn-outline-secondary">&larr; Showcase</a>{% else %}<a href="/properties/{{ property_id }}" class="btn btn-sm btn-outline-secondary">&larr; Property</a>{% endif %}
+		<div class="me-auto">
+			<h5 class="mb-0 d-inline" id="propName">Loading&hellip;</h5>
+			<span class="small text-body-secondary ms-2" id="propMeta"></span>
+		</div>
+		<span class="small text-body-secondary" id="viewerProgress"></span>
+		<button class="btn btn-sm btn-outline-secondary" id="resetViewBtn">Reset view</button>
+		<button class="btn btn-sm btn-outline-secondary" id="fullscreenBtn">Full screen</button>
+		<button class="btn btn-sm btn-outline-primary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#viewerPanel" aria-controls="viewerPanel">Panel</button>
+	</div>
+	<p class="small text-body-secondary mb-2 d-none" id="propDescription" style="white-space: pre-line"></p>
+
+	<div class="viewer-layout">
+		<div class="viewer-column">
+			<div id="viewerWrap" class="bg-body">
+				<div id="viewer" class="rounded overflow-hidden h-100" title="Drag to orbit, right-drag to pan, scroll to zoom. Click a model to select it, double-click to focus."></div>
+			</div>
+			<form class="d-flex flex-wrap align-items-center gap-1 mt-2" id="chatBar" aria-label="Say something in chat">
+				<span class="small text-body-secondary me-1" title="In game every model hears chat, so a phrase can start behaviors on many models at once">Chat (every model hears it):</span>
+				<span id="chatPhrases" class="d-flex flex-wrap gap-1"></span>
+				<input class="form-control form-control-sm w-auto flex-grow-1" id="chatInput" placeholder="Type a message" maxlength="100" style="min-width: 10rem" aria-label="Chat message">
+				<button class="btn btn-sm btn-outline-primary">Say</button>
+			</form>
+		</div>
+		<div class="offcanvas-lg offcanvas-bottom viewer-panel-wrap" tabindex="-1" id="viewerPanel" aria-label="Models, selection, log and layers">
+			<div class="card viewer-panel h-100 w-100 d-flex flex-column">
+				<div class="card-header p-1">
+					<ul class="nav nav-pills nav-fill small" role="tablist">
+						<li class="nav-item" role="presentation"><button class="nav-link active py-1" data-bs-toggle="pill" data-bs-target="#tabModels" type="button" role="tab">Models <span class="badge text-bg-secondary" id="modelCount">0</span></button></li>
+						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabSelected" type="button" role="tab" id="selectedTabBtn">Selected</button></li>
+						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabLog" type="button" role="tab">Log</button></li>
+						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabLayers" type="button" role="tab">Layers</button></li>
+					</ul>
+				</div>
+				<div class="tab-content flex-grow-1 overflow-hidden">
+					<div class="tab-pane show active h-100 p-2" id="tabModels" role="tabpanel">
+						<input type="search" class="form-control form-control-sm mb-2" id="modelSearch" placeholder="Filter models" aria-label="Filter models">
+						<div class="form-check small mb-2"><input class="form-check-input" type="checkbox" id="onlyBehaviors" data-pref="property3d.onlyBehaviors"><label class="form-check-label" for="onlyBehaviors">Only models with behaviors</label></div>
+						<div class="list-group list-group-flush small" id="modelList"></div>
+					</div>
+					<div class="tab-pane h-100 p-2 small" id="tabSelected" role="tabpanel">
+						<div id="selectionInfo"><span class="text-body-secondary">Click a model to select it.</span></div>
+						<div id="behaviorPanel" class="mt-3"></div>
+					</div>
+					<div class="tab-pane h-100 p-2 small" id="tabLog" role="tabpanel">
+						<div class="d-flex justify-content-between align-items-center mb-1">
+							<span class="text-body-secondary">What behaviors did, newest first</span>
+							<button class="btn btn-sm btn-outline-secondary" id="behaviorReset" title="Put every model back and stop its behaviors">Reset models</button>
+						</div>
+						<ol class="list-unstyled mb-0" id="behaviorLog"><li class="text-body-secondary">Select a model with behaviors and trigger it.</li></ol>
+					</div>
+					<div class="tab-pane h-100 p-2 small" id="tabLayers" role="tabpanel">
+						<div class="fw-semibold mb-1">View</div>
+						<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+							<label class="visually-hidden" for="lodSelect">Level of detail</label>
+							<select id="lodSelect" class="form-select form-select-sm w-auto" data-pref="property3d.detail" title="Detail: how sharp models are and how far scenery is drawn">
+								<option value="0">High detail</option>
+								<option value="1">Medium detail</option>
+								<option value="2" selected>Low detail</option>
+							</select>
+							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="terrainToggle" data-pref="property3d.terrain" checked><label class="form-check-label" for="terrainToggle">Terrain</label></div>
+							<div class="form-check form-switch mb-0 small" id="sceneryWrap" title="Every object of the zone around the property, drawn from the game client's files"><input class="form-check-input" type="checkbox" id="sceneryToggle" data-pref="property3d.scenery" checked><label class="form-check-label" for="sceneryToggle">Scenery</label></div>
+							<div class="form-check form-switch mb-0 small" id="boundaryWrap"><input class="form-check-input" type="checkbox" id="boundaryToggle" data-pref="property3d.boundary" checked><label class="form-check-label" for="boundaryToggle">Build area</label></div>
+							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="shadowToggle" data-pref="property3d.shadows" checked><label class="form-check-label" for="shadowToggle">Shadows</label></div>
+							<div class="form-check form-switch mb-0 small" title="The zone's sky, as the game draws it (with Scenery on)"><input class="form-check-input" type="checkbox" id="skyToggle" data-pref="property3d.sky" checked><label class="form-check-label" for="skyToggle">Sky</label></div>
+							<div class="form-check form-switch mb-0 small" title="The models placed on the property"><input class="form-check-input" type="checkbox" id="modelsToggle" data-pref="property3d.models" checked><label class="form-check-label" for="modelsToggle">Placed models</label></div>
+							<div class="form-check form-switch mb-0 small" title="Also draw, see-through, the models of objects the game doesn't draw: trigger and blocking volumes (with Scenery on)"><input class="form-check-input" type="checkbox" id="hiddenToggle" data-pref="property3d.hidden"><label class="form-check-label" for="hiddenToggle">Hidden objects</label></div>
+						</div>
+						<div class="text-body-secondary" id="boundaryInfo"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="importmap">
+{
+	"imports": {
+		"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+		"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+	},
+	"integrity": {
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js": "sha384-IDC7sAMAIMB/TZ6dgKKPPAKZ2bXXXP8+FBMBC8cU319eBhKITx+PaalhfDkDNH28",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js": "sha384-aJoe4qqS/DgF2jh9njAuvA6QIveJYoCuYOfYjdFY8P3eawzmc9bEQ40jq2TvOyuP",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/environments/RoomEnvironment.js": "sha384-9ItPPH2vgKbkvgrqTKq7ptGYe+WuAnqlZtlqleJW4/CJjnM5R7C+efD6iS7ADPJ9"
+	}
+}
+</script>
+<script src="/js/ldd-materials.js"></script>
+<script type="module">
+import { createViewer } from '/js/lddviewer.js';
+import { createBehaviorPlayer, describeAction, isTrigger, isSupported } from '/js/behaviorplayer.js';
+import { createScenery } from '/js/scenery.js';
+
+const propertyId = document.getElementById('property').getAttribute('data-property-id');
+// The showcase serves only approved public properties, from its own endpoints that don't need owning the property
+const showcase = document.getElementById('property').dataset.showcase === '1';
+const propertyApi = (showcase ? '/api/showcase/' : '/api/properties/') + propertyId;
+const assetApi = showcase ? '/api/showcase' : '/api';
+const setText = (id, value) => { document.getElementById(id).textContent = value; };
+let property = null;
+let loadedLod = null;
+let selectedIndex = -1;
+let terrainData; // undefined: not fetched yet; null: none for this zone
+
+let player = null; // the viewer ticks once while it is being created, before the player exists
+let scenery = null;
+const viewer = createViewer(document.getElementById('viewer'), {
+	onProgress: (loaded, total) => setText('viewerProgress', loaded < total ? `Loading ${loaded}/${total}…` : ''),
+	onSelect: showSelection,
+	onTick: (dt) => { if (player) player.tick(dt); if (scenery) scenery.update(dt); },
+	brickUrl: (lod, design) => assetApi + '/bricks/' + lod + '/' + design
+});
+// The behavior blocks the server plays (BehaviorXml::Rules)
+const behaviorRules = JSON.parse(document.getElementById('property').dataset.behaviorRules);
+player = createBehaviorPlayer(viewer, behaviorRules, { onLog: logLine, onChange: renderBehaviors });
+// The zone around the property as the game draws it: its objects' models and the sky, nearest first
+{
+	const { scene, camera, renderer, controls } = viewer.three();
+	const assetBase = showcase ? '/api/showcase/scenery/' : '/api/scenery/';
+	let sceneryText = '';
+	scenery = createScenery({
+		scene, camera, renderer,
+		urls: {
+			manifest: propertyApi + '/scenery',
+			mesh: (zone, asset, lod) => assetBase + zone + '/mesh/' + asset + '?lod=' + lod,
+			texture: (zone, asset, slot, lod) => assetBase + zone + '/texture/' + asset + '/' + slot + '?lod=' + lod
+		},
+		focus: (out) => out.copy(controls.target),
+		onProgress: (loaded, wanted) => {
+			sceneryText = loaded < wanted ? `Scenery ${loaded}/${wanted}…` : '';
+			const progress = document.getElementById('viewerProgress');
+			if (!progress.textContent || progress.textContent.startsWith('Scenery')) progress.textContent = sceneryText;
+		}
+	});
+}
+
+// Shadows and placed models start on; the toggles may have been left off (saved per account)
+if (!document.getElementById('shadowToggle').checked) viewer.setShadows(false);
+if (!document.getElementById('modelsToggle').checked) viewer.setModelsVisible(false);
+
+// Player-built models all share one name, so tell them apart by their behavior's name and the end of their ID
+function modelLabel(m) {
+	const behavior = m.behaviors && m.behaviors.find((b) => b.name && b.name !== 'New Behavior');
+	return (behavior ? behavior.name : m.name) + (m.lot === 14 ? ' #' + String(m.id).slice(-4) : '');
+}
+
+// ---- models list ----
+function renderModelList() {
+	const query = document.getElementById('modelSearch').value.trim().toLowerCase();
+	const only = document.getElementById('onlyBehaviors').checked;
+	const models = viewer.models();
+	const items = models.map((m, i) => ({ m, i })).filter(({ m }) =>
+		(!only || (m.behaviors && m.behaviors.length)) && (!query || (modelLabel(m) + ' ' + m.name + ' ' + m.lot + ' ' + m.id).toLowerCase().includes(query)));
+	document.getElementById('modelList').innerHTML = items.map(({ m, i }) =>
+		'<a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-2' + (i === selectedIndex ? ' active' : '') + '" data-index="' + i + '">' +
+		'<span>' + esc(modelLabel(m)) + ' <span class="text-body-secondary">LOT ' + esc(m.lot) + '</span></span>' +
+		(m.behaviors && m.behaviors.length ? '<span class="badge text-bg-primary" title="Behaviors">' + m.behaviors.length + '</span>' : '') + '</a>').join('') ||
+		'<div class="text-body-secondary p-2">No models match.</div>';
+	setText('modelCount', models.length);
+}
+
+document.getElementById('modelList').addEventListener('click', (e) => {
+	const item = e.target.closest('[data-index]');
+	if (item) viewer.select(viewer.models()[Number(item.dataset.index)].id);
+});
+document.getElementById('modelSearch').addEventListener('input', renderModelList);
+document.getElementById('onlyBehaviors').addEventListener('change', renderModelList);
+
+// ---- selection and behaviors ----
+function showSelection(model, index) {
+	selectedIndex = model ? index : -1;
+	renderModelList();
+	renderBehaviors();
+	const box = document.getElementById('selectionInfo');
+	if (!model) { box.innerHTML = '<span class="text-body-secondary">Click a model to select it.</span>'; return; }
+	history.replaceState(null, '', '#model=' + model.id);
+	bootstrap.Tab.getOrCreateInstance(document.getElementById('selectedTabBtn')).show();
+	const [x, y, z, w] = model.rotation;
+	const yaw = Math.round(Math.atan2(2 * (w * y + x * z), 1 - 2 * (y * y + x * x)) * 180 / Math.PI);
+	box.innerHTML = '<h6 class="mb-1">' + esc(modelLabel(model)) + '</h6><dl class="row mb-2">' +
+		'<dt class="col-4">LOT</dt><dd class="col-8">' + esc(model.lot) + '</dd>' +
+		'<dt class="col-4">Model ID</dt><dd class="col-8 text-break">' + esc(model.id) + '</dd>' +
+		'<dt class="col-4">Position</dt><dd class="col-8">' + model.position.map((v) => esc(v.toFixed(2))).join(', ') + '</dd>' +
+		'<dt class="col-4">Rotation</dt><dd class="col-8">' + esc(yaw) + '&deg;</dd></dl>' +
+		(showcase ? '' : '<a class="btn btn-sm btn-outline-secondary" href="/api/property_models/' + esc(model.id) + '/lxfml">Download LXFML</a>');
+}
+
+function renderBehaviors() {
+	const panel = document.getElementById('behaviorPanel');
+	const model = viewer.models()[selectedIndex];
+	if (!model) { panel.innerHTML = ''; panel.dataset.model = ''; return; }
+	if (!model.behaviors || !model.behaviors.length) { panel.innerHTML = '<span class="text-body-secondary">No behaviors on this model.</span>'; panel.dataset.model = ''; return; }
+	const status = player.status(selectedIndex);
+	const chats = new Set(), triggers = new Set();
+	let html = '';
+	model.behaviors.forEach((behavior, b) => {
+		const current = status[b] ? status[b].state : 0;
+		html += '<div class="mb-3"><h6 class="mb-1">' + esc(behavior.name || 'Behavior') + '</h6>';
+		behavior.states.forEach((state) => {
+			if (!state.strips.length) return;
+			const active = state.id === current;
+			html += '<div class="mb-2"><div class="' + (active ? 'fw-semibold' : 'text-body-secondary') + '">' + esc(state.name) + ' state' + (active ? ' (current)' : '') + '</div>';
+			state.strips.forEach((strip, s) => {
+				const running = active && status[b] && status[b].strips[s];
+				if (strip.actions[0]) triggers.add(strip.actions[0].type);
+				html += '<div class="border rounded p-1 mb-1 d-flex flex-wrap gap-1">' + strip.actions.map((action, a) => {
+					if (action.type === 'OnChat') chats.add(action.value || '');
+					const now = running && !running.waiting && running.index === a;
+					const cls = now ? 'text-bg-warning' : isTrigger(action) ? 'text-bg-primary' : isSupported(action) ? 'text-bg-secondary' : 'text-bg-danger';
+					return '<span class="badge ' + cls + '"' + (isSupported(action) ? '' : ' title="Not supported by the server"') + '>' + esc(describeAction(action)) + '</span>';
+				}).join('') + '</div>';
+			});
+			html += '</div>';
+		});
+		html += '</div>';
+	});
+	let buttons = '';
+	if (triggers.has('OnInteract')) buttons += '<button class="btn btn-sm btn-primary" data-trigger="OnInteract">Interact</button>';
+	if (triggers.has('OnAttack')) buttons += '<button class="btn btn-sm btn-danger" data-trigger="OnAttack">Attack</button>';
+	chats.forEach((message) => { buttons += '<button class="btn btn-sm btn-outline-primary" data-chat="' + esc(message) + '" title="Every model hears it, like in game">Say "' + esc(message) + '"</button>'; });
+	// Behaviors step many times a second: rebuilding the buttons each time would swallow clicks (the button under the
+	// pointer is replaced between press and release), so they're only built when another model is selected
+	let strips = panel.querySelector('[data-strips]');
+	if (panel.dataset.model !== String(selectedIndex) || !strips) {
+		panel.dataset.model = String(selectedIndex);
+		panel.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-2">' + (buttons || '<span class="text-body-secondary">No triggers the server supports.</span>') + '</div><div data-strips></div>';
+		strips = panel.querySelector('[data-strips]');
+	}
+	strips.innerHTML = html;
+}
+
+// ---- chat: every model hears it ----
+function say(message) {
+	const result = player.chatAll(message);
+	logLine(-1, 'Said "' + message + '": ' + (result.models ? result.models + ' model' + (result.models === 1 ? '' : 's') + ' reacted (' + result.strips + ' strip' + (result.strips === 1 ? '' : 's') + ')' : 'no model was waiting for that'));
+}
+
+// A button for every phrase some model listens for, with how many models listen
+function renderChatPhrases() {
+	const listeners = new Map();
+	viewer.models().forEach((model) => {
+		const heard = new Set();
+		// Any "on chat" step counts, not just a strip's first (a strip can wait for chat part way through)
+		(model.behaviors || []).forEach((behavior) => behavior.states.forEach((state) => state.strips.forEach((strip) => {
+			strip.actions.forEach((action) => { if (action.type === 'OnChat') heard.add(action.value || ''); });
+		})));
+		heard.forEach((phrase) => listeners.set(phrase, (listeners.get(phrase) || 0) + 1));
+	});
+	document.getElementById('chatPhrases').innerHTML = [...listeners.entries()].sort((a, b) => b[1] - a[1]).map(([phrase, count]) =>
+		'<button type="button" class="btn btn-sm btn-outline-primary" data-chat="' + esc(phrase) + '" title="' + count + ' model' + (count === 1 ? '' : 's') + ' listen for this">"' +
+		esc(phrase) + '" <span class="badge text-bg-secondary">' + count + '</span></button>').join('');
+}
+
+document.addEventListener('click', (e) => {
+	const chat = e.target.closest('[data-chat]');
+	if (chat) say(chat.dataset.chat);
+});
+document.getElementById('chatBar').addEventListener('submit', (e) => {
+	e.preventDefault();
+	const input = document.getElementById('chatInput');
+	if (input.value.trim()) say(input.value.trim());
+	input.value = '';
+});
+
+document.getElementById('behaviorPanel').addEventListener('click', (e) => {
+	const button = e.target.closest('[data-trigger]');
+	if (!button || selectedIndex < 0) return;
+	if (!player.trigger(selectedIndex, button.dataset.trigger, button.dataset.message)) logLine(selectedIndex, 'Nothing is waiting for that right now');
+});
+
+function logLine(modelIndex, text) {
+	const list = document.getElementById('behaviorLog');
+	if (list.firstElementChild && list.firstElementChild.classList.contains('text-body-secondary')) list.textContent = '';
+	const model = viewer.models()[modelIndex];
+	const item = document.createElement('li');
+	item.className = 'mb-1';
+	item.innerHTML = '<span class="text-body-secondary">' + esc(new Date().toLocaleTimeString()) + '</span> <strong>' + esc(model ? modelLabel(model) : 'All') + '</strong>: ' + esc(text);
+	list.prepend(item);
+	while (list.children.length > 100) list.lastElementChild.remove();
+}
+
+document.getElementById('behaviorReset').addEventListener('click', () => { player.reset(); logLine(-1, 'Everything reset'); });
+
+// ---- loading ----
+let chunkTerrain; // undefined: not fetched yet; null: not available
+async function showTerrain() {
+	const toggle = document.getElementById('terrainToggle');
+	if (!toggle.checked) { viewer.setTerrain(null); return; }
+	// The whole zone as the game draws it, textured; the height-shaded patch is the fallback
+	if (chunkTerrain === undefined) {
+		const t = await api.get(propertyApi + '/terrain_chunks').catch(() => null);
+		chunkTerrain = t && t.chunks ? t : null;
+	}
+	if (chunkTerrain) {
+		viewer.setTerrainChunks(chunkTerrain, (id) => assetApi + '/terrain_textures/' + id);
+		return;
+	}
+	if (terrainData === undefined) {
+		const t = await api.get(propertyApi + '/terrain').catch(() => null);
+		terrainData = t && t.heights ? t : null;
+	}
+	if (!terrainData) {
+		toggle.checked = false;
+		toggle.disabled = true;
+		toggle.parentElement.title = 'No terrain for this zone (the server needs client_location)';
+		return;
+	}
+	viewer.setTerrain(terrainData);
+}
+
+// ---- scenery ----
+let sceneryShown = null; // the detail level it was loaded at
+async function showScenery() {
+	const toggle = document.getElementById('sceneryToggle');
+	scenery.setEnabled(toggle.checked);
+	scenery.setSky(document.getElementById('skyToggle').checked);
+	scenery.setShowHidden(document.getElementById('hiddenToggle').checked);
+	if (!toggle.checked) return;
+	const lod = parseInt(document.getElementById('lodSelect').value, 10);
+	if (sceneryShown === lod) return;
+	sceneryShown = lod;
+	if (!await scenery.load(undefined, lod)) {
+		toggle.checked = false;
+		toggle.disabled = true;
+		document.getElementById('sceneryWrap').title = 'No scenery for this zone (the server needs client_location)';
+	}
+}
+
+// ---- build area (from the zone file) ----
+let boundaryAreas; // undefined: not fetched yet; null: none
+async function showBoundary() {
+	const toggle = document.getElementById('boundaryToggle');
+	if (boundaryAreas === undefined) {
+		const b = await api.get(propertyApi + '/boundary').catch(() => null);
+		boundaryAreas = b && b.success && b.areas.some((a) => a.outline.length >= 3) ? b.areas : null;
+		if (!boundaryAreas) {
+			toggle.checked = false;
+			toggle.disabled = true;
+			document.getElementById('boundaryWrap').title = 'No build area in this zone\'s file (the server needs client_location)';
+		} else {
+			const limit = Math.max(...boundaryAreas.map((a) => a.maxBuildHeight || 0));
+			document.getElementById('boundaryInfo').textContent = 'The blue line is where the owner may build' + (limit ? ', up to ' + limit + ' high' : '') + ' (from the zone file).';
+		}
+	}
+	// Terrain heights (if fetched) put the line on the ground
+	// Heights from the textured terrain when shown, else from the height grid if fetched
+	viewer.setBoundary(toggle.checked ? boundaryAreas : null, chunkTerrain ? null : (terrainData || null));
+}
+
+async function loadScene() {
+	const lod = parseInt(document.getElementById('lodSelect').value, 10);
+	if (!property || loadedLod === lod) return;
+	loadedLod = lod;
+	const keep = selectedIndex >= 0 ? viewer.models()[selectedIndex].id : (location.hash.match(/model=(\d+)/) || [])[1];
+	await viewer.load(property.models, lod);
+	player.reset();
+	renderModelList();
+	renderChatPhrases();
+	await showTerrain();
+	await showBoundary();
+	showScenery();
+	if (keep) viewer.select(keep);
+	else if (boundaryAreas) viewer.resetView(); // start with the whole plot in view
+}
+
+function load() {
+	api.get(propertyApi).then((p) => {
+		if (p.success === false) { setText('propName', p.error); return; }
+		// Showcase models come through the showcase, which checks they're on this property
+		if (showcase) p.models.forEach((m) => { m.url = propertyApi + '/models/' + m.id + '/lxfml'; });
+		property = p;
+		loadedLod = null;
+		setText('propName', p.name || 'Unnamed property');
+		// Character pages are private, so the showcase names the owner without a link
+		document.getElementById('propMeta').innerHTML = (p.owner_name ? 'by ' + (showcase ? esc(p.owner_name) : fmt.character(p.owner_id, p.owner_name)) + ' &middot; ' : '') +
+			esc(p.zone_name || ('Zone ' + p.zone_id)) + ' &middot; ' + p.models.length + ' model' + (p.models.length === 1 ? '' : 's') +
+			(showcase ? ' &middot; ' + esc(p.reputation) + ' reputation' : '');
+		const description = document.getElementById('propDescription');
+		description.textContent = showcase ? (p.description || '') : '';
+		description.classList.toggle('d-none', !description.textContent);
+		// An empty property still shows its plot: terrain, scenery and build area
+		loadScene().then(() => { if (!p.models.length) setText('viewerProgress', 'Nothing placed on this property'); });
+	});
+}
+
+document.getElementById('lodSelect').addEventListener('change', loadScene);
+document.getElementById('terrainToggle').addEventListener('change', () => showTerrain().then(showBoundary));
+document.getElementById('boundaryToggle').addEventListener('change', showBoundary);
+document.getElementById('sceneryToggle').addEventListener('change', showScenery);
+document.getElementById('skyToggle').addEventListener('change', showScenery);
+document.getElementById('hiddenToggle').addEventListener('change', showScenery);
+document.getElementById('modelsToggle').addEventListener('change', (e) => viewer.setModelsVisible(e.target.checked));
+document.getElementById('shadowToggle').addEventListener('change', (e) => viewer.setShadows(e.target.checked));
+document.getElementById('resetViewBtn').addEventListener('click', () => viewer.resetView());
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+	const wrap = document.getElementById('viewerWrap');
+	if (document.fullscreenElement) document.exitFullscreen();
+	else if (wrap.requestFullscreen) wrap.requestFullscreen();
+});
+
+load();
+// Reload when the property changes, unless behaviors are playing
+// (Live updates are only there for people signed in)
+if (window.Live) Live.on('properties', (e) => { if ((!e.id || e.id === propertyId) && !player.isRunning()) load(); });
+</script>
+{% endblock %}

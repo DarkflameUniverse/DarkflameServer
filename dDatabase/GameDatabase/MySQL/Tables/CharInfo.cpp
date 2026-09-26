@@ -1,4 +1,5 @@
 #include "MySQLDatabase.h"
+#include "json.hpp"
 
 std::vector<std::string> MySQLDatabase::GetApprovedCharacterNames() {
 	auto result = ExecuteSelect("SELECT name FROM charinfo;");
@@ -52,6 +53,11 @@ std::vector<LWOOBJID> MySQLDatabase::GetAccountCharacterIds(const LWOOBJID accou
 	return toReturn;
 }
 
+uint32_t MySQLDatabase::GetCharacterCount() {
+	auto res = ExecuteSelect("SELECT COUNT(*) as count FROM charinfo;");
+	return res->next() ? res->getUInt("count") : 0;
+}
+
 void MySQLDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 	ExecuteInsert(
 		"INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)",
@@ -79,4 +85,24 @@ bool MySQLDatabase::IsNameInUse(const std::string_view name) {
 	auto result = ExecuteSelect("SELECT name FROM charinfo WHERE name = ? or pending_name = ? LIMIT 1;", name, name);
 
 	return result->next();
+}
+
+nlohmann::json MySQLDatabase::GetCharacterById(const LWOOBJID charId) {
+	auto result = ExecuteSelect(
+		"SELECT c.id, c.name, c.pending_name, c.needs_rename, c.account_id, c.last_login, c.prop_clone_id, c.permission_map, a.name as account_name "
+		"FROM charinfo c LEFT JOIN accounts a ON c.account_id = a.id WHERE c.id = ? LIMIT 1;", charId);
+	if (!result->next()) {
+		return nlohmann::json({{"error", "Character not found"}});
+	}
+	return nlohmann::json({
+		{"id", std::to_string(result->getInt64("id"))},
+		{"name", result->getString("name")},
+		{"pending_name", result->getString("pending_name")},
+		{"needs_rename", result->getBoolean("needs_rename")},
+		{"account_id", result->getUInt("account_id")},
+		{"account_name", result->getString("account_name")},
+		{"last_login", result->getUInt64("last_login")},
+		{"prop_clone_id", result->getUInt64("prop_clone_id")},
+		{"permission_map", result->getUInt("permission_map")}
+	});
 }

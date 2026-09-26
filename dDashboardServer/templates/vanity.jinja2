@@ -1,0 +1,124 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Vanity - DarkflameServer{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/css/vanity.css">
+{% endblock %}
+
+{% block content %}
+<div class="vanity-page" id="vanityPage">
+	<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-2">
+		<div>
+			<h2 class="mb-1">Vanity</h2>
+			<p class="text-body-secondary mb-0">Extra NPCs, props and plaque texts the world servers add from the vanity files in <code id="vanityFolder">vanity</code>.
+				<a href="/events">Scheduled events</a> can change them for a while: switch vanity files on or off, lay an overlay file over the others, take NPCs out.
+				Saved changes show in game after the NPCs are respawned; events respawn them on their own when they start and end.</p>
+		</div>
+		<div class="d-flex gap-2">
+			<a class="btn btn-outline-secondary btn-sm" href="/events#new:vanity">New vanity event</a>
+			<button type="button" class="btn btn-outline-primary btn-sm" id="vanityReload" title="Respawn the vanity NPCs in every running world, with the events that are on">Respawn in game</button>
+		</div>
+	</div>
+
+	<div class="alert alert-warning d-none" id="vanityDisabled" role="status">
+		Vanity NPCs are switched off (<code>disable_vanity</code>) &mdash; change it on the <a class="alert-link" href="/settings#gameplay">Settings page</a>.
+	</div>
+	<div class="alert alert-danger d-none" id="vanityRootError" role="alert"></div>
+
+	<ul class="nav nav-tabs mb-3" role="tablist">
+		<li class="nav-item" role="presentation"><button class="nav-link active" id="vanityTabFiles" data-bs-toggle="tab" data-bs-target="#vanityPaneFiles" data-tab="files" type="button" role="tab" aria-controls="vanityPaneFiles" aria-selected="true">Files &amp; NPCs</button></li>
+		<li class="nav-item" role="presentation"><button class="nav-link" id="vanityTabPreview" data-bs-toggle="tab" data-bs-target="#vanityPanePreview" data-tab="preview" type="button" role="tab" aria-controls="vanityPanePreview" aria-selected="false">Preview</button></li>
+	</ul>
+
+	<div class="tab-content">
+		<div class="tab-pane fade show active" id="vanityPaneFiles" role="tabpanel" aria-labelledby="vanityTabFiles" tabindex="0">
+			<div class="vanity-layout">
+				<aside class="vanity-side">
+					<div class="card mb-3">
+						<div class="card-header d-flex justify-content-between align-items-center gap-2">
+							<h3 class="h6 mb-0">Vanity files</h3>
+							<button type="button" class="btn btn-outline-secondary btn-sm" id="vanityNewFile">New file</button>
+						</div>
+						<div class="list-group list-group-flush" id="vanityFiles"><div class="list-group-item text-body-secondary small">Loading&hellip;</div></div>
+						<div class="card-footer small text-body-secondary">The worlds start at root.xml and load each file switched on under a loaded file. Any file can include others.
+							Events can switch files on or off while they are on.</div>
+					</div>
+					<div class="card mb-3">
+						<div class="card-header d-flex justify-content-between align-items-center gap-2">
+							<h3 class="h6 mb-0">Vanity events</h3>
+							<a class="small" href="/events">All events</a>
+						</div>
+						<div class="list-group list-group-flush" id="vanityEvents"></div>
+					</div>
+					<div class="card">
+						<div class="card-header"><h3 class="h6 mb-0">Plaque texts</h3></div>
+						<div class="list-group list-group-flush" id="vanityTexts"></div>
+					</div>
+				</aside>
+
+				<div class="vanity-main" id="vanityMain"><p class="text-body-secondary">Pick a file or a text on the left.</p></div>
+			</div>
+
+			<div class="vanity-savebar d-none" id="vanitySaveBar">
+				<div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+					<span class="me-auto small" id="vanitySaveLabel"></span>
+					<span class="small text-body-secondary d-none d-md-inline">Ctrl+S</span>
+					<button type="button" class="btn btn-outline-secondary btn-sm" id="vanityDiscard">Discard</button>
+					<button type="button" class="btn btn-primary btn-sm" id="vanitySave">Save file</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="tab-pane fade" id="vanityPanePreview" role="tabpanel" aria-labelledby="vanityTabPreview" tabindex="0">
+			<div class="row g-3">
+				<div class="col-lg-4">
+					<div class="card">
+						<div class="card-header"><h3 class="h6 mb-0">What the worlds load</h3></div>
+						<div class="card-body">
+							<div class="form-check">
+								<input class="form-check-input" type="radio" name="vpMode" id="vpAt" value="at" checked>
+								<label class="form-check-label" for="vpAt">With the events on at</label>
+							</div>
+							<div class="input-group input-group-sm mb-2 ps-4">
+								<input type="datetime-local" class="form-control" id="vpTime" aria-label="Time to preview">
+								<button type="button" class="btn btn-outline-secondary" id="vpNow">Now</button>
+							</div>
+							<div class="form-check">
+								<input class="form-check-input" type="radio" name="vpMode" id="vpChosen" value="chosen">
+								<label class="form-check-label" for="vpChosen">With these events on</label>
+							</div>
+							<div class="ps-4 mb-2 small" id="vpEvents"></div>
+							<button type="button" class="btn btn-primary btn-sm" id="vpRun">Preview</button>
+							<p class="small text-body-secondary mt-3 mb-0">The same loading the world servers do: root.xml and the files it switches on, with the events' file switches
+								(the higher priority wins), then each event's overlay file and removals. Times are your browser's.</p>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-8" id="vpOut"><p class="text-body-secondary">Pick a time or events and press Preview.</p></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="newFileModal" tabindex="-1" aria-labelledby="newFileTitle" aria-hidden="true">
+	<div class="modal-dialog">
+		<form class="modal-content" id="newFileForm">
+			<div class="modal-header"><h5 class="modal-title" id="newFileTitle">New vanity file</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="mb-2"><label class="form-label small" for="newFileName">Name</label>
+					<div class="input-group input-group-sm"><input class="form-control font-monospace" id="newFileName" pattern="[A-Za-z0-9_\-]{1,60}(\.xml)?" required placeholder="my-npcs" spellcheck="false"><span class="input-group-text">.xml</span></div>
+					<div class="form-text">Letters, digits, - and _.</div></div>
+				<div><label class="form-label small" for="newFileParent">Included by</label><select class="form-select form-select-sm" id="newFileParent"></select>
+					<div class="form-text">It starts switched off there.</div></div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Create</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/vanity.js"></script>
+<script src="/js/vanity-preview.js"></script>
+{% endblock %}

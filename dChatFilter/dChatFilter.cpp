@@ -37,6 +37,18 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		std::transform(name.begin(), name.end(), name.begin(), ::tolower); //Transform to lowercase
 		m_ApprovedWords.push_back(CalculateHash(name));
 	}
+
+	ReloadCustomWords();
+}
+
+void dChatFilter::ReloadCustomWords() {
+	m_CustomAllowedWords.clear();
+	m_CustomBlockedWords.clear();
+	// Words remembered as not allowed may be allowed now
+	m_UserUnapprovedWordCache.clear();
+	for (const auto& word : Database::Get()->GetChatFilterWords()) {
+		(word.allowed ? m_CustomAllowedWords : m_CustomBlockedWords).insert(CalculateHash(NormalizeWord(word.word)));
+	}
 }
 
 dChatFilter::~dChatFilter() {
@@ -112,7 +124,6 @@ std::set<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::str
 
 	std::stringstream sMessage(message);
 	std::string segment;
-	std::regex reg("(!*|\\?*|\\;*|\\.*|\\,*)");
 
 	std::set<std::pair<uint8_t, uint8_t>> listOfBadSegments;
 
@@ -121,16 +132,22 @@ std::set<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::str
 	while (std::getline(sMessage, segment, ' ')) {
 		std::string originalSegment = segment;
 
-		std::transform(segment.begin(), segment.end(), segment.begin(), ::tolower); //Transform to lowercase
-		segment = std::regex_replace(segment, reg, "");
+		segment = NormalizeWord(segment);
 
 		size_t hash = CalculateHash(segment);
+
+		// Blocked on the dashboard: stopped in every kind of chat
+		if (m_CustomBlockedWords.contains(hash)) {
+			listOfBadSegments.emplace(position, originalSegment.length());
+			position += originalSegment.length() + 1;
+			continue;
+		}
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end() && allowList) {
 			listOfBadSegments.emplace(position, originalSegment.length());
 		}
 
-		if (std::find(m_ApprovedWords.begin(), m_ApprovedWords.end(), hash) == m_ApprovedWords.end() && allowList) {
+		if (std::find(m_ApprovedWords.begin(), m_ApprovedWords.end(), hash) == m_ApprovedWords.end() && !m_CustomAllowedWords.contains(hash) && allowList) {
 			m_UserUnapprovedWordCache.push_back(hash);
 			listOfBadSegments.emplace(position, originalSegment.length());
 		}

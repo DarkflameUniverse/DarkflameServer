@@ -1,0 +1,16 @@
+/* vanity_events: see the MySQL migration. */
+CREATE TABLE IF NOT EXISTS vanity_events (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	note TEXT NOT NULL DEFAULT '',
+	file TEXT NOT NULL DEFAULT '',
+	removals TEXT NOT NULL DEFAULT '',
+	schedule TEXT NOT NULL DEFAULT '',
+	priority INTEGER NOT NULL DEFAULT 0,
+	mode INTEGER NOT NULL DEFAULT 0,
+	applied INTEGER NOT NULL DEFAULT 0,
+	created_at BIGINT NOT NULL DEFAULT 0,
+	created_by TEXT NOT NULL DEFAULT '',
+	updated_at BIGINT NOT NULL DEFAULT 0,
+	updated_by TEXT NOT NULL DEFAULT ''
+);

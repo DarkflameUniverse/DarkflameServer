@@ -4,6 +4,7 @@ set(DCOMMON_SOURCES
 		"BinaryIO.cpp"
 		"dConfig.cpp"
 		"Diagnostics.cpp"
+		"Locale.cpp"
 		"Logger.cpp"
 		"Game.cpp"
 		"GeneralUtils.cpp"
@@ -21,6 +22,15 @@ set(DCOMMON_SOURCES
 		"Sd0.cpp"
 		"Lxfml.cpp"
 		"LxfmlBugged.cpp"
+		"VanityXml.cpp"
+		"ScheduleRules.cpp"
+		"EventParts.cpp"
+		"VanityEvents.cpp"
+		"ZoneFile.cpp"
+		"LevelFile.cpp"
+		"Raw.cpp"
+		"Process.cpp"
+		"Permissions.cpp"
 )
 
 # Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.

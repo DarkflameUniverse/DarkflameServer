@@ -1,0 +1,19 @@
+{% extends "base.jinja2" %}
+
+{% block title %}About - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">About</h2>
+<div class="card mb-4" style="max-width: 720px;">
+	<div class="card-body">
+		<h5>DarkflameServer <span class="text-body-secondary">{{ version }}</span></h5>
+		<p>A server emulator for LEGO&reg; Universe. This dashboard is part of the server and replaces the separate NexusDashboard.</p>
+		<ul class="mb-0">
+			<li><a href="https://github.com/DarkflameUniverse/DarkflameServer" target="_blank" rel="noopener">DarkflameServer on GitHub</a></li>
+			<li><a href="https://github.com/DarkflameUniverse/NexusDashboard" target="_blank" rel="noopener">NexusDashboard</a>, which this dashboard's features are based on</li>
+			<li><a href="/api_docs">API documentation</a></li>
+		</ul>
+	</div>
+</div>
+<p class="small text-body-secondary" style="max-width: 720px;">LEGO&reg; is a trademark of the LEGO Group. DarkflameServer is not affiliated with, sponsored or endorsed by the LEGO Group.</p>
+{% endblock %}

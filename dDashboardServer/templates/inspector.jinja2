@@ -1,0 +1,232 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Message Inspector - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.inspector-layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+	.inspector-side { position: sticky; top: 4rem; }
+	/* The viewer takes the whole width; the side (new capture, running ones) is on the Saved captures tab */
+	.inspector-layout.viewing { grid-template-columns: minmax(0, 1fr); }
+	.inspector-layout.viewing .inspector-side { display: none; }
+	.inspector-side .list-group-item { cursor: pointer; }
+	.inspector-side .list-group-item.active .text-body-secondary { color: inherit !important; opacity: .85; }
+	.sessions-table th[data-sort] { cursor: pointer; white-space: nowrap; user-select: none; }
+	.sessions-table th[data-sort]::after { content: ''; display: inline-block; width: 1em; }
+	.sessions-table th[data-sort].sorted-asc::after { content: '\25B4'; }
+	.sessions-table th[data-sort].sorted-desc::after { content: '\25BE'; }
+	.sessions-table tbody tr { cursor: pointer; }
+	.sessions-table td { vertical-align: middle; }
+	.viewer-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(24rem, 30rem); gap: 1rem; align-items: start; }
+	.viewer-grid.no-detail { grid-template-columns: minmax(0, 1fr); }
+	.msg-table-wrap { height: calc(100vh - 22rem); min-height: 18rem; overflow: auto; position: relative; }
+	.msg-table { font-size: .8rem; table-layout: fixed; width: 100%; }
+	.msg-table td, .msg-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.msg-table tbody tr { height: 26px; cursor: pointer; }
+	.msg-table tbody td { padding-top: 0; padding-bottom: 0; line-height: 25px; }
+	.msg-table tbody tr.spacer { cursor: default; }
+	.msg-table tbody tr.spacer td { padding: 0; border: 0; }
+	.msg-table tbody tr.selected > td { background: var(--bs-primary-bg-subtle); }
+	.msg-table tbody tr.has-gap > td:first-child { box-shadow: inset 3px 0 0 var(--bs-warning); }
+	.msg-table tbody tr.zone-change > td { border-top: 2px solid var(--bs-info); }
+	.msg-table .col-seq { width: 5rem; }
+	.msg-table .col-time { width: 7.5rem; }
+	.msg-table .col-dir { width: 5.5rem; }
+	.msg-table .col-msg { width: 16rem; }
+	.msg-table .col-obj { width: 11rem; }
+	.msg-table .col-bytes { width: 4rem; }
+	.type-table-wrap { max-height: 14rem; overflow: auto; }
+	.type-table { font-size: .8rem; }
+	.type-table tbody tr { cursor: pointer; }
+	.type-table tbody tr.active-filter > td { background: var(--bs-primary-bg-subtle); }
+	.detail-card { position: sticky; top: 4rem; max-height: calc(100vh - 5rem); overflow: auto; }
+	.detail-fields { font-size: .8rem; }
+	.detail-fields th { width: 35%; word-break: break-all; }
+	.hexdump { font-family: var(--bs-font-monospace); font-size: .75rem; white-space: pre; overflow-x: auto; margin: 0; line-height: 1.45; }
+	.hexdump .off { color: var(--bs-secondary-color); }
+	.hexdump .b.hl, .hexdump .a.hl { background: var(--bs-warning-bg-subtle); outline: 1px solid var(--bs-warning); }
+	/* Narrower: the message goes under the table, which gets shorter so both fit */
+	@media (max-width: 1799.98px) {
+		.viewer-grid { grid-template-columns: minmax(0, 1fr); }
+		.viewer-grid:not(.no-detail) .msg-table-wrap { height: 42vh; }
+		.detail-card { position: static; max-height: none; }
+	}
+	@media (max-width: 991.98px) { .inspector-layout { grid-template-columns: minmax(0, 1fr); } .inspector-side { position: static; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="inspectorPage">
+	<div class="mb-3">
+		<h2 class="mb-1">Game Message Inspector</h2>
+		<p class="text-body-secondary mb-0">Capture the game messages one online player sends and receives, live, to debug scripts and behaviors, and look
+			at them again later. The world server the player is in captures them; messages the server has a typed struct for show their fields, all
+			show their bytes. A capture follows the player to other zones and always stops at its time limit. Every capture is saved (deleted after
+			the retention set under Settings, Data retention). Starting, stopping, opening someone else's saved capture, downloading and deleting are audited.</p>
+	</div>
+
+	<div class="inspector-layout" id="inspectorLayout">
+		<aside class="inspector-side">
+			<div class="card mb-3">
+				<div class="card-header"><h5 class="mb-0 fs-6">New capture</h5></div>
+				<div class="card-body">
+					<form id="startForm" class="d-grid gap-2">
+						<div><label class="form-label small mb-1" for="captureCharacter">Character</label>
+							<input class="form-control form-control-sm" id="captureCharacter" required placeholder="Name or ID" autocomplete="off"></div>
+						<div><label class="form-label small mb-1" for="captureSeconds">For</label>
+							<select class="form-select form-select-sm" id="captureSeconds" data-pref="inspector.seconds">
+								<option value="30">30 seconds</option>
+								<option value="60">1 minute</option>
+								<option value="120" selected>2 minutes</option>
+								<option value="300">5 minutes</option>
+								<option value="600">10 minutes</option>
+								<option value="900">15 minutes</option>
+							</select></div>
+						<div class="d-flex gap-3 small">
+							<div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="captureToServer" checked><label class="form-check-label" for="captureToServer">Sent by the client</label></div>
+							<div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="captureToClient" checked><label class="form-check-label" for="captureToClient">Sent to it</label></div>
+						</div>
+						<div><label class="form-label small mb-1" for="captureOnly">Only these messages</label>
+							<input class="form-control form-control-sm" id="captureOnly" list="messageNames" placeholder="e.g. REQUEST_USE, 154 (empty: all)"></div>
+						<div><label class="form-label small mb-1" for="captureSkip">Never these</label>
+							<input class="form-control form-control-sm" id="captureSkip" list="messageNames" data-pref="inspector.skip" placeholder="e.g. READY_FOR_UPDATES"></div>
+						<button class="btn btn-sm btn-primary">Start capture</button>
+					</form>
+					<datalist id="messageNames"></datalist>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-header"><h5 class="mb-0 fs-6">Running and recent</h5></div>
+				<div class="list-group list-group-flush" id="captureList"><div class="list-group-item text-body-secondary small">Loading&hellip;</div></div>
+			</div>
+		</aside>
+
+		<div style="min-width: 0">
+			<ul class="nav nav-tabs mb-3" role="tablist">
+				<li class="nav-item" role="presentation"><button class="nav-link active" id="sessionsTab" type="button" role="tab" aria-controls="sessionsPane" aria-selected="true">Saved captures</button></li>
+				<li class="nav-item" role="presentation"><button class="nav-link" id="viewerTab" type="button" role="tab" aria-controls="viewerPane" aria-selected="false" disabled>Viewer</button></li>
+			</ul>
+
+			<!-- Saved captures -->
+			<div id="sessionsPane" role="tabpanel" aria-labelledby="sessionsTab">
+				<form class="row g-2 align-items-end mb-2" id="sessionFilters">
+					<div class="col-sm-6 col-lg-3"><label class="form-label small mb-1" for="filterCharacter">Character</label>
+						<input class="form-control form-control-sm" id="filterCharacter" placeholder="Name or ID"></div>
+					<div class="col-sm-6 col-lg-2"><label class="form-label small mb-1" for="filterAccount">Account</label>
+						<input class="form-control form-control-sm" id="filterAccount" placeholder="Name or ID"></div>
+					<div class="col-sm-4 col-lg-2"><label class="form-label small mb-1" for="filterStaff">Started by</label>
+						<input class="form-control form-control-sm" id="filterStaff" placeholder="Staff account"></div>
+					<div class="col-sm-4 col-lg-2"><label class="form-label small mb-1" for="filterSince">From</label>
+						<input class="form-control form-control-sm" type="date" id="filterSince"></div>
+					<div class="col-sm-4 col-lg-2"><label class="form-label small mb-1" for="filterUntil">To</label>
+						<input class="form-control form-control-sm" type="date" id="filterUntil"></div>
+					<div class="col-lg-1 d-grid"><button type="button" class="btn btn-sm btn-outline-secondary" id="filterClear">Clear</button></div>
+				</form>
+				<div class="table-responsive border rounded">
+					<table class="table table-sm table-hover mb-0 sessions-table">
+						<thead><tr>
+							<th data-sort="started">Started</th>
+							<th data-sort="character">Character</th>
+							<th data-sort="started_by">By</th>
+							<th>Length</th>
+							<th>Where</th>
+							<th class="text-end" data-sort="messages">Messages</th>
+							<th class="text-end" data-sort="bytes">Size</th>
+							<th>Ended</th>
+							<th></th>
+						</tr></thead>
+						<tbody id="sessionRows"><tr><td colspan="9" class="text-body-secondary small">Loading&hellip;</td></tr></tbody>
+					</table>
+				</div>
+				<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 small">
+					<div class="text-body-secondary" id="sessionInfo"></div>
+					<div class="d-flex align-items-center gap-2">
+						<select class="form-select form-select-sm w-auto" id="sessionPageSize" data-pref="inspector.pageSize" aria-label="Captures per page">
+							<option value="25">25 per page</option><option value="50">50 per page</option><option value="100">100 per page</option>
+						</select>
+						<div class="btn-group btn-group-sm">
+							<button type="button" class="btn btn-outline-secondary" id="sessionPrev">Previous</button>
+							<button type="button" class="btn btn-outline-secondary" id="sessionNext">Next</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- One capture -->
+			<div id="viewerPane" class="d-none" role="tabpanel" aria-labelledby="viewerTab">
+				<div class="card mb-3">
+					<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+						<div style="min-width: 0"><h5 class="mb-0" id="captureTitle"></h5><div class="small text-body-secondary" id="captureSubtitle"></div></div>
+						<div class="d-flex flex-wrap gap-2">
+							<button class="btn btn-sm btn-outline-secondary d-none" id="pauseBtn" title="Hold new messages back while you look (they are still captured)">Pause</button>
+							<a class="btn btn-sm btn-outline-secondary" id="downloadBtn" title="Every message with its fields and bytes (audited)">Download JSON</a>
+							<button class="btn btn-sm btn-outline-danger d-none" id="stopBtn">Stop</button>
+							<button class="btn btn-sm btn-outline-danger d-none" id="deleteBtn">Delete</button>
+						</div>
+					</div>
+					<div class="card-body">
+						<div class="row g-2 align-items-end mb-2">
+							<div class="col-md-4"><label class="form-label small mb-1" for="viewFilter">Messages</label>
+								<input class="form-control form-control-sm" id="viewFilter" list="messageNames" placeholder="Name part or ID; commas for more; !NAME hides"></div>
+							<div class="col-md-2"><label class="form-label small mb-1" for="viewDirection">Direction</label>
+								<select class="form-select form-select-sm" id="viewDirection"><option value="">Both</option><option value="to_server">Sent by the client</option><option value="to_client">Sent to it</option></select></div>
+							<div class="col-md-3"><label class="form-label small mb-1" for="viewObject">Object</label>
+								<input class="form-control form-control-sm font-monospace" id="viewObject" placeholder="Object ID (click one in the table)"></div>
+							<div class="col-md-3"><label class="form-label small mb-1" for="viewSearch">Search fields</label>
+								<input class="form-control form-control-sm" id="viewSearch" type="search" placeholder="Text in decoded fields or hex bytes"></div>
+						</div>
+						<div class="d-flex flex-wrap gap-3 mb-2 small">
+							<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="viewDecoded"><label class="form-check-label" for="viewDecoded">Only decoded</label></div>
+							<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="viewFollow" checked data-pref="inspector.follow"><label class="form-check-label" for="viewFollow">Follow newest</label></div>
+							<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="viewRelative" data-pref="inspector.relative"><label class="form-check-label" for="viewRelative">Time since the start</label></div>
+							<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="viewTypes" data-pref="inspector.types"><label class="form-check-label" for="viewTypes">Counts by message</label></div>
+							<a href="#" class="ms-auto d-none" id="clearView">Clear filters</a>
+						</div>
+
+						<div class="border rounded mb-2 d-none" id="typesCard">
+							<div class="type-table-wrap">
+								<table class="table table-sm table-hover mb-0 type-table">
+									<thead class="sticky-top"><tr><th>Message</th><th class="text-end">ID</th><th class="text-end">Sent by the client</th><th class="text-end">Sent to it</th><th class="text-end">All</th></tr></thead>
+									<tbody id="typeRows"></tbody>
+								</table>
+							</div>
+						</div>
+
+						<div class="viewer-grid no-detail" id="viewerGrid">
+							<div style="min-width: 0">
+								<div class="msg-table-wrap border rounded" id="tableWrap" tabindex="0" aria-label="Captured messages (arrow keys move the selection)">
+									<table class="table table-sm table-hover mb-0 msg-table">
+										<thead class="sticky-top"><tr><th class="col-seq">#</th><th class="col-time">Time</th><th class="col-dir"></th><th class="col-msg">Message</th><th class="col-obj">Object</th><th class="col-bytes text-end">Bytes</th><th>Fields</th></tr></thead>
+										<tbody id="messageRows"></tbody>
+									</table>
+								</div>
+								<div class="d-flex justify-content-between small text-body-secondary mt-1"><span id="rowInfo"></span><a href="#" class="d-none" id="resumeLink"></a></div>
+							</div>
+							<div class="card detail-card d-none" id="detailCard">
+								<div class="card-header d-flex justify-content-between align-items-center gap-2"><h5 class="mb-0 fs-6 text-truncate" id="detailTitle"></h5>
+									<button type="button" class="btn-close" id="detailClose" aria-label="Close"></button></div>
+								<div class="card-body">
+									<div class="small text-body-secondary mb-2" id="detailMeta"></div>
+									<div id="detailFields"></div>
+									<div class="d-flex justify-content-between align-items-center mt-3 mb-1">
+										<h6 class="small text-uppercase text-body-secondary mb-0">Bytes after the object and message ID</h6>
+										<div class="btn-group btn-group-sm text-nowrap">
+											<button type="button" class="btn btn-outline-secondary" id="copyHex">Copy hex</button>
+											<button type="button" class="btn btn-outline-secondary" id="copyJson">Copy JSON</button>
+										</div>
+									</div>
+									<pre class="hexdump border rounded p-2" id="detailHex"></pre>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/inspector.js"></script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Connecting Mail Account - DarkflameServer{% endblock %}
+
+{% block content_noauth %}
+<div class="d-flex align-items-center justify-content-center min-vh-100">
+	{% include "oauth2_callback_card.jinja2" %}
+</div>
+{% endblock %}
+
+{% block content %}
+{% include "oauth2_callback_card.jinja2" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var params = new URLSearchParams(window.location.search);
+	var code = params.get('code') || '';
+	var state = params.get('state') || '';
+	var providerError = params.get('error_description') || params.get('error');
+	history.replaceState(null, '', '/oauth2/callback');
+
+	var status = document.getElementById('status');
+	function show(message, ok) { status.textContent = message; status.className = 'alert alert-' + (ok ? 'success' : 'danger'); }
+
+	if (providerError) { show('The provider refused: ' + providerError, false); return; }
+	// This same-origin request carries the session cookie, which the provider's redirect could not
+	api.post('/api/email/oauth2/complete', { code: code, state: state }).then(function (d) {
+		if (!d.success) { show(d.error || 'Connecting failed', false); return; }
+		status.textContent = 'Checking with the provider…';
+		// Poll for the result; the live-update socket isn't loaded on this page
+		var polls = 0;
+		(function poll() {
+			setTimeout(function () {
+				api.get('/api/actions/' + d.requestId).then(function (r) {
+					if (r.status !== 'done') {
+						if (++polls < 30) poll(); else show('Still waiting on the provider; check your account page shortly.', false);
+						return;
+					}
+					show(r.message, r.success);
+					if (r.success) setTimeout(function () { window.location.href = '/account'; }, 1500);
+				});
+			}, 1000);
+		})();
+	}).catch(function (err) { show(err.message === 'Not signed in' ? 'Sign in to the dashboard first, then connect again.' : 'Network error: ' + err.message, false); });
+})();
+</script>
+{% endblock %}

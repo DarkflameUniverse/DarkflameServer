@@ -1,0 +1,102 @@
+{% extends "base.jinja2" %}
+
+{% block title %}System Log - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+	<h2 class="mb-1">System Log</h2>
+	<p class="text-body-secondary mb-0">The servers' log files. Pick a server and one of its files; the newest is shown first.</p>
+</div>
+
+<div class="card mb-3">
+	<div class="card-header">
+		<form method="get" class="row g-2 align-items-end" id="logPick">
+			<div class="col-sm-4">
+				<label class="form-label small mb-1" for="logServerPick">Server</label>
+				<select name="server" id="logServerPick" class="form-select form-select-sm">
+					{% for server in servers %}
+					<option value="{{ server.name }}"{% if server.name == selected_server %} selected{% endif %}>{{ server.name }} ({{ server.files }} file{% if server.files != 1 %}s{% endif %})</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="col-sm-5">
+				<label class="form-label small mb-1" for="logFilePick">File</label>
+				<select name="file" id="logFilePick" class="form-select form-select-sm">
+					{% for file in files %}
+					<option value="{{ file.name }}" data-time="{{ file.time }}" data-size="{{ file.size }}"{% if exists("log_file") %}{% if file.name == log_file %} selected{% endif %}{% endif %}>{{ file.name }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="col-sm-3 d-flex gap-2">
+				<button type="button" class="btn btn-sm btn-outline-secondary flex-fill" onclick="location.reload()">Refresh</button>
+				{% if exists("log_file") %}<a class="btn btn-sm btn-outline-secondary flex-fill" href="/api/logs/file?name={{ log_file }}">Download</a>{% endif %}
+			</div>
+		</form>
+	</div>
+	{% if exists("log_file") %}
+	<div class="px-3 py-2 border-bottom d-flex flex-wrap align-items-baseline gap-2 bg-body-tertiary">
+		<span class="fw-semibold">{{ selected_server }}</span>
+		<code class="small">{{ log_file }}</code>
+		{% if log_newest %}<span class="badge text-bg-success">newest</span>{% else %}<span class="badge text-bg-secondary">older file</span>{% endif %}
+		<span class="small text-body-secondary ms-auto" id="logMeta" data-time="{{ log_time }}" data-size="{{ log_size }}"></span>
+	</div>
+	{% endif %}
+	<div class="card-body p-0">
+		<pre id="logContent" class="log-output mb-0 p-3">{% if exists("log_content") %}{{ log_content }}{% else %}No log files found{% endif %}</pre>
+	</div>
+</div>
+
+<div class="card">
+	<div class="card-header"><h5 class="mb-0">Search the logs</h5></div>
+	<div class="card-body">
+		<form class="row g-2 align-items-end" id="logSearch">
+			<div class="col-sm-5"><label class="form-label small" for="logQuery">Text</label><input class="form-control form-control-sm" id="logQuery" minlength="2" maxlength="200" required placeholder="e.g. a player name, an error, a zone ID"></div>
+			<div class="col-sm-3"><label class="form-label small" for="logServer">Server</label><select class="form-select form-select-sm" id="logServer"><option value="">All servers</option>
+				{% for type in server_types %}<option value="{{ type }}">{{ type }}</option>{% endfor %}</select></div>
+			<div class="col-sm-2"><label class="form-label small" for="logFiles">Newest files</label><select class="form-select form-select-sm" id="logFiles"><option>1</option><option selected>3</option><option>10</option><option>20</option></select></div>
+			<div class="col-sm-2"><button class="btn btn-sm btn-primary w-100">Search</button></div>
+		</form>
+		<div id="logResults" class="mt-3"></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var log = document.getElementById('logContent');
+log.scrollTop = log.scrollHeight;
+
+function fileSize(bytes) {
+	bytes = Number(bytes);
+	return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' kB';
+}
+// What's shown: when the file was last written, how big it is, and that this is its end
+var meta = document.getElementById('logMeta');
+if (meta) meta.textContent = 'Last written ' + fmt.unix(Number(meta.dataset.time)) + ' \u00b7 ' + fileSize(meta.dataset.size) + ' \u00b7 showing the last 500 lines';
+// File names end in the time the server started; show when each was written too
+document.querySelectorAll('#logFilePick option').forEach(function (o) {
+	var started = Number((o.value.match(/_(\d{9,})\.log$/) || [])[1]);
+	o.textContent = (started ? 'Started ' + fmt.unix(started) + ', ' : '') + 'last written ' + fmt.unix(Number(o.dataset.time)) + ' (' + fileSize(o.dataset.size) + ')';
+});
+document.getElementById('logServerPick').addEventListener('change', function () { location.href = '/system_log?server=' + encodeURIComponent(this.value); });
+document.getElementById('logFilePick').addEventListener('change', function () { this.form.submit(); });
+
+document.getElementById('logSearch').addEventListener('submit', function (e) {
+	e.preventDefault();
+	var out = document.getElementById('logResults');
+	var q = document.getElementById('logQuery').value.trim();
+	out.innerHTML = '<p class="text-body-secondary mb-0">Searching&hellip;</p>';
+	api.job('/api/logs/search?q=' + encodeURIComponent(q) + '&server=' + encodeURIComponent(document.getElementById('logServer').value) +
+		'&files=' + document.getElementById('logFiles').value, null, 'GET').then(function (d) {
+		if (!d.matches.length) { out.innerHTML = '<p class="text-body-secondary mb-0">Nothing found.</p>'; return; }
+		var lower = q.toLowerCase();
+		out.innerHTML = (d.truncated ? '<p class="small text-warning">Showing the first 1000 lines.</p>' : '<p class="small text-body-secondary">' + d.matches.length + ' line(s)</p>') +
+			'<pre class="log-output mb-0">' + d.matches.map(function (m) {
+				var text = esc(m.text), at = m.text.toLowerCase().indexOf(lower);
+				if (at >= 0) text = esc(m.text.slice(0, at)) + '<mark>' + esc(m.text.slice(at, at + q.length)) + '</mark>' + esc(m.text.slice(at + q.length));
+				return '<span class="text-body-secondary">' + esc(m.file) + ':' + m.line + '</span> ' + text;
+			}).join('\n') + '</pre>';
+	}).catch(function () { out.innerHTML = ''; });
+});
+</script>
+{% endblock %}

@@ -238,6 +238,8 @@ namespace DEVGMCommands {
 
 		auto* player = PlayerManager::GetPlayer(splitArgs[0]);
 		if (player) {
+			const auto target = SlashCommandHandler::TargetOf(player);
+			if (!target || !SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::TOOLS, "kill")) return;
 			player->Smash(entity->GetObjectID());
 			ChatPackets::SendSystemMessage(sysAddr, u"It has been done, do you feel good about yourself now?");
 			return;
@@ -626,6 +628,11 @@ namespace DEVGMCommands {
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid x or source player not found.");
 				return;
 			}
+			if (sourcePlayer && sourcePlayer != entity) {
+				// Moving someone else: the same rules as moving their character on the dashboard
+				const auto target = SlashCommandHandler::TargetOf(sourcePlayer);
+				if (!target || !SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::OTHERS, "teleport")) return;
+			}
 			if (sourcePlayer) sourceEntity = sourcePlayer;
 
 			const auto z = ParseRelativeAxis(sourcePos.z, splitArgs[1]);
@@ -670,8 +677,21 @@ namespace DEVGMCommands {
 
 		const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
+		// Only players this GM may move (never a higher GM level; their own level with manage_equal_rank)
+		const auto actorLevel = static_cast<uint8_t>(entity->GetGMLevel());
+		const auto actorAccountId = SlashCommandHandler::AccountOf(entity);
+		uint32_t skipped = 0;
 		for (auto* character : characters) {
+			const auto target = SlashCommandHandler::TargetOf(character);
+			if (target && SlashCommandHandler::TargetDenial(actorLevel, actorAccountId, target->gmLevel, target->accountId, SlashCommandLevels::eTargetRule::OTHERS) != AccountRules::eManageDenial::NONE) {
+				skipped++;
+				continue;
+			}
 			GameMessages::SendTeleport(character->GetObjectID(), pos, QuatUtils::IDENTITY, character->GetSystemAddress());
+		}
+		if (skipped > 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"/tpall: left " + GeneralUtils::to_u16string(skipped) +
+				u" player(s) where they are: you cannot move players with a higher GM level, or your own without the manage_equal_rank permission");
 		}
 	}
 
@@ -880,7 +900,7 @@ namespace DEVGMCommands {
 		const int32_t uscore = uscoreOptional.value();
 
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
-		if (character) character->SetUScore(character->GetUScore() + uscore);
+		if (character) character->SetUScore(character->GetUScore() + uscore, static_cast<uint32_t>(eLootSourceType::MODERATION));
 		// MODERATION should work but it doesn't.  Relog to see uscore changes
 
 		eLootSourceType lootType = eLootSourceType::MODERATION;
@@ -914,6 +934,10 @@ namespace DEVGMCommands {
 				return;
 			}
 
+			if (requestedPlayer->GetOwner() != entity) {
+				const auto target = SlashCommandHandler::TargetOf(requestedPlayer->GetOwner());
+				if (!target || !SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::OTHERS, "setlevel")) return;
+			}
 			entity = requestedPlayer->GetOwner();
 		}
 		const auto requestedLevelOptional = GeneralUtils::TryParse<uint32_t>(splitArgs[0]);
@@ -938,7 +962,7 @@ namespace DEVGMCommands {
 
 		// Set the UScore first
 		oldLevel = levelComponent->GetLevel();
-		characterComponent->SetUScore(result.getIntField(0, characterComponent->GetUScore()));
+		characterComponent->SetUScore(result.getIntField(0, characterComponent->GetUScore()), static_cast<uint32_t>(eLootSourceType::MODERATION));
 
 		// handle level up for each level we have passed if we set our level to be higher than the current one.
 		if (oldLevel < requestedLevel) {
@@ -1792,6 +1816,11 @@ namespace DEVGMCommands {
 					return;
 				}
 
+				if (targetPlayer != entity) {
+					// Runs commands with that player's GM level, so never as a higher GM level than the one running it
+					const auto target = SlashCommandHandler::TargetOf(targetPlayer);
+					if (!target || !SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::OTHERS, "execute")) return;
+				}
 				execEntity = targetPlayer;
 				i += 2;
 

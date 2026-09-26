@@ -1,5 +1,6 @@
 #include "dCommonVars.h"
 #include "Entity.h"
+#include "EconomyLedger.h"
 #include "CDClientManager.h"
 #include "Game.h"
 #include "Logger.h"
@@ -1698,6 +1699,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) const {
 					missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
 				}
 			}
+			EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::POWERUP_PICKUPS, info.lot, GetPosition(), 1, this);
 		} else {
 			inv->AddItem(info.lot, info.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 		}

@@ -1,0 +1,66 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Pet Names - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Pet Names</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+	<p class="text-body-secondary mb-0">All pet names. Rejecting a name deletes it and the player must choose a new one.</p>
+	<div class="form-check form-switch">
+		<input class="form-check-input" type="checkbox" id="pendingOnly" data-pref="petNames.pendingOnly">
+		<label class="form-check-label" for="pendingOnly">Pending only</label>
+	</div>
+</div>
+
+<div class="card">
+	<div class="card-body">
+		<table id="petNamesTable" class="table table-striped table-hover table-stack">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Pet Name</th>
+					<th>Status</th>
+					<th>Owner</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function () {
+	var pending = document.getElementById('pendingOnly');
+	var table = serverTable('#petNamesTable', '/api/tables/pet_names', [
+		{ data: 'id' },
+		{ data: 'pet_name' },
+		// 1 = pending moderation, 2 = approved (rejected names are deleted)
+		{ data: 'approved', render: function (d) { return d === 2 ? fmt.badge('Approved', 'success') : fmt.badge('Pending', 'warning'); } },
+		{ data: 'owner_id', orderable: false, defaultContent: '', render: function (d, t, row) { return row.owner_id ? fmt.character(row.owner_id, row.owner_name) : '<span class="text-body-secondary small">-</span>'; } },
+		{ data: null, orderable: false, searchable: false, render: function (d) {
+			var buttons = '';
+			if (d.approved !== 2) buttons += '<button class="btn btn-sm btn-outline-success me-1" data-pet-action="approve" data-id="' + esc(d.id) + '">Approve</button>';
+			return buttons + '<button class="btn btn-sm btn-outline-danger" data-pet-action="reject" data-id="' + esc(d.id) + '" data-character="' + esc(d.owner_id || '') + '" data-subject="' + esc(d.pet_name) + '">Reject</button>';
+		}}
+	], { liveTable: 'pet_names', extra: function () { return { pending: pending.checked }; } });
+	pending.addEventListener('change', function () { table.ajax.reload(); });
+
+	$('#petNamesTable').on('click', '[data-pet-action]', function () {
+		var action = this.getAttribute('data-pet-action');
+		var url = '/api/pet_names/' + this.getAttribute('data-id') + '/' + action;
+		if (action === 'approve') { api.action(url, {}, 'Approved').catch(function () {}); return; }
+		Decide({
+			title: 'Reject the pet name “' + this.getAttribute('data-subject') + '”',
+			reasonLabel: 'Reason (optional, shown to the owner on the dashboard)',
+			characterId: this.getAttribute('data-character')
+		}).then(function (choice) {
+			if (!choice) return;
+			api.action(url, { reason: choice.reason, strike: choice.strike }, choice.strike ? 'Rejected, with a strike' : 'Rejected').catch(function () {});
+		});
+	});
+});
+</script>
+{% endblock %}

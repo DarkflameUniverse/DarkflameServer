@@ -1,0 +1,136 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Online Players - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Online Players <span class="badge text-bg-secondary align-middle fs-6" id="playerCount">0</span></h2>
+		<p class="text-body-secondary mb-0">Who is in which world right now. Updates live.</p>
+	</div>
+	<input type="search" class="form-control form-control-sm" style="max-width: 16rem" id="playerSearch" placeholder="Name, account or world" aria-label="Filter players">
+</div>
+
+<div class="card">
+	<div class="card-body table-responsive">
+		<table class="table table-hover align-middle mb-0 table-stack">
+			<thead><tr><th>Character</th><th>Account</th><th>World</th><th class="d-none d-md-table-cell">Position</th><th class="text-end">Actions</th></tr></thead>
+			<tbody id="playerRows"><tr><td colspan="5" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+		</table>
+	</div>
+</div>
+
+<div class="modal fade" id="moveModal" tabindex="-1" aria-labelledby="moveTitle" aria-hidden="true">
+	<div class="modal-dialog">
+		<form class="modal-content" id="moveForm">
+			<div class="modal-header"><h5 class="modal-title" id="moveTitle">Move player</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div id="teleportFields">
+					<label class="form-label" for="moveTarget">To where this player is standing</label>
+					<select class="form-select" id="moveTarget"></select>
+					<div class="form-text">Only players in the same world can be teleported to; rescue someone to a zone first to bring them over.</div>
+				</div>
+				<div id="rescueFields">
+					<p class="small text-body-secondary">For players stuck somewhere: they're moved to the zone and spawn point you pick.</p>
+					<label class="form-label" for="rescueZone">Zone</label>
+					<select class="form-select mb-3" id="rescueZone"></select>
+					<label class="form-label" for="rescueSpawn">Spawn point</label>
+					<select class="form-select" id="rescueSpawn"></select>
+					<div class="form-text" id="rescueSpawnHelp"></div>
+				</div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" id="moveSubmit">Move</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/rescue.js"></script>
+<script>
+(function () {
+	var players = [], moving = null, mode = null;
+	var modal = new bootstrap.Modal(document.getElementById('moveModal'));
+	var picker = null;
+	var canKick = DASH.can('accounts_kick'), canMove = DASH.can('characters_rescue');
+
+	function world(p) { return p.zone + '/' + p.instance + '/' + p.clone; }
+
+	function render() {
+		var query = document.getElementById('playerSearch').value.trim().toLowerCase();
+		var shown = players.filter(function (p) {
+			return !query || [p.name, p.account_name, p.zone_name, p.id].join(' ').toLowerCase().indexOf(query) !== -1;
+		});
+		document.getElementById('playerCount').textContent = players.length;
+		document.getElementById('playerRows').innerHTML = shown.map(function (p) {
+			var actions = '';
+			if (canKick && p.account_id) actions += '<button class="btn btn-sm btn-outline-secondary me-1" data-kick="' + esc(p.id) + '">Kick</button>';
+			if (canMove) actions += '<button class="btn btn-sm btn-outline-warning me-1" data-rescue="' + esc(p.id) + '">Rescue</button>' +
+				'<button class="btn btn-sm btn-outline-primary" data-teleport="' + esc(p.id) + '">Teleport</button>';
+			return '<tr><td data-label="Character">' + fmt.character(p.id, p.name) + '</td>' +
+				'<td data-label="Account">' + (p.account_id ? fmt.link('/accounts/' + p.account_id, p.account_name) + (p.gm_level ? ' ' + fmt.badge('GM ' + p.gm_level, 'info') : '') : '-') + '</td>' +
+				'<td data-label="World">' + fmt.zone(p.zone, p.zone_name) + (p.instance ? ' <span class="small text-body-secondary">instance ' + esc(p.instance) + '</span>' : '') + '</td>' +
+				'<td class="d-none d-md-table-cell small text-body-secondary">' + [p.x, p.y, p.z].map(function (v) { return Number(v).toFixed(0); }).join(', ') + '</td>' +
+				'<td class="text-end text-nowrap">' + actions + '</td></tr>';
+		}).join('') || '<tr><td colspan="5" class="text-body-secondary">' + (players.length ? 'Nobody matches.' : 'Nobody is online.') + '</td></tr>';
+	}
+
+	function load() {
+		return api.get('/api/players/online').then(function (d) { if (d.success) { players = d.players; render(); } });
+	}
+
+	function find(id) { return players.filter(function (p) { return p.id === id; })[0]; }
+
+	function openMove(id, kind) {
+		moving = find(id); mode = kind;
+		if (!moving) return;
+		var select = document.getElementById('moveTarget');
+		document.getElementById('rescueFields').classList.toggle('d-none', kind !== 'rescue');
+		document.getElementById('teleportFields').classList.toggle('d-none', kind === 'rescue');
+		if (kind === 'rescue') {
+			document.getElementById('moveTitle').textContent = 'Rescue ' + moving.name;
+			// Starts on the zone they're in, with spawn points listed by how far they are from them
+			picker = RescuePicker(document.getElementById('rescueZone'), document.getElementById('rescueSpawn'),
+				{ zone: moving.zone, here: { zone: moving.zone, x: Number(moving.x), z: Number(moving.z) } });
+		} else {
+			document.getElementById('moveTitle').textContent = 'Teleport ' + moving.name;
+			var others = players.filter(function (p) { return p.id !== moving.id; });
+			others.sort(function (a, b) { return (world(b) === world(moving)) - (world(a) === world(moving)); });
+			select.innerHTML = others.map(function (p) {
+				var same = world(p) === world(moving);
+				return '<option value="' + esc(p.id) + '"' + (same ? '' : ' disabled') + '>' + esc(p.name) + ' - ' + esc(p.zone_name) + (same ? '' : ' (another world)') + '</option>';
+			}).join('') || '<option disabled>Nobody else is online</option>';
+		}
+		modal.show();
+	}
+
+	document.getElementById('playerRows').addEventListener('click', function (e) {
+		var kick = e.target.closest('[data-kick]'), rescue = e.target.closest('[data-rescue]'), teleport = e.target.closest('[data-teleport]');
+		if (kick) {
+			var p = find(kick.dataset.kick);
+			if (p && confirm('Disconnect ' + p.name + ' (account ' + p.account_name + ')?')) api.action('/api/accounts/' + p.account_id + '/kick', {}).catch(function () {});
+		}
+		if (rescue) openMove(rescue.dataset.rescue, 'rescue');
+		if (teleport) openMove(teleport.dataset.teleport, 'teleport');
+	});
+
+	document.getElementById('moveForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var request;
+		if (mode === 'rescue') {
+			if (!picker || !picker.zone()) return;
+			request = api.action('/api/characters/' + moving.id + '/rescue', { zone_id: picker.zone(), spawn_point: picker.spawnPoint() });
+		} else {
+			var value = document.getElementById('moveTarget').value;
+			if (!value) return;
+			request = api.action('/api/characters/' + moving.id + '/teleport', { to: value });
+		}
+		request.then(function () { modal.hide(); }).catch(function () {});
+	});
+
+	document.getElementById('playerSearch').addEventListener('input', render);
+	if (window.Live) Live.onTopic('player_positions', Live.throttle(load, 2000));
+	load();
+})();
+</script>
+{% endblock %}

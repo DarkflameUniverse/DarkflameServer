@@ -1,0 +1,112 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Play Keys - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+	<div>
+		<h2 class="mb-1">Play Keys</h2>
+		<p class="text-body-secondary mb-0">Registration keys &mdash; <span id="keyCount">0</span> total</p>
+	</div>
+	<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createKeyModal">Create Keys</button>
+</div>
+
+<div class="card">
+	<div class="card-body">
+		<table id="playKeysTable" class="table table-striped table-hover">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Key</th>
+					<th>Uses Allowed</th>
+					<th>Times Used</th>
+					<th>Created</th>
+					<th>Status</th>
+					<th>Notes</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+
+<div class="modal fade" id="createKeyModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Create Play Keys</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div class="row g-3">
+					<div class="col-6">
+						<label for="newKeyCount" class="form-label">Number of keys</label>
+						<input type="number" class="form-control" id="newKeyCount" value="1" min="1" max="100">
+					</div>
+					<div class="col-6">
+						<label for="newKeyUses" class="form-label">Uses per key</label>
+						<input type="number" class="form-control" id="newKeyUses" value="1" min="1">
+					</div>
+					<div class="col-12">
+						<label for="newKeyString" class="form-label">Custom key <span class="text-body-secondary small">(optional, creates a single key)</span></label>
+						<input type="text" class="form-control" id="newKeyString" placeholder="Leave empty to generate XXXX-XXXX-XXXX-XXXX keys" maxlength="64">
+					</div>
+					<div class="col-12">
+						<label for="newKeyNotes" class="form-label">Notes</label>
+						<input type="text" class="form-control" id="newKeyNotes" placeholder="e.g. who these keys were given to">
+					</div>
+				</div>
+				<div id="createdKeys" class="d-none mt-3">
+					<label class="form-label">Created keys</label>
+					<textarea class="form-control font-monospace" rows="5" readonly></textarea>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary" onclick="createKeys()">Create</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function () {
+	var table = serverTable('#playKeysTable', '/api/tables/play_keys', [
+		{ data: 'id' },
+		{ data: 'key_string', render: function (d, t, row) { return '<a href="/play_keys/' + esc(row.id) + '"><code>' + esc(d) + '</code></a>'; } },
+		{ data: 'key_uses' },
+		{ data: 'times_used', render: function (d, t, row) { return fmt.badge(d, d >= row.key_uses ? 'warning' : 'secondary'); } },
+		{ data: 'created_at', render: function (d) { return fmt.date(d); } },
+		{ data: 'active', render: function (d) { return d ? fmt.badge('Active', 'success') : fmt.badge('Inactive', 'secondary'); } },
+		{ data: 'notes', orderable: false },
+		{ data: null, orderable: false, searchable: false, render: function (d) {
+			return '<button class="btn btn-sm ' + (d.active ? 'btn-outline-warning' : 'btn-outline-success') + ' me-1" data-toggle-key="' + esc(d.id) + '" data-active="' + (!d.active) + '">' + (d.active ? 'Deactivate' : 'Activate') + '</button>' +
+				'<a class="btn btn-sm btn-outline-primary" href="/play_keys/' + esc(d.id) + '">Edit</a>';
+		}}
+	], { liveTable: 'play_keys' });
+	table.on('draw.dt', function () { document.getElementById('keyCount').textContent = table.page.info().recordsTotal; });
+
+	$('#playKeysTable').on('click', '[data-toggle-key]', function () {
+		api.action('/api/play_keys/' + this.getAttribute('data-toggle-key') + '/toggle', { active: this.getAttribute('data-active') === 'true' }).catch(function () {});
+	});
+});
+
+function createKeys() {
+	var body = {
+		count: parseInt(document.getElementById('newKeyCount').value, 10) || 1,
+		uses: parseInt(document.getElementById('newKeyUses').value, 10) || 1,
+		key_string: document.getElementById('newKeyString').value.trim(),
+		notes: document.getElementById('newKeyNotes').value.trim()
+	};
+	api.action('/api/play_keys/create', body, 'Play keys created').then(function (d) {
+		var box = document.getElementById('createdKeys');
+		box.classList.remove('d-none');
+		box.querySelector('textarea').value = d.keys.join('\n');
+		document.getElementById('newKeyString').value = '';
+	}).catch(function () {});
+}
+</script>
+{% endblock %}

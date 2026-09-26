@@ -1,0 +1,88 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Chat Log - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.chatlog-page { --worlds-width: 17rem; }
+	.chatlog-layout { display: grid; grid-template-columns: var(--worlds-width) minmax(0, 1fr); gap: 1rem; align-items: start; }
+	.chatlog-worlds { position: sticky; top: 4rem; }
+	.chatlog-worlds .list-group-item { cursor: pointer; }
+	.chatlog-worlds .world-meta { font-size: .8rem; color: var(--bs-secondary-color); }
+	.chatlog-worlds .list-group-item.active .world-meta { color: inherit; opacity: .85; }
+	.world-stat { text-align: center; }
+	.world-stat .value { font-size: 1.4rem; font-weight: 600; }
+	.world-stat .label { font-size: .75rem; text-transform: uppercase; color: var(--bs-secondary-color); }
+	@media (max-width: 991.98px) { .chatlog-layout { grid-template-columns: minmax(0, 1fr); } .chatlog-worlds { position: static; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chatlog-page" id="chatLogPage" data-can-send="{% if can.chat_send %}1{% endif %}" data-can-players="{% if can.players_view %}1{% endif %}" data-can-worlds="{% if can.worlds_manage %}1{% endif %}">
+	<div class="mb-3">
+		<h2 class="mb-1">Chat Log</h2>
+		<p class="text-body-secondary mb-0">What players say, newest first, updating live. Pick a world server to see just its chat, who's in it and how busy it is.
+			Messages the chat filter stopped are marked; nobody saw them. Bots can read and post through the <a href="/api_docs#/chat">API</a>.</p>
+	</div>
+
+	<div class="chatlog-layout">
+		<aside class="chatlog-worlds" aria-label="World servers">
+			<div class="card">
+				<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">World servers</h5><span class="small text-body-secondary" id="worldCount"></span></div>
+				<div class="list-group list-group-flush" id="worldList"><div class="list-group-item text-body-secondary small">Loading&hellip;</div></div>
+			</div>
+		</aside>
+
+		<div>
+			<div class="card mb-3 d-none" id="worldPanel">
+				<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+					<div><h5 class="mb-0" id="worldTitle"></h5><div class="small text-body-secondary" id="worldSubtitle"></div></div>
+					<div class="d-flex gap-2" id="worldActions"></div>
+				</div>
+				<div class="card-body">
+					<div class="row g-2 mb-3" id="worldStats"></div>
+					<h6 class="small text-uppercase text-body-secondary mb-2">Players here</h6>
+					<div id="worldPlayers" class="d-flex flex-wrap gap-1"></div>
+				</div>
+			</div>
+
+			<div class="card mb-3 d-none" id="sendCard">
+				<div class="card-body">
+					<form class="row g-2 align-items-end" id="chatSend">
+						<div class="col-md-9"><label class="form-label small mb-1" for="chatMessage" id="sendLabel">Say in every world</label>
+							<input class="form-control form-control-sm" id="chatMessage" maxlength="300" required placeholder="Shown in players' chat as [Web] {{ username }}"></div>
+						<div class="col-md-3"><button class="btn btn-sm btn-primary w-100">Send</button></div>
+					</form>
+				</div>
+			</div>
+
+			<div class="card">
+				<div class="card-header">
+					<div class="row g-2 align-items-end">
+						<div class="col-sm-4"><label class="form-label small mb-1" for="chatChannel">Channel</label>
+							<select class="form-select form-select-sm" id="chatChannel">
+								<option value="">All</option><option value="zone">Zone chat</option>
+								{% if can.chat_private %}<option value="whisper">Whispers</option><option value="team">Team chat</option>{% endif %}
+								<option value="web">From the web and bots</option>
+							</select></div>
+						<div class="col-sm-4"><label class="form-label small mb-1" for="chatCharacter">Character</label>
+							<input class="form-control form-control-sm" id="chatCharacter" placeholder="Name or ID"></div>
+						<div class="col-sm-4"><div class="form-check form-switch mb-1">
+							<input class="form-check-input" type="checkbox" role="switch" id="chatBlocked"><label class="form-check-label small" for="chatBlocked">Only what the filter stopped</label></div></div>
+					</div>
+				</div>
+				<div class="card-body">
+					<table id="chatTable" class="table table-sm table-hover align-middle w-100 table-stack">
+						<thead><tr><th>Time</th><th>Channel</th><th>Where</th><th>From</th><th>To</th><th>Message</th><th></th></tr></thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/chat-log.js"></script>
+{% endblock %}

@@ -28,7 +28,7 @@ std::vector<IUgc::Model> SQLiteDatabase::GetUgcModels(const LWOOBJID& propertyId
 }
 
 std::vector<IUgc::Model> SQLiteDatabase::GetAllUgcModels() {
-	auto [_, result] = ExecuteSelect("SELECT u.id AS ugcID, pc.id AS modelID, lxfml FROM ugc AS u JOIN properties_contents AS pc ON pc.id = u.id;");
+	auto [_, result] = ExecuteSelect("SELECT u.id AS ugcID, pc.id AS modelID, lxfml FROM ugc AS u JOIN properties_contents AS pc ON pc.ugc_id = u.id WHERE pc.lot = 14 AND pc.ugc_id IS NOT NULL;");
 
 	std::vector<IUgc::Model> models;
 	while (!result.eof()) {
@@ -72,7 +72,8 @@ void SQLiteDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstre
 }
 
 std::optional<IUgc::Model> SQLiteDatabase::GetUgcModel(const LWOOBJID ugcId) {
-	auto [_, result] = ExecuteSelect("SELECT u.id AS ugcID, pc.id AS modelID, lxfml FROM ugc AS u JOIN properties_contents AS pc ON pc.id = u.id WHERE u.id = ?;", ugcId);
+	// LEFT JOIN: a model that is in someone's inventory rather than placed on a property still exists
+	auto [_, result] = ExecuteSelect("SELECT u.id AS ugcID, pc.id AS modelID, lxfml FROM ugc AS u LEFT JOIN properties_contents AS pc ON pc.ugc_id = u.id WHERE u.id = ? LIMIT 1;", ugcId);
 
 	std::optional<IUgc::Model> toReturn = std::nullopt;
 	if (!result.eof()) {

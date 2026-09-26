@@ -1,4 +1,6 @@
 #include "Diagnostics.h"
+
+#include <filesystem>
 #include "Game.h"
 #include "Logger.h"
 
@@ -245,7 +247,11 @@ void Diagnostics::SetProcessFileName(const std::string& name) {
 }
 
 void Diagnostics::SetOutDirectory(const std::string& path) {
+	// Crash files are named by appending to this, so it must end in a separator; the folder may not exist yet
 	m_OutDirectory = path;
+	if (!m_OutDirectory.empty() && m_OutDirectory.back() != '/' && m_OutDirectory.back() != '\\') m_OutDirectory += '/';
+	std::error_code ec;
+	if (!m_OutDirectory.empty()) std::filesystem::create_directories(m_OutDirectory, ec);
 }
 
 void Diagnostics::SetProduceMemoryDump(bool value) {

@@ -1,0 +1,187 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Dashboard - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Welcome back, {{ username }}</h2>
+<p class="text-body-secondary mb-4">Server status updates live. <a href="/account">Manage your account</a></p>
+
+{% if can.own_characters %}
+<div class="card mb-4">
+	<div class="card-header"><h5 class="mb-0">Your characters</h5></div>
+	<div class="card-body">
+		{% if length(my_characters) == 0 %}
+		<p class="text-body-secondary mb-0">You don't have any characters yet. Create one in the game!</p>
+		{% else %}
+		<div class="row g-3">
+			{% for char in my_characters %}
+			<div class="col-sm-6 col-lg-4">
+				<a href="/characters/{{ char.id }}" class="card h-100 text-decoration-none">
+					<div class="card-body">
+						<h6 class="card-title mb-1">{{ char.name }}</h6>
+						<div class="small text-body-secondary char-login" data-ts="{{ char.last_login }}"></div>
+					</div>
+				</a>
+			</div>
+			{% endfor %}
+		</div>
+		{% endif %}
+	</div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+	{% include "server_status.jinja2" %}
+	{% include "statistics.jinja2" %}
+</div>
+
+{% include "world_instances.jinja2" %}
+
+{% if can.server_announce or can.server_restart %}
+<div class="row g-3 mt-1">
+	{% if can.server_announce %}
+	<div class="col-lg-6">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">Announcement</h5></div>
+			<div class="card-body">
+				<p class="small text-body-secondary">Pops up for everyone online and is posted in their chat.</p>
+				<div class="mb-2"><input class="form-control form-control-sm" id="announceTitle" maxlength="100" placeholder="Title (optional)"></div>
+				<div class="mb-2"><textarea class="form-control form-control-sm" id="announceMessage" rows="2" maxlength="1000" placeholder="Message"></textarea></div>
+				<button class="btn btn-sm btn-primary" id="announceSend">Send to everyone online</button>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+	{% if can.server_restart %}
+	<div class="col-lg-6" id="restart">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">Scheduled restart</h5></div>
+			<div class="card-body">
+				<div id="restartScheduled" class="d-none">
+					<p class="mb-2" id="restartInfo"></p>
+					<button class="btn btn-sm btn-outline-danger" id="restartCancel">Cancel restart</button>
+				</div>
+				<div id="restartForm">
+					<p class="small text-body-secondary">Players are warned in game at 60, 30, 15, 10, 5, 2 and 1 minutes and 30 and 10 seconds before.
+						The server shuts down cleanly; your process supervisor (systemd, Docker restart policy...) starts it again.</p>
+					<div class="input-group input-group-sm mb-2">
+						<span class="input-group-text">In</span>
+						<select class="form-select" id="restartMinutes">
+							<option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15" selected>15 minutes</option>
+							<option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option>
+						</select>
+					</div>
+					<div class="mb-2"><input class="form-control form-control-sm" id="restartReason" maxlength="300" placeholder="Reason shown to players (optional)"></div>
+					<button class="btn btn-sm btn-warning" id="restartSchedule">Schedule restart</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function () {
+	var announce = document.getElementById('announceSend');
+	if (announce) announce.addEventListener('click', function () {
+		api.action('/api/server/announce', { title: document.getElementById('announceTitle').value.trim(), message: document.getElementById('announceMessage').value.trim() }, 'Announcement sent')
+			.then(function () { document.getElementById('announceMessage').value = ''; }).catch(function () {});
+	});
+	var schedule = document.getElementById('restartSchedule');
+	if (schedule) {
+		var showRestart = function (restart) {
+			var scheduled = restart && restart.at;
+			document.getElementById('restartScheduled').classList.toggle('d-none', !scheduled);
+			document.getElementById('restartForm').classList.toggle('d-none', !!scheduled);
+			if (scheduled) document.getElementById('restartInfo').textContent = 'Restarting at ' + new Date(restart.at * 1000).toLocaleTimeString() +
+				(restart.by ? ' (set by ' + restart.by + ')' : '') + (restart.reason ? ': ' + restart.reason : '');
+		};
+		schedule.addEventListener('click', function () {
+			if (!confirm('Schedule a restart? Everyone online will be warned and then disconnected.')) return;
+			api.action('/api/server/restart', { minutes: parseInt(document.getElementById('restartMinutes').value, 10), reason: document.getElementById('restartReason').value.trim() }, 'Restart scheduled')
+				.then(function (r) { showRestart(r.restart); }).catch(function () {});
+		});
+		document.getElementById('restartCancel').addEventListener('click', function () {
+			api.action('/api/server/restart/cancel', {}, 'Restart cancelled').then(function () { showRestart(null); }).catch(function () {});
+		});
+		api.get('/api/server/restart').then(showRestart);
+		if (window.Live) Live.onStatus(function (s) { showRestart(s.restart); });
+	}
+
+	// Staff get the detailed list (address, which property a clone is); everyone else the basic one from the status
+	var detailedWorlds = DASH.can('players_view');
+	var worlds = $('#worldInstancesTable').DataTable({
+		paging: false,
+		searching: false,
+		info: false,
+		order: [[0, 'asc']],
+		columns: [
+			{ data: 'zoneName', render: function (d, t, row) {
+				// Staff who read chat can open this world on the Chat Log: its chat, players and stats
+				var name = DASH.can('chat_view') && row.mapID ? fmt.link('/chat_log#world=' + row.mapID + ':' + row.instanceID, d) : esc(d);
+				return name + ' <span class="text-body-secondary">(' + esc(row.mapID) + ')</span>'; } },
+			// Without players_view, property instances come merged per zone ({properties: n}) and without clone IDs
+			{ data: 'instanceID', render: function (d, t, row) { return row.properties ? esc(row.properties) + ' propert' + (row.properties === 1 ? 'y' : 'ies') : esc(d); } }
+		].concat(detailedWorlds ? [{ data: 'cloneID' }, { data: 'propertyName', defaultContent: '', render: function (d, t, row) {
+			if (!row.cloneID) return '<span class="text-body-secondary">-</span>';
+			return (row.propertyId ? fmt.link('/properties/' + row.propertyId, d || '(unnamed)') : esc(d || '')) + (row.ownerId ? '<div class="small">by ' + fmt.character(row.ownerId, row.ownerName) + '</div>' : '');
+		} }] : []).concat([
+			{ data: 'players', render: function (d) { return fmt.badge(d, 'primary'); } }
+		]).concat(detailedWorlds ? [{ data: 'isPrivate', render: function (d) { return d ? fmt.badge('Private', 'warning') : fmt.badge('Public', 'success'); } }, { data: 'port', defaultContent: '', render: function (d, t, row) { return '<code class="small">' + esc((row.ip || '') + ':' + d) + '</code>'; } }] : []).concat(DASH.can('worlds_manage') ? [{ data: null, orderable: false, className: 'text-end', render: function (d, t, row) {
+			return '<button class="btn btn-sm btn-outline-danger text-nowrap" data-shutdown-zone="' + esc(row.mapID) + '" data-shutdown-instance="' + esc(row.instanceID) + '">Shut down</button>';
+		} }] : []),
+		language: { emptyTable: 'No active world instances' }
+	});
+
+	var loadDetailedWorlds = Live.throttle(function () {
+		api.get('/api/worlds').then(function (d) { if (d.success) worlds.clear().rows.add(d.worlds).draw(false); });
+	}, 2000);
+
+	$('#worldInstancesTable').on('click', '[data-shutdown-zone]', function () {
+		var zone = parseInt(this.dataset.shutdownZone, 10), instance = parseInt(this.dataset.shutdownInstance, 10);
+		var row = worlds.rows().data().toArray().filter(function (w) { return w.mapID === zone && w.instanceID === instance; })[0];
+		var players = row ? row.players : 0;
+		if (!confirm('Shut down ' + (row ? row.zoneName : 'zone ' + zone) + ' instance ' + instance + '?' + (players ? ' Its ' + players + ' player(s) are saved and disconnected.' : ''))) return;
+		api.action('/api/worlds/shutdown', { zone: zone, instance: instance }, 'Shutting down').catch(function () {});
+	});
+
+	function setStatus(id, online) {
+		var el = document.getElementById(id);
+		if (!el) return;
+		el.textContent = online ? 'Online' : 'Offline';
+		el.className = 'badge text-bg-' + (online ? 'success' : 'danger');
+	}
+
+	function setText(id, value) {
+		var el = document.getElementById(id);
+		if (el && value !== undefined) el.textContent = value;
+	}
+
+	function update(data) {
+		if (data.auth) setStatus('auth-status', data.auth.online);
+		if (data.chat) setStatus('chat-status', data.chat.online);
+		if (data.worlds) {
+			setText('world-count', data.stats && data.stats.worlds !== undefined ? data.stats.worlds : data.worlds.length);
+			if (detailedWorlds) loadDetailedWorlds();
+			else worlds.clear().rows.add(data.worlds).draw(false);
+		}
+		if (data.stats) {
+			setText('online-players', data.stats.onlinePlayers);
+			setText('total-accounts', data.stats.totalAccounts);
+			setText('total-characters', data.stats.totalCharacters);
+		}
+	}
+
+	document.querySelectorAll('.char-login').forEach(function (el) {
+		var ts = parseInt(el.getAttribute('data-ts'), 10);
+		el.textContent = ts > 0 ? 'Last played ' + fmt.unix(ts) : 'Never played';
+	});
+
+	api.get('/api/status').then(update).catch(function () {});
+	Live.onStatus(update);
+});
+</script>
+{% endblock %}

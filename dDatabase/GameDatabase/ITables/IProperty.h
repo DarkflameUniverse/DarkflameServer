@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
+#include <vector>
 
 enum ePropertySortType : int32_t;
 
@@ -21,6 +23,7 @@ public:
 		uint32_t claimedTime{};
 		uint32_t reputation{};
 		float performanceCost{};
+		uint32_t zoneId{};
 	};
 
 	struct PropertyLookup {
@@ -65,5 +68,44 @@ public:
 	
 	// Insert a new property into the database.
 	virtual void InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) = 0;
+
+	// Get paginated list of properties with optional search/filtering for DataTables
+	// Returns a JSON-formatted string with the property data and metadata
+	virtual std::string GetPropertiesTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true, bool pendingOnly = false) = 0;
+
+	virtual uint32_t GetPropertyCount() = 0;
+
+	// Approve a property by id
+	virtual void ApproveProperty(const LWOOBJID propertyId) = 0;
+
+	// ---- Property showcase (dashboard): only properties that are public and approved by a moderator ----
+
+	enum class ShowcaseSort : uint8_t {
+		REPUTATION, // highest first, like the game's "popular" list
+		NEWEST,     // last changed first
+		NAME,
+	};
+
+	struct ShowcaseQuery {
+		std::string search;  // matched against the property name, description and owner's name
+		uint32_t zoneId{};   // 0: every zone
+		ShowcaseSort sort{ ShowcaseSort::REPUTATION };
+		uint32_t start{};
+		uint32_t length{ 24 };
+	};
+
+	struct ShowcaseEntry {
+		IProperty::Info info;
+		std::string ownerName; // the owner character's name
+		uint32_t modelCount{};
+	};
+
+	struct ShowcaseResult {
+		uint32_t total{}; // matching the query without start/length
+		std::vector<ShowcaseEntry> entries;
+	};
+
+	// Approved (mod_approved = 1) public (privacy_option = 2) properties whose owner character still exists
+	virtual ShowcaseResult GetShowcaseProperties(const ShowcaseQuery& query) = 0;
 };
 #endif  //!__IPROPERTY__H__

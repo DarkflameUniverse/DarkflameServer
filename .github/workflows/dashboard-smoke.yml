@@ -1,0 +1,38 @@
+name: Dashboard smoke test
+
+# Starts the whole server on an empty database and checks the web dashboard (tests/smoke/dashboard_smoke_test.py).
+# The servers need a LEGO Universe client, which can't be shipped with the repository, so this runs on a self-hosted
+# runner that has one. To turn it on, set these repository variables (Settings > Secrets and variables > Actions):
+#   DLU_SMOKE_RUNNER    the runner label, e.g. dlu-client
+#   DLU_CLIENT_LOCATION the client folder on that runner (the one with res/)
+# Pull requests from forks never run here: their code would run on your machine.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    if: >-
+      vars.DLU_SMOKE_RUNNER != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [ self-hosted, "${{ vars.DLU_SMOKE_RUNNER }}" ]
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        submodules: true
+    - name: Configure
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - name: Build
+      run: cmake --build build --parallel
+    - name: Unit tests
+      run: ctest --test-dir build --output-on-failure
+    - name: Smoke test
+      env:
+        CLIENT_LOCATION: ${{ vars.DLU_CLIENT_LOCATION }}
+      run: python3 tests/smoke/dashboard_smoke_test.py --build build --fresh --keep
+    - name: Server logs
+      if: failure()
+      run: find /tmp -maxdepth 2 -path '/tmp/dlu-smoke-*/server.log' -exec tail -n 200 {} \;

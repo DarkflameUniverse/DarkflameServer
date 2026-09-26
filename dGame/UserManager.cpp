@@ -1,4 +1,5 @@
 #include "UserManager.h"
+#include "DashboardNotify.h"
 #include <fstream>
 #include <future>
 #include <sstream>
@@ -145,6 +146,14 @@ User* UserManager::GetUser(const std::string& username) {
 	}
 
 	return nullptr;
+}
+
+std::vector<User*> UserManager::GetUsersForAccount(uint32_t accountId) {
+	std::vector<User*> users;
+	for (const auto& [_, user] : m_Users) {
+		if (user && user->GetAccountID() == accountId) users.push_back(user);
+	}
+	return users;
 }
 
 bool UserManager::DeleteUser(const SystemAddress& sysAddr) {
@@ -415,6 +424,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	info.accountId = u->GetAccountID();
 
 	Database::Get()->InsertNewCharacter(info);
+	DashboardNotify::Changed("characters", objectID);
+	if (!pendingName.empty()) DashboardNotify::Changed("pending_names", objectID);
 
 	//Now finally insert our character xml:
 	Database::Get()->InsertCharacterXml(objectID, xml.str());
@@ -448,6 +459,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	} else {
 		LOG("Deleting character %llu", objectID);
 		Database::Get()->DeleteCharacter(objectID);
+		DashboardNotify::Changed("characters", objectID);
 
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
@@ -517,16 +529,20 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		if (!Database::Get()->IsNameInUse(newName)) {
 			if (autoRejectNames) {
 				Database::Get()->SetCharacterName(objectID, newName);
+				DashboardNotify::Changed("characters", objectID);
 				LOG("Character %s auto-renamed to preapproved name %s due to mute", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(objectID, newName);
+				DashboardNotify::Changed("characters", objectID);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
 				Database::Get()->SetPendingCharacterName(objectID, newName);
+				DashboardNotify::Changed("characters", objectID);
+				DashboardNotify::Changed("pending_names", objectID);
 				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);

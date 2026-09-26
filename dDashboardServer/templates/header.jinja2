@@ -1,0 +1,153 @@
+{# Sidebar navigation. Entries show only with the permission their page needs (see Permissions.cpp). #}
+{# Grouped by what staff are doing: the most used pages always show, the rest sit in groups that fold away (the group of #}
+{# the current page starts open). Inbox holds what players sent in and staff still have to answer. #}
+{# On narrow screens this is a slide-out menu opened from the top bar in base.jinja2 #}
+<nav class="offcanvas-lg offcanvas-start d-flex flex-column flex-shrink-0 px-2 py-3 border-end sidebar" id="sidebar" tabindex="-1" aria-label="Navigation">
+	<div class="d-flex align-items-center justify-content-between px-2 mb-3">
+		<a href="/" class="text-decoration-none text-body"><span class="fs-5 fw-semibold">DarkflameServer</span></a>
+		<button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close menu"></button>
+	</div>
+	<div class="list-group list-group-flush mb-2">
+		<a href="/" class="list-group-item list-group-item-action{% if current_page == "home" %} active{% endif %}">Home</a>
+		{% if can.accounts_view %}<a href="/accounts" class="list-group-item list-group-item-action{% if current_page == "accounts" %} active{% endif %}">Accounts</a>{% endif %}
+		{% if can.characters_view %}<a href="/characters" class="list-group-item list-group-item-action{% if current_page == "characters" %} active{% endif %}">Characters</a>{% endif %}
+		{% if can.properties_view %}<a href="/properties" class="list-group-item list-group-item-action{% if current_page == "properties" %} active{% endif %}">Properties</a>{% endif %}
+	</div>
+
+	{% set inboxPages = ["moderation", "player_reports", "bug_reports"] %}
+	{% if can.moderate_names or can.moderate_pet_names or can.moderate_properties or can.player_reports_view or can.bug_reports_view %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-inbox" aria-expanded="{% if current_page in inboxPages %}true{% else %}false{% endif %}" aria-controls="nav-inbox">
+			Inbox<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in inboxPages %} show{% endif %}" id="nav-inbox">
+			<div class="list-group list-group-flush">
+				{% if can.moderate_names or can.moderate_pet_names or can.moderate_properties %}<a href="/moderation" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center{% if current_page == "moderation" %} active{% endif %}">Review Queue <span class="badge rounded-pill text-bg-warning d-none" data-badge="moderation"></span></a>{% endif %}
+				{% if can.player_reports_view %}<a href="/player_reports" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center{% if current_page == "player_reports" %} active{% endif %}">Player Reports <span class="badge rounded-pill text-bg-danger d-none" data-badge="player_reports"></span></a>{% endif %}
+				{% if can.bug_reports_view %}<a href="/bug_reports" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center{% if current_page == "bug_reports" %} active{% endif %}">Bug Reports <span class="badge rounded-pill text-bg-danger d-none" data-badge="bug_reports"></span></a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set moderationPages = ["players", "chat_log", "chat_filter", "pet_names", "send_mail"] %}
+	{% if can.players_view or can.chat_view or can.chat_filter_manage or can.moderate_pet_names or can.mail_send %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-moderation" aria-expanded="{% if current_page in moderationPages %}true{% else %}false{% endif %}" aria-controls="nav-moderation">
+			Moderation<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in moderationPages %} show{% endif %}" id="nav-moderation">
+			<div class="list-group list-group-flush">
+				{% if can.players_view %}<a href="/players" class="list-group-item list-group-item-action{% if current_page == "players" %} active{% endif %}">Online Players</a>{% endif %}
+				{% if can.chat_view %}<a href="/chat_log" class="list-group-item list-group-item-action{% if current_page == "chat_log" %} active{% endif %}">Chat Log</a>{% endif %}
+				{% if can.chat_filter_manage %}<a href="/chat_filter" class="list-group-item list-group-item-action{% if current_page == "chat_filter" %} active{% endif %}">Chat Filter</a>{% endif %}
+				{% if can.moderate_pet_names %}<a href="/pet_names" class="list-group-item list-group-item-action{% if current_page == "pet_names" %} active{% endif %}">Pet Names</a>{% endif %}
+				{% if can.mail_send %}<a href="/send_mail" class="list-group-item list-group-item-action{% if current_page == "send_mail" %} active{% endif %}">Send Mail</a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set worldPages = ["world3d", "reports"] %}
+	{% if can.players_view or can.reports_view %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-world" aria-expanded="{% if current_page in worldPages %}true{% else %}false{% endif %}" aria-controls="nav-world">
+			World &amp; Economy<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in worldPages %} show{% endif %}" id="nav-world">
+			<div class="list-group list-group-flush">
+				{% if can.players_view %}<a href="/world3d" class="list-group-item list-group-item-action{% if current_page == "world3d" %} active{% endif %}">World 3D</a>{% endif %}
+				{% if can.reports_view %}<a href="/reports" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center{% if current_page == "reports" %} active{% endif %}">Economy &amp; Map <span class="badge rounded-pill text-bg-danger d-none" data-badge="reports" title="Open economy flags"></span></a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set liveOpsPages = ["live_events", "announcements", "events", "vanity"] %}
+	{% if can.live_events_manage or can.announcements_schedule or can.events_manage or can.vanity_manage or can.server_restart %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-liveops" aria-expanded="{% if current_page in liveOpsPages %}true{% else %}false{% endif %}" aria-controls="nav-liveops">
+			Live Ops<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in liveOpsPages %} show{% endif %}" id="nav-liveops">
+			<div class="list-group list-group-flush">
+				<a href="/events" class="list-group-item list-group-item-action{% if current_page == "events" %} active{% endif %}">Scheduled Events</a>
+				{% if can.live_events_manage %}<a href="/live_events" class="list-group-item list-group-item-action{% if current_page == "live_events" %} active{% endif %}">Live Events</a>{% endif %}
+				{% if can.announcements_schedule %}<a href="/announcements" class="list-group-item list-group-item-action{% if current_page == "announcements" %} active{% endif %}">Scheduled Announcements</a>{% endif %}
+				{% if can.vanity_manage %}<a href="/vanity" class="list-group-item list-group-item-action{% if current_page == "vanity" %} active{% endif %}">Vanity</a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set communityPages = ["leaderboards", "challenges", "showcase"] %}
+	{% if can.leaderboards_view or can.challenges_view or can.showcase_view %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-community" aria-expanded="{% if current_page in communityPages or not can.accounts_view %}true{% else %}false{% endif %}" aria-controls="nav-community">
+			Community<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		{# Players have little else in the menu, so it starts open for them #}
+		<div class="collapse{% if current_page in communityPages or not can.accounts_view %} show{% endif %}" id="nav-community">
+			<div class="list-group list-group-flush">
+				{% if can.leaderboards_view %}<a href="/leaderboards" class="list-group-item list-group-item-action{% if current_page == "leaderboards" %} active{% endif %}">Leaderboards</a>{% endif %}
+				{% if can.challenges_view %}<a href="/challenges" class="list-group-item list-group-item-action{% if current_page == "challenges" %} active{% endif %}">Challenges</a>{% endif %}
+				{% if can.showcase_view %}<a href="/showcase" class="list-group-item list-group-item-action{% if current_page == "showcase" %} active{% endif %}">Property Showcase</a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set logsPages = ["health", "instances", "activity_log", "command_log", "audit_log", "system_log"] %}
+	{% if can.health_view or can.logs_activity or can.logs_command or can.logs_audit or can.logs_system %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-logs" aria-expanded="{% if current_page in logsPages %}true{% else %}false{% endif %}" aria-controls="nav-logs">
+			Logs &amp; Health<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in logsPages %} show{% endif %}" id="nav-logs">
+			<div class="list-group list-group-flush">
+				{% if can.health_view %}<a href="/health" class="list-group-item list-group-item-action{% if current_page == "health" %} active{% endif %}">Server Health</a><a href="/instances" class="list-group-item list-group-item-action{% if current_page == "instances" %} active{% endif %}">Instance Load</a>{% endif %}
+				{% if can.logs_activity %}<a href="/activity_log" class="list-group-item list-group-item-action{% if current_page == "activity_log" %} active{% endif %}">Activity Log</a>{% endif %}
+				{% if can.logs_command %}<a href="/command_log" class="list-group-item list-group-item-action{% if current_page == "command_log" %} active{% endif %}">Command Log</a>{% endif %}
+				{% if can.logs_audit %}<a href="/audit_log" class="list-group-item list-group-item-action{% if current_page == "audit_log" %} active{% endif %}">Audit Log</a>{% endif %}
+				{% if can.logs_system %}<a href="/system_log" class="list-group-item list-group-item-action{% if current_page == "system_log" %} active{% endif %}">System Log</a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set adminPages = ["settings", "settings_history", "permissions", "tasks", "play_keys", "backups", "maintenance", "webhooks", "client_assets"] %}
+	{% if can.settings or can.permissions_manage or can.tasks_view or can.play_keys_manage or can.backups or can.maintenance or can.webhooks or can.client_files %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-admin" aria-expanded="{% if current_page in adminPages %}true{% else %}false{% endif %}" aria-controls="nav-admin">
+			Server Admin<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in adminPages %} show{% endif %}" id="nav-admin">
+			<div class="list-group list-group-flush">
+				{% if can.settings %}<a href="/settings" class="list-group-item list-group-item-action{% if current_page == "settings" or current_page == "settings_history" %} active{% endif %}">Settings</a>{% endif %}
+				{% if can.permissions_manage %}<a href="/permissions" class="list-group-item list-group-item-action{% if current_page == "permissions" %} active{% endif %}">Permissions</a>{% endif %}
+				{% if can.tasks_view %}<a href="/tasks" class="list-group-item list-group-item-action{% if current_page == "tasks" %} active{% endif %}">Scheduled Tasks</a>{% endif %}
+				{% if can.play_keys_manage %}<a href="/play_keys" class="list-group-item list-group-item-action{% if current_page == "play_keys" %} active{% endif %}">Play Keys</a>{% endif %}
+				{% if can.backups %}<a href="/backups" class="list-group-item list-group-item-action{% if current_page == "backups" %} active{% endif %}">Backups</a>{% endif %}
+				{% if can.maintenance %}<a href="/maintenance" class="list-group-item list-group-item-action{% if current_page == "maintenance" %} active{% endif %}">Maintenance</a>{% endif %}
+				{% if can.webhooks %}<a href="/webhooks" class="list-group-item list-group-item-action{% if current_page == "webhooks" %} active{% endif %}">Webhooks</a>{% endif %}
+				{% if can.client_files %}<a href="/client_assets" class="list-group-item list-group-item-action{% if current_page == "client_assets" %} active{% endif %}">Client Files</a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	{% set devPages = ["inspector", "cdclient"] %}
+	{% if can.dev_message_inspector or can.dev_cdclient %}
+	<div class="nav-group">
+		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-dev" aria-expanded="{% if current_page in devPages %}true{% else %}false{% endif %}" aria-controls="nav-dev">
+			Developer Tools<span class="nav-group-dot" title="Something in here needs attention"></span>
+		</button>
+		<div class="collapse{% if current_page in devPages %} show{% endif %}" id="nav-dev">
+			<div class="list-group list-group-flush">
+				{% if can.dev_message_inspector %}<a href="/inspector" class="list-group-item list-group-item-action{% if current_page == "inspector" %} active{% endif %}">Message Inspector</a>{% endif %}
+				{% if can.dev_cdclient %}<a href="/cdclient" class="list-group-item list-group-item-action{% if current_page == "cdclient" %} active{% endif %}">CDClient Browser</a>{% endif %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+</nav>

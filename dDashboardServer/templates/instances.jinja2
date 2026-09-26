@@ -1,0 +1,222 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Instance Load - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.load-chart { width: 100%; height: 200px; display: block; }
+	.load-chart .grid { stroke: var(--bs-border-color); stroke-width: 1; }
+	.load-chart .cap { stroke-width: 1; stroke-dasharray: 4 3; }
+	.load-chart .axis { fill: var(--bs-secondary-color); font-size: 11px; }
+	.load-chart .line { fill: none; stroke-width: 2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Instance Load</h2>
+		<p class="text-body-secondary mb-0">Players in each world instance, recorded once a minute with the server health (kept for <code>health_days</code>),
+			and how many players an instance of each zone takes.</p>
+	</div>
+	<div class="btn-group btn-group-sm" role="group" aria-label="Range">
+		<input type="radio" class="btn-check" name="loadRange" id="range24h" value="24h" checked><label class="btn btn-outline-secondary" for="range24h">24 hours</label>
+		<input type="radio" class="btn-check" name="loadRange" id="range7d" value="7d"><label class="btn btn-outline-secondary" for="range7d">7 days</label>
+		<input type="radio" class="btn-check" name="loadRange" id="range30d" value="30d"><label class="btn btn-outline-secondary" for="range30d">30 days</label>
+	</div>
+</div>
+
+<div class="row g-3">
+	<div class="col-xl-5">
+		<div class="card">
+			<div class="card-header"><h5 class="mb-0">Busiest zones</h5></div>
+			<div class="card-body table-responsive">
+				<table class="table table-sm table-hover align-middle mb-0">
+					<thead><tr><th>Zone</th><th class="text-end" title="Most players in one instance">Busiest instance</th><th class="text-end" title="Most instances running at once">Instances</th><th class="text-end" title="Most players in the zone at once">Players</th></tr></thead>
+					<tbody id="zoneRows"><tr><td colspan="4" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+				</table>
+				<p class="small text-body-secondary mt-2 mb-0">Click a zone to see its instances.</p>
+			</div>
+		</div>
+	</div>
+	<div class="col-xl-7">
+		<div class="card mb-3">
+			<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+				<h5 class="mb-0 fs-6" id="zoneTitle">Pick a zone</h5>
+				<div><label class="visually-hidden" for="zonePick">Zone</label><input class="form-control form-control-sm" id="zonePick" list="zoneList" placeholder="Zone name or ID" autocomplete="off"><datalist id="zoneList"></datalist></div>
+			</div>
+			<div class="card-body">
+				<svg class="load-chart" id="zoneChart" role="img" aria-label="Players per instance over time"></svg>
+				<div class="small mt-2" id="zoneLegend"></div>
+			</div>
+		</div>
+		<div class="card">
+			<div class="card-header"><h5 class="mb-0 fs-6">Players per instance</h5></div>
+			<div class="card-body">
+				<p class="small text-body-secondary">The master server sends a player to a running instance of the zone while it has fewer players than the
+					<strong>soft cap</strong> (joining a friend: the <strong>hard cap</strong>), and otherwise starts a new one. The hard cap is also the most
+					connections that instance's world server accepts. Without a value here, the client's <code>ZoneTable</code> caps are used.
+					<strong>Spare instances</strong>: the master keeps this many instances with room running, so the next players don't wait for a world to
+					start. A spare that stays empty shuts itself down after 30 minutes, like any empty world, and the master starts another.</p>
+				<div id="limitEditor" class="d-none">
+					<div class="row g-2 align-items-end">
+						<div class="col-4 col-md-3"><label class="form-label small" for="softCap">Soft cap</label><input type="number" class="form-control form-control-sm" id="softCap" min="1"></div>
+						<div class="col-4 col-md-3"><label class="form-label small" for="hardCap">Hard cap</label><input type="number" class="form-control form-control-sm" id="hardCap" min="1"></div>
+						<div class="col-4 col-md-3"><label class="form-label small" for="spare">Spare instances</label><input type="number" class="form-control form-control-sm" id="spare" min="0"></div>
+						<div class="col-12 col-md-3 text-md-end">
+							{% if can.instances_manage %}<button type="button" class="btn btn-primary btn-sm" id="saveLimits">Save</button>{% endif %}
+						</div>
+					</div>
+					<div class="form-text" id="limitHelp"></div>
+				</div>
+				<h6 class="mt-3">Zones with their own limits</h6>
+				<table class="table table-sm align-middle mb-0">
+					<thead><tr><th>Zone</th><th class="text-end">Soft</th><th class="text-end">Hard</th><th class="text-end">Spare</th><th>Changed</th></tr></thead>
+					<tbody id="limitRows"></tbody>
+				</table>
+				<p class="small text-body-secondary mt-2 mb-0">Changes apply to instances started from now on; running ones take the new caps too, but a hard cap only as
+					high as they were started with.</p>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var nf = new Intl.NumberFormat();
+	var range = '24h', zone = 0, limits = { zones: [] }, byId = {};
+	var canEdit = DASH.can('instances_manage');
+	var COLOURS = ['var(--bs-primary)', 'var(--bs-success)', 'var(--bs-warning)', 'var(--bs-info)', 'var(--bs-danger)', 'var(--bs-purple, #6f42c1)', 'var(--bs-teal, #20c997)'];
+
+	function chart(svg, series, from, to, caps) {
+		var width = svg.clientWidth || 600, height = 200, left = 36, bottom = 20, top = 8;
+		var max = Math.max(2, caps.hard, Math.max.apply(null, [0].concat(series.map(function (s) { return Math.max.apply(null, [0].concat(s.points.map(function (p) { return p[1]; }))); }))));
+		var x = function (t) { return left + (t - from) / (to - from) * (width - left - 6); };
+		var y = function (v) { return top + (1 - v / max) * (height - top - bottom); };
+		var html = '';
+		[0, 0.5, 1].forEach(function (f) {
+			var v = Math.round(max * f);
+			html += '<line class="grid" x1="' + left + '" x2="' + width + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="axis" x="' + (left - 4) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + '</text>';
+		});
+		[['soft', 'var(--bs-warning)'], ['hard', 'var(--bs-danger)']].forEach(function (c) {
+			html += '<line class="cap" stroke="' + c[1] + '" x1="' + left + '" x2="' + width + '" y1="' + y(caps[c[0]]) + '" y2="' + y(caps[c[0]]) + '"><title>' + c[0] + ' cap ' + caps[c[0]] + '</title></line>';
+		});
+		[from, (from + to) / 2, to].forEach(function (t, i) {
+			var d = new Date(t * 1000);
+			var label = range === '24h' ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+			html += '<text class="axis" x="' + x(t) + '" y="' + (height - 4) + '" text-anchor="' + ['start', 'middle', 'end'][i] + '">' + esc(label) + '</text>';
+		});
+		series.forEach(function (s, i) {
+			var colour = COLOURS[i % COLOURS.length];
+			html += '<polyline class="line" stroke="' + colour + '" points="' + s.points.map(function (p) { return x(p[0]).toFixed(1) + ',' + y(p[1]).toFixed(1); }).join(' ') + '"/>';
+			if (s.points.length < 60) html += s.points.map(function (p) { return '<circle cx="' + x(p[0]).toFixed(1) + '" cy="' + y(p[1]).toFixed(1) + '" r="3" fill="' + colour + '"><title>' + esc(s.label + ', ' + new Date(p[0] * 1000).toLocaleString() + ': ' + p[1]) + '</title></circle>'; }).join('');
+		});
+		if (!series.length) html += '<text class="axis" x="' + (width / 2) + '" y="' + (height / 2) + '" text-anchor="middle">No samples for this zone</text>';
+		svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+		svg.innerHTML = html;
+	}
+
+	function loadZones() {
+		api.get('/api/instances/load?range=' + range).then(function (d) {
+			if (!d.success) return;
+			var list = d.zones.slice().sort(function (a, b) { return b.players - a.players; });
+			document.getElementById('zoneRows').innerHTML = list.map(function (z) {
+				var caps = byId[z.id];
+				var full = caps && z.busiest >= caps.soft;
+				return '<tr role="button" data-zone="' + z.id + '"><td>' + fmt.zone(z.id, z.name) + '</td><td class="text-end">' + nf.format(z.busiest) +
+					(full ? ' ' + fmt.badge('reached the soft cap', 'warning') : '') + '</td><td class="text-end">' + nf.format(z.instances) + '</td><td class="text-end">' + nf.format(z.players) + '</td></tr>';
+			}).join('') || '<tr><td colspan="4" class="text-body-secondary">No samples yet: they are taken once a minute while worlds run.</td></tr>';
+			// Open on the busiest zone rather than an empty chart
+			var busiest = list.filter(function (z) { return z.id !== 0; })[0]; // character select has no instances worth charting
+			if (!zone && busiest) pick(busiest.id);
+		});
+	}
+
+	function loadZone() {
+		if (!zone) return;
+		api.get('/api/instances/load?range=' + range + '&zone=' + zone).then(function (d) {
+			if (!d.success) return;
+			var series = {};
+			d.samples.forEach(function (s) {
+				var key = s.instance + '/' + s.clone;
+				(series[key] = series[key] || { label: 'Instance ' + s.instance + (s.clone ? ' (clone ' + s.clone + ')' : ''), points: [] }).points.push([s.time, s.players]);
+			});
+			var list = Object.keys(series).map(function (k) { return series[k]; });
+			var caps = byId[zone] || { soft: d.clientCaps.soft, hard: d.clientCaps.hard };
+			document.getElementById('zoneTitle').innerHTML = fmt.zone(d.zone.id, d.zone.name);
+			chart(document.getElementById('zoneChart'), list, d.from, d.to, caps);
+			document.getElementById('zoneLegend').innerHTML = list.map(function (s, i) {
+				return '<span class="me-3 text-nowrap"><span style="display:inline-block;width:.8rem;height:.8rem;background:' + COLOURS[i % COLOURS.length] + '"></span> ' + esc(s.label) + '</span>';
+			}).join('') + '<span class="text-body-secondary text-nowrap">Dashed: soft cap ' + esc(caps.soft) + ', hard cap ' + esc(caps.hard) + '</span>';
+			showEditor();
+		});
+	}
+
+	function showEditor() {
+		var z = byId[zone];
+		var editor = document.getElementById('limitEditor');
+		editor.classList.toggle('d-none', !z);
+		if (!z) return;
+		['softCap', 'hardCap', 'spare'].forEach(function (id) {
+			var input = document.getElementById(id);
+			input.max = id === 'spare' ? limits.maxSpare : limits.maxCap;
+			input.disabled = !canEdit;
+		});
+		document.getElementById('softCap').value = z.softCap === null ? '' : z.softCap;
+		document.getElementById('hardCap').value = z.hardCap === null ? '' : z.hardCap;
+		document.getElementById('softCap').placeholder = z.clientSoft;
+		document.getElementById('hardCap').placeholder = z.clientHard;
+		document.getElementById('spare').value = z.spare;
+		document.getElementById('limitHelp').textContent = 'The client\'s caps for ' + z.name + ': ' + z.clientSoft + ' / ' + z.clientHard + '. New instances take ' + z.soft + ' / ' + z.hard + '. Leave a cap empty for the client\'s.';
+	}
+
+	function loadLimits() {
+		return api.get('/api/instances/limits').then(function (d) {
+			if (!d.success) return;
+			limits = d;
+			byId = {};
+			d.zones.forEach(function (z) { byId[z.id] = z; });
+			if (!document.getElementById('zoneList').options.length) {
+				document.getElementById('zoneList').innerHTML = d.zones.map(function (z) { return '<option value="' + esc(z.name + ' (' + z.id + ')') + '">'; }).join('');
+			}
+			document.getElementById('limitRows').innerHTML = d.zones.filter(function (z) { return z.softCap !== null || z.hardCap !== null || z.spare; }).map(function (z) {
+				return '<tr role="button" data-zone="' + z.id + '"><td>' + fmt.zone(z.id, z.name) + '</td><td class="text-end">' + esc(z.soft) + '</td><td class="text-end">' + esc(z.hard) + '</td>' +
+					'<td class="text-end">' + esc(z.spare) + '</td><td class="small text-body-secondary">' + esc(z.updatedBy) + ' ' + esc(fmt.unix(z.updatedAt)) + '</td></tr>';
+			}).join('') || '<tr><td colspan="5" class="text-body-secondary">None: every zone uses the client\'s caps.</td></tr>';
+			showEditor();
+		});
+	}
+
+	function pick(id) {
+		zone = id;
+		loadZone();
+	}
+
+	document.addEventListener('click', function (e) {
+		var row = e.target.closest('[data-zone]');
+		if (row) pick(+row.dataset.zone);
+	});
+	document.getElementById('zonePick').addEventListener('change', function () {
+		var text = this.value.trim(), match = /\((\d+)\)$/.exec(text) || /^(\d+)$/.exec(text);
+		if (match && byId[match[1]]) pick(+match[1]);
+	});
+	var save = document.getElementById('saveLimits');
+	if (save) save.addEventListener('click', function () {
+		var num = function (id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : +v; };
+		api.action('/api/instances/limits', { zone: zone, softCap: num('softCap'), hardCap: num('hardCap'), spare: num('spare') || 0 }).then(function (d) {
+			toast(d.message, 'success');
+			loadLimits().then(loadZone);
+		});
+	});
+	document.querySelectorAll('input[name="loadRange"]').forEach(function (r) {
+		r.addEventListener('change', function () { range = r.value; loadZones(); loadZone(); });
+	});
+	window.addEventListener('resize', Live.throttle(loadZone, 500));
+	if (window.Live) Live.on('zone_limits', Live.throttle(function () { loadLimits().then(loadZone); }, 500));
+	setInterval(function () { loadZones(); loadZone(); }, 60000);
+	loadLimits().then(loadZones);
+})();
+</script>
+{% endblock %}

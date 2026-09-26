@@ -1,0 +1,119 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Moderation - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Moderation Queue</h2>
+<p class="text-body-secondary mb-4">Review the names and properties players are waiting on. The queues update live.</p>
+<p class="small text-body-secondary d-none" id="aiBudget"></p>
+
+{% if can.moderate_names %}
+<div class="card mb-4">
+	<div class="card-header"><h5 class="mb-0">Pending Character Names</h5></div>
+	<div class="card-body">
+		<table id="pendingNamesTable" class="table table-striped table-hover table-stack">
+			<thead><tr><th>Current Name</th><th>Requested Name</th><th>Account</th><th>Actions</th></tr></thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endif %}
+
+{% if can.moderate_pet_names %}
+<div class="card mb-4">
+	<div class="card-header"><h5 class="mb-0">Pending Pet Names</h5></div>
+	<div class="card-body">
+		<table id="pendingPetsTable" class="table table-striped table-hover table-stack">
+			<thead><tr><th>ID</th><th>Pet Name</th><th>Owner</th><th>Actions</th></tr></thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endif %}
+
+{% if can.moderate_properties %}
+<div class="card">
+	<div class="card-header"><h5 class="mb-0">Pending Properties</h5></div>
+	<div class="card-body">
+		<table id="pendingPropsTable" class="table table-striped table-hover table-stack">
+			<thead><tr><th>ID</th><th>Name</th><th>Owner</th><th>Models</th><th>Reputation</th><th>Zone</th><th>Actions</th></tr></thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Owners come from a background scan of inventories; until it has run they show as pending
+function petOwner(d, t, row) {
+	return row.owner_id ? fmt.character(row.owner_id, row.owner_name) : '<span class="text-body-secondary small">looking up&hellip;</span>';
+}
+
+// characterId: whose account a strike would go on
+function actionButtons(kind, id, characterId, subject) {
+	var about = ' data-id="' + esc(id) + '" data-character="' + esc(characterId || '') + '" data-subject="' + esc(subject || '') + '"';
+	return '<button class="btn btn-sm btn-outline-success me-1" data-kind="' + kind + '" data-action="approve"' + about + '>Approve</button>' +
+		'<button class="btn btn-sm btn-outline-danger" data-kind="' + kind + '" data-action="reject"' + about + '>Reject</button>' +
+		(kind === 'property' ? '' : AiSuggest.button(kind === 'pet' ? 'pet_name' : 'name', id, 'ms-1'));
+}
+
+var endpoints = {
+	name: { approve: function (id) { return '/api/characters/' + id + '/approve_name'; }, reject: function (id) { return '/api/characters/' + id + '/reject_name'; } },
+	pet: { approve: function (id) { return '/api/pet_names/' + id + '/approve'; }, reject: function (id) { return '/api/pet_names/' + id + '/reject'; } },
+	property: { approve: function (id) { return '/api/properties/' + id + '/approve'; }, reject: function (id) { return '/api/properties/' + id + '/reject'; } }
+};
+
+$(function () {
+	var small = { dataTable: { pageLength: 10, searching: false, order: [] } };
+
+	if (DASH.can('moderate_names')) serverTable('#pendingNamesTable', '/api/tables/pending_names', [
+		{ data: 'name', orderable: false, render: function (d, t, row) { return fmt.link('/characters/' + row.id, d); } },
+		{ data: 'pending_name', orderable: false },
+		{ data: 'account_name', orderable: false, render: function (d, t, row) { return fmt.link('/accounts/' + row.account_id, d); } },
+		{ data: 'id', orderable: false, render: function (d, t, row) { return actionButtons('name', d, row.id, row.pending_name); } }
+	], $.extend({ liveTable: 'pending_names' }, small));
+
+	if (DASH.can('moderate_pet_names')) {
+		serverTable('#pendingPetsTable', '/api/tables/pending_pet_names', [
+			{ data: 'id', orderable: false },
+			{ data: 'pet_name', orderable: false },
+			{ data: 'owner_id', orderable: false, defaultContent: '', render: petOwner },
+			{ data: 'id', orderable: false, render: function (d, t, row) { return actionButtons('pet', d, row.owner_id, row.pet_name); } }
+		], $.extend({ liveTable: 'pet_names' }, small));
+	}
+
+	if (DASH.can('moderate_properties')) {
+		serverTable('#pendingPropsTable', '/api/tables/pending_properties', [
+			{ data: 'id', orderable: false },
+			{ data: 'name', orderable: false, render: function (d, t, row) { return fmt.link('/properties/' + row.id, d || '(unnamed)'); } },
+			{ data: 'owner_id', orderable: false, render: function (d, t, row) { return fmt.character(d, row.owner_name); } },
+			// Nothing built yet is worth knowing before approving it for everyone to visit
+			{ data: 'models', orderable: false, render: function (d) { return d ? esc(d) : fmt.badge('Empty', 'secondary'); } },
+			{ data: 'reputation', orderable: false },
+			{ data: 'zone_id', orderable: false, render: function (d, t, row) { return fmt.zone(d, row.zone_name); } },
+			{ data: 'id', orderable: false, render: function (d, t, row) { return actionButtons('property', d, row.owner_id, row.name); } }
+		], $.extend({ liveTable: 'properties' }, small));
+	}
+
+	$(document).on('click', '[data-kind][data-action]', function () {
+		var kind = this.getAttribute('data-kind');
+		var action = this.getAttribute('data-action');
+		var url = endpoints[kind][action](this.getAttribute('data-id'));
+		// Tables refresh through the table_changed event
+		if (action === 'approve') { api.action(url, {}, 'Approved').catch(function () {}); return; }
+		var what = { name: 'the name', pet: 'the pet name', property: 'the property' }[kind];
+		Decide({
+			title: 'Reject ' + what + (this.getAttribute('data-subject') ? ' “' + this.getAttribute('data-subject') + '”' : ''),
+			reasonLabel: kind === 'property' ? 'Reason (shown to the player)' : 'Reason (optional, shown to the player on the dashboard)',
+			reasonRequired: kind === 'property',
+			characterId: this.getAttribute('data-character')
+		}).then(function (choice) {
+			if (!choice) return;
+			api.action(url, { reason: choice.reason, strike: choice.strike }, choice.strike ? 'Rejected, with a strike' : 'Rejected').catch(function () {});
+		});
+	});
+});
+</script>
+{% endblock %}

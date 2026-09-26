@@ -1,0 +1,85 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Create Account - DarkflameServer{% endblock %}
+
+{% block content_noauth %}
+<div class="d-flex align-items-center justify-content-center min-vh-100">
+	<div class="card shadow" style="width: 100%; max-width: 420px;">
+		<div class="card-body p-4">
+			<h3 class="card-title text-center mb-1">Create Account</h3>
+			<p class="text-body-secondary text-center mb-4">Your account works for both the game and this dashboard</p>
+
+			<div id="alert" class="alert d-none" role="alert"></div>
+
+			<form id="registerForm">
+				<div class="mb-3">
+					<label for="username" class="form-label">Username</label>
+					<input type="text" class="form-control" id="username" required autofocus minlength="3" maxlength="32" autocomplete="username">
+					<div class="form-text">3-32 characters: letters, numbers, '.', '_' or '-'.</div>
+				</div>
+				<div class="mb-3 d-none" id="emailGroup">
+					<label for="email" class="form-label">Email <span class="text-body-secondary small" id="emailOptional">(optional, for password resets)</span></label>
+					<input type="email" class="form-control" id="email" maxlength="254" autocomplete="email">
+				</div>
+				<div class="mb-3">
+					<label for="password" class="form-label">Password</label>
+					<input type="password" class="form-control" id="password" required minlength="6" maxlength="40" autocomplete="new-password">
+				</div>
+				<div class="mb-3">
+					<label for="confirm" class="form-label">Confirm password</label>
+					<input type="password" class="form-control" id="confirm" required minlength="6" maxlength="40" autocomplete="new-password">
+				</div>
+				{% if play_key_required %}
+				<div class="mb-3">
+					<label for="playKey" class="form-label">Play key</label>
+					<input type="text" class="form-control font-monospace" id="playKey" required placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off">
+				</div>
+				{% endif %}
+				<button type="submit" class="btn btn-primary w-100" id="registerBtn">Create Account</button>
+			</form>
+
+			<p class="text-center small mt-3 mb-0"><a href="/login">Already have an account? Sign in</a></p>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+fetch('/api/auth/config').then(function (r) { return r.json(); }).then(function (config) {
+	if (!config.emailEnabled) return;
+	document.getElementById('emailGroup').classList.remove('d-none');
+	if (config.emailRequired) {
+		document.getElementById('email').required = true;
+		document.getElementById('emailOptional').classList.add('d-none');
+	}
+}).catch(function () {});
+
+document.getElementById('registerForm').addEventListener('submit', function (e) {
+	e.preventDefault();
+	var alertEl = document.getElementById('alert');
+	function show(message, ok) { alertEl.textContent = message; alertEl.className = 'alert alert-' + (ok ? 'success' : 'danger'); }
+
+	var password = document.getElementById('password').value;
+	if (password !== document.getElementById('confirm').value) { show('Passwords do not match', false); return; }
+	var keyInput = document.getElementById('playKey');
+	var btn = document.getElementById('registerBtn');
+	btn.disabled = true;
+
+	api.post('/api/auth/register', {
+		username: document.getElementById('username').value.trim(),
+		password: password,
+		play_key: keyInput ? keyInput.value.trim() : '',
+		email: document.getElementById('email').value.trim()
+	}).then(function (d) {
+		if (d.success) {
+			show(d.message, true);
+			document.getElementById('registerForm').classList.add('d-none');
+		} else {
+			show(d.error || 'Registration failed', false);
+			btn.disabled = false;
+		}
+	}).catch(function (err) { show('Network error: ' + err.message, false); btn.disabled = false; });
+});
+</script>
+{% endblock %}

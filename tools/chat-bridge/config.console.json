@@ -1,0 +1,11 @@
+{
+  "dashboard": { "url": "http://localhost:2006", "token": "$DLU_API_TOKEN" },
+  "state_file": "console.state.json",
+  "links": [
+    {
+      "adapter": "console",
+      "console": { "name": "Console" },
+      "game": { "channels": ["zone", "web"] }
+    }
+  ]
+}

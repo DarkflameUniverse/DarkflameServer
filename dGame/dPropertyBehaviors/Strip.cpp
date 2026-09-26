@@ -14,6 +14,7 @@
 
 #include "DluAssert.h"
 #include "Loot.h"
+#include "PropertyBehaviorActions.h"
 
 template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
@@ -94,7 +95,7 @@ void Strip::HandleMsg(GameMessages::RequestUse& msg) {
 
 	auto& nextAction = GetNextAction();
 
-	if (nextAction.GetType() == "OnInteract") {
+	if (nextAction.GetType() == PropertyBehaviorActions::ON_INTERACT) {
 		IncrementAction();
 		m_WaitingForAction = false;
 	}
@@ -113,7 +114,7 @@ void Strip::OnChatMessageReceived(const std::string& sMessage) {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
-	if (nextAction.GetType() == "OnChat" && nextAction.GetValueParameterString() == sMessage) {
+	if (nextAction.GetType() == PropertyBehaviorActions::ON_CHAT && nextAction.GetValueParameterString() == sMessage) {
 		IncrementAction();
 		m_WaitingForAction = false;
 	}
@@ -123,7 +124,7 @@ void Strip::OnHit() {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
-	if (nextAction.GetType() == "OnAttack") {
+	if (nextAction.GetType() == PropertyBehaviorActions::ON_ATTACK) {
 		IncrementAction();
 		m_WaitingForAction = false;
 	}
@@ -169,54 +170,35 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 	auto nextActionType = GetNextAction().GetType();
 	LOG_DEBUG("Processing Strip Action: %s with number %.2f and string %s", nextActionType.data(), number, valueStr.data());
 
-	// TODO replace with switch case and nextActionType with enum
+	// The blocks and what they do are listed in PropertyBehaviorActions (shared with the dashboard's behavior player)
+	namespace Actions = PropertyBehaviorActions;
 	/* BEGIN Move */
-	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
-		// X axis
-		bool isMoveLeft = nextActionType == "MoveLeft";
-		int negative = isMoveLeft ? -1 : 1;
+	if (const auto* move = Actions::Find(Actions::MOVES, nextActionType)) {
+		const auto& unit = move->axis == 'x' ? NiPoint3Constant::UNIT_X : move->axis == 'y' ? NiPoint3Constant::UNIT_Y : NiPoint3Constant::UNIT_Z;
 		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_X * negative)) {
+		if (modelComponent.TrySetVelocity(unit * move->sign)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.x = isMoveLeft ? -number : number;
-		}
-	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
-		// Y axis
-		bool isFlyDown = nextActionType == "FlyDown";
-		int negative = isFlyDown ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Y * negative)) {
-			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.y = isFlyDown ? -number : number;
-		}
-
-	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
-		// Z axis
-		bool isMoveBackward = nextActionType == "MoveBackward";
-		int negative = isMoveBackward ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Z * negative)) {
-			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.z = isMoveBackward ? -number : number;
+			auto& distance = move->axis == 'x' ? m_InActionMove.x : move->axis == 'y' ? m_InActionMove.y : m_InActionMove.z;
+			distance = move->sign < 0 ? -number : number;
 		}
 	}
 	/* END Move */
 
 	/* BEGIN Navigation */
-	else if (nextActionType == "SetSpeed") {
+	else if (nextActionType == Actions::SET_SPEED) {
 		modelComponent.SetSpeed(number);
 	}
 	/* END Navigation */
 
 	/* BEGIN Action */
-	else if (nextActionType == "Smash") {
+	else if (nextActionType == Actions::SMASH) {
 		if (!modelComponent.IsUnSmashing()) {
 			GameMessages::Smash smash{};
 			smash.target = entity.GetObjectID();
 			smash.killerID = entity.GetObjectID();
 			smash.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
-	} else if (nextActionType == "UnSmash") {
+	} else if (nextActionType == Actions::UNSMASH) {
 		GameMessages::UnSmash unsmash{};
 		unsmash.target = entity.GetObjectID();
 		unsmash.duration = number;
@@ -226,53 +208,35 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 
 		// since it may take time for the message to relay to clients
 		m_PausedTime = number + 0.5f;
-	} else if (nextActionType == "Wait") {
+	} else if (nextActionType == Actions::WAIT) {
 		m_PausedTime = number;
-	} else if (nextActionType == "Chat") {
+	} else if (nextActionType == Actions::CHAT) {
 		bool isOk = Game::chatFilter->IsSentenceOkay(valueStr.data(), eGameMasterLevel::CIVILIAN).empty();
 		// In case a word is removed from the whitelist after it was approved
 		const auto modelName = "%[Objects_" + std::to_string(entity.GetLOT()) + "_name]";
 		if (isOk) ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, 12, modelName, entity.GetObjectID(), false, GeneralUtils::ASCIIToUTF16(valueStr));
 		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
-	} else if (nextActionType == "PrivateMessage") {
+	} else if (nextActionType == Actions::PRIVATE_MESSAGE) {
 		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
-	} else if (nextActionType == "PlaySound") {
+	} else if (nextActionType == Actions::PLAY_SOUND) {
 		GameMessages::PlayBehaviorSound sound;
 		sound.target = modelComponent.GetParent()->GetObjectID();
 		sound.soundID = numberAsInt;
 		sound.Send(UNASSIGNED_SYSTEM_ADDRESS);
-	} else if (nextActionType == "Restart") {
+	} else if (nextActionType == Actions::RESTART) {
 		modelComponent.RestartAtEndOfFrame();
 	}
 	/* END Action */
 	/* BEGIN Gameplay */
-	else if (nextActionType == "SpawnStromling") {
-		Spawn(10495, entity); // Stromling property
-	} else if (nextActionType == "SpawnPirate") {
-		Spawn(10497, entity); // Maelstrom Pirate property
-	} else if (nextActionType == "SpawnRonin") {
-		Spawn(10498, entity); // Dark Ronin property
-	} else if (nextActionType == "DropImagination") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity); // 1 Imagination powerup
-	} else if (nextActionType == "DropHealth") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity); // 1 Life powerup
-	} else if (nextActionType == "DropArmor") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity); // 1 Armor powerup
+	else if (const auto* spawn = Actions::Find(Actions::SPAWNS, nextActionType)) {
+		Spawn(spawn->lot, entity);
+	} else if (const auto* drop = Actions::Find(Actions::DROPS, nextActionType)) {
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(drop->lot, entity);
 	}
 	/* END Gameplay */
 	/* BEGIN StateMachine */
-	else if (nextActionType == "ChangeStateHome") {
-		updateResult.newState = BehaviorState::HOME_STATE;
-	} else if (nextActionType == "ChangeStateCircle") {
-		updateResult.newState = BehaviorState::CIRCLE_STATE;
-	} else if (nextActionType == "ChangeStateSquare") {
-		updateResult.newState = BehaviorState::SQUARE_STATE;
-	} else if (nextActionType == "ChangeStateDiamond") {
-		updateResult.newState = BehaviorState::DIAMOND_STATE;
-	} else if (nextActionType == "ChangeStateTriangle") {
-		updateResult.newState = BehaviorState::TRIANGLE_STATE;
-	} else if (nextActionType == "ChangeStateStar") {
-		updateResult.newState = BehaviorState::STAR_STATE;
+	else if (const auto* stateChange = Actions::Find(Actions::STATE_CHANGES, nextActionType)) {
+		updateResult.newState = stateChange->state;
 	}
 	/* END StateMachine*/
 	else {
@@ -291,12 +255,12 @@ void Strip::RemoveStates(ModelComponent& modelComponent) const {
 	const auto& prevAction = GetPreviousAction();
 	const auto prevActionType = prevAction.GetType();
 
-	if (prevActionType == "OnInteract") {
+	if (prevActionType == PropertyBehaviorActions::ON_INTERACT) {
 		modelComponent.RemoveInteract();
 		Game::entityManager->SerializeEntity(modelComponent.GetParent());
-	} else if (prevActionType == "OnAttack") {
+	} else if (prevActionType == PropertyBehaviorActions::ON_ATTACK) {
 		modelComponent.RemoveAttack();
-	} else if (prevActionType == "UnSmash") {
+	} else if (prevActionType == PropertyBehaviorActions::UNSMASH) {
 		modelComponent.RemoveUnSmash();
 	}
 }
@@ -372,11 +336,11 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 	// Check for trigger blocks and if not a trigger block proc this blocks action
 	if (m_NextActionIndex == 0) {
 		LOG("Behavior strip started %s", nextAction.GetType().data());
-		if (nextAction.GetType() == "OnInteract") {
+		if (nextAction.GetType() == PropertyBehaviorActions::ON_INTERACT) {
 			modelComponent.AddInteract();
-		} else if (nextAction.GetType() == "OnChat") {
+		} else if (nextAction.GetType() == PropertyBehaviorActions::ON_CHAT) {
 			// logic here if needed
-		} else if (nextAction.GetType() == "OnAttack") {
+		} else if (nextAction.GetType() == PropertyBehaviorActions::ON_ATTACK) {
 			modelComponent.AddAttack();
 		}
 		Game::entityManager->SerializeEntity(entity);

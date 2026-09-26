@@ -89,3 +89,18 @@ std::optional<ILeaderboard::Score> MySQLDatabase::GetPlayerScore(const LWOOBJID 
 void MySQLDatabase::IncrementNumWins(const LWOOBJID playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }
+
+std::map<uint32_t, uint32_t> MySQLDatabase::GetLeaderboardSizes() {
+	std::map<uint32_t, uint32_t> sizes;
+	auto result = ExecuteSelect("SELECT game_id, COUNT(*) AS scores FROM leaderboard GROUP BY game_id;");
+	while (result->next()) sizes[result->getUInt("game_id")] = result->getUInt("scores");
+	return sizes;
+}
+
+void MySQLDatabase::DeleteLeaderboardScore(const LWOOBJID playerId, const uint32_t gameId) {
+	ExecuteDelete("DELETE FROM leaderboard WHERE character_id = ? AND game_id = ?;", playerId, gameId);
+}
+
+void MySQLDatabase::ResetLeaderboard(const uint32_t gameId) {
+	ExecuteDelete("DELETE FROM leaderboard WHERE game_id = ?;", gameId);
+}

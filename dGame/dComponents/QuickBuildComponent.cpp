@@ -24,6 +24,7 @@
 #include "CppScripts.h"
 #include "StringifiedEnum.h"
 #include "Amf3.h"
+#include "EconomyLedger.h"
 
 QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : Component{ entity, componentID } {
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
@@ -415,6 +416,7 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackQuickBuildComplete();
+		EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::QUICKBUILDS_COMPLETED, m_Parent->GetLOT(), m_Parent->GetPosition(), 1, user);
 	} else {
 		LOG("Some user tried to finish the rebuild but they didn't have a character somehow.");
 		return;

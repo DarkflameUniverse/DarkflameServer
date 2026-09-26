@@ -16,6 +16,7 @@ target_include_directories(dInventory PUBLIC "."
 
 	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase"
 	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables"
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables" # via EconomyLedger.h
 
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # direct
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct InventoryComponent.h

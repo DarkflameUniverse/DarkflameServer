@@ -1,0 +1,144 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Send Mail - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Send Mail</h2>
+<p class="text-body-secondary mb-4">Send in-game mail to a player or to everyone</p>
+
+<div class="row">
+	<div class="col-lg-8">
+		<div class="card">
+			<div class="card-body">
+				<form id="mailForm">
+					<div class="mb-3">
+						<label class="form-label d-block">Recipient</label>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="recipientMode" id="modeOne" value="one" checked>
+							<label class="form-check-label" for="modeOne">One character</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="recipientMode" id="modeAll" value="all">
+							<label class="form-check-label" for="modeAll">Every character</label>
+						</div>
+						<input type="text" class="form-control mt-2" id="recipient" list="characterList" placeholder="Start typing a character name" autocomplete="off">
+						<datalist id="characterList"></datalist>
+					</div>
+					<div class="mb-3">
+						<label for="subject" class="form-label">Subject</label>
+						<input type="text" class="form-control" id="subject" maxlength="50" required>
+					</div>
+					<div class="mb-3">
+						<label for="body" class="form-label">Body</label>
+						<textarea class="form-control" id="body" rows="5" maxlength="400" required></textarea>
+						<div class="form-text"><span id="bodyCount">0</span>/400</div>
+					</div>
+					{% if can.mail_items %}
+					<div class="row g-3 mb-3 align-items-end">
+						<div class="col-md-8">
+							<label for="itemSearch" class="form-label">Attachment <span class="text-body-secondary small">(optional)</span></label>
+							<div class="input-group">
+								<span class="input-group-text p-1"><img id="itemIcon" class="item-icon d-none" alt=""></span>
+								<input type="text" class="form-control" id="itemSearch" list="itemList" placeholder="Search by item name or LOT" autocomplete="off">
+							</div>
+							<datalist id="itemList"></datalist>
+						</div>
+						<div class="col-md-4">
+							<label for="attachmentCount" class="form-label">Count</label>
+							<input type="number" class="form-control" id="attachmentCount" value="1" min="1" max="999">
+						</div>
+					</div>
+					{% endif %}
+					<button type="submit" class="btn btn-primary" id="sendBtn">Send Mail</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function () {
+	var characters = {}; // name -> id
+	var items = {};      // label -> lot
+	var recipient = document.getElementById('recipient');
+	var itemSearch = document.getElementById('itemSearch');
+	var itemIcon = document.getElementById('itemIcon');
+
+	api.get('/api/characters/list').then(function (list) {
+		var datalist = document.getElementById('characterList');
+		list.forEach(function (c) {
+			characters[c.name] = c.id;
+			var opt = document.createElement('option');
+			opt.value = c.name;
+			datalist.appendChild(opt);
+		});
+	});
+
+	document.querySelectorAll('input[name="recipientMode"]').forEach(function (radio) {
+		radio.addEventListener('change', function () { recipient.disabled = document.getElementById('modeAll').checked; });
+	});
+
+	document.getElementById('body').addEventListener('input', function () {
+		document.getElementById('bodyCount').textContent = this.value.length;
+	});
+
+	var searchTimer = null;
+	// The attachment fields are only there with the mail_items permission
+	if (itemSearch) itemSearch.addEventListener('input', function () {
+		var q = itemSearch.value.trim();
+		var lot = selectedLot();
+		itemIcon.classList.toggle('d-none', !lot);
+		if (lot) { itemIcon.src = '/api/icon/' + lot; return; }
+		clearTimeout(searchTimer);
+		if (q.length < 2) return;
+		searchTimer = setTimeout(function () {
+			api.get('/api/items/search?q=' + encodeURIComponent(q)).then(function (results) {
+				var datalist = document.getElementById('itemList');
+				datalist.textContent = '';
+				results.forEach(function (item) {
+					var label = item.name + ' (' + item.lot + ')';
+					items[label] = item.lot;
+					var opt = document.createElement('option');
+					opt.value = label;
+					datalist.appendChild(opt);
+				});
+			});
+		}, 250);
+	});
+
+	function selectedLot() {
+		if (!itemSearch) return 0;
+		var value = itemSearch.value.trim();
+		if (!value) return 0;
+		if (items[value]) return items[value];
+		return /^\d+$/.test(value) ? parseInt(value, 10) : 0;
+	}
+
+	document.getElementById('mailForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var everyone = document.getElementById('modeAll').checked;
+		var recipientId = everyone ? '0' : characters[recipient.value.trim()];
+		if (!recipientId) { toast('Pick a character from the list', 'danger'); return; }
+		if (itemSearch && itemSearch.value.trim() && !selectedLot()) { toast('Pick an item from the list or enter a LOT', 'danger'); return; }
+		if (everyone && !confirm('Send this mail to all ' + Object.keys(characters).length + ' characters?')) return;
+
+		var lot = selectedLot();
+		var btn = document.getElementById('sendBtn');
+		btn.disabled = true;
+		api.action('/api/mail/send', {
+			recipient_id: recipientId,
+			subject: document.getElementById('subject').value,
+			body: document.getElementById('body').value,
+			attachment_lot: lot,
+			attachment_count: lot ? (parseInt(document.getElementById('attachmentCount').value, 10) || 1) : 0
+		}).then(function (d) {
+			toast(d.message || 'Mail sent', 'success');
+			document.getElementById('subject').value = '';
+			document.getElementById('body').value = '';
+		}).catch(function () {}).finally(function () { btn.disabled = false; });
+	});
+});
+</script>
+{% endblock %}

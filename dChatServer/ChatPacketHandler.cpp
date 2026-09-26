@@ -1,6 +1,7 @@
 #include "ChatPacketHandler.h"
 #include "PlayerContainer.h"
 #include "Database.h"
+#include <ctime>
 #include <vector>
 #include "BitStreamUtils.h"
 #include "Game.h"
@@ -421,6 +422,30 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 
 // the structure the client uses to send this packet is shared in many chat messages
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
+namespace {
+	// Whispers and team chat, for moderation (log_chat=0 turns chat logging off, log_private_chat=0 just these)
+	void LogChat(const PlayerData& sender, const std::string& channel, const std::string& message, LWOOBJID recipientId = LWOOBJID_EMPTY, const std::string& recipientName = "") {
+		if (Game::config->GetValue("log_chat") == "0" || Game::config->GetValue("log_private_chat") == "0") return;
+		IChatLog::ChatMessage entry;
+		entry.time = static_cast<int64_t>(std::time(nullptr));
+		entry.channel = channel;
+		entry.senderId = sender.playerID;
+		entry.senderName = sender.playerName;
+		entry.recipientId = recipientId == LWOOBJID_EMPTY ? 0 : recipientId;
+		entry.recipientName = recipientName;
+		entry.zoneId = sender.zoneID.GetMapID();
+		entry.instanceId = sender.zoneID.GetInstanceID();
+		entry.cloneId = sender.zoneID.GetCloneID();
+		entry.message = message;
+		try {
+			if (const auto info = Database::Get()->GetCharacterInfo(sender.playerID)) entry.accountId = info->accountId;
+			Database::Get()->InsertChatMessage(entry);
+		} catch (const std::exception& ex) {
+			LOG("Couldn't log a chat message: %s", ex.what());
+		}
+	}
+}
+
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
@@ -451,6 +476,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	case eChatChannel::TEAM: {
 		auto* team = TeamContainer::GetTeam(playerID);
 		if (team == nullptr) return;
+		LogChat(sender, "team", message.GetAsString());
 
 		for (const auto memberId : team->memberIDs) {
 			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
@@ -516,6 +542,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	// only freinds can whispr each other
 	for (const auto& fr : receiver.friends) {
 		if (fr.friendID == sender.playerID) {
+			LogChat(sender, "whisper", message.GetAsString(), receiver.playerID, receiver.playerName);
 			//To the sender:
 			SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::SENT);
 			//To the receiver:

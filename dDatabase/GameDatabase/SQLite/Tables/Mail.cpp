@@ -3,8 +3,8 @@
 void SQLiteDatabase::InsertNewMail(const MailInfo& mail) {
 	ExecuteInsert(
 		"INSERT INTO `mail` "
-		"(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`)"
-		" VALUES (?,?,?,?,?,?,?,?,?,?,?,0)",
+		"(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `attachment_config`, `was_read`)"
+		" VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0)",
 		mail.senderId,
 		mail.senderUsername,
 		mail.receiverId,
@@ -14,8 +14,9 @@ void SQLiteDatabase::InsertNewMail(const MailInfo& mail) {
 		mail.body,
 		mail.itemID,
 		mail.itemLOT,
-		0,
-		mail.itemCount);
+		mail.itemSubkey,
+		mail.itemCount,
+		mail.itemConfig);
 }
 
 std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) {
@@ -32,9 +33,9 @@ std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const LWOOBJID characterI
 		mail.subject = res.getStringField("subject");
 		mail.body = res.getStringField("body");
 		mail.senderUsername = res.getStringField("sender_name");
-		mail.itemID = res.getIntField("attachment_id");
+		mail.itemID = res.getInt64Field("attachment_id");
 		mail.itemLOT = res.getIntField("attachment_lot");
-		mail.itemSubkey = res.getIntField("attachment_subkey");
+		mail.itemSubkey = res.getInt64Field("attachment_subkey");
 		mail.itemCount = res.getIntField("attachment_count");
 		mail.timeSent = res.getInt64Field("time_sent");
 		mail.wasRead = res.getIntField("was_read");
@@ -47,15 +48,20 @@ std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const LWOOBJID characterI
 }
 
 std::optional<MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
-	auto [_, res] = ExecuteSelect("SELECT attachment_lot, attachment_count, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
+	auto [_, res] = ExecuteSelect("SELECT sender_id, attachment_id, attachment_lot, attachment_subkey, attachment_count, attachment_config, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
 
 	if (res.eof()) {
 		return std::nullopt;
 	}
 
 	MailInfo toReturn;
+	toReturn.id = mailId;
+	toReturn.senderId = res.getInt64Field("sender_id");
+	toReturn.itemID = res.getInt64Field("attachment_id");
 	toReturn.itemLOT = res.getIntField("attachment_lot");
+	toReturn.itemSubkey = res.getInt64Field("attachment_subkey");
 	toReturn.itemCount = res.getIntField("attachment_count");
+	toReturn.itemConfig = res.fieldIsNull("attachment_config") ? "" : res.getStringField("attachment_config");
 	toReturn.receiverId = res.getInt64Field("receiver_id");
 
 	return toReturn;

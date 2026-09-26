@@ -7,6 +7,7 @@
 
 // C++
 #include <map>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <sstream>
@@ -295,6 +296,41 @@ struct LwoNameValue {
 
 	ValueType::const_iterator find(const ValueType::key_type& key) const {
 		return this->values.find(key);
+	}
+
+	/**
+	 * All values as "key=type:value" lines, for storing outside the game (e.g. mail attachments).
+	 * Backslashes and line breaks inside a value are escaped (\\ and \n) so every value comes back out.
+	 */
+	std::string ToLines() const {
+		std::string lines;
+		for (const auto& value : this->values | std::views::values) {
+			if (!lines.empty()) lines += '\n';
+			for (const char c : value->GetString()) {
+				if (c == '\\') lines += "\\\\";
+				else if (c == '\n') lines += "\\n";
+				else lines += c;
+			}
+		}
+		return lines;
+	}
+
+	// Inverse of ToLines; lines that do not parse are skipped
+	void InsertLines(const std::string_view lines) {
+		for (const auto& escaped : GeneralUtils::SplitString(lines, '\n')) {
+			if (escaped.empty()) continue;
+			std::string line;
+			for (size_t i = 0; i < escaped.size(); i++) {
+				if (escaped[i] == '\\' && i + 1 < escaped.size()) {
+					const char next = escaped[++i];
+					line += next == 'n' ? '\n' : next;
+				} else {
+					line += escaped[i];
+				}
+			}
+			LDFPtr parsed(LDFBaseData::DataFromString(line));
+			if (parsed) this->values.insert_or_assign(parsed->GetKey(), std::move(parsed));
+		}
 	}
 
 	LwoNameValue() = default;

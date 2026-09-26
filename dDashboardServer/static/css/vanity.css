@@ -1,0 +1,108 @@
+/* Vanity page (Files & NPCs, Preview). Sizes and colours are variables so the layout can be tuned in one place. */
+.vanity-page {
+	--vanity-side-width: 19rem;
+	--vanity-sticky-top: 3.5rem;             /* below the top bar */
+	--vanity-border: 1px solid var(--bs-border-color);
+	--vanity-meta-color: var(--bs-secondary-color);
+	--vanity-open-accent: var(--bs-primary);
+	--vanity-chip-bg: var(--bs-secondary-bg);
+	--vanity-chip-color: var(--bs-body-color);
+	--vanity-loc-bg: var(--bs-tertiary-bg);
+	--vanity-savebar-bg: var(--bs-body-bg);
+	--vanity-num-width: 5.25rem;
+	--vanity-indent: 1.1rem;
+}
+
+/* ---- layout: files and texts beside the editor, stacked on phones ---- */
+.vanity-layout { display: grid; grid-template-columns: var(--vanity-side-width) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.vanity-side { position: sticky; top: calc(var(--vanity-sticky-top) + 1rem); }
+@media (max-width: 991.98px) {
+	.vanity-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+	.vanity-side { position: static; }
+}
+
+/* ---- the file list ---- */
+.vanity-file { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem .5rem calc(.75rem + var(--depth, 0) * var(--vanity-indent)); position: relative; }
+/* A line from each included file back to the file including it */
+.vanity-file.is-child::before {
+	content: ""; position: absolute; left: calc(.75rem + (var(--depth) - 1) * var(--vanity-indent) + .3rem); top: 0; bottom: 50%; width: .6rem;
+	border-left: var(--vanity-border); border-bottom: var(--vanity-border); border-bottom-left-radius: .25rem; }
+.vanity-file.is-repeat .vanity-file-name { opacity: .8; }
+.vanity-group-label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--vanity-meta-color); background: var(--bs-tertiary-bg); padding: .35rem .75rem; }
+.vanity-badge-loaded { background: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); border: 1px solid var(--bs-success-border-subtle); }
+.vanity-badge-off { background: var(--bs-secondary-bg); color: var(--vanity-meta-color); border: var(--vanity-border); }
+/* A scheduled event that uses a file or changes an NPC; stronger while it is on */
+.vanity-event-badge { background: var(--bs-info-bg-subtle); color: var(--bs-info-text-emphasis); border: 1px dashed var(--bs-info-border-subtle); text-decoration: none; font-weight: 500; }
+.vanity-event-badge.is-on { border-style: solid; background: var(--bs-info); color: var(--bs-white); }
+.vanity-event-badge:hover { text-decoration: underline; }
+.vanity-head-badge .badge { font-size: .65rem; vertical-align: .25em; font-weight: 500; }
+.vanity-file-name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; color: inherit; text-decoration: none; }
+.vanity-file-name:hover .text-truncate { text-decoration: underline; }
+.vanity-count { font-size: .75rem; color: var(--vanity-meta-color); }
+.vanity-count .badge { font-size: .65rem; vertical-align: .05em; }
+.vanity-file.active .vanity-count { color: inherit; opacity: .85; }
+.vanity-file .form-switch { flex: 0 0 auto; }
+.vanity-file.active .form-check-input:checked { border-color: #fff; }
+.vanity-where { font-size: .75rem; color: var(--vanity-meta-color); }
+.list-group-item.active .vanity-where { color: inherit; opacity: .85; }
+
+/* ---- the editor ---- */
+.vanity-main-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .75rem; }
+.vanity-toolbar { position: sticky; top: var(--vanity-sticky-top); z-index: 4; background: var(--bs-body-bg); padding: .6rem 0 .4rem; }
+.vanity-toolbar .form-control { max-width: 22rem; flex: 1 1 12rem; }
+
+/* The chosen file's includes */
+.vanity-include { display: flex; align-items: center; gap: .75rem; padding: .3rem 0; border-bottom: var(--vanity-border); }
+.vanity-include:last-of-type { margin-bottom: .5rem; }
+.vanity-include-add { max-width: 26rem; }
+
+/* One NPC */
+.npc-card { margin-bottom: .6rem; border-left: 3px solid transparent; }
+.npc-card.is-open { border-left-color: var(--vanity-open-accent); }
+.npc-head { display: flex; align-items: center; gap: .5rem; padding: 0; }
+.npc-toggle { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: .6rem; text-align: left; background: none; border: 0; color: inherit; padding: .6rem .75rem; }
+.npc-toggle:focus-visible { outline: 2px solid var(--vanity-open-accent); outline-offset: -2px; }
+.npc-caret { flex: 0 0 auto; width: .5rem; height: .5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; opacity: .7; }
+.npc-toggle[aria-expanded="true"] .npc-caret { transform: rotate(45deg); }
+.npc-heading { min-width: 0; display: flex; flex-direction: column; }
+.npc-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.npc-sub { font-size: .8rem; color: var(--vanity-meta-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.npc-badges { flex: 0 0 auto; display: flex; gap: .25rem; padding-right: .75rem; }
+@media (max-width: 575.98px) {
+	.npc-head { flex-wrap: wrap; }
+	.npc-badges { padding: 0 .75rem .5rem 2rem; }
+	.npc-sub { white-space: normal; }
+}
+
+.npc-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; }
+@container (max-width: 34rem) { .npc-row { grid-template-columns: minmax(0, 1fr); } }
+.npc-card .card-body { container-type: inline-size; }
+.npc-lot input { max-width: 8rem; flex: 0 0 auto; }
+.npc-section { margin-top: .9rem; }
+.npc-section textarea.font-monospace { font-size: .8rem; }
+
+.npc-chips { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .35rem; }
+.npc-chip { display: inline-flex; align-items: center; gap: .4rem; font-weight: 500; background: var(--vanity-chip-bg); color: var(--vanity-chip-color); border: var(--vanity-border); }
+.npc-chip .btn-close { width: .5em; height: .5em; padding: 0; }
+.npc-equip-add { max-width: 18rem; }
+
+/* Locations: labelled fields that wrap, so a row fits a phone */
+.npc-locs { display: flex; flex-direction: column; gap: .4rem; }
+.npc-loc { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .4rem .5rem; padding: .5rem; background: var(--vanity-loc-bg); border-radius: .375rem; }
+.loc-field { display: flex; flex-direction: column; flex: 1 1 var(--vanity-num-width); min-width: 4.5rem; max-width: 8rem; margin: 0; }
+.loc-field > span { font-size: .7rem; color: var(--vanity-meta-color); margin-bottom: .1rem; white-space: nowrap; }
+.loc-field.loc-zone { flex: 2 1 13rem; min-width: 11rem; max-width: none; }
+.loc-field.loc-facing { flex-basis: 7rem; }
+.loc-remove { flex: 0 0 auto; margin-left: auto; min-width: 2.25rem; font-size: 1.1rem; line-height: 1.2; padding: .1rem .5rem; }
+.loc-field.loc-rw, .loc-field.loc-rx, .loc-field.loc-ry, .loc-field.loc-rz { flex-basis: 6rem; }
+
+/* Plaque texts */
+.vanity-text { font-size: .85rem; min-height: 16rem; }
+
+/* ---- save bar ---- */
+.vanity-savebar { position: sticky; bottom: 0; z-index: 6; background: var(--vanity-savebar-bg); border-top: var(--vanity-border); padding: .75rem 0; margin-top: 1rem; box-shadow: 0 -.5rem 1rem rgba(0, 0, 0, .15); }
+
+/* ---- preview ---- */
+.vanity-xml { max-height: 32rem; overflow: auto; font-size: .75rem; white-space: pre; }
+#vanityPanePreview details > summary { cursor: pointer; }
+.vanity-changed > td { --bs-table-bg: var(--bs-info-bg-subtle); }

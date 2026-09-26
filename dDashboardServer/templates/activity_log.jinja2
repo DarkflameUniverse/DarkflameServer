@@ -1,0 +1,42 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Activity Log - DarkflameServer{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Activity Log</h2>
+<p class="text-body-secondary mb-4">Player activity history</p>
+
+<div class="card">
+	<div class="card-body">
+		<table id="activityLogTable" class="table table-striped table-hover">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Character</th>
+					<th>Activity</th>
+					<th>Time</th>
+					<th>Zone</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="zoneNames">{{ zone_names }}</script>
+<script>
+// Zone names were HTML-escaped by the server before rendering, so they are safe to insert as-is
+var zoneNames = JSON.parse(document.getElementById('zoneNames').textContent);
+$(function () {
+	serverTable('#activityLogTable', '/api/tables/activity_log', [
+		{ data: 'id' },
+		{ data: 'character_name' },
+		{ data: 'activity' },
+		{ data: 'time', render: function (d) { return fmt.unix(d); } },
+		{ data: 'map_id', render: function (d) { return (zoneNames[d] || 'Zone ' + esc(d)) + ' <span class="text-body-secondary">(' + esc(d) + ')</span>'; } }
+	], { liveTable: 'activity_log' });
+});
+</script>
+{% endblock %}

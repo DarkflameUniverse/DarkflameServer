@@ -78,7 +78,7 @@ void Leaderboard::Serialize(RakNet::BitStream& bitStream) const {
 // Takes the resulting query from a leaderboard lookup and converts it to the LDF we need
 // to send it to a client.
 void QueryToLdf(Leaderboard& leaderboard, const std::vector<ILeaderboard::Entry>& leaderboardEntries) {
-	using enum Leaderboard::Type;
+	using enum eLeaderboardType;
 	leaderboard.Clear();
 	if (leaderboardEntries.empty()) return;
 
@@ -232,33 +232,8 @@ std::vector<ILeaderboard::Entry> ProcessLeaderboard(
 }
 
 void Leaderboard::SetupLeaderboard(bool weekly) {
-	const auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
-	std::vector<ILeaderboard::Entry> leaderboardRes;
-
-	switch (leaderboardType) {
-	case Type::SurvivalNS:
-		leaderboardRes = Database::Get()->GetNsLeaderboard(gameID);
-		break;
-	case Type::Survival:
-		leaderboardRes = Database::Get()->GetAgsLeaderboard(gameID);
-		break;
-	case Type::Racing:
-		[[fallthrough]];
-	case Type::MonumentRace:
-		leaderboardRes = Database::Get()->GetAscendingLeaderboard(gameID);
-		break;
-	case Type::ShootingGallery:
-		[[fallthrough]];
-	case Type::FootRace:
-		[[fallthrough]];
-	case Type::Donations:
-		[[fallthrough]];
-	case Type::None:
-		[[fallthrough]];
-	default:
-		leaderboardRes = Database::Get()->GetDescendingLeaderboard(gameID);
-		break;
-	}
+	// Shared with the dashboard's leaderboards so both rank the same way
+	const auto leaderboardRes = Database::Get()->GetRankedLeaderboard(LeaderboardManager::GetLeaderboardType(gameID), gameID);
 
 	const auto processedLeaderboard = ProcessLeaderboard(leaderboardRes, weekly, infoType, relatedPlayer, numResults);
 
@@ -279,7 +254,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 
 	ILeaderboard::Score newScore{ .primaryScore = primaryScore, .secondaryScore = secondaryScore, .tertiaryScore = tertiaryScore };
 	if (oldScore.has_value()) {
-		bool lowerScoreBetter = leaderboardType == Leaderboard::Type::Racing || leaderboardType == Leaderboard::Type::MonumentRace;
+		bool lowerScoreBetter = ILeaderboard::LowerIsBetter(leaderboardType);
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
 		// Nimbus station has a weird leaderboard where we need a custom scoring system
 		if (leaderboardType == Leaderboard::Type::SurvivalNS) {

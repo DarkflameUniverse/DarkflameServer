@@ -7,3 +7,5 @@ include(GoogleTest)
 # Add the subdirectories
 add_subdirectory(dCommonTests)
 add_subdirectory(dGameTests)
+add_subdirectory(dWebTests)
+add_subdirectory(dDatabaseTests)

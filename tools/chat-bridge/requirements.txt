@@ -1,0 +1,2 @@
+# Only for live updates over the WebSocket (and the Discord adapter); without it the bridge polls.
+websockets>=10

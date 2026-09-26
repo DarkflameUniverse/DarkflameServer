@@ -1,4 +1,6 @@
 #include "TradingManager.h"
+#include "EconomyLedger.h"
+#include "dServer.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "InventoryComponent.h"
@@ -160,23 +162,46 @@ void Trade::Complete() {
 		}
 	}
 
-	// Now actually do the trade.
+	// Now actually do the trade. Nothing is created or destroyed, so the economy ledger records transfers instead.
+	EconomyLedger::ScopedItemTransfer transfer;
 	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::TRADE);
 	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::TRADE);
 
-	for (const auto& tradeItem : m_ItemsA) {
-		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
-		if (itemToRemove) itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
-		missionsA->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
-		inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE);
-	}
+	const auto zone = Game::server ? Game::server->GetZoneID() : 0;
+	const auto recordCoins = [zone](const uint64_t coins, const LWOOBJID from, const LWOOBJID to) {
+		if (coins == 0) return;
+		EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::TRADE, .coins = static_cast<int64_t>(coins),
+			.fromCharacter = from, .toCharacter = to, .zone = zone });
+	};
+	recordCoins(m_CoinsA, characterA->GetID(), characterB->GetID());
+	recordCoins(m_CoinsB, characterB->GetID(), characterA->GetID());
 
-	for (const auto& tradeItem : m_ItemsB) {
-		auto* itemToRemove = inventoryB->FindItemById(tradeItem.itemId);
-		if (itemToRemove) itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
-		missionsB->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
-		inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE);
-	}
+	const auto giveItems = [zone](const std::vector<TradeItem>& items, InventoryComponent* from, MissionComponent* fromMissions,
+		InventoryComponent* to, const LWOOBJID fromCharacter, const LWOOBJID toCharacter) {
+		for (const auto& tradeItem : items) {
+			auto* itemToRemove = from->FindItemById(tradeItem.itemId);
+			if (!itemToRemove) continue;
+
+			// A whole item keeps its data (subkey, config) but gets a new object id, as upstream: reusing the id would
+			// leave two objects with one id if the server stopped between the two players' saves. A stack merges into
+			// the other player's stack. new_item_id records where the items ended up, so the chain can be followed.
+			const bool whole = itemToRemove->GetCount() == tradeItem.itemCount;
+			const auto config = itemToRemove->GetConfig();
+			const auto subKey = itemToRemove->GetSubKey();
+			const auto bound = itemToRemove->GetBound();
+			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
+			fromMissions->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(tradeItem.itemCount));
+			const auto received = whole
+				? to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE, config, subKey, bound)
+				: to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE);
+
+			EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::TRADE, .itemId = tradeItem.itemId, .newItemId = received.id,
+				.lot = tradeItem.itemLot, .count = tradeItem.itemCount, .fromCharacter = fromCharacter, .toCharacter = toCharacter, .zone = zone,
+				.merged = received.merged });
+		}
+	};
+	giveItems(m_ItemsA, inventoryA, missionsA, inventoryB, characterA->GetID(), characterB->GetID());
+	giveItems(m_ItemsB, inventoryB, missionsB, inventoryA, characterB->GetID(), characterA->GetID());
 
 	characterA->SaveXMLToDatabase();
 	characterB->SaveXMLToDatabase();

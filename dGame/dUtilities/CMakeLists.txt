@@ -1,9 +1,15 @@
 set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
 	"CheatDetection.cpp"
+	"DashboardActions.cpp"
+	"EconomyLedger.cpp"
+	"DashboardNotify.cpp"
 	"GUID.cpp"
+	"LiveEvents.cpp"
 	"Loot.cpp"
 	"Mail.cpp"
+	"MessageInspector.cpp"
 	"ObjectIDManager.cpp"
+	"PlayerReports.cpp"
 	"Preconditions.cpp"
 	"SlashCommandHandler.cpp"
 	"VanityUtilities.cpp"
@@ -26,6 +32,7 @@ target_include_directories(dUtilities PUBLIC "." "SlashCommands"
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # transitive via MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # transitive via dZoneManager/Spawner.h
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # Mail.cpp
+	"${PROJECT_SOURCE_DIR}/dChatFilter" # DashboardActions.cpp (messages sent into chat)
 )
 target_link_libraries(dUtilities
 	PUBLIC dDatabase dPhysics

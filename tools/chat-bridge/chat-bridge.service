@@ -1,0 +1,25 @@
+# systemd unit for the chat bridge. Copy to /etc/systemd/system/, adjust the paths and user, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now chat-bridge
+[Unit]
+Description=DarkflameServer chat bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dlu
+WorkingDirectory=/opt/DarkflameServer/tools/chat-bridge
+# DLU_API_TOKEN=..., DISCORD_BOT_TOKEN=..., DISCORD_WEBHOOK_URL=... (chmod 600)
+EnvironmentFile=/etc/chat-bridge.env
+ExecStart=/usr/bin/python3 -m chat_bridge --config /opt/DarkflameServer/tools/chat-bridge/config.json
+# No stdin: the console adapter isn't for services
+StandardInput=null
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/DarkflameServer/tools/chat-bridge
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -46,5 +46,8 @@ public:
 
 	// Gets a model by ID
 	virtual std::optional<Model> GetModel(const LWOOBJID modelID) = 0;
+
+	// Gets the id of the property a model is placed on
+	virtual std::optional<LWOOBJID> GetModelPropertyId(const LWOOBJID modelID) = 0;
 };
 #endif  //!__IPROPERTIESCONTENTS__H__

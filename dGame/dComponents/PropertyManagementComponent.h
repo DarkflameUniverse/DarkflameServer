@@ -1,29 +1,10 @@
 #pragma once
 
+#include "ePropertyPrivacyOption.h"
 #include <chrono>
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
-
-/**
- * Information regarding which players may visit this property
- */
-enum class PropertyPrivacyOption {
-	/**
-	 * Default, only you can visit your property
-	 */
-	Private = 0,
-
-	/**
-	 * Your friends can visit your property
-	 */
-	 Friends = 1,
-
-	 /**
-	  * Requires Mythran approval, everyone can visit your property
-	  */
-	  Public = 2
-};
 
 /**
  * Main component that handles interactions with a property, generally the plaques you see on properties.
@@ -136,6 +117,9 @@ public:
 	 * @param value true if the property should be approved, false otherwise
 	 */
 	void UpdateApprovedStatus(bool value, const std::string& rejectionReason = "");
+
+	// A moderator decided on this property from the dashboard (already saved): keep this world's copy in step
+	void ApplyModeration(bool approved, const std::string& reason);
 
 	/**
 	 * Loads all the models on this property from the database

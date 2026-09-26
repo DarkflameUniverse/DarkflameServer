@@ -1,4 +1,5 @@
 #include "DestroyableComponent.h"
+#include "EconomyLedger.h"
 #include "BitStream.h"
 #include "Logger.h"
 #include "Game.h"
@@ -716,6 +717,11 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	auto* owner = Game::entityManager->GetEntity(source);
 
+	// Where players die and what killed them (the killer itself, not whoever owns it; 0 when it is already gone)
+	if (m_Parent->IsPlayer()) {
+		EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::PLAYER_DEATHS, owner ? owner->GetLOT() : 0, m_Parent->GetPosition(), 1, m_Parent);
+	}
+
 	if (owner != nullptr) {
 		owner = owner->GetOwner(); // If the owner is overwritten, we collect that here
 
@@ -727,6 +733,12 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 		if (inventoryComponent != nullptr && isEnemy) {
 			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, m_Parent);
+		}
+
+		if (isEnemy && owner->IsPlayer()) {
+			EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::ENEMY_KILLS, m_Parent->GetLOT(), m_Parent->GetPosition(), 1, owner);
+		} else if (owner->IsPlayer() && !m_Parent->IsPlayer()) {
+			EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::SMASHABLES_SMASHED, m_Parent->GetLOT(), m_Parent->GetPosition(), 1, owner);
 		}
 
 		auto* missions = owner->GetComponent<MissionComponent>();
@@ -785,6 +797,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				lootMsg.item = LOT_NULL;
 				GameMessages::DeliverLocally(lootMsg);
 				character->SetCoins(coinsTotal, eLootSourceType::DELETION);
+				EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::PLAYER_COIN_DROPS, 0, m_Parent->GetPosition(), static_cast<int64_t>(coinsToLose), m_Parent);
 			}
 		}
 
@@ -970,7 +983,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 		auto uscoreToLose = static_cast<uint64_t>(uscore * (Game::entityManager->GetHardcoreLoseUscoreOnDeathPercent() / 100.0f));
 		LOG("Player %llu has lost %llu uscore!", m_Parent->GetObjectID(), uscoreToLose);
-		character->SetUScore(uscore - uscoreToLose);
+		character->SetUScore(uscore - uscoreToLose, EconomyLedger::HARDCORE_DEATH_SOURCE);
 
 		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
 
@@ -1013,6 +1026,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 			//lose all coins:
 			chars->SetCoins(coins, eLootSourceType::NONE);
+			if (coinsToDrop > 0) EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::PLAYER_COIN_DROPS, 0, m_Parent->GetPosition(), static_cast<int64_t>(coinsToDrop), m_Parent);
 
 			//drop all coins:
 			constexpr auto MAX_TO_DROP_PER_GM = 100'000;
@@ -1054,7 +1068,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 			int uscore = maxHealth * Game::entityManager->GetHardcoreUscoreEnemiesMultiplier() * uscoreReduction;
 			LOG("Rewarding player %llu with %i uscore for killing enemy %i", player->GetObjectID(), uscore, lot);
-			playerStats->SetUScore(playerStats->GetUScore() + uscore);
+			playerStats->SetUScore(playerStats->GetUScore() + uscore, EconomyLedger::HARDCORE_KILL_SOURCE);
 			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::MISSION);
 
 			Game::entityManager->SerializeEntity(m_Parent);

@@ -34,6 +34,18 @@ enum class eReplicaComponentType : uint32_t;
 
  //! The general utils namespace
 namespace GeneralUtils {
+	// Text for a SQL LIKE pattern with its wildcards (% and _) and the escape character escaped; use with ESCAPE '<escape>'.
+	// '!' works the same in SQLite and MySQL (a backslash in a MySQL string literal depends on the sql_mode).
+	inline std::string LikeEscape(std::string_view text, char escape = '\\') {
+		std::string escaped;
+		escaped.reserve(text.size());
+		for (const char c : text) {
+			if (c == '%' || c == '_' || c == escape) escaped += escape;
+			escaped += c;
+		}
+		return escaped;
+	}
+
 	//! Converts a plain ASCII string to a UTF-16 string
 	/*!
 	  \param string The string to convert

@@ -1,0 +1,70 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Bug Reports - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+	<div>
+		<h2 class="mb-1">Bug Reports</h2>
+		<p class="text-body-secondary mb-0">Player-submitted bug reports &mdash; <span id="reportCount">0</span> shown</p>
+	</div>
+	<div class="btn-group" role="group" id="statusFilter">
+		<input type="radio" class="btn-check" name="status" id="statusUnresolved" value="0" checked>
+		<label class="btn btn-outline-primary" for="statusUnresolved">Unresolved</label>
+		<input type="radio" class="btn-check" name="status" id="statusResolved" value="1">
+		<label class="btn btn-outline-primary" for="statusResolved">Resolved</label>
+		<input type="radio" class="btn-check" name="status" id="statusAll" value="-1">
+		<label class="btn btn-outline-primary" for="statusAll">All</label>
+	</div>
+</div>
+
+<div class="card">
+	<div class="card-body">
+		<table id="bugReportsTable" class="table table-striped table-hover">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Reporter</th>
+					<th>Client Version</th>
+					<th>Submitted</th>
+					<th>Status</th>
+					<th>Report</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(function () {
+	function status() { return parseInt(document.querySelector('#statusFilter input:checked').value, 10); }
+
+	var table = serverTable('#bugReportsTable', '/api/tables/bug_reports', [
+		{ data: 'id' },
+		{ data: 'reporter_name', render: function (d, t, row) {
+			return d ? fmt.link('/characters/' + row.reporter_id, d) : '<span class="text-body-secondary">Unknown</span>';
+		}},
+		{ data: 'client_version' },
+		{ data: 'submitted', render: function (d) { return fmt.date(d); } },
+		{ data: 'resolved', render: function (d) { return d ? fmt.badge('Resolved', 'success') : fmt.badge('Open', 'warning'); } },
+		{ data: 'body', orderable: false, render: function (d) {
+			var text = d || '-';
+			if (text.length > 80) text = text.substring(0, 80) + '…';
+			return '<span title="' + esc(d) + '">' + esc(text) + '</span>';
+		}},
+		{ data: 'id', orderable: false, searchable: false, render: function (d) {
+			return '<a class="btn btn-sm btn-outline-primary" href="/bug_reports/' + esc(d) + '">View</a>';
+		}}
+	], { liveTable: 'bug_reports', extra: function () { return { resolved: status() }; } });
+	table.on('draw.dt', function () { document.getElementById('reportCount').textContent = table.page.info().recordsDisplay; });
+
+	document.querySelectorAll('#statusFilter input').forEach(function (input) {
+		input.addEventListener('change', function () { table.ajax.reload(); });
+	});
+});
+</script>
+{% endblock %}

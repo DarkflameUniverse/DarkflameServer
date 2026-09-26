@@ -1,4 +1,5 @@
 #include "SQLiteDatabase.h"
+#include "json.hpp"
 
 std::vector<std::string> SQLiteDatabase::GetApprovedCharacterNames() {
 	auto [_, result] = ExecuteSelect("SELECT name FROM charinfo;");
@@ -55,6 +56,13 @@ std::vector<LWOOBJID> SQLiteDatabase::GetAccountCharacterIds(const LWOOBJID acco
 	return toReturn;
 }
 
+uint32_t SQLiteDatabase::GetCharacterCount() {
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) as count FROM charinfo;");
+	if (res.eof()) return 0;
+
+	return res.getIntField("count");
+}
+
 void SQLiteDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 	ExecuteInsert(
 		"INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`, `prop_clone_id`) VALUES (?,?,?,?,?,?,(SELECT IFNULL(MAX(`prop_clone_id`), 0) + 1 FROM `charinfo`))",
@@ -82,4 +90,24 @@ bool SQLiteDatabase::IsNameInUse(const std::string_view name) {
 	auto [_, result] = ExecuteSelect("SELECT name FROM charinfo WHERE name = ? or pending_name = ? LIMIT 1;", name, name);
 
 	return !result.eof();
+}
+
+nlohmann::json SQLiteDatabase::GetCharacterById(const LWOOBJID charId) {
+	auto [_, result] = ExecuteSelect(
+		"SELECT c.id, c.name, c.pending_name, c.needs_rename, c.account_id, c.last_login, c.prop_clone_id, c.permission_map, a.name as account_name "
+		"FROM charinfo c LEFT JOIN accounts a ON c.account_id = a.id WHERE c.id = ? LIMIT 1;", charId);
+	if (result.eof()) {
+		return nlohmann::json({{"error", "Character not found"}});
+	}
+	return nlohmann::json({
+		{"id", std::to_string(result.getInt64Field("id"))},
+		{"name", result.getStringField("name")},
+		{"pending_name", result.getStringField("pending_name")},
+		{"needs_rename", result.getIntField("needs_rename") != 0},
+		{"account_id", result.getIntField("account_id")},
+		{"account_name", result.getStringField("account_name")},
+		{"last_login", result.getInt64Field("last_login")},
+		{"prop_clone_id", result.getInt64Field("prop_clone_id")},
+		{"permission_map", result.getIntField("permission_map")}
+	});
 }

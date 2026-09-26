@@ -1,0 +1,81 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Property Showcase - {{ public_page.name }}{% endblock %}
+
+{% block css %}
+<style>
+	.showcase-description { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+	<h3 class="mb-0 me-auto">Property showcase</h3>
+	<form class="d-flex flex-wrap gap-2" id="showcaseFilters" role="search">
+		<input type="search" class="form-control form-control-sm w-auto" id="showcaseSearch" placeholder="Name, description or owner" maxlength="64" aria-label="Search">
+		<select class="form-select form-select-sm w-auto" id="showcaseZone" aria-label="World"><option value="">Every world</option></select>
+		<select class="form-select form-select-sm w-auto" id="showcaseSort" aria-label="Sort">
+			<option value="reputation">Most reputation</option>
+			<option value="newest">Recently changed</option>
+			<option value="name">Name</option>
+		</select>
+	</form>
+</div>
+<p class="text-body-secondary small">Properties their owners made public and a moderator approved. Open one to look around it in 3D.</p>
+<div class="row g-3" id="showcaseList"><div class="col text-body-secondary">Loading&hellip;</div></div>
+<nav class="d-flex justify-content-center align-items-center gap-2 mt-3" id="showcasePager" aria-label="Pages"></nav>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var nf = new Intl.NumberFormat();
+	var page = 1, zonesFilled = false, timer = null;
+	var search = document.getElementById('showcaseSearch');
+	var zone = document.getElementById('showcaseZone');
+	var sort = document.getElementById('showcaseSort');
+
+	function load() {
+		var query = '?page=' + page + '&sort=' + encodeURIComponent(sort.value) + '&zone=' + encodeURIComponent(zone.value) + '&search=' + encodeURIComponent(search.value.trim());
+		api.get('/api/showcase' + query).then(function (d) {
+			var list = document.getElementById('showcaseList');
+			if (!d.success) { list.innerHTML = '<div class="col text-danger">' + esc(d.error || 'Could not load the showcase') + '</div>'; return; }
+			if (!zonesFilled) {
+				zonesFilled = true;
+				zone.insertAdjacentHTML('beforeend', d.zones.map(function (z) { return '<option value="' + esc(z.id) + '">' + esc(z.name) + '</option>'; }).join(''));
+			}
+			list.innerHTML = d.properties.length ? d.properties.map(function (p) {
+				return '<div class="col-sm-6 col-lg-4 col-xxl-3"><div class="card h-100"><div class="card-body d-flex flex-column">' +
+					'<h5 class="card-title mb-1">' + esc(p.name || 'Unnamed property') + '</h5>' +
+					'<div class="small text-body-secondary mb-2">by ' + esc(p.owner_name) + ' &middot; ' + esc(p.zone_name) + '</div>' +
+					(p.description ? '<p class="small showcase-description">' + esc(p.description) + '</p>' : '') +
+					'<div class="small text-body-secondary mt-auto mb-2">' + nf.format(p.models) + ' model' + (p.models === 1 ? '' : 's') + ' &middot; ' +
+					nf.format(p.reputation) + ' reputation' + (p.last_updated ? ' &middot; changed ' + esc(new Date(p.last_updated * 1000).toLocaleDateString()) : '') + '</div>' +
+					'<a class="btn btn-sm btn-primary" href="/showcase/' + esc(p.id) + '">Look around in 3D</a>' +
+					'</div></div></div>';
+			}).join('') : '<div class="col text-body-secondary">No properties match.</div>';
+
+			var pages = Math.max(1, Math.ceil(d.total / d.page_size));
+			document.getElementById('showcasePager').innerHTML = pages > 1 ?
+				'<button class="btn btn-sm btn-outline-secondary" data-page="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + '>&larr; Previous</button>' +
+				'<span class="small text-body-secondary">Page ' + page + ' of ' + pages + ' (' + nf.format(d.total) + ' properties)</span>' +
+				'<button class="btn btn-sm btn-outline-secondary" data-page="' + (page + 1) + '"' + (page >= pages ? ' disabled' : '') + '>Next &rarr;</button>' : '';
+		}).catch(function (err) { document.getElementById('showcaseList').innerHTML = '<div class="col text-danger">' + esc(err.message) + '</div>'; });
+	}
+
+	function reload() { page = 1; load(); }
+	search.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(reload, 300); });
+	zone.addEventListener('change', reload);
+	sort.addEventListener('change', reload);
+	document.getElementById('showcaseFilters').addEventListener('submit', function (e) { e.preventDefault(); reload(); });
+	document.getElementById('showcasePager').addEventListener('click', function (e) {
+		var button = e.target.closest('[data-page]');
+		if (!button || button.disabled) return;
+		page = Number(button.dataset.page);
+		load();
+		window.scrollTo(0, 0);
+	});
+	load();
+})();
+</script>
+{% endblock %}

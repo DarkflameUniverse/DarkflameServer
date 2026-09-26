@@ -1,4 +1,5 @@
 #include "PropertyManagementComponent.h"
+#include "DashboardNotify.h"
 
 #include <sstream>
 
@@ -147,6 +148,7 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 		UpdateApprovedStatus(false, "Your property is empty. Please place a model to have a public property.");
 	} else {
 		Database::Get()->UpdatePropertyModerationInfo(info);
+		DashboardNotify::Changed("properties", propertyId);
 	}
 }
 
@@ -165,6 +167,7 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 
 	Database::Get()->UpdateLastSave(info);
 	Database::Get()->UpdatePropertyDetails(info);
+	DashboardNotify::Changed("properties", propertyId);
 
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
 }
@@ -220,6 +223,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	info.description = description;
 
 	Database::Get()->InsertNewProperty(info, templateId, worldId);
+	DashboardNotify::Changed("properties", propertyId);
 
 	auto* zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	if (zoneControlObject) zoneControlObject->GetScript()->OnZonePropertyRented(zoneControlObject, entity);
@@ -574,6 +578,7 @@ void PropertyManagementComponent::UpdateApprovedStatus(const bool value, const s
 	info.rejectionReason = rejectionReason;
 
 	Database::Get()->UpdatePropertyModerationInfo(info);
+	DashboardNotify::Changed("properties", propertyId);
 }
 
 void PropertyManagementComponent::Load() {
@@ -718,6 +723,7 @@ void PropertyManagementComponent::Save() {
 	info.id = propertyId;
 	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	Database::Get()->UpdateLastSave(info);
+	DashboardNotify::Changed("properties", propertyId);
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {
@@ -811,4 +817,11 @@ void PropertyManagementComponent::OnChatMessageReceived(const std::string& sMess
 
 		modelComponent->OnChatMessageReceived(sMessage);
 	}
+}
+
+void PropertyManagementComponent::ApplyModeration(const bool approved, const std::string& reason) {
+	rejectionReason = approved ? "" : reason;
+	// The dashboard makes rejected properties private; don't let a later save here publish it again
+	if (!approved) privacyOption = PropertyPrivacyOption::Private;
+	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
 }

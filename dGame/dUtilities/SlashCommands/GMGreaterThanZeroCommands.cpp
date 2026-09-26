@@ -1,4 +1,6 @@
 #include "GMGreaterThanZeroCommands.h"
+#include "DashboardNotify.h"
+#include "SlashCommandHandler.h"
 
 // Classes
 #include "Character.h"
@@ -31,6 +33,8 @@ namespace GMGreaterThanZeroCommands {
 				ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + username);
 				return;
 			}
+			const auto target = SlashCommandHandler::TargetOf(player);
+			if (!target || !SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::TOOLS, "kick")) return;
 
 			Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::KICK);
 
@@ -44,32 +48,25 @@ namespace GMGreaterThanZeroCommands {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 
 		if (splitArgs.size() == 1) {
-			auto* player = PlayerManager::GetPlayer(splitArgs[0]);
-
-			uint32_t accountId = 0;
-
-			if (player == nullptr) {
-				auto characterInfo = Database::Get()->GetCharacterInfo(splitArgs[0]);
-
-				if (characterInfo) {
-					accountId = characterInfo->accountId;
-				}
-
-				if (accountId == 0) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(splitArgs[0]));
-
-					return;
-				}
-			} else {
-				auto* character = player->GetCharacter();
-				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-				if (user) accountId = user->GetAccountID();
+			const auto target = SlashCommandHandler::FindTarget(splitArgs[0]);
+			if (!target) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(splitArgs[0]));
+				return;
+			}
+			if (!SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::MODERATION, "ban")) return;
+			// The server always keeps a GM 9 account that can sign in
+			if (target->gmLevel >= AccountRules::OPERATOR_LEVEL &&
+				AccountRules::RemovesLastOperator(target->gmLevel, Database::Get()->CountActiveAccountsAtGmLevel(AccountRules::OPERATOR_LEVEL, target->accountId))) {
+				ChatPackets::SendSystemMessage(sysAddr, u"/ban: " + GeneralUtils::UTF8ToUTF16(AccountRules::LastOperatorMessage("banned")));
+				return;
 			}
 
+			const auto accountId = target->accountId;
 			if (accountId != 0) Database::Get()->UpdateAccountBan(accountId, true);
+			if (accountId != 0) DashboardNotify::Changed("account_banned", accountId);
 
-			if (player != nullptr) {
-				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
+			if (target->entity != nullptr) {
+				Game::server->Disconnect(target->entity->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
 			}
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Banned: " + GeneralUtils::ASCIIToUTF16(splitArgs[0]));
@@ -95,6 +92,9 @@ namespace GMGreaterThanZeroCommands {
 
 		receiverID = playerInfo->id;
 
+		const auto target = SlashCommandHandler::FindTarget(playerName);
+		if (!target || !SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::ITEMS, "mailitem")) return;
+
 		const auto lot = GeneralUtils::TryParse<LOT>(splitArgs.at(1));
 
 		if (!lot) {
@@ -114,6 +114,7 @@ namespace GMGreaterThanZeroCommands {
 		mailInsert.itemSubkey = LWOOBJID_EMPTY;
 		mailInsert.itemCount = 1;
 		Database::Get()->InsertNewMail(mailInsert);
+		DashboardNotify::Changed("mail", mailInsert.receiverId);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Mail sent");
 	}
@@ -128,32 +129,15 @@ namespace GMGreaterThanZeroCommands {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 
 		if (splitArgs.size() >= 1) {
-			auto* player = PlayerManager::GetPlayer(splitArgs[0]);
-
-			uint32_t accountId = 0;
-			LWOOBJID characterId = 0;
-
-			if (player == nullptr) {
-				auto characterInfo = Database::Get()->GetCharacterInfo(splitArgs[0]);
-
-				if (characterInfo) {
-					accountId = characterInfo->accountId;
-					characterId = characterInfo->id;
-
-					GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
-				}
-
-				if (accountId == 0) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(splitArgs[0]));
-
-					return;
-				}
-			} else {
-				auto* character = player->GetCharacter();
-				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-				if (user) accountId = user->GetAccountID();
-				characterId = player->GetObjectID();
+			const auto target = SlashCommandHandler::FindTarget(splitArgs[0]);
+			if (!target) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(splitArgs[0]));
+				return;
 			}
+			if (!SlashCommandHandler::MayActOn(entity, sysAddr, *target, SlashCommandLevels::eTargetRule::MODERATION, "mute")) return;
+
+			const uint32_t accountId = target->accountId;
+			const LWOOBJID characterId = target->characterId;
 
 			time_t expire = 1; // Default to indefinate mute
 
@@ -181,6 +165,7 @@ namespace GMGreaterThanZeroCommands {
 			}
 
 			if (accountId != 0) Database::Get()->UpdateAccountUnmuteTime(accountId, expire);
+			if (accountId != 0) DashboardNotify::Changed("account_muted", accountId);
 
 			char buffer[32] = "brought up for review.\0";
 

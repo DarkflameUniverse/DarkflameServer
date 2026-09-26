@@ -1,0 +1,109 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Server Status - {{ public_page.name }}{% endblock %}
+
+{% block content %}
+<div class="container-xl px-0" id="status" data-status="{{ status_json }}">
+	<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+		<h3 class="mb-0 me-auto" id="statusName"></h3>
+		<span class="badge fs-6" id="statusOnline"></span>
+	</div>
+	<p class="small text-body-secondary" id="statusUpdated"></p>
+	<div class="row g-3" id="statusCards"></div>
+	<div id="statusBoards" class="mt-3"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var root = document.getElementById('status');
+	var nf = new Intl.NumberFormat();
+	var status = JSON.parse(root.dataset.status);
+
+	// m:ss, or m:ss.hh for race times (as on the Leaderboards page)
+	function time(seconds, hundredths) {
+		if (!seconds) return '-';
+		var m = Math.floor(seconds / 60), s = seconds - m * 60;
+		var text = hundredths ? s.toFixed(2) : String(Math.round(s));
+		return (m ? m + ':' + (s < 10 ? '0' : '') : '') + text + (m ? '' : 's');
+	}
+	function value(entry, column) {
+		var v = entry[column.key];
+		if (column.format === 'time' || column.format === 'laptime') return time(v, column.format === 'laptime');
+		if (column.format === 'percent') return (v * 100).toFixed(1) + '%';
+		return nf.format(Math.round(v));
+	}
+	function upBadge(up, yes, no) { return fmt.badge(up ? yes : no, up ? 'success' : 'danger'); }
+	function card(title, body) {
+		return '<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-header fw-semibold">' + esc(title) + '</div><div class="card-body">' + body + '</div></div></div>';
+	}
+
+	function render() {
+		document.getElementById('statusName').textContent = status.name;
+		var online = document.getElementById('statusOnline');
+		online.textContent = status.online ? 'Online' : 'Offline';
+		online.className = 'badge fs-6 text-bg-' + (status.online ? 'success' : 'danger');
+		document.getElementById('statusUpdated').textContent = 'As of ' + new Date(status.generated_at * 1000).toLocaleString() +
+			'; updates every ' + status.refresh_seconds + ' seconds.';
+
+		var cards = '';
+		if (status.players) {
+			var rows = status.players.worlds.map(function (w) {
+				return '<tr><td>' + esc(w.zone) + (w.names && w.names.length ? '<div class="small text-body-secondary">' + w.names.map(esc).join(', ') + '</div>' : '') +
+					'</td><td class="text-end">' + nf.format(w.players) + '</td></tr>';
+			}).join('');
+			cards += card('Players online', '<div class="display-6 mb-2">' + nf.format(status.players.online) + '</div>' +
+				(rows ? '<table class="table table-sm mb-0"><thead><tr><th>World</th><th class="text-end">Players</th></tr></thead><tbody>' + rows + '</tbody></table>'
+					: '<p class="text-body-secondary mb-0">No worlds are running.</p>'));
+		}
+		if (status.uptime) {
+			var u = status.uptime;
+			var pct = function (p) { return p === null ? '<span class="text-body-secondary">not known yet</span>' : esc(p) + '%'; };
+			cards += card('Uptime', (u.up_since ? '<p class="mb-2">Up for <strong>' + esc(u.text) + '</strong> (since ' + esc(new Date(u.up_since * 1000).toLocaleString()) + ')</p>'
+				: '<p class="mb-2 text-danger">Down right now</p>') +
+				'<dl class="row mb-0"><dt class="col-7 fw-normal text-body-secondary">Last 24 hours</dt><dd class="col-5 mb-1">' + pct(u.last_day_percent) + '</dd>' +
+				'<dt class="col-7 fw-normal text-body-secondary">Last 7 days</dt><dd class="col-5 mb-0">' + pct(u.last_week_percent) + '</dd></dl>');
+		}
+		if (status.health) {
+			var h = status.health;
+			cards += card('Server health', '<dl class="row mb-0">' +
+				'<dt class="col-7 fw-normal text-body-secondary">Login</dt><dd class="col-5 mb-1">' + upBadge(h.login, 'Up', 'Down') + '</dd>' +
+				'<dt class="col-7 fw-normal text-body-secondary">Chat</dt><dd class="col-5 mb-1">' + upBadge(h.chat, 'Up', 'Down') + '</dd>' +
+				'<dt class="col-7 fw-normal text-body-secondary">Worlds running</dt><dd class="col-5 mb-0">' + nf.format(h.worlds) + '</dd></dl>');
+		}
+		if (status.events && status.events.length) {
+			cards += card('Live events', '<ul class="list-unstyled mb-0">' + status.events.map(function (e) {
+				return '<li class="mb-1"><strong>' + esc(e.title) + '</strong><div class="small text-body-secondary">' + esc(e.where) + ', until ' +
+					esc(new Date(e.ends_at * 1000).toLocaleString()) + '</div></li>';
+			}).join('') + '</ul>');
+		}
+		(status.challenges || []).forEach(function (c) {
+			cards += card(c.completed ? 'Challenge complete' : 'Community challenge', '<p class="fw-semibold mb-1">' + esc(c.title) + '</p>' +
+				(c.description ? '<p class="small mb-2">' + esc(c.description) + '</p>' : '') +
+				'<div class="progress mb-1" role="progressbar" aria-label="' + esc(c.title) + '" aria-valuenow="' + esc(c.percent) + '" aria-valuemin="0" aria-valuemax="100">' +
+				'<div class="progress-bar' + (c.completed ? ' bg-success' : '') + '" style="width: ' + esc(c.percent) + '%"></div></div>' +
+				'<div class="small text-body-secondary">' + nf.format(c.total) + ' of ' + nf.format(c.target) + ' ' + esc(c.counting) +
+				(c.completed ? '' : ', until ' + esc(new Date(c.ends_at * 1000).toLocaleString())) + '</div>');
+		});
+		document.getElementById('statusCards').innerHTML = cards;
+
+		var boards = status.leaderboards || [];
+		document.getElementById('statusBoards').innerHTML = boards.length ? '<h4 class="mb-2">Leaderboards</h4><div class="row g-3">' + boards.map(function (board) {
+			// The score the board is ranked by
+			var column = board.columns.filter(function (c) { return c.ranks; })[0] || board.columns[0];
+			return '<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-header fw-semibold">' + esc(board.name) + '</div>' +
+				'<table class="table table-sm mb-0"><thead><tr><th>#</th><th>Character</th><th class="text-end"' + (column.hint ? ' title="' + esc(column.hint) + '"' : '') + '>' + esc(column.label) + '</th></tr></thead><tbody>' +
+				board.top.map(function (e) { return '<tr><td>' + esc(e.rank) + '</td><td>' + esc(e.name) + '</td><td class="text-end">' + esc(value(e, column)) + '</td></tr>'; }).join('') +
+				'</tbody></table></div></div>';
+		}).join('') + '</div>' : '';
+	}
+
+	render();
+	// The server works the status out at most once per refresh period, so asking more often gains nothing
+	setInterval(function () {
+		api.get('/api/public/status').then(function (d) { if (d && d.name) { status = d; render(); } }).catch(function () {});
+	}, Math.max(10, status.refresh_seconds) * 1000);
+})();
+</script>
+{% endblock %}

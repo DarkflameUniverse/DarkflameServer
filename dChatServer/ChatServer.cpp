@@ -5,11 +5,14 @@
 
 //DLU Includes:
 #include "dCommonVars.h"
+#include "ConfigSync.h"
 #include "dServer.h"
 #include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "dChatFilter.h"
+#include "PlayerAction.h"
+#include "MessageType/Master.h"
 #include "Diagnostics.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
@@ -43,6 +46,7 @@ namespace Game {
 }
 
 void HandlePacket(Packet* packet);
+void HandleMasterPacket(Packet* packet);
 
 int main(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
@@ -95,6 +99,9 @@ int main(int argc, char** argv) {
 		delete Game::config;
 		return EXIT_FAILURE;
 	}
+
+	// Settings edited on the dashboard (server_config table) are layered over the files from here on
+	Game::config->SetDatabaseSync(ConfigSync::Sync);
 
 	// setup the chat api web server
 	const uint32_t web_server_port = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_port")).value_or(2005);
@@ -163,7 +170,11 @@ int main(int argc, char** argv) {
 		Game::playerContainer.Update(deltaTime);
 
 		//Check for packets here:
-		Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
+		//ReceiveFromMaster also handles the master packets if needed; it hands back the ones for us.
+		if (auto* masterPacket = Game::server->ReceiveFromMaster()) {
+			HandleMasterPacket(masterPacket);
+			Game::server->DeallocateMasterPacket(masterPacket);
+		}
 		packet = Game::server->Receive();
 		if (packet) {
 			HandlePacket(packet);
@@ -211,6 +222,20 @@ int main(int argc, char** argv) {
 	Game::config = nullptr;
 
 	return EXIT_SUCCESS;
+}
+
+// Messages from master that dServer doesn't handle itself
+void HandleMasterPacket(Packet* packet) {
+	if (packet->length < 4 || static_cast<ServiceType>(packet->data[1]) != ServiceType::MASTER) return;
+	if (static_cast<MessageType::Master>(packet->data[3]) != MessageType::Master::PLAYER_ACTION) return;
+	CINSTREAM_SKIP_HEADER;
+	PlayerActionRequest request;
+	if (!request.Deserialize(inStream)) return;
+	// Words added or removed on the dashboard: web chat is checked with the same filter as the worlds
+	if (request.action == ePlayerAction::RELOAD_CHAT_FILTER && Game::chatFilter) {
+		Game::chatFilter->ReloadCustomWords();
+		LOG("Reloaded the chat filter's words (changed on the dashboard)");
+	}
 }
 
 void HandlePacket(Packet* packet) {

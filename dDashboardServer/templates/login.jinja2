@@ -1,0 +1,54 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Sign In - DarkflameServer{% endblock %}
+
+{% block content_noauth %}
+<div class="d-flex align-items-center justify-content-center min-vh-100">
+	<div class="card shadow" style="width: 100%; max-width: 420px;">
+		<div class="card-body p-4">
+			<h3 class="card-title text-center mb-1">DarkflameServer</h3>
+			<p class="text-body-secondary text-center mb-4">Sign in to the dashboard</p>
+
+			<div id="alert" class="alert d-none" role="alert"></div>
+
+			<form id="loginForm">
+				<div class="mb-3">
+					<label for="username" class="form-label">Username</label>
+					<input type="text" class="form-control" id="username" name="username" required autofocus placeholder="Enter your username">
+				</div>
+				<div class="mb-3">
+					<label for="password" class="form-label">Password</label>
+					<input type="password" class="form-control" id="password" name="password" required maxlength="40" placeholder="Enter your password">
+				</div>
+				<div class="form-check mb-3">
+					<input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+					<label class="form-check-label" for="rememberMe">Remember me for 30 days</label>
+				</div>
+				<button type="submit" class="btn btn-primary w-100" id="loginBtn">
+					<span id="loading" class="spinner-border spinner-border-sm d-none" role="status"></span>
+					Sign In
+				</button>
+			</form>
+
+			<form id="twoFactorForm" class="d-none">
+				<p class="mb-3">Enter the 6-digit code from your authenticator app. Lost your phone? Enter one of your recovery codes instead.</p>
+				<div class="mb-3">
+					<label for="twoFactorCode" class="form-label">Code</label>
+					<input type="text" class="form-control form-control-lg text-center" id="twoFactorCode" autocomplete="one-time-code" inputmode="numeric" maxlength="16" required>
+				</div>
+				<button type="submit" class="btn btn-primary w-100" id="twoFactorBtn">Verify</button>
+				<button type="button" class="btn btn-link w-100 mt-2" id="twoFactorBack">Back</button>
+			</form>
+
+			<p class="text-center small mt-3 mb-0 d-none" id="forgotLink"><a href="/forgot_password">Forgot your password?</a></p>
+			<p class="text-center small mt-2 mb-0 d-none" id="registerLink"><a href="/register">Create an account</a></p>
+			<p class="text-body-secondary text-center small mt-3 mb-0" id="noAccessText">Contact your administrator if you don't have access</p>
+			<p class="text-center small mt-3 mb-0 d-none" id="publicLinks"><a href="/status" class="d-none" id="publicStatusLink">Server status</a><span class="d-none mx-2" id="publicLinksDot">&middot;</span><a href="/showcase" class="d-none" id="publicShowcaseLink">Property showcase</a></p>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/login.js"></script>
+{% endblock %}

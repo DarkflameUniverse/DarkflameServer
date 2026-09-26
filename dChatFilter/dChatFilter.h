@@ -1,4 +1,8 @@
 #pragma once
+#include <algorithm>
+#include <cctype>
+#include <set>
+#include <unordered_set>
 #include <vector>
 #include <string>
 
@@ -26,11 +30,38 @@ public:
 	void ExportWordlistToDCF(const std::string& filepath, bool allowList);
 	std::set<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList = true);
 
+	/**
+	 * Load the words staff added on the dashboard (chat_filter_words) again, replacing the ones loaded before.
+	 * Allowed words are accepted in whitelisted chat; blocked words are always stopped, even when a file allows them.
+	 */
+	void ReloadCustomWords();
+
+	// A word as the filter compares it: lower case, without ! ? ; . ,
+	static std::string NormalizeWord(std::string word) {
+		std::erase_if(word, [](char c) { return c == '!' || c == '?' || c == ';' || c == '.' || c == ','; });
+		std::transform(word.begin(), word.end(), word.begin(), ::tolower); //Transform to lowercase
+		return word;
+	}
+
+	// A message split into words (at spaces) the way the filter checks it
+	static std::vector<std::string> Words(const std::string& message) {
+		std::vector<std::string> words;
+		size_t start = 0;
+		while (start <= message.size()) {
+			const auto end = std::min(message.find(' ', start), message.size());
+			words.push_back(NormalizeWord(message.substr(start, end - start)));
+			start = end + 1;
+		}
+		return words;
+	}
+
 private:
 	bool m_DontGenerateDCF;
 	std::vector<size_t> m_DeniedWords;
 	std::vector<size_t> m_ApprovedWords;
 	std::vector<size_t> m_UserUnapprovedWordCache;
+	std::unordered_set<size_t> m_CustomAllowedWords;
+	std::unordered_set<size_t> m_CustomBlockedWords;
 
 	//Private functions:
 	size_t CalculateHash(const std::string& word);

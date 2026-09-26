@@ -1,0 +1,75 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Setting History - DarkflameServer{% endblock %}
+
+{% block content %}
+{% include "settings_tabs.jinja2" %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1" id="historyTitle">Setting History</h2>
+		<p class="text-body-secondary mb-0">Every change made on the Settings page (and by the events calendar): the value set here before and after, who and
+			when. <strong>Undo</strong> puts the earlier value back the same way the Settings page saves, so it is checked, audited and recorded here too.</p>
+	</div>
+	<a class="btn btn-outline-secondary btn-sm d-none" id="showAll" href="/settings/history">Show every setting</a>
+</div>
+
+<div class="card">
+	<div class="card-body">
+		<table id="historyTable" class="table table-striped table-hover w-100 table-stack">
+			<thead><tr><th>When</th><th>Who</th><th>Setting</th><th>Change</th><th></th></tr></thead>
+			<tbody></tbody>
+		</table>
+		<p class="small text-body-secondary mb-0">Values are what was set on the dashboard; a value from a file or the environment is shown when there was one.
+			Secrets are never kept here, only that they changed.</p>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var params = new URLSearchParams(window.location.search);
+	var file = params.get('file') || '', name = params.get('name') || '';
+	if (file && name) {
+		document.getElementById('historyTitle').textContent = 'History of ' + name;
+		document.getElementById('showAll').classList.remove('d-none');
+	}
+
+	// A web value as the page shows it; none means the file, the environment or the default applies
+	function value(v, wins, row) {
+		if (row.secret) return '<span class="text-body-secondary">(secret)</span>';
+		if (v === null) {
+			var fallback = row.fileValue !== null ? 'the file: <code>' + esc(row.fileValue) + '</code>' : row['default'] !== '' ? 'the default: <code>' + esc(row['default']) + '</code>' : 'the default';
+			return '<span class="text-body-secondary">not set here (' + fallback + ')</span>';
+		}
+		return '<code>' + esc(v === '' ? '(empty)' : v) + '</code>' + (wins ? ' <span class="small text-body-secondary">over the file</span>' : '');
+	}
+
+	var table = serverTable('#historyTable', '/api/settings/history', [
+		{ data: 'changedAt', orderable: false, render: function (d) { return esc(fmt.unix(d)); } },
+		{ data: 'changedBy', orderable: false },
+		{ data: 'name', orderable: false, render: function (d, type, row) {
+			return esc(row.title) + '<div class="small text-body-secondary"><code>' + esc(row.file) + '</code> <code>' + esc(d) + '</code>' +
+				(row.restart ? ' <span class="badge text-bg-warning">restart</span>' : '') + '</div>';
+		} },
+		{ data: 'id', orderable: false, render: function (d, type, row) {
+			if (row.removed) return 'Removed (was ' + value(row.oldValue, row.oldWebWins, row) + ')';
+			return value(row.oldValue, row.oldWebWins, row) + ' &rarr; ' + value(row.newValue, row.newWebWins, row) +
+				(row.revertOf ? '<div class="small text-body-secondary">undid change #' + esc(row.revertOf) + '</div>' : '');
+		} },
+		{ data: 'id', orderable: false, className: 'text-end', render: function (d, type, row) {
+			return row.secret ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary" data-undo="' + d + '">Undo</button>';
+		} }
+	], { liveTable: 'settings', extra: function () { return file && name ? { file: file, name: name } : {}; }, dataTable: { searching: false } });
+
+	document.getElementById('historyTable').addEventListener('click', function (e) {
+		var el = e.target.closest('[data-undo]');
+		if (!el || !confirm('Put back the value from before this change? Every server reloads its settings.')) return;
+		api.action('/api/settings/history/' + el.dataset.undo + '/revert', {}).then(function (d) {
+			toast(d.message, 'success');
+			table.ajax.reload(null, false);
+		});
+	});
+})();
+</script>
+{% endblock %}

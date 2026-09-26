@@ -5,6 +5,7 @@
 #include "Logger.h"
 
 #include "BehaviorStates.h"
+#include "PropertyBehaviorActions.h"
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 #include "InventoryComponent.h"
@@ -43,7 +44,7 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& 
 	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
 
-	m_Speed = 3.0f;
+	m_Speed = PropertyBehaviorActions::DEFAULT_SPEED;
 	m_NumListeningInteract = 0;
 
 	m_NumActiveAttack = 0;

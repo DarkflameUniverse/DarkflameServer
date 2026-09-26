@@ -311,10 +311,10 @@ journalctl -xeu darkflame.service
 ### First user or adding more users.
 The first time you run `MasterServer`, you will be prompted to create an account. To create more accounts from the command line, `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
-### Account management tool (Nexus Dashboard)
-**If you are just using this server for yourself, you can skip setting up Nexus Dashboard**
+### Web dashboard
+**If you are just using this server for yourself, you can skip the dashboard**
 
-Follow the instructions [here](https://github.com/DarkflameUniverse/NexusDashboard) to setup the DLU Nexus Dashboard web application. This is the intended way for users to create accounts and the intended way for moderators to approve names/pets/properties and do other moderation actions.
+The server includes a web dashboard for account management, moderation (names, pets, properties), economy reports and server settings. Turn it on with `enable_dashboard=1` in `masterconfig.ini`; see [docs/Dashboard.md](docs/Dashboard.md) for setup, backups and security. It replaces the separate [Nexus Dashboard](https://github.com/DarkflameUniverse/NexusDashboard), which still works if you prefer it.
 
 ### Admin levels
 The admin level, or Game Master level (hereafter referred to as gmlevel), is specified in the `accounts.gm_level` column in the MySQL database. Normal players should have this set to `0`, which comes with no special privileges. The system administrator will have this set to `9`, which comes will all privileges. gmlevel `8` should be used to give a player a majority of privileges without the safety critical once.

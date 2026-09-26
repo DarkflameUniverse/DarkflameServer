@@ -7,17 +7,9 @@
 #include "dPlatforms.h"
 #include "BinaryPathFinder.h"
 
-// Static Variables
-
-// Status Variables
-namespace {
-	CppSQLite3DB* con = nullptr;
-	bool isConnected = false;
-};
-
 void SQLiteDatabase::Connect() {
 	LOG("Using SQLite database");
-	con = new CppSQLite3DB();
+	m_Con = new CppSQLite3DB();
 	const auto path = BinaryPathFinder::GetBinaryDir() / Game::config->GetValue("sqlite_database_path");
 
 	if (!std::filesystem::exists(path)) {
@@ -25,46 +17,50 @@ void SQLiteDatabase::Connect() {
 		std::filesystem::create_directories(path.parent_path());
 	}
 
-	con->open(path.string().c_str());
-	isConnected = true;
+	m_Con->open(path.string().c_str());
 
 	// Make sure wal is enabled for the database.
-	con->execQuery("PRAGMA journal_mode = WAL;");
+	m_Con->execQuery("PRAGMA journal_mode = WAL;");
 }
 
 void SQLiteDatabase::Destroy(std::string source) {
-	if (!con) return;
+	if (!m_Con) return;
 
 	if (source.empty()) LOG("Destroying SQLite connection!");
 	else LOG("Destroying SQLite connection from %s!", source.c_str());
 
-	con->close();
-	delete con;
-	con = nullptr;
+	m_Con->close();
+	delete m_Con;
+	m_Con = nullptr;
 }
 
 void SQLiteDatabase::ExecuteCustomQuery(const std::string_view query) {
-	con->compileStatement(query.data()).execDML();
+	m_Con->compileStatement(query.data()).execDML();
 }
 
 CppSQLite3Statement SQLiteDatabase::CreatePreppedStmt(const std::string& query) {
-	return con->compileStatement(query.c_str());
+	return m_Con->compileStatement(query.c_str());
 }
 
 void SQLiteDatabase::Commit() {
-	if (!con->IsAutoCommitOn()) con->compileStatement("COMMIT;").execDML();
+	if (!m_Con->IsAutoCommitOn()) m_Con->compileStatement("COMMIT;").execDML();
 }
 
 bool SQLiteDatabase::GetAutoCommit() {
-	return con->IsAutoCommitOn();
+	return m_Con->IsAutoCommitOn();
 }
 
 void SQLiteDatabase::SetAutoCommit(bool value) {
 	if (value) {
-		if (!GetAutoCommit()) con->compileStatement("COMMIT;").execDML();
+		if (!GetAutoCommit()) m_Con->compileStatement("COMMIT;").execDML();
 	} else {
-		if (GetAutoCommit()) con->compileStatement("BEGIN;").execDML();
+		if (GetAutoCommit()) m_Con->compileStatement("BEGIN;").execDML();
 	}
+}
+
+void SQLiteDatabase::Rollback() {
+	// A failed statement can already have ended the transaction; only roll back one that is open
+	if (!m_Con->IsAutoCommitOn()) m_Con->compileStatement("ROLLBACK;").execDML();
 }
 
 void SQLiteDatabase::DeleteCharacter(const LWOOBJID characterId) {
@@ -77,5 +73,9 @@ void SQLiteDatabase::DeleteCharacter(const LWOOBJID characterId) {
 	ExecuteDelete("DELETE FROM ugc WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM activity_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM mail WHERE receiver_id=?;", characterId);
+	ExecuteDelete("DELETE FROM ignore_list WHERE player_id=? OR ignored_player_id=?;", characterId, characterId);
+	ExecuteDelete("DELETE FROM ugc_modular_build WHERE character_id=?;", characterId);
+	ExecuteDelete("DELETE FROM pet_names WHERE owner_id=?;", characterId);
+	ExecuteDelete("DELETE FROM player_positions WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM charinfo WHERE id=?;", characterId);
 }

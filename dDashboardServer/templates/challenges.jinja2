@@ -1,0 +1,307 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Challenges - DarkflameServer{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+	<div>
+		<h2 class="mb-1">Community Challenges</h2>
+		<p class="text-body-secondary mb-0">Goals the whole server works on together. Everything a character does towards one counts where the game records it;
+			when the target is reached before the end, everyone who helped enough gets the rewards by mail. In game, <code>/challenge</code> shows the progress.</p>
+	</div>
+	<button type="button" class="btn btn-primary btn-sm d-none" id="addChallenge">New challenge</button>
+</div>
+
+<div class="row g-3 mb-4" id="activeChallenges"><div class="col-12 text-body-secondary">Loading&hellip;</div></div>
+
+<div class="card">
+	<div class="card-header fw-semibold">Finished and upcoming</div>
+	<div class="card-body table-responsive">
+		<table class="table table-hover align-middle mb-0 table-stack">
+			<thead><tr><th>Challenge</th><th>Counting</th><th>Result</th><th>When</th><th>You</th><th class="text-end"></th></tr></thead>
+			<tbody id="otherChallenges"></tbody>
+		</table>
+	</div>
+</div>
+
+<div class="modal fade" id="topModal" tabindex="-1" aria-labelledby="topModalTitle" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="topModalTitle">Top contributors</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body" id="topBody"></div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="challengeModal" tabindex="-1" aria-labelledby="challengeModalTitle" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<form class="modal-content" id="challengeForm">
+			<div class="modal-header"><h5 class="modal-title" id="challengeModalTitle">New challenge</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="mb-3"><label class="form-label" for="chTitle">Title</label><input class="form-control" id="chTitle" maxlength="100" required autocomplete="off" placeholder="Smash 10,000 enemies this week"></div>
+				<div class="mb-3"><label class="form-label" for="chDescription">Description <span class="text-body-secondary small">(optional)</span></label><textarea class="form-control" id="chDescription" rows="2" maxlength="400"></textarea></div>
+				<div data-metric>
+					<div class="row g-2 mb-3">
+						<div class="col-sm-7"><label class="form-label" for="chMetric">Count</label><select class="form-select" id="chMetric"></select>
+							<div class="small text-body-secondary mt-1">Statistics marked <em>not recorded lately</em> haven't been counted by the game in the last 90 days (the client reports some of them on its own, which isn't trusted).</div></div>
+						<div class="col-sm-5"><label class="form-label" for="chLotSearch">Only this object <span class="text-body-secondary small">(map events; optional)</span></label><div data-picker="any" id="chLot"></div></div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label" for="chZoneSearch">Only in zones <span class="text-body-secondary small">(empty: every zone)</span></label>
+						<div class="d-flex flex-wrap gap-1 mb-2" id="chZoneChips"></div>
+						<input class="form-control form-control-sm" id="chZoneSearch" list="chZoneList" placeholder="Type a zone name or ID and press Enter" autocomplete="off">
+						<datalist id="chZoneList"></datalist>
+					</div>
+					<div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="chStaff"><label class="form-check-label" for="chStaff">Count staff (GM 3+) too</label></div>
+				</div>
+				<div class="row g-2 mb-3">
+					<div class="col-sm-4"><label class="form-label" for="chTarget">Target</label><input type="number" class="form-control" id="chTarget" min="1" required value="10000"></div>
+					<div class="col-sm-4"><label class="form-label" for="chStarts">From</label><input type="datetime-local" class="form-control" id="chStarts"></div>
+					<div class="col-sm-4"><label class="form-label" for="chEnds">Until</label><input type="datetime-local" class="form-control" id="chEnds" required></div>
+				</div>
+				<fieldset class="border rounded p-3 mb-3">
+					<legend class="fs-6 float-none w-auto px-1 mb-0">Rewards for everyone who helped</legend>
+					<div class="row g-2">
+						<div class="col-sm-4"><label class="form-label small" for="chCoins">Coins</label><input type="number" class="form-control form-control-sm" id="chCoins" min="0" max="1000000" value="0"></div>
+						<div class="col-sm-4"><label class="form-label small" for="chMin">Needs at least</label><input type="number" class="form-control form-control-sm" id="chMin" min="1" value="1"></div>
+					</div>
+					<div class="mt-2"><label class="form-label small" for="chItemsSearch">Items (up to 5; one mail each)</label><div data-picker="item" data-multi="5" id="chItems"></div>
+						<div class="small text-body-secondary mt-1" id="chItemCounts"></div></div>
+				</fieldset>
+				<div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="chPublic" checked><label class="form-check-label" for="chPublic">Show on the public status page</label></div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var data = { challenges: [] }, editing = null, picked = [], zoneName = {}, itemCounts = {};
+	var nf = new Intl.NumberFormat();
+	var modal = new bootstrap.Modal(document.getElementById('challengeModal'));
+	var topModal = new bootstrap.Modal(document.getElementById('topModal'));
+
+	function toInput(ts) {
+		if (!ts) return '';
+		var d = new Date(ts * 1000);
+		d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+		return d.toISOString().slice(0, 16);
+	}
+	function fromInput(value) { return value ? Math.floor(new Date(value).getTime() / 1000) : 0; }
+	function left(ts) {
+		var s = Math.max(0, ts - Math.floor(Date.now() / 1000));
+		if (s >= 172800) return Math.floor(s / 86400) + ' days left';
+		if (s >= 7200) return Math.floor(s / 3600) + ' hours left';
+		return Math.ceil(s / 60) + ' minutes left';
+	}
+	var phaseBadge = { scheduled: 'info', active: 'primary', completed: 'success', expired: 'secondary', cancelled: 'dark' };
+	function mine(c) {
+		return c.mine.length ? c.mine.map(function (m) { return esc(m.name) + ' ' + nf.format(m.amount); }).join(', ') : '<span class="text-body-secondary">-</span>';
+	}
+	function manageButtons(c) {
+		if (!data.canManage) return '';
+		var b = '';
+		if (c.phase === 'active' || c.phase === 'scheduled') {
+			b += '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-edit="' + c.id + '">Edit</button>';
+			b += '<button type="button" class="btn btn-sm btn-outline-danger" data-cancel="' + c.id + '">Cancel</button>';
+		} else if (c.phase !== 'completed' || c.rewardedAt) {
+			b += '<button type="button" class="btn btn-sm btn-outline-danger" data-delete="' + c.id + '">Delete</button>';
+		}
+		return b;
+	}
+
+	function render() {
+		var active = data.challenges.filter(function (c) { return c.phase === 'active'; });
+		document.getElementById('activeChallenges').innerHTML = active.map(function (c) {
+			return '<div class="col-lg-6"><div class="card h-100"><div class="card-body">' +
+				'<div class="d-flex justify-content-between gap-2"><h5 class="card-title mb-1">' + esc(c.title) + '</h5><span class="small text-body-secondary text-nowrap">' + esc(left(c.endsAt)) + '</span></div>' +
+				(c.description ? '<p class="small mb-2">' + esc(c.description) + '</p>' : '') +
+				'<div class="progress mb-1" style="height: 1.25rem" role="progressbar" aria-label="' + esc(c.title) + '" aria-valuenow="' + c.percent + '" aria-valuemin="0" aria-valuemax="100">' +
+				'<div class="progress-bar" style="width: ' + c.percent + '%">' + c.percent + '%</div></div>' +
+				'<p class="small mb-2">' + nf.format(c.total) + ' of ' + nf.format(c.target) + ' ' + esc(c.metricName) + ' in ' + esc(c.zoneNames) + ' &middot; ' + nf.format(c.contributors) + ' players</p>' +
+				(c.rewardText ? '<p class="small mb-2">Reward: ' + esc(c.rewardText) + (c.rewardMin > 1 ? ' (for ' + nf.format(c.rewardMin) + ' or more)' : '') + '</p>' : '') +
+				'<p class="small mb-2">Yours: ' + mine(c) + '</p>' +
+				'<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-top="' + c.id + '">Top contributors</button>' + manageButtons(c) +
+				'</div></div></div>';
+		}).join('') || '<div class="col-12 text-body-secondary">No challenge is running right now.</div>';
+
+		document.getElementById('otherChallenges').innerHTML = data.challenges.filter(function (c) { return c.phase !== 'active'; }).map(function (c) {
+			var when = c.phase === 'scheduled' ? 'starts ' + fmt.unix(c.startsAt) : c.phase === 'completed' ? 'done ' + fmt.unix(c.completedAt) : 'ended ' + fmt.unix(c.endsAt);
+			return '<tr><td data-label="Challenge"><strong>' + esc(c.title) + '</strong> ' + fmt.badge(c.phase, phaseBadge[c.phase] || 'secondary') + '</td>' +
+				'<td data-label="Counting">' + esc(c.metricName) + '<div class="small text-body-secondary">' + esc(c.zoneNames) + '</div></td>' +
+				'<td data-label="Result">' + nf.format(c.total) + ' / ' + nf.format(c.target) + ' (' + c.percent + '%)' +
+				(c.phase === 'completed' ? '<div class="small text-body-secondary">' + (c.rewardedAt ? nf.format(c.rewardedCount) + ' rewarded' : 'rewards being handed out') + '</div>' : '') + '</td>' +
+				'<td data-label="When" class="small">' + esc(when) + '</td><td data-label="You" class="small">' + mine(c) + '</td>' +
+				'<td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-secondary me-1" data-top="' + c.id + '">Top</button>' + manageButtons(c) + '</td></tr>';
+		}).join('') || '<tr><td colspan="6" class="text-body-secondary">None yet.</td></tr>';
+	}
+
+	function load() {
+		return api.get('/api/challenges').then(function (d) {
+			if (!d.success) return;
+			data = d;
+			document.getElementById('addChallenge').classList.toggle('d-none', !d.canManage);
+			if (d.canManage && !document.getElementById('chMetric').options.length) {
+				var opts = '<optgroup label="Player statistics">' + d.metrics.stats.map(function (s) {
+					return '<option value="stat:' + s.value + '">' + esc(s.name) + (s.recorded ? '' : ' (not recorded lately)') + '</option>';
+				}).join('') + '</optgroup><optgroup label="Map events">' + d.metrics.mapEvents.map(function (m) {
+					return '<option value="map:' + m.value + '">' + esc(m.name) + '</option>';
+				}).join('') + '</optgroup>';
+				document.getElementById('chMetric').innerHTML = opts;
+				// Start on something the game is actually counting
+				var recorded = d.metrics.stats.filter(function (s) { return s.recorded; })[0];
+				if (recorded) document.getElementById('chMetric').value = 'stat:' + recorded.value;
+				d.zones.forEach(function (z) { zoneName[z.id] = z.name; });
+				document.getElementById('chZoneList').innerHTML = d.zones.map(function (z) { return '<option value="' + esc(z.name + ' (' + z.id + ')') + '">'; }).join('');
+			}
+			render();
+		});
+	}
+
+	// ---- zones ----
+	function renderChips() {
+		document.getElementById('chZoneChips').innerHTML = picked.map(function (id) {
+			return '<span class="badge text-bg-secondary d-inline-flex align-items-center gap-1">' + esc(zoneName[id] || ('Zone ' + id)) +
+				' <button type="button" class="btn-close btn-close-white" style="font-size: .5rem" aria-label="Remove" data-unpick="' + id + '"></button></span>';
+		}).join('') || '<span class="small text-body-secondary">Every zone</span>';
+	}
+	document.getElementById('chZoneSearch').addEventListener('keydown', function (e) {
+		if (e.key !== 'Enter') return;
+		e.preventDefault();
+		var text = this.value.trim().toLowerCase();
+		var match = data.zones.filter(function (z) { return (z.name + ' (' + z.id + ')').toLowerCase() === text || String(z.id) === text; })[0] ||
+			data.zones.filter(function (z) { return z.name.toLowerCase().indexOf(text) !== -1; })[0];
+		if (!match) return toast('No zone matches', 'warning');
+		if (picked.indexOf(match.id) === -1) picked.push(match.id);
+		this.value = '';
+		renderChips();
+	});
+	document.getElementById('chZoneChips').addEventListener('click', function (e) {
+		var el = e.target.closest('[data-unpick]');
+		if (!el) return;
+		picked = picked.filter(function (id) { return String(id) !== el.dataset.unpick; });
+		renderChips();
+	});
+
+	// ---- object pickers ----
+	var pickers = {};
+	document.querySelectorAll('[data-picker]').forEach(function (root) {
+		var kind = root.dataset.picker, multi = parseInt(root.dataset.multi || '1', 10);
+		var state = pickers[root.id] = { values: [] };
+		root.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-1" data-chips></div>' +
+			'<input class="form-control form-control-sm" id="' + root.id + 'Search" placeholder="Search by name or ID" autocomplete="off">' +
+			'<select class="form-select form-select-sm mt-1 d-none" size="5" aria-label="Results"></select>';
+		var input = root.querySelector('input'), list = root.querySelector('select'), chips = root.querySelector('[data-chips]');
+		state.draw = function () {
+			chips.innerHTML = state.values.map(function (v, i) {
+				return '<span class="badge text-bg-info d-inline-flex align-items-center gap-1">' + esc(v.label) +
+					' <button type="button" class="btn-close" style="font-size: .5rem" aria-label="Remove" data-remove="' + i + '"></button></span>';
+			}).join('');
+			if (root.id === 'chItems') drawCounts();
+		};
+		state.reset = function (values) { state.values = values || []; state.draw(); list.classList.add('d-none'); input.value = ''; };
+		var timer = null;
+		input.addEventListener('input', function () {
+			clearTimeout(timer);
+			timer = setTimeout(function () {
+				api.get('/api/challenges/objects?kind=' + kind + '&q=' + encodeURIComponent(input.value.trim())).then(function (d) {
+					state.rows = (d.objects || []).map(function (o) { return { value: o.lot, label: o.name + ' (' + o.lot + ')' }; });
+					list.innerHTML = state.rows.map(function (r, i) { return '<option value="' + i + '">' + esc(r.label) + '</option>'; }).join('');
+					list.classList.toggle('d-none', !state.rows.length);
+				});
+			}, 250);
+		});
+		list.addEventListener('change', function () {
+			var row = state.rows[parseInt(list.value, 10)];
+			if (!row) return;
+			if (multi === 1) state.values = [row];
+			else if (state.values.length < multi && !state.values.some(function (v) { return v.value === row.value; })) state.values.push(row);
+			state.draw();
+		});
+		chips.addEventListener('click', function (e) {
+			var el = e.target.closest('[data-remove]');
+			if (!el) return;
+			state.values.splice(parseInt(el.dataset.remove, 10), 1);
+			state.draw();
+		});
+	});
+	function drawCounts() {
+		document.getElementById('chItemCounts').innerHTML = pickers.chItems.values.map(function (v) {
+			return '<label class="d-inline-flex align-items-center gap-1 me-3">' + esc(v.label) + ' x <input type="number" class="form-control form-control-sm" style="width: 5rem" min="1" max="999" value="' +
+				(itemCounts[v.value] || 1) + '" data-count="' + v.value + '"></label>';
+		}).join('');
+	}
+	document.getElementById('chItemCounts').addEventListener('input', function (e) {
+		if (e.target.dataset.count) itemCounts[e.target.dataset.count] = parseInt(e.target.value, 10) || 1;
+	});
+
+	function open(c) {
+		editing = c;
+		document.getElementById('challengeModalTitle').textContent = c ? 'Change challenge' : 'New challenge';
+		document.querySelector('[data-metric]').classList.toggle('d-none', !!c);
+		document.getElementById('chTitle').value = c ? c.title : '';
+		document.getElementById('chDescription').value = c ? c.description : '';
+		document.getElementById('chTarget').value = c ? c.target : 10000;
+		document.getElementById('chStarts').value = toInput(c ? c.startsAt : Math.floor(Date.now() / 1000));
+		document.getElementById('chEnds').value = toInput(c ? c.endsAt : Math.floor(Date.now() / 1000) + 7 * 86400);
+		document.getElementById('chCoins').value = c ? c.rewardCoins : 0;
+		document.getElementById('chMin').value = c ? c.rewardMin : 1;
+		document.getElementById('chPublic').checked = c ? c.isPublic : true;
+		document.getElementById('chStaff').checked = false;
+		itemCounts = {};
+		(c ? c.rewardItems : []).forEach(function (i) { itemCounts[i.lot] = i.count; });
+		pickers.chItems.reset((c ? c.rewardItems : []).map(function (i) { return { value: i.lot, label: 'LOT ' + i.lot }; }));
+		pickers.chLot.reset([]);
+		picked = [];
+		renderChips();
+		modal.show();
+	}
+
+	document.getElementById('addChallenge').addEventListener('click', function () { open(null); });
+	document.getElementById('challengeForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var metric = document.getElementById('chMetric').value.split(':');
+		var lot = pickers.chLot.values[0];
+		var body = {
+			title: document.getElementById('chTitle').value.trim(), description: document.getElementById('chDescription').value.trim(),
+			metricKind: metric[0], metric: parseInt(metric[1], 10), lot: metric[0] === 'map' && lot ? lot.value : 0, zones: picked,
+			includeStaff: document.getElementById('chStaff').checked, target: parseInt(document.getElementById('chTarget').value, 10),
+			startsAt: fromInput(document.getElementById('chStarts').value), endsAt: fromInput(document.getElementById('chEnds').value),
+			isPublic: document.getElementById('chPublic').checked, rewardCoins: parseInt(document.getElementById('chCoins').value, 10) || 0,
+			rewardMin: parseInt(document.getElementById('chMin').value, 10) || 1,
+			rewardItems: pickers.chItems.values.map(function (v) { return { lot: v.value, count: itemCounts[v.value] || 1 }; })
+		};
+		api.action(editing ? '/api/challenges/' + editing.id : '/api/challenges', body, editing ? 'Saved' : 'Challenge created').then(function () { modal.hide(); load(); });
+	});
+
+	function byId(id) { return data.challenges.filter(function (c) { return String(c.id) === String(id); })[0]; }
+	document.body.addEventListener('click', function (e) {
+		var el = e.target.closest('[data-top],[data-edit],[data-cancel],[data-delete]');
+		if (!el || !el.closest('#activeChallenges, #otherChallenges')) return;
+		if (el.dataset.edit) return open(byId(el.dataset.edit));
+		if (el.dataset.cancel && confirm('Cancel this challenge? Nobody gets its rewards.')) return api.action('/api/challenges/' + el.dataset.cancel + '/cancel', {}, 'Cancelled').then(load);
+		if (el.dataset.delete && confirm('Delete this challenge and its records?')) return api.action('/api/challenges/' + el.dataset.delete + '/delete', {}, 'Deleted').then(load);
+		if (el.dataset.top) {
+			var c = byId(el.dataset.top);
+			document.getElementById('topModalTitle').textContent = c.title;
+			document.getElementById('topBody').innerHTML = 'Loading&hellip;';
+			topModal.show();
+			api.get('/api/challenges/' + c.id).then(function (d) {
+				document.getElementById('topBody').innerHTML = (d.top || []).length ? '<table class="table table-sm mb-0"><thead><tr><th>#</th><th>Character</th><th class="text-end">Added</th></tr></thead><tbody>' +
+					d.top.map(function (t, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(t.name || 'Unknown') + (t.eligible ? '' : ' <span class="small text-body-secondary">(below the reward minimum)</span>') +
+						'</td><td class="text-end">' + nf.format(t.amount) + '</td></tr>'; }).join('') + '</tbody></table>' +
+					(d.rewards ? '<p class="small text-body-secondary mt-2 mb-0">' + nf.format(d.rewards.count) + ' rewarded, ' + nf.format(d.rewards.coinsWaiting) + ' still to collect their coins in game.</p>' : '')
+					: '<p class="text-body-secondary mb-0">Nobody has added to it yet.</p>';
+			});
+		}
+	});
+
+	if (window.Live) Live.on('challenges', Live.throttle(load, 2000));
+	setInterval(load, 30000);
+	load();
+})();
+</script>
+{% endblock %}

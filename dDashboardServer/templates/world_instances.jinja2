@@ -1,0 +1,19 @@
+<div class="card">
+	<div class="card-header"><h5 class="mb-0">Active World Instances</h5></div>
+	<div class="card-body">
+		<table id="worldInstancesTable" class="table table-striped table-hover">
+			<thead>
+				<tr>
+					<th>Zone</th>
+					<th>Instance</th>
+					{% if can.players_view %}<th>Clone</th><th>Property</th>{% endif %}
+					<th>Players</th>
+					{% if can.players_view %}<th>Type</th>{% endif %}
+					{% if can.players_view %}<th>Address</th>{% endif %}
+					{% if can.worlds_manage %}<th></th>{% endif %}
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>

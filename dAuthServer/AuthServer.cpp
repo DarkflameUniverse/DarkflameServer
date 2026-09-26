@@ -7,6 +7,7 @@
 
 //DLU Includes:
 #include "dCommonVars.h"
+#include "ConfigSync.h"
 #include "dServer.h"
 #include "Logger.h"
 #include "Database.h"
@@ -69,6 +70,9 @@ int main(int argc, char** argv) {
 		delete Game::logger;
 		return EXIT_FAILURE;
 	}
+
+	// Settings edited on the dashboard (server_config table) are layered over the files from here on
+	Game::config->SetDatabaseSync(ConfigSync::Sync);
 
 	//Find out the master's IP:
 	std::string masterIP;

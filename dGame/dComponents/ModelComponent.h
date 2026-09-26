@@ -12,6 +12,7 @@
 
 #include "Action.h"
 #include "PropertyBehavior.h"
+#include "PropertyBehaviorActions.h"
 #include "StripUiPosition.h"
 
 class AddMessage;
@@ -209,7 +210,7 @@ private:
 	LWOOBJID m_userModelID;
 
 	// The speed at which this model moves
-	float m_Speed{ 3.0f };
+	float m_Speed{ PropertyBehaviorActions::DEFAULT_SPEED };
 
 	// Whether or not to restart at the end of the frame.
 	bool m_RestartAtEndOfFrame{ false };

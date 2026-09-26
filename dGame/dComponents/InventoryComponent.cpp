@@ -1,10 +1,12 @@
 #include "InventoryComponent.h"
+#include "EconomyLedger.h"
 
 #include <sstream>
 
 #include "Entity.h"
 #include "Item.h"
 #include "Game.h"
+#include "dServer.h"
 #include "Logger.h"
 #include "CDClientManager.h"
 #include "ObjectIDManager.h"
@@ -309,6 +311,58 @@ void InventoryComponent::AddItem(
 	}
 }
 
+ReceivedItem InventoryComponent::ReceiveItem(const LWOOBJID id, const LOT lot, const uint32_t count, eLootSourceType lootSourceType, const LwoNameValue& config, const LWOOBJID subKey, const bool bound, const ReceiveItemOptions& options) {
+	if (count == 0 || !Inventory::IsValidItem(lot)) return {};
+
+	const auto inventoryType = options.inventory != INVALID ? options.inventory : Inventory::FindInventoryTypeForLot(lot);
+	auto* inventory = GetInventory(inventoryType);
+	if (!inventory) return {};
+
+	const bool unique = !config.values.empty() || subKey != LWOOBJID_EMPTY || bound || IsUniqueLot(lot);
+	const bool keepId = id != LWOOBJID_EMPTY && FindItemById(id) == nullptr && (unique || inventory->FindItemByLot(lot) == nullptr);
+	int32_t slot = -1;
+	if (keepId) slot = options.preferredSlot != -1 && inventory->IsSlotEmpty(options.preferredSlot) ? options.preferredSlot : inventory->FindEmptySlot();
+	if (slot != -1) {
+		auto* item = new Item(id, lot, inventory, slot, count, bound || Inventory::FindItemComponent(lot).isBOP, config, LWOOBJID_EMPTY, subKey, lootSourceType);
+		GameMessages::SendAddItemToInventoryClientSync(m_Parent, m_Parent->GetSystemAddress(), item, id, options.showFlyingLoot && !options.equip, static_cast<int>(count), subKey, lootSourceType);
+		EconomyLedger::RecordItems(m_Parent, lot, count, static_cast<uint32_t>(lootSourceType));
+		if (options.equip) {
+			item->Equip();
+			Game::entityManager->SerializeEntity(m_Parent);
+		}
+
+		auto* missions = m_Parent->GetComponent<MissionComponent>();
+		if (missions && !IsTransferInventory(inventoryType)) missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(options.sourceInventory));
+		return { id, false };
+	}
+
+	// Merge (or add a new stack) the normal way, then see which stack took the items
+	std::map<LWOOBJID, uint32_t> before;
+	for (const auto& [itemId, item] : inventory->GetItems()) {
+		if (item->GetLot() == lot) before[itemId] = item->GetCount();
+	}
+	AddItem(lot, count, lootSourceType, inventoryType, config, LWOOBJID_EMPTY, options.showFlyingLoot, options.equip, subKey, options.sourceInventory, 0, bound, options.preferredSlot);
+
+	LWOOBJID receivedBy = LWOOBJID_EMPTY;
+	int64_t largestGain = 0;
+	for (const auto& [itemId, item] : inventory->GetItems()) {
+		if (item->GetLot() != lot) continue;
+		const auto previous = before.find(itemId);
+		const int64_t gain = static_cast<int64_t>(item->GetCount()) - (previous == before.end() ? 0 : previous->second);
+		if (gain > largestGain) {
+			largestGain = gain;
+			receivedBy = itemId;
+		}
+	}
+	return { receivedBy, before.contains(receivedBy) };
+}
+
+bool InventoryComponent::IsUniqueLot(const LOT lot) {
+	const auto& info = Inventory::FindItemComponent(lot);
+	const bool isBrick = Inventory::FindInventoryTypeForLot(lot) == eInventoryType::BRICKS || (info.stackSize == 0 && info.itemType == 1);
+	return !isBrick && info.stackSize <= 1;
+}
+
 bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
 	if (count == 0) {
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
@@ -356,8 +410,28 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	const auto subkey = item->GetSubKey();
 
+	// Moving between a player's own inventories neither creates nor destroys anything, except for the vendor's
+	// buyback inventory: selling takes the item out of the game until it is bought back
+	EconomyLedger::ScopedItemTransfer moving;
+	const auto originType = origin->GetType();
+	uint32_t moved = 0;
+
+	// Each move gives the items a new object id in the other inventory (as upstream, and as live did), so the ledger
+	// records it for item traces: the old id, the stack that took the items and whether that stack was already there
+	auto* character = m_Parent->GetCharacter();
+	const auto zone = Game::server ? Game::server->GetZoneID() : 0;
+	const auto recordMove = [&](const LWOOBJID oldId, const ReceivedItem& received, const uint32_t moveCount) {
+		if (!character || received.id == LWOOBJID_EMPTY || received.id == oldId) return;
+		EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::INVENTORY_MOVE, .itemId = oldId, .newItemId = received.id,
+			.lot = lot, .count = moveCount, .fromCharacter = character->GetID(), .toCharacter = character->GetID(), .zone = zone,
+			.merged = received.merged });
+	};
+	const ReceiveItemOptions moveOptions{ .inventory = inventory, .showFlyingLoot = showFlyingLot, .preferredSlot = preferredSlot, .sourceInventory = originType };
+
+	// Items move the way upstream moves them (a new object in the other inventory); only the ledger bookkeeping is added
 	if (subkey == LWOOBJID_EMPTY && item->GetConfig().values.empty() && (!item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
 		auto left = std::min<uint32_t>(count, origin->GetLotCount(lot));
+		moved = left;
 
 		while (left > 0) {
 			if (item == nullptr) {
@@ -372,9 +446,13 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 			left -= delta;
 
-			AddItem(lot, delta, eLootSourceType::NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
+			auto options = moveOptions;
+			options.equip = isModMoveAndEquip;
+			const auto oldId = item->GetId();
+			const auto received = ReceiveItem(LWOOBJID_EMPTY, lot, delta, eLootSourceType::NONE, {}, LWOOBJID_EMPTY, false, options);
 
 			item->SetCount(item->GetCount() - delta, false, false);
+			recordMove(oldId, received, delta);
 
 			isModMoveAndEquip = false;
 		}
@@ -382,10 +460,21 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		const auto config = item->GetConfig();
 
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
+		moved = delta;
 
-		AddItem(lot, delta, eLootSourceType::NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subkey, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		auto options = moveOptions;
+		options.equip = isModMoveAndEquip;
+		const auto oldId = item->GetId();
+		const auto received = ReceiveItem(LWOOBJID_EMPTY, lot, delta, eLootSourceType::NONE, config, subkey, item->GetBound(), options);
 
 		item->SetCount(item->GetCount() - delta, false, false);
+		recordMove(oldId, received, delta);
+	}
+
+	if (inventory == eInventoryType::VENDOR_BUYBACK && originType != eInventoryType::VENDOR_BUYBACK) {
+		EconomyLedger::RecordItemsUnsuppressed(m_Parent, lot, -static_cast<int64_t>(moved), static_cast<uint32_t>(eLootSourceType::VENDOR));
+	} else if (originType == eInventoryType::VENDOR_BUYBACK && inventory != eInventoryType::VENDOR_BUYBACK) {
+		EconomyLedger::RecordItemsUnsuppressed(m_Parent, lot, moved, static_cast<uint32_t>(eLootSourceType::VENDOR));
 	}
 
 	auto* missionComponent = m_Parent->GetComponent<MissionComponent>();

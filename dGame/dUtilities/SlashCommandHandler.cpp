@@ -10,25 +10,57 @@
 
 #include <iomanip>
 #include <ranges>
+#include <set>
 
 #include "DEVGMCommands.h"
 #include "GMGreaterThanZeroCommands.h"
 #include "GMZeroCommands.h"
+#include "LiveEvents.h"
 
 #include "Amf3.h"
 #include "Database.h"
 #include "MessageType/Chat.h"
 #include "dServer.h"
+#include "dConfig.h"
+#include "SlashCommandLevels.h"
+#include "Permissions.h"
+#include "Character.h"
+#include "ChatPackets.h"
+#include "PlayerManager.h"
+#include "User.h"
+#include "eObjectBits.h"
 
 namespace {
+	// Each command once, by the first alias it got
 	std::map<std::string, Command> CommandInfos;
 	std::map<std::string, Command> RegisteredCommands;
+
+	using Handler = void(*)(Entity*, const SystemAddress&, const std::string);
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
 	if (command.aliases.empty()) {
 		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
 		return;
+	}
+
+	// The client acts on these by itself, so a level set here would change nothing
+	if (const auto* target = command.handle.target<Handler>(); target && *target == GMZeroCommands::ClientHandled) {
+		command.fixedLevel = true;
+		command.clientHandled = true;
+		if (command.levelNote.empty()) command.levelNote = "Handled by the game client";
+	}
+	if (!command.minLevel) command.minLevel = static_cast<eGameMasterLevel>(SlashCommandLevels::DefaultMinLevel(static_cast<uint8_t>(command.requiredLevel)));
+
+	// Named after the first alias no other command has taken
+	const auto primary = std::ranges::find_if(command.aliases, [](const auto& alias) { return !RegisteredCommands.contains(alias); });
+	if (primary == command.aliases.end()) {
+		LOG("Every alias of command %s is already registered! Skipping!", command.aliases[0].c_str());
+		return;
+	}
+	command.name = SlashCommandLevels::SettingName(*primary);
+	if (std::ranges::any_of(CommandInfos, [&command](const auto& info) { return info.second.name == command.name; })) {
+		LOG("Command %s shares its settings name %s with another command", primary->c_str(), command.name.c_str());
 	}
 
 	for (const auto& alias : command.aliases) {
@@ -39,7 +71,163 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 			continue;
 		}
 	}
-	CommandInfos[command.aliases[0]] = command;
+	CommandInfos[*primary] = command;
+}
+
+eGameMasterLevel SlashCommandHandler::GetRequiredLevel(const Command& command) {
+	if (command.fixedLevel) return command.requiredLevel;
+	const auto defaultLevel = static_cast<uint8_t>(command.requiredLevel);
+	const auto minLevel = static_cast<uint8_t>(command.minLevel.value_or(eGameMasterLevel::CIVILIAN));
+	const std::string value = Game::config ? Game::config->GetValue(SlashCommandLevels::ConfigName(command.name)) : "";
+	// Paired with a dashboard permission: its level, unless an explicit command level overrides it
+	if (Permissions::Find(command.dashboardPermission)) {
+		return static_cast<eGameMasterLevel>(SlashCommandLevels::ResolvePaired(defaultLevel, minLevel, false, Permissions::Level(command.dashboardPermission), value).level);
+	}
+	return static_cast<eGameMasterLevel>(SlashCommandLevels::Resolve(defaultLevel, minLevel, false, value));
+}
+
+const Command* SlashCommandHandler::FindCommand(const std::string& alias) {
+	const auto it = RegisteredCommands.find(alias);
+	return it == RegisteredCommands.end() ? nullptr : &it->second;
+}
+
+uint32_t SlashCommandHandler::AccountOf(Entity* player) {
+	auto* character = player ? player->GetCharacter() : nullptr;
+	auto* user = character ? character->GetParentUser() : nullptr;
+	return user ? user->GetAccountID() : 0;
+}
+
+std::optional<CommandTarget> SlashCommandHandler::TargetOf(Entity* player) {
+	auto* character = player ? player->GetCharacter() : nullptr;
+	if (!character) return std::nullopt;
+	auto* user = character->GetParentUser();
+	CommandTarget target{ .accountId = user ? user->GetAccountID() : 0, .characterId = player->GetObjectID(), .name = character->GetName(), .entity = player };
+	// The account's rank protects it even while its owner plays at a lower level (/setgmlevel)
+	target.gmLevel = static_cast<uint8_t>(std::max(player->GetGMLevel(), user ? user->GetMaxGMLevel() : eGameMasterLevel::CIVILIAN));
+	return target;
+}
+
+std::optional<CommandTarget> SlashCommandHandler::FindTarget(const std::string& name) {
+	if (name.empty()) return std::nullopt;
+	if (auto* player = PlayerManager::GetPlayer(name)) return TargetOf(player);
+	const auto info = Database::Get()->GetCharacterInfo(name);
+	if (!info || info->accountId == 0) return std::nullopt;
+	CommandTarget target{ .accountId = info->accountId, .characterId = info->id, .name = info->name };
+	GeneralUtils::SetBit(target.characterId, eObjectBits::CHARACTER);
+	const auto account = Database::Get()->GetAccountById(info->accountId);
+	// No account row: treat it as the highest level, so nobody below GM 9 acts on it by mistake
+	target.gmLevel = account.contains("error") ? AccountRules::OPERATOR_LEVEL : account.value("gm_level", static_cast<uint8_t>(0));
+	return target;
+}
+
+AccountRules::eManageDenial SlashCommandHandler::TargetDenial(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, SlashCommandLevels::eTargetRule rule) {
+	using SlashCommandLevels::eTargetRule;
+	switch (rule) {
+	case eTargetRule::NONE: return AccountRules::eManageDenial::NONE;
+	case eTargetRule::OTHERS:
+		if (actorAccountId != 0 && actorAccountId == targetAccountId) return AccountRules::eManageDenial::NONE;
+		return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::TOOLS);
+	case eTargetRule::ITEMS: return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::ITEMS);
+	case eTargetRule::MODERATION: return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::MODERATION);
+	default: return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::TOOLS);
+	}
+}
+
+std::string SlashCommandHandler::TargetRefusal(AccountRules::eManageDenial denial, SlashCommandLevels::eTargetRule rule, std::string_view command) {
+	if (denial == AccountRules::eManageDenial::NONE) return "";
+	using SlashCommandLevels::eTargetRule;
+	const auto action = rule == eTargetRule::ITEMS ? AccountRules::eAccountAction::ITEMS
+		: rule == eTargetRule::MODERATION ? AccountRules::eAccountAction::MODERATION : AccountRules::eAccountAction::TOOLS;
+	return "/" + std::string(command) + ": " + AccountRules::DenialMessage(denial, action);
+}
+
+bool SlashCommandHandler::MayActOn(Entity* actor, const SystemAddress& sysAddr, const CommandTarget& target, SlashCommandLevels::eTargetRule rule, std::string_view command) {
+	if (!actor) return false;
+	const auto denial = TargetDenial(static_cast<uint8_t>(actor->GetGMLevel()), AccountOf(actor), target.gmLevel, target.accountId, rule);
+	if (denial == AccountRules::eManageDenial::NONE) return true;
+	ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(TargetRefusal(denial, rule, command)));
+	return false;
+}
+
+namespace {
+	/**
+	 * A command that now uses its dashboard permission's level, on a server that stored it before it did: keep the level it
+	 * had as an override (a web value, like one set on the Permissions page, by UPGRADE_ACTOR) so the upgrade changes
+	 * nothing by itself. The page shows it and can drop it. Returns whether one was stored.
+	 */
+	bool KeepLevelFromBeforePairing(const Command& command, const ISlashCommands::SlashCommand* before) {
+		const auto* permission = Permissions::Find(command.dashboardPermission);
+		if (!permission || !before) return false;
+		const auto name = SlashCommandLevels::ConfigName(command.name);
+		const std::string value = Game::config ? Game::config->GetValue(name) : "";
+		const auto minLevel = static_cast<uint8_t>(command.minLevel.value_or(eGameMasterLevel::CIVILIAN));
+		const auto permissionLevel = SlashCommandLevels::ResolvePaired(static_cast<uint8_t>(command.requiredLevel), minLevel, false, Permissions::Level(permission->key), "").level;
+		const bool followedBefore = before->followsPermission && before->dashboardPermission == command.dashboardPermission;
+		const auto keep = SlashCommandLevels::UpgradeOverride(true, followedBefore, command.fixedLevel, before->defaultLevel, minLevel, value, permissionLevel);
+		if (!keep) return false;
+
+		// Several worlds may start at once: the first one stores it
+		const std::string file(SlashCommandLevels::CONFIG_FILE);
+		for (const auto& row : Database::Get()->GetServerConfig({ file })) {
+			if (row.name == name && row.webValue) return false;
+		}
+		const std::string actor(SlashCommandLevels::UPGRADE_ACTOR);
+		Database::Get()->SetWebConfigValue(file, name, std::to_string(*keep), true, actor);
+		const auto alias = "/" + command.aliases.front();
+		const auto description = alias + " (" + command.name + "): kept at GM " + std::to_string(*keep) + "+ as an override, the level it had before it used the " +
+			permission->key + " permission's level (GM " + std::to_string(permissionLevel) + "+). Drop the override on the Permissions page to follow the permission";
+		try {
+			Database::Get()->InsertAuditLog(0, actor, "change_command_level", description, 0, 0);
+		} catch (const std::exception& ex) {
+			LOG("Could not write the audit log entry for %s: %s", alias.c_str(), ex.what());
+		}
+		LOG("%s", description.c_str());
+		return true;
+	}
+}
+
+void SlashCommandHandler::ReportCommands() {
+	try {
+		std::map<std::string, ISlashCommands::SlashCommand> stored;
+		for (auto& row : Database::Get()->GetSlashCommands()) stored[row.name] = std::move(row);
+
+		std::set<std::string> current;
+		uint32_t changed = 0;
+		bool kept = false;
+		for (const auto& [primary, command] : CommandInfos) {
+			ISlashCommands::SlashCommand row{
+				.name = command.name, .help = command.help, .info = command.info,
+				.defaultLevel = static_cast<uint8_t>(command.requiredLevel),
+				.minLevel = static_cast<uint8_t>(command.minLevel.value_or(command.requiredLevel)),
+				.fixed = command.fixedLevel, .clientHandled = command.clientHandled, .note = command.levelNote, .dashboardPermission = command.dashboardPermission,
+				.targetRule = std::string(SlashCommandLevels::TargetRuleName(command.targetRule)),
+				.followsPermission = Permissions::Find(command.dashboardPermission) != nullptr
+			};
+			// Only the aliases that really run this command (another command may have one of them)
+			for (const auto& alias : command.aliases) {
+				const auto it = RegisteredCommands.find(alias);
+				if (it != RegisteredCommands.end() && it->second.name == command.name) row.aliases.push_back(alias);
+			}
+			current.insert(row.name);
+			const auto it = stored.find(row.name);
+			if (it != stored.end() && it->second == row) continue;
+			// Before the row says it follows the permission, so this happens once
+			if (row.followsPermission && it != stored.end()) kept = KeepLevelFromBeforePairing(command, &it->second) || kept;
+			Database::Get()->SetSlashCommand(row);
+			changed++;
+		}
+		for (const auto& [name, row] : stored) {
+			if (current.contains(name)) continue;
+			Database::Get()->DeleteSlashCommand(name);
+			changed++;
+		}
+		if (changed > 0) LOG("Updated %u slash command(s) for the dashboard", changed);
+		// Use the levels kept from before straight away
+		if (kept && Game::config) Game::config->ReloadConfig();
+	} catch (const std::exception& ex) {
+		// Before the migration has run there is no table yet
+		LOG_DEBUG("Could not store the slash commands: %s", ex.what());
+	}
 }
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
@@ -57,8 +245,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	std::string error;
 	if (commandItr != RegisteredCommands.end()) {
 		auto& [alias, commandHandle] = *commandItr;
-		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
-			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
+		const auto requiredLevel = GetRequiredLevel(commandHandle);
+		if (entity->GetGMLevel() >= requiredLevel) {
+			if (requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			commandHandle.handle(entity, sysAddr, args);
 		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
 			error = "You are not high enough GM level to use \"" + command + "\"";
@@ -90,7 +279,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 		std::map<std::string, Command> accessibleCommands;
 		for (const auto& [commandName, command] : CommandInfos) {
-			if (command.requiredLevel <= entity->GetGMLevel()) {
+			if (SlashCommandHandler::GetRequiredLevel(command) <= entity->GetGMLevel()) {
 				accessibleCommands.emplace(commandName, command);
 			}
 		}
@@ -119,11 +308,8 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		return;
 	}
 
-	auto it = std::ranges::find_if(CommandInfos, [&trimmedArgs](const auto& pair) {
-		return std::ranges::find(pair.second.aliases, trimmedArgs) != pair.second.aliases.end();
-		});
-
-	if (it != CommandInfos.end() && entity->GetGMLevel() >= it->second.requiredLevel) {
+	const auto it = RegisteredCommands.find(trimmedArgs);
+	if (it != RegisteredCommands.end() && entity->GetGMLevel() >= SlashCommandHandler::GetRequiredLevel(it->second)) {
 		const auto& command = it->second;
 		feedback << "----- " << it->first << " Info -----\n";
 		feedback << command.info << "\n";
@@ -176,7 +362,9 @@ void SlashCommandHandler::Startup() {
 		.info = "Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands",
 		.aliases = { "setgmlevel", "makegm", "gmlevel" },
 		.handle = DEVGMCommands::SetGMLevel,
-		.requiredLevel = eGameMasterLevel::CIVILIAN
+		.requiredLevel = eGameMasterLevel::CIVILIAN,
+		.fixedLevel = true,
+		.levelNote = "Everyone keeps it so staff who lowered their GM level can raise it again (it never goes above the account's GM level)"
 	};
 	RegisterCommand(SetGMLevelCommand);
 
@@ -203,7 +391,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Smashes the character whom the given user is playing",
 		.aliases = { "kill" },
 		.handle = DEVGMCommands::Kill,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.targetRule = SlashCommandLevels::eTargetRule::TOOLS
 	};
 	RegisterCommand(KillCommand);
 
@@ -212,7 +401,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Prints some information about the server's performance",
 		.aliases = { "metrics" },
 		.handle = DEVGMCommands::Metrics,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.dashboardPermission = "health_view"
 	};
 	RegisterCommand(MetricsCommand);
 
@@ -221,7 +411,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Sends an announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.",
 		.aliases = { "announce" },
 		.handle = DEVGMCommands::Announce,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.dashboardPermission = "server_announce"
 	};
 	RegisterCommand(AnnounceCommand);
 
@@ -230,7 +421,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Sets the title of an announcement. Use with `/setannmsg` and `/announce`",
 		.aliases = { "setanntitle" },
 		.handle = DEVGMCommands::SetAnnTitle,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.dashboardPermission = "server_announce"
 	};
 	RegisterCommand(SetAnnTitleCommand);
 
@@ -239,7 +431,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Sets the message of an announcement. Use with `/setannmtitle` and `/announce`",
 		.aliases = { "setannmsg" },
 		.handle = DEVGMCommands::SetAnnMsg,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.dashboardPermission = "server_announce"
 	};
 	RegisterCommand(SetAnnMsgCommand);
 
@@ -247,7 +440,8 @@ void SlashCommandHandler::Startup() {
 		.help = "Sends a shutdown message to the master server",
 		.info = "Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.",
 		.aliases = { "shutdownuniverse" },
-		.handle = DEVGMCommands::ShutdownUniverse
+		.handle = DEVGMCommands::ShutdownUniverse,
+		.dashboardPermission = "server_restart"
 	};
 	RegisterCommand(ShutdownUniverseCommand);
 
@@ -292,7 +486,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Any of the coordinates can use the syntax of an exact position (10.0), or a relative position (~+10.0). A ~ means use the current value of that axis as the base value. Addition or subtraction is supported (~+10) (~-10). If source player and target player are players that exist in the world, then the source player will be teleported to target player.",
 		.aliases = { "teleport", "tele", "tp" },
 		.handle = DEVGMCommands::Teleport,
-		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER
+		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER,
+		.targetRule = SlashCommandLevels::eTargetRule::OTHERS
 	};
 	RegisterCommand(TeleportCommand);
 
@@ -697,7 +892,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Teleports all characters to your current position",
 		.aliases = { "tpall" },
 		.handle = DEVGMCommands::TpAll,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.targetRule = SlashCommandLevels::eTargetRule::OTHERS
 	};
 	RegisterCommand(TpAllCommand);
 
@@ -724,7 +920,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of",
 		.aliases = { "setlevel" },
 		.handle = DEVGMCommands::SetLevel,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.targetRule = SlashCommandLevels::eTargetRule::OTHERS
 	};
 	RegisterCommand(SetLevelCommand);
 
@@ -814,7 +1011,10 @@ void SlashCommandHandler::Startup() {
 		.info = "Execute commands as different entities or from different positions. Usage: /execute <subcommand> ... run <command>. Subcommands: as <entity>, at <entity>, positioned <x> <y> <z>",
 		.aliases = { "execute", "exec" },
 		.handle = DEVGMCommands::Execute,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.minLevel = eGameMasterLevel::DEVELOPER,
+		.levelNote = "Runs commands as another player, with that player's GM level, so it can't go below its default",
+		.targetRule = SlashCommandLevels::eTargetRule::OTHERS
 	};
 	RegisterCommand(ExecuteCommand);
 
@@ -825,7 +1025,9 @@ void SlashCommandHandler::Startup() {
 		.info = "Kicks the player off the server",
 		.aliases = { "kick" },
 		.handle = GMGreaterThanZeroCommands::Kick,
-		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR,
+		.dashboardPermission = "accounts_kick",
+		.targetRule = SlashCommandLevels::eTargetRule::TOOLS
 	};
 	RegisterCommand(KickCommand);
 
@@ -834,7 +1036,9 @@ void SlashCommandHandler::Startup() {
 		.info = "Mails an item to the given player. The mailed item has predetermined content. The sender name is set to \"Darkflame Universe\". The title of the message is \"Lost item\". The body of the message is \"This is a replacement item for one you lost\".",
 		.aliases = { "mailitem" },
 		.handle = GMGreaterThanZeroCommands::MailItem,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::MODERATOR,
+		.dashboardPermission = "mail_items",
+		.targetRule = SlashCommandLevels::eTargetRule::ITEMS
 	};
 	RegisterCommand(MailItemCommand);
 
@@ -843,7 +1047,9 @@ void SlashCommandHandler::Startup() {
 		.info = "Bans a user from the server",
 		.aliases = { "ban" },
 		.handle = GMGreaterThanZeroCommands::Ban,
-		.requiredLevel = eGameMasterLevel::SENIOR_MODERATOR
+		.requiredLevel = eGameMasterLevel::SENIOR_MODERATOR,
+		.dashboardPermission = "accounts_ban",
+		.targetRule = SlashCommandLevels::eTargetRule::MODERATION
 	};
 	RegisterCommand(BanCommand);
 
@@ -852,7 +1058,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Approves the property the player is currently visiting",
 		.aliases = { "approveproperty" },
 		.handle = GMGreaterThanZeroCommands::ApproveProperty,
-		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR,
+		.dashboardPermission = "moderate_properties"
 	};
 	RegisterCommand(ApprovePropertyCommand);
 
@@ -861,7 +1068,9 @@ void SlashCommandHandler::Startup() {
 		.info = "Mute player for the given amount of time. If no time is given, the mute is indefinite.",
 		.aliases = { "mute" },
 		.handle = GMGreaterThanZeroCommands::Mute,
-		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER
+		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER,
+		.dashboardPermission = "accounts_mute",
+		.targetRule = SlashCommandLevels::eTargetRule::MODERATION
 	};
 	RegisterCommand(MuteCommand);
 
@@ -925,7 +1134,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Usage: /showall (displayZoneData: Default 1) (displayIndividualPlayers: Default 1)",
 		.aliases = { "showall" },
 		.handle = GMGreaterThanZeroCommands::ShowAll,
-		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR,
+		.dashboardPermission = "players_view"
 	};
 	RegisterCommand(ShowAllCommand);
 
@@ -934,7 +1144,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Find the World Server a player is in if they are online",
 		.aliases = { "findplayer" },
 		.handle = GMGreaterThanZeroCommands::FindPlayer,
-		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR,
+		.dashboardPermission = "players_view"
 	};
 	RegisterCommand(FindPlayerCommand);
 
@@ -943,7 +1154,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Specify a player name to spectate. They must be in the same world as you. Leave blank to stop spectating",
 		.aliases = { "spectate", "follow" },
 		.handle = GMGreaterThanZeroCommands::Spectate,
-		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR,
+		.dashboardPermission = "players_view"
 	};
 	RegisterCommand(SpectateCommand);
 
@@ -1071,7 +1283,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Display the time the current world server has been active",
 		.aliases = { "uptime" },
 		.handle = GMZeroCommands::ServerUptime,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.dashboardPermission = "health_view"
 	};
 	RegisterCommand(ServerUptimeCommand);
 
@@ -1460,7 +1673,8 @@ void SlashCommandHandler::Startup() {
 		.info = "Shuts this world down",
 		.aliases = {"shutdown"},
 		.handle = DEVGMCommands::Shutdown,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::DEVELOPER,
+		.dashboardPermission = "worlds_manage"
 	};
 	RegisterCommand(command);
 
@@ -1493,5 +1707,13 @@ void SlashCommandHandler::Startup() {
 		.aliases = {"mergeinstance"},
 		.handle = WorldMigration::MergeInstanceCommand,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
+	});
+
+	RegisterCommand({
+		.help = "[claim] Community challenges and live events",
+		.info = "Shows the server-wide community challenges running now, how far along they are and what you added, and the live events in this world. Also gives you the coins waiting from challenges you helped complete",
+		.aliases = {"challenge", "challenges"},
+		.handle = LiveEvents::ChallengeCommand,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
 	});
 }

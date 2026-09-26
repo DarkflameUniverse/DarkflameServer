@@ -1,11 +1,11 @@
 #include "ObjectIDManager.h"
 
 // Custom Classes
-#include "MasterPackets.h"
 #include "Database.h"
 #include "Logger.h"
 #include "Game.h"
 #include "eObjectBits.h"
+#include "GeneralUtils.h"
 
 // should the spawners from vanity also have the CLIENT flag?
 
@@ -33,6 +33,28 @@ uint64_t ObjectIDManager::GetPersistentID() {
 	GeneralUtils::SetBit(toReturn, eObjectBits::CHARACTER);
 	LOG("Using ID: %llu:%llu", toReturn, usedID);
 	return toReturn;
+}
+
+ObjectIDManager::ModelIDs ObjectIDManager::GetNewModelIDs() {
+	// Legacy logic to check for old random IDs (regenerating these is not really feasible)
+	// Probably good to have this anyway in case someone messes with the last_object_id or it gets reset somehow
+	const uint32_t maxRetries = 100;
+	uint32_t retries = 0;
+	bool blueprintIDExists = true;
+	bool modelExists = true;
+
+	LWOOBJID newID = LWOOBJID_EMPTY;
+	LWOOBJID blueprintID = LWOOBJID_EMPTY;
+	do {
+		if (newID != LWOOBJID_EMPTY) LOG("Generating blueprintID for UGC model, collision with existing model ID: %llu", blueprintID);
+		newID = GetPersistentID();
+		blueprintID = GetPersistentID();
+		++retries;
+		blueprintIDExists = Database::Get()->GetUgcModel(blueprintID).has_value();
+		modelExists = Database::Get()->GetModel(newID).has_value();
+	} while ((blueprintIDExists || modelExists) && retries < maxRetries);
+
+	return { newID, blueprintID };
 }
 
 // Generates an object ID server-sided (used for regular entities like smashables)

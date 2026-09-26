@@ -29,6 +29,31 @@ namespace MessageType {
 
 		NEW_SESSION_ALERT,
 
+		REQUEST_SERVER_LIST,
+
+		SERVER_LIST_RESPONSE,
+
+		// Dashboard -> master -> every world: act on an online player (see PlayerAction.h)
+		PLAYER_ACTION,
+		// World -> master: whether this world handled a PLAYER_ACTION; master -> dashboard: aggregated result
+		PLAYER_ACTION_RESULT,
+		// World -> master -> dashboard: rows the game just wrote, so open dashboards update at once (see DataChanged.h)
+		DATA_CHANGED,
+		// World -> master -> dashboard: where players are (see DashboardMessages.h)
+		PLAYER_POSITIONS,
+		// Dashboard -> master -> every world: show an announcement to everyone online
+		ANNOUNCE,
+		// Dashboard -> master: shut the whole server down now (scheduled restarts; a supervisor starts it again)
+		DASHBOARD_SHUTDOWN,
+		// Dashboard -> master -> every server: settings changed on the dashboard, reload the config
+		CONFIG_RELOAD,
+		// Dashboard -> master: shut down one world instance (uint32 zone, uint32 instance)
+		INSTANCE_SHUTDOWN,
+		// Dashboard -> master -> every world: start or stop capturing a player's game messages (see MessageCapture.h)
+		MESSAGE_CAPTURE_CONTROL,
+		// World -> master -> dashboard: captured game messages and the capture's state (see MessageCapture.h)
+		MESSAGE_CAPTURE_DATA,
+
 		// Move everyone in one instance to another (replace or merge; see InstanceMigration.h). Sent by a world
 		// for a GM command; a dashboard could send it too
 		INSTANCE_MIGRATE,

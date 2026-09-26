@@ -1,0 +1,299 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Permissions - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.perm-cell { width: 2.75rem; text-align: center; }
+	.perm-cell button { width: 2rem; height: 2rem; padding: 0; line-height: 1; }
+	.perm-matrix th.level { text-align: center; }
+	.perm-matrix tr.category th { background: var(--bs-tertiary-bg); }
+	/* The GM level header stays in view: pinned to the page on wide screens, to the table's own scroll box on narrow ones */
+	.perm-matrix thead th { position: sticky; top: 0; z-index: 2; background: var(--bs-card-bg, var(--bs-body-bg)); box-shadow: inset 0 -1px 0 var(--bs-border-color); }
+	.perm-wrap { overflow: auto; max-height: calc(100vh - 8rem); }
+	@media (min-width: 992px) {
+		.perm-wrap { overflow: visible; max-height: none; }
+		.perm-matrix thead th { top: 3.5rem; } /* below the top bar */
+	}
+	.perm-toolbar .form-control, .perm-toolbar .form-select { max-width: 22rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+	<h2 class="mb-1">Permissions</h2>
+	<p class="text-body-secondary mb-0">What each GM level may do on the dashboard and in the game. Click a level to make it the lowest one allowed; every level
+		above it is allowed too. Changes apply straight away, no restart needed. GM 9 can always do everything on the dashboard.</p>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="permTabs" role="tablist">
+	<li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabDashboard" data-hash="dashboard" type="button" role="tab">Dashboard <span class="badge rounded-pill text-bg-secondary" id="permCount"></span></button></li>
+	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabCommands" data-hash="commands" type="button" role="tab">In-game commands <span class="badge rounded-pill text-bg-secondary" id="commandCount"></span></button></li>
+	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabConfig" data-hash="config" type="button" role="tab">Config files</button></li>
+</ul>
+
+<div class="tab-content">
+<div class="tab-pane fade show active" id="tabDashboard" role="tabpanel">
+	<div class="perm-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+		<input type="search" class="form-control form-control-sm" id="permFilter" placeholder="Search permissions" aria-label="Search permissions">
+		<select class="form-select form-select-sm w-auto" id="permCategory" aria-label="Category"><option value="">Every category</option></select>
+		<div class="form-check form-switch mb-0">
+			<input class="form-check-input" type="checkbox" role="switch" id="permChanged"><label class="form-check-label small" for="permChanged">Changed only</label>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body perm-wrap">
+			<table class="table table-sm align-middle mb-0 perm-matrix">
+				<thead>
+					<tr><th>Permission</th><th class="level" scope="col" title="Players">GM 0</th><th class="level" scope="col">GM 1</th><th class="level" scope="col">GM 2</th><th class="level" scope="col">GM 3</th><th class="level" scope="col">GM 4</th><th class="level" scope="col">GM 5</th><th class="level" scope="col">GM 6</th><th class="level" scope="col">GM 7</th><th class="level" scope="col">GM 8</th><th class="level" scope="col">GM 9</th><th>Set by</th><th></th></tr>
+				</thead>
+				<tbody id="permRows"><tr><td colspan="13" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div class="tab-pane fade" id="tabCommands" role="tabpanel">
+	<details class="about-text mb-2"><summary>How command levels work</summary><p class="mb-0">The commands the world servers registered, with the level each needs. A command that does the same
+			thing as a dashboard permission uses that permission's level: change it on the permission's row on the Dashboard tab, and the game follows. An
+			older <code>command_level_</code> value for such a command is kept as an override until you drop it. Commands that act on another
+			player follow the same rules as the dashboard's tools: below GM 9, never on a higher GM level, on your own level only with
+			<code>manage_equal_rank</code>, and on yourself only with the <code>self_</code> permission shown.</p></details>
+	<div class="perm-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+		<input type="search" class="form-control form-control-sm" id="commandFilter" placeholder="Search commands" aria-label="Search commands">
+		<div class="form-check form-switch mb-0">
+			<input class="form-check-input" type="checkbox" role="switch" id="commandChanged"><label class="form-check-label small" for="commandChanged">Changed only</label>
+		</div>
+		<div class="form-check form-switch mb-0">
+			<input class="form-check-input" type="checkbox" role="switch" id="showClient" data-pref="permissions.showClientCommands">
+			<label class="form-check-label small" for="showClient">Commands the client handles</label>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body perm-wrap">
+			<table class="table table-sm align-middle mb-0 perm-matrix">
+				<thead>
+					<tr><th>Command</th><th class="level" scope="col" title="Players">GM 0</th><th class="level" scope="col">GM 1</th><th class="level" scope="col">GM 2</th><th class="level" scope="col">GM 3</th><th class="level" scope="col">GM 4</th><th class="level" scope="col">GM 5</th><th class="level" scope="col">GM 6</th><th class="level" scope="col">GM 7</th><th class="level" scope="col">GM 8</th><th class="level" scope="col">GM 9</th><th>Set by</th><th></th></tr>
+				</thead>
+				<tbody id="commandRows"><tr><td colspan="13" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div class="tab-pane fade" id="tabConfig" role="tabpanel">
+	<div class="card">
+		<div class="card-body small">
+		<p class="mb-2">Each permission is also a setting: add <code>permission_&lt;name&gt;=&lt;level&gt;</code> to <code>dashboardconfig.ini</code>
+			(for example <code>permission_accounts_ban=3</code>) or set the environment variable <code>PERMISSION_ACCOUNTS_BAN=3</code>.
+			The dashboard picks up file changes when its settings reload.</p>
+		<p class="mb-2">The world servers read these levels from what the dashboard stored, for the commands that follow a permission, so set
+			them for the dashboard only.</p>
+		<p class="mb-2">Other commands work the same way in <code>worldconfig.ini</code>: <code>command_level_&lt;name&gt;=&lt;level&gt;</code>
+			(for example <code>command_level_spawn=6</code>, or <code>COMMAND_LEVEL_SPAWN=6</code> in the world servers' environment).
+			Worlds pick up file changes when their settings reload (<code>/reloadconfig</code>). For a command that follows a permission,
+			such a value overrides the permission; <code>command_level_&lt;name&gt;=permission</code> makes it follow the permission again.</p>
+		<p class="mb-0">A level chosen on this page beats the file and environment. <strong>Reset</strong> removes it, so the file or the
+			built-in default applies again.</p>
+	</div>
+	</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var permissions = [], commands = [];
+	var SOURCES = { 'default': ['Default', 'secondary'], web: ['This page', 'primary'], file: ['Config file', 'info'], env: ['Environment', 'info'], fixed: ['Fixed', 'dark'], permission: ['Permission', 'success'] };
+	var filter = document.getElementById('commandFilter'), showClient = document.getElementById('showClient'), commandChanged = document.getElementById('commandChanged');
+	var permFilter = document.getElementById('permFilter'), permCategory = document.getElementById('permCategory'), permChanged = document.getElementById('permChanged');
+
+	function sourceBadge(source) {
+		var s = SOURCES[source] || [source, 'warning'];
+		return fmt.badge(s[0], s[1]);
+	}
+
+	function levelName(level) {
+		var name = Labels.name('gmLevels', level);
+		return 'GM ' + level + (name ? ' (' + name + ')' : '');
+	}
+
+	// One row of GM 0-9 buttons; attrs names what a click changes
+	function levelCells(item, title, attrs, lockedTitle, floorTitle) {
+		var html = '';
+		for (var level = 0; level <= 9; level++) {
+			if (level < item.minLevel) {
+				html += '<td class="perm-cell text-center text-body-secondary" title="' + esc(floorTitle) + '">&ndash;</td>';
+				continue;
+			}
+			var allowed = level >= item.level;
+			var label = (allowed ? 'GM ' + level + ' may: ' : 'GM ' + level + ' may not: ') + title;
+			html += '<td class="perm-cell"><button type="button" class="btn btn-sm ' + (allowed ? 'btn-success' : 'btn-outline-secondary') + '"' +
+				(item.locked ? ' disabled' : ' ' + attrs + ' data-level="' + level + '"') +
+				' title="' + esc(item.locked ? lockedTitle : (level === item.level ? 'Lowest level allowed' : 'Allow from GM ' + level + ' up')) + '" aria-label="' + esc(label) + '">' +
+				(allowed ? '<span aria-hidden="true">&#10003;</span>' : '') + '</button></td>';
+		}
+		return html;
+	}
+
+	function setBy(item, resetAttr) {
+		return '<td>' + sourceBadge(item.source) + (item.level !== item.default ? '<div class="small text-body-secondary">default GM ' + item.default + '</div>' : '') + '</td>' +
+			'<td>' + (item.source === 'web' ? '<button class="btn btn-sm btn-outline-secondary" ' + resetAttr + '>Reset</button>' : '') + '</td></tr>';
+	}
+
+	function renderPermissions() {
+		var linked = {};
+		commands.forEach(function (c) { if (c.permission) (linked[c.permission.key] = linked[c.permission.key] || []).push(c); });
+		var query = permFilter.value.trim().toLowerCase(), only = permCategory.value;
+		var shown = permissions.filter(function (p) {
+			if (only && p.category !== only) return false;
+			if (permChanged.checked && p.level === p.default) return false;
+			var inGame = (linked[p.key] || []).map(function (c) { return c.aliases.join(' '); }).join(' ');
+			return !query || (p.title + ' ' + p.description + ' ' + p.key + ' ' + p.category + ' ' + inGame).toLowerCase().indexOf(query) !== -1;
+		});
+		var html = '', category = null;
+		shown.forEach(function (p) {
+			if (p.category !== category) {
+				category = p.category;
+				html += '<tr class="category"><th colspan="13" scope="rowgroup">' + esc(category) + '</th></tr>';
+			}
+			var inGame = (linked[p.key] || []).map(function (c) {
+				return '<code>/' + esc(c.aliases[0]) + '</code>' + (c.overridden ? ' GM ' + c.level + '+ ' + fmt.badge(c.keptFromUpgrade ? 'kept from before pairing' : 'own override', 'warning') : '');
+			});
+			html += '<tr><td><div class="fw-semibold">' + esc(p.title) + (p.level !== p.default ? ' ' + fmt.badge('Changed', 'info') : '') + '</div>' +
+				'<div class="small text-body-secondary">' + esc(p.description) + '</div><code class="small">' + esc(p.key) + '</code>' +
+				(inGame.length ? '<div class="small">In game too: ' + inGame.join(', ') + '</div>' : '') + '</td>' +
+				levelCells(p, p.title, 'data-key="' + esc(p.key) + '"', 'Always GM 9', 'Staff permissions can\'t be given to players') +
+				setBy(p, 'data-reset="' + esc(p.key) + '"');
+		});
+		document.getElementById('permRows').innerHTML = html || '<tr><td colspan="13" class="text-body-secondary">No permissions match.</td></tr>';
+		document.getElementById('permCount').textContent = shown.length === permissions.length ? permissions.length : shown.length + ' / ' + permissions.length;
+	}
+
+	function renderCommands() {
+		if (!commands.length) {
+			document.getElementById('commandRows').innerHTML = '<tr><td colspan="13" class="text-body-secondary">No world server has listed its commands yet. They appear here once a world starts.</td></tr>';
+			return;
+		}
+		var query = filter.value.trim().toLowerCase();
+		// Grouped by their default level (a paired command: its permission's), the commands the client handles last
+		var shown = commands.filter(function (c) {
+			if (c.clientHandled && !showClient.checked) return false;
+			if (commandChanged.checked && c.level === c.default) return false;
+			return !query || (c.aliases.join(' ') + ' ' + c.name + ' ' + c.help).toLowerCase().indexOf(query) !== -1;
+		}).sort(function (a, b) { return a.default - b.default || a.aliases[0].localeCompare(b.aliases[0]); });
+		var html = '', group = null;
+		shown.forEach(function (c) {
+			if (c.default !== group) {
+				group = c.default;
+				html += '<tr class="category"><th colspan="13" scope="rowgroup">' + esc(levelName(group)) + ' by default</th></tr>';
+			}
+			var link = '', lockedTitle = c.note || 'Fixed';
+			var item = { level: c.level, minLevel: c.minLevel, locked: c.fixed, default: c.default, source: c.source };
+			if (c.permission && !c.fixed) {
+				var perm = esc(c.permission.title) + ' <code>' + esc(c.permission.key) + '</code>';
+				item.locked = true;
+				if (c.overridden) {
+					lockedTitle = 'Overrides ' + c.permission.key + ': drop the override to use its level';
+					link = '<div class="small">' + fmt.badge('overrides ' + c.permission.key, 'warning') +
+						(c.keptFromUpgrade ? ' ' + fmt.badge('kept from before pairing', 'secondary') + ' The level it had before it used the permission\'s level, kept by the upgrade so nothing changed by itself' :
+							' Set by its own <code>' + esc(c.setting) + '</code> (' + esc((SOURCES[c.source] || [c.source])[0].toLowerCase()) + ')') +
+						'; the permission ' + perm + ' needs GM ' + c.permission.level + '+. ' +
+						'<button class="btn btn-sm btn-link p-0 align-baseline" data-follow="' + esc(c.name) + '">Drop the override</button></div>';
+				} else {
+					lockedTitle = 'Follows ' + c.permission.key + ': change it on that permission\'s row';
+					link = '<div class="small">Follows the dashboard permission ' + perm + ' (GM ' + c.permission.level + '+' +
+						(c.codeLevel !== c.permission.level ? '; GM ' + c.codeLevel + '+ before it did' : '') + ')' +
+						(c.followSet ? '; the ' + esc((SOURCES[c.localSource] || [c.localSource])[0].toLowerCase()) + '\'s <code>' + esc(c.setting) + '</code> is ignored ' +
+							'<button class="btn btn-sm btn-link p-0 align-baseline" data-reset-command="' + esc(c.name) + '">Use it again</button>' : '') + '</div>';
+				}
+			}
+			if (c.target) {
+				link += '<div class="small text-body-secondary">On other players: never a higher GM level, your own level with <code>' + esc(c.target.equalPermission) + '</code>' +
+					(c.target.selfPermission ? '; on yourself with <code>' + esc(c.target.selfPermission) + '</code>' : '; on yourself as before') + ' (GM 9: anyone)</div>';
+			}
+			html += '<tr><td><div class="fw-semibold"><code>/' + esc(c.aliases[0]) + '</code>' + (c.level !== c.default ? ' ' + fmt.badge('Changed', 'info') : '') + '</div>' +
+				'<div class="small text-body-secondary">' + esc(c.help) + '</div>' +
+				(c.aliases.length > 1 ? '<div class="small">Also: ' + c.aliases.slice(1).map(function (a) { return '<code>/' + esc(a) + '</code>'; }).join(' ') + '</div>' : '') +
+				(c.note ? '<div class="small text-body-secondary fst-italic">' + esc(c.note) + '</div>' : '') + link +
+				'<code class="small">' + esc(c.setting) + '</code></td>' +
+				levelCells(item, '/' + c.aliases[0], 'data-command="' + esc(c.name) + '"', lockedTitle,
+					c.note || 'Staff commands can\'t be given to players') +
+				setBy(item, 'data-reset-command="' + esc(c.name) + '"');
+		});
+		document.getElementById('commandRows').innerHTML = html || '<tr><td colspan="13" class="text-body-secondary">No commands match.</td></tr>';
+		document.getElementById('commandCount').textContent = shown.length;
+	}
+
+	function render() {
+		renderPermissions();
+		renderCommands();
+	}
+
+	function load() {
+		return Promise.all([api.get('/api/permissions'), api.get('/api/permissions/commands')]).then(function (r) {
+			if (!r[0].success) return toast(r[0].error || 'Could not load permissions', 'danger');
+			permissions = r[0].permissions;
+			var categories = [];
+			permissions.forEach(function (p) { if (categories.indexOf(p.category) === -1) categories.push(p.category); });
+			var picked = permCategory.value;
+			permCategory.innerHTML = '<option value="">Every category</option>' + categories.map(function (c) {
+				return '<option' + (c === picked ? ' selected' : '') + '>' + esc(c) + '</option>';
+			}).join('');
+			commands = r[1].success ? r[1].commands : [];
+			render();
+		});
+	}
+
+	function save(key, level) {
+		var p = permissions.filter(function (x) { return x.key === key; })[0];
+		if (level !== null && p && level === p.level) return;
+		if (level !== null && level < 3 && !confirm('Allow "' + p.title + '" for GM ' + level + ' and up?')) return;
+		api.action('/api/permissions', { key: key, level: level }).then(function (r) { toast(r.message, 'success'); load(); }).catch(function () {});
+	}
+
+	function saveCommand(name, level) {
+		var c = commands.filter(function (x) { return x.name === name; })[0];
+		if (level !== null && c && level === c.level) return;
+		if (level !== null && c && level < c.default && level < 3 && !confirm('Allow /' + c.aliases[0] + ' for GM ' + level + ' and up?')) return;
+		api.action('/api/permissions/commands', { name: name, level: level }).then(function (r) { toast(r.message, 'success'); load(); }).catch(function () {});
+	}
+
+	document.getElementById('permRows').addEventListener('click', function (e) {
+		var cell = e.target.closest('[data-key]');
+		if (cell) return save(cell.dataset.key, parseInt(cell.dataset.level, 10));
+		var reset = e.target.closest('[data-reset]');
+		if (reset) save(reset.dataset.reset, null);
+	});
+
+	document.getElementById('commandRows').addEventListener('click', function (e) {
+		var follow = e.target.closest('[data-follow]');
+		if (follow) {
+			return api.action('/api/permissions/commands', { name: follow.dataset.follow, follow: true }).then(function (r) { toast(r.message, 'success'); load(); }).catch(function () {});
+		}
+		var cell = e.target.closest('[data-command]');
+		if (cell) return saveCommand(cell.dataset.command, parseInt(cell.dataset.level, 10));
+		var reset = e.target.closest('[data-reset-command]');
+		if (reset) saveCommand(reset.dataset.resetCommand, null);
+	});
+
+	filter.addEventListener('input', renderCommands);
+	showClient.addEventListener('change', renderCommands);
+	commandChanged.addEventListener('change', renderCommands);
+	permFilter.addEventListener('input', renderPermissions);
+	permCategory.addEventListener('change', renderPermissions);
+	permChanged.addEventListener('change', renderPermissions);
+
+	// The open tab is in the address (#commands, #config), so it survives a reload and can be linked to
+	var tabs = document.querySelectorAll('#permTabs [data-hash]');
+	Array.prototype.forEach.call(tabs, function (tab) {
+		if (window.location.hash === '#' + tab.dataset.hash) bootstrap.Tab.getOrCreateInstance(tab).show();
+		tab.addEventListener('shown.bs.tab', function () { history.replaceState(null, '', '#' + tab.dataset.hash); });
+	});
+
+	if (window.Live) Live.on('permissions', Live.throttle(load, 500));
+	load();
+})();
+</script>
+{% endblock %}

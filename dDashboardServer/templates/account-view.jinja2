@@ -1,0 +1,664 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Account #{{ account.id }} - DarkflameServer{% endblock %}
+
+{% block content %}
+{% if can.accounts_view %}
+<a href="/accounts" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Accounts</a>
+{% endif %}
+
+<div class="card mb-4" id="account" data-account-id="{{ account.id }}" data-gm-level="{{ account.gm_level }}" data-email="{{ account.email }}" data-account-name="{{ account.name }}" data-self="{% if is_self %}1{% endif %}" data-can-moderate="{% if manage.moderation %}1{% endif %}">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h4 class="mb-0">{{ account.name }}</h4>
+		<span class="text-body-secondary">Account #{{ account.id }}</span>
+	</div>
+	<div class="card-body">
+		<div class="row g-4 mb-4">
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Account ID</div>
+				<div>{{ account.id }}</div>
+			</div>
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Username</div>
+				<div>{{ account.name }}</div>
+			</div>
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Created</div>
+				<div>{{ account.created_at }}</div>
+			</div>
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">GM Level</div>
+				<div>
+					{% if account.gm_level > 0 %}
+					<span class="badge text-bg-info">GM {{ account.gm_level }}</span>
+					{% else %}
+					<span class="badge text-bg-secondary">Civilian</span>
+					{% endif %}
+				</div>
+			</div>
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Ban Status</div>
+				<div>
+					{% if account.banned %}
+					<span class="badge text-bg-danger">Banned</span>
+					<span class="small" id="banDetails" data-expires="{{ account.ban_expires }}"></span>
+					{% if account.ban_reason != "" %}<div class="small text-body-secondary">{{ account.ban_reason }}</div>{% endif %}
+					{% else %}
+					<span class="badge text-bg-success">Active</span>
+					{% endif %}
+				</div>
+			</div>
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Lock Status</div>
+				<div>
+					{% if account.locked %}
+					<span class="badge text-bg-warning">Locked</span>
+					{% else %}
+					<span class="badge text-bg-success">Unlocked</span>
+					{% endif %}
+				</div>
+			</div>
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Email</div>
+				<div>
+					{% if account.email != "" %}
+					{{ account.email }}
+					{% if account.email_confirmed %}<span class="badge text-bg-success">Confirmed</span>{% else %}<span class="badge text-bg-warning">Unconfirmed</span>{% endif %}
+					{% else %}
+					<span class="text-body-secondary">None</span>
+					{% endif %}
+				</div>
+			</div>
+			{% if can.accounts_view %}
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Play Key</div>
+				<div>
+					{% if account.play_key %}
+					{% if account.play_key.key_string != "" %}<a href="/play_keys/{{ account.play_key.id }}"><code>{{ account.play_key.key_string }}</code></a>{% else %}Used a play key{% endif %}
+					{% else %}
+					<span class="text-body-secondary">None</span>
+					{% endif %}
+				</div>
+			</div>
+			{% endif %}
+			<div class="col-md-4 col-sm-6">
+				<div class="text-body-secondary small text-uppercase">Mute</div>
+				<div id="muteDisplay">
+					{% if account.mute_expire > 0 %}
+					<span class="badge text-bg-danger" data-ts="{{ account.mute_expire }}">Muted</span>
+					{% else %}
+					Not muted
+					{% endif %}
+				</div>
+			</div>
+		</div>
+
+		{% if manage.tools or manage.moderation %}
+		<div class="d-flex gap-2 flex-wrap">
+			{% if manage.moderation %}
+			{% if can.accounts_ban %}
+			{% if not account.banned %}
+			<button class="btn btn-danger btn-sm" onclick="toggleBan(true)">Ban</button>
+			{% else %}
+			<button class="btn btn-success btn-sm" onclick="toggleBan(false)">Unban</button>
+			{% endif %}
+			{% if not account.locked %}
+			<button class="btn btn-warning btn-sm" onclick="toggleLock(true)">Lock</button>
+			{% else %}
+			<button class="btn btn-outline-secondary btn-sm" onclick="toggleLock(false)">Unlock</button>
+			{% endif %}
+			{% endif %}
+			{% if can.accounts_mute %}
+			<button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#muteModal">Mute</button>
+			{% endif %}
+			{% endif %}
+			{% if manage.tools %}
+			{% if can.accounts_kick %}
+			<button class="btn btn-outline-secondary btn-sm" onclick="kickAccount()">Kick</button>
+			{% endif %}
+			{% if can.accounts_send_reset and email_enabled and account.email_confirmed %}
+			<button class="btn btn-outline-secondary btn-sm" onclick="sendPasswordReset()">Email Reset Link</button>
+			{% endif %}
+			{% endif %}
+			{% if manage.moderation %}
+			{% if can.accounts_gm_level %}
+			<button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#gmLevelModal">Set GM Level</button>
+			{% endif %}
+			{% if can.accounts_manage %}
+			{% if email_enabled %}
+			<button class="btn btn-outline-secondary btn-sm" onclick="setAccountEmail()">Set Email</button>
+			{% endif %}
+			<button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#passwordModal">Reset Password</button>
+			{% if account.two_factor %}
+			<button class="btn btn-outline-secondary btn-sm" id="reset2faBtn">Reset 2FA</button>
+			{% endif %}
+			{% endif %}
+			{% endif %}
+			{% if manage.tools and can.accounts_manage %}
+			<button class="btn btn-outline-secondary btn-sm" id="revokeSessionsBtn">Sign Out Everywhere</button>
+			{% endif %}
+			{% if manage.moderation and can.accounts_delete %}
+			<button class="btn btn-outline-danger btn-sm" onclick="deleteAccount()">Delete Account</button>
+			{% endif %}
+		</div>
+		{% else if is_self and (can.accounts_kick or can.accounts_mute or can.accounts_ban) %}
+		<p class="text-body-secondary small mb-0">Your GM level may not use staff tools on your own account (the self_tools and self_moderation permissions).</p>
+		{% else if not is_self and (can.accounts_kick or can.accounts_mute or can.accounts_ban) %}
+		<p class="text-body-secondary small mb-0">{% if account.gm_level > gmLevel %}You cannot manage accounts with a higher GM level than your own.{% else %}You cannot manage accounts with the same GM level as your own (the manage_equal_rank permission).{% endif %}</p>
+		{% endif %}
+	</div>
+</div>
+
+<div class="card mb-4" id="relatedCard" data-kind="account" data-id="{{ account.id }}"><div class="card-body text-body-secondary">Loading related data&hellip;</div></div>
+
+{% if can.accounts_links %}
+<div class="card mb-4" id="linksCard" data-account="{{ account.id }}">
+	<div class="card-header"><h5 class="mb-0">Linked accounts <span class="badge rounded-pill text-bg-secondary align-middle" id="linkCount"></span></h5></div>
+	<div class="card-body pb-0"><p class="small text-body-secondary mb-2"><span id="linkNote"></span> A shared address can also be a family, school or public network.</p></div>
+	<ul class="list-group list-group-flush" id="linkList"><li class="list-group-item text-body-secondary">Loading&hellip;</li></ul>
+</div>
+{% endif %}
+
+{% if can.accounts_notes %}
+<div class="card mb-4" id="historyCard">
+	<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Moderation history</h5><span class="small text-body-secondary" id="warningCount"></span></div>
+	<div class="card-body">
+		<form class="row g-2 align-items-end mb-3" id="noteForm">
+			<div class="col-sm-2"><label class="form-label small" for="noteKind">Type</label>
+				<select class="form-select form-select-sm" id="noteKind"><option value="note">Note</option><option value="warning">Warning</option></select></div>
+			<div class="col-sm-7"><label class="form-label small" for="noteText">Text</label><input class="form-control form-control-sm" id="noteText" maxlength="300" required placeholder="What happened"></div>
+			<div class="col-sm-3"><button class="btn btn-sm btn-primary w-100">Add</button></div>
+			<div class="col-12 d-none" id="tellPlayerWrap"><div class="form-check small"><input class="form-check-input" type="checkbox" id="tellPlayer" checked><label class="form-check-label" for="tellPlayer">Also show the warning to the player in game if they are online</label></div></div>
+		</form>
+		<ol class="list-unstyled mb-0" id="noteList"><li class="text-body-secondary">Loading&hellip;</li></ol>
+	</div>
+</div>
+{% endif %}
+{% if can.accounts_notes or (is_self and can.own_strikes) %}
+<div class="card mb-4" id="strikesCard" data-account="{{ account.id }}" data-self="{% if is_self %}1{% endif %}" data-can-manage="{% if can_manage %}1{% endif %}">
+	<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+		<h5 class="mb-0">Strikes <span class="badge rounded-pill text-bg-secondary align-middle" id="strikeCount"></span></h5>
+		{% if can.strikes_give and can_manage %}<button type="button" class="btn btn-sm btn-outline-danger" id="giveStrike">Give a strike</button>{% endif %}
+	</div>
+	<div class="card-body">
+		<p class="small text-body-secondary" id="strikeHelp"></p>
+		<ol class="list-unstyled mb-0" id="strikeList"><li class="text-body-secondary">Loading&hellip;</li></ol>
+	</div>
+</div>
+{% endif %}
+{% if is_self %}
+{% if email_enabled %}
+<div class="row g-4 mb-4">
+	<div class="col-lg-6">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">Email</h5></div>
+			<div class="card-body">
+				<p class="small text-body-secondary">Used to reset your password if you forget it. Changing it sends a confirmation link to the new address.</p>
+				<div class="mb-2"><input type="email" class="form-control" id="ownEmail" placeholder="you@example.com" maxlength="254" autocomplete="email"></div>
+				<div class="mb-2"><input type="password" class="form-control" id="emailPwd" placeholder="Current password" maxlength="40" autocomplete="current-password"></div>
+				<button class="btn btn-primary btn-sm" onclick="saveOwnEmail()">Save Email</button>
+				{% if account.email != "" and not account.email_confirmed %}
+				<button class="btn btn-outline-secondary btn-sm" onclick="resendVerification()">Resend Confirmation</button>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+{% if can.email_settings %}
+<div class="row g-4 mb-4">
+	<div class="col-lg-8">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">Email Settings</h5></div>
+			<div class="card-body">
+				<dl class="row small mb-2" id="emailStatus"><dt class="col-sm-4">Status</dt><dd class="col-sm-8">Loading&hellip;</dd></dl>
+				<div id="emailError" class="alert alert-danger small d-none"></div>
+				<div id="oauthControls" class="mb-3 d-none">
+					<button class="btn btn-sm btn-primary" id="oauthConnect" onclick="connectMailAccount()">Connect mail account</button>
+					<button class="btn btn-sm btn-outline-danger" id="oauthDisconnect" onclick="disconnectMailAccount()">Disconnect</button>
+					<div class="form-text">Register this redirect URI with your provider: <code id="oauthRedirect"></code></div>
+				</div>
+				<div class="input-group input-group-sm">
+					<input type="email" class="form-control" id="testEmailTo" placeholder="Send a test email to">
+					<button class="btn btn-outline-primary" onclick="sendTestEmail()">Send Test</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+<div class="row g-4 mb-4">
+	<div class="col-lg-6">
+		<div class="card h-100" id="two-factor">
+			<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Two-factor login</h5><span id="twoFactorBadge"></span></div>
+			<div class="card-body">
+				<div id="twoFactorRequired" class="alert alert-warning small d-none">Your GM level requires two-factor login. Set it up to use the rest of the dashboard.</div>
+				<div id="twoFactorOff" class="d-none">
+					<p class="small text-body-secondary">After your password, also ask for a code from an authenticator app (Google Authenticator, Authy, 1Password, Bitwarden...). A stolen password alone can't get in.</p>
+					<button class="btn btn-primary btn-sm" id="twoFactorStart">Set up</button>
+				</div>
+				<div id="twoFactorSetup" class="d-none">
+					<ol class="small ps-3">
+						<li>Scan this with your authenticator app, or enter the key by hand.</li>
+						<li>Type the 6-digit code it shows.</li>
+					</ol>
+					<div class="d-flex flex-wrap gap-3 align-items-start mb-3">
+						<div id="twoFactorQr" class="qr-box" aria-label="QR code for your authenticator app"></div>
+						<div class="small"><div class="text-body-secondary">Key</div><code id="twoFactorSecret" class="user-select-all"></code></div>
+					</div>
+					<div class="input-group input-group-sm mb-2">
+						<input type="text" class="form-control" id="twoFactorEnableCode" placeholder="6-digit code" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
+						<button class="btn btn-primary" id="twoFactorEnable">Turn on</button>
+					</div>
+				</div>
+				<div id="twoFactorOn" class="d-none">
+					<p class="small mb-2" id="twoFactorInfo"></p>
+					<div class="input-group input-group-sm mb-2">
+						<input type="text" class="form-control" id="twoFactorManageCode" placeholder="Current code" inputmode="numeric" autocomplete="one-time-code" maxlength="16">
+						<button class="btn btn-outline-secondary" id="twoFactorNewCodes">New recovery codes</button>
+					</div>
+					<div class="input-group input-group-sm" id="twoFactorDisableGroup">
+						<input type="password" class="form-control" id="twoFactorDisablePwd" placeholder="Password" maxlength="40" autocomplete="current-password">
+						<button class="btn btn-outline-danger" id="twoFactorDisable">Turn off</button>
+					</div>
+				</div>
+				<div id="recoveryCodes" class="alert alert-info small mt-3 d-none">
+					<div class="fw-semibold mb-1">Recovery codes: save these now, they are shown only once.</div>
+					<div class="mb-2">Each one works once, instead of a code, if you lose your phone.</div>
+					<pre class="mb-2 user-select-all" id="recoveryCodeList"></pre>
+					<button class="btn btn-sm btn-outline-primary" id="recoveryCopy">Copy</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% if can.own_history %}
+	<div class="col-lg-6">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">Trade &amp; mail history</h5></div>
+			<div class="card-body">
+				<p class="small text-body-secondary">Items and coins your characters traded or mailed.</p>
+				<table id="ownTransfers" class="table table-sm table-striped w-100">
+					<thead><tr><th>Time</th><th>How</th><th>What</th><th>From</th><th>To</th></tr></thead>
+					<tbody></tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+</div>
+<div class="row g-4 mb-4">
+	<div class="col-lg-6">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">Change Password</h5></div>
+			<div class="card-body">
+				<div class="mb-2"><input type="password" class="form-control" id="currentPwd" placeholder="Current password" maxlength="40" autocomplete="current-password"></div>
+				<div class="mb-2"><input type="password" class="form-control" id="ownNewPwd" placeholder="New password (6-40 characters)" minlength="6" maxlength="40" autocomplete="new-password"></div>
+				<button class="btn btn-primary btn-sm" onclick="changeOwnPassword()">Change Password</button>
+			</div>
+		</div>
+	</div>
+	<div class="col-lg-6">
+		<div class="card h-100">
+			<div class="card-header"><h5 class="mb-0">API Token</h5></div>
+			<div class="card-body">
+				{% if can.api_access %}
+				<p class="small text-body-secondary">A bearer token for scripts and bots. It acts as you, with your current GM level. See <a href="/api_docs">API docs</a>.</p>
+				<div class="input-group input-group-sm mb-2">
+					<span class="input-group-text">Valid for</span>
+					<select id="tokenDays" class="form-select">
+						<option value="7">7 days</option>
+						<option value="30" selected>30 days</option>
+						<option value="90">90 days</option>
+						<option value="365">1 year</option>
+					</select>
+					<button class="btn btn-outline-primary" onclick="createToken()">Generate</button>
+				</div>
+				<textarea id="apiToken" class="form-control form-control-sm font-monospace d-none" rows="3" readonly></textarea>
+				{% else %}
+				<p class="small text-body-secondary">API access isn't turned on for your account.</p>
+				{% endif %}
+				<hr>
+				<p class="small text-body-secondary mb-2">Lost a token, or signed in on a computer that isn't yours? This signs out every other browser and stops every API token you made.</p>
+				<button class="btn btn-outline-danger btn-sm" id="revokeOwnSessions">Sign out everywhere else</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="gmLevelModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Set GM Level</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<select id="gmLevelSelect" class="form-select">
+					{% for level in labels.gmLevels %}<option value="{{ level.value }}">{{ level.value }} - {{ level.name }}</option>{% endfor %}
+				</select>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-primary" onclick="setGmLevel()">Save</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="banModal" tabindex="-1" aria-labelledby="banTitle" aria-hidden="true">
+	<div class="modal-dialog">
+		<form class="modal-content" id="banForm">
+			<div class="modal-header"><h5 class="modal-title" id="banTitle">Ban account</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="mb-2"><label class="form-label" for="banDays">For</label>
+					<select id="banDays" class="form-select"><option value="0">Permanently</option><option value="1">1 day</option><option value="3">3 days</option><option value="7">1 week</option><option value="14">2 weeks</option><option value="30">30 days</option><option value="90">90 days</option></select></div>
+				<div><label class="form-label" for="banReason">Reason</label><input id="banReason" class="form-control" maxlength="300" placeholder="Shown to the player when they try to log in">
+					<div class="form-text">Also saved in the account's moderation history. A timed ban ends by itself.</div></div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-danger">Ban</button></div>
+		</form>
+	</div>
+</div>
+<div class="modal fade" id="muteModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Mute Account</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<label for="muteDuration" class="form-label">Duration</label>
+				<select id="muteDuration" class="form-select">
+					<option value="0">Unmute</option>
+					<option value="1">1 Day</option>
+					<option value="7">1 Week</option>
+					<option value="30">30 Days</option>
+					<option value="365">1 Year</option>
+					<option value="36500">Permanent</option>
+				</select>
+				<label for="muteReason" class="form-label mt-2">Reason</label>
+				<input id="muteReason" class="form-control" maxlength="300" placeholder="Saved in the moderation history">
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-warning" onclick="setMute()">Apply</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="passwordModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Reset Password</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<label for="newPwd" class="form-label">New Password</label>
+				<input type="password" class="form-control" id="newPwd" minlength="6" maxlength="40" required>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-primary" onclick="resetPassword()">Reset</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% if existsIn(account, "characters") %}
+<div class="card mt-4">
+	<div class="card-header"><h5 class="mb-0">Characters</h5></div>
+	<div class="card-body">
+		{% if length(account.characters) == 0 %}
+		<p class="text-body-secondary mb-0">No characters</p>
+		{% else %}
+		<div class="table-responsive">
+			<table class="table table-striped table-hover mb-0">
+				<thead><tr><th>Name</th><th>Last Login</th><th></th></tr></thead>
+				<tbody>
+				{% for char in account.characters %}
+				<tr>
+					<td>{{ char.name }}</td>
+					<td class="char-login" data-ts="{{ char.last_login }}"></td>
+					<td>{% if can.characters_view or (is_self and can.own_characters) %}<a href="/characters/{{ char.id }}" class="btn btn-sm btn-outline-primary">View</a>{% endif %}</td>
+				</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		{% endif %}
+	</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_self %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1" crossorigin="anonymous"></script>
+<script src="/js/account-security.js"></script>
+{% endif %}
+<script>
+var accountEl = document.getElementById('account');
+var accountId = accountEl.getAttribute('data-account-id');
+var base = '/api/accounts/' + accountId;
+
+document.addEventListener('DOMContentLoaded', function () {
+	loadEmailStatus();
+	var ownEmail = document.getElementById('ownEmail');
+	if (ownEmail) ownEmail.value = accountEl.getAttribute('data-email') || '';
+	var gmSelect = document.getElementById('gmLevelSelect');
+	if (gmSelect) {
+		gmSelect.value = accountEl.getAttribute('data-gm-level');
+		// Only operators may grant their own level or higher
+		Array.prototype.forEach.call(gmSelect.options, function (opt) {
+			if (DASH.gmLevel < 9 && parseInt(opt.value, 10) >= DASH.gmLevel) opt.disabled = true;
+		});
+	}
+	var muteEl = document.querySelector('#muteDisplay [data-ts]');
+	if (muteEl) {
+		var ts = parseInt(muteEl.getAttribute('data-ts'), 10);
+		if (ts > Date.now() / 1000) muteEl.textContent = 'Muted until ' + fmt.unix(ts);
+		else { muteEl.className = 'badge text-bg-secondary'; muteEl.textContent = 'Expired'; }
+	}
+	document.querySelectorAll('.char-login').forEach(function (el) {
+		var ts = parseInt(el.getAttribute('data-ts'), 10);
+		el.textContent = ts > 0 ? fmt.unix(ts) : 'Never';
+	});
+	// Reload when someone else changes this account
+	Live.refreshPage('accounts', accountId);
+});
+
+// Reload once the change (and any live action it started, like a kick) has finished
+function reloadOnSuccess(promise) {
+	promise.then(function (d) { return d.result || d; }).then(function () { location.reload(); }).catch(function () {});
+}
+
+var reset2faBtn = document.getElementById('reset2faBtn');
+if (reset2faBtn) reset2faBtn.addEventListener('click', function () {
+	if (!confirm('Turn off two-factor login for this account? Do this only after confirming who is asking (lost phone). They will be signed out everywhere.')) return;
+	api.action('/api/accounts/' + accountId + '/2fa/reset').then(function (r) { toast(r.message, 'success'); }).catch(function () {});
+});
+
+var revokeSessionsBtn = document.getElementById('revokeSessionsBtn');
+if (revokeSessionsBtn) revokeSessionsBtn.addEventListener('click', function () {
+	if (!confirm('Sign this account out of every dashboard session and API token?')) return;
+	api.action('/api/accounts/' + accountId + '/sessions/revoke').then(function (r) { toast(r.message, 'success'); }).catch(function () {});
+});
+
+var revokeOwnSessions = document.getElementById('revokeOwnSessions');
+if (revokeOwnSessions) revokeOwnSessions.addEventListener('click', function () {
+	if (!confirm('Sign out every other browser and stop all your API tokens?')) return;
+	api.action('/api/account/sessions/revoke').then(function (r) { toast(r.message, 'success'); }).catch(function () {});
+});
+
+function kickAccount() {
+	if (!confirm('Disconnect every online session of this account?')) return;
+	api.action(base + '/kick', {}).catch(function () {});
+}
+
+function toggleBan(banned) {
+	if (banned) { bootstrap.Modal.getOrCreateInstance(document.getElementById('banModal')).show(); return; }
+	if (!confirm('Unban this account?')) return;
+	reloadOnSuccess(api.action(base + '/ban', { banned: false }));
+}
+document.getElementById('banForm').addEventListener('submit', function (e) {
+	e.preventDefault();
+	reloadOnSuccess(api.action(base + '/ban', { banned: true, days: parseInt(document.getElementById('banDays').value, 10),
+		reason: document.getElementById('banReason').value.trim() }));
+});
+(function () {
+	var details = document.getElementById('banDetails');
+	var expires = details ? parseInt(details.dataset.expires, 10) : 0;
+	if (details) details.textContent = expires > 0 ? 'until ' + new Date(expires * 1000).toLocaleString() : 'permanently';
+})();
+
+// ---- moderation history ----
+var NOTE_KINDS = { note: ['Note', 'secondary'], warning: ['Warning', 'warning'], ban: ['Ban', 'danger'], unban: ['Unban', 'success'], mute: ['Mute', 'warning'],
+	unmute: ['Unmute', 'success'], lock: ['Lock', 'danger'], unlock: ['Unlock', 'success'] };
+function loadNotes() {
+	var list = document.getElementById('noteList');
+	if (!list) return;
+	api.get(base + '/notes').then(function (d) {
+		if (!d.success) { list.innerHTML = '<li class="text-danger">' + esc(d.error) + '</li>'; return; }
+		var warnings = d.notes.filter(function (n) { return n.kind === 'warning'; }).length;
+		document.getElementById('warningCount').textContent = warnings ? warnings + ' warning' + (warnings === 1 ? '' : 's') : '';
+		list.innerHTML = d.notes.map(function (n) {
+			var k = NOTE_KINDS[n.kind] || [n.kind, 'secondary'];
+			return '<li class="border-bottom py-2 d-flex gap-2"><span>' + fmt.badge(k[0], k[1]) + '</span><div class="flex-grow-1"><div>' + esc(n.text) + '</div>' +
+				'<div class="small text-body-secondary">' + esc(n.actor || 'unknown') + ', ' + esc(fmt.unix(n.created_at)) + '</div></div>' +
+				(DASH.can('accounts_manage') && accountEl.dataset.canModerate ? '<button class="btn btn-sm btn-link text-danger p-0" data-delete-note="' + n.id + '" aria-label="Delete">&times;</button>' : '') + '</li>';
+		}).join('') || '<li class="text-body-secondary">Nothing yet.</li>';
+	});
+}
+if (document.getElementById('noteForm')) {
+	document.getElementById('noteKind').addEventListener('change', function (e) {
+		document.getElementById('tellPlayerWrap').classList.toggle('d-none', e.target.value !== 'warning');
+	});
+	document.getElementById('noteForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var kind = document.getElementById('noteKind').value;
+		api.action(base + '/notes', { kind: kind, text: document.getElementById('noteText').value.trim(), tell_player: kind === 'warning' && document.getElementById('tellPlayer').checked })
+			.then(function (d) { toast(d.message, 'success'); document.getElementById('noteText').value = ''; loadNotes(); }).catch(function () {});
+	});
+	document.getElementById('noteList').addEventListener('click', function (e) {
+		var del = e.target.closest('[data-delete-note]');
+		if (del && confirm('Delete this entry from the history?')) api.action('/api/account_notes/' + del.dataset.deleteNote + '/delete', {}).then(loadNotes).catch(function () {});
+	});
+	loadNotes();
+	if (window.Live) Live.on('account_notes', Live.throttle(function (e) { if (!e.id || e.id === String(accountId)) loadNotes(); }, 1000));
+}
+function toggleLock(locked) {
+	if (!confirm((locked ? 'Lock' : 'Unlock') + ' this account?')) return;
+	reloadOnSuccess(api.action(base + '/lock', { locked: locked }));
+}
+function setGmLevel() {
+	var level = parseInt(document.getElementById('gmLevelSelect').value, 10);
+	if (!confirm('Set GM level to ' + level + '?')) return;
+	reloadOnSuccess(api.action(base + '/gmlevel', { gm_level: level }));
+}
+function setMute() {
+	reloadOnSuccess(api.action(base + '/mute', { days: parseInt(document.getElementById('muteDuration').value, 10), reason: document.getElementById('muteReason').value.trim() }));
+}
+function deleteAccount() {
+	var body = {};
+	if (accountEl.dataset.self) {
+		// Your own account: the server wants your username typed out
+		var name = accountEl.getAttribute('data-account-name');
+		var typed = prompt('This PERMANENTLY deletes YOUR OWN account and all its characters, and signs you out. Type your username (' + name + ') to confirm.');
+		if (typed === null) return;
+		body.confirm = typed.trim();
+	} else {
+		if (!confirm('PERMANENTLY delete this account and all its characters? This cannot be undone.')) return;
+		if (!confirm('Are you absolutely sure?')) return;
+	}
+	api.action(base + '/delete', body).then(function (d) { return d.result; }).then(function () { window.location.href = accountEl.dataset.self ? '/login' : '/accounts'; }).catch(function () {});
+}
+function resetPassword() {
+	var pwd = document.getElementById('newPwd').value;
+	if (!confirm('Reset password for this account?')) return;
+	api.action(base + '/password', { password: pwd }, 'Password reset').then(function () {
+		bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+		document.getElementById('newPwd').value = '';
+	}).catch(function () {});
+}
+function changeOwnPassword() {
+	var current = document.getElementById('currentPwd');
+	var next = document.getElementById('ownNewPwd');
+	api.action('/api/account/password', { current_password: current.value, new_password: next.value }, 'Password changed').then(function () {
+		current.value = '';
+		next.value = '';
+	}).catch(function () {});
+}
+function setAccountEmail() {
+	var email = prompt('Email address for this account (leave empty to remove). A confirmation link is sent to it.', accountEl.getAttribute('data-email') || '');
+	if (email === null) return;
+	reloadOnSuccess(api.action(base + '/email', { email: email.trim() }));
+}
+function sendPasswordReset() {
+	if (!confirm('Email this account a password reset link?')) return;
+	api.action(base + '/send_password_reset', {}).catch(function () {});
+}
+function saveOwnEmail() {
+	var pwd = document.getElementById('emailPwd');
+	api.action('/api/account/email', { email: document.getElementById('ownEmail').value.trim(), current_password: pwd.value }).then(function (d) {
+		pwd.value = '';
+		toast(d.message, 'success');
+		return d.result;
+	}).then(function () { location.reload(); }).catch(function () {});
+}
+function resendVerification() {
+	api.action('/api/account/email/resend', {}).catch(function () {});
+}
+function sendTestEmail() {
+	api.action('/api/email/test', { to: document.getElementById('testEmailTo').value.trim() }).then(function (d) {
+		return d.result;
+	}).then(loadEmailStatus).catch(function () {});
+}
+function loadEmailStatus() {
+	var list = document.getElementById('emailStatus');
+	if (!list) return;
+	api.get('/api/email/status').then(function (s) {
+		var rows = [
+			['Status', s.configured ? (s.auth === 'oauth2' && !s.connected ? 'Configured, no mail account connected' : 'Enabled') : 'Disabled'],
+			['Server', s.host || '-'],
+			['Sender', s.from || '-'],
+			['Sign-in', s.auth === 'oauth2' ? 'OAuth2 (' + (s.provider || '?') + ', ' + (s.grant || '?') + ')' : 'Password']
+		];
+		if (s.auth === 'oauth2') rows.push(['Mailbox', (s.account || '-') + (s.connected ? ' (connected)' : '')]);
+		list.innerHTML = rows.map(function (r) { return '<dt class="col-sm-4">' + esc(r[0]) + '</dt><dd class="col-sm-8">' + esc(r[1]) + '</dd>'; }).join('');
+
+		var error = document.getElementById('emailError');
+		error.textContent = s.error || '';
+		error.classList.toggle('d-none', !s.error);
+
+		var controls = document.getElementById('oauthControls');
+		controls.classList.toggle('d-none', !s.canConnect && !(s.auth === 'oauth2' && s.connected));
+		document.getElementById('oauthConnect').classList.toggle('d-none', !s.canConnect);
+		document.getElementById('oauthConnect').textContent = s.connected ? 'Reconnect mail account' : 'Connect mail account';
+		document.getElementById('oauthDisconnect').classList.toggle('d-none', !(s.canConnect && s.connected));
+		document.getElementById('oauthRedirect').textContent = s.redirectUri || '';
+	}).catch(function () {});
+}
+function connectMailAccount() {
+	api.action('/api/email/oauth2/start', {}).then(function (d) { window.location.href = d.url; }).catch(function () {});
+}
+function disconnectMailAccount() {
+	if (!confirm('Disconnect the mail account? Emails will stop sending until one is connected again.')) return;
+	api.action('/api/email/oauth2/disconnect', {}).then(function (d) { return d.result; }).then(loadEmailStatus).catch(function () {});
+}
+function createToken() {
+	var days = parseInt(document.getElementById('tokenDays').value, 10);
+	api.action('/api/auth/token', { days: days }, 'Token generated - copy it now, it will not be shown again').then(function (d) {
+		var box = document.getElementById('apiToken');
+		box.value = d.token;
+		box.classList.remove('d-none');
+		box.select();
+	}).catch(function () {});
+}
+</script>
+<script src="/js/related.js"></script>
+<script src="/js/strikes.js"></script>
+<script src="/js/account-links.js"></script>
+{% endblock %}

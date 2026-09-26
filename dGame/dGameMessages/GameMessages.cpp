@@ -1,4 +1,7 @@
 #include "GameMessages.h"
+#include "DashboardNotify.h"
+#include "PlayerReports.h"
+#include "EconomyLedger.h"
 #include "User.h"
 #include "Entity.h"
 #include "BitStreamUtils.h"
@@ -82,6 +85,9 @@
 // Message includes:
 #include "dZoneManager.h"
 #include "PropertyDataMessage.h"
+#include "HotPropertySlots.h"
+#include "CDPropertyTemplateTable.h"
+#include "CDPropertyEntranceComponentTable.h"
 #include "PropertyManagementComponent.h"
 #include "PropertyVendorComponent.h"
 #include "PropertySelectQueryProperty.h"
@@ -2406,23 +2412,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 	std::vector<LWOOBJID> modelIDs;
 
 	for (size_t i = 0; i < splitLxfmls.size(); ++i) {
-		// Legacy logic to check for old random IDs (regenerating these is not really feasible)
-		// Probably good to have this anyway in case someone messes with the last_object_id or it gets reset somehow
-		const uint32_t maxRetries = 100;
-		uint32_t retries = 0;
-		bool blueprintIDExists = true;
-		bool modelExists = true;
-
-		LWOOBJID newID = LWOOBJID_EMPTY;
-		LWOOBJID blueprintID = LWOOBJID_EMPTY;
-		do {
-			if (newID != LWOOBJID_EMPTY) LOG("Generating blueprintID for UGC model, collision with existing model ID: %llu", blueprintID);
-			newID = ObjectIDManager::GetPersistentID();
-			blueprintID = ObjectIDManager::GetPersistentID();
-			++retries;
-			blueprintIDExists = Database::Get()->GetUgcModel(blueprintID).has_value();
-			modelExists = Database::Get()->GetModel(newID).has_value();
-		} while ((blueprintIDExists || modelExists) && retries < maxRetries);
+		const auto [newID, blueprintID] = ObjectIDManager::GetNewModelIDs();
 
 		blueprintIDs.push_back(blueprintID);
 		modelIDs.push_back(newID);
@@ -2440,6 +2430,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		model.rotation = QuatUtils::IDENTITY;
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
+		DashboardNotify::Changed("properties", propertyId);
 
 		/*
 			Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
@@ -5199,45 +5190,114 @@ void GameMessages::HandleGetHotPropertyData(RakNet::BitStream& inStream, Entity*
 	SendGetHotPropertyData(inStream, entity, sysAddr);
 }
 
+namespace {
+	using HotPropertyInfo = GameMessages::NewsSendHotPropertiesInfoToClient::HotPropertyInfo;
+
+	// The news screen's slots and the property worlds they can show properties of, from the CDClient (see HotPropertySlots.h)
+	struct NewsWorlds {
+		std::vector<HotPropertySlots::Slot> slots;
+		std::vector<uint32_t> worlds;
+	};
+
+	const NewsWorlds& GetNewsWorlds() {
+		static const auto news = [] {
+			std::vector<HotPropertySlots::TemplateRow> templates;
+			for (const auto& row : CDClientManager::GetTable<CDPropertyTemplateTable>()->GetEntries()) templates.push_back({ row.id, row.mapID, row.spawnName });
+			std::vector<HotPropertySlots::EntranceRow> entrances;
+			for (const auto& row : CDClientManager::GetTable<CDPropertyEntranceComponentTable>()->GetEntries()) entrances.push_back({ row.mapID, row.propertyName });
+			return NewsWorlds{ HotPropertySlots::ResolveSlots(templates, entrances), HotPropertySlots::PropertyWorlds(templates, entrances) };
+		}();
+		return news;
+	}
+
+	HotPropertyInfo ToHotProperty(const IProperty::Info& info, const std::string& ownerName, uint32_t templateId) {
+		HotPropertyInfo hot;
+		hot.propertyId = info.id;
+		hot.ownerId = info.ownerId;
+		hot.ownerName = GeneralUtils::UTF8ToUTF16(ownerName);
+		hot.reputation = info.reputation;
+		hot.templateId = static_cast<int32_t>(templateId);
+		hot.name = GeneralUtils::UTF8ToUTF16(info.name); // empty: the client shows the template's name
+		hot.description = GeneralUtils::UTF8ToUTF16(info.description);
+		hot.performanceCost = info.performanceCost;
+		hot.lastPublished = info.lastUpdatedTime;
+		hot.cloneId = info.cloneId;
+		return hot;
+	}
+
+	// What each slot shows, as chosen on the dashboard (featured_properties, featured_properties_settings), resolved by
+	// HotPropertySlots::Resolve so no property is shown twice. Every entry carries its slot's template id, whatever
+	// world the property is on: that is what puts it in the slot. Empty slots are left out.
+	std::vector<HotPropertyInfo> LoadHotProperties() {
+		const auto& news = GetNewsWorlds();
+		const bool fullAuto = Database::Get()->GetFeaturedPropertiesSettings().fullAuto;
+		std::map<uint32_t, IFeaturedProperties::FeaturedSlot> chosen;
+		for (const auto& row : Database::Get()->GetFeaturedPropertySlots()) chosen[row.templateId] = row;
+
+		std::vector<HotPropertySlots::Choice> choices;
+		for (const auto& slot : news.slots) {
+			const auto it = chosen.find(slot.templateId);
+			HotPropertySlots::Choice choice{ HotPropertySlots::eMode::AUTO, slot.mapId };
+			if (it != chosen.end()) choice = { HotPropertySlots::ModeFromInt(it->second.mode), HotPropertySlots::Location(it->second.zoneId, slot, news.worlds), it->second.propertyId };
+			choices.push_back(choice);
+		}
+
+		// The candidates, with what to send for each
+		std::vector<HotPropertySlots::Candidate> candidates;
+		std::map<LWOOBJID, std::pair<IProperty::Info, std::string>> properties;
+		for (const auto world : HotPropertySlots::CandidateWorlds(choices, fullAuto)) {
+			IProperty::ShowcaseQuery query;
+			query.zoneId = world;
+			query.sort = IProperty::ShowcaseSort::REPUTATION;
+			query.length = HotPropertySlots::CANDIDATES_PER_WORLD;
+			for (const auto& entry : Database::Get()->GetShowcaseProperties(query).entries) {
+				candidates.push_back({ entry.info.id, entry.info.zoneId, entry.info.reputation });
+				properties.emplace(entry.info.id, std::make_pair(entry.info, entry.ownerName));
+			}
+		}
+		for (const auto& choice : choices) {
+			if (fullAuto || choice.mode != HotPropertySlots::eMode::PICKED || properties.contains(choice.propertyId)) continue;
+			const auto info = Database::Get()->GetPropertyInfo(choice.propertyId);
+			const auto owner = info ? Database::Get()->GetCharacterInfo(info->ownerId) : std::nullopt;
+			if (!info || !owner || !HotPropertySlots::Featurable(info->modApproved, info->privacyOption, info->zoneId, choice.mapId)) continue;
+			candidates.push_back({ info->id, info->zoneId, info->reputation });
+			properties.emplace(info->id, std::make_pair(*info, owner->name));
+		}
+
+		std::vector<HotPropertyInfo> hot;
+		const auto showing = HotPropertySlots::Resolve(choices, fullAuto, candidates);
+		for (size_t i = 0; i < showing.size(); i++) {
+			if (!showing[i].propertyId) continue;
+			const auto& [info, ownerName] = properties.at(*showing[i].propertyId);
+			hot.push_back(ToHotProperty(info, ownerName, news.slots[i].templateId));
+		}
+		return hot;
+	}
+}
+
 void GameMessages::SendGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-	/**
-	 * [u32] - Number of properties
-	 *     [objid] - property id
-	 *     [objid] - property owner id
-	 *     [wstring] - property owner name
-	 *     [u64] - total reputation
-	 *     [i32] - property template id
-	 *     [wstring] - property name
-	 *     [wstring] - property description
-	 *     [float] - performance cost
-	 *     [timestamp] - time last published
-	 *     [cloneid] - clone id
-	 *
-	 */
-	 // TODO This needs to be implemented when reputation is implemented for getting hot properties.
-	 /**
-	 bitStream.Write(entity->GetObjectID());
-	 bitStream.Write(MessageType::Game::SEND_HOT_PROPERTY_DATA);
-	 std::vector<int32_t> t = {25166, 25188, 25191, 25194};
-	 bitStream.Write<uint32_t>(4);
-	 for (uint8_t i = 0; i < 4; i++) {
-		 bitStream.Write<LWOOBJID>(entity->GetObjectID());
-		 bitStream.Write<LWOOBJID>(entity->GetObjectID());
-		 bitStream.Write<uint32_t>(1);
-		 bitStream.Write<uint16_t>('c');
-		 bitStream.Write<uint64_t>(42069);
-		 bitStream.Write<int32_t>(t[i]);
-		 bitStream.Write<uint32_t>(1);
-		 bitStream.Write<uint16_t>('c');
-		 bitStream.Write<uint32_t>(1);
-		 bitStream.Write<uint16_t>('c');
-		 bitStream.Write<float>(420.69f);
-		 bitStream.Write<uint64_t>(1658376385);
-		 bitStream.Write<int32_t>(25166);
-	 }
-	 SEND_PACKET*/
+	if (!entity) return;
+
+	// The screen asks every time it opens; the answer is the same for everyone, so it is kept for a little while
+	static std::vector<HotPropertyInfo> cached;
+	static std::chrono::steady_clock::time_point loadedAt{};
+	static bool loaded = false;
+	const auto now = std::chrono::steady_clock::now();
+	if (!loaded || now - loadedAt > std::chrono::seconds(30)) {
+		try {
+			cached = LoadHotProperties();
+		} catch (const std::exception& ex) {
+			LOG("Failed to load the news screen's top properties: %s", ex.what());
+			cached.clear();
+		}
+		loadedAt = now;
+		loaded = true;
+	}
+
+	NewsSendHotPropertiesInfoToClient message;
+	message.target = entity->GetObjectID();
+	for (const auto index : HotPropertySlots::NewsOrder(cached.size())) message.properties.push_back(cached[index]);
+	message.Send(sysAddr);
 }
 
 void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) {
@@ -5286,7 +5346,14 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 		reportInfo.selection.push_back(character);
 	}
 
+	// Report Abuse about another player sends their ID here (and "0" otherwise); that's a player report, not a bug
+	if (const auto reportedId = GeneralUtils::TryParse<LWOOBJID>(reportInfo.otherPlayer).value_or(LWOOBJID_EMPTY); reportedId != LWOOBJID_EMPTY) {
+		PlayerReports::ReportPlayer(entity, reportedId, reportInfo.body);
+		return;
+	}
+
 	Database::Get()->InsertNewBugReport(reportInfo);
+	DashboardNotify::Changed("bug_reports");
 }
 
 void
@@ -5371,7 +5438,7 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream& inStream, Enti
 
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-		characterComponent->UpdatePlayerStatistic(static_cast<StatisticID>(updateID), static_cast<uint64_t>(std::max(updateValue, static_cast<int64_t>(0))));
+		characterComponent->UpdatePlayerStatistic(static_cast<StatisticID>(updateID), static_cast<uint64_t>(std::max(updateValue, static_cast<int64_t>(0))), true);
 	}
 }
 
@@ -5526,6 +5593,7 @@ void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, En
 		uint32_t count = 0;
 		for (auto& [itemID, item] : items) {
 			count += item->GetCount();
+			EconomyLedger::RecordItemsUnsuppressed(entity, item->GetLot(), -static_cast<int64_t>(item->GetCount()), EconomyLedger::DONATION_SOURCE);
 			item->RemoveFromInventory();
 		}
 		missionComponent->Progress(eMissionTaskType::DONATION, 0, LWOOBJID_EMPTY, "", count);
@@ -5897,5 +5965,25 @@ namespace GameMessages {
 
 	void ToggleGMInvis::Serialize(RakNet::BitStream& stream) const {
 		stream.Write(bStateOut);
+	}
+
+	void NewsSendHotPropertiesInfoToClient::Serialize(RakNet::BitStream& stream) const {
+		const auto writeWString = [&stream](const std::u16string& text) {
+			stream.Write<uint32_t>(text.size());
+			for (const auto character : text) stream.Write<uint16_t>(character);
+		};
+		stream.Write<uint32_t>(properties.size());
+		for (const auto& info : properties) {
+			stream.Write(info.propertyId);
+			stream.Write(info.ownerId);
+			writeWString(info.ownerName);
+			stream.Write(info.reputation);
+			stream.Write(info.templateId);
+			writeWString(info.name);
+			writeWString(info.description);
+			stream.Write(info.performanceCost);
+			stream.Write(info.lastPublished);
+			stream.Write(info.cloneId);
+		}
 	}
 }

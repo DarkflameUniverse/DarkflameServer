@@ -12,6 +12,7 @@
 #include <array>
 #include <set>
 #include "Loot.h"
+#include "StatisticID.h"
 
 enum class eGameActivity : uint32_t;
 
@@ -32,39 +33,6 @@ struct ZoneStatistics {
 	uint64_t m_QuickBuildsCompleted;
 
 	bool operator==(const ZoneStatistics& rhs) const = default;
-};
-
-/**
- * The IDs of each of the possible statistics
- */
-enum StatisticID {
-	CurrencyCollected = 1,
-	BricksCollected,
-	SmashablesSmashed,
-	QuickBuildsCompleted,
-	EnemiesSmashed,
-	RocketsUsed,
-	MissionsCompleted,
-	PetsTamed,
-	ImaginationPowerUpsCollected,
-	LifePowerUpsCollected,
-	ArmorPowerUpsCollected,
-	MetersTraveled,
-	TimesSmashed,
-	TotalDamageTaken,
-	TotalDamageHealed,
-	TotalArmorRepaired,
-	TotalImaginationRestored,
-	TotalImaginationUsed,
-	DistanceDriven,
-	TimeAirborneInCar,
-	RacingImaginationPowerUpsCollected,
-	RacingImaginationCratesSmashed,
-	RacingCarBoostsActivated,
-	RacingTimesWrecked,
-	RacingSmashablesSmashed,
-	RacesFinished,
-	FirstPlaceRaceFinishes,
 };
 
 /**
@@ -117,8 +85,9 @@ public:
 	/**
 	 * Sets the universe score for this entity
 	 * @param uscore the universe score to set
+	 * @param source why it changed, for the economy reports (see EconomyLedger for sources beyond eLootSourceType)
 	 */
-	void SetUScore(int64_t uscore) { m_Uscore = uscore; }
+	void SetUScore(int64_t uscore, uint32_t source);
 
 	/**
 	 * Gets the current activity that the character is partaking in, see ScriptedActivityComponent for more details
@@ -267,8 +236,9 @@ public:
 	 * Allows one to generically update a statistic
 	 * @param updateID the 1-indexed ID of the statistic in the order of definition below
 	 * @param updateValue the value to update the statistic with
+	 * @param fromClient whether the client reported it; those are not trusted for the dashboard's daily totals
 	 */
-	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1);
+	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1, bool fromClient = false);
 
 	/**
 	 * Add a venture vision effect to the player minimap.

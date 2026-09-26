@@ -118,6 +118,9 @@ public:
 	 */
 	LWOOBJID GetDatabaseId() const;
 
+	// A moderator approved or rejected this pet's name (from the dashboard); updates it live for everyone
+	void ApplyNameModeration(bool approved);
+
 	/**
 	 * Returns the ID of the object that the pet is currently interacting with, could be a treasure chest or a switch
 	 * @return the ID of the object that the pet is currently interacting with
@@ -176,8 +179,9 @@ public:
 	/**
 	 * Sets the name of the pet to be moderated
 	 * @param petName the name of the pet to set
+	 * @param owner the character that owns the pet, saved with the name
 	 */
-	void SetPetNameForModeration(const std::string& petName);
+	void SetPetNameForModeration(const std::string& petName, const LWOOBJID owner);
 
 	/**
 	 * Loads the pet name up for moderation along with the moderation status from the database and sets them for this

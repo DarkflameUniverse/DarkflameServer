@@ -17,6 +17,7 @@
 #include "eGameMasterLevel.h"
 #include "eGameActivity.h"
 #include "User.h"
+#include "EconomyLedger.h"
 #include "Database.h"
 #include "CDRewardCodesTable.h"
 #include "Mail.h"
@@ -585,9 +586,9 @@ void CharacterComponent::TrackQuickBuildComplete() {
 }
 
 void CharacterComponent::TrackRaceCompleted(bool won) {
-	m_RacesFinished++;
+	UpdatePlayerStatistic(RacesFinished);
 	if (won)
-		m_FirstPlaceRaceFinishes++;
+		UpdatePlayerStatistic(FirstPlaceRaceFinishes);
 }
 
 void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
@@ -615,7 +616,9 @@ void CharacterComponent::HandleZoneStatisticsUpdate(LWOMAPID zoneID, const std::
 	}
 }
 
-void CharacterComponent::UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue) {
+void CharacterComponent::UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue, bool fromClient) {
+	if (!fromClient) EconomyLedger::RecordStat(m_Parent, updateID, updateValue);
+
 	switch (updateID) {
 	case CurrencyCollected:
 		m_CurrencyCollected += updateValue;
@@ -944,4 +947,9 @@ void CharacterComponent::LoadVisitedLevelsXml(const tinyxml2::XMLElement& vl) {
 		m_VisitedLevels.insert(toInsert);
 	}
 	// </vl>
+}
+
+void CharacterComponent::SetUScore(int64_t uscore, uint32_t source) {
+	if (const auto* character = m_Parent->GetCharacter()) EconomyLedger::RecordUScore(character->GetID(), uscore - m_Uscore, source);
+	m_Uscore = uscore;
 }

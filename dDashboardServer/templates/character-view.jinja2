@@ -1,0 +1,617 @@
+{% extends "base.jinja2" %}
+
+{% block title %}{{ character.name }} - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+.inv-item {
+	display: inline-block;
+	position: relative;
+	width: 64px;
+	height: 64px;
+	border: 1px solid var(--bs-border-color);
+	border-radius: 4px;
+	margin: 3px;
+	cursor: pointer;
+}
+.inv-item.equipped {
+	border-color: #d16f05;
+	background-color: rgba(209, 111, 5, 0.2);
+}
+.inv-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.inv-count {
+	position: absolute;
+	bottom: 1px;
+	right: 3px;
+	font-size: 11px;
+	font-weight: bold;
+	text-shadow: 1px 1px 2px #000;
+}
+.inv-lock {
+	position: absolute;
+	top: 1px;
+	left: 3px;
+	font-size: 10px;
+	opacity: 0.7;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if can.characters_view %}
+<a href="/characters" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Characters</a>
+{% else %}
+<a href="/" class="text-decoration-none mb-3 d-inline-block">&larr; Back to your characters</a>
+{% endif %}
+
+<div class="row g-4">
+	<div class="col-lg-4">
+		<div class="card mb-4">
+			<div class="card-header"><h4 class="mb-0">{{ character.name }}</h4></div>
+			<div class="card-body">
+				<div class="mb-3">
+					<div class="text-body-secondary small text-uppercase">Character ID</div>
+					<div>{{ character.id }}</div>
+				</div>
+				<div class="mb-3">
+					<div class="text-body-secondary small text-uppercase">Account</div>
+					<div><a href="/accounts/{{ character.account_id }}">{{ character.account_name }}</a></div>
+				</div>
+				<div class="mb-3">
+					<div class="text-body-secondary small text-uppercase">Last Login</div>
+					<div id="lastLogin" data-ts="{{ character.last_login }}"></div>
+				</div>
+				<div class="mb-3">
+					<div class="text-body-secondary small text-uppercase">Pending Name</div>
+					<div>{% if character.pending_name != "" %}{{ character.pending_name }}{% else %}<span class="text-body-secondary">None</span>{% endif %}</div>
+				</div>
+				<div>
+					<div class="text-body-secondary small text-uppercase">Needs Rename</div>
+					<div>
+						{% if character.needs_rename %}<span class="badge text-bg-warning">Yes</span>
+						{% else %}<span class="badge text-bg-secondary">No</span>{% endif %}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="card mb-4" id="restrictions" data-character-id="{{ character.id }}">
+			<div class="card-header"><h5 class="mb-0">Restrictions</h5></div>
+			<div class="card-body">
+				<div class="form-check form-switch">
+					<input class="form-check-input" type="checkbox" id="restrictTrade" data-restriction="trade"{% if character.restrictions.trade %} checked{% endif %}{% if not can.characters_restrict or not character.manage.moderation %} disabled{% endif %}>
+					<label class="form-check-label" for="restrictTrade">Restrict trading</label>
+				</div>
+				<div class="form-check form-switch">
+					<input class="form-check-input" type="checkbox" id="restrictMail" data-restriction="mail"{% if character.restrictions.mail %} checked{% endif %}{% if not can.characters_restrict or not character.manage.moderation %} disabled{% endif %}>
+					<label class="form-check-label" for="restrictMail">Restrict mail</label>
+				</div>
+				<div class="form-check form-switch">
+					<input class="form-check-input" type="checkbox" id="restrictChat" data-restriction="chat"{% if character.restrictions.chat %} checked{% endif %}{% if not can.characters_restrict or not character.manage.moderation %} disabled{% endif %}>
+					<label class="form-check-label" for="restrictChat">Restrict chat</label>
+				</div>
+				<p class="text-body-secondary small mt-2 mb-0">Changes apply immediately, including to a character that is online.</p>
+			</div>
+		</div>
+
+		{% if existsIn(character, "stats") %}
+		<div class="card">
+			<div class="card-header"><h5 class="mb-0">Visited Zones</h5></div>
+			<div class="card-body p-0">
+				{% if existsIn(character.stats, "visited_zones") %}
+				<ul class="list-group list-group-flush">
+					{% for zone in character.stats.visited_zones %}
+					<li class="list-group-item d-flex justify-content-between align-items-center">
+						<span>{{ zone.name }}{% if zone.clones > 1 %} <span class="small text-body-secondary">({{ zone.clones }} properties or instances)</span>{% endif %}</span>
+						<span class="badge text-bg-secondary">{{ zone.id }}</span>
+					</li>
+					{% endfor %}
+				</ul>
+				{% else %}
+				<div class="p-3 text-body-secondary">No visited zones</div>
+				{% endif %}
+			</div>
+		</div>
+		{% endif %}
+	</div>
+
+	{% if existsIn(character, "stats") %}
+	<div class="col-lg-8">
+		<div class="row g-3 mb-4">
+			<div class="col-6 col-md-3">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">Level</div>
+					<div class="fs-3 fw-bold">{{ character.stats.level }}</div>
+				</div></div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">Coins</div>
+					<div class="fs-3 fw-bold">{{ character.stats.coins }}</div>
+				</div></div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">U-Score</div>
+					<div class="fs-3 fw-bold">{{ character.stats.universe_score }}</div>
+				</div></div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">Reputation</div>
+					<div class="fs-3 fw-bold">{{ character.stats.reputation }}</div>
+				</div></div>
+			</div>
+		</div>
+
+		<div class="row g-3 mb-4">
+			<div class="col-md-4">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">Missions Done</div>
+					<div class="fs-4 fw-bold">{{ character.stats.missions_completed }}</div>
+				</div></div>
+			</div>
+			<div class="col-md-4">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">Missions Active</div>
+					<div class="fs-4 fw-bold">{{ character.stats.missions_active }}</div>
+				</div></div>
+			</div>
+			<div class="col-md-4">
+				<div class="card text-center"><div class="card-body py-3">
+					<div class="text-body-secondary small text-uppercase mb-1">Total Items</div>
+					<div class="fs-4 fw-bold">{{ character.stats.total_items }}</div>
+				</div></div>
+			</div>
+		</div>
+
+		<div class="card mb-4">
+			<div class="card-header"><h5 class="mb-0">Vitals</h5></div>
+			<div class="card-body">
+				<div class="row g-3">
+					<div class="col-md-4">
+						<div class="d-flex justify-content-between"><span>Health</span><span>{{ character.stats.health }} / {{ character.stats.max_health }}</span></div>
+						<div class="progress mt-1" style="height: 8px;">{% if character.stats.max_health > 0 %}<div class="progress-bar bg-danger" style="width: {{ character.stats.health / character.stats.max_health * 100 }}%"></div>{% endif %}</div>
+					</div>
+					<div class="col-md-4">
+						<div class="d-flex justify-content-between"><span>Armor</span><span>{{ character.stats.armor }} / {{ character.stats.max_armor }}</span></div>
+						<div class="progress mt-1" style="height: 8px;">{% if character.stats.max_armor > 0 %}<div class="progress-bar bg-secondary" style="width: {{ character.stats.armor / character.stats.max_armor * 100 }}%"></div>{% endif %}</div>
+					</div>
+					<div class="col-md-4">
+						<div class="d-flex justify-content-between"><span>Imagination</span><span>{{ character.stats.imagination }} / {{ character.stats.max_imagination }}</span></div>
+						<div class="progress mt-1" style="height: 8px;">{% if character.stats.max_imagination > 0 %}<div class="progress-bar bg-primary" style="width: {{ character.stats.imagination / character.stats.max_imagination * 100 }}%"></div>{% endif %}</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="card mb-4">
+			<div class="card-header"><h5 class="mb-0">Details</h5></div>
+			<div class="card-body">
+				<div class="row g-3">
+					<div class="col-md-4">
+						<div class="text-body-secondary small text-uppercase">Last Zone</div>
+						<div>{{ character.stats.last_zone }} <span class="text-body-secondary">({{ character.stats.last_zone_id }})</span></div>
+					</div>
+					<div class="col-md-4">
+						<div class="text-body-secondary small text-uppercase">GM Level</div>
+						<div>{{ character.stats.gm_level }}</div>
+					</div>
+					<div class="col-md-4">
+						<div class="text-body-secondary small text-uppercase">Clone ID</div>
+						<div>{{ character.prop_clone_id }}{% if can.reports_view and character.prop_clone_id %} <a class="small ms-1" href="/reports?place=*:{{ character.prop_clone_id }}#activity" title="What happened on this character's properties">Property activity</a>{% endif %}</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="d-flex gap-2 flex-wrap mb-4">
+			<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#inventoryModal">Inventory</button>
+			<button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#zoneStatsModal">Zone Stats</button>
+			<a href="/api/characters/{{ character.id }}/xml" class="btn btn-outline-secondary" target="_blank">View XML</a>
+			{% if can.characters_mail or character.is_own %}
+			<button class="btn btn-outline-primary" onclick="openMailbox()">Mailbox</button>
+			{% endif %}
+			{% if can.characters_edit_xml and xml_upload_enabled and character.manage.items %}
+			<button class="btn btn-outline-danger" onclick="openXmlEditor()">Edit XML</button>
+			{% endif %}
+			{% if can.characters_rescue and character.manage.tools %}
+			<button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#rescueModal">Rescue</button>
+			{% endif %}
+			{% if can.characters_edit and character.manage.items %}
+			<button class="btn btn-outline-danger" id="editCharacterBtn">Edit</button>
+			{% endif %}
+			{% if can.characters_history %}
+			<button class="btn btn-outline-secondary" id="historyBtn">History</button>
+			{% endif %}
+			<button class="btn btn-outline-primary" id="missionsBtn">Missions</button>
+			<button class="btn btn-outline-primary" id="progressBtn">Progress</button>
+			{% if can.items_restore and can.characters_history and character.manage.items %}
+			<button class="btn btn-outline-secondary" id="restoreBtn">Give back lost items</button>
+			{% endif %}
+		</div>
+
+		<div class="card mb-4" id="relatedCard" data-kind="character" data-id="{{ character.id }}"><div class="card-body text-body-secondary">Loading related data&hellip;</div></div>
+	</div>
+	{% endif %}
+</div>
+
+{% if existsIn(character, "stats") %}
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Inventory</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				{% if existsIn(character.stats, "inventories") %}
+				<ul class="nav nav-tabs" role="tablist">
+					{% for inv in character.stats.inventories %}
+					<li class="nav-item" role="presentation">
+						<button class="nav-link{% if loop.is_first %}{{ " active" }}{% endif %}" data-bs-toggle="tab" data-bs-target="#inv-{{ inv.type_id }}" type="button">{{ inv.type_name }} <span class="badge text-bg-secondary">{{ length(inv.items) }}</span></button>
+					</li>
+					{% endfor %}
+				</ul>
+				<div class="tab-content mt-3">
+					{% for inv in character.stats.inventories %}
+					<div class="tab-pane fade{% if loop.is_first %}{{ " show active" }}{% endif %}" id="inv-{{ inv.type_id }}">
+						<div class="d-flex flex-wrap">
+							{% for item in inv.items %}
+							{% if can.reports_view and item.id != "" %}<a href="/reports?object={{ item.id }}" class="text-reset text-decoration-none" aria-label="Trace {{ item.name }}">{% endif %}
+							<div class="inv-item{% if item.equipped %}{{ " equipped" }}{% endif %}" data-lot="{{ item.lot }}" data-count="{{ item.count }}" data-equipped="{% if item.equipped %}1{% endif %}" data-bound="{% if item.bound %}1{% endif %}" title="{{ item.name }}">
+								<img src="/api/icon/{{ item.lot }}" alt="{{ item.name }}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22><rect fill=%22%23333%22 width=%2264%22 height=%2264%22/><text x=%2232%22 y=%2236%22 fill=%22%23888%22 text-anchor=%22middle%22 font-size=%2210%22>{{ item.lot }}</text></svg>'">
+								{% if item.count > 1 %}<span class="inv-count">{% if item.count > 999 %}999+{% else %}{{ item.count }}{% endif %}</span>{% endif %}
+								{% if item.bound %}<span class="inv-lock">L</span>{% endif %}
+							</div>
+							{% if can.reports_view and item.id != "" %}</a>{% endif %}
+							{% endfor %}
+						</div>
+					</div>
+					{% endfor %}
+				</div>
+				{% else %}
+				<p class="text-body-secondary">No inventory data</p>
+				{% endif %}
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% if existsIn(character.stats, "zone_stats") %}
+<div class="modal fade" id="zoneStatsModal" tabindex="-1">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Zone Statistics</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div class="table-responsive">
+					<table class="table table-striped table-hover mb-0">
+						<thead><tr><th>Zone</th><th>Achievements</th><th>Coins</th><th>Enemies</th></tr></thead>
+						<tbody>
+						{% for zs in character.stats.zone_stats %}
+						<tr>
+							<td>{{ zs.name }} <span class="text-body-secondary">({{ zs.map_id }})</span></td>
+							<td>{{ zs.achievements }}</td>
+							<td>{{ zs.coins_collected }}</td>
+							<td>{{ zs.enemies_smashed }}</td>
+						</tr>
+						{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="mailModal" tabindex="-1">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Mailbox</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body" id="mailList"></div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="xmlModal" tabindex="-1">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Edit Character XML</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div class="alert alert-danger small">Saving replaces all of this character's data. If the player is online they are disconnected first. Invalid data can make the character unplayable.</div>
+				<textarea id="xmlEditor" class="form-control font-monospace" rows="24" spellcheck="false"></textarea>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-danger" onclick="saveXml()">Save</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="editTitle">Edit {{ character.name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="alert alert-warning small">Saving disconnects the player if they are online. The current version is kept in the history, so it can be put back.</div>
+				<div class="row g-2 mb-3">
+					<div class="col-sm-4"><label class="form-label small" for="editCoins">Coins</label><input type="number" min="0" max="2000000000" class="form-control" id="editCoins"></div>
+					<div class="col-sm-4"><label class="form-label small" for="editUScore">U-score</label><input type="number" min="0" max="2000000000" class="form-control" id="editUScore"></div>
+					<div class="col-sm-4"><label class="form-label small" for="editLevel">Level</label><input type="number" min="1" max="45" class="form-control" id="editLevel"></div>
+				</div>
+				<ul class="nav nav-tabs" id="editInventoryTabs" role="tablist"></ul>
+				<div class="table-responsive"><table class="table table-sm align-middle table-stack mb-2">
+					<thead><tr><th>Item</th><th>Slot</th><th style="width: 8rem">Count</th><th class="text-end">Remove</th></tr></thead>
+					<tbody id="editItems"></tbody>
+				</table></div>
+				<div class="row g-2 align-items-end">
+					<div class="col-sm-6"><label class="form-label small" for="addItemName">Add an item</label><input class="form-control form-control-sm" id="addItemName" list="addItemList" placeholder="Item name or LOT" autocomplete="off"><datalist id="addItemList"></datalist></div>
+					<div class="col-sm-3"><label class="form-label small" for="addItemCount">Count</label><input type="number" min="1" max="999999" value="1" class="form-control form-control-sm" id="addItemCount"></div>
+					<div class="col-sm-3"><button type="button" class="btn btn-sm btn-outline-primary w-100" id="addItemBtn">Add to this inventory</button></div>
+				</div>
+				<ul class="small mt-2 mb-0" id="pendingAdds"></ul>
+			</div>
+			<div class="modal-footer"><span class="me-auto small text-body-secondary" id="editChanges"></span><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" id="saveEditBtn">Save changes</button></div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="historyTitle">History of {{ character.name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="row g-3">
+					<div class="col-lg-4"><div class="list-group small" id="snapshotList"><div class="text-body-secondary">Loading&hellip;</div></div></div>
+					<div class="col-lg-8" id="snapshotCompare"><p class="text-body-secondary">Pick a snapshot to see how it differs from the character now.</p></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="missionsModal" tabindex="-1" aria-labelledby="missionsTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="missionsTitle">Missions of {{ character.name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				{% if can.characters_missions and character.manage.items %}
+				<div class="alert alert-info small">Changes to a player in game are made by their world, as the <code>/completemission</code>, <code>/resetmission</code> and <code>/addmission</code> commands do. Otherwise their saved data is changed (a snapshot is kept first); rewards can only be given in game.</div>
+				<div class="row g-2 align-items-end mb-3">
+					<div class="col-md-8"><label class="form-label small" for="missionSearch">Find any mission</label><input class="form-control form-control-sm" id="missionSearch" placeholder="Name or ID" autocomplete="off"></div>
+					<div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="missionRewards" checked><label class="form-check-label small" for="missionRewards">Give rewards when completing</label></div></div>
+				</div>
+				<ul class="list-group list-group-flush small mb-3" id="missionSearchResults"></ul>
+				{% endif %}
+				<div class="row g-2 mb-2">
+					<div class="col-md-6"><input class="form-control form-control-sm" id="missionFilter" placeholder="Filter by name, ID or group" aria-label="Filter missions"></div>
+					<div class="col-6 col-md-3"><select class="form-select form-select-sm" id="missionKind" aria-label="Kind"></select></div>
+					<div class="col-6 col-md-3"><select class="form-select form-select-sm" id="missionShow" aria-label="Show"><option value="">Everything</option><option value="current">In the journal</option><option value="done">Done</option></select></div>
+				</div>
+				<div class="table-responsive"><table class="table table-sm align-middle table-stack">
+					<thead><tr><th>Mission</th><th>State</th>{% if can.characters_missions and character.manage.items %}<th></th>{% endif %}</tr></thead>
+					<tbody id="missionRows"><tr><td colspan="3" class="text-body-secondary">Loading&hellip;</td></tr></tbody>
+				</table></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="progressTitle">Progress of {{ character.name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body" id="progressBody"><p class="text-body-secondary">Loading&hellip;</p></div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreTitle" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="restoreTitle">Give {{ character.name }} back lost items</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<p class="small text-body-secondary">Pick a snapshot to see what the character had then and is missing now. Items go back by in-game mail, whether the player is online or not. What they hold now, what waits in their mailbox and what someone else now holds (traded or mailed away) is not sent again.</p>
+				<div class="row g-3">
+					<div class="col-lg-4"><div class="list-group small" id="restoreSnapshots"><div class="text-body-secondary">Loading&hellip;</div></div></div>
+					<div class="col-lg-8"><div id="restoreCompare"></div>
+						<label class="form-label small mt-2" for="restoreNote">Note in the mail (optional)</label>
+						<textarea class="form-control form-control-sm" id="restoreNote" rows="2" maxlength="400"></textarea>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" id="restoreSend" disabled>Mail the ticked items</button></div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="rescueModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Rescue Character</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<p>Move this character to a zone. If they are online they are transferred immediately; otherwise their saved position is updated for their next login.</p>
+				<label for="rescueZone" class="form-label">Zone</label>
+				<select id="rescueZone" class="form-select mb-3" data-zone="{{ character.stats.last_zone_id }}"></select>
+				<label for="rescueSpawn" class="form-label">Spawn point</label>
+				<select id="rescueSpawn" class="form-select"></select>
+				<div class="form-text" id="rescueSpawnHelp"></div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-warning" onclick="rescueCharacter()">Rescue</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	var el = document.getElementById('lastLogin');
+	if (el) {
+		var ts = parseInt(el.getAttribute('data-ts'));
+		el.textContent = ts > 0 ? new Date(ts * 1000).toLocaleString() : 'Never';
+	}
+	var inventory = document.getElementById('inventoryModal');
+	if (inventory) inventory.addEventListener('show.bs.modal', loadItemTooltips, { once: true });
+});
+
+var characterId = document.getElementById('restrictions').getAttribute('data-character-id');
+// Saves from the game (inventory, stats, level) and mail arrive live
+if (window.Live) Live.refreshPage(['characters', 'mail'], characterId);
+
+document.querySelectorAll('[data-restriction]').forEach(function (input) {
+	input.addEventListener('change', function () {
+		var body = {};
+		body[input.getAttribute('data-restriction')] = input.checked;
+		api.action('/api/characters/' + characterId + '/restrict', body, 'Restrictions updated')
+			.catch(function () { input.checked = !input.checked; });
+	});
+});
+
+// LU rarities; colours come from .rarity-N classes (the tooltip sanitizer strips inline styles)
+
+function statsHtml(stats) {
+	var lines = [];
+	if (stats.life) lines.push('+' + esc(stats.life) + ' Health');
+	if (stats.armor) lines.push('+' + esc(stats.armor) + ' Armor');
+	if (stats.imagination) lines.push('+' + esc(stats.imagination) + ' Imagination');
+	var html = lines.length ? '<div>' + lines.join('<br>') + '</div>' : '';
+	stats.skills.forEach(function (skill) {
+		html += '<div class="d-flex gap-1 mt-1 text-start">' +
+			(skill.icon ? '<img src="/api/icon_id/' + esc(skill.icon) + '" width="24" height="24" alt="">' : '') +
+			'<span>' + esc(skill.description).replace(/\n/g, '<br>') + '</span></div>';
+	});
+	return html;
+}
+
+function tooltipHtml(info, el) {
+	// Rarity has no names in the game, only an icon for each level (1-4)
+	var rarity = info.rarity >= 1 && info.rarity <= 4 ? '<span aria-label="Rarity ' + esc(info.rarity) + '" title="Rarity ' + esc(info.rarity) + '">' + '\u2605'.repeat(info.rarity) + '</span>' : '';
+	var html = '<div class="fw-bold rarity-' + esc(info.rarity) + '">' + esc(info.name) + '</div>';
+	if (rarity) html += '<div class="small rarity-' + esc(info.rarity) + '">' + rarity + '</div>';
+	if (el.getAttribute('data-equipped')) html += '<div class="small item-equipped">Equipped</div>';
+	if (el.getAttribute('data-bound')) html += '<div class="small">Bound</div>';
+	if (info.description) html += '<div class="small mt-1 text-start">' + esc(info.description) + '</div>';
+	html += statsHtml(info.stats);
+	if (el.parentElement && el.parentElement.tagName === 'A') html += '<div class="small text-body-secondary mt-1">Click to trace where it came from</div>';
+	if (info.set) {
+		html += '<hr class="my-1"><div class="fw-bold">' + esc(info.set.name || 'Item set') + (info.set.rank ? ' (Rank ' + esc(info.set.rank) + ')' : '') + '</div>';
+		info.set.bonuses.forEach(function (bonus) {
+			html += '<div class="small mt-1"><b>' + esc(bonus.pieces) + ' items:</b></div>' + statsHtml(bonus.stats);
+		});
+	}
+	var count = parseInt(el.getAttribute('data-count'), 10);
+	if (count > 1) html += '<div class="small mt-1">Count: ' + esc(count.toLocaleString()) + '</div>';
+	html += '<div class="small text-body-secondary">LOT ' + esc(info.lot) + '</div>';
+	return html;
+}
+
+function loadItemTooltips() {
+	var items = Array.prototype.slice.call(document.querySelectorAll('.inv-item[data-lot]'));
+	var lots = Array.from(new Set(items.map(function (el) { return parseInt(el.getAttribute('data-lot'), 10); })));
+	if (!lots.length) return;
+	api.post('/api/items/info', { lots: lots }).then(function (info) {
+		items.forEach(function (el) {
+			var item = info[el.getAttribute('data-lot')];
+			if (!item) return;
+			el.removeAttribute('title');
+			new bootstrap.Tooltip(el, { html: true, title: tooltipHtml(item, el), placement: 'right', fallbackPlacements: ['left', 'bottom', 'top'], customClass: 'item-tooltip' });
+		});
+	});
+}
+
+function openMailbox() {
+	var list = document.getElementById('mailList');
+	list.textContent = 'Loading…';
+	new bootstrap.Modal(document.getElementById('mailModal')).show();
+	api.get('/api/characters/' + characterId + '/mail').then(function (mail) {
+		if (!mail.length) { list.textContent = 'No mail'; return; }
+		list.innerHTML = mail.map(function (m) {
+			return '<div class="border-bottom pb-2 mb-2">' +
+				'<div class="d-flex justify-content-between"><strong>' + esc(m.subject) + '</strong><span class="small text-body-secondary">' + fmt.unix(m.time_sent) + '</span></div>' +
+				'<div class="small text-body-secondary">From ' + esc(m.sender) + (m.read ? '' : ' ' + fmt.badge('Unread', 'info')) + '</div>' +
+				'<div style="white-space: pre-wrap;">' + esc(m.body) + '</div>' +
+				(m.attachment_lot > 0 ? '<div class="small mt-1">Attachment: ' + esc(m.attachment_count) + 'x ' + esc(m.attachment_name || ('LOT ' + m.attachment_lot)) + '</div>' : '') +
+				'</div>';
+		}).join('');
+	});
+}
+
+// Indent XML for editing; the server stores it compactly again
+function prettyXml(xml) {
+	var depth = 0;
+	return xml.replace(/>\s*</g, '>\n<').split('\n').map(function (line) {
+		if (/^<\//.test(line)) depth = Math.max(depth - 1, 0);
+		var out = '  '.repeat(depth) + line;
+		if (/^<[^!?\/][^>]*[^\/]>$/.test(line) && !/<\/[^>]+>$/.test(line)) depth++;
+		return out;
+	}).join('\n');
+}
+
+function openXmlEditor() {
+	var editor = document.getElementById('xmlEditor');
+	editor.value = 'Loading…';
+	new bootstrap.Modal(document.getElementById('xmlModal')).show();
+	api.get('/api/characters/' + characterId + '/xml').then(function (r) { editor.value = prettyXml(r.text || ''); });
+}
+
+function saveXml() {
+	if (!confirm('Replace this character\'s data?')) return;
+	api.action('/api/characters/' + characterId + '/xml', { xml: document.getElementById('xmlEditor').value }).then(function (d) {
+		return d.result;
+	}).then(function (r) {
+		if (r && r.success) location.reload();
+	}).catch(function () {});
+}
+
+// The item and progress tools also need the server's say that this character's account may be managed (own characters: self_items)
+var manageItems = {% if character.manage.items %}true{% else %}false{% endif %};
+window.characterToolsConfig = { id: characterId, canEdit: DASH.can('characters_edit') && manageItems, canMissions: DASH.can('characters_missions') && manageItems };
+
+var rescuePicker = null;
+document.getElementById('rescueModal') && document.getElementById('rescueModal').addEventListener('show.bs.modal', function () {
+	if (!rescuePicker) rescuePicker = RescuePicker(document.getElementById('rescueZone'), document.getElementById('rescueSpawn'),
+		{ zone: parseInt(document.getElementById('rescueZone').dataset.zone, 10) || 0 }); // starts on the zone they were last in
+});
+
+function rescueCharacter() {
+	if (!rescuePicker || !rescuePicker.zone()) return;
+	if (!confirm('Rescue this character to ' + rescuePicker.label() + '?')) return;
+	api.action('/api/characters/' + characterId + '/rescue', { zone_id: rescuePicker.zone(), spawn_point: rescuePicker.spawnPoint() }).then(function () {
+		bootstrap.Modal.getInstance(document.getElementById('rescueModal')).hide();
+	}).catch(function () {});
+}
+</script>
+<script src="/js/rescue.js"></script>
+<script src="/js/character-tools.js"></script>
+<script src="/js/character-missions.js"></script>
+<script src="/js/related.js"></script>
+{% endblock %}

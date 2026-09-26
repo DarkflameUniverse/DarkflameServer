@@ -1,0 +1,56 @@
+{% extends "base.jinja2" %}
+
+{% block title %}API - DarkflameServer{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.29.1/swagger-ui.min.css" integrity="sha512-QIJpSy6rqOKoEjIR+Pp7r5lTkNPJPJCRejWzG4jb12bCT1EeL/vcjZtk4NNKeEuVRXY+d34d/t9y1CHzZbgeJQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>
+	/* Swagger UI only comes in a light theme: give it a light panel of its own */
+	.api-explorer { --api-panel-bg: #fff; --api-panel-text: #3b4151; background: var(--api-panel-bg); color: var(--api-panel-text); border-radius: .5rem; padding: .5rem 1rem 1rem; }
+	.api-explorer .swagger-ui .info { margin: 1rem 0; }
+	.api-explorer .swagger-ui .scheme-container { box-shadow: none; padding: .5rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">API</h2>
+<p class="text-body-secondary mb-3">Every endpoint your account may use. Open one and press <strong>Try it out</strong> to call it as yourself, right here.
+	The same description is at <a href="/api/openapi.json"><code>/api/openapi.json</code></a> (OpenAPI 3) for other tools.</p>
+
+<div class="card mb-3">
+	<div class="card-header"><h5 class="mb-0">Signing in from scripts and bots</h5></div>
+	<div class="card-body small">
+		<p>Make an API token on <a href="/account">your account page</a> and send it with every request:</p>
+		<pre class="bg-body-tertiary p-2 rounded mb-2"><code>curl -H "Authorization: Bearer $TOKEN" http://localhost:2006/api/status</code></pre>
+		<p class="mb-2">A token acts as your account with its <em>current</em> GM level, so each request needs the same permission as the page it matches,
+			and changing the account's level or banning it takes effect straight away. Using the API at all needs the <code>api_access</code> permission.</p>
+		<p class="mb-2">Live updates: open a WebSocket to <code>/ws</code> (with the same <code>Authorization</code> header, or your sign-in cookie) and send
+			<code>{"event": "subscribe", "subscription": "chat_message"}</code> (or <code>table_changed</code>, <code>dashboard_update</code>, ...).</p>
+		<p class="mb-0 text-body-secondary">Tables take DataTables-style bodies: <code>{"start": 0, "length": 25, "search": "text"}</code>. Calls that act on
+			online players answer <code>{requestId}</code>; <code>GET /api/actions/{id}</code> gives the result.</p>
+	</div>
+</div>
+
+<div class="api-explorer" data-bs-theme="light" id="swagger"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.29.1/swagger-ui-bundle.min.js" integrity="sha512-yfAKqi7F3JSDZA7V/XTql3caj2o8A81yg2EWIBykt2BJjLjNYnsd4CVAKvrFp/nYl9HQX7R06Z6e5KBn5aoj6g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+SwaggerUIBundle({
+	url: '/api/openapi.json',
+	dom_id: '#swagger',
+	deepLinking: true,          // links like /api_docs#/chat/get_api_chat
+	tryItOutEnabled: true,
+	docExpansion: 'none',
+	filter: true,               // a box to search the endpoints
+	displayRequestDuration: true,
+	withCredentials: true,
+	// Calls go out as you (your sign-in cookie); the dashboard wants this header on cookie-signed requests (CSRF check)
+	requestInterceptor: function (request) {
+		request.headers['X-Requested-With'] = 'swagger';
+		return request;
+	}
+});
+</script>
+{% endblock %}

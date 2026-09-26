@@ -1,7 +1,10 @@
 #pragma once
 #include <algorithm>
+#include "SpareBackoff.h"
+#include <map>
 #include <vector>
 #include "dCommonVars.h"
+#include "IServerOperations.h"
 #include "RakNetTypes.h"
 #include "dZMCommon.h"
 #include "Logger.h"
@@ -25,6 +28,7 @@ public:
 		m_ZoneID = LWOZONEID(mapID, instanceID, cloneID);
 		m_MaxClientsSoftCap = softCap;
 		m_MaxClientsHardCap = hardCap;
+		m_StartedHardCap = hardCap;
 		m_CurrentClientCount = 0;
 		m_IsPrivate = isPrivate;
 		m_Password = password;
@@ -63,6 +67,12 @@ public:
 	int GetSoftCap() const { return m_MaxClientsSoftCap; }
 	int GetCurrentClientCount() const { return m_CurrentClientCount; }
 
+	// New caps for a running instance: the hard cap can't go above what its world server was started with
+	void SetCaps(int softCap, int hardCap) {
+		m_MaxClientsHardCap = std::min(hardCap, m_StartedHardCap);
+		m_MaxClientsSoftCap = std::min(softCap, m_MaxClientsHardCap);
+	}
+
 	void SetAffirmationTimeout(const uint32_t value) { m_AffirmationTimeout = value; }
 	uint32_t GetAffirmationTimeout() const { return m_AffirmationTimeout; }
 
@@ -90,6 +100,7 @@ private:
 	LWOZONEID m_ZoneID{};
 	int m_MaxClientsSoftCap{};
 	int m_MaxClientsHardCap{};
+	int m_StartedHardCap{}; // the -maxclients its world server was started with
 	int m_CurrentClientCount{};
 	std::vector<Player> m_Players{};
 	SystemAddress m_SysAddr{};
@@ -147,6 +158,15 @@ public:
 	// Start a new public instance of a zone even when one with room is running (instance migrations)
 	const InstancePtr& StartNewInstance(LWOMAPID mapID, LWOCLONEID cloneID) { return CreateInstance(mapID, cloneID); }
 
+	/**
+	 * Player caps and spare instances set per zone on the dashboard (zone_limits). Caps apply to public instances
+	 * started from now on, and running ones get the new caps too (a hard cap only as high as they were started with).
+	 */
+	void LoadZoneLimits();
+
+	// Start an instance of each zone that has fewer instances with room than its spare_instances (one per call)
+	void KeepSpareInstances();
+
 private:
 	std::string mExternalIP;
 	std::vector<std::unique_ptr<Instance>> m_Instances;
@@ -157,6 +177,9 @@ private:
 	 * Whether or not the master server is currently shutting down.
 	 */
 	bool m_IsShuttingDown = false;
+
+	std::map<LWOMAPID, IServerOperations::ZoneLimit> m_ZoneLimits;
+	std::map<LWOMAPID, SpareBackoff> m_SpareBackoff;
 
 	//Private functions:
 	int GetSoftCap(LWOMAPID mapID);

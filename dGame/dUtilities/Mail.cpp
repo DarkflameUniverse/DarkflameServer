@@ -1,4 +1,5 @@
 #include "Mail.h"
+#include "DashboardNotify.h"
 #include <functional>
 #include <string>
 #include <algorithm>
@@ -28,6 +29,8 @@
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
 #include "User.h"
+#include "EconomyLedger.h"
+#include "ObjectIDManager.h"
 #include "StringifiedEnum.h"
 #include "UserManager.h"
 
@@ -105,7 +108,7 @@ namespace Mail {
 						}
 					}
 
-					if (hasAttachment && !item) {
+					if (hasAttachment && (!item || static_cast<uint32_t>(mailInfo.itemCount) > item->GetCount())) {
 						response.status = eSendResponse::AttachmentNotFound;
 					} else if (player->GetCharacter()->GetCoins() - mailCost < 0) {
 						response.status = eSendResponse::NotEnoughCoins;
@@ -113,10 +116,29 @@ namespace Mail {
 						bool removeSuccess = true;
 						// Remove coins and items from the sender
 						player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
+						const auto sentItemId = mailInfo.itemID;
+						mailInfo.itemSubkey = LWOOBJID_EMPTY;
+						mailInfo.itemConfig.clear();
 						if (inventoryComponent && hasAttachment && item) {
-							removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, ALL, true);
+							// The attached item waits in the mailbox rather than being destroyed, so the ledger records a transfer
+							EconomyLedger::ScopedItemTransfer transfer;
+							const auto count = static_cast<uint32_t>(mailInfo.itemCount);
+							if (count == item->GetCount()) {
+								// The whole item goes with its data (subkey, config)
+								mailInfo.itemSubkey = item->GetSubKey();
+								mailInfo.itemConfig = item->GetConfig().ToLines();
+							}
+							// Always a new object id while it waits in the mailbox: the sender is saved after the mail is
+							// written, so reusing the id could leave two objects with it if the server stopped in between.
+							// (Only mail from the dashboard's item restore brings back original ids, for objects that no
+							// longer exist.)
+							mailInfo.itemID = ObjectIDManager::GetPersistentID();
+							// Take the attached item itself, not whichever stack of that LOT comes first
+							item->SetCount(item->GetCount() - count);
 							auto* missionComponent = player->GetComponent<MissionComponent>();
-							if (missionComponent && removeSuccess) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
+							if (missionComponent) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
+						} else {
+							mailInfo.itemID = LWOOBJID_EMPTY;
 						}
 
 						// we passed all the checks, now we can actully send the mail
@@ -124,12 +146,14 @@ namespace Mail {
 							mailInfo.senderId = character->GetID();
 							mailInfo.senderUsername = character->GetName();
 							mailInfo.receiverId = receiverID->id;
-							mailInfo.itemSubkey = LWOOBJID_EMPTY;
-
-							//clear out the attachementID
-							mailInfo.itemID = 0;
 
 							Database::Get()->InsertNewMail(mailInfo);
+							DashboardNotify::Changed("mail", mailInfo.receiverId);
+							if (hasAttachment) {
+								EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::MAIL_SENT, .itemId = sentItemId,
+									.newItemId = mailInfo.itemID, .lot = mailInfo.itemLOT, .count = static_cast<uint32_t>(mailInfo.itemCount),
+									.fromCharacter = character->GetID(), .toCharacter = receiverID->id, .zone = Game::server->GetZoneID() });
+							}
 							response.status = eSendResponse::Success;
 							character->SaveXMLToDatabase();
 						} else {
@@ -203,8 +227,23 @@ namespace Mail {
 			} else if (!inv->HasSpaceForLoot({ {playerMail->itemLOT, playerMail->itemCount} })) {
 				response.status = eAttachmentCollectResponse::NoSpaceInInventory;
 			} else {
-				inv->AddItem(playerMail->itemLOT, playerMail->itemCount, eLootSourceType::MAIL);
+				// Mail from players only moves items between them; mail from the game (sender 0) hands out new items
+				const bool fromPlayer = playerMail->senderId != LWOOBJID_EMPTY;
+				std::optional<EconomyLedger::ScopedItemTransfer> transfer;
+				if (fromPlayer) transfer.emplace();
+
+				LwoNameValue config;
+				config.InsertLines(playerMail->itemConfig);
+				const auto claimed = inv->ReceiveItem(playerMail->itemID, playerMail->itemLOT, playerMail->itemCount, eLootSourceType::MAIL, config, playerMail->itemSubkey);
 				Database::Get()->ClaimMailItem(mailID);
+				DashboardNotify::Changed("mail", playerMail->receiverId);
+
+				if (fromPlayer) {
+					EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::MAIL_CLAIMED, .itemId = playerMail->itemID,
+						.newItemId = claimed.id, .lot = playerMail->itemLOT, .count = static_cast<uint32_t>(playerMail->itemCount),
+						.fromCharacter = playerMail->senderId, .toCharacter = playerMail->receiverId, .zone = Game::server->GetZoneID(),
+						.merged = claimed.merged });
+				}
 				response.status = eAttachmentCollectResponse::Success;
 			}
 		}
@@ -238,6 +277,7 @@ namespace Mail {
 			} else {
 				if (!(mailData->itemLOT > 0 && mailData->itemCount > 0)) {
 					Database::Get()->DeleteMail(mailID);
+					DashboardNotify::Changed("mail", playerID);
 					response.status = eDeleteResponse::Success;
 				} else if (mailData->itemLOT > 0 && mailData->itemCount > 0) {
 					response.status = eDeleteResponse::HasAttachments;
@@ -272,6 +312,7 @@ namespace Mail {
 			if (mail->receiverId == player->GetObjectID()) {
 				response.status = eReadResponse::Success;
 				Database::Get()->MarkMailRead(mailID);
+				DashboardNotify::Changed("mail", mail->receiverId);
 			} else {
 				LOG("Player %llu tried to mark mail read for player %llu", mail->receiverId, player->GetObjectID());
 			}
@@ -388,6 +429,7 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	mailInsert.itemSubkey = LWOOBJID_EMPTY;
 
 	Database::Get()->InsertNewMail(mailInsert);
+	DashboardNotify::Changed("mail", mailInsert.receiverId);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
 	NotificationResponse response;

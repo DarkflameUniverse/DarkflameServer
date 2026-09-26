@@ -2,6 +2,7 @@
 #include <string>
 #include <chrono>
 #include <csignal>
+#include <functional>
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
@@ -42,6 +43,11 @@ public:
 	void DeallocateMasterPacket(Packet* packet);
 	virtual void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast);
 	void SendToMaster(RakNet::BitStream& bitStream);
+
+	// Sees every packet Send sends, before it goes out (the dashboard's message inspector sets it only while it
+	// captures, so sending costs nothing extra otherwise). Pass nullptr to remove it.
+	using SendObserver = std::function<void(const RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast)>;
+	void SetSendObserver(SendObserver observer) { mSendObserver = std::move(observer); }
 
 	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 
@@ -109,4 +115,5 @@ protected:
 	int mMasterPort;
 	std::chrono::steady_clock::time_point mStartTime = std::chrono::steady_clock::now();
 	std::string mMasterPassword;
+	SendObserver mSendObserver;
 };

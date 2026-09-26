@@ -1,7 +1,9 @@
 #include "SQLiteDatabase.h"
 
+#include "GeneralUtils.h"
 #include "eGameMasterLevel.h"
 #include "Database.h"
+#include "json.hpp"
 
 std::optional<IAccounts::Info> SQLiteDatabase::GetAccountInfo(const std::string_view username) {
 	auto [_, result] = ExecuteSelect("SELECT * FROM accounts WHERE name = ? LIMIT 1", username);
@@ -18,6 +20,8 @@ std::optional<IAccounts::Info> SQLiteDatabase::GetAccountInfo(const std::string_
 	toReturn.locked = result.getIntField("locked");
 	toReturn.playKeyId = result.getIntField("play_key_id");
 	toReturn.muteExpire = static_cast<uint64_t>(result.getInt64Field("mute_expire"));
+	toReturn.banExpires = result.getInt64Field("ban_expires");
+	toReturn.banReason = result.fieldIsNull("ban_reason") ? "" : result.getStringField("ban_reason");
 
 	return toReturn;
 }
@@ -34,8 +38,8 @@ void SQLiteDatabase::UpdateAccountPassword(const uint32_t accountId, const std::
 	ExecuteUpdate("UPDATE accounts SET password = ? WHERE id = ?;", bcryptpassword, accountId);
 }
 
-void SQLiteDatabase::InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) {
-	ExecuteInsert("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);", username, bcryptpassword, static_cast<int32_t>(eGameMasterLevel::OPERATOR));
+void SQLiteDatabase::InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword, const eGameMasterLevel gmLevel) {
+	ExecuteInsert("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);", username, bcryptpassword, static_cast<int32_t>(gmLevel));
 }
 
 void SQLiteDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) {
@@ -47,4 +51,179 @@ uint32_t SQLiteDatabase::GetAccountCount() {
 	if (res.eof()) return 0;
 
 	return res.getIntField("count");
+}
+void SQLiteDatabase::RecordFailedAttempt(const uint32_t accountId) {
+	ExecuteUpdate("UPDATE accounts SET failed_attempts = failed_attempts + 1 WHERE id = ?;", accountId);
+}
+
+void SQLiteDatabase::ClearFailedAttempts(const uint32_t accountId) {
+	ExecuteUpdate("UPDATE accounts SET failed_attempts = 0, lockout_time = NULL, last_login = CURRENT_TIMESTAMP WHERE id = ?;", accountId);
+}
+
+void SQLiteDatabase::SetLockout(const uint32_t accountId, const int64_t lockoutUntil) {
+	ExecuteUpdate("UPDATE accounts SET lockout_time = datetime(NULLIF(?, 0), 'unixepoch'), failed_attempts = 0 WHERE id = ?;", lockoutUntil, accountId);
+}
+
+bool SQLiteDatabase::IsLockedOut(const uint32_t accountId) {
+	// lockout_time is stored as UTC text by datetime(?, 'unixepoch'), the same format datetime('now') gives
+	auto [_, result] = ExecuteSelect("SELECT 1 AS locked FROM accounts WHERE id = ? AND lockout_time IS NOT NULL AND lockout_time > datetime('now');", accountId);
+	return !result.eof();
+}
+
+uint32_t SQLiteDatabase::CountActiveAccountsAtGmLevel(const uint8_t gmLevel, const uint32_t excludeAccountId) {
+	auto [_, result] = ExecuteSelect("SELECT COUNT(*) AS count FROM accounts WHERE gm_level = ? AND id != ? AND banned = 0 AND locked = 0;", static_cast<int32_t>(gmLevel), excludeAccountId);
+	return result.eof() ? 0 : static_cast<uint32_t>(result.getIntField("count"));
+}
+
+void SQLiteDatabase::SetAccountLocked(const uint32_t accountId, const bool locked) {
+	ExecuteUpdate("UPDATE accounts SET locked = ? WHERE id = ?;", locked, accountId);
+}
+
+uint8_t SQLiteDatabase::GetFailedAttempts(const uint32_t accountId) {
+	auto [_, result] = ExecuteSelect("SELECT failed_attempts FROM accounts WHERE id = ?;", accountId);
+	if (result.eof()) {
+		return 0;
+	}
+
+	return result.getIntField("failed_attempts");
+}
+
+nlohmann::json SQLiteDatabase::GetAccountsTable(uint32_t start, uint32_t length, const std::string_view search, uint32_t orderColumn, bool orderAsc) {
+	// A number in the search box also matches IDs exactly (-1 never matches)
+	const int64_t searchId = GeneralUtils::TryParse<int64_t>(std::string(search)).value_or(-1);
+	// Build base query
+	std::string baseQuery = "SELECT id, name, banned, locked, gm_level, mute_expire, created_at FROM accounts";
+	std::string whereClause;
+	std::string orderClause;
+
+	// Add search filter if provided
+	if (!search.empty()) {
+		whereClause = " WHERE (name LIKE '%' || ? || '%' OR id = ? OR id IN (SELECT account_id FROM charinfo WHERE name LIKE '%' || ? || '%'))";
+	}
+
+	// Map column indices to database columns
+	std::string orderColumnName = "id";
+	switch (orderColumn) {
+		case 0: orderColumnName = "id"; break;
+		case 1: orderColumnName = "name"; break;
+		case 2: orderColumnName = "banned"; break;
+		case 3: orderColumnName = "locked"; break;
+		case 4: orderColumnName = "gm_level"; break;
+		case 5: orderColumnName = "mute_expire"; break;
+		case 6: orderColumnName = "created_at"; break;
+		default: orderColumnName = "id";
+	}
+
+	orderClause = " ORDER BY " + orderColumnName + (orderAsc ? " ASC" : " DESC");
+
+	// Build the main query
+	std::string mainQuery = baseQuery + whereClause + orderClause + " LIMIT ? OFFSET ?;";
+
+	// Get total count
+	std::string totalCountQuery = "SELECT COUNT(*) as count FROM accounts;";
+	auto [_, totalCountResult] = ExecuteSelect(totalCountQuery);
+	uint32_t totalRecords = totalCountResult.eof() ? 0 : totalCountResult.getIntField("count");
+
+	// Get filtered count
+	uint32_t filteredRecords = totalRecords;
+	if (!search.empty()) {
+		std::string filteredCountQuery = "SELECT COUNT(*) as count FROM accounts WHERE (name LIKE '%' || ? || '%' OR id = ? OR id IN (SELECT account_id FROM charinfo WHERE name LIKE '%' || ? || '%'));";
+		auto [__, filteredCountResult] = ExecuteSelect(filteredCountQuery, search, searchId, search);
+		filteredRecords = filteredCountResult.eof() ? 0 : filteredCountResult.getIntField("count");
+	}
+
+	// Execute main query
+	auto [stmt, result] = !search.empty() ? 
+		ExecuteSelect(mainQuery, search, searchId, search, length, start) :
+		ExecuteSelect(mainQuery, length, start);
+
+	// Build response JSON
+	nlohmann::json accountsArray = nlohmann::json::array();
+
+	while (!result.eof()) {
+		nlohmann::json account = {
+			{"id", result.getIntField("id")},
+			{"name", result.getStringField("name")},
+			{"banned", result.getIntField("banned") != 0},
+			{"locked", result.getIntField("locked") != 0},
+			{"gm_level", result.getIntField("gm_level")},
+			{"mute_expire", result.getInt64Field("mute_expire")},
+			{"created_at", result.getStringField("created_at")}
+		};
+		accountsArray.push_back(account);
+		result.nextRow();
+	}
+
+	nlohmann::json response = {
+		{"draw", 1},
+		{"recordsTotal", totalRecords},
+		{"recordsFiltered", filteredRecords},
+		{"data", accountsArray}
+	};
+
+	return response;
+}
+nlohmann::json SQLiteDatabase::GetAccountById(uint32_t accountId) {
+	try {
+		auto [_, result] = ExecuteSelect("SELECT * FROM accounts WHERE id = ? LIMIT 1;", accountId);
+
+		if (result.eof()) {
+			return nlohmann::json{{"error", "Account not found"}};
+		}
+
+		nlohmann::json account = {
+			{"id", result.getIntField("id")},
+			{"name", result.getStringField("name")},
+			{"banned", result.getIntField("banned") != 0},
+			{"locked", result.getIntField("locked") != 0},
+			{"ban_expires", result.getInt64Field("ban_expires")},
+			{"ban_reason", result.fieldIsNull("ban_reason") ? "" : result.getStringField("ban_reason")},
+			{"gm_level", result.getIntField("gm_level")},
+			{"mute_expire", result.getInt64Field("mute_expire")},
+			{"created_at", result.getStringField("created_at")}
+		};
+
+		return account;
+	} catch (const CppSQLite3Exception& e) {
+		LOG_DEBUG("SQLite Error: %s", e.errorMessage());
+		return nlohmann::json{{"error", "Database error"}};
+	}
+}
+
+void SQLiteDatabase::DeleteAccount(const uint32_t accountId) {
+	// All or nothing: a failure part way leaves the account as it was
+	DatabaseTransaction transaction(*this);
+	std::vector<LWOOBJID> characters;
+	{
+		auto [_, result] = ExecuteSelect("SELECT id FROM charinfo WHERE account_id = ?;", accountId);
+		while (!result.eof()) {
+			characters.push_back(result.getInt64Field("id"));
+			result.nextRow();
+		}
+	}
+	for (const auto characterId : characters) {
+		DeleteCharacter(characterId);
+		ExecuteDelete("DELETE FROM character_snapshots WHERE character_id = ?;", characterId);
+	}
+	// Rows about the account itself. Audit log, chat log and reports stay as the record of what happened.
+	for (const auto* table : { "account_tokens", "account_recovery_codes", "account_notes", "account_strikes", "account_login_addresses",
+		"dashboard_preferences", "accounts_rewardcodes", "player_cheat_detections" }) {
+		ExecuteDelete(std::string("DELETE FROM ") + table + " WHERE account_id = ?;", accountId);
+	}
+	ExecuteDelete("DELETE FROM accounts WHERE id = ?;", accountId);
+	transaction.Commit();
+}
+
+nlohmann::json SQLiteDatabase::GetAccountCharacters(uint32_t accountId) {
+	auto [_, result] = ExecuteSelect("SELECT id, name, last_login FROM charinfo WHERE account_id = ? ORDER BY last_login DESC;", accountId);
+	nlohmann::json chars = nlohmann::json::array();
+	while (!result.eof()) {
+		chars.push_back({
+			{"id", std::to_string(result.getInt64Field("id"))},
+			{"name", result.getStringField("name")},
+			{"last_login", result.getInt64Field("last_login")}
+		});
+		result.nextRow();
+	}
+	return chars;
 }
