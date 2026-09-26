@@ -11,65 +11,6 @@ Vector3 QuatUtils::Euler(const NiQuaternion& quat) {
 	return glm::eulerAngles(quat);
 }
 
-NiQuaternion NiQuaternion::operator*(const float scalar) const noexcept {
-	return NiQuaternion(this->w * scalar, this->x * scalar, this->y * scalar, this->z * scalar);
-}
-
-NiQuaternion& NiQuaternion::operator*=(const NiQuaternion& q) {
-	auto& [ow, ox, oy, oz] = q;
-	auto [cw, cx, cy, cz] = *this; // Current rotation copied because otherwise it screws up the math
-	this->w = cw * ow - cx * ox - cy * oy - cz * oz;
-	this->x = cw * ox + cx * ow + cy * oz - cz * oy;
-	this->y = cw * oy + cy * ow + cz * ox - cx * oz;
-	this->z = cw * oz + cz * ow + cx * oy - cy * ox;
-	return *this;
-}
-
-NiQuaternion NiQuaternion::operator* (const NiQuaternion& q) const {
-	auto& [ow, ox, oy, oz] = q;
-	return NiQuaternion
-	(
-		/* w */w * ow - x * ox - y * oy - z * oz,
-		/* x */w * ox + x * ow + y * oz - z * oy,
-		/* y */w * oy + y * ow + z * ox - x * oz,
-		/* z */w * oz + z * ow + x * oy - y * ox
-	);
-}
-
-NiQuaternion NiQuaternion::operator/(const float& q) const noexcept {
-	return NiQuaternion(this->w / q, this->x / q, this->y / q, this->z / q);
-}
-
-void NiQuaternion::Normalize() {
-	float length = Dot(*this);
-	float invLength = 1.0f / std::sqrt(length);
-	*this = *this * invLength;
-}
-
-float NiQuaternion::Dot(const NiQuaternion& q) const noexcept {
-	return (this->w * q.w) + (this->x * q.x) + (this->y * q.y) + (this->z * q.z);
-}
-
-void NiQuaternion::Inverse() noexcept {
-	NiQuaternion copy = *this;
-	copy.Conjugate();
-
-	const float inv = 1.0f / Dot(*this);
-	*this = copy / inv;
-}
-
-void NiQuaternion::Conjugate() noexcept {
-	x = -x;
-	y = -y;
-	z = -z;
-}
-
-NiQuaternion NiQuaternion::Diff(const NiQuaternion& q) const noexcept {
-	NiQuaternion inv = *this;
-	inv.Inverse();
-	return inv * q;
-}
-
 // MARK: Helper Functions
 
 //! Look from a specific point in space to another point in space (Y-locked)
