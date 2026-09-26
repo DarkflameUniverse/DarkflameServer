@@ -135,7 +135,6 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		combat->Stun(withdrawTime + 6.0f);
 		combat->SetStunImmune(true);
 
-		//TODO: Set faction to -1 and set immunity
 		destroyable->SetFaction(-1);
 		destroyable->SetIsImmune(true);
 		Game::entityManager->SerializeEntity(self);
@@ -497,16 +496,12 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		//Prepare a Spiderling wave and initiate egg hatch events
 		//self->SetVar(u"SpiderWaveCount", )
 
-		//TODO: Actually spawn the spiders here
 		hatchCounter = 2;
 		if (currentStage > 1) hatchCounter++;
 
 		SpawnSpiderWave(self, spiderWaveCntTable[currentStage - 1]);
 
 	} else if (timerName == "AdvanceAttack") {
-		//TODO: Can we even do knockbacks yet? @Wincent01
-		// Yes ^
-
 		//Fire the melee smash skill to throw players back
 		/*local landingTarget = self:GetVar("LandingTarget") or false
 
@@ -639,8 +634,6 @@ void BossSpiderQueenEnemyServer::OnUpdate(Entity* self) {
 //-- anim time, or a desired default
 //----------------------------------------------
 float BossSpiderQueenEnemyServer::PlayAnimAndReturnTime(Entity* self, const std::u16string& animID) {
-	//TODO: Get the actual animation time
-
 	// Get the anim time
 	float animTimer = RenderComponent::GetAnimationTime(self, animID);
 
