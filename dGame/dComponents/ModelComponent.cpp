@@ -59,7 +59,8 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& 
 	return true;
 }
 
-bool ModelComponent::OnRequestUse(GameMessages::RequestUse& requestUse) {
+bool ModelComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	auto& requestUse = event.msg;
 	bool toReturn = false;
 	if (!m_IsPaused) {
 		for (auto& behavior : m_Behaviors) behavior.HandleMsg(requestUse);

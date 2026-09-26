@@ -9,6 +9,8 @@ set(DCOMMONTEST_SOURCES
 	"TestEncoding.cpp"
 	"TestLUString.cpp"
 	"TestLUWString.cpp"
+	"TestBitStreamUtils.cpp"
+	"MessageIdPinTests.cpp"
 	"dCommonDependencies.cpp"
 	"LxfmlTests.cpp"
 )

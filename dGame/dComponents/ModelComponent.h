@@ -32,7 +32,7 @@ public:
 	void LoadBehaviors();
 	void Update(float deltaTime) override;
 
-	bool OnRequestUse(GameMessages::RequestUse& requestUse);
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 	bool OnResetModelToDefaults(GameMessages::ResetModelToDefaults& resetModelToDefaults);
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 

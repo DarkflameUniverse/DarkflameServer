@@ -43,7 +43,7 @@ public:
 
 	void GhostEntity(const LWOOBJID id);
 
-	bool OnToggleGMInvis(GameMessages::ToggleGMInvis& msg);
+	bool OnToggleGMInvis(GameMessages::ToggleGMInvisEvent& event);
 
 	bool OnGetGMInvis(GameMessages::GetGMInvis& msg);
 	

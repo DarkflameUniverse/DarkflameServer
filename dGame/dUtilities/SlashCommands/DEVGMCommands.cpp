@@ -91,7 +91,7 @@ namespace DEVGMCommands {
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
 			entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
 
-			GameMessages::ToggleGMInvis msg;
+			GameMessages::ToggleGMInvisEvent msg;
 			msg.Send(entity->GetObjectID());
 
 			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
@@ -1593,7 +1593,8 @@ namespace DEVGMCommands {
 		objectInfo.target = closest->GetObjectID();
 		objectInfo.targetForReport = closest->GetObjectID();
 		objectInfo.clientId = entity->GetObjectID();
-		closest->HandleMsg(objectInfo);
+		GameMessages::RequestServerObjectInfoEvent objectInfoEvent(objectInfo);
+		closest->HandleMsg(objectInfoEvent);
 
 		Game::entityManager->SerializeEntity(closest);
 

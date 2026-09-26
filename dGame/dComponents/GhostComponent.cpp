@@ -68,7 +68,9 @@ void GhostComponent::GhostEntity(LWOOBJID id) {
 	m_ObservedEntities.erase(id);
 }
 
-bool GhostComponent::OnToggleGMInvis(GameMessages::ToggleGMInvis& gmInvisMsg) {
+bool GhostComponent::OnToggleGMInvis(GameMessages::ToggleGMInvisEvent& event) {
+	auto& gmInvisMsg = event.msg;
+	gmInvisMsg.target = event.target; // the wire message goes out with the target the event was delivered to
 	gmInvisMsg.bStateOut = !m_IsGMInvisible;
 	m_IsGMInvisible = !m_IsGMInvisible;
 	LOG_DEBUG("GM Invisibility toggled to: %s", m_IsGMInvisible ? "true" : "false");

@@ -3,6 +3,7 @@
 
 #include "dCommonVars.h"
 #include <map>
+#include <type_traits>
 #include <string>
 #include <vector>
 #include "eMovementPlatformState.h"
@@ -53,25 +54,77 @@ enum class eCameraTargetCyclingMode : int32_t {
 };
 
 namespace GameMessages {
+	/**
+	 * A server-internal event, delivered only to the handlers entities/components/scripts registered with
+	 * RegisterMsg. It never goes on the wire: it has no Serialize and no way to send it to a client.
+	 */
 	struct GameMsg {
-		GameMsg(MessageType::Game gmId, eGameMasterLevel lvl) : msgId{ gmId }, requiredGmLevel{ lvl } {}
-		GameMsg(MessageType::Game gmId) : GameMsg(gmId, eGameMasterLevel::CIVILIAN) {}
+		GameMsg(MessageType::Game gmId) : msgId{ gmId } {}
 		virtual ~GameMsg() = default;
 
-		// Sends a message to the entity manager to route to the target
+		// Delivers the message to the handlers registered on the target entity.
 		bool Send();
 		bool Send(const LWOOBJID _target);
+
+		MessageType::Game msgId;
+		LWOOBJID target{ LWOOBJID_EMPTY };
+	};
+
+	/**
+	 * A game message that goes on the wire, to (Serialize) or from (Deserialize + Handle) a client.
+	 * It is not a GameMsg, so it cannot be delivered to local handlers by mistake. When local handlers need to
+	 * observe a network message, wrap it in a NetGameMsgEvent.
+	 */
+	struct NetGameMsg {
+		NetGameMsg(MessageType::Game gmId, eGameMasterLevel lvl) : msgId{ gmId }, requiredGmLevel{ lvl } {}
+		NetGameMsg(MessageType::Game gmId) : NetGameMsg(gmId, eGameMasterLevel::CIVILIAN) {}
+		virtual ~NetGameMsg() = default;
 
 		// Sends the message to the specified client or
 		// all clients if UNASSIGNED_SYSTEM_ADDRESS is specified
 		void Send(const SystemAddress& sysAddr) const;
+
+		// Sends the message to the specified client only and never broadcasts. Given UNASSIGNED_SYSTEM_ADDRESS
+		// nothing is delivered (RakNet rejects a non-broadcast send without an address).
+		void SendToClient(const SystemAddress& sysAddr) const;
+
+		// Writes the complete client packet (CLIENT/GAME_MSG header, target, msgId, then Serialize()) into bitStream.
+		// This is exactly what Send(sysAddr) puts on the wire; tests use it to compare bytes without a server.
+		void WritePacket(RakNet::BitStream& bitStream) const;
+
 		virtual void Serialize(RakNet::BitStream& bitStream) const {}
 		virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
+
+		// Called for messages received from a client, after a successful Deserialize.
 		virtual void Handle(Entity& entity, const SystemAddress& sysAddr) {};
+
 		MessageType::Game msgId;
 		LWOOBJID target{ LWOOBJID_EMPTY };
+
+		// Minimum GM level the sending client needs for Handle to be called.
 		eGameMasterLevel requiredGmLevel;
 	};
+
+	/**
+	 * A server-internal event carrying a network message, so entity/component handlers can react to a message
+	 * received from (or about to be sent to) a client. Uses the network message's msgId for local dispatch.
+	 */
+	template<typename Msg>
+	struct NetGameMsgEvent : public GameMsg {
+		static_assert(std::is_base_of_v<NetGameMsg, Msg>, "NetGameMsgEvent carries a NetGameMsg");
+		NetGameMsgEvent() : GameMsg(Msg{}.msgId) {}
+		NetGameMsgEvent(const Msg& message) : GameMsg(message.msgId), msg{ message } { target = message.target; }
+
+		Msg msg;
+	};
+
+	// Delivers a copy of a network message to the local handlers registered on msg.target (never to a client).
+	// Returns whether a handler handled it. Handlers see (and may modify) only the copy.
+	template<typename Msg>
+	bool DeliverLocally(const Msg& msg) {
+		NetGameMsgEvent<Msg> event(msg);
+		return event.Send();
+	}
 
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
@@ -705,8 +758,8 @@ namespace GameMessages {
 	// This is a client gm however its default values are exactly what we need to get around the invisible inventory item issues.
 	void SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr);
 
-	struct DisplayTooltip : public GameMsg {
-		DisplayTooltip() : GameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}
+	struct DisplayTooltip : public NetGameMsg {
+		DisplayTooltip() : NetGameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}
 		bool doOrDie{};
 		bool noRepeat{};
 		bool noRevive{};
@@ -721,8 +774,8 @@ namespace GameMessages {
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct UseItemOnClient : public GameMsg {
-		UseItemOnClient() : GameMsg(MessageType::Game::USE_ITEM_ON_CLIENT) {}
+	struct UseItemOnClient : public NetGameMsg {
+		UseItemOnClient() : NetGameMsg(MessageType::Game::USE_ITEM_ON_CLIENT) {}
 		LWOOBJID playerId{};
 		LWOOBJID itemToUse{};
 		uint32_t itemType{};
@@ -741,14 +794,14 @@ namespace GameMessages {
 		LwoNameValue racingSettings{};
 	};
 
-	struct SetModelToBuild : public GameMsg {
-		SetModelToBuild() : GameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
+	struct SetModelToBuild : public NetGameMsg {
+		SetModelToBuild() : NetGameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		LOT modelLot{ -1 };
 	};
 
-	struct SpawnModelBricks : public GameMsg {
-		SpawnModelBricks() : GameMsg(MessageType::Game::SPAWN_MODEL_BRICKS) {}
+	struct SpawnModelBricks : public NetGameMsg {
+		SpawnModelBricks() : NetGameMsg(MessageType::Game::SPAWN_MODEL_BRICKS) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 
 		float amount{ 0.0f };
@@ -761,8 +814,8 @@ namespace GameMessages {
 		LwoNameValue notification{};
 	};
 
-	struct ShootingGalleryFire : public GameMsg {
-		ShootingGalleryFire() : GameMsg(MessageType::Game::SHOOTING_GALLERY_FIRE) {}
+	struct ShootingGalleryFire : public NetGameMsg {
+		ShootingGalleryFire() : NetGameMsg(MessageType::Game::SHOOTING_GALLERY_FIRE) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 
@@ -781,15 +834,16 @@ namespace GameMessages {
 		PlayerResurrectionFinished() : GameMsg(MessageType::Game::PLAYER_RESURRECTION_FINISHED) {}
 	};
 
-	struct RequestServerObjectInfo : public GameMsg {
+	struct RequestServerObjectInfo : public NetGameMsg {
 		bool bVerbose{};
 		LWOOBJID clientId{};
 		LWOOBJID targetForReport{};
 
-		RequestServerObjectInfo() : GameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
+		RequestServerObjectInfo() : NetGameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 	};
+	using RequestServerObjectInfoEvent = NetGameMsgEvent<RequestServerObjectInfo>;
 
 	struct GetObjectReportInfo : public GameMsg {
 		AMFArrayValue* info{};
@@ -797,11 +851,11 @@ namespace GameMessages {
 		bool bVerbose{};
 		LWOOBJID clientID{};
 
-		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, eGameMasterLevel::DEVELOPER) {}
+		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO) {}
 	};
 
-	struct RequestUse : public GameMsg {
-		RequestUse() : GameMsg(MessageType::Game::REQUEST_USE) {}
+	struct RequestUse : public NetGameMsg {
+		RequestUse() : NetGameMsg(MessageType::Game::REQUEST_USE) {}
 
 		bool Deserialize(RakNet::BitStream& stream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
@@ -819,11 +873,12 @@ namespace GameMessages {
 		// Used only for multi-interaction, is of the enum type InteractionType
 		int multiInteractType{};
 	};
+	using RequestUseEvent = NetGameMsgEvent<RequestUse>;
 
-	struct Smash : public GameMsg {
-		Smash() : GameMsg(MessageType::Game::SMASH) {}
+	struct Smash : public NetGameMsg {
+		Smash() : NetGameMsg(MessageType::Game::SMASH) {}
 
-		void Serialize(RakNet::BitStream& stream) const;
+		void Serialize(RakNet::BitStream& stream) const override;
 
 		bool bIgnoreObjectVisibility{};
 		bool force{};
@@ -831,19 +886,19 @@ namespace GameMessages {
 		LWOOBJID killerID{};
 	};
 
-	struct UnSmash : public GameMsg {
-		UnSmash() : GameMsg(MessageType::Game::UN_SMASH) {}
+	struct UnSmash : public NetGameMsg {
+		UnSmash() : NetGameMsg(MessageType::Game::UN_SMASH) {}
 
-		void Serialize(RakNet::BitStream& stream) const;
+		void Serialize(RakNet::BitStream& stream) const override;
 
 		LWOOBJID builderID{ LWOOBJID_EMPTY };
 		float duration{ 3.0f };
 	};
 
-	struct PlayBehaviorSound : public GameMsg {
-		PlayBehaviorSound() : GameMsg(MessageType::Game::PLAY_BEHAVIOR_SOUND) {}
+	struct PlayBehaviorSound : public NetGameMsg {
+		PlayBehaviorSound() : NetGameMsg(MessageType::Game::PLAY_BEHAVIOR_SOUND) {}
 
-		void Serialize(RakNet::BitStream& stream) const;
+		void Serialize(RakNet::BitStream& stream) const override;
 
 		int32_t soundID{ -1 };
 	};
@@ -857,8 +912,8 @@ namespace GameMessages {
 		bool bResetBehaviors{ true };
 	};
 
-	struct EmotePlayed : public GameMsg {
-		EmotePlayed() : GameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(0), targetID(0) {}
+	struct EmotePlayed : public NetGameMsg {
+		EmotePlayed() : NetGameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(0), targetID(0) {}
 
 		void Serialize(RakNet::BitStream& stream) const override;
 
@@ -880,8 +935,8 @@ namespace GameMessages {
 		bool bIgnoreChecks{ false };
 	};
 
-	struct DropClientLoot : public GameMsg {
-		DropClientLoot() : GameMsg(MessageType::Game::DROP_CLIENT_LOOT) {}
+	struct DropClientLoot : public NetGameMsg {
+		DropClientLoot() : NetGameMsg(MessageType::Game::DROP_CLIENT_LOOT) {}
 
 		void Serialize(RakNet::BitStream& stream) const override;
 		LWOOBJID sourceID{ LWOOBJID_EMPTY };
@@ -894,6 +949,7 @@ namespace GameMessages {
 		LWOOBJID lootID{ LWOOBJID_EMPTY };
 		LWOOBJID ownerID{ LWOOBJID_EMPTY };
 	};
+	using DropClientLootEvent = NetGameMsgEvent<DropClientLoot>;
 
 	struct GetMissionState : public GameMsg {
 		GetMissionState() : GameMsg(MessageType::Game::GET_MISSION_STATE) {}
@@ -923,17 +979,18 @@ namespace GameMessages {
 		LOT item{};
 	};
 
-	struct PickupItem : public GameMsg {
-		PickupItem() : GameMsg(MessageType::Game::PICKUP_ITEM) {}
+	struct PickupItem : public NetGameMsg {
+		PickupItem() : NetGameMsg(MessageType::Game::PICKUP_ITEM) {}
 
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 		bool Deserialize(RakNet::BitStream& stream) override;
 		LWOOBJID lootID{};
 		LWOOBJID lootOwnerID{};
 	};
+	using PickupItemEvent = NetGameMsgEvent<PickupItem>;
 
-	struct TeamPickupItem : public GameMsg {
-		TeamPickupItem() : GameMsg(MessageType::Game::TEAM_PICKUP_ITEM) {}
+	struct TeamPickupItem : public NetGameMsg {
+		TeamPickupItem() : NetGameMsg(MessageType::Game::TEAM_PICKUP_ITEM) {}
 
 		void Serialize(RakNet::BitStream& stream) const override;
 		LWOOBJID lootID{};
@@ -946,13 +1003,14 @@ namespace GameMessages {
 		bool bDead{};
 	};
 
-	struct ToggleGMInvis : public GameMsg {
-		ToggleGMInvis() : GameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}
+	struct ToggleGMInvis : public NetGameMsg {
+		ToggleGMInvis() : NetGameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}
 
 		void Serialize(RakNet::BitStream& stream) const override;
 		bool bStateOut{ false };
 
 	};
+	using ToggleGMInvisEvent = NetGameMsgEvent<ToggleGMInvis>;
 
 	struct GetGMInvis : public GameMsg {
 		GetGMInvis() : GameMsg(MessageType::Game::GET_GM_INVIS) {}
@@ -966,8 +1024,8 @@ namespace GameMessages {
 		LWOOBJID childID{};
 	};
 
-	struct UseSkillSet : public GameMsg {
-		UseSkillSet() : GameMsg(MessageType::Game::USE_SKILL_SET) {}
+	struct UseSkillSet : public NetGameMsg {
+		UseSkillSet() : NetGameMsg(MessageType::Game::USE_SKILL_SET) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 
 		bool bRemove{};

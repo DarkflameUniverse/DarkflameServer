@@ -21,9 +21,13 @@ bool LUBitStream::ReadHeader(RakNet::BitStream& bitStream) {
 	return true;
 }
 
-void LUBitStream::Send(const SystemAddress& sysAddr) const {
-	RakNet::BitStream bitStream;
+void LUBitStream::WritePacket(RakNet::BitStream& bitStream) const {
 	this->WriteHeader(bitStream);
 	this->Serialize(bitStream);
+}
+
+void LUBitStream::Send(const SystemAddress& sysAddr) const {
+	RakNet::BitStream bitStream;
+	this->WritePacket(bitStream);
 	Game::server->Send(bitStream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 }

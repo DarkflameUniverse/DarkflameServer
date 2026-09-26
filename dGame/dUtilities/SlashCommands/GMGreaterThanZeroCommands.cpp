@@ -275,7 +275,7 @@ namespace GMGreaterThanZeroCommands {
 	}
 
 	void GmInvis(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		GameMessages::ToggleGMInvis msg;
+		GameMessages::ToggleGMInvisEvent msg;
 		msg.Send(entity->GetObjectID());
 	}
 

@@ -2222,7 +2222,8 @@ void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameM
 	m_MsgHandlers.emplace(msgId, handler);
 }
 
-bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& requestInfo) {
+bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfoEvent& event) {
+	const auto& requestInfo = event.msg;
 	AMFArrayValue response;
 	response.Insert("visible", true);
 	response.Insert("objectID", std::to_string(m_ObjectID));
@@ -2264,7 +2265,8 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 	return true;
 }
 
-bool Entity::MsgDropClientLoot(GameMessages::DropClientLoot& dropLootMsg) {
+bool Entity::MsgDropClientLoot(GameMessages::DropClientLootEvent& event) {
+	const auto& dropLootMsg = event.msg;
 	if (dropLootMsg.item != LOT_NULL && dropLootMsg.item != 0) {
 		Loot::Info info{
 			.id = dropLootMsg.lootID,
@@ -2308,7 +2310,8 @@ bool Entity::MsgGetFactionTokenType(GameMessages::GetFactionTokenType& tokenMsg)
 	return tokenMsg.tokenType != LOT_NULL;
 }
 
-bool Entity::MsgPickupItem(GameMessages::PickupItem& pickupItemMsg) {
+bool Entity::MsgPickupItem(GameMessages::PickupItemEvent& event) {
+	const auto& pickupItemMsg = event.msg;
 	if (GetObjectID() == pickupItemMsg.lootOwnerID) {
 		PickupItem(pickupItemMsg.lootID);
 	} else {

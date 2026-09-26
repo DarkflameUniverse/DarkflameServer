@@ -6285,14 +6285,24 @@ namespace GameMessages {
 		return Send();
 	}
 
-	void GameMsg::Send(const SystemAddress& sysAddr) const {
-		CBITSTREAM;
+	void NetGameMsg::WritePacket(RakNet::BitStream& bitStream) const {
 		CMSGHEADER;
 
 		bitStream.Write(target); // Who this message will be sent to on the (a) client
 		bitStream.Write(msgId); // the ID of this message
 
 		Serialize(bitStream); // write the message data
+	}
+
+	void NetGameMsg::SendToClient(const SystemAddress& sysAddr) const {
+		CBITSTREAM;
+		WritePacket(bitStream);
+		SEND_PACKET;
+	}
+
+	void NetGameMsg::Send(const SystemAddress& sysAddr) const {
+		CBITSTREAM;
+		WritePacket(bitStream);
 
 		// Send to everyone if someone sent unassigned system address, or to one specific client.
 		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
@@ -6378,8 +6388,10 @@ namespace GameMessages {
 
 	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
-		if (handlingEntity) handlingEntity->HandleMsg(*this);
-		else LOG("Failed to find target %llu", targetForReport);
+		if (handlingEntity) {
+			RequestServerObjectInfoEvent event(*this);
+			handlingEntity->HandleMsg(event);
+		} else LOG("Failed to find target %llu", targetForReport);
 	}
 
 	bool RequestUse::Deserialize(RakNet::BitStream& stream) {
@@ -6418,7 +6430,8 @@ namespace GameMessages {
 			interactedObject->OnUse(&entity);
 		}
 
-		interactedObject->HandleMsg(*this);
+		RequestUseEvent event(*this);
+		interactedObject->HandleMsg(event);
 
 		//Perform use task if possible:
 		auto missionComponent = entity.GetComponent<MissionComponent>();
@@ -6480,7 +6493,8 @@ namespace GameMessages {
 		LOG("Has team %i picking up %llu:%llu", team != nullptr, lootID, lootOwnerID);
 		if (team) {
 			for (const auto memberId : team->members) {
-				this->Send(memberId);
+				PickupItemEvent event(*this);
+				event.Send(memberId);
 				TeamPickupItem teamPickupMsg{};
 				teamPickupMsg.target = lootID;
 				teamPickupMsg.lootID = lootID;

@@ -43,7 +43,7 @@
 namespace {
 	using enum MessageType::Game;
 	using namespace GameMessages;
-	using MessageCreator = std::function<std::unique_ptr<GameMessages::GameMsg>()>;
+	using MessageCreator = std::function<std::unique_ptr<GameMessages::NetGameMsg>()>;
 	std::map<MessageType::Game, MessageCreator> g_MessageHandlers = {
 		{ REQUEST_USE, []() { return std::make_unique<RequestUse>(); }},
 		{ REQUEST_SERVER_OBJECT_INFO, []() { return std::make_unique<RequestServerObjectInfo>(); } },
@@ -87,7 +87,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 			}
 		}
 
-		msg->Deserialize(inStream);
+		if (!msg->Deserialize(inStream)) {
+			LOG("Dropping malformed GM %4i, %s from (%llu) targeting (%llu)", messageID, StringifiedEnum::ToString(messageID).data(), usr->GetLoggedInChar(), objectID);
+			return;
+		}
 		msg->Handle(*entity, sysAddr);
 		return;
 	}

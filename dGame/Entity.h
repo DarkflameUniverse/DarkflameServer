@@ -16,6 +16,7 @@
 
 namespace GameMessages {
 	struct GameMsg;
+	template<typename Msg> struct NetGameMsgEvent;
 	struct ActivityNotify;
 	struct ShootingGalleryFire;
 	struct ChildLoaded;
@@ -182,11 +183,11 @@ public:
 
 	void AddComponent(eReplicaComponentType componentId, Component* component);
 
-	bool MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& msg);
-	bool MsgDropClientLoot(GameMessages::DropClientLoot& msg);
+	bool MsgRequestServerObjectInfo(GameMessages::NetGameMsgEvent<GameMessages::RequestServerObjectInfo>& event);
+	bool MsgDropClientLoot(GameMessages::NetGameMsgEvent<GameMessages::DropClientLoot>& event);
 	bool MsgGetFlag(GameMessages::GetFlag& msg);
 	bool MsgGetFactionTokenType(GameMessages::GetFactionTokenType& msg);
-	bool MsgPickupItem(GameMessages::PickupItem& msg);
+	bool MsgPickupItem(GameMessages::NetGameMsgEvent<GameMessages::PickupItem>& event);
 	bool MsgChildRemoved(GameMessages::ChildRemoved& msg);
 
 	// This is expceted to never return nullptr, an assert checks this.

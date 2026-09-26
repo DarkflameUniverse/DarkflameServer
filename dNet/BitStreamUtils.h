@@ -7,6 +7,7 @@
 #include "ServiceType.h"
 #include <string>
 #include <algorithm>
+#include <type_traits>
 
 #define VALIDATE_READ(x) do { if (!x) return false; } while (0)
 
@@ -51,6 +52,7 @@ struct LUBitStream {
 	uint32_t internalPacketID = 0xFFFFFFFF;
 
 	LUBitStream() = default;
+	virtual ~LUBitStream() = default;
 
 	template <typename T> 
 	LUBitStream(ServiceType connectionType, T internalPacketID) {
@@ -62,6 +64,10 @@ struct LUBitStream {
 	bool ReadHeader(RakNet::BitStream& bitStream);
 	void Send(const SystemAddress& sysAddr) const;
 	void Broadcast() const { Send(UNASSIGNED_SYSTEM_ADDRESS); };
+
+	// Writes the complete packet (WriteHeader() then Serialize()) into bitStream.
+	// This is exactly what Send puts on the wire; tests use it to compare bytes without a server.
+	void WritePacket(RakNet::BitStream& bitStream) const;
 
 	virtual void Serialize(RakNet::BitStream& bitStream) const {}
 	virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
@@ -76,6 +82,59 @@ namespace BitStreamUtils {
 		bitStream.Write<ServiceType>(connectionType);
 		bitStream.Write(static_cast<uint32_t>(internalPacketID));
 		bitStream.Write<uint8_t>(0);
+	}
+
+	/**
+	 * Writes an optional ("default flag") field: one bit saying whether value differs from defaultValue, then
+	 * the value itself only if it does. This is how the client encodes game message parameters that have a default.
+	 */
+	template<typename T>
+	void WriteOptional(RakNet::BitStream& bitStream, const T& value, const T& defaultValue) {
+		const bool isNotDefault = value != defaultValue;
+		bitStream.Write(isNotDefault);
+		if (isNotDefault) bitStream.Write(value);
+	}
+
+	/**
+	 * Reads a field written by WriteOptional. If the flag bit is not set, value is set to defaultValue.
+	 */
+	template<typename T>
+	bool ReadOptional(RakNet::BitStream& bitStream, T& value, const T& defaultValue) {
+		bool isNotDefault = false;
+		if (!bitStream.Read(isNotDefault)) return false;
+		if (!isNotDefault) {
+			value = defaultValue;
+			return true;
+		}
+		return bitStream.Read(value);
+	}
+
+	/**
+	 * Writes a length prefixed string: a LenT holding the number of characters, followed by the raw
+	 * characters (1 byte each for std::string, 2 bytes each for std::u16string) with no null terminator.
+	 * This is the layout the client uses for std::string / std::wstring game message fields.
+	 */
+	template<typename LenT = uint32_t, typename StringT>
+	void WriteLengthPrefixed(RakNet::BitStream& bitStream, const StringT& value) {
+		bitStream.Write<LenT>(static_cast<LenT>(value.size()));
+		bitStream.WriteBits(reinterpret_cast<const unsigned char*>(value.data()), BYTES_TO_BITS(value.size() * sizeof(typename StringT::value_type)));
+	}
+
+	/**
+	 * Reads a string written by WriteLengthPrefixed. Fails (returns false) if the stream runs out of data or
+	 * if the length is negative or larger than maxLength characters.
+	 */
+	template<typename LenT = uint32_t, typename StringT>
+	bool ReadLengthPrefixed(RakNet::BitStream& bitStream, StringT& value, const uint32_t maxLength = 0x500000 /* MAX_MESSAGE_LENGTH */) {
+		LenT length{};
+		if (!bitStream.Read(length)) return false;
+		if constexpr (std::is_signed_v<LenT>) {
+			if (length < 0) return false;
+		}
+		if (static_cast<uint64_t>(length) > maxLength) return false;
+		value.resize(length);
+		if (length == 0) return true;
+		return bitStream.ReadBits(reinterpret_cast<unsigned char*>(value.data()), BYTES_TO_BITS(value.size() * sizeof(typename StringT::value_type)), true);
 	}
 }
 

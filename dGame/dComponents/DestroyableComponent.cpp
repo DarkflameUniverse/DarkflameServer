@@ -783,7 +783,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				lootMsg.spawnPos = m_Parent->GetPosition();
 				lootMsg.sourceID = source;
 				lootMsg.item = LOT_NULL;
-				lootMsg.Send();
+				GameMessages::DeliverLocally(lootMsg);
 				character->SetCoins(coinsTotal, eLootSourceType::DELETION);
 			}
 		}
@@ -1022,17 +1022,17 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 			lootMsg.spawnPos = m_Parent->GetPosition();
 			lootMsg.sourceID = source;
 			lootMsg.item = LOT_NULL;
-			lootMsg.Send();
+			GameMessages::DeliverLocally(lootMsg);
 			lootMsg.Send(m_Parent->GetSystemAddress());
 			while (coinsToDrop > MAX_TO_DROP_PER_GM) {
 				LOG("Dropping 100,000, %llu left", coinsToDrop);
 				lootMsg.currency = 100'000;
-				lootMsg.Send();
+				GameMessages::DeliverLocally(lootMsg);
 				lootMsg.Send(m_Parent->GetSystemAddress());
 				coinsToDrop -= 100'000;
 			}
 			lootMsg.currency = coinsToDrop;
-			lootMsg.Send();
+			GameMessages::DeliverLocally(lootMsg);
 			lootMsg.Send(m_Parent->GetSystemAddress());
 		}
 		return;

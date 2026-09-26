@@ -1,5 +1,7 @@
 set(DGAMETEST_SOURCES
 	"GameDependencies.cpp"
+	"LUBitStreamTests.cpp"
+	"MailIdPinTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

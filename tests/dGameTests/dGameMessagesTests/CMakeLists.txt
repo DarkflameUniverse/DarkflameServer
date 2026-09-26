@@ -1,5 +1,6 @@
 SET(DGAMEMESSAGES_TESTS
 	"GameMessageTests.cpp"
+	"GameMsgSplitTests.cpp"
 	"LegacyGameMessageTests.cpp")
 
 # Get the folder name and prepend it to the files above

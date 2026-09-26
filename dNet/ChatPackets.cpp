@@ -147,7 +147,6 @@ void ChatPackets::SendRoutedMsg(const LUBitStream& msg, const LWOOBJID targetID,
 	bitStream.Write(targetID);
 
 	// Now write the actual packet
-	msg.WriteHeader(bitStream);
-	msg.Serialize(bitStream);
+	msg.WritePacket(bitStream);
 	Game::server->Send(bitStream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 }

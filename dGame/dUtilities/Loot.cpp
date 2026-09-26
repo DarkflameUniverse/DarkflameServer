@@ -136,7 +136,7 @@ void DropFactionLoot(Entity& player, GameMessages::DropClientLoot& lootMsg) {
 		lootMsg.lootID = ObjectIDManager::GenerateObjectID();
 		CalcFinalDropPos(lootMsg);
 		// Register the drop on the player
-		lootMsg.Send();
+		GameMessages::DeliverLocally(lootMsg);
 		// Visually drop it for the player
 		lootMsg.Send(player.GetSystemAddress());
 	}
@@ -165,7 +165,7 @@ void DropFactionLoot(const Team& team, GameMessages::DropClientLoot& lootMsg, co
 			lootMsg.lootID = ObjectIDManager::GenerateObjectID();
 			CalcFinalDropPos(lootMsg);
 			// Register the drop on this team member
-			lootMsg.Send();
+			GameMessages::DeliverLocally(lootMsg);
 			// Show the rewards on all connected members of the team. Only the loot owner will be able to pick the tokens up.
 			DistrbuteMsgToTeam(lootMsg, team);
 		}
@@ -184,7 +184,7 @@ void DropPowerupLoot(Entity& player, GameMessages::DropClientLoot& lootMsg) {
 	lootMsg.target = playerID;
 
 	// Register the drop on the player
-	lootMsg.Send();
+	GameMessages::DeliverLocally(lootMsg);
 	// Visually drop it for the player
 	lootMsg.Send(player.GetSystemAddress());
 }
@@ -210,7 +210,7 @@ void DropPowerupLoot(const Team& team, GameMessages::DropClientLoot& lootMsg, co
 
 		lootMsg.target = member;
 		// By sending this message with the same ID to all players on the team, all players on the team are allowed to pick it up.
-		lootMsg.Send();
+		GameMessages::DeliverLocally(lootMsg);
 		// No need to send to all members in a loop since that will happen by using the outer loop above and also since there is no owner
 		// sending to all will do nothing.
 		const auto* const memberEntity = Game::entityManager->GetEntity(member);
@@ -232,7 +232,7 @@ void DropMissionLoot(Entity& player, GameMessages::DropClientLoot& lootMsg) {
 		lootMsg.lootID = ObjectIDManager::GenerateObjectID();
 		CalcFinalDropPos(lootMsg);
 		// Register the drop with the player
-		lootMsg.Send();
+		GameMessages::DeliverLocally(lootMsg);
 		// Visually drop the loot to be picked up
 		lootMsg.Send(player.GetSystemAddress());
 	}
@@ -261,7 +261,7 @@ void DropMissionLoot(const Team& team, GameMessages::DropClientLoot& lootMsg, co
 			lootMsg.lootID = ObjectIDManager::GenerateObjectID();
 			CalcFinalDropPos(lootMsg);
 			// Register the drop with the player
-			lootMsg.Send();
+			GameMessages::DeliverLocally(lootMsg);
 			DistrbuteMsgToTeam(lootMsg, team);
 		}
 	}
@@ -279,7 +279,7 @@ void DropRegularLoot(Entity& player, GameMessages::DropClientLoot& lootMsg) {
 	lootMsg.target = playerID;
 	lootMsg.ownerID = playerID;
 	// Register the drop with the player
-	lootMsg.Send();
+	GameMessages::DeliverLocally(lootMsg);
 	// Visually drop the loot to be picked up
 	lootMsg.Send(player.GetSystemAddress());
 
@@ -309,14 +309,14 @@ void DropRegularLoot(Team& team, GameMessages::DropClientLoot& lootMsg, const bo
 	if (team.lootOption == 0 /* Shared loot */) {
 		lootMsg.target = earningPlayer;
 		lootMsg.ownerID = earningPlayer;
-		lootMsg.Send();
+		GameMessages::DeliverLocally(lootMsg);
 	} else /* Free for all loot */ {
 		lootMsg.ownerID = LWOOBJID_EMPTY;
 		// By sending the loot with NO owner and to ALL members of the team,
 		// its a first come, first serve with who picks the item up.
 		for (const auto ffaMember : team.members) {
 			lootMsg.target = ffaMember;
-			lootMsg.Send();
+			GameMessages::DeliverLocally(lootMsg);
 		}
 	}
 
@@ -405,7 +405,7 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 		lootMsg.sourceID = source;
 		lootMsg.item = LOT_NULL;
 		CalcFinalDropPos(lootMsg);
-		lootMsg.Send();
+		GameMessages::DeliverLocally(lootMsg);
 		const auto* const memberEntity = Game::entityManager->GetEntity(member);
 		if (memberEntity) lootMsg.Send(memberEntity->GetSystemAddress());
 	}
