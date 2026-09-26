@@ -6,6 +6,7 @@
 
 
 #include "SlashCommandHandler.h"
+#include "WorldMigration.h"
 
 #include <iomanip>
 #include <ranges>
@@ -1476,6 +1477,21 @@ void SlashCommandHandler::Startup() {
 		.info = "Despawns an object by id",
 		.aliases = {"despawn"},
 		.handle = DEVGMCommands::Despawn,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	});
+	RegisterCommand({
+		.help = "Moves everyone here to a fresh instance of this zone",
+		.info = "Starts a fresh instance of this zone (from the world server binary on disk now, so an update takes effect), moves everyone here to it with the game's Mythran maintenance warning and a short loading screen, then shuts this instance down. Usage: /replaceinstance [warn seconds, 0-300, default 10] [seamless (experimental: no loading screen)]",
+		.aliases = {"replaceinstance"},
+		.handle = WorldMigration::ReplaceInstanceCommand,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	});
+
+	RegisterCommand({
+		.help = "Moves everyone here into another instance of this zone",
+		.info = "Moves everyone here into another running instance of this zone (0 or nothing picks the best fit), with the game's Mythran maintenance warning and a short loading screen, then shuts this instance down. Usage: /mergeinstance [target instance] [warn seconds, 0-300, default 10] [seamless (experimental: no loading screen)]",
+		.aliases = {"mergeinstance"},
+		.handle = WorldMigration::MergeInstanceCommand,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	});
 }

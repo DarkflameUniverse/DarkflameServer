@@ -4,6 +4,7 @@
  */
 
 #include "GameMessageHandler.h"
+#include "WorldMigration.h"
 #include "MissionComponent.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
@@ -229,6 +230,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		if (character != nullptr) {
 			character->OnZoneLoad();
 		}
+
+		// Moved here from another instance: put back what their save doesn't keep (the pet that was out)
+		WorldMigration::OnPlayerLoaded(entity);
 
 		LOG("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
