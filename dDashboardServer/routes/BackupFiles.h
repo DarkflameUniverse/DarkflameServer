@@ -39,7 +39,7 @@ namespace BackupFiles {
 	struct DumpCommand {
 		std::string program;
 		std::string optionsFile;
-		std::string host; // host or host:port
+		std::string host; // mysql_host: host, host:port, tcp://host:port, unix://socket or pipe://name
 		std::string database;
 		std::string target;
 		std::string errorFile; // mysqldump's messages; never mixed into the dump, where they would break a restore

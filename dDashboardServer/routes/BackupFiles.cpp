@@ -116,16 +116,33 @@ namespace BackupFiles {
 	}
 
 	std::vector<std::string> MysqldumpArguments(const DumpCommand& command) {
+		// mysql_host as the servers read it (MySQLDatabase::Connect): host, host:port, tcp://host:port, unix://socket or pipe://name
 		auto host = command.host;
 		std::string port;
-		if (const auto colon = host.find(':'); colon != std::string::npos) {
-			port = host.substr(colon + 1);
-			host = host.substr(0, colon);
+		std::string socket;
+		bool pipe = false;
+		if (host.starts_with("unix://")) {
+			socket = host.substr(7);
+			host.clear();
+		} else if (host.starts_with("pipe://")) {
+			socket = host.substr(7);
+			pipe = true;
+			host.clear();
+		} else {
+			if (host.starts_with("tcp://")) host = host.substr(6);
+			// A database after the address (tcp://host:port/db) is not the host's; mysql_database names it
+			if (const auto slash = host.find('/'); slash != std::string::npos) host.resize(slash);
+			if (const auto colon = host.find(':'); colon != std::string::npos) {
+				port = host.substr(colon + 1);
+				host = host.substr(0, colon);
+			}
 		}
 		std::vector<std::string> arguments{ command.program, "--defaults-extra-file=" + command.optionsFile,
 			"--single-transaction", "--quick", "--routines", "--triggers", "--hex-blob", "--no-tablespaces", "--default-character-set=utf8mb4" };
 		if (!host.empty()) arguments.push_back("--host=" + host);
 		if (!port.empty()) arguments.push_back("--port=" + port);
+		if (pipe) arguments.push_back("--protocol=PIPE");
+		if (!socket.empty()) arguments.push_back("--socket=" + socket);
 		arguments.push_back("--result-file=" + command.target);
 		if (!command.errorFile.empty()) arguments.push_back("--log-error=" + command.errorFile);
 		arguments.push_back(command.database);

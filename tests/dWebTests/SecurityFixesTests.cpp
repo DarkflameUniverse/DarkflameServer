@@ -121,3 +121,32 @@ TEST(BackupFilesTests, MysqldumpArgumentsAreAVector) {
 	// Passed as one literal argument, never interpreted
 	EXPECT_EQ(arguments.back(), "dlu$(touch x)");
 }
+
+// mysql_host in every form the servers connect with
+TEST(BackupFilesTests, MysqldumpArgumentsReadEveryHostForm) {
+	const auto has = [](const std::vector<std::string>& arguments, const std::string& argument) {
+		return std::find(arguments.begin(), arguments.end(), argument) != arguments.end();
+	};
+	const auto dump = [](const std::string& host) { return BackupFiles::MysqldumpArguments({ "mysqldump", "/tmp/opt", host, "dlu", "/b/x", "" }); };
+
+	auto arguments = dump("tcp://10.0.0.5:3307");
+	EXPECT_TRUE(has(arguments, "--host=10.0.0.5"));
+	EXPECT_TRUE(has(arguments, "--port=3307"));
+
+	arguments = dump("tcp://db.local:3306/dlu");
+	EXPECT_TRUE(has(arguments, "--host=db.local"));
+	EXPECT_TRUE(has(arguments, "--port=3306"));
+
+	arguments = dump("db.local");
+	EXPECT_TRUE(has(arguments, "--host=db.local"));
+	EXPECT_FALSE(std::any_of(arguments.begin(), arguments.end(), [](const std::string& a) { return a.starts_with("--port="); }));
+
+	arguments = dump("unix:///run/mysqld/mysqld.sock");
+	EXPECT_TRUE(has(arguments, "--socket=/run/mysqld/mysqld.sock"));
+	EXPECT_FALSE(std::any_of(arguments.begin(), arguments.end(), [](const std::string& a) { return a.starts_with("--host=") || a.starts_with("--port="); }));
+
+	arguments = dump("pipe://MySQL");
+	EXPECT_TRUE(has(arguments, "--protocol=PIPE"));
+	EXPECT_TRUE(has(arguments, "--socket=MySQL"));
+	EXPECT_EQ(arguments.back(), "dlu");
+}
