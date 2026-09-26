@@ -52,9 +52,6 @@ private:
 	// Indicates this Strip is waiting for an action to be taken upon it to progress to its actions
 	bool m_WaitingForAction{ false };
 
-	// True if this strip is currently rotating
-	bool m_IsRotating{ false };
-
 	// The amount of time this strip is paused for. Any interactions with this strip should be bounced if this is greater than 0.
 	// Actions that do not use time do not use this (ex. positions).
 	float m_PausedTime{ 0.0f };
@@ -75,11 +72,11 @@ private:
 	// The position of the parent model on the previous frame
 	NiPoint3 m_PreviousFramePosition{};
 
-	NiPoint3 m_RotationRemaining{};
+	// The signed target degrees of the current rotation action. Only 1 axis is active at once for any given strip.
+	NiPoint3 m_InActionRotation{};
 
-	NiQuaternion m_PreviousFrameRotation{};
-
-	NiPoint3 m_SavedVelocity{};
+	// The signed degrees the current rotation action has progressed so far
+	float m_RotationProgress{ 0.0f };
 };
 
 #endif  //!__STRIP__H__

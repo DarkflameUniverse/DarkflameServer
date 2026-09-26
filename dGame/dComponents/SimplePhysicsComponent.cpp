@@ -40,20 +40,11 @@ SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
 void SimplePhysicsComponent::Update(const float deltaTime) {
-	if (m_Velocity != NiPoint3Constant::ZERO) {
-		m_Position += m_Velocity * deltaTime;
-		m_DirtyPosition = true;
-		Game::entityManager->SerializeEntity(m_Parent);
-	}
-
-	if (m_AngularVelocity != NiPoint3Constant::ZERO) {
-		m_Rotation.Normalize();
-		const auto vel = NiQuaternion::FromEulerAngles(m_AngularVelocity * deltaTime);
-		m_Rotation *= vel;
-		const auto euler = m_Rotation.GetEulerAngles();
-		m_DirtyPosition = true;
-		Game::entityManager->SerializeEntity(m_Parent);
-	}
+	// Rotation is driven by ModelComponent; angular velocity is only relayed to clients.
+	if (m_Velocity == NiPoint3Constant::ZERO) return;
+	m_Position += m_Velocity * deltaTime;
+	m_DirtyPosition = true;
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -102,17 +93,15 @@ bool SimplePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReport
 	return true;
 }
 
-bool SimplePhysicsComponent::OnSetAngularVelocity(GameMessages::GameMsg& msg) {
-	auto& setAngVel = static_cast<GameMessages::SetAngularVelocity&>(msg);
+bool SimplePhysicsComponent::OnSetAngularVelocity(GameMessages::SetAngularVelocity& setAngVel) {
 	m_DirtyVelocity |= setAngVel.bForceFlagDirty || (m_AngularVelocity != setAngVel.angVelocity);
 	m_AngularVelocity = setAngVel.angVelocity;
-	LOG("Velocity is now %f %f %f", m_AngularVelocity.x, m_AngularVelocity.y, m_AngularVelocity.z);
+	LOG_DEBUG("Angular velocity is now %f %f %f", m_AngularVelocity.x, m_AngularVelocity.y, m_AngularVelocity.z);
 	Game::entityManager->SerializeEntity(m_Parent);
 	return true;
 }
 
-bool SimplePhysicsComponent::OnGetAngularVelocity(GameMessages::GameMsg& msg) {
-	auto& getAngVel = static_cast<GameMessages::GetAngularVelocity&>(msg);
+bool SimplePhysicsComponent::OnGetAngularVelocity(GameMessages::GetAngularVelocity& getAngVel) {
 	getAngVel.angVelocity = m_AngularVelocity;
 	return true;
 }

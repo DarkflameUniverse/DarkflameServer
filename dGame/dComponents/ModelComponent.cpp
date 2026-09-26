@@ -1,8 +1,13 @@
 #include "ModelComponent.h"
+
+#include <cmath>
+
 #include "Entity.h"
 
 #include "Game.h"
 #include "Logger.h"
+#include "dConfig.h"
+#include "dMath.h"
 
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
@@ -19,7 +24,6 @@
 ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
-	LOG("%f %f %f %f", m_OriginalRotation.x, m_OriginalRotation.y, m_OriginalRotation.z, m_OriginalRotation.w);
 	m_IsPaused = false;
 	m_NumListeningInteract = 0;
 
@@ -43,10 +47,7 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& 
 	if (reset.bResetPos) m_Parent->SetPosition(m_OriginalPosition);
 	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
-	GameMessages::SetAngularVelocity setAngVel;
-	setAngVel.target = m_Parent->GetObjectID();
-	setAngVel.angVelocity = NiPoint3Constant::ZERO;
-	setAngVel.Send();
+	ResetRotationState(m_Parent->GetRotation());
 
 	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
@@ -317,36 +318,60 @@ void ModelComponent::SetVelocity(const NiPoint3& velocity) const {
 	m_Parent->SetVelocity(velocity);
 }
 
-bool ModelComponent::TrySetAngularVelocity(const NiPoint3& angularVelocity) const {
-	GameMessages::GetAngularVelocity getAngVel{};
-	getAngVel.target = m_Parent->GetObjectID();
-	if (!getAngVel.Send()) {
-		LOG("Couldn't get angular velocity for %llu", m_Parent->GetObjectID());
-		return false;
+bool ModelComponent::TryStartRotation(const int axis, const float direction) {
+	if (axis < 0 || axis > 2 || direction == 0.0f) return false;
+	if (m_RotationDirection[axis] != 0.0f) return false;
+
+	// Rebase only when nothing is rotating so simultaneous rotations stay relative to the same base
+	if (m_RotationDirection == NiPoint3Constant::ZERO) {
+		ResetRotationState(m_Parent->GetRotation());
+		m_SendAngularVelocity = Game::config->GetValue("model_rotation_send_angular_velocity") != "0";
 	}
 
+	m_RotationDegrees[axis] = std::fmod(m_RotationDegrees[axis], 360.0f);
+	m_RotationActionStart[axis] = m_RotationDegrees[axis];
+	m_RotationDirection[axis] = direction > 0.0f ? 1.0f : -1.0f;
+	SyncAngularVelocity();
+	return true;
+}
+
+void ModelComponent::SetRotationProgress(const int axis, const float degrees) {
+	if (axis < 0 || axis > 2) return;
+	m_RotationDegrees[axis] = m_RotationActionStart[axis] + degrees;
+
+	// Whole turns wrap to exactly 0 so e.g. 720 degrees yields exactly the base rotation
+	const NiPoint3 radians(
+		Math::DegToRad(std::fmod(m_RotationDegrees.x, 360.0f)),
+		Math::DegToRad(std::fmod(m_RotationDegrees.y, 360.0f)),
+		Math::DegToRad(std::fmod(m_RotationDegrees.z, 360.0f))
+	);
+	m_Parent->SetRotation(QuatUtils::FromEuler(radians) * m_RotationBase);
+}
+
+void ModelComponent::StopRotation(const int axis) {
+	if (axis < 0 || axis > 2) return;
+	m_RotationDirection[axis] = 0.0f;
+	SyncAngularVelocity();
+}
+
+void ModelComponent::SetSpeed(const float newSpeed) {
+	m_Speed = newSpeed;
+	if (m_RotationDirection != NiPoint3Constant::ZERO) SyncAngularVelocity();
+}
+
+void ModelComponent::SyncAngularVelocity() const {
 	GameMessages::SetAngularVelocity setAngVel{};
 	setAngVel.target = m_Parent->GetObjectID();
-	if (angularVelocity != NiPoint3Constant::ZERO) {
-		setAngVel.angVelocity = getAngVel.angVelocity;
-		const auto [x, y, z] = angularVelocity * m_Speed;
-		if (x != 0.0f) {
-			if (getAngVel.angVelocity.x != 0.0f) return false;
-			setAngVel.angVelocity.x = x;
-		} else if (y != 0.0f) {
-			if (getAngVel.angVelocity.y != 0.0f) return false;
-			setAngVel.angVelocity.y = y;
-		} else if (z != 0.0f) {
-			if (getAngVel.angVelocity.z != 0.0f) return false;
-			setAngVel.angVelocity.z = z;
-		}
-	} else {
-		setAngVel.angVelocity = angularVelocity;
-	}
-	LOG("Setting angular velocity to %f %f %f", setAngVel.angVelocity.x, setAngVel.angVelocity.y, setAngVel.angVelocity.z);
+	setAngVel.angVelocity = m_SendAngularVelocity ? m_RotationDirection * Math::DegToRad(GetAngularSpeed()) : NiPoint3Constant::ZERO;
 	setAngVel.Send();
+}
 
-	return true;
+void ModelComponent::ResetRotationState(const NiQuaternion& newBase) {
+	m_RotationBase = newBase;
+	m_RotationDegrees = NiPoint3Constant::ZERO;
+	m_RotationActionStart = NiPoint3Constant::ZERO;
+	m_RotationDirection = NiPoint3Constant::ZERO;
+	SyncAngularVelocity();
 }
 
 void ModelComponent::OnChatMessageReceived(const std::string& sMessage) {

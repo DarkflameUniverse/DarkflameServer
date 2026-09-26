@@ -147,17 +147,25 @@ public:
 	// Force sets the velocity to a value.
 	void SetVelocity(const NiPoint3& velocity) const;
 
-	// Attempts to set the angular velocity of the model.
-	// If the axis currently has a velocity of zero, returns true.
-	// If the axis is currently controlled by a behavior, returns false.
-	bool TrySetAngularVelocity(const NiPoint3& angularVelocity) const;
+	// Attempts to claim a world axis (0 = x, 1 = y, 2 = z) for rotation in direction (+1 or -1).
+	// Returns false if the axis is already controlled by a behavior.
+	bool TryStartRotation(const int axis, const float direction);
+
+	// Sets how many signed degrees the active rotation on axis has progressed and updates the entity.
+	void SetRotationProgress(const int axis, const float degrees);
+
+	// Releases the axis so another behavior can rotate it.
+	void StopRotation(const int axis);
+
+	// Degrees per second for rotation actions at the current speed.
+	float GetAngularSpeed() const noexcept { return BASE_ANGULAR_SPEED * m_Speed; }
 
 	void OnChatMessageReceived(const std::string& sMessage);
 
 	void OnHit();
 
 	// Sets the speed of the model
-	void SetSpeed(const float newSpeed) { m_Speed = newSpeed; }
+	void SetSpeed(const float newSpeed);
 
 	// Whether or not to restart at the end of the frame
 	void RestartAtEndOfFrame() { m_RestartAtEndOfFrame = true; }
@@ -172,6 +180,14 @@ public:
 
 	float GetSpeed() const noexcept { return m_Speed; }
 private:
+	// Degrees per second per unit of m_Speed
+	static constexpr float BASE_ANGULAR_SPEED = 15.0f;
+
+	// Sends the client-side angular velocity for the currently active rotation axes.
+	void SyncAngularVelocity() const;
+
+	// Clears all rotation state and makes rotation relative to newBase.
+	void ResetRotationState(const NiQuaternion& newBase);
 
 	// Loads a behavior from the database.
 	void LoadBehavior(const LWOOBJID behaviorID, const size_t index, const bool isIndexed);
@@ -220,4 +236,19 @@ private:
 
 	// Whether or not to restart at the end of the frame.
 	bool m_RestartAtEndOfFrame{ false };
+
+	// The rotation that m_RotationDegrees is applied on top of
+	NiQuaternion m_RotationBase = QuatUtils::IDENTITY;
+
+	// Accumulated signed degrees per world axis since m_RotationBase was set
+	NiPoint3 m_RotationDegrees{};
+
+	// m_RotationDegrees at the moment the current rotation on each axis started
+	NiPoint3 m_RotationActionStart{};
+
+	// Per axis -1, 0 or 1. Non-zero means a behavior currently owns rotation on that axis.
+	NiPoint3 m_RotationDirection{};
+
+	// Whether the client is sent an angular velocity to extrapolate rotation between updates
+	bool m_SendAngularVelocity{ true };
 };

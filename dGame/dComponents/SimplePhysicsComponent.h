@@ -22,6 +22,11 @@ enum class eClimbableType : int32_t {
 	CLIMBABLE_TYPE_WALL_STICK
 };
 
+namespace GameMessages {
+	struct SetAngularVelocity;
+	struct GetAngularVelocity;
+}
+
 
 /**
  * Component that serializes locations of entities to the client
@@ -61,8 +66,8 @@ public:
 	 */
 	void SetAngularVelocity(const NiPoint3& value) { m_AngularVelocity = value; m_DirtyVelocity = true; }
 
-	bool OnSetAngularVelocity(GameMessages::GameMsg& msg);
-	bool OnGetAngularVelocity(GameMessages::GameMsg& msg);
+	bool OnSetAngularVelocity(GameMessages::SetAngularVelocity& setAngVel);
+	bool OnGetAngularVelocity(GameMessages::GetAngularVelocity& getAngVel);
 
 	/**
 	 * Returns the physics motion state
