@@ -3,6 +3,7 @@
 #include "dServer.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "TradeMessages.h"
 #include "InventoryComponent.h"
 #include "ObjectIDManager.h"
 #include "Game.h"
@@ -79,7 +80,10 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 		auto* entityB = GetParticipantBEntity();
 
 		if (entityB != nullptr) {
-			GameMessages::SendServerTradeAccept(m_ParticipantB, value, entityB->GetSystemAddress());
+			GameMessages::ServerTradeAccept accept;
+			accept.target = m_ParticipantB;
+			accept.bFirst = value;
+			accept.Send(entityB->GetSystemAddress());
 		}
 	} else if (participant == m_ParticipantB) {
 		m_AcceptedB = !value;
@@ -89,7 +93,10 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 		auto* entityA = GetParticipantAEntity();
 
 		if (entityA != nullptr) {
-			GameMessages::SendServerTradeAccept(m_ParticipantA, value, entityA->GetSystemAddress());
+			GameMessages::ServerTradeAccept accept;
+			accept.target = m_ParticipantA;
+			accept.bFirst = value;
+			accept.Send(entityA->GetSystemAddress());
 		}
 	}
 
@@ -97,7 +104,10 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 		auto* entityB = GetParticipantBEntity();
 
 		if (entityB != nullptr) {
-			GameMessages::SendServerTradeAccept(m_ParticipantB, false, entityB->GetSystemAddress());
+			GameMessages::ServerTradeAccept accept;
+			accept.target = m_ParticipantB;
+			accept.bFirst = false;
+			accept.Send(entityB->GetSystemAddress());
 		} else {
 			return;
 		}
@@ -105,7 +115,10 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 		auto* entityA = GetParticipantAEntity();
 
 		if (entityA != nullptr) {
-			GameMessages::SendServerTradeAccept(m_ParticipantA, false, entityA->GetSystemAddress());
+			GameMessages::ServerTradeAccept accept;
+			accept.target = m_ParticipantA;
+			accept.bFirst = false;
+			accept.Send(entityA->GetSystemAddress());
 		} else {
 			return;
 		}
@@ -214,8 +227,16 @@ void Trade::Cancel(const LWOOBJID canceller) {
 
 	if (entityA == nullptr || entityB == nullptr) return;
 
-	if (entityA->GetObjectID() != canceller || canceller == LWOOBJID_EMPTY) GameMessages::SendServerTradeCancel(entityA->GetObjectID(), entityA->GetSystemAddress());
-	if (entityB->GetObjectID() != canceller || canceller == LWOOBJID_EMPTY) GameMessages::SendServerTradeCancel(entityB->GetObjectID(), entityB->GetSystemAddress());
+	if (entityA->GetObjectID() != canceller || canceller == LWOOBJID_EMPTY) {
+		GameMessages::ServerTradeCancel cancel;
+		cancel.target = entityA->GetObjectID();
+		cancel.Send(entityA->GetSystemAddress());
+	}
+	if (entityB->GetObjectID() != canceller || canceller == LWOOBJID_EMPTY) {
+		GameMessages::ServerTradeCancel cancel;
+		cancel.target = entityB->GetObjectID();
+		cancel.Send(entityB->GetSystemAddress());
+	}
 }
 
 void Trade::SendUpdateToOther(LWOOBJID participant) {
@@ -260,7 +281,18 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 
 	LOG("Sending trade update");
 
-	GameMessages::SendServerTradeUpdate(other->GetObjectID(), coins, items, other->GetSystemAddress());
+	GameMessages::ServerTradeUpdate update;
+	update.target = other->GetObjectID();
+	update.i64Currency = coins;
+	for (const auto& item : items) {
+		GameMessages::TradeItemEntry entry;
+		entry.key = item.itemId;
+		entry.itemID = item.itemId;
+		entry.templateID = item.itemLot;
+		entry.count = item.itemCount; // the count is always written, even when it is 1
+		update.inventoryMap.push_back(entry);
+	}
+	update.Send(other->GetSystemAddress());
 }
 
 const std::unique_ptr<Trade>& TradingManager::GetTrade(LWOOBJID tradeId) const {

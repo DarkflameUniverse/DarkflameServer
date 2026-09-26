@@ -1,15 +1,17 @@
 set(DGAME_DGAMEMESSAGES_SOURCES
 	"ActivityMessages.cpp"
 	"BuildingMessages.cpp"
+	"EffectsMessages.cpp"
 	"GameMessageDecoder.cpp"
 	"GameMessageHandler.cpp"
-	"EffectsMessages.cpp"
 	"GameMessages.cpp"
 	"InventoryMessages.cpp"
 	"MissionMessages.cpp"
 	"PetMessages.cpp"
 	"PropertyMessages.cpp"
-	"RacingMessages.cpp")
+	"RacingMessages.cpp"
+	"TradeMessages.cpp"
+	"VendorMessages.cpp")
 
 add_library(dGameMessages OBJECT ${DGAME_DGAMEMESSAGES_SOURCES})
 target_link_libraries(dGameMessages

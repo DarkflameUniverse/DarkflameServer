@@ -43,13 +43,13 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	if (costLOT == -1 || !SellsItem(buyer, lot)) {
 		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
 		CheatDetection::ReportCheat(user, buyer->GetSystemAddress(), "Attempted to buy item %i from achievement vendor %i that is not purchasable", lot, m_Parent->GetLOT());
-		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
 	auto* inventoryComponent = buyer->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) {
-		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
@@ -65,12 +65,12 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 
 	const uint32_t altCurrencyCost = itemComp.commendationCost * count;
 	if (inventoryComponent->GetLotCount(costLOT) < altCurrencyCost || !inventoryComponent->RemoveItem(costLOT, altCurrencyCost, eInventoryType::ALL)) {
-		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
 	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
-	GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
+	SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
 
 }
 

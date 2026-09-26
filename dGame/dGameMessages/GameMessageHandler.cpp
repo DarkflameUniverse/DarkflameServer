@@ -35,6 +35,8 @@
 #include "BuildingMessages.h"
 #include "RacingMessages.h"
 #include "MissionMessages.h"
+#include "TradeMessages.h"
+#include "VendorMessages.h"
 #include "EffectsMessages.h"
 #include "InventoryMessages.h"
 #include "PetMessages.h"
@@ -139,6 +141,22 @@ namespace {
 		{ UN_USE_BBB_MODEL, []() { return std::make_unique<UnUseBBBModel>(); } },
 		{ BBB_LOAD_ITEM_REQUEST, []() { return std::make_unique<BBBLoadItemRequest>(); } },
 		{ BBB_SAVE_REQUEST, []() { return std::make_unique<BBBSaveRequest>(); } },
+
+		// Vendors and donation vendors
+		{ REQUEST_VENDOR_STATUS_UPDATE, []() { return std::make_unique<RequestVendorStatusUpdate>(); } },
+		{ BUY_FROM_VENDOR, []() { return std::make_unique<BuyFromVendor>(); } },
+		{ SELL_TO_VENDOR, []() { return std::make_unique<SellToVendor>(); } },
+		{ BUYBACK_FROM_VENDOR, []() { return std::make_unique<BuybackFromVendor>(); } },
+		{ ADD_DONATION_ITEM, []() { return std::make_unique<AddDonationItem>(); } },
+		{ REMOVE_DONATION_ITEM, []() { return std::make_unique<RemoveDonationItem>(); } },
+		{ CONFIRM_DONATION_ON_PLAYER, []() { return std::make_unique<ConfirmDonationOnPlayer>(); } },
+		{ CANCEL_DONATION_ON_PLAYER, []() { return std::make_unique<CancelDonationOnPlayer>(); } },
+
+		// Trading
+		{ CLIENT_TRADE_REQUEST, []() { return std::make_unique<ClientTradeRequest>(); } },
+		{ CLIENT_TRADE_CANCEL, []() { return std::make_unique<ClientTradeCancel>(); } },
+		{ CLIENT_TRADE_ACCEPT, []() { return std::make_unique<ClientTradeAccept>(); } },
+		{ CLIENT_TRADE_UPDATE, []() { return std::make_unique<ClientTradeUpdate>(); } },
 	};
 };
 
@@ -464,18 +482,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		entity->Smash(entity->GetObjectID());
 		break;
 
-	case MessageType::Game::BUY_FROM_VENDOR:
-		GameMessages::HandleBuyFromVendor(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::SELL_TO_VENDOR:
-		GameMessages::HandleSellToVendor(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::BUYBACK_FROM_VENDOR:
-		GameMessages::HandleBuybackFromVendor(inStream, entity, sysAddr);
-		break;
-
 	case MessageType::Game::REBUILD_CANCEL:
 		GameMessages::HandleQuickBuildCancel(inStream, entity);
 		break;
@@ -489,20 +495,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 
 		// Trading
-	case MessageType::Game::CLIENT_TRADE_REQUEST:
-		GameMessages::HandleClientTradeRequest(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::CLIENT_TRADE_CANCEL:
-		GameMessages::HandleClientTradeCancel(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::CLIENT_TRADE_ACCEPT:
-		GameMessages::HandleClientTradeAccept(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::CLIENT_TRADE_UPDATE:
-		GameMessages::HandleClientTradeUpdate(inStream, entity, sysAddr);
-		break;
-
-		// Racing: most racing messages are registered in g_MessageHandlers
 	case MessageType::Game::ACKNOWLEDGE_POSSESSION:
 		GameMessages::HandleAcknowledgePossession(inStream, entity, sysAddr);
 		break;
@@ -564,21 +556,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 	case MessageType::Game::ZONE_SUMMARY_DISMISSED:
 		GameMessages::HandleZoneSummaryDismissed(inStream, entity);
-		break;
-	case MessageType::Game::ADD_DONATION_ITEM:
-		GameMessages::HandleAddDonationItem(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::REMOVE_DONATION_ITEM:
-		GameMessages::HandleRemoveDonationItem(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::CONFIRM_DONATION_ON_PLAYER:
-		GameMessages::HandleConfirmDonationOnPlayer(inStream, entity);
-		break;
-	case MessageType::Game::CANCEL_DONATION_ON_PLAYER:
-		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
-		break;
-	case MessageType::Game::REQUEST_VENDOR_STATUS_UPDATE:
-		GameMessages::SendVendorStatusUpdate(entity, sysAddr, true);
 		break;
 	default:
 		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());

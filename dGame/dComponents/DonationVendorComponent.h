@@ -14,6 +14,12 @@ public:
 	uint32_t GetActivityID() {return m_ActivityId;};
 	void SubmitDonation(uint32_t count);
 
+	// AddDonationItem from the player at sysAddr: moves count of the item into their donation inventory.
+	void AddDonationItem(const SystemAddress& sysAddr, LWOOBJID itemObjID, uint32_t count);
+
+	// ConfirmDonationOnPlayer: the player donates everything in their donation inventory to this vendor.
+	void ConfirmDonation(Entity& player);
+
 private:
 	bool m_DirtyDonationVendor = false;
 	float m_PercentComplete = 0.0;

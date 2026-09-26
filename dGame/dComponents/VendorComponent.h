@@ -9,6 +9,8 @@
 #include "RakNetTypes.h"
 #include "eReplicaComponentType.h"
 
+enum class eVendorTransactionResult : uint32_t;
+
 struct SoldItem {
 	SoldItem(const LOT lot, const int32_t sortPriority) {
 		this->lot = lot;
@@ -48,6 +50,16 @@ public:
 	}
 
 	void Buy(Entity* buyer, LOT lot, uint32_t count);
+
+	// SellToVendor / BuybackFromVendor from player (sent from sysAddr), for the item with object ID itemObjID.
+	void SellToVendor(Entity& player, const SystemAddress& sysAddr, LWOOBJID itemObjID, int32_t count);
+	void BuybackFromVendor(Entity& player, const SystemAddress& sysAddr, LWOOBJID itemObjID, int32_t count);
+
+	// Sends this vendor's stock (VendorStatusUpdate) to sysAddr; UNASSIGNED_SYSTEM_ADDRESS broadcasts.
+	void SendStatusUpdate(const SystemAddress& sysAddr, bool bUpdateOnly = false);
+
+	// Sends a VendorTransactionResult targeting target to sysAddr only.
+	static void SendTransactionResult(LWOOBJID target, const SystemAddress& sysAddr, eVendorTransactionResult result);
 
 private:
 	void HandleMrReeCameras();

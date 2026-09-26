@@ -172,14 +172,9 @@ namespace GameMessages {
 	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
-	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
-	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
-	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr, eVendorTransactionResult result);
-
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
 
-	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
 	void SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore);
 
 	/**
@@ -282,27 +277,6 @@ namespace GameMessages {
 
 	void SendTeamPickupItem(LWOOBJID objectId, LWOOBJID lootID, LWOOBJID lootOwnerID, const SystemAddress& sysAddr);
 
-	//Trading:
-	void SendServerTradeInvite(LWOOBJID objectId, bool bNeedInvitePopUp, LWOOBJID i64Requestor, std::u16string wsName, const SystemAddress& sysAddr);
-
-	void SendServerTradeInitialReply(LWOOBJID objectId, LWOOBJID i64Invitee, int32_t resultType, std::u16string wsName, const SystemAddress& sysAddr);
-
-	void SendServerTradeFinalReply(LWOOBJID objectId, bool bResult, LWOOBJID i64Invitee, std::u16string wsName, const SystemAddress& sysAddr);
-
-	void SendServerTradeAccept(LWOOBJID objectId, bool bFirst, const SystemAddress& sysAddr);
-
-	void SendServerTradeCancel(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendServerTradeUpdate(LWOOBJID objectId, uint64_t coins, const std::vector<TradeItem>& items, const SystemAddress& sysAddr);
-
-	void HandleClientTradeRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleClientTradeCancel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleClientTradeAccept(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
 	//Pets:
 
 	void SendDisplayZoneSummary(LWOOBJID objectId, const SystemAddress& sysAddr, bool isPropertyMap = false, bool isZoneStart = false, LWOOBJID sender = LWOOBJID_EMPTY);
@@ -380,9 +354,6 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleBuyFromVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSellToVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleBuybackFromVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleParseChatMessage(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleToggleGhostReffrenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReffrenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -413,12 +384,6 @@ namespace GameMessages {
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream& inStream, Entity* entity);
-
-	// Donation vendor
-	void HandleAddDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleRemoveDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
-	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
 

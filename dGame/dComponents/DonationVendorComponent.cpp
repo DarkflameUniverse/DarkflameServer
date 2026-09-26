@@ -1,5 +1,18 @@
 #include "DonationVendorComponent.h"
 #include "Database.h"
+#include "CharacterComponent.h"
+#include "EconomyLedger.h"
+#include "eInventoryType.h"
+#include "eMissionTaskType.h"
+#include "EntityManager.h"
+#include "Game.h"
+#include "InventoryComponent.h"
+#include "Item.h"
+#include "LeaderboardManager.h"
+#include "Logger.h"
+#include "MissionComponent.h"
+#include "User.h"
+#include "UserManager.h"
 
 DonationVendorComponent::DonationVendorComponent(Entity* parent, const int32_t componentID) : VendorComponent(parent, componentID) {
 	//LoadConfigData
@@ -45,4 +58,50 @@ void DonationVendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 		outBitStream.Write(m_TotalRemaining);
 		if (!bIsInitialUpdate) m_DirtyDonationVendor = false;
 	}
+}
+
+void DonationVendorComponent::AddDonationItem(const SystemAddress& sysAddr, LWOOBJID itemObjID, uint32_t count) {
+	if (GetActivityID() == 0) {
+		LOG("WARNING: Trying to dontate to a vendor with no activity");
+		return;
+	}
+	User* user = UserManager::Instance()->GetUser(sysAddr);
+	if (!user) return;
+	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
+	if (!player) return;
+	auto* characterComponent = player->GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+	Item* item = inventoryComponent->FindItemById(itemObjID);
+	if (!item) return;
+	if (item->GetCount() < count) return;
+	characterComponent->SetCurrentInteracting(m_Parent->GetObjectID());
+	inventoryComponent->MoveItemToInventory(item, eInventoryType::DONATION, count, true, false, true);
+}
+
+void DonationVendorComponent::ConfirmDonation(Entity& player) {
+	const auto [inventoryComponent, missionComponent, characterComponent] = player.GetComponentsMut<InventoryComponent, MissionComponent, CharacterComponent>();
+	if (!inventoryComponent || !missionComponent || !characterComponent || !characterComponent->GetCurrentInteracting()) return;
+
+	if (GetActivityID() == 0) {
+		LOG("WARNING: Trying to dontate to a vendor with no activity");
+		return;
+	}
+	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
+	if (!inventory) return;
+	auto items = inventory->GetItems();
+	if (!items.empty()) {
+		uint32_t count = 0;
+		for (auto& [itemID, item] : items) {
+			count += item->GetCount();
+			EconomyLedger::RecordItemsUnsuppressed(&player, item->GetLot(), -static_cast<int64_t>(item->GetCount()), EconomyLedger::DONATION_SOURCE);
+			item->RemoveFromInventory();
+		}
+		missionComponent->Progress(eMissionTaskType::DONATION, 0, LWOOBJID_EMPTY, "", count);
+		LeaderboardManager::SaveScore(player.GetObjectID(), GetActivityID(), count);
+		SubmitDonation(count);
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
+	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
 }
