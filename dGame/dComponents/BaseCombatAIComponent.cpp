@@ -375,6 +375,13 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 
 	auto* target = GetTargetEntity();
 
+	// A target that died is no longer worth attacking, drop it and look for someone else.
+	if (target != nullptr && target->GetIsDead()) {
+		SetThreat(m_Target, 0.0f);
+		target = nullptr;
+		m_DirtyThreat = true;
+	}
+
 	if (target != nullptr && !m_DirtyThreat) {
 		const auto targetPosition = target->GetPosition();
 
@@ -399,7 +406,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	for (const auto& entry : possibleTargets) {
 		auto* entity = Game::entityManager->GetEntity(entry);
 
-		if (entity == nullptr) {
+		if (entity == nullptr || entity->GetIsDead()) {
 			continue;
 		}
 
@@ -445,7 +452,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	for (const auto& threatTarget : m_ThreatEntries) {
 		auto* entity = Game::entityManager->GetEntity(threatTarget.first);
 
-		if (entity == nullptr) {
+		if (entity == nullptr || entity->GetIsDead()) {
 			deadThreats.push_back(threatTarget.first);
 
 			continue;
