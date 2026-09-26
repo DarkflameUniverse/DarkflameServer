@@ -19,7 +19,8 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 
 	if (!missionComponent || !inventoryComponent) return;
 
-	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == eMissionState::COMPLETE) {
+	// Only players on the mission get the data card, and only once.
+	if (missionComponent->GetMissionState(979) != eMissionState::ACTIVE || inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0) {
 		return;
 	}
 
@@ -27,14 +28,9 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 }
 
 void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
+	// Reset this computer's spawner network and start the first one again, however it died.
 	const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
-
-	const auto pipeNum = GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1));
-	if (!pipeNum) return;
-
 	const auto pipeGroup = myGroup.substr(0, 10);
-
-	const auto nextPipeNum = pipeNum.value() + 1;
 
 	const auto samePipeSpawners = Game::zoneManager->GetSpawnersByName(myGroup);
 
@@ -44,22 +40,10 @@ void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
 		samePipeSpawners[0]->Deactivate();
 	}
 
-	if (killer != nullptr && killer->IsPlayer()) {
-		const auto nextPipe = pipeGroup + std::to_string(nextPipeNum);
+	const auto firstPipeSpawners = Game::zoneManager->GetSpawnersByName(pipeGroup + "1");
 
-		const auto nextPipeSpawners = Game::zoneManager->GetSpawnersByName(nextPipe);
-
-		if (!nextPipeSpawners.empty()) {
-			nextPipeSpawners[0]->Activate();
-		}
-	} else {
-		const auto nextPipe = pipeGroup + "1";
-
-		const auto firstPipeSpawners = Game::zoneManager->GetSpawnersByName(nextPipe);
-
-		if (!firstPipeSpawners.empty()) {
-			firstPipeSpawners[0]->Activate();
-		}
+	if (!firstPipeSpawners.empty()) {
+		firstPipeSpawners[0]->Activate();
 	}
 }
 

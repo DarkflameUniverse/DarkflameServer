@@ -1,16 +1,14 @@
 #include "SsModularBuildServer.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
-#include "eReplicaComponentType.h"
 
 void SsModularBuildServer::OnModularBuildExit(Entity* self, Entity* player, bool bCompleted, std::vector<LOT> modules) {
 	int missionNum = 1732;
 
 	if (bCompleted) {
-		MissionComponent* mission = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
-		Mission* rocketMission = mission->GetMission(missionNum);
-
-		if (rocketMission->GetMissionState() == eMissionState::ACTIVE) {
+		auto* const mission = player->GetComponent<MissionComponent>();
+		// The player may never have had this mission, so check the state instead of the mission itself.
+		if (mission && mission->GetMissionState(missionNum) == eMissionState::ACTIVE) {
 			mission->ForceProgress(missionNum, 2478, 1);
 		}
 	}
