@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <vector>
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
@@ -49,6 +50,12 @@ public:
 	void SetIsReady(bool value) { m_Ready = value; }
 	bool GetIsShuttingDown() const { return m_IsShuttingDown; }
 	void SetIsShuttingDown(bool value) { m_IsShuttingDown = value; }
+	// Its players are being moved to another instance (InstanceMigration.h): nobody new is sent here
+	bool GetIsDraining() const { return m_IsDraining; }
+	void SetIsDraining(bool value) { m_IsDraining = value; }
+	// Seats held for players being moved in; they count towards the caps until the move is over
+	int GetReserved() const { return m_Reserved; }
+	void SetReserved(int value) { m_Reserved = std::max(0, value); }
 	std::vector<PendingInstanceRequest>& GetPendingRequests() { return m_PendingRequests; }
 	std::vector<PendingInstanceRequest>& GetPendingAffirmations() { return m_PendingAffirmations; }
 
@@ -88,6 +95,8 @@ private:
 	SystemAddress m_SysAddr{};
 	bool m_Ready{};
 	bool m_IsShuttingDown{};
+	bool m_IsDraining{};
+	int m_Reserved{};
 	std::vector<PendingInstanceRequest> m_PendingRequests{};
 	std::vector<PendingInstanceRequest> m_PendingAffirmations{};
 
@@ -135,6 +144,9 @@ public:
 	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
 	void PruneUnreadyInstances();
 
+	// Start a new public instance of a zone even when one with room is running (instance migrations)
+	const InstancePtr& StartNewInstance(LWOMAPID mapID, LWOCLONEID cloneID) { return CreateInstance(mapID, cloneID); }
+
 private:
 	std::string mExternalIP;
 	std::vector<std::unique_ptr<Instance>> m_Instances;
@@ -149,4 +161,5 @@ private:
 	//Private functions:
 	int GetSoftCap(LWOMAPID mapID);
 	int GetHardCap(LWOMAPID mapID);
+	const InstancePtr& CreateInstance(LWOMAPID mapID, LWOCLONEID cloneID);
 };

@@ -34,6 +34,7 @@
 #include "AuthPackets.h"
 #include "Game.h"
 #include "InstanceManager.h"
+#include "MigrationCoordinator.h"
 #include "MasterPackets.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
@@ -372,6 +373,16 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	// Instance migration progress goes to every world, where the GM who asked for it hears about it
+	MigrationCoordinator::SetReporter([](const MigrationStatus& status) {
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MIGRATE_STATUS);
+		status.Serialize(bitStream);
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (instance && instance->GetIsReady() && !instance->GetShutdownComplete()) Game::server->Send(bitStream, instance->GetSysAddr(), false);
+		}
+	});
+
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "0") {
 		StartChatServer();
@@ -402,6 +413,8 @@ int main(int argc, char** argv) {
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
 		}
+
+		MigrationCoordinator::Update();
 
 		//Push our log every 15s:
 		if (framesSinceLastFlush >= logFlushTime) {
@@ -493,6 +506,7 @@ void HandlePacket(Packet* packet) {
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
 			LOG("Actually disconnected from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			MigrationCoordinator::OnInstanceGone(*instance);
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
@@ -514,6 +528,7 @@ void HandlePacket(Packet* packet) {
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
 			LWOZONEID zoneID = instance->GetZoneID(); //Get the zoneID so we can recreate a server
+			MigrationCoordinator::OnInstanceGone(*instance);
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
@@ -831,6 +846,33 @@ void HandlePacket(Packet* packet) {
 		case MessageType::Master::SHUTDOWN_UNIVERSE: {
 			LOG("Received shutdown universe command, shutting down in 10 minutes.");
 			Game::universeShutdownRequested = true;
+			break;
+		}
+
+		case MessageType::Master::INSTANCE_MIGRATE: {
+			// Only servers connected to master can send this (a world, for a GM's /replaceinstance or /mergeinstance)
+			CINSTREAM_SKIP_HEADER;
+			InstanceMigrationRequest request;
+			if (!request.Deserialize(inStream)) break;
+			if (shutdownSequenceStarted) {
+				LOG("Shutdown sequence has been started. Not starting instance migration %u.", request.requestId);
+				break;
+			}
+			MigrationCoordinator::Start(request);
+			break;
+		}
+
+		case MessageType::Master::MIGRATE_STATUS: {
+			CINSTREAM_SKIP_HEADER;
+			MigrationStatus status;
+			if (status.Deserialize(inStream)) MigrationCoordinator::HandleStatus(packet->systemAddress, status);
+			break;
+		}
+
+		case MessageType::Master::MIGRATE_PLAYER_STATE: {
+			CINSTREAM_SKIP_HEADER;
+			CarriedPlayerState state;
+			if (state.Deserialize(inStream)) MigrationCoordinator::HandleCarriedState(packet->systemAddress, state, packet->data, packet->length);
 			break;
 		}
 

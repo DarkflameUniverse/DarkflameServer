@@ -1,5 +1,6 @@
 set(DMASTERSERVER_SOURCES
 	"InstanceManager.cpp"
+	"MigrationCoordinator.cpp"
 	"Start.cpp"
 )
 

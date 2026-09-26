@@ -31,6 +31,10 @@ const InstancePtr& InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTra
 	auto& instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
+	return CreateInstance(mapID, cloneID);
+}
+
+const InstancePtr& InstanceManager::CreateInstance(LWOMAPID mapID, LWOCLONEID cloneID) {
 	// If we are shutting down, return a nullptr so a new instance is not created.
 	if (m_IsShuttingDown) {
 		LOG("Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
@@ -241,7 +245,7 @@ const InstancePtr& InstanceManager::GetInstanceBySysAddr(SystemAddress& sysAddr)
 
 const InstancePtr& InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
 	for (const auto& i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !i->IsFull(isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
+		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !i->IsFull(isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown() && !i->GetIsDraining()) {
 			return i;
 		}
 	}
@@ -358,9 +362,11 @@ void Instance::Shutdown() {
 
 
 bool Instance::IsFull(bool isFriendTransfer) const {
-	if (!isFriendTransfer && GetSoftCap() > GetCurrentClientCount())
+	// Seats held for players being moved in count as taken
+	const int load = GetCurrentClientCount() + GetReserved();
+	if (!isFriendTransfer && GetSoftCap() > load)
 		return false;
-	else if (isFriendTransfer && GetHardCap() > GetCurrentClientCount())
+	else if (isFriendTransfer && GetHardCap() > load)
 		return false;
 
 	return true;
