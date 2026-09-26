@@ -27,6 +27,16 @@ namespace MessageType {
 		AFFIRM_TRANSFER_REQUEST,
 		AFFIRM_TRANSFER_RESPONSE,
 
-		NEW_SESSION_ALERT
+		NEW_SESSION_ALERT,
+
+		// Move everyone in one instance to another (replace or merge; see InstanceMigration.h). Sent by a world
+		// for a GM command; a dashboard could send it too
+		INSTANCE_MIGRATE,
+		// Master -> source world: send your players to this instance
+		MIGRATE_PLAYERS,
+		// Source world -> master -> every world: how a migration is going
+		MIGRATE_STATUS,
+		// Source world -> master -> target world: what a moved player had that isn't in their saved character
+		MIGRATE_PLAYER_STATE,
 	};
 }
