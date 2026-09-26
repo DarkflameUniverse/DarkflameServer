@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	const auto zoneStr = std::to_string(zoneID);
-	const auto cloneStr = std::to_string(g_CloneID);
+	const auto cloneStr = std::to_string(cloneID);
 	const auto instanceStr = std::to_string(g_InstanceID);
 	g_ServiceName += "_" + zoneStr + "_" + cloneStr + "_" + instanceStr + "_" + curTimeStr;
 	// Here we re-set the process name since it'll have more info now
