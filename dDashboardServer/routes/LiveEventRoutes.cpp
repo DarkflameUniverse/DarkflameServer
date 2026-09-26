@@ -420,9 +420,11 @@ namespace LiveEventRoutes {
 				const auto& types = ObjectTypes(kind);
 				std::string placeholders;
 				for (size_t i = 0; i < types.size(); i++) placeholders += i ? ", ?" : "?";
+				// IN, not a correlated EXISTS: ComponentsRegistry has no index, and the EXISTS form took seconds with the
+				// bundled SQLite for the kinds with thousands of objects
 				auto stmt = CDClientDatabase::CreatePreppedStmt(
 					"SELECT o.id, o.name, o.displayName, o.type FROM Objects o WHERE o.type IN (" + placeholders + ") "
-					"AND EXISTS (SELECT 1 FROM ComponentsRegistry c WHERE c.id = o.id AND c.component_type = ?) "
+					"AND o.id IN (SELECT c.id FROM ComponentsRegistry c WHERE c.component_type = ?) "
 					"AND (? = '' OR o.name LIKE '%' || ? || '%' OR o.displayName LIKE '%' || ? || '%' OR o.id = ?) ORDER BY o.name LIMIT 60;");
 				int index = 1;
 				for (const auto& type : types) stmt.bind(index++, type.c_str());
