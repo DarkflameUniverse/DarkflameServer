@@ -161,20 +161,13 @@ namespace GameMessages {
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
 		eMovementPlatformState movementState = eMovementPlatformState::Moving, bool special = false);
 
-	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
 	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
 	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
 
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::NONE);
-	void SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t iFlagID, bool bFlag, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
-
-	void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
-	void SendNotifyMission(Entity* entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
-	void SendNotifyMissionTask(Entity* entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
-	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
@@ -646,11 +639,6 @@ namespace GameMessages {
 	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetFlag(RakNet::BitStream& inStream, Entity* entity);
-	void HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity);
-	void HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* entity);
-	void HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity);
-	void HandleHasBeenCollected(RakNet::BitStream& inStream, Entity* entity);
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity);

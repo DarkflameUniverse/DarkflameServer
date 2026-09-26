@@ -9,6 +9,7 @@
 #include "CDMissionsTable.h"
 #include "CDMissionNPCComponentTable.h"
 #include "GameMessages.h"
+#include "MissionMessages.h"
 #include "Entity.h"
 #include "MissionComponent.h"
 #include "Logger.h"
@@ -54,6 +55,24 @@ MissionOfferComponent::MissionOfferComponent(Entity* parent, const int32_t compo
 	}
 }
 
+namespace {
+	// "Why are we sending it twice, once to a non-player object?"
+	// The first one (targeting the offerer) makes the client zoom into the object.
+	// The second (targeting the player) actually makes the UI pop up so the mission can be offered.
+	// Why is it like this? Because LU isn't just a clown, it's the entire circus.
+	void OfferMissionToPlayer(const Entity& player, const int32_t missionID, const LWOOBJID offerer) {
+		GameMessages::OfferMission offerMission;
+		offerMission.missionID = missionID;
+		offerMission.offerer = offerer;
+
+		offerMission.target = offerer;
+		offerMission.SendToClient(player.GetSystemAddress());
+
+		offerMission.target = player.GetObjectID();
+		offerMission.SendToClient(player.GetSystemAddress());
+	}
+}
+
 void MissionOfferComponent::OnUse(Entity* originator) {
 	OfferMissions(originator);
 }
@@ -95,7 +114,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 			// We have the mission, if it is not complete, offer it
 			if (mission->IsActive() || mission->IsReadyToComplete()) {
-				GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent->GetObjectID());
+				OfferMissionToPlayer(*entity, missionId, m_Parent->GetObjectID());
 
 				continue;
 			}
@@ -132,7 +151,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 				const auto& iter = std::find(randomMissionPool.begin(), randomMissionPool.end(), specifiedMissionId);
 
 				if (iter != randomMissionPool.end() && MissionPrerequisites::CanAccept(specifiedMissionId, missionComponent->GetMissions())) {
-					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), specifiedMissionId, m_Parent->GetObjectID());
+					OfferMissionToPlayer(*entity, specifiedMissionId, m_Parent->GetObjectID());
 
 					return;
 				}
@@ -152,7 +171,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 					if (mission == nullptr || mission->IsAchievement()) continue;
 
-					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), sample, m_Parent->GetObjectID());
+					OfferMissionToPlayer(*entity, sample, m_Parent->GetObjectID());
 
 					canAcceptPool.clear();
 
@@ -169,9 +188,9 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 			const auto selected = canAcceptPool[GeneralUtils::GenerateRandomNumber<int>(0, canAcceptPool.size() - 1)];
 
-			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), selected, m_Parent->GetObjectID());
+			OfferMissionToPlayer(*entity, selected, m_Parent->GetObjectID());
 		} else if (offeredMission.GetOffersMission()) {
-			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent->GetObjectID());
+			OfferMissionToPlayer(*entity, missionId, m_Parent->GetObjectID());
 		}
 	}
 }

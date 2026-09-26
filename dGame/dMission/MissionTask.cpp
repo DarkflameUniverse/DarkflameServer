@@ -10,6 +10,7 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
+#include "MissionMessages.h"
 #include "dZoneManager.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
@@ -68,9 +69,12 @@ void MissionTask::SetProgress(const uint32_t value, const bool echo) {
 		return;
 	}
 
-	std::vector<float> updates;
-	updates.push_back(static_cast<float>(progress));
-	GameMessages::SendNotifyMissionTask(entity, entity->GetSystemAddress(), static_cast<int>(info->id), static_cast<int>(1 << (mask + 1)), updates);
+	GameMessages::NotifyMissionTask notifyMissionTask;
+	notifyMissionTask.target = entity->GetObjectID();
+	notifyMissionTask.missionID = static_cast<int32_t>(info->id);
+	notifyMissionTask.taskMask = static_cast<int32_t>(1 << (mask + 1));
+	notifyMissionTask.updates.push_back(static_cast<float>(progress));
+	notifyMissionTask.SendToClient(entity->GetSystemAddress());
 }
 
 

@@ -13,6 +13,7 @@
 #include "CDMissionTasksTable.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "MissionMessages.h"
 #include "Game.h"
 #include "Amf3.h"
 #include "dZoneManager.h"
@@ -570,7 +571,10 @@ void MissionComponent::ResetMission(const int32_t missionId) {
 	if (!mission) return;
 
 	m_Missions.erase(missionId);
-	GameMessages::SendResetMissions(m_Parent, m_Parent->GetSystemAddress(), missionId);
+	GameMessages::ResetMissions resetMissions;
+	resetMissions.target = m_Parent->GetObjectID();
+	resetMissions.missionID = missionId;
+	resetMissions.SendToClient(m_Parent->GetSystemAddress());
 }
 
 void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V, bool verbose) {

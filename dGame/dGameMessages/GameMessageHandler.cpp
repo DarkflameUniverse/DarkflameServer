@@ -32,6 +32,7 @@
 #include "EchoSyncSkill.h"
 #include "ActivityMessages.h"
 #include "RacingMessages.h"
+#include "MissionMessages.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
@@ -62,6 +63,13 @@ namespace {
 		{ NOTIFY_SERVER_VEHICLE_REMOVE_PASSIVE_BOOST_ACTION, []() { return std::make_unique<VehicleNotifyServerRemovePassiveBoostAction>(); } },
 		{ RACING_PLAYER_INFO_RESET_FINISHED, []() { return std::make_unique<RacingPlayerInfoResetFinished>(); } },
 		{ VEHICLE_NOTIFY_HIT_IMAGINATION_SERVER, []() { return std::make_unique<VehicleNotifyHitImaginationServer>(); } },
+
+		// Missions, flags, collectibles
+		{ RESPOND_TO_MISSION, []() { return std::make_unique<RespondToMission>(); } },
+		{ MISSION_DIALOGUE_OK, []() { return std::make_unique<MissionDialogueOK>(); } },
+		{ REQUEST_LINKED_MISSION, []() { return std::make_unique<RequestLinkedMission>(); } },
+		{ SET_FLAG, []() { return std::make_unique<SetFlag>(); } },
+		{ HAS_BEEN_COLLECTED, []() { return std::make_unique<HasBeenCollected>(); } },
 	};
 };
 
@@ -136,21 +144,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	case MessageType::Game::UN_EQUIP_INVENTORY:
 		GameMessages::HandleUnequipItem(inStream, entity);
 		break;
-
-	case MessageType::Game::RESPOND_TO_MISSION: {
-		GameMessages::HandleRespondToMission(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::SET_FLAG: {
-		GameMessages::HandleSetFlag(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::HAS_BEEN_COLLECTED: {
-		GameMessages::HandleHasBeenCollected(inStream, entity);
-		break;
-	}
 
 											  // Currently not actually used for our implementation, however its used right now to get around invisible inventory items in the client.
 	case MessageType::Game::SELECT_SKILL: {
@@ -249,16 +242,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 			if (!entity) return;
 			GameMessages::SendEndCinematic(entity->GetObjectID(), u"", sysAddr);
 			});
-		break;
-	}
-
-	case MessageType::Game::REQUEST_LINKED_MISSION: {
-		GameMessages::HandleRequestLinkedMission(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::MISSION_DIALOGUE_OK: {
-		GameMessages::HandleMissionDialogOK(inStream, entity);
 		break;
 	}
 

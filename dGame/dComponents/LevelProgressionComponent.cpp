@@ -1,4 +1,5 @@
 #include "LevelProgressionComponent.h"
+#include "MissionMessages.h"
 #include "ControllablePhysicsComponent.h"
 #include "InventoryComponent.h"
 #include "CharacterComponent.h"
@@ -53,8 +54,13 @@ void LevelProgressionComponent::HandleLevelUp() {
 	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
 
 	if (!inventoryComponent || !controllablePhysicsComponent) return;
+	GameMessages::NotifyLevelRewards levelRewards;
+	levelRewards.target = m_Parent->GetObjectID();
+	levelRewards.level = m_Level;
+
 	// Tell the client we beginning to send level rewards.
-	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, rewardingItem);
+	levelRewards.sendingRewards = rewardingItem;
+	if (rewardingItem) levelRewards.SendToClient(m_Parent->GetSystemAddress());
 
 	for (const auto& reward : rewards) {
 		switch (reward.rewardType) {
@@ -79,7 +85,8 @@ void LevelProgressionComponent::HandleLevelUp() {
 		}
 	}
 	// Tell the client we have finished sending level rewards.
-	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
+	levelRewards.sendingRewards = !rewardingItem;
+	if (rewardingItem) levelRewards.SendToClient(m_Parent->GetSystemAddress());
 }
 
 void LevelProgressionComponent::SetRetroactiveBaseSpeed(){

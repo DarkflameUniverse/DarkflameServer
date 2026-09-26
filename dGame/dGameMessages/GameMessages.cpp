@@ -351,19 +351,6 @@ void GameMessages::SendStartPathing(Entity* entity) {
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::RESET_MISSIONS);
-
-	bitStream.Write(missionid != -1);
-	if (missionid != -1) bitStream.Write(missionid);
-
-	SEND_PACKET;
-}
-
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
 	eMovementPlatformState movementState, bool special) {
@@ -514,18 +501,6 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	SEND_PACKET;
 }
 
-void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t iFlagID, bool bFlag, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectID);
-	bitStream.Write(MessageType::Game::NOTIFY_CLIENT_FLAG_CHANGE);
-	bitStream.Write(bFlag);
-	bitStream.Write(iFlagID);
-
-	SEND_PACKET;
-}
-
 void GameMessages::SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -536,67 +511,6 @@ void GameMessages::SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectW
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
 		SEND_PACKET;
-}
-
-void GameMessages::SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID) {
-	//You might be wondering.
-	//"Why are we sending it twice, once to a non-player object?
-	//Well, the first one (sent to the offerer) makes the client zoom into the object.
-	//The second, actually makes the UI pop up so you can be offered the mission.
-	//Why is it like this? Because LU isn't just a clown, it's the entire circus.
-
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(offererID);
-	bitStream.Write(MessageType::Game::OFFER_MISSION);
-	bitStream.Write(missionID);
-	bitStream.Write(offererID);
-
-	SEND_PACKET;
-
-	{
-		CBITSTREAM;
-		CMSGHEADER;
-
-		bitStream.Write(entity);
-		bitStream.Write(MessageType::Game::OFFER_MISSION);
-		bitStream.Write(missionID);
-		bitStream.Write(offererID);
-
-		SEND_PACKET;
-	}
-}
-
-void GameMessages::SendNotifyMission(Entity* entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::NOTIFY_MISSION);
-	bitStream.Write(missionID);
-	bitStream.Write(missionState);
-	bitStream.Write(sendingRewards);
-
-	SEND_PACKET;
-}
-
-void GameMessages::SendNotifyMissionTask(Entity* entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::NOTIFY_MISSION_TASK);
-
-	bitStream.Write(missionID);
-	bitStream.Write(taskMask);
-	bitStream.Write<unsigned char>(updates.size());
-
-	for (uint32_t i = 0; i < updates.size(); ++i) {
-		bitStream.Write(updates[i]);
-	}
-
-	SEND_PACKET;
 }
 
 void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType) {
@@ -1456,19 +1370,6 @@ void GameMessages::SendRequestActivitySummaryLeaderboardData(const LWOOBJID& obj
 
 	bitStream.Write<LWOOBJID>(targetID);
 	bitStream.Write(weekly);
-
-	SEND_PACKET;
-}
-
-void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectID);
-	bitStream.Write(MessageType::Game::NOTIFY_LEVEL_REWARDS);
-
-	bitStream.Write(level);
-	bitStream.Write(sending_rewards);
 
 	SEND_PACKET;
 }
@@ -4624,127 +4525,6 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream& inStream, E
 	Database::Get()->DeleteUgcBuild(item->GetSubKey());
 
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
-}
-
-void GameMessages::HandleSetFlag(RakNet::BitStream& inStream, Entity* entity) {
-	bool bFlag{};
-	int32_t iFlagID{};
-
-	inStream.Read(bFlag);
-	inStream.Read(iFlagID);
-
-	auto character = entity->GetCharacter();
-	if (character) character->SetPlayerFlag(iFlagID, bFlag);
-
-	// This is always set the first time a player loads into a world from character select
-	// and is used to know when to refresh the players inventory items so they show up.
-	if (iFlagID == ePlayerFlag::IS_NEWS_SCREEN_VISIBLE && bFlag) {
-		entity->SetVar<bool>(u"dlu_first_time_load", true);
-	}
-}
-
-void GameMessages::HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity) {
-	int missionID{};
-	LWOOBJID playerID{};
-	LWOOBJID receiverID{};
-	bool isDefaultReward{};
-	LOT reward = LOT_NULL;
-
-	inStream.Read(missionID);
-	inStream.Read(playerID);
-	inStream.Read(receiverID);
-	inStream.Read(isDefaultReward);
-	if (isDefaultReward) inStream.Read(reward);
-
-	MissionComponent* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
-	if (!missionComponent) {
-		LOG("Unable to get mission component for entity %llu to handle RespondToMission", playerID);
-		return;
-	}
-
-	Mission* mission = missionComponent->GetMission(missionID);
-	if (mission) {
-		mission->SetReward(reward);
-	} else {
-		LOG("Unable to get mission %i for entity %llu to update reward in RespondToMission", missionID, playerID);
-	}
-
-	Entity* offerer = Game::entityManager->GetEntity(receiverID);
-
-	if (offerer == nullptr) {
-		LOG("Unable to get receiver entity %llu for RespondToMission", receiverID);
-		return;
-	}
-
-	offerer->GetScript()->OnRespondToMission(offerer, missionID, Game::entityManager->GetEntity(playerID), reward);
-}
-
-void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* entity) {
-	bool bIsComplete{};
-	eMissionState iMissionState{};
-	int missionID{};
-	LWOOBJID responder{};
-	Entity* player = nullptr;
-
-	inStream.Read(bIsComplete);
-	inStream.Read(iMissionState);
-	inStream.Read(missionID);
-	inStream.Read(responder);
-	player = Game::entityManager->GetEntity(responder);
-
-	if (entity) entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
-
-	// Get the player's mission component
-	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
-	if (!missionComponent) {
-		LOG("Unable to get mission component for entity %llu to handle MissionDialogueOK", player->GetObjectID());
-		return;
-	}
-
-	if (iMissionState == eMissionState::AVAILABLE || iMissionState == eMissionState::COMPLETE_AVAILABLE) {
-		missionComponent->AcceptMission(missionID);
-	} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
-		missionComponent->CompleteMission(missionID);
-	}
-
-	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-		|| !player->GetCharacter()
-		|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
-	player->AddCallbackTimer(0.5f, [player]() {
-		if (!player) return;
-		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
-		});
-}
-
-void GameMessages::HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity) {
-	LWOOBJID playerId{};
-	int missionId{};
-	bool bMissionOffered{};
-
-	inStream.Read(playerId);
-	inStream.Read(missionId);
-	inStream.Read(bMissionOffered);
-
-	auto* player = Game::entityManager->GetEntity(playerId);
-
-	auto* missionOfferComponent = static_cast<MissionOfferComponent*>(entity->GetComponent(eReplicaComponentType::MISSION_OFFER));
-
-	if (missionOfferComponent != nullptr) {
-		missionOfferComponent->OfferMissions(player, 0);
-	}
-}
-
-void GameMessages::HandleHasBeenCollected(RakNet::BitStream& inStream, Entity* entity) {
-	LWOOBJID playerID;
-	inStream.Read(playerID);
-
-	Entity* player = Game::entityManager->GetEntity(playerID);
-	if (!player || !entity || entity->GetCollectibleID() == 0) return;
-
-	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
-	if (missionComponent) {
-		missionComponent->Progress(eMissionTaskType::COLLECTION, entity->GetLOT(), entity->GetObjectID());
-	}
 }
 
 void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity) {

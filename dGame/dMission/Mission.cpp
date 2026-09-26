@@ -10,6 +10,7 @@
 #include "EntityManager.h"
 #include "Game.h"
 #include "GameMessages.h"
+#include "MissionMessages.h"
 #include "Mail.h"
 #include "MissionComponent.h"
 #include "eRacingTaskParam.h"
@@ -628,7 +629,12 @@ void Mission::SetMissionState(const eMissionState state, const bool sendingRewar
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	GameMessages::SendNotifyMission(entity, characterComponent->GetSystemAddress(), info.id, static_cast<int>(state), sendingRewards);
+	GameMessages::NotifyMission notifyMission;
+	notifyMission.target = entity->GetObjectID();
+	notifyMission.missionID = info.id;
+	notifyMission.missionState = static_cast<int32_t>(state);
+	notifyMission.sendingRewards = sendingRewards;
+	notifyMission.SendToClient(characterComponent->GetSystemAddress());
 }
 
 void Mission::SetMissionTypeState(eMissionLockState state, const std::string& type, const std::string& subType) {

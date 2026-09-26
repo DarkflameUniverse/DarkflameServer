@@ -9,6 +9,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "MissionMessages.h"
 #include "MissionComponent.h"
 #include "dZoneManager.h"
 #include "dServer.h"
@@ -393,7 +394,11 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 		}
 	}
 	// Notify the client that a flag has changed server-side
-	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
+	GameMessages::NotifyClientFlagChange flagChange;
+	flagChange.target = m_ObjectID;
+	flagChange.iFlagID = flagId;
+	flagChange.bFlag = value;
+	flagChange.SendToClient(m_ParentUser->GetSystemAddress());
 }
 
 bool Character::GetPlayerFlag(const uint32_t flagId) const {
