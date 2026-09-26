@@ -474,23 +474,25 @@ void Entity::Initialize() {
 				const auto tokenInt = GeneralUtils::TryParse<int32_t>(token);
 				if (tokenInt == destCompData[0].faction) continue;
 
-				if (!token.empty()) {
-					comp->AddFaction(std::stoi(token));
-				}
+				if (tokenInt) comp->AddFaction(tokenInt.value());
 			}
 		}
 
-		// override the factions if needed.
+		// Level files can replace the factions with set_faction. The client splits the value on
+		// both ';' and ' ' and replaces its faction list with the result
+		// (LWODestroyableComponent::LoadConfigData), and many values have a trailing space ("13:6 ").
 		const auto setFaction = GetVarAsString(u"set_faction");
-		if (!setFaction.empty()) {
-			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
-			const auto factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
-			for (const auto& faction : factionsToAdd) {
+		std::vector<int32_t> factionsToSet;
+		for (const auto& semicolonSplit : GeneralUtils::SplitString(setFaction, ';')) {
+			for (const auto& faction : GeneralUtils::SplitString(semicolonSplit, ' ')) {
 				const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
-				if (factionToAdd) {
-					comp->AddFaction(factionToAdd.value(), true);
-				}
+				if (factionToAdd) factionsToSet.push_back(factionToAdd.value());
 			}
+		}
+
+		if (!factionsToSet.empty()) {
+			comp->SetFaction(factionsToSet.front(), true);
+			for (const auto faction : factionsToSet | std::views::drop(1)) comp->AddFaction(faction, true);
 		}
 	}
 
