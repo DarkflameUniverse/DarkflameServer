@@ -1,4 +1,5 @@
 #include "CatapultBaseServer.h"
+#include "PetMessages.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "Entity.h"
@@ -12,7 +13,10 @@ void CatapultBaseServer::OnNotifyObject(Entity* self, Entity* sender, const std:
 		// set the bouncer so we can use it later
 		self->SetVar(u"Bouncer", sender->GetObjectID());
 
-		GameMessages::SendBouncerActiveStatus(sender->GetObjectID(), true, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::BouncerActiveStatus msg;
+		msg.target = sender->GetObjectID();
+		msg.bActive = true;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 

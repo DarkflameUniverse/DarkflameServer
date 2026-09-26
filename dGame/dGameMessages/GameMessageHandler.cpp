@@ -34,6 +34,7 @@
 #include "ActivityMessages.h"
 #include "RacingMessages.h"
 #include "MissionMessages.h"
+#include "PetMessages.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
@@ -73,6 +74,15 @@ namespace {
 		{ REQUEST_LINKED_MISSION, []() { return std::make_unique<RequestLinkedMission>(); } },
 		{ SET_FLAG, []() { return std::make_unique<SetFlag>(); } },
 		{ HAS_BEEN_COLLECTED, []() { return std::make_unique<HasBeenCollected>(); } },
+
+		// Pets
+		{ PET_TAMING_TRY_BUILD, []() { return std::make_unique<PetTamingTryBuild>(); } },
+		{ NOTIFY_TAMING_BUILD_SUCCESS, []() { return std::make_unique<NotifyTamingBuildSuccess>(); } },
+		{ REQUEST_SET_PET_NAME, []() { return std::make_unique<RequestSetPetName>(); } },
+		{ START_SERVER_PET_MINIGAME_TIMER, []() { return std::make_unique<StartServerPetMinigameTimer>(); } },
+		{ CLIENT_EXIT_TAMING_MINIGAME, []() { return std::make_unique<ClientExitTamingMinigame>(); } },
+		{ COMMAND_PET, []() { return std::make_unique<CommandPet>(); } },
+		{ DESPAWN_PET, []() { return std::make_unique<DespawnPet>(); } },
 	};
 };
 
@@ -504,35 +514,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 	case MessageType::Game::CLIENT_TRADE_UPDATE:
 		GameMessages::HandleClientTradeUpdate(inStream, entity, sysAddr);
-		break;
-
-		// Pets
-	case MessageType::Game::PET_TAMING_TRY_BUILD:
-		GameMessages::HandlePetTamingTryBuild(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::NOTIFY_TAMING_BUILD_SUCCESS:
-		GameMessages::HandleNotifyTamingBuildSuccess(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::REQUEST_SET_PET_NAME:
-		GameMessages::HandleRequestSetPetName(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::START_SERVER_PET_MINIGAME_TIMER:
-		GameMessages::HandleStartServerPetMinigameTimer(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::CLIENT_EXIT_TAMING_MINIGAME:
-		GameMessages::HandleClientExitTamingMinigame(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::COMMAND_PET:
-		GameMessages::HandleCommandPet(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::DESPAWN_PET:
-		GameMessages::HandleDespawnPet(inStream, entity, sysAddr);
 		break;
 
 	case MessageType::Game::MESSAGE_BOX_RESPOND:

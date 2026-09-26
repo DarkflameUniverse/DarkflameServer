@@ -1,4 +1,5 @@
 #include "RockHydrantBroken.h"
+#include "PetMessages.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
 
@@ -13,7 +14,10 @@ void RockHydrantBroken::OnStartup(Entity* self) {
 		self->SetVar<LWOOBJID>(u"bouncer", bouncer->GetObjectID());
 
 
-		GameMessages::SendBouncerActiveStatus(bouncer->GetObjectID(), true, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::BouncerActiveStatus msg;
+		msg.target = bouncer->GetObjectID();
+		msg.bActive = true;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		GameMessages::SendNotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"enableCollision", UNASSIGNED_SYSTEM_ADDRESS);
 	}
@@ -26,7 +30,10 @@ void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName) {
 		auto* bouncer = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"bouncer"));
 
 		if (bouncer != nullptr) {
-			GameMessages::SendBouncerActiveStatus(bouncer->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::BouncerActiveStatus msg;
+			msg.target = bouncer->GetObjectID();
+			msg.bActive = false;
+			msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 			GameMessages::SendNotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"disableCollision", UNASSIGNED_SYSTEM_ADDRESS);
 		}

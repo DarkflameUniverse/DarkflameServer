@@ -1,6 +1,7 @@
 #include "PetComponent.h"
 #include "DashboardNotify.h"
 #include "GameMessages.h"
+#include "PetMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
 #include "CDTamingBuildPuzzleTable.h"
@@ -205,31 +206,38 @@ void PetComponent::OnUse(Entity* originator) {
 
 	auto rotation = QuatUtils::LookAt(position, petPosition);
 
-	GameMessages::SendNotifyPetTamingMinigame(
-		originator->GetObjectID(),
-		m_Parent->GetObjectID(),
-		LWOOBJID_EMPTY,
-		true,
-		ePetTamingNotifyType::BEGIN,
-		petPosition,
-		position,
-		rotation,
-		UNASSIGNED_SYSTEM_ADDRESS
-	);
+	{
+		GameMessages::NotifyPetTamingMinigame msg;
+		msg.target = originator->GetObjectID();
+		msg.PetID = m_Parent->GetObjectID();
+		msg.PlayerTamingID = LWOOBJID_EMPTY;
+		msg.bForceTeleport = true;
+		msg.notifyType = ePetTamingNotifyType::BEGIN;
+		msg.petsDestPos = petPosition;
+		msg.telePos = position;
+		msg.teleRot = rotation;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
-	GameMessages::SendNotifyPetTamingMinigame(
-		m_Parent->GetObjectID(),
-		LWOOBJID_EMPTY,
-		originator->GetObjectID(),
-		false,
-		ePetTamingNotifyType::BEGIN,
-		NiPoint3Constant::ZERO,
-		NiPoint3Constant::ZERO,
-		NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f),
-		UNASSIGNED_SYSTEM_ADDRESS
-	);
+	{
+		GameMessages::NotifyPetTamingMinigame msg;
+		msg.target = m_Parent->GetObjectID();
+		msg.PetID = LWOOBJID_EMPTY;
+		msg.PlayerTamingID = originator->GetObjectID();
+		msg.bForceTeleport = false;
+		msg.notifyType = ePetTamingNotifyType::BEGIN;
+		msg.petsDestPos = NiPoint3Constant::ZERO;
+		msg.telePos = NiPoint3Constant::ZERO;
+		msg.teleRot = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
-	GameMessages::SendNotifyPetTamingPuzzleSelected(originator->GetObjectID(), bricks, originator->GetSystemAddress());
+	{
+		GameMessages::NotifyPetTamingPuzzleSelected msg;
+		msg.target = originator->GetObjectID();
+		msg.bricks = bricks;
+		msg.Send(originator->GetSystemAddress());
+	}
 
 	m_Tamer = originator->GetObjectID();
 	SetStatus(5);
@@ -440,7 +448,11 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 
 	if (numBricks == 0) return;
 
-	GameMessages::SendPetTamingTryBuildResult(m_Tamer, !clientFailed, numBricks, tamer->GetSystemAddress());
+	GameMessages::PetTamingTryBuildResult msg;
+	msg.target = m_Tamer;
+	msg.bSuccess = !clientFailed;
+	msg.iNumCorrect = numBricks;
+	msg.Send(tamer->GetSystemAddress());
 }
 
 void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
@@ -472,9 +484,21 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	Game::entityManager->ConstructEntity(modelEntity);
 
-	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
+	{
+		GameMessages::NotifyTamingModelLoadedOnServer msg;
+		msg.target = m_Tamer;
+		msg.Send(tamer->GetSystemAddress());
+	}
 
-	GameMessages::SendPetResponse(m_Tamer, m_Parent->GetObjectID(), 0, 10, 0, tamer->GetSystemAddress());
+	{
+		GameMessages::PetResponse msg;
+		msg.target = m_Tamer;
+		msg.ObjIDPet = m_Parent->GetObjectID();
+		msg.iPetCommandType = 0;
+		msg.iResponse = 10;
+		msg.iTypeID = 0;
+		msg.Send(tamer->GetSystemAddress());
+	}
 
 	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
@@ -501,11 +525,29 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	std::string petName = tamer->GetCharacter()->GetName();
 	petName += "'s Pet";
 
-	GameMessages::SendAddPetToPlayer(m_Tamer, 0, GeneralUtils::UTF8ToUTF16(petName), petSubKey, m_Parent->GetLOT(), tamer->GetSystemAddress());
+	{
+		GameMessages::AddPetToPlayer msg;
+		msg.target = m_Tamer;
+		msg.iElementalType = 0;
+		msg.name = GeneralUtils::UTF8ToUTF16(petName);
+		msg.petDBID = petSubKey;
+		msg.petLOT = m_Parent->GetLOT();
+		msg.Send(tamer->GetSystemAddress());
+	}
 
-	GameMessages::SendRegisterPetID(m_Tamer, m_Parent->GetObjectID(), tamer->GetSystemAddress());
+	{
+		GameMessages::RegisterPetID msg;
+		msg.target = m_Tamer;
+		msg.objID = m_Parent->GetObjectID();
+		msg.Send(tamer->GetSystemAddress());
+	}
 
-	GameMessages::SendRegisterPetDBID(m_Tamer, petSubKey, tamer->GetSystemAddress());
+	{
+		GameMessages::RegisterPetDBID msg;
+		msg.target = m_Tamer;
+		msg.petDBID = petSubKey;
+		msg.Send(tamer->GetSystemAddress());
+	}
 
 	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::INVENTORY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
 	auto* item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
@@ -526,17 +568,18 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	m_Timer = 0;
 
-	GameMessages::SendNotifyPetTamingMinigame(
-		m_Tamer,
-		LWOOBJID_EMPTY,
-		LWOOBJID_EMPTY,
-		false,
-		ePetTamingNotifyType::NAMINGPET,
-		NiPoint3Constant::ZERO,
-		NiPoint3Constant::ZERO,
-		QuatUtils::IDENTITY,
-		UNASSIGNED_SYSTEM_ADDRESS
-	);
+	{
+		GameMessages::NotifyPetTamingMinigame msg;
+		msg.target = m_Tamer;
+		msg.PetID = LWOOBJID_EMPTY;
+		msg.PlayerTamingID = LWOOBJID_EMPTY;
+		msg.bForceTeleport = false;
+		msg.notifyType = ePetTamingNotifyType::NAMINGPET;
+		msg.petsDestPos = NiPoint3Constant::ZERO;
+		msg.telePos = NiPoint3Constant::ZERO;
+		msg.teleRot = QuatUtils::IDENTITY;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
 	// Triggers the catch a pet missions
 	constexpr auto PET_FLAG_BASE = 800;
@@ -569,8 +612,20 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 				std::string forcedName = "Pet";
 				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Owner });
 				DashboardNotify::Changed("pet_names", m_DatabaseId);
-				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
-				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+				{
+					GameMessages::SetPetName msg;
+					msg.target = m_Owner;
+					msg.name = GeneralUtils::UTF8ToUTF16(m_Name);
+					msg.petDBID = m_DatabaseId;
+					msg.Send(owner->GetSystemAddress());
+				}
+				{
+					GameMessages::SetPetNameModerated msg;
+					msg.target = m_Owner;
+					msg.PetDBID = m_DatabaseId;
+					msg.nModerationStatus = m_ModerationStatus;
+					msg.Send(owner->GetSystemAddress());
+				}
 			} else {
 				m_ModerationStatus = 1; // Pending
 				m_Name = "";
@@ -578,8 +633,20 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 				//Save our pet's new name to the db:
 				SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name), m_Owner);
 
-				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
-				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+				{
+					GameMessages::SetPetName msg;
+					msg.target = m_Owner;
+					msg.name = GeneralUtils::UTF8ToUTF16(m_Name);
+					msg.petDBID = m_DatabaseId;
+					msg.Send(owner->GetSystemAddress());
+				}
+				{
+					GameMessages::SetPetNameModerated msg;
+					msg.target = m_Owner;
+					msg.PetDBID = m_DatabaseId;
+					msg.nModerationStatus = m_ModerationStatus;
+					msg.Send(owner->GetSystemAddress());
+				}
 			}
 		}
 
@@ -623,22 +690,48 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 
 	std::u16string u16name = GeneralUtils::UTF8ToUTF16(m_Name);
 	std::u16string u16ownerName = GeneralUtils::UTF8ToUTF16(m_OwnerName);
-	GameMessages::SendSetPetName(m_Tamer, u16name, m_DatabaseId, tamer->GetSystemAddress());
-	GameMessages::SendSetPetName(m_Tamer, u16name, LWOOBJID_EMPTY, tamer->GetSystemAddress());
-	GameMessages::SendPetNameChanged(m_Parent->GetObjectID(), m_ModerationStatus, u16name, u16ownerName, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendSetPetNameModerated(m_Tamer, m_DatabaseId, m_ModerationStatus, tamer->GetSystemAddress());
+	{
+		GameMessages::SetPetName msg;
+		msg.target = m_Tamer;
+		msg.name = u16name;
+		msg.petDBID = m_DatabaseId;
+		msg.Send(tamer->GetSystemAddress());
+	}
+	{
+		GameMessages::SetPetName msg;
+		msg.target = m_Tamer;
+		msg.name = u16name;
+		msg.petDBID = LWOOBJID_EMPTY;
+		msg.Send(tamer->GetSystemAddress());
+	}
+	{
+		GameMessages::PetNameChanged msg;
+		msg.target = m_Parent->GetObjectID();
+		msg.moderationStatus = m_ModerationStatus;
+		msg.name = u16name;
+		msg.ownerName = u16ownerName;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
+	{
+		GameMessages::SetPetNameModerated msg;
+		msg.target = m_Tamer;
+		msg.PetDBID = m_DatabaseId;
+		msg.nModerationStatus = m_ModerationStatus;
+		msg.Send(tamer->GetSystemAddress());
+	}
 
-	GameMessages::SendNotifyPetTamingMinigame(
-		m_Tamer,
-		m_Parent->GetObjectID(),
-		m_Tamer,
-		false,
-		ePetTamingNotifyType::SUCCESS,
-		NiPoint3Constant::ZERO,
-		NiPoint3Constant::ZERO,
-		QuatUtils::IDENTITY,
-		UNASSIGNED_SYSTEM_ADDRESS
-	);
+	{
+		GameMessages::NotifyPetTamingMinigame msg;
+		msg.target = m_Tamer;
+		msg.PetID = m_Parent->GetObjectID();
+		msg.PlayerTamingID = m_Tamer;
+		msg.bForceTeleport = false;
+		msg.notifyType = ePetTamingNotifyType::SUCCESS;
+		msg.petsDestPos = NiPoint3Constant::ZERO;
+		msg.telePos = NiPoint3Constant::ZERO;
+		msg.teleRot = QuatUtils::IDENTITY;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
 	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
@@ -672,24 +765,29 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		return;
 	}
 
-	GameMessages::SendNotifyPetTamingMinigame(
-		m_Tamer,
-		m_Parent->GetObjectID(),
-		m_Tamer,
-		false,
-		ePetTamingNotifyType::QUIT,
-		NiPoint3Constant::ZERO,
-		NiPoint3Constant::ZERO,
-		QuatUtils::IDENTITY,
-		UNASSIGNED_SYSTEM_ADDRESS
-	);
+	{
+		GameMessages::NotifyPetTamingMinigame msg;
+		msg.target = m_Tamer;
+		msg.PetID = m_Parent->GetObjectID();
+		msg.PlayerTamingID = m_Tamer;
+		msg.bForceTeleport = false;
+		msg.notifyType = ePetTamingNotifyType::QUIT;
+		msg.petsDestPos = NiPoint3Constant::ZERO;
+		msg.telePos = NiPoint3Constant::ZERO;
+		msg.teleRot = QuatUtils::IDENTITY;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
 	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		Game::entityManager->SerializeEntity(tamer);
 	}
-	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
+	{
+		GameMessages::NotifyTamingModelLoadedOnServer msg;
+		msg.target = m_Tamer;
+		msg.Send(tamer->GetSystemAddress());
+	}
 
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
@@ -723,24 +821,29 @@ void PetComponent::ClientFailTamingMinigame() {
 		return;
 	}
 
-	GameMessages::SendNotifyPetTamingMinigame(
-		m_Tamer,
-		m_Parent->GetObjectID(),
-		m_Tamer,
-		false,
-		ePetTamingNotifyType::FAILED,
-		NiPoint3Constant::ZERO,
-		NiPoint3Constant::ZERO,
-		QuatUtils::IDENTITY,
-		UNASSIGNED_SYSTEM_ADDRESS
-	);
+	{
+		GameMessages::NotifyPetTamingMinigame msg;
+		msg.target = m_Tamer;
+		msg.PetID = m_Parent->GetObjectID();
+		msg.PlayerTamingID = m_Tamer;
+		msg.bForceTeleport = false;
+		msg.notifyType = ePetTamingNotifyType::FAILED;
+		msg.petsDestPos = NiPoint3Constant::ZERO;
+		msg.telePos = NiPoint3Constant::ZERO;
+		msg.teleRot = QuatUtils::IDENTITY;
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
 	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		Game::entityManager->SerializeEntity(tamer);
 	}
-	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
+	{
+		GameMessages::NotifyTamingModelLoadedOnServer msg;
+		msg.target = m_Tamer;
+		msg.Send(tamer->GetSystemAddress());
+	}
 
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
@@ -840,8 +943,20 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	m_OwnerName = owner->GetCharacter()->GetName();
 
 	if (updatedModerationStatus) {
-		GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
-		GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+		{
+			GameMessages::SetPetName msg;
+			msg.target = m_Owner;
+			msg.name = GeneralUtils::UTF8ToUTF16(m_Name);
+			msg.petDBID = m_DatabaseId;
+			msg.Send(owner->GetSystemAddress());
+		}
+		{
+			GameMessages::SetPetNameModerated msg;
+			msg.target = m_Owner;
+			msg.PetDBID = m_DatabaseId;
+			msg.nModerationStatus = m_ModerationStatus;
+			msg.Send(owner->GetSystemAddress());
+		}
 	}
 
 	GameMessages::SendMarkInventoryItemAsActive(m_Owner, true, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());
@@ -855,11 +970,29 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	owner->GetCharacter()->SetPlayerFlag(ePlayerFlag::FIRST_MANUAL_PET_HIBERNATE, true);
 
 	if (registerPet) {
-		GameMessages::SendAddPetToPlayer(m_Owner, 0, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, m_Parent->GetLOT(), owner->GetSystemAddress());
+		{
+			GameMessages::AddPetToPlayer msg;
+			msg.target = m_Owner;
+			msg.iElementalType = 0;
+			msg.name = GeneralUtils::UTF8ToUTF16(m_Name);
+			msg.petDBID = m_DatabaseId;
+			msg.petLOT = m_Parent->GetLOT();
+			msg.Send(owner->GetSystemAddress());
+		}
 
-		GameMessages::SendRegisterPetID(m_Owner, m_Parent->GetObjectID(), owner->GetSystemAddress());
+		{
+			GameMessages::RegisterPetID msg;
+			msg.target = m_Owner;
+			msg.objID = m_Parent->GetObjectID();
+			msg.Send(owner->GetSystemAddress());
+		}
 
-		GameMessages::SendRegisterPetDBID(m_Owner, m_DatabaseId, owner->GetSystemAddress());
+		{
+			GameMessages::RegisterPetDBID msg;
+			msg.target = m_Owner;
+			msg.petDBID = m_DatabaseId;
+			msg.Send(owner->GetSystemAddress());
+		}
 	}
 }
 
@@ -915,13 +1048,37 @@ void PetComponent::Deactivate() {
 
 	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, owner->GetSystemAddress());
 
-	GameMessages::SendAddPetToPlayer(m_Owner, 0, u"", LWOOBJID_EMPTY, LOT_NULL, owner->GetSystemAddress());
+	{
+		GameMessages::AddPetToPlayer msg;
+		msg.target = m_Owner;
+		msg.iElementalType = 0;
+		msg.name = u"";
+		msg.petDBID = LWOOBJID_EMPTY;
+		msg.petLOT = LOT_NULL;
+		msg.Send(owner->GetSystemAddress());
+	}
 
-	GameMessages::SendRegisterPetID(m_Owner, LWOOBJID_EMPTY, owner->GetSystemAddress());
+	{
+		GameMessages::RegisterPetID msg;
+		msg.target = m_Owner;
+		msg.objID = LWOOBJID_EMPTY;
+		msg.Send(owner->GetSystemAddress());
+	}
 
-	GameMessages::SendRegisterPetDBID(m_Owner, LWOOBJID_EMPTY, owner->GetSystemAddress());
+	{
+		GameMessages::RegisterPetDBID msg;
+		msg.target = m_Owner;
+		msg.petDBID = LWOOBJID_EMPTY;
+		msg.Send(owner->GetSystemAddress());
+	}
 
-	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, owner->GetSystemAddress());
+	{
+		GameMessages::ShowPetActionButton msg;
+		msg.target = m_Owner;
+		msg.ButtonLabel = ePetAbilityType::Invalid;
+		msg.bShow = false;
+		msg.Send(owner->GetSystemAddress());
+	}
 }
 
 void PetComponent::Release() {
@@ -1092,9 +1249,28 @@ void PetComponent::ApplyNameModeration(const bool approved) {
 			data.moderationState = m_ModerationStatus;
 			inventoryComponent->SetDatabasePet(m_DatabaseId, data);
 		}
-		GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
-		GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+		{
+			GameMessages::SetPetName msg;
+			msg.target = m_Owner;
+			msg.name = GeneralUtils::UTF8ToUTF16(m_Name);
+			msg.petDBID = m_DatabaseId;
+			msg.Send(owner->GetSystemAddress());
+		}
+		{
+			GameMessages::SetPetNameModerated msg;
+			msg.target = m_Owner;
+			msg.PetDBID = m_DatabaseId;
+			msg.nModerationStatus = m_ModerationStatus;
+			msg.Send(owner->GetSystemAddress());
+		}
 	}
-	GameMessages::SendPetNameChanged(m_Parent->GetObjectID(), m_ModerationStatus, GeneralUtils::UTF8ToUTF16(m_Name), GeneralUtils::UTF8ToUTF16(m_OwnerName), UNASSIGNED_SYSTEM_ADDRESS);
+	{
+		GameMessages::PetNameChanged msg;
+		msg.target = m_Parent->GetObjectID();
+		msg.moderationStatus = m_ModerationStatus;
+		msg.name = GeneralUtils::UTF8ToUTF16(m_Name);
+		msg.ownerName = GeneralUtils::UTF8ToUTF16(m_OwnerName);
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 	Game::entityManager->SerializeEntity(m_Parent);
 }

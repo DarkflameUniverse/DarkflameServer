@@ -4,6 +4,7 @@ set(DGAME_DGAMEMESSAGES_SOURCES
 	"GameMessageHandler.cpp"
 	"GameMessages.cpp"
 	"MissionMessages.cpp"
+	"PetMessages.cpp"
 	"RacingMessages.cpp"
 	"PropertyDataMessage.cpp"
 	"PropertySelectQueryProperty.cpp")

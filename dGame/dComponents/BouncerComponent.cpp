@@ -1,4 +1,5 @@
 #include "BouncerComponent.h"
+#include "PetMessages.h"
 
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -57,7 +58,10 @@ void BouncerComponent::SetPetEnabled(bool value) {
 void BouncerComponent::SetPetBouncerEnabled(bool value) {
 	m_PetBouncerEnabled = value;
 
-	GameMessages::SendBouncerActiveStatus(m_Parent->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::BouncerActiveStatus msg;
+	msg.target = m_Parent->GetObjectID();
+	msg.bActive = value;
+	msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
