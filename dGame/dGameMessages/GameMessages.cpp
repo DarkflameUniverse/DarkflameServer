@@ -6450,10 +6450,14 @@ namespace GameMessages {
 	}
 
 	void UnSmash::Serialize(RakNet::BitStream& stream) const {
-		stream.Write(builderID != LWOOBJID_EMPTY);
-		if (builderID != LWOOBJID_EMPTY) stream.Write(builderID);
-		stream.Write(duration != 3.0f);
-		if (builderID != 3.0f) stream.Write(duration);
+		// Both fields are optional with a default, like the client's GameMessage::UnSmash::Serialize.
+		BitStreamUtils::WriteOptional(stream, builderID, LWOOBJID_EMPTY);
+		BitStreamUtils::WriteOptional(stream, duration, 3.0f);
+	}
+	bool UnSmash::Deserialize(RakNet::BitStream& stream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(stream, builderID, LWOOBJID_EMPTY));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(stream, duration, 3.0f));
+		return true;
 	}
 
 	void PlayBehaviorSound::Serialize(RakNet::BitStream& stream) const {

@@ -890,6 +890,7 @@ namespace GameMessages {
 		UnSmash() : NetGameMsg(MessageType::Game::UN_SMASH) {}
 
 		void Serialize(RakNet::BitStream& stream) const override;
+		bool Deserialize(RakNet::BitStream& stream) override;
 
 		LWOOBJID builderID{ LWOOBJID_EMPTY };
 		float duration{ 3.0f };
