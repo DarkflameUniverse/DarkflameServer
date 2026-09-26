@@ -155,7 +155,10 @@ void MovementAIComponent::Update(const float deltaTime) {
 		} else {
 			m_CurrentSpeed = std::min(m_CurrentSpeed + m_Acceleration, m_MaxSpeed);
 
-			const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
+			// scale speed based on base speed, and by any speed buffs or slows on this entity
+			auto speed = m_CurrentSpeed * m_BaseSpeed;
+			const auto* const controllablePhysics = m_Parent->GetComponent<ControllablePhysicsComponent>();
+			if (controllablePhysics && controllablePhysics->GetSpeedMultiplier() > 0.0f) speed *= controllablePhysics->GetSpeedMultiplier();
 
 			const auto delta = m_NextWaypoint - source;
 
