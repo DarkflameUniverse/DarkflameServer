@@ -128,11 +128,19 @@ void dConfig::SetDatabaseSync(std::function<void(dConfig&)> sync) {
 void dConfig::ProcessLine(const std::string& line, const std::string& file, const std::string& description) {
 	auto splitLoc = line.find('=');
 	if (splitLoc == std::string::npos) return;
-	auto key = line.substr(0, splitLoc);
-	auto value = line.substr(splitLoc + 1);
-
-	//Make sure that on Linux, we remove special characters:
-	if (!value.empty() && value.at(value.size() - 1) == '\r') value.erase(value.size() - 1);
+	// Stray spaces around keys and values (for example "client_location = ../client ") are a
+	// common setup mistake that otherwise surfaces as an unrelated error much later, so drop them.
+	// This also removes the \r left at the end of lines of a file saved with Windows line endings.
+	const auto trim = [](std::string_view str) {
+		constexpr std::string_view whitespace = " \t\r\n";
+		const auto start = str.find_first_not_of(whitespace);
+		if (start == std::string_view::npos) return std::string{};
+		const auto end = str.find_last_not_of(whitespace);
+		return std::string{ str.substr(start, end - start + 1) };
+	};
+	const auto key = trim(std::string_view(line).substr(0, splitLoc));
+	const auto value = trim(std::string_view(line).substr(splitLoc + 1));
+	if (key.empty()) return;
 
 	if (this->m_ConfigValues.find(key) != this->m_ConfigValues.end()) return;
 

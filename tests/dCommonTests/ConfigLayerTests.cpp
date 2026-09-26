@@ -4,6 +4,10 @@
 
 #include "dConfig.h"
 #include "ConfigSync.h"
+#include "BinaryPathFinder.h"
+
+#include <filesystem>
+#include <fstream>
 
 namespace {
 	void SetEnv(const char* name, const char* value) {
@@ -110,4 +114,25 @@ TEST(ConfigLayerTests, OwnedValuesComeFromTheOwner) {
 	config.SetDatabaseValues(std::move(resolved.overrides), std::move(resolved.fallbacks));
 	EXPECT_EQ(config.GetValue("permission_accounts_ban"), "6");
 	EXPECT_EQ(config.GetValue("permission_players_view"), "2");
+}
+
+TEST(ConfigLayerTests, WhitespaceAroundKeysAndValuesIsIgnored) {
+	const auto path = BinaryPathFinder::GetBinaryDir() / "whitespace_test_config.ini";
+	{
+		std::ofstream out(path, std::ios::binary);
+		out << "zz_plain=value\n";
+		out << "zz_spaced = spaced value \r\n";
+		out << "\tzz_tabbed\t=\tx\t\n";
+		out << " = no key\n";
+		out << "zz_empty=   \n";
+	}
+
+	dConfig config("whitespace_test_config.ini");
+	EXPECT_EQ(config.GetValue("zz_plain"), "value");
+	EXPECT_EQ(config.GetValue("zz_spaced"), "spaced value"); // inner spaces are kept
+	EXPECT_EQ(config.GetValue("zz_tabbed"), "x");
+	EXPECT_EQ(config.GetValue("zz_empty"), "");
+	EXPECT_EQ(config.GetValue(""), "");
+
+	std::filesystem::remove(path);
 }
