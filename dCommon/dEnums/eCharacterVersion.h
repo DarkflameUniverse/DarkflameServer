@@ -20,7 +20,8 @@ enum class eCharacterVersion : uint32_t {
 	NJ_JAYMISSIONS,
 	NEXUS_FORCE_EXPLORER, // Fixes pet ids in player inventories
 	PET_IDS, // Fixes pet ids in player inventories
-	UP_TO_DATE, // will become INVENTORY_PERSISTENT_IDS
+	INVENTORY_PERSISTENT_IDS, // Fixes racing meta missions
+	UP_TO_DATE, // will become RACING_META_MISSIONS
 };
 
 #endif  //!__ECHARACTERVERSION__H__

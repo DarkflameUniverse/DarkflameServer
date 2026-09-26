@@ -13,7 +13,7 @@
 #include "dpShapeSphere.h"
 #include "dZoneManager.h"
 #include "EntityInfo.h"
-#include "Metrics.hpp"
+#include "Metrics.h"
 #include "PlayerManager.h"
 #include "SlashCommandHandler.h"
 #include "UserManager.h"
@@ -26,6 +26,8 @@
 #include "Database.h"
 #include "CDObjectsTable.h"
 #include "CDRewardCodesTable.h"
+#include "CDLootMatrixTable.h"
+#include "CDLootTableTable.h"
 
 // Components
 #include "BuffComponent.h"
@@ -89,7 +91,8 @@ namespace DEVGMCommands {
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
 			entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
 
-			GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::ToggleGMInvis msg;
+			msg.Send(entity->GetObjectID());
 
 			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
 		}
@@ -176,14 +179,15 @@ namespace DEVGMCommands {
 			charComp->m_Character->SetRightHand(minifigItemId);
 		} else {
 			Game::entityManager->ConstructEntity(entity);
+			Game::entityManager->ConstructEntity(entity, entity->GetSystemAddress());
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig item to change, try one of the following: Eyebrows, Eyes, HairColor, HairStyle, Pants, LeftHand, Mouth, RightHand, Shirt, Hands");
 			return;
 		}
 
 		Game::entityManager->ConstructEntity(entity);
+		Game::entityManager->ConstructEntity(entity, entity->GetSystemAddress());
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(lowerName) + u" set to " + (GeneralUtils::to_u16string(minifigItemId)));
 
-		GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS); // need to retoggle because it gets reenabled on creation of new character
 	}
 
 	void PlayAnimation(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -377,8 +381,6 @@ namespace DEVGMCommands {
 				line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 				SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16(line), &entity, sysAddr);
 			}
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 		}
 	}
 
@@ -743,10 +745,39 @@ namespace DEVGMCommands {
 
 		auto tables = query.execQuery();
 
+		std::map<LOT, std::string> lotToName{};
+		std::map<std::string, LOT> nameToLot{};
 		while (!tables.eof()) {
-			std::string message = std::to_string(tables.getIntField("id")) + " - " + tables.getStringField("name");
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(message, message.size()));
+			const auto lot = tables.getIntField("id");
+			const auto name = tables.getStringField("name");
+			lotToName[lot] = name;
+			nameToLot[name] = lot;
 			tables.nextRow();
+		}
+
+		// if there arent a ton of results, print them to chat instead
+		if (lotToName.size() < 5) {
+			std::stringstream ss;
+			ss << "Lookup results for \"" << args << "\":";
+			for (const auto& [lot, name] : lotToName) {
+				ss << "\nLOT: " << lot << " - Name: " << name;
+			}
+			ChatPackets::SendSystemMessage(sysAddr, ss.str());
+		} else {
+			AMFArrayValue response;
+			response.Insert("visible", true);
+			response.Insert("objectID", "Search Results for: " + args);
+			response.Insert("serverInfo", true);
+			auto* const info = response.InsertArray("data");
+			auto& lotSort = info->PushDebug("Sorted by LOT");
+			for (const auto& [lot, name] : lotToName) {
+				auto& entry = lotSort.PushDebug<AMFStringValue>(std::to_string(lot)) = name;
+			}
+			auto& nameSort = info->PushDebug("Sorted by Name");
+			for (const auto& [name, lot] : nameToLot) {
+				auto& entry = nameSort.PushDebug<AMFStringValue>(name) = std::to_string(lot);
+			}
+			GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, sysAddr);
 		}
 	}
 
@@ -771,7 +802,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert<bool>(u"SpawnedFromSlashCommand", true);
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 
@@ -794,7 +825,7 @@ namespace DEVGMCommands {
 		}
 
 		const auto numberToSpawnOptional = GeneralUtils::TryParse<uint32_t>(splitArgs[1]);
-		if (!numberToSpawnOptional && numberToSpawnOptional.value() > 0) {
+		if (!numberToSpawnOptional) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of enemies to spawn.");
 			return;
 		}
@@ -802,7 +833,7 @@ namespace DEVGMCommands {
 
 		// Must spawn within a radius of at least 0.0f
 		const auto radiusToSpawnWithinOptional = GeneralUtils::TryParse<float>(splitArgs[2]);
-		if (!radiusToSpawnWithinOptional && radiusToSpawnWithinOptional.value() < 0.0f) {
+		if (!radiusToSpawnWithinOptional || radiusToSpawnWithinOptional.value() < 0.0f) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid radius to spawn within.");
 			return;
 		}
@@ -813,7 +844,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert(u"SpawnedFromSlashCommand", true);
 
 		auto playerPosition = entity->GetPosition();
 		while (numberToSpawn > 0) {
@@ -1020,7 +1051,8 @@ namespace DEVGMCommands {
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Requesting map change...");
 		LWOCLONEID cloneId = 0;
-		bool force = false;
+		LWOINSTANCEID instanceID{};
+		std::string targetScene;
 
 		const auto reqZoneOptional = GeneralUtils::TryParse<LWOMAPID>(splitArgs[0]);
 		if (!reqZoneOptional) {
@@ -1030,29 +1062,34 @@ namespace DEVGMCommands {
 		const LWOMAPID reqZone = reqZoneOptional.value();
 
 		if (splitArgs.size() > 1) {
-			auto index = 1;
-
-			if (splitArgs[index] == "force") {
-				index++;
-
-				force = true;
+			const auto cloneIdOptional = GeneralUtils::TryParse<LWOCLONEID>(splitArgs[1]);
+			if (!cloneIdOptional) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid clone id.");
+				return;
 			}
 
-			if (splitArgs.size() > index) {
-				const auto cloneIdOptional = GeneralUtils::TryParse<LWOCLONEID>(splitArgs[index]);
-				if (!cloneIdOptional) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Invalid clone id.");
+			cloneId = cloneIdOptional.value();
+
+			if (splitArgs.size() > 2) {
+				const auto instanceIDVal = GeneralUtils::TryParse<LWOINSTANCEID>(splitArgs[2]);
+				if (!instanceIDVal) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid instance id.");
 					return;
 				}
-				cloneId = cloneIdOptional.value();
+
+				instanceID = instanceIDVal.value();
+			}
+
+			if (splitArgs.size() > 3) {
+				targetScene = splitArgs[3];
 			}
 		}
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || Game::zoneManager->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (Game::zoneManager->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
-			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid, targetScene](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
 				auto* entity = Game::entityManager->GetEntity(objid);
 				if (!entity) return;
@@ -1070,6 +1107,7 @@ namespace DEVGMCommands {
 					entity->GetCharacter()->SetZoneID(zoneID);
 					entity->GetCharacter()->SetZoneInstance(zoneInstance);
 					entity->GetCharacter()->SetZoneClone(zoneClone);
+					entity->GetCharacter()->SetTargetScene(targetScene);
 					entity->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
 				}
 
@@ -1102,6 +1140,10 @@ namespace DEVGMCommands {
 		}
 
 		const auto& password = splitArgs[2];
+		if (password.length() >= 50) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Password is too long.");
+			return;
+		}
 
 		ZoneInstanceManager::Instance()->CreatePrivateZone(Game::server, zone.value(), clone.value(), password);
 
@@ -1233,10 +1275,10 @@ namespace DEVGMCommands {
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (!inventoryComponent) return;
 
-		std::vector<LDFBaseData*> data{};
-		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem.value()));
+		LwoNameValue config;
+		config.Insert<LOT>(u"reforgedLOT", reforgedItem.value());
 
-		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, data);
+		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, config);
 	}
 
 	void Crash(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1247,38 +1289,26 @@ namespace DEVGMCommands {
 	}
 
 	void Metrics(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		AMFArrayValue response;
+		response.Insert("visible", true);
+		response.Insert("objectID", "Metrics");
+		response.Insert("serverInfo", true);
+		auto* info = response.InsertArray("data");
 		for (const auto variable : Metrics::GetAllMetrics()) {
-			auto* metric = Metrics::GetMetric(variable);
+			auto& metricData = info->PushDebug(Metrics::MetricVariableToString(variable));
 
-			if (metric == nullptr) {
-				continue;
-			}
+			const auto& metric = Metrics::GetMetric(variable);
 
-			ChatPackets::SendSystemMessage(
-				sysAddr,
-				GeneralUtils::ASCIIToUTF16(Metrics::MetricVariableToString(variable)) +
-				u": " +
-				GeneralUtils::to_u16string(Metrics::ToMiliseconds(metric->average)) +
-				u"ms"
-			);
+			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric.max)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric.min)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric.average)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric.measurementSize);
 		}
-
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"Peak RSS: " + GeneralUtils::to_u16string(static_cast<float>(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6)) +
-			u"MB"
-		);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"Current RSS: " + GeneralUtils::to_u16string(static_cast<float>(static_cast<double>(Metrics::GetCurrentRSS()) / 1.024e6)) +
-			u"MB"
-		);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"Process ID: " + GeneralUtils::to_u16string(Metrics::GetProcessID())
-		);
+		auto& processInfo = info->PushDebug("Process Info");
+		processInfo.PushDebug<AMFStringValue>("Peak RSS") = std::to_string(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6) + "MB";
+		processInfo.PushDebug<AMFStringValue>("Current RSS") = std::to_string(static_cast<double>(Metrics::GetCurrentRSS()) / 1.024e6) + "MB";
+		processInfo.PushDebug<AMFIntValue>("Process ID") = Metrics::GetProcessID();
+		GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, sysAddr);
 	}
 
 	void ReloadConfig(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1310,19 +1340,30 @@ namespace DEVGMCommands {
 		const auto loops = GeneralUtils::TryParse<uint32_t>(splitArgs[2]);
 		if (!loops) return;
 
+		auto* const lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+		auto* const lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+		bool found = false;
+		for (const auto& entry : lootMatrixTable->GetMatrix(lootMatrixIndex.value())) {
+			for (const auto& loot : lootTableTable->GetTable(entry.LootTableIndex)) {
+				found = targetLot.value() == loot.itemid;
+				if (found) break;
+			}
+		}
+
+		if (!found) {
+			std::stringstream ss;
+			ss << "Target LOT " << targetLot.value() << " not found in loot matrix " << lootMatrixIndex.value() << ".";
+			ChatPackets::SendSystemMessage(sysAddr, ss.str());
+			return;
+		}
+
 		uint64_t totalRuns = 0;
 
 		for (uint32_t i = 0; i < loops; i++) {
 			while (true) {
 				const auto lootRoll = Loot::RollLootMatrix(nullptr, lootMatrixIndex.value());
 				totalRuns += 1;
-				bool doBreak = false;
-				for (const auto& kv : lootRoll) {
-					if (static_cast<uint32_t>(kv.first) == targetLot) {
-						doBreak = true;
-					}
-				}
-				if (doBreak) break;
+				if (lootRoll.contains(targetLot.value())) break;
 			}
 		}
 
@@ -1479,7 +1520,15 @@ namespace DEVGMCommands {
 	void Inspect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
-		const auto idParsed = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+		std::optional<LWOOBJID> idIntermed;
+		if (splitArgs[0] == "zoneControl") {
+			idIntermed = 0x3FFF'FFFFFFFE;
+		} else if (splitArgs[0] == "localCharacter") {
+			idIntermed = entity->GetObjectID();
+		} else {
+			idIntermed = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+		}
+		const auto idParsed = idIntermed;
 
 		// First try to get the object by its ID if provided.
 		// Second try to get the object by player name.

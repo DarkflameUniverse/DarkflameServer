@@ -1,6 +1,6 @@
 #include "MySQLDatabase.h"
 
-IUgc::Model ReadModel(UniqueResultSet& result) {
+IUgc::Model ReadModel(PreparedStmtResultSet& result) {
 	IUgc::Model model;
 
 	// blob is owned by the query, so we need to do a deep copy :/

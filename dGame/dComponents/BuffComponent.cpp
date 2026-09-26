@@ -450,19 +450,10 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 		param.value = result.getFloatField("NumberValue");
 		param.effectId = result.getIntField("EffectID");
 
-		if (!result.fieldIsNull("StringValue")) {
-			std::istringstream stream(result.getStringField("StringValue"));
-			std::string token;
-
-			while (std::getline(stream, token, ',')) {
-				try {
-					const auto value = std::stof(token);
-
-					param.values.push_back(value);
-				} catch (std::invalid_argument& exception) {
-					LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
-				}
-			}
+		for (const auto& str : GeneralUtils::SplitString(result.getStringField("StringValue"), ',')) {
+			if (str.empty()) continue;
+			const auto value = GeneralUtils::TryParse<float>(str);
+			if (value) param.values.push_back(value.value());
 		}
 
 		parameters.push_back(param);

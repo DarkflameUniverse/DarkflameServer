@@ -18,6 +18,7 @@ RawChunk::RawChunk(std::ifstream& stream) {
 
 	// We can just skip the rest of the data so we can read the next chunks, we don't need anymore data
 
+	// Possible overflow here? TODO make reasonable upper bound or confirm big numbers arent necessary to have
 	uint32_t colorMapSize;
 	BinaryIO::BinaryRead(stream, colorMapSize);
 	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize * colorMapSize * 4));

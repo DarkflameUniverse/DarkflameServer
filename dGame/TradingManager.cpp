@@ -10,6 +10,11 @@
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include <ranges>
+
+namespace {
+	std::unique_ptr<Trade> g_EmptyTrade;
+}
 
 TradingManager* TradingManager::m_Address = nullptr;
 
@@ -233,55 +238,38 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 	GameMessages::SendServerTradeUpdate(other->GetObjectID(), coins, items, other->GetSystemAddress());
 }
 
-TradingManager::TradingManager() {
-}
-
-TradingManager::~TradingManager() {
-	for (const auto& pair : trades) {
-		delete pair.second;
-	}
-
-	trades.clear();
-}
-
-Trade* TradingManager::GetTrade(LWOOBJID tradeId) const {
+const std::unique_ptr<Trade>& TradingManager::GetTrade(LWOOBJID tradeId) const {
 	const auto& pair = trades.find(tradeId);
 
-	if (pair == trades.end()) return nullptr;
+	if (pair == trades.end()) return g_EmptyTrade;
 
 	return pair->second;
 }
 
-Trade* TradingManager::GetPlayerTrade(LWOOBJID playerId) const {
-	for (const auto& pair : trades) {
-		if (pair.second->IsParticipant(playerId)) {
-			return pair.second;
+const std::unique_ptr<Trade>& TradingManager::GetPlayerTrade(LWOOBJID playerId) const {
+	for (const auto& trade : trades | std::views::values) {
+		if (trade->IsParticipant(playerId)) {
+			return trade;
 		}
 	}
 
-	return nullptr;
+	return g_EmptyTrade;
 }
 
 void TradingManager::CancelTrade(const LWOOBJID canceller, LWOOBJID tradeId, const bool sendCancelMessage) {
-	auto* trade = GetTrade(tradeId);
+	const auto& trade = GetTrade(tradeId);
 
 	if (trade == nullptr) return;
 
 	if (sendCancelMessage) trade->Cancel(canceller);
 
-	delete trade;
-
 	trades.erase(tradeId);
 }
 
-Trade* TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
+void TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
 	const LWOOBJID tradeId = ObjectIDManager::GenerateObjectID();
 
-	auto* trade = new Trade(tradeId, participantA, participantB);
-
-	trades[tradeId] = trade;
+	trades.insert_or_assign(tradeId, std::make_unique<Trade>(tradeId, participantA, participantB));
 
 	LOG("Created new trade between (%llu) <-> (%llu)", participantA, participantB);
-
-	return trade;
 }

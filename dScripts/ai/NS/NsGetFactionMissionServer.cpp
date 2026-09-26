@@ -42,8 +42,11 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 		}
 
 		if (flagID != -1) {
-			player->GetCharacter()->SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
-			player->GetCharacter()->SetPlayerFlag(flagID, true);
+			auto* const character = player->GetCharacter();
+			if (character) {
+				character->SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
+				character->SetPlayerFlag(flagID, true);
+			}
 		}
 
 		MissionComponent* mis = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));

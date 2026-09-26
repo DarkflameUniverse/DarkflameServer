@@ -95,10 +95,8 @@ void ZoneAgProperty::LoadInstance(Entity* self) {
 
 	for (auto* spawner : Game::zoneManager->GetSpawnersByName(self->GetVar<std::string>(InstancerSpawner))) {
 		for (auto* spawnerNode : spawner->m_Info.nodes) {
-			spawnerNode->config.push_back(
-				new LDFData<std::string>(u"custom_script_server",
-					R"(scripts\ai\GENERAL\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua)"));
-			spawnerNode->config.push_back(new LDFData<std::u16string>(u"transferText", u"SPIDER_QUEEN_EXIT_QUESTION"));
+			spawnerNode->config.Insert<std::string>(u"custom_script_server", R"(scripts\ai\GENERAL\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua)");
+			spawnerNode->config.Insert<std::u16string>(u"transferText", u"SPIDER_QUEEN_EXIT_QUESTION");
 		}
 	}
 
@@ -413,7 +411,8 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 		if (player == nullptr)
 			return;
 
-		player->GetCharacter()->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
+		auto* const character = player->GetCharacter();
+		if (character) character->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
 			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 

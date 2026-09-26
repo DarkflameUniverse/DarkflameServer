@@ -12,7 +12,7 @@ std::vector<std::string> MySQLDatabase::GetApprovedCharacterNames() {
 	return toReturn;
 }
 
-std::optional<ICharInfo::Info> CharInfoFromQueryResult(std::unique_ptr<sql::ResultSet> stmt) {
+std::optional<ICharInfo::Info> CharInfoFromQueryResult(PreparedStmtResultSet& stmt) {
 	if (!stmt->next()) {
 		return std::nullopt;
 	}
@@ -31,15 +31,13 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(std::unique_ptr<sql::Resu
 }
 
 std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const LWOOBJID charId) {
-	return CharInfoFromQueryResult(
-		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE id = ? LIMIT 1;", charId)
-	);
+	auto result = ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE id = ? LIMIT 1;", charId);
+	return CharInfoFromQueryResult(result);
 }
 
 std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const std::string_view name) {
-	return CharInfoFromQueryResult(
-		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE name = ? LIMIT 1;", name)
-	);
+	auto result = ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE name = ? LIMIT 1;", name);
+	return CharInfoFromQueryResult(result);
 }
 
 std::vector<LWOOBJID> MySQLDatabase::GetAccountCharacterIds(const LWOOBJID accountId) {

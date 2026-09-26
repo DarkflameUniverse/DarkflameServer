@@ -37,12 +37,10 @@ void AmSkullkinTower::SpawnLegs(Entity* self, const std::string& loc) {
 		return;
 	}
 
-	std::vector<LDFBaseData*> config = { new LDFData<std::string>(u"Leg", loc) };
-
 	EntityInfo info{};
 	info.lot = legLOT;
 	info.spawnerID = self->GetObjectID();
-	info.settings = config;
+	info.settings.Insert("Leg", loc);
 	info.rot = newRot;
 
 	if (loc == "Right") {

@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Loot.h"
+#include "dServer.h"
 
 void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
 	auto* sac = self->GetComponent<ScriptedActivityComponent>();
@@ -18,25 +19,9 @@ void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
 		UpdatePlayer(self, user->GetObjectID());
 
 	auto* team = TeamManager::Instance()->GetTeam(user->GetObjectID());
-	uint32_t activityRating = 0;
-	if (team != nullptr) {
-		for (const auto& teamMemberID : team->members) {
-			auto* teamMember = Game::entityManager->GetEntity(teamMemberID);
-			if (teamMember != nullptr) {
-				activityRating = CalculateActivityRating(self, teamMemberID);
-
-				if (self->GetLOT() == frakjawChestId) activityRating = team->members.size();
-
-				Loot::DropActivityLoot(teamMember, self->GetObjectID(), sac->GetActivityID(), activityRating);
-			}
-		}
-	} else {
-		activityRating = CalculateActivityRating(self, user->GetObjectID());
-
-		if (self->GetLOT() == frakjawChestId) activityRating = 1;
-
-		Loot::DropActivityLoot(user, self->GetObjectID(), sac->GetActivityID(), activityRating);
-	}
+	uint32_t activityRating = CalculateActivityRating(self, user->GetObjectID());
+	if (self->GetLOT() == frakjawChestId || Game::server->GetZoneID() == 1204) activityRating = team != nullptr ? team->members.size() : 1;
+	Loot::DropActivityLoot(user, self->GetObjectID(), sac->GetActivityID(), activityRating);
 
 	sac->PlayerRemove(user->GetObjectID());
 

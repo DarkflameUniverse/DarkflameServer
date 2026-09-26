@@ -19,7 +19,7 @@ struct VanityObject {
 	std::vector<LOT> m_Equipment;
 	std::vector<std::string> m_Phrases;
 	std::map<uint32_t, std::vector<VanityObjectLocation>> m_Locations;
-	std::vector<LDFBaseData*> m_Config;
+	LwoNameValue m_Config;
 };
 
 

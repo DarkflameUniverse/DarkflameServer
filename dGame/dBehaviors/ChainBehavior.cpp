@@ -11,6 +11,11 @@ void ChainBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 		return;
 	}
 
+	if (chainIndex == 0) {
+		LOG("Received invalid chain index of 0 for behavior %i.", m_behaviorId);
+		return;
+	}
+
 	chainIndex--;
 
 	if (chainIndex < this->m_behaviors.size()) {

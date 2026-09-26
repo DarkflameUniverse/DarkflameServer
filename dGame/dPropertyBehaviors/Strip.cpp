@@ -161,14 +161,14 @@ void Strip::SpawnDrop(LOT dropLOT, Entity& entity) {
 	}
 }
 
-void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
+void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, UpdateResult& updateResult) {
 	auto& entity = *modelComponent.GetParent();
 	auto& nextAction = GetNextAction();
 	auto number = nextAction.GetValueParameterDouble();
 	auto valueStr = nextAction.GetValueParameterString();
 	auto numberAsInt = static_cast<int32_t>(number);
 	auto nextActionType = GetNextAction().GetType();
-	LOG("~number: %f, nextActionType: %s", static_cast<float>(number), nextActionType.data());
+	LOG_DEBUG("Processing Strip Action: %s with number %.2f and string %s", nextActionType.data(), number, valueStr.data());
 
 	// TODO replace with switch case and nextActionType with enum
 	/* BEGIN Move */
@@ -268,7 +268,8 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		modelComponent.AddUnSmash();
 
-		m_PausedTime = number;
+		// since it may take time for the message to relay to clients
+		m_PausedTime = number + 0.5f;
 	} else if (nextActionType == "Wait") {
 		m_PausedTime = number;
 	} else if (nextActionType == "Chat") {
@@ -303,6 +304,21 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity); // 1 Armor powerup
 	}
 	/* END Gameplay */
+	/* BEGIN StateMachine */
+	else if (nextActionType == "ChangeStateHome") {
+		updateResult.newState = BehaviorState::HOME_STATE;
+	} else if (nextActionType == "ChangeStateCircle") {
+		updateResult.newState = BehaviorState::CIRCLE_STATE;
+	} else if (nextActionType == "ChangeStateSquare") {
+		updateResult.newState = BehaviorState::SQUARE_STATE;
+	} else if (nextActionType == "ChangeStateDiamond") {
+		updateResult.newState = BehaviorState::DIAMOND_STATE;
+	} else if (nextActionType == "ChangeStateTriangle") {
+		updateResult.newState = BehaviorState::TRIANGLE_STATE;
+	} else if (nextActionType == "ChangeStateStar") {
+		updateResult.newState = BehaviorState::STAR_STATE;
+	}
+	/* END StateMachine*/
 	else {
 		static std::set<std::string> g_WarnedActions;
 		if (!g_WarnedActions.contains(nextActionType.data())) {
@@ -438,7 +454,7 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 	return rotateFinished;
 }
 
-void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
+void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult& updateResult) {
 	// No point in running a strip with only one action.
 	// Strips are also designed to have 2 actions or more to run.
 	if (!HasMinimumActions()) return;
@@ -463,6 +479,7 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 
 	// Check for trigger blocks and if not a trigger block proc this blocks action
 	if (m_NextActionIndex == 0) {
+		LOG("Behavior strip started %s", nextAction.GetType().data());
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
 		} else if (nextAction.GetType() == "OnChat") {
@@ -473,7 +490,7 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 		Game::entityManager->SerializeEntity(entity);
 		m_WaitingForAction = true;
 	} else { // should be a normal block
-		ProcNormalAction(deltaTime, modelComponent);
+		ProcNormalAction(deltaTime, modelComponent, updateResult);
 	}
 }
 

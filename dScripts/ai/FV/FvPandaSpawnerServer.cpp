@@ -38,10 +38,8 @@ void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 		info.spawnerID = target->GetObjectID();
 		info.pos = self->GetPosition();
 		info.lot = 5643;
-		info.settings = {
-			new LDFData<LWOOBJID>(u"tamer", target->GetObjectID()),
-			new LDFData<std::u16string>(u"groupID", u"panda" + (GeneralUtils::to_u16string(target->GetObjectID())) + u";pandas")
-		};
+		info.settings.Insert<LWOOBJID>(u"tamer", target->GetObjectID());
+		info.settings.Insert<std::u16string>(u"groupID", u"panda" + (GeneralUtils::to_u16string(target->GetObjectID())) + u";pandas");
 
 		auto* panda = Game::entityManager->CreateEntity(info);
 		Game::entityManager->ConstructEntity(panda);

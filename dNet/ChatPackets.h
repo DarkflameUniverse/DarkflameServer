@@ -58,6 +58,7 @@ namespace ChatPackets {
 	};
 
 	void SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message);
+	void SendSystemMessage(const SystemAddress& sysAddr, const std::string& message, bool broadcast = false);
 	void SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, bool broadcast = false);
 	void SendMessageFail(const SystemAddress& sysAddr);
 	void SendRoutedMsg(const LUBitStream& msg, const LWOOBJID targetID, const SystemAddress& sysAddr);

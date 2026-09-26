@@ -48,15 +48,13 @@ void BlockBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branc
 		return;
 	}
 
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto* const destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
-	destroyableComponent->SetAttacksToBlock(this->m_numAttacksCanBlock);
-
-	if (destroyableComponent == nullptr) {
-		return;
+	if (destroyableComponent) {
+		// ??? what is going on here?
+		destroyableComponent->SetAttacksToBlock(this->m_numAttacksCanBlock);
+		destroyableComponent->SetAttacksToBlock(0);
 	}
-
-	destroyableComponent->SetAttacksToBlock(0);
 }
 
 void BlockBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {

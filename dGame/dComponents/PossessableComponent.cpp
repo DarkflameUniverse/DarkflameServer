@@ -10,7 +10,7 @@ PossessableComponent::PossessableComponent(Entity* parent, const int32_t compone
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
 
 	// Get the possession Type from the CDClient
-	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType, depossessOnHit FROM PossessableComponent WHERE id = ?;");
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType, depossessOnHit, skillSet FROM PossessableComponent WHERE id = ?;");
 
 	query.bind(1, static_cast<int>(componentID));
 
@@ -20,6 +20,7 @@ PossessableComponent::PossessableComponent(Entity* parent, const int32_t compone
 	if (!result.eof()) {
 		m_PossessionType = static_cast<ePossessionType>(result.getIntField("possessionType", 1)); // Default to Attached Visible
 		m_DepossessOnHit = static_cast<bool>(result.getIntField("depossessOnHit", 0));
+		m_SkillSet = result.getIntField("skillSet", 0);
 	} else {
 		m_PossessionType = ePossessionType::ATTACHED_VISIBLE;
 		m_DepossessOnHit = false;

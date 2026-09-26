@@ -13,6 +13,8 @@
 
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
+#include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
 #include "DestroyableComponent.h"
 
 #include <algorithm>
@@ -23,17 +25,13 @@
 #include "SkillComponent.h"
 #include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
-#include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
 #include "Amf3.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
-	{
-		using namespace GameMessages;
-		RegisterMsg<GetObjectReportInfo>(this, &BaseCombatAIComponent::MsgGetObjectReportInfo);
-	}
+	RegisterMsg(&BaseCombatAIComponent::MsgGetObjectReportInfo);
 	m_Target = LWOOBJID_EMPTY;
 	m_DirtyStateOrTarget = true;
 	m_State = AiState::spawn;
@@ -47,7 +45,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
+		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius, minRoundLength, maxRoundLength, combatRoundLength FROM BaseCombatAIComponent WHERE id = ?;");
 	componentQuery.bind(1, static_cast<int>(componentID));
 
 	auto componentResult = componentQuery.execQuery();
@@ -67,44 +65,37 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 
 		if (!componentResult.fieldIsNull("hardTetherRadius"))
 			m_HardTetherRadius = componentResult.getFloatField("hardTetherRadius");
-	}
 
-	componentResult.finalize();
+		m_MinRoundLength = componentResult.getFloatField("minRoundLength");
+		m_MaxRoundLength = componentResult.getFloatField("maxRoundLength");
+		m_CombatRoundLength = componentResult.getFloatField("combatRoundLength");
+	}
 
 	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
 	// radii if it is greater than the one in the database.
-	if (m_Parent) {
-		auto aggroRadius = m_Parent->GetVar<float>(u"aggroRadius");
-		m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
-		auto tetherRadius = m_Parent->GetVar<float>(u"tetherRadius");
-		m_HardTetherRadius = tetherRadius != 0 ? tetherRadius : m_HardTetherRadius;
-	}
+	m_AggroRadius = m_Parent->HasVar(u"aggroRadius") ? m_Parent->GetVar<float>(u"aggroRadius") : m_AggroRadius;
+	m_HardTetherRadius = m_Parent->HasVar(u"tetherRadius") ? m_Parent->GetVar<float>(u"tetherRadius") : m_HardTetherRadius;
 
 	/*
 	 * Find skills
 	 */
-	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
+	for (const auto objectSkill : CDClientManager::GetTable<CDObjectSkillsTable>()->Get(parent->GetLOT())) {
+		const auto skillBehavior = CDClientManager::GetTable<CDSkillBehaviorTable>()->GetSkillByID(objectSkill.skillID);
+		if (skillBehavior.skillID == objectSkill.skillID) {
+			const auto skillId = skillBehavior.skillID;
 
-	auto result = skillQuery.execQuery();
+			const auto abilityCooldown = skillBehavior.cooldown;
 
-	while (!result.eof()) {
-		const auto skillId = static_cast<uint32_t>(result.getIntField("skillID"));
+			const auto behaviorId = skillBehavior.behaviorID;
 
-		const auto abilityCooldown = static_cast<float>(result.getFloatField("cooldown"));
+			const auto combatWeight = objectSkill.AICombatWeight;
 
-		const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
+			auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-		auto* behavior = Behavior::CreateBehavior(behaviorId);
+			AiSkillEntry entry = { .skillId = skillId, .cooldown = 0.0f, .abilityCooldown = abilityCooldown, .behavior = behavior, .combatWeight = combatWeight };
 
-		std::stringstream behaviorQuery;
-
-		AiSkillEntry entry = { skillId, 0, abilityCooldown, behavior };
-
-		m_SkillEntries.push_back(entry);
-
-		result.nextRow();
+			m_SkillEntries.push_back(entry);
+		}
 	}
 
 	Stun(1.0f);
@@ -170,15 +161,10 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	// Check if we should stop the tether effect
 	if (m_TetherEffectActive) {
 		m_TetherTime -= deltaTime;
-		if (m_Target != LWOOBJID_EMPTY || (NiPoint3::DistanceSquared(
-			m_StartPosition,
-			m_Parent->GetPosition()) < 20 * 20 && m_TetherTime <= 0)
-			) {
-			GameMessages::SendStopFXEffect(m_Parent, true, "tether");
-			m_TetherEffectActive = false;
-		}
 		m_ForcedTetherTime -= deltaTime;
 		if (m_ForcedTetherTime >= 0) return;
+		GameMessages::SendStopFXEffect(m_Parent, true, "tether");
+		m_TetherEffectActive = false;
 	}
 
 	for (auto entry = m_RemovedThreatList.begin(); entry != m_RemovedThreatList.end();) {
@@ -214,8 +200,10 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	}
 
 	if (stunnedThisFrame) {
-		m_MovementAI->Stop();
+		if (!m_MovementAI->IsPaused()) m_MovementAI->Pause();
 
+		// in this case we just become unstunned so check if we paused and resume if we did
+		if (!m_Stunned && m_MovementAI->IsPaused()) m_MovementAI->Resume();
 		return;
 	}
 
@@ -250,10 +238,12 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 
 void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hasSkillToCast = false;
+	int32_t maxSkillWeights = 0;
 	for (auto& entry : m_SkillEntries) {
 		if (entry.cooldown > 0.0f) {
 			entry.cooldown -= deltaTime;
 		} else {
+			maxSkillWeights += entry.combatWeight;
 			hasSkillToCast = true;
 		}
 	}
@@ -321,12 +311,17 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		SetAiState(AiState::aggro);
 	} else {
 		SetAiState(AiState::idle);
+		// Don't clobber the pursuit speed set by TetherLogic while the tether is still active,
+		// otherwise the entity slows to wander speed and takes far longer than m_TetherTime to
+		// return to its spawn point.
+		if (m_MovementAI && !m_TetherEffectActive) m_MovementAI->SetMaxSpeed(1.0f);
 	}
 
 	if (!hasSkillToCast) return;
 
 	if (m_Target == LWOOBJID_EMPTY) {
 		SetAiState(AiState::idle);
+		if (m_MovementAI && !m_TetherEffectActive) m_MovementAI->SetMaxSpeed(1.0f);
 
 		return;
 	}
@@ -337,14 +332,23 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		LookAt(target->GetPosition());
 	}
 
-	for (auto i = 0; i < m_SkillEntries.size(); ++i) {
-		auto entry = m_SkillEntries.at(i);
+	// Roll to find which skill we'll try to cast
+	auto randomizedWeight = GeneralUtils::GenerateRandomNumber<int32_t>(0, maxSkillWeights);
 
-		if (entry.cooldown > 0) {
+	for (auto& entry : m_SkillEntries) {
+		// Skill isn't cooled off yet
+		if (entry.cooldown > 0.0f) {
 			continue;
 		}
 
-		const auto result = skillComponent->CalculateBehavior(entry.skillId, entry.behavior->m_behaviorId, LWOOBJID_EMPTY);
+		randomizedWeight -= entry.combatWeight;
+
+		// if the weight is still greater than 0 continue to the next rolled skill
+		if (randomizedWeight > 0) {
+			continue;
+		}
+
+		const auto result = skillComponent->CalculateBehavior(entry.skillId, entry.behavior->m_behaviorId, GetTarget());
 
 		if (result.success) {
 			if (m_MovementAI != nullptr) {
@@ -358,8 +362,6 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			m_SkillTime = result.skillTime;
 
 			entry.cooldown = entry.abilityCooldown + m_SkillTime;
-
-			m_SkillEntries[i] = entry;
 
 			break;
 		}
@@ -481,6 +483,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 
 	for (auto id : m_Parent->GetTargetsInPhantom()) {
 		auto* other = Game::entityManager->GetEntity(id);
+		if (!other) continue;
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
@@ -516,6 +519,10 @@ void BaseCombatAIComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsI
 
 void BaseCombatAIComponent::SetAiState(AiState newState) {
 	if (newState == this->m_State) return;
+	GameMessages::NotifyCombatAIStateChange stateMsg;
+	stateMsg.prevState = this->m_State;
+	stateMsg.newState = newState;
+	m_Parent->HandleMsg(stateMsg);
 	this->m_State = newState;
 	m_DirtyStateOrTarget = true;
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -618,6 +625,11 @@ void BaseCombatAIComponent::ClearThreat() {
 
 void BaseCombatAIComponent::Wander() {
 	if (!m_MovementAI->AtFinalWaypoint()) {
+		return;
+	}
+
+	// If we have a path to follow we should almost certainly do that instead of wandering.
+	if (m_MovementAI->HasPath()) {
 		return;
 	}
 
@@ -749,8 +761,8 @@ void BaseCombatAIComponent::SetTetherSpeed(float value) {
 	m_TetherSpeed = value;
 }
 
-void BaseCombatAIComponent::Stun(const float time) {
-	if (m_StunImmune || m_StunTime > time) {
+void BaseCombatAIComponent::Stun(const float time, const bool force) {
+	if (!force && (m_StunImmune || m_StunTime > time)) {
 		return;
 	}
 
@@ -796,7 +808,9 @@ void BaseCombatAIComponent::Wake() {
 void BaseCombatAIComponent::TetherLogic() {
 	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
-	if (destroyableComponent != nullptr && destroyableComponent->HasFaction(4)) {
+	const bool applyTetherEffect = destroyableComponent != nullptr && destroyableComponent->HasFaction(4);
+
+	if (applyTetherEffect) {
 		auto serilizationRequired = false;
 
 		if (destroyableComponent->GetHealth() != destroyableComponent->GetMaxHealth()) {
@@ -818,15 +832,26 @@ void BaseCombatAIComponent::TetherLogic() {
 		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
 
 		m_TetherEffectActive = true;
-
-		m_TetherTime = 3.0f;
 	}
 
 	// Speed towards start position
 	if (m_MovementAI != nullptr) {
 		m_MovementAI->SetHaltDistance(0);
 		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
+		m_MovementAI->SetCurrentSpeed(m_PursuitSpeed);
 		m_MovementAI->SetDestination(m_StartPosition);
+	}
+
+	if (applyTetherEffect) {
+		// Use the actual navmesh path length (populated by SetDestination above) instead of the
+		// straight-line distance, otherwise the tether timer expires before the entity can walk
+		// around obstacles back to its spawn point.
+		const auto distance = m_MovementAI != nullptr
+			? m_MovementAI->GetRemainingPathDistance()
+			: NiPoint3::Distance(m_Parent->GetPosition(), m_StartPosition);
+		const auto speed = m_PursuitSpeed * MovementAIComponent::GetBaseSpeed(m_Parent->GetLOT());
+		m_TetherTime = speed > 0.0f ? distance / speed : 0.0f;
+		m_ForcedTetherTime = m_TetherTime;
 	}
 }
 
@@ -845,13 +870,12 @@ void BaseCombatAIComponent::IgnoreThreat(const LWOOBJID threat, const float valu
 	m_Target = LWOOBJID_EMPTY;
 }
 
-bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
+bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	using enum AiState;
-	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-	auto& cmptType = reportMsg.info->PushDebug("Base Combat AI");
+	auto& cmptType = reportInfo.info->PushDebug("Base Combat AI");
 	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
 	auto& targetInfo = cmptType.PushDebug("Current Target Info");
-	targetInfo.PushDebug<AMFStringValue>("Current Target ID") = std::to_string(m_Target);
+	targetInfo.PushDebug<AMFStringValue>("Current Target ID", "LWOOBJID") = std::to_string(m_Target);
 	// if (m_Target != LWOOBJID_EMPTY) {
 		// LWOGameMessages::ObjGetName nameMsg(m_CurrentTarget);
 		// SEND_GAMEOBJ_MSG(nameMsg);
@@ -866,12 +890,12 @@ bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	// roundInfo.PushDebug<AMFDoubleValue>("Combat Start Delay") = m_CombatStartDelay;
 	std::string curState;
 	switch (m_State) {
-		case idle: curState = "Idling"; break;
-		case aggro: curState = "Aggroed"; break;
-		case tether: curState = "Returning to Tether"; break;
-		case spawn: curState = "Spawn"; break;
-		case dead: curState = "Dead"; break;
-		default: curState = "Unknown or Undefined"; break;
+	case idle: curState = "Idling"; break;
+	case aggro: curState = "Aggroed"; break;
+	case tether: curState = "Returning to Tether"; break;
+	case spawn: curState = "Spawn"; break;
+	case dead: curState = "Dead"; break;
+	default: curState = "Unknown or Undefined"; break;
 	}
 	cmptType.PushDebug<AMFStringValue>("Current Combat State") = curState;
 
@@ -892,10 +916,7 @@ bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	//}
 	//cmptType.PushDebug("Current Combat Role") = curState;
 
-	auto& tetherPoint = cmptType.PushDebug("Tether Point");
-	tetherPoint.PushDebug<AMFDoubleValue>("X") = m_StartPosition.x;
-	tetherPoint.PushDebug<AMFDoubleValue>("Y") = m_StartPosition.y;
-	tetherPoint.PushDebug<AMFDoubleValue>("Z") = m_StartPosition.z;
+	cmptType.PushDebug("Tether Point").PushDebug(m_StartPosition);
 	cmptType.PushDebug<AMFDoubleValue>("Hard Tether Radius") = m_HardTetherRadius;
 	cmptType.PushDebug<AMFDoubleValue>("Soft Tether Radius") = m_SoftTetherRadius;
 	cmptType.PushDebug<AMFDoubleValue>("Aggro Radius") = m_AggroRadius;
@@ -909,8 +930,16 @@ bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	}
 
 	auto& ignoredThreats = cmptType.PushDebug("Temp Ignored Threats");
-	for (const auto& [id, threat] : m_ThreatEntries) {
+	for (const auto& [id, threat] : m_RemovedThreatList) {
 		ignoredThreats.PushDebug<AMFDoubleValue>(std::to_string(id) + " - Time") = threat;
 	}
+	auto& skillInfo = cmptType.PushDebug("Skill Info");
+	for (const auto& skill : m_SkillEntries) {
+		auto& skillDebug = skillInfo.PushDebug("Skill ID " + std::to_string(skill.skillId));
+		skillDebug.PushDebug<AMFDoubleValue>("Cooldown") = skill.cooldown;
+		skillDebug.PushDebug<AMFDoubleValue>("Ability Cooldown") = skill.abilityCooldown;
+		skillDebug.PushDebug<AMFIntValue>("AI Combat Weight") = skill.combatWeight;
+	}
+
 	return true;
 }

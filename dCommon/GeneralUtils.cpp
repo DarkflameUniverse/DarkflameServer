@@ -308,8 +308,9 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 	for (const auto& t : std::filesystem::directory_iterator(folder)) {
 		if (t.is_directory() || t.is_symlink()) continue;
 		auto filename = t.path().filename().string();
-		const auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
-		filenames.emplace(index, std::move(filename));
+		// Ensure the file has a name in the format of xxxxxxxx_anything_goes_here.sql
+		const auto migrationNumber = TryParse<uint32_t>(GeneralUtils::SplitString(filename, '_').at(0));
+		if (migrationNumber.has_value()) filenames.emplace(migrationNumber.value(), std::move(filename));
 	}
 
 	// Now sort the map by the oldest migration.

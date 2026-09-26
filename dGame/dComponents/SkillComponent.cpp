@@ -125,8 +125,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	this->m_managedProjectiles.erase(this->m_managedProjectiles.begin() + index);
 
 	GameMessages::ActivityNotify notify;
-	notify.notification.push_back( std::make_unique<LDFData<int32_t>>(u"shot_done", sync_entry.skillId));
-
+	notify.notification.Insert<int32_t>(u"shot_done", sync_entry.skillId);
 	m_Parent->OnActivityNotify(notify);
 }
 

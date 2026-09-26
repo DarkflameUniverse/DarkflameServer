@@ -46,6 +46,7 @@ bool Pack::HasFile(const uint32_t crc) const {
 }
 
 bool Pack::ReadFileFromPack(const uint32_t crc, char** data, uint32_t* len) const {
+	const auto pathStr = m_FilePath.string();
 	// Time for some wacky C file reading for speed reasons
 
 	PackRecord pkRecord{};
@@ -65,15 +66,20 @@ bool Pack::ReadFileFromPack(const uint32_t crc, char** data, uint32_t* len) cons
 	bool isCompressed = (pkRecord.m_IsCompressed & 0xff) > 0;
 	auto inPackSize = isCompressed ? pkRecord.m_CompressedSize : pkRecord.m_UncompressedSize;
 
-	FILE* file;
+	FILE* file = nullptr;
 #ifdef _WIN32
-	fopen_s(&file, m_FilePath.string().c_str(), "rb");
+	fopen_s(&file, pathStr.c_str(), "rb");
 #elif __APPLE__
 	// macOS has 64bit file IO by default
-	file = fopen(m_FilePath.string().c_str(), "rb");
+	file = fopen(pathStr.c_str(), "rb");
 #else
-	file = fopen64(m_FilePath.string().c_str(), "rb");
+	file = fopen64(pathStr.c_str(), "rb");
 #endif
+
+	if (!file) {
+		LOG("No file found for path %s", pathStr.c_str());
+		throw std::runtime_error("Could not find file " + pathStr);
+	}
 
 	fseek(file, pos, SEEK_SET);
 
@@ -102,14 +108,18 @@ bool Pack::ReadFileFromPack(const uint32_t crc, char** data, uint32_t* len) cons
 		int32_t readInData = fread(&size, sizeof(uint32_t), 1, file);
 		pos += 4; // Move pointer position 4 to the right
 
-		char* chunk = static_cast<char*>(malloc(size));
-		int32_t readInData2 = fread(chunk, sizeof(int8_t), size, file);
+		std::unique_ptr<char[]> chunk(new char[size]);
+		int32_t readInData2 = fread(chunk.get(), sizeof(int8_t), size, file);
 		pos += size; // Move pointer position the amount of bytes read to the right
 
 		int32_t err;
-		currentReadPos += ZCompression::Decompress(reinterpret_cast<uint8_t*>(chunk), size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE, err);
+		const auto countToRead = ZCompression::Decompress(reinterpret_cast<uint8_t*>(chunk.get()), size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE, err);
+		if (countToRead == -1) {
+			LOG("Error decompressing zlib data from file %s", pathStr.c_str());
+			throw std::runtime_error("Error decompressing zlib data from file " + pathStr);
+		}
+		currentReadPos += countToRead;
 
-		free(chunk);
 	}
 
 	*data = decompressedData;

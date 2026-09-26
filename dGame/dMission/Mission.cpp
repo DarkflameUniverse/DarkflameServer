@@ -74,23 +74,19 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 void Mission::LoadFromXmlDone(const tinyxml2::XMLElement& element) {
 	// Start custom XML
-	if (element.Attribute("state") != nullptr) {
-		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
-	}
+	m_State = static_cast<eMissionState>(element.UnsignedAttribute("state"));
 	// End custom XML
 
-	if (element.Attribute("cct") != nullptr) {
-		m_Completions = std::stoul(element.Attribute("cct"));
+	m_Completions = element.UnsignedAttribute("cct");
 
-		m_Timestamp = std::stoul(element.Attribute("cts"));
-	}
+	m_Timestamp = element.UnsignedAttribute("cts");
 }
 
 void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 	const auto* const character = GetCharacter();
 	// Start custom XML
 	if (element.Attribute("state") != nullptr) {
-		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
+		m_State = static_cast<eMissionState>(element.IntAttribute("state", -1));
 	}
 	// End custom XML
 
@@ -106,7 +102,7 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 
 		const auto type = curTask->GetType();
 
-		auto value = std::stoul(task->Attribute("v"));
+		auto value = task->UnsignedAttribute("v");
 		curTask->SetProgress(value, false);
 		task = task->NextSiblingElement();
 
@@ -114,7 +110,7 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 		if (type == eMissionTaskType::COLLECTION || type == eMissionTaskType::VISIT_PROPERTY) {
 			std::vector<uint32_t> uniques;
 			while (task != nullptr && value > 0) {
-				const auto unique = std::stoul(task->Attribute("v"));
+				const auto unique = task->UnsignedAttribute("v");
 
 				uniques.push_back(unique);
 
@@ -407,9 +403,7 @@ void Mission::Catchup() {
 					task->Progress(target);
 				}
 			}
-		}
-
-		if (type == eMissionTaskType::PLAYER_FLAG) {
+		} else if (type == eMissionTaskType::PLAYER_FLAG) {
 			for (int32_t target : task->GetAllTargets()) {
 				const auto flag = GetCharacter()->GetPlayerFlag(target);
 
@@ -422,6 +416,24 @@ void Mission::Catchup() {
 				if (task->IsComplete()) {
 					break;
 				}
+			}
+		} else if (type == eMissionTaskType::RACING) {
+			// check if its a racing meta task ("4") and then set its progress to the current completed missions in all tasks
+			const auto& clientInfo = task->GetClientInfo();
+			if (clientInfo.taskParam1.starts_with("4")) {
+				// Each target is racing mission that needs to be completed.
+				// If its completed, progress the meta task by 1.
+				// at the end set the task progress to avoid sending excess msgs across the wire
+				uint32_t progress = 0;
+				for (const auto& target : task->GetAllTargets()) {
+					if (target == 0) continue;
+
+					auto* racingMission = m_MissionComponent->GetMission(target);
+					if (racingMission != nullptr && racingMission->IsComplete()) {
+						progress++;
+					}
+				}
+				task->SetProgress(progress);
 			}
 		}
 	}

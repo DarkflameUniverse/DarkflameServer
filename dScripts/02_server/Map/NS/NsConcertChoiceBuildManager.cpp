@@ -26,19 +26,18 @@ void NsConcertChoiceBuildManager::SpawnCrate(Entity* self) {
 	const auto splitGroup = GeneralUtils::SplitString(group, '_');
 	if (splitGroup.size() < 2)
 		return;
-	const auto groupNumber = std::stoi(splitGroup.at(1));
+	const auto groupNumber = GeneralUtils::TryParse(splitGroup.at(1), -1);
+	if (groupNumber == -1) return;
 
 	EntityInfo info{};
 	info.lot = crate.lot;
 	info.pos = self->GetPosition();
 	info.rot = self->GetRotation();
 	info.spawnerID = self->GetObjectID();
-	info.settings = {
-		new LDFData<bool>(u"startsQBActivator", true),
-		new LDFData<std::string>(u"grpNameQBShowBricks", crate.group + std::to_string(groupNumber)),
-		new LDFData<std::u16string>(u"groupID", GeneralUtils::ASCIIToUTF16("Crate_" + group)),
-		new LDFData<float>(u"crateTime", crate.time),
-	};
+	info.settings.Insert<bool>(u"startsQBActivator", true);
+	info.settings.Insert<std::string>(u"grpNameQBShowBricks", crate.group + std::to_string(groupNumber));
+	info.settings.Insert<std::u16string>(u"groupID", GeneralUtils::ASCIIToUTF16("Crate_" + group));
+	info.settings.Insert<float>(u"crateTime", crate.time);
 
 	auto* spawnedCrate = Game::entityManager->CreateEntity(info);
 	Game::entityManager->ConstructEntity(spawnedCrate);

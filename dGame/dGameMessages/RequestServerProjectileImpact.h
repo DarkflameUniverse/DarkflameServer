@@ -54,6 +54,7 @@ public:
 
 		uint32_t sBitStreamLength{};
 		stream.Read(sBitStreamLength);
+		if (sBitStreamLength > MAX_MESSAGE_LENGTH) return false;
 		for (uint32_t k = 0; k < sBitStreamLength; k++) {
 			unsigned char character;
 			stream.Read(character);

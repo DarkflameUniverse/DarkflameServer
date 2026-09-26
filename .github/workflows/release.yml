@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    name: Create Release
+    # Only run when CI completed successfully on a tag push (not a PR branch named like a version)
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Download artifacts from CI run
+        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          path: artifacts/
+
+      - name: Package artifacts
+        run: |
+          declare -A platform_map=(
+            ["build-windows"]="darkflame-universe-windows"
+            ["build-linux"]="darkflame-universe-linux"
+            ["build-macos"]="darkflame-universe-macos"
+          )
+          cd artifacts
+          for dir in build-*/; do
+            name="${dir%/}"
+            out="${platform_map[$name]:-$name}"
+            zip -r "../${out}.zip" "$dir"
+          done
+          cd ..
+          ls -lh *.zip
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        with:
+          tag: ${{ github.event.workflow_run.head_branch }}
+          name: ${{ github.event.workflow_run.head_branch }}
+          bodyFile: CHANGES.md
+          artifacts: "*.zip"
+          artifactContentType: application/zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          draft: false

@@ -119,9 +119,8 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 
 		const auto targetPos = validTarget->GetPosition();
 
-		// make sure we aren't too high or low in comparison to the targer
-		const auto heightDifference = std::abs(reference.y - targetPos.y);
-		if (targetPos.y > reference.y && heightDifference > this->m_upperBound || targetPos.y < reference.y && heightDifference > this->m_lowerBound)
+		// make sure we aren't too high or low in comparison to the target
+		if (targetPos.y > (reference.y + m_upperBound) || targetPos.y < (reference.y + m_lowerBound))
 			continue;
 
 		const auto forward = QuatUtils::Forward(self->GetRotation());
@@ -208,9 +207,13 @@ void TacArcBehavior::Load() {
 		GetFloat("offset_y", 0.0f),
 		GetFloat("offset_z", 0.0f)
 	);
+	// https://explorer.lu/skills/behaviors/6212/6203 HACK: i cant figure out why the dragon fire wall doesnt work with the offset, probably has to be fixed with the near/far height parameters
+	if (m_behaviorId == 6203) {
+		this->m_offset = NiPoint3Constant::ZERO;
+	}
 	this->m_method = GetInt("method", 1);
-	this->m_upperBound = std::abs(GetFloat("upper_bound", 4.4f));
-	this->m_lowerBound = std::abs(GetFloat("lower_bound", 0.4f));
+	this->m_upperBound = GetFloat("upper_bound", 4.4f);
+	this->m_lowerBound = GetFloat("lower_bound", 0.4f) - 5.0f; // Makes it so players and objects can still be targetted when slightly below the caster.  FIXME: use bounding spheres at some point
 	this->m_usePickedTarget = GetBoolean("use_picked_target", false);
 	this->m_useTargetPostion = GetBoolean("use_target_position", false);
 	this->m_checkEnv = GetBoolean("check_env", false);

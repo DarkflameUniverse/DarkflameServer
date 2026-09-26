@@ -66,13 +66,9 @@ const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
 				std::string materialString(materialList);
 				const auto materials = GeneralUtils::SplitString(materialString, ',');
 
-				if (!materials.empty()) {
-					brick.materialID = std::stoi(materials[0]);
-				} else {
-					brick.materialID = 0;
-				}
+				brick.materialID = GeneralUtils::TryParse(materials[0], 0);
 			} else if (materialID != nullptr) {
-				brick.materialID = std::stoi(materialID);
+				brick.materialID = GeneralUtils::TryParse(materialID, 0);
 			} else {
 				brick.materialID = 0; // This is bad, makes it so the minigame can't be played
 			}

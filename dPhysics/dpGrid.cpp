@@ -2,6 +2,7 @@
 #include "dpEntity.h"
 
 #include <cmath>
+#include <ranges>
 
 dpGrid::dpGrid(int numCells, int cellSize) {
 	NUM_CELLS = numCells;
@@ -122,38 +123,35 @@ void dpGrid::HandleEntity(dpEntity* entity, dpEntity* other) {
 void dpGrid::HandleCell(int x, int z, float deltaTime) {
 	auto& entities = m_Cells[x][z]; //vector of entities contained within this cell.
 
-	for (auto en : entities) {
+	for (auto* en : entities) {
 		if (!en) continue;
 		if (en->GetIsStatic() || en->GetSleeping()) continue;
 
 		//Check against all entities that are in the same cell as us
-		for (auto other : entities)
-			HandleEntity(en, other);
+		for (auto other : entities) HandleEntity(en, other);
 
-		//To try neighbouring cells as well: (can be disabled if needed)
-		//we only check 4 of the 8 neighbouring cells, otherwise we'd get duplicates and cpu cycles wasted...
-
-		if (x > 0 && z > 0) {
-			for (auto other : m_Cells[x - 1][z - 1])
-				HandleEntity(en, other);
+		// All 8 neighbours in one pass.
+		// staticOnly=false  — canonical 4: covers each dynamic-vs-dynamic pair exactly once,
+		//                     since the higher-index cell checks back to the lower-index cell.
+		// staticOnly=true   — skipped 4: dynamic entities there are handled when those cells
+		//                     process their own en loop; static ones never drive a loop, so
+		//                     we handle them here explicitly to avoid missing exits.
+		struct NeighbourCheck { int dx, dz; bool staticOnly; };
+		constexpr NeighbourCheck kNeighbours[8] = {
+			{ -1, -1, false }, { -1,  0, false }, {  0, -1, false }, { -1,  1, false },
+			{  1, -1, true  }, {  1,  0, true  }, {  0,  1, true  }, {  1,  1, true  },
+		};
+		for (auto [dx, dz, staticOnly] : kNeighbours) {
+			const int nx = x + dx;
+			const int nz = z + dz;
+			// Ensure the cell we're checking is within the valid range
+			if (nx < 0 || nx >= NUM_CELLS || nz < 0 || nz >= NUM_CELLS) continue;
+			for (auto* other : m_Cells[nx][nz]) {
+				if (!staticOnly || (other && other->GetIsStatic()))
+					HandleEntity(en, other);
+			}
 		}
 
-		if (x > 0) {
-			for (auto other : m_Cells[x - 1][z])
-				HandleEntity(en, other);
-		}
-
-		if (z > 0) {
-			for (auto other : m_Cells[x][z - 1])
-				HandleEntity(en, other);
-		}
-
-		if (x > 0 && z < NUM_CELLS - 1) {
-			for (auto other : m_Cells[x - 1][z + 1])
-				HandleEntity(en, other);
-		}
-
-		for (auto& [id, entity] : m_GargantuanObjects)
-			HandleEntity(en, entity);
+		for (auto* entity : m_GargantuanObjects | std::views::values) HandleEntity(en, entity);
 	}
 }

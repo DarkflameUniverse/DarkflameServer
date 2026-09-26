@@ -31,5 +31,5 @@ struct EquippedItem
 	/**
 	 * The configuration of the item with any extra data
 	 */
-	std::vector<LDFBaseData*> config = {};
+	LwoNameValue config = {};
 };

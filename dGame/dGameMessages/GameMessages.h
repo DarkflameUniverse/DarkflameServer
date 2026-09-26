@@ -13,6 +13,7 @@
 #include "Brick.h"
 #include "MessageType/Game.h"
 #include "eGameMasterLevel.h"
+#include "LDFFormat.h"
 
 class AMFBaseValue;
 class AMFArrayValue;
@@ -44,6 +45,7 @@ enum class BehaviorSlot : int32_t;
 enum class eVendorTransactionResult : uint32_t;
 enum class eReponseMoveItemBetweenInventoryTypeCode : int32_t;
 enum class eMissionState : int;
+enum class AiState : uint32_t;
 
 enum class eCameraTargetCyclingMode : int32_t {
 	ALLOW_CYCLE_TEAMMATES,
@@ -102,9 +104,11 @@ namespace GameMessages {
 	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
 	void SendStartPathing(Entity* entity);
+
+	// special is for the FV tree platform, feature is complete if we just do that so meh
 	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		eMovementPlatformState movementState = eMovementPlatformState::Moving);
+		eMovementPlatformState movementState = eMovementPlatformState::Moving, bool special = false);
 
 	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
@@ -242,8 +246,6 @@ namespace GameMessages {
 		bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
 		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
 		bool cancelOnUnequip = false, bool cancelOnZone = false, bool addedByTeammate = false, bool applyOnTeammates = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-
-	void SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr);
 
 	void SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr);
 
@@ -713,7 +715,7 @@ namespace GameMessages {
 		bool translate{};
 		int32_t time{};
 		std::u16string id{};
-		std::vector<LDFBaseData*> localizeParams{};
+		LwoNameValue localizeParams{};
 		std::u16string imageName{};
 		std::u16string text{};
 		void Serialize(RakNet::BitStream& bitStream) const override;
@@ -736,7 +738,7 @@ namespace GameMessages {
 
 	struct ConfigureRacingControl : public GameMsg {
 		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
-		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
+		LwoNameValue racingSettings{};
 	};
 
 	struct SetModelToBuild : public GameMsg {
@@ -756,7 +758,7 @@ namespace GameMessages {
 	struct ActivityNotify : public GameMsg {
 		ActivityNotify() : GameMsg(MessageType::Game::ACTIVITY_NOTIFY) {}
 
-		std::vector<std::unique_ptr<LDFBaseData>> notification{};
+		LwoNameValue notification{};
 	};
 
 	struct ShootingGalleryFire : public GameMsg {
@@ -848,6 +850,11 @@ namespace GameMessages {
 
 	struct ResetModelToDefaults : public GameMsg {
 		ResetModelToDefaults() : GameMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS) {}
+
+		bool bResetPos{ true };
+		bool bResetRot{ true };
+		bool bUnSmash{ true };
+		bool bResetBehaviors{ true };
 	};
 
 	struct EmotePlayed : public GameMsg {
@@ -947,6 +954,55 @@ namespace GameMessages {
 		void Serialize(RakNet::BitStream& stream) const override;
 		LWOOBJID lootID{};
 		LWOOBJID lootOwnerID{};
+	};
+
+	struct IsDead : public GameMsg {
+		IsDead() : GameMsg(MessageType::Game::IS_DEAD) {}
+
+		bool bDead{};
+	};
+
+	struct ToggleGMInvis : public GameMsg {
+		ToggleGMInvis() : GameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}
+
+		void Serialize(RakNet::BitStream& stream) const override;
+		bool bStateOut{ false };
+
+	};
+
+	struct GetGMInvis : public GameMsg {
+		GetGMInvis() : GameMsg(MessageType::Game::GET_GM_INVIS) {}
+
+		bool bGMInvis{ false };
+  };
+
+	struct ChildRemoved : public GameMsg {
+		ChildRemoved() : GameMsg(MessageType::Game::CHILD_REMOVED) {}
+
+		LWOOBJID childID{};
+	};
+
+	struct UseSkillSet : public GameMsg {
+		UseSkillSet() : GameMsg(MessageType::Game::USE_SKILL_SET) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+
+		bool bRemove{};
+		LWOOBJID possessedId{ LWOOBJID_EMPTY };
+		int32_t setId{ -1 };
+	};
+
+	struct ObjectLoaded : public GameMsg {
+		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}
+
+		LWOOBJID objectID{};
+		LOT lot{};
+	};
+
+	struct NotifyCombatAIStateChange : public GameMsg {
+		NotifyCombatAIStateChange() : GameMsg(MessageType::Game::NOTIFY_COMBAT_AI_STATE_CHANGE) {}
+
+		AiState newState{};
+		AiState prevState{};
 	};
 };
 #endif // GAMEMESSAGES_H

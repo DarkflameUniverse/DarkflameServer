@@ -76,7 +76,7 @@ struct PathWaypoint {
 	CameraPathWaypoint camera;
 	RacingPathWaypoint racing;
 	float speed{};
-	std::vector<LDFBaseData*> config;
+	LwoNameValue config;
 	std::vector<WaypointCommand> commands;
 };
 

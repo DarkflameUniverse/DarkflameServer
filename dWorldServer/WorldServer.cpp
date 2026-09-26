@@ -14,7 +14,7 @@
 #include "dConfig.h"
 #include "dpWorld.h"
 #include "dZoneManager.h"
-#include "Metrics.hpp"
+#include "Metrics.h"
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
@@ -82,6 +82,7 @@
 #include "SlashCommandHandler.h"
 #include "InventoryComponent.h"
 #include "Item.h"
+#include "eFunnessTypes.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -763,7 +764,8 @@ void HandleMasterPacket(Packet* packet) {
 
 	case MessageType::Master::NEW_SESSION_ALERT: {
 		CINSTREAM_SKIP_HEADER;
-		uint32_t sessionKey = inStream.Read(sessionKey);
+		uint32_t sessionKey{};
+		inStream.Read(sessionKey);
 
 		LUString username;
 		inStream.Read(username);
@@ -970,8 +972,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case MessageType::World::LOGIN_REQUEST: {
-		RakNet::BitStream inStream(packet->data, packet->length, false);
-		uint64_t header = inStream.Read(header);
+		CINSTREAM_SKIP_HEADER;
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
@@ -1019,6 +1020,7 @@ void HandlePacket(Packet* packet) {
 		if (user) {
 			Character* c = user->GetLastUsedChar();
 			if (c != nullptr) {
+				if (Game::entityManager->GetEntity(c->GetObjectID())) return;
 				std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
 				Game::server->GetReplicaManager()->AddParticipant(packet->systemAddress);
 
@@ -1115,6 +1117,12 @@ void HandlePacket(Packet* packet) {
 					case eCharacterVersion::PET_IDS: {
 						LOG("Regenerating item ids");
 						inventoryComponent->RegenerateItemIDs();
+						levelComponent->SetCharacterVersion(eCharacterVersion::INVENTORY_PERSISTENT_IDS);
+						[[fallthrough]];
+					}
+					case eCharacterVersion::INVENTORY_PERSISTENT_IDS: {
+						LOG("Fixing racing meta missions");
+						missionComponent->FixRacingMetaMissions();
 						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 						[[fallthrough]];
 					}
@@ -1250,13 +1258,22 @@ void HandlePacket(Packet* packet) {
 			return;
 		}
 
-		Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
-		if (entity) entity->ProcessPositionUpdate(positionUpdate);
+		if (const auto* const lastChar = user->GetLastUsedChar()) {
+			if (auto* const entity = Game::entityManager->GetEntity(lastChar->GetObjectID())) {
+				entity->ProcessPositionUpdate(positionUpdate);
+			}
+		}
 		break;
 	}
 
 	case MessageType::World::MAIL: {
-		Mail::HandleMail(inStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		if (auto* const user = UserManager::Instance()->GetUser(packet->systemAddress)) {
+			if (auto* const lastChar = user->GetLastUsedChar()) {
+				if (auto* const entity = lastChar->GetEntity()) {
+					Mail::HandleMail(inStream, packet->systemAddress, entity);
+				}
+			}
+		}
 		break;
 	}
 
@@ -1279,7 +1296,8 @@ void HandlePacket(Packet* packet) {
 		LWOOBJID objectID = 0;
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (user) {
-			objectID = user->GetLastUsedChar()->GetObjectID();
+			const auto* const lastChar = user->GetLastUsedChar();
+			if (lastChar) objectID = lastChar->GetObjectID();
 		}
 
 		bitStream.Write(objectID);
@@ -1379,13 +1397,19 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 
-			if (user->GetIsMuted()) {
-				user->GetLastUsedChar()->SendMuteNotice();
+			const auto* const lastChar = user->GetLastUsedChar();
+			if (!lastChar) {
+				LOG("No last used character for chat message %i", user->GetAccountID());
 				return;
 			}
-			std::string playerName = user->GetLastUsedChar()->GetName();
-			bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
-			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), user->GetLastUsedChar()->GetGMLevel()).empty();
+
+			if (user->GetIsMuted()) {
+				lastChar->SendMuteNotice();
+				return;
+			}
+			std::string playerName = lastChar->GetName();
+			bool isMythran = lastChar->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), lastChar->GetGMLevel()).empty();
 			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
 			if (!isOk) return;
 			if (!isOk && !isMythran) return;
@@ -1404,16 +1428,61 @@ void HandlePacket(Packet* packet) {
 		//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
 		//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
 		//This is hopefully going to fix the random disconnects people face sometimes.
-		if (Game::config->GetValue("disable_anti_speedhack") == "1") {
+
+		CINSTREAM_SKIP_HEADER;
+		CaughtFunness funness;
+		inStream.Read(funness.cheatInfo);
+		inStream.Read(funness.cheatType);
+		const auto [cheatType, cheatInfo] = funness;
+		LOG_DEBUG("Received cheat type %s with info %f", StringifiedEnum::ToString(cheatType).data(), cheatInfo);
+		const auto disabledCheats = Game::config->GetValue("disable_anti_speedhack") == "1";
+
+		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (!user) {
+			Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::KICK);
 			return;
 		}
 
-		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (user) {
-			user->UserOutOfSync();
-		} else {
-			Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::KICK);
+		const auto* const character = user->GetLastUsedChar();
+		if (character) {
+			const auto dcUser = [](const User& user, const SystemAddress& sysAddr) {
+				if (user.GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) {
+					Game::server->Disconnect(sysAddr, eServerDisconnectIdentifiers::KICK);
+				}
+				};
+			if (cheatType == eFunnessTypes::DebuggerActive) {
+				LOG("Player %s was detected to be using a debugger (funness thread was %f seconds longer than expected deviation).", character->GetName().c_str(), cheatInfo);
+				// Immediately kick unless they are a gm
+				if (!disabledCheats) dcUser(*user, packet->systemAddress);
+			} else if (cheatType == eFunnessTypes::FdbFailedChecksum) {
+				LOG("Player %s has failed the fdb checksum after passing it to sign into this server, highly likely cheating.", character->GetName().c_str());
+				// Immedately kick unless they are a gm
+				if (!disabledCheats) dcUser(*user, packet->systemAddress);
+			} else if (cheatType == eFunnessTypes::RacingBoostTimeTooLong) {
+				if (cheatInfo == 0.0f) LOG("Player %s has enabled a speedboost for far too long (> 3.501 seconds).", character->GetName().c_str());
+				else if (cheatInfo == 1.0f) LOG("Unknown racing boost/speed variable was tampered with.");
+				else if (cheatInfo == 2.0f) LOG("Player vehicle top speed was tampered with.");
+				if (!disabledCheats) dcUser(*user, packet->systemAddress);
+			} else if (cheatType == eFunnessTypes::SomeRacingManipCheat) {
+				if (cheatInfo >= 0.0f && cheatInfo <= 6.0f) LOG("Cheat RNG value A does not match what it should be %f.", cheatInfo);
+				else if (cheatInfo >= 7.0f && cheatInfo <= 10.0f) LOG("Cheat RNG value B does not match what it should be %f.", cheatInfo);
+			} else if (cheatType == eFunnessTypes::Unknown_9) {
+				LOG("Racing cheat 9 detected with value %f.", cheatInfo);
+			} else if (cheatType == eFunnessTypes::Unknown_10) {
+				LOG("Racing cheat 10 detected with value %f.", cheatInfo);
+			} else if (cheatType == eFunnessTypes::CharacterPosLength) {
+				LOG("Detected pos length of %f which is greater than the expected value 1.0f, not normal!", cheatInfo);
+			} else if (cheatType == eFunnessTypes::CharacterVelLength) {
+				LOG("Detected vel length of %f which is greater than the expected value 1.0f, not normal!", cheatInfo);
+			} else if (cheatType == eFunnessTypes::CharacterGravityScale) {
+				LOG("Detected gravity scale difference of %f which is greater than the expected value of 0.0f, not normal!", cheatInfo);
+			} else if (cheatType == eFunnessTypes::CharacterRunMultiplier) {
+				LOG("Detected run multiplier difference of %f which is greater than the expected value 0.0f, not normal!", cheatInfo);
+			}
+
+			if (!disabledCheats && user->GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) user->UserOutOfSync(funness);
 		}
+
 		break;
 	}
 
@@ -1516,7 +1585,6 @@ void FinalizeShutdown() {
 	LOG("Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), g_InstanceID);
 
 	//Delete our objects here:
-	Metrics::Clear();
 	dpWorld::Shutdown();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;

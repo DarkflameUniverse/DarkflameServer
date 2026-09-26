@@ -477,7 +477,7 @@ TeamData* TeamContainer::CreateLocalTeam(std::vector<LWOOBJID> members) {
 		}
 	}
 
-	newTeam->lootFlag = 1;
+	newTeam->lootFlag = 0;
 
 	TeamStatusUpdate(newTeam);
 

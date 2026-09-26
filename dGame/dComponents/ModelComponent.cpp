@@ -8,14 +8,15 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 #include "InventoryComponent.h"
+#include "MissionComponent.h"
 #include "SimplePhysicsComponent.h"
+#include "eMissionTaskType.h"
 #include "eObjectBits.h"
 
 #include "Database.h"
 #include "DluAssert.h"
 
 ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
-	using namespace GameMessages;
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
 	LOG("%f %f %f %f", m_OriginalRotation.x, m_OriginalRotation.y, m_OriginalRotation.z, m_OriginalRotation.w);
@@ -23,21 +24,24 @@ ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Comp
 	m_NumListeningInteract = 0;
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
-	RegisterMsg<RequestUse>(this, &ModelComponent::OnRequestUse);
-	RegisterMsg<ResetModelToDefaults>(this, &ModelComponent::OnResetModelToDefaults);
-	RegisterMsg<GetObjectReportInfo>(this, &ModelComponent::OnGetObjectReportInfo);
+	RegisterMsg(&ModelComponent::OnRequestUse);
+	RegisterMsg(&ModelComponent::OnResetModelToDefaults);
+	RegisterMsg(&ModelComponent::OnGetObjectReportInfo);
 }
 
-bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
-	auto& reset = static_cast<GameMessages::ResetModelToDefaults&>(msg);
-	for (auto& behavior : m_Behaviors) behavior.HandleMsg(reset);
-	GameMessages::UnSmash unsmash;
-	unsmash.target = GetParent()->GetObjectID();
-	unsmash.duration = 0.0f;
-	unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& reset) {
+	if (reset.bResetBehaviors) for (auto& behavior : m_Behaviors) behavior.HandleMsg(reset);
 
-	m_Parent->SetPosition(m_OriginalPosition);
-	m_Parent->SetRotation(m_OriginalRotation);
+	if (reset.bUnSmash) {
+		GameMessages::UnSmash unsmash;
+		unsmash.target = GetParent()->GetObjectID();
+		unsmash.duration = 0.0f;
+		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		m_NumActiveUnSmash = 0;
+	}
+
+	if (reset.bResetPos) m_Parent->SetPosition(m_OriginalPosition);
+	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
 	GameMessages::SetAngularVelocity setAngVel;
 	setAngVel.target = m_Parent->GetObjectID();
@@ -46,7 +50,6 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 
 	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
-	m_NumActiveUnSmash = 0;
 
 	m_NumActiveAttack = 0;
 	GameMessages::SetFaction set{};
@@ -61,10 +64,9 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	return true;
 }
 
-bool ModelComponent::OnRequestUse(GameMessages::GameMsg& msg) {
+bool ModelComponent::OnRequestUse(GameMessages::RequestUse& requestUse) {
 	bool toReturn = false;
 	if (!m_IsPaused) {
-		auto& requestUse = static_cast<GameMessages::RequestUse&>(msg);
 		for (auto& behavior : m_Behaviors) behavior.HandleMsg(requestUse);
 		toReturn = true;
 	}
@@ -189,6 +191,7 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 			// Check if this behavior is able to be found via lot (if so, its a loot behavior).
 			insertedBehavior.SetIsLoot(inventoryComponent->FindItemByLot(msg.GetBehaviorId(), eInventoryType::BEHAVIORS));
 		}
+		ProgressAddBehaviorMission(*playerEntity);
 	}
 
 	auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
@@ -196,6 +199,11 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 		simplePhysComponent->SetPhysicsMotionState(1);
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
+}
+
+void ModelComponent::ProgressAddBehaviorMission(Entity& playerEntity) {
+	auto* const missionComponent = playerEntity.GetComponent<MissionComponent>();
+	if (missionComponent) missionComponent->Progress(eMissionTaskType::ADD_BEHAVIOR, 0);
 }
 
 std::string ModelComponent::SaveBehavior(const PropertyBehavior& behavior) const {
@@ -218,8 +226,8 @@ void ModelComponent::RemoveBehavior(MoveToInventoryMessage& msg, const bool keep
 			auto* const inventoryComponent = playerEntity->GetComponent<InventoryComponent>();
 			if (inventoryComponent && !behavior.GetIsLoot()) {
 				// config is owned by the item
-				std::vector<LDFBaseData*> config;
-				config.push_back(new LDFData<std::string>(u"userModelName", behavior.GetName()));
+				LwoNameValue config;
+				config.Insert(u"userModelName", behavior.GetName());
 				inventoryComponent->AddItem(7965, 1, eLootSourceType::PROPERTY, eInventoryType::BEHAVIORS, config, LWOOBJID_EMPTY, true, false, msg.GetBehaviorId());
 			}
 		}
@@ -377,16 +385,15 @@ void ModelComponent::RemoveAttack() {
 	}
 }
 
-bool ModelComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-	if (!reportMsg.info) return false;
-	auto& cmptInfo = reportMsg.info->PushDebug("Model Behaviors (Mutable)");
+bool ModelComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+	if (!reportInfo.info) return false;
+	auto& cmptInfo = reportInfo.info->PushDebug("Model Behaviors (Mutable)");
 	cmptInfo.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
 
 	cmptInfo.PushDebug<AMFStringValue>("Name") = "Objects_" + std::to_string(m_Parent->GetLOT()) + "_name";
 	cmptInfo.PushDebug<AMFBoolValue>("Has Unique Name") = false;
-	cmptInfo.PushDebug<AMFStringValue>("UGID (from item)") = std::to_string(m_userModelID);
-	cmptInfo.PushDebug<AMFStringValue>("UGID") = std::to_string(m_userModelID);
+	cmptInfo.PushDebug<AMFStringValue>("UGID (from item)", "LWOOBJID") = std::to_string(m_userModelID);
+	cmptInfo.PushDebug<AMFStringValue>("UGID", "LWOOBJID") = std::to_string(m_userModelID);
 	cmptInfo.PushDebug<AMFStringValue>("Description") = "";
 	cmptInfo.PushDebug<AMFIntValue>("Behavior Count") = m_Behaviors.size();
 

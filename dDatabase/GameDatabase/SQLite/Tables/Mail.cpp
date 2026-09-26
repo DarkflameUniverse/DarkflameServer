@@ -47,7 +47,7 @@ std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const LWOOBJID characterI
 }
 
 std::optional<MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
-	auto [_, res] = ExecuteSelect("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;", mailId);
+	auto [_, res] = ExecuteSelect("SELECT attachment_lot, attachment_count, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
 
 	if (res.eof()) {
 		return std::nullopt;
@@ -56,6 +56,7 @@ std::optional<MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
 	MailInfo toReturn;
 	toReturn.itemLOT = res.getIntField("attachment_lot");
 	toReturn.itemCount = res.getIntField("attachment_count");
+	toReturn.receiverId = res.getInt64Field("receiver_id");
 
 	return toReturn;
 }

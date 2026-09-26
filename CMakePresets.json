@@ -49,7 +49,7 @@
 			"inherits": "default",
 			"displayName": "[Multi] Windows (MSVC)",
 			"description": "Set architecture to 64-bit (b/c RakNet)",
-			"generator": "Visual Studio 17 2022",
+			"generator": "Visual Studio 18 2026",
 			"binaryDir": "${sourceDir}/build/msvc",
 			"architecture": {
 				"value": "x64"
@@ -162,6 +162,13 @@
 				"rhs": "Darwin"
 			},
 			"binaryDir": "${sourceDir}/build/macos"
+		},
+		{
+			"name": "macos-relwithdebinfo",
+			"inherits": ["macos", "relwithdebinfo-config"],
+			"displayName": "[RelWithDebInfo] MacOS",
+			"description": "Create a RelWithDebInfo build for MacOS",
+			"binaryDir": "${sourceDir}/build/macos-relwithdebinfo"
 		}
 	],
 	"buildPresets": [
@@ -255,7 +262,7 @@
 		{
 			"name": "macos-relwithdebinfo",
 			"inherits": "default",
-			"configurePreset": "macos",
+			"configurePreset": "macos-relwithdebinfo",
 			"displayName": "[RelWithDebInfo] MacOS",
 			"description": "This preset is used to build in release mode with debug info on MacOS",
 			"configuration": "RelWithDebInfo"
@@ -374,7 +381,7 @@
 		{
 			"name": "macos-relwithdebinfo",
 			"inherits": "default",
-			"configurePreset": "macos",
+			"configurePreset": "macos-relwithdebinfo",
 			"displayName": "[RelWithDebInfo] MacOS",
 			"description": "Runs all tests on a MacOS configuration",
 			"configuration": "RelWithDebInfo"
@@ -603,7 +610,7 @@
 			"steps": [
 				{
 					"type": "configure",
-					"name": "macos"
+					"name": "macos-relwithdebinfo"
 				},
 				{
 					"type": "build",
@@ -616,7 +623,7 @@
 			]
 		},
 		{
-			"name": "ci-macos-13",
+			"name": "ci-macos-15-intel",
 			"displayName": "[Release] MacOS",
 			"description": "CI workflow preset for MacOS",
 			"steps": [

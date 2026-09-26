@@ -1,17 +1,22 @@
 #ifndef __PROPERTYBEHAVIOR__H__
 #define __PROPERTYBEHAVIOR__H__
 
+#include "BehaviorStates.h"
 #include "State.h"
+
+#include <optional>
 
 namespace tinyxml2 {
 	class XMLElement;
 }
 
-enum class BehaviorState : uint32_t;
-
 class AMFArrayValue;
 class BehaviorMessageBase;
 class ModelComponent;
+
+struct UpdateResult {
+	std::optional<BehaviorState> newState;
+};
 
 /**
  * Represents the Entity of a Property Behavior and holds data associated with the behavior
@@ -45,6 +50,7 @@ public:
 	void OnHit();
 
 private:
+	State& GetActiveState();
 	// The current active behavior state. Behaviors can only be in ONE state at a time.
 	BehaviorState m_ActiveState;
 

@@ -5,6 +5,7 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 #include "ModelComponent.h"
+#include "StringifiedEnum.h"
 
 #include <ranges>
 
@@ -16,50 +17,63 @@ PropertyBehavior::PropertyBehavior(bool _isTemplated) {
 	isTemplated = _isTemplated;
 }
 
+bool CheckStateRange(const BehaviorState state) {
+	return state >= BehaviorState::HOME_STATE && state <= BehaviorState::STAR_STATE;
+}
+
 template<>
 void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(AddActionMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(RearrangeStripMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(UpdateActionMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(UpdateStripUiMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
+	if (!CheckStateRange(msg.GetSourceActionContext().GetStateId())) return;
+	if (!CheckStateRange(msg.GetDestinationActionContext().GetStateId())) return;
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
@@ -67,6 +81,8 @@ void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(MigrateActionsMessage& msg) {
+	if (!CheckStateRange(msg.GetSourceActionContext().GetStateId())) return;
+	if (!CheckStateRange(msg.GetDestinationActionContext().GetStateId())) return;
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
@@ -74,6 +90,8 @@ void PropertyBehavior::HandleMsg(MigrateActionsMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(MergeStripsMessage& msg) {
+	if (!CheckStateRange(msg.GetSourceActionContext().GetStateId())) return;
+	if (!CheckStateRange(msg.GetDestinationActionContext().GetStateId())) return;
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
@@ -178,13 +196,32 @@ void PropertyBehavior::Deserialize(const tinyxml2::XMLElement& behavior) {
 }
 
 void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
-	for (auto& state : m_States | std::views::values) state.Update(deltaTime, modelComponent);
+	auto& activeState = GetActiveState();
+	UpdateResult updateResult{};
+	activeState.Update(deltaTime, modelComponent, updateResult);
+	if (updateResult.newState.has_value() && updateResult.newState.value() != m_ActiveState) {
+		LOG("Behavior %llu is changing from state %s to %s", m_BehaviorId, StringifiedEnum::ToString(m_ActiveState).data(), StringifiedEnum::ToString(updateResult.newState.value()).data());
+		GameMessages::ResetModelToDefaults resetMsg{};
+		resetMsg.bResetPos = false;
+		resetMsg.bResetRot = false;
+		resetMsg.bUnSmash = false;
+		modelComponent.OnResetModelToDefaults(resetMsg);
+		HandleMsg(resetMsg);
+		m_ActiveState = updateResult.newState.value();
+	}
 }
 
 void PropertyBehavior::OnChatMessageReceived(const std::string& sMessage) {
-	for (auto& state : m_States | std::views::values) state.OnChatMessageReceived(sMessage);
+	auto& activeState = GetActiveState();
+	activeState.OnChatMessageReceived(sMessage);
 }
 
 void PropertyBehavior::OnHit() {
-	for (auto& state : m_States | std::views::values) state.OnHit();
+	auto& activeState = GetActiveState();
+	activeState.OnHit();
+}
+
+State& PropertyBehavior::GetActiveState() {
+	DluAssert(m_States.contains(m_ActiveState));
+	return m_States[m_ActiveState];
 }

@@ -10,7 +10,9 @@ void AndBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream,
 }
 
 void AndBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
+	LOG_ENTRY;
 	for (auto* behavior : this->m_behaviors) {
+		LOG("%i calculating %i", m_behaviorId, behavior->GetBehaviorID());
 		behavior->Calculate(context, bitStream, branch);
 	}
 }

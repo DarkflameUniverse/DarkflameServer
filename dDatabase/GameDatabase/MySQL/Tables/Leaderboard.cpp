@@ -14,7 +14,7 @@ std::optional<uint32_t> MySQLDatabase::GetDonationTotal(const uint32_t activityI
 	return donation_total->getUInt("donation_total");
 }
 
-std::vector<ILeaderboard::Entry> ProcessQuery(UniqueResultSet& rows) {
+std::vector<ILeaderboard::Entry> ProcessQuery(PreparedStmtResultSet& rows) {
 	std::vector<ILeaderboard::Entry> entries;
 	entries.reserve(rows->rowsCount());
 

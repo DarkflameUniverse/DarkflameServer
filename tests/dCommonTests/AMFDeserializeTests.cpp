@@ -213,7 +213,7 @@ TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 		bool caughtException = false;
 		try {
 			ReadFromBitStream(testBitStream);
-		} catch (eAmf unimplementedValueType) {
+		} catch (std::exception& e) {
 			caughtException = true;
 		}
 

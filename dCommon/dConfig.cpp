@@ -84,3 +84,7 @@ void dConfig::ProcessLine(const std::string& line) {
 
 	this->m_ConfigValues.insert(std::make_pair(key, value));
 }
+
+std::string dConfig::GetValue(const std::string& key, const char* emptyValue) {
+	return GetValue(key, std::string(emptyValue));
+};

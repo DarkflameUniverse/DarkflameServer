@@ -48,7 +48,7 @@ void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
 		}
 
 		self->SetNetworkVar(u"BridgeLeaving", true);
-		self->SetVar(u"BridgeDown", false);
+		self->SetNetworkVar(u"InUse", false);
 	} else if (timerName == "SmashEffectBridge") {
 		self->SetNetworkVar(u"SmashBridge", 5);
 	} else if (timerName == "rotateBridgeDown") {

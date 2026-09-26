@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "Amf3.h"
+#include "StringifiedEnum.h"
 
 /**
  * AMF3 Reference document https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
@@ -53,7 +54,7 @@ std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream& inStream) 
 	case eAmf::VectorObject:
 		[[fallthrough]];
 	case eAmf::Dictionary:
-		throw marker;
+		throw std::invalid_argument(StringifiedEnum::ToString(marker).data());
 	default:
 		throw std::invalid_argument("Invalid AMF3 marker" + std::to_string(static_cast<int32_t>(marker)));
 	}
@@ -88,6 +89,11 @@ const std::string AMFDeserialize::ReadString(RakNet::BitStream& inStream) {
 	// Right shift by 1 bit to get index if reference or size of next string if value
 	length = length >> 1;
 	if (isReference) {
+		constexpr int32_t maxStringSize = 1024 * 1024;
+		if (length > maxStringSize) {
+			LOG("1MB string attempted to be allocated in AMF deserialize, possible spoof, aborting deserialize.");
+			throw std::invalid_argument("1MB string attempted to be allocated in AMF deserialize, possible spoof, aborting deserialize.");
+		}
 		std::string value(length, 0);
 		inStream.Read(&value[0], length);
 		// Empty strings are never sent by reference
@@ -116,6 +122,12 @@ std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream& i
 		// No more associative values when we encounter an empty string key
 		if (key.size() == 0) break;
 		arrayValue->Insert(key, Read(inStream));
+	}
+
+	constexpr int32_t maxArraySize = 10'000;
+	if (sizeOfDenseArray > maxArraySize) {
+		LOG("Someone sent 10,000 dense array entries, probably a bad packet.");
+		throw std::invalid_argument("Someone sent 10,000 dense array entries, probably a bad packet.");
 	}
 	// Finally read dense portion
 	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {

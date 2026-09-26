@@ -9,6 +9,7 @@
 #include "eGameMasterLevel.h"
 #include "BitStreamUtils.h"
 #include "MessageType/Chat.h"
+#include "StringifiedEnum.h"
 #include <chrono>
 #include <ctime>
 
@@ -127,11 +128,16 @@ void User::SetMuteExpire(time_t value) {
 	m_MuteExpire = value;
 }
 
-void User::UserOutOfSync() {
+void User::UserOutOfSync(const CaughtFunness& funness) {
+	m_CaughtFunness.push_back(funness);
 	m_AmountOfTimesOutOfSync++;
 	if (m_AmountOfTimesOutOfSync > m_MaxDesyncAllowed) {
 		//YEET
-		LOG("User %s was out of sync %i times out of %i, disconnecting for suspected speedhacking.", m_Username.c_str(), m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
+		LOG("User %s was out of sync %i times out of %i, disconnecting for the following reasons: {", m_Username.c_str(), m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
+		for (const auto [cheatType, cheatInfo] : m_CaughtFunness) {
+			LOG("	Reason %s value %f", StringifiedEnum::ToString(cheatType).data(), cheatInfo);
+		}
+		LOG("}");
 		Game::server->Disconnect(this->m_SystemAddress, eServerDisconnectIdentifiers::PLAY_SCHEDULE_TIME_DONE);
 	}
 }

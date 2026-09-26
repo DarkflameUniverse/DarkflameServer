@@ -41,7 +41,9 @@ void NsConcertQuickBuild::OnStartup(Entity* self) {
 		return;
 
 	// Get the manager of the crate of this quick build
-	const auto groupNumber = std::stoi(splitGroup.at(3));
+	const auto groupNumber = GeneralUtils::TryParse(splitGroup.at(3), -1);
+	if (groupNumber == -1) return;
+
 	const auto managerObjects = Game::entityManager->GetEntitiesInGroup("CB_" + std::to_string(groupNumber));
 	if (managerObjects.empty())
 		return;

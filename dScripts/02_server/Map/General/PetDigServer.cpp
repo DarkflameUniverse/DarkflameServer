@@ -204,12 +204,10 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
 	info.pos = self->GetPosition();
 	info.rot = self->GetRotation();
 	info.spawnerID = self->GetSpawnerID();
-	info.settings = {
-			new LDFData<LWOOBJID>(u"tamer", owner->GetObjectID()),
-			new LDFData<std::string>(u"group", "pet" + std::to_string(owner->GetObjectID())),
-			new LDFData<std::string>(u"spawnAnim", "spawn-pet"),
-			new LDFData<float>(u"spawnTimer", 1.0)
-	};
+	info.settings.Insert<LWOOBJID>(u"tamer", owner->GetObjectID());
+	info.settings.Insert<std::string>(u"group", "pet" + std::to_string(owner->GetObjectID()));
+	info.settings.Insert<std::string>(u"spawnAnim", "spawn-pet");
+	info.settings.Insert<float>(u"spawnTimer", 1.0);
 
 	auto* spawnedPet = Game::entityManager->CreateEntity(info);
 	Game::entityManager->ConstructEntity(spawnedPet);

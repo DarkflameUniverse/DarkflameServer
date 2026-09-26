@@ -34,7 +34,7 @@ struct EntityInfo {
 	LOT lot;
 	NiPoint3 pos;
 	NiQuaternion rot = QuatUtils::IDENTITY;
-	std::vector<LDFBaseData*> settings;
-	std::vector<LDFBaseData*> networkSettings;
+	LwoNameValue settings;
+	LwoNameValue networkSettings;
 	float scale;
 };

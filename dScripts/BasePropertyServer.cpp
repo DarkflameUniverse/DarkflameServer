@@ -127,12 +127,15 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 		if (player->GetObjectID() != propertyOwner)
 			return;
 	} else {
-		const auto defeatedFlag = player->GetCharacter()->GetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag));
+		GameMessages::GetFlag flagMsg;
+		flagMsg.target = player->GetObjectID();
+		flagMsg.flagID = self->GetVar<int32_t>(defeatedProperyFlag);
+		flagMsg.Send();
 
 		self->SetNetworkVar(UnclaimedVariable, true);
 		self->SetVar<LWOOBJID>(PlayerIDVariable, player->GetObjectID());
 
-		if (!defeatedFlag) {
+		if (!flagMsg.flag) {
 			StartMaelstrom(self, player);
 			SpawnSpots(self);
 			GameMessages::SendPlay2DAmbientSound(player, GUIDMaelstrom);

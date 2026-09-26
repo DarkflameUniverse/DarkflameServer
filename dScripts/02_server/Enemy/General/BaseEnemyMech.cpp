@@ -23,7 +23,7 @@ void BaseEnemyMech::OnDie(Entity* self, Entity* killer) {
 	NiPoint3 newLoc = { controlPhys->GetPosition().x, dpWorld::GetNavMesh()->GetHeightAtPoint(controlPhys->GetPosition()), controlPhys->GetPosition().z };
 
 	EntityInfo info = EntityInfo();
-	std::vector<LDFBaseData*> cfg;
+	LwoNameValue cfg;
 	std::u16string activatorPosStr;
 	activatorPosStr += (GeneralUtils::to_u16string(controlPhys->GetPosition().x));
 	activatorPosStr.push_back(0x1f);
@@ -31,8 +31,7 @@ void BaseEnemyMech::OnDie(Entity* self, Entity* killer) {
 	activatorPosStr.push_back(0x1f);
 	activatorPosStr += (GeneralUtils::to_u16string(controlPhys->GetPosition().z));
 
-	LDFBaseData* activatorPos = new LDFData<std::u16string>(u"rebuild_activators", activatorPosStr);
-	cfg.push_back(activatorPos);
+	cfg.Insert<std::u16string>(u"rebuild_activators", activatorPosStr);
 	info.lot = qbTurretLOT;
 	info.pos = newLoc;
 	info.rot = controlPhys->GetRotation();

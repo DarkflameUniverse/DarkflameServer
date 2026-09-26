@@ -71,9 +71,7 @@ void ZoneAgSpiderQueen::OnTimerDone(Entity* self, std::string timerName) {
 			info.pos = spawnTarget->GetPosition();
 			info.rot = spawnTarget->GetRotation();
 			info.lot = chestObject;
-			info.settings = {
-					new LDFData<LWOOBJID>(u"parent_tag", self->GetObjectID())
-			};
+			info.settings.Insert(u"parent_tag", self->GetObjectID());
 
 			auto* chest = Game::entityManager->CreateEntity(info);
 			Game::entityManager->ConstructEntity(chest);

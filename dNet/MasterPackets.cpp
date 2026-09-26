@@ -77,7 +77,8 @@ void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddres
 
 void MasterPackets::HandleServerInfo(Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
-	uint64_t header = inStream.Read(header);
+	uint64_t header{};
+	inStream.Read(header);
 
 	uint32_t theirPort = 0;
 	uint32_t theirZoneID = 0;

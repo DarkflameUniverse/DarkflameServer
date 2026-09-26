@@ -49,11 +49,10 @@ if (UNIX)
 elseif (WIN32)
 	include(FetchContent)
 
-	# TODO Keep an eye on the zlib repository for an update to disable testing.  Don't forget to update CMakePresets
 	FetchContent_Declare(
 		zlib
-		URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
-		URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
+		URL https://github.com/madler/zlib/archive/refs/tags/v1.3.2.zip
+		URL_HASH MD5=adbba6eef8960c3412818b2e241f46dc
 		GIT_PROGRESS TRUE
 		GIT_SHALLOW 1
 	)
@@ -62,12 +61,12 @@ elseif (WIN32)
 	set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 	# Disable warning about the minimum version of cmake used for bcrypt being deprecated in the future
 	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+	# Disable zlib tests
+	set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 
 	FetchContent_MakeAvailable(zlib)
 
 	set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}")
-	add_library(ZLIB::ZLIB ALIAS zlib)
 else ()
 	message(
 		FATAL_ERROR

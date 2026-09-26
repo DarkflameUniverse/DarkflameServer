@@ -435,6 +435,11 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	inStream.IgnoreBytes(4);
 	inStream.Read(channel);
 	inStream.Read(size);
+	if (size > MAX_MESSAGE_LENGTH) {
+		LOG("Received a probably spoofed chat message, ignoring msg");
+		return;
+	}
+
 	inStream.IgnoreBytes(77);
 
 	LUWString message(size);
@@ -479,6 +484,11 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	if (channel != eChatChannel::PRIVATE_CHAT) LOG("WARNING: Received Private chat with the wrong channel!");
 
 	inStream.Read(size);
+	if (size > MAX_MESSAGE_LENGTH) {
+		LOG("Received a probably spoofed chat message, ignoring msg");
+		return;
+	}
+
 	inStream.IgnoreBytes(77);
 
 	inStream.Read(LUReceiverName);

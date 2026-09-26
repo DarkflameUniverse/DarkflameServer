@@ -19,7 +19,7 @@ void NpcAgCourseStarter::OnUse(Entity* self, Entity* user) {
 	const auto userId = user->GetObjectID();
 	const auto& userSysAddr = user->GetSystemAddress();
 
-	if (scriptedActivityComponent->GetActivityPlayerData(userId) != nullptr) {
+	if (scriptedActivityComponent->PlayerHasActivityData(userId)) {
 		GameMessages::SendNotifyClientObject(selfId, u"exit", 0, 0, LWOOBJID_EMPTY, "", userSysAddr);
 	} else {
 		GameMessages::SendNotifyClientObject(selfId, u"start", 0, 0, LWOOBJID_EMPTY, "", userSysAddr);
@@ -45,18 +45,18 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		GameMessages::SendNotifyClientObject(selfId, u"start_timer", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
 		GameMessages::SendActivityStart(selfId, senderSysAddr);
 
-		auto* const data = scriptedActivityComponent->AddActivityPlayerData(senderId);
-		if (data->values[1] != 0) return;
+		const auto score = scriptedActivityComponent->GetActivityValue(senderId, 1);
+		if (score != 0 && score != -1.0f) return;
 
 		const auto raceStartTime = Game::server->GetUptime() + std::chrono::seconds(4); // Offset for starting timer
 		const auto fRaceStartTime = std::chrono::duration<float, std::ratio<1>>(raceStartTime).count();
-		data->values[1] = fRaceStartTime;
+		scriptedActivityComponent->SetActivityValue(senderId, 1, fRaceStartTime);
 
 		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
 		GameMessages::SendNotifyClientObject(selfId, u"stop_timer", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
 
-		if (scriptedActivityComponent->GetActivityPlayerData(senderId) != nullptr) {
+		if (scriptedActivityComponent->PlayerHasActivityData(senderId)) {
 			GameMessages::SendNotifyClientObject(selfId, u"exit", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
 		} else {
 			GameMessages::SendNotifyClientObject(selfId, u"start", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
@@ -74,8 +74,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 	const auto senderId = sender->GetObjectID();
 	const auto& senderSysAddr = sender->GetSystemAddress();
 
-	auto* const data = scriptedActivityComponent->GetActivityPlayerData(senderId);
-	if (!data) return;
+	if (!scriptedActivityComponent->PlayerHasActivityData(senderId)) return;
 
 	if (args == "course_cancel") {
 		GameMessages::SendNotifyClientObject(selfId, u"cancel_timer", 0, 0,
@@ -84,8 +83,11 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 	} else if (args == "course_finish") {
 		const auto raceEndTime = Game::server->GetUptime();
 		const auto fRaceEndTime = std::chrono::duration<float, std::ratio<1>>(raceEndTime).count();
-		const auto raceTimeElapsed = fRaceEndTime - data->values[1];
-		data->values[2] = raceTimeElapsed;
+		const float startTime = scriptedActivityComponent->GetActivityValue(senderId, 1);
+		if (startTime == 0 || startTime == -1.0f) return;
+
+		const auto raceTimeElapsed = fRaceEndTime - startTime;
+		scriptedActivityComponent->SetActivityValue(senderId, 2, raceTimeElapsed);
 
 		auto* const missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {

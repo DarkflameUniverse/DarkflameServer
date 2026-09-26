@@ -31,10 +31,7 @@ BouncerComponent::BouncerComponent(Entity* parent, const int32_t componentID) : 
 		LookupPetSwitch();
 	}
 
-	{
-		using namespace GameMessages;
-		RegisterMsg<GetObjectReportInfo>(this, &BouncerComponent::MsgGetObjectReportInfo);
-	}
+	RegisterMsg(&BouncerComponent::MsgGetObjectReportInfo);
 }
 
 BouncerComponent::~BouncerComponent() {
@@ -113,9 +110,8 @@ void BouncerComponent::LookupPetSwitch() {
 	}
 }
 
-bool BouncerComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-	auto& cmptType = reportMsg.info->PushDebug("Bouncer");
+bool BouncerComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+	auto& cmptType = reportInfo.info->PushDebug("Bouncer");
 	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
 	auto& destPos = cmptType.PushDebug("Destination Position");
 	if (m_Destination != NiPoint3Constant::ZERO) {

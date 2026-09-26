@@ -24,8 +24,11 @@ void AgFans::OnStartup(Entity* self) {
 }
 
 void AgFans::ToggleFX(Entity* self, bool hit) {
-	std::string fanGroup = self->GetGroups()[0];
-	std::vector<Entity*> fanVolumes = Game::entityManager->GetEntitiesInGroup(fanGroup);
+	const auto groups = self->GetGroups();
+	std::string fanGroup = groups.empty() ? "" : groups[0];
+	const auto fanVolumes = Game::entityManager->GetEntitiesInGroup(fanGroup);
+	const auto fxObjs = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx");
+	auto* const fxObj = fxObjs.empty() ? nullptr : fxObjs[0];
 
 	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
@@ -47,8 +50,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 			volumePhys->SetPhysicsEffectActive(false);
 			Game::entityManager->SerializeEntity(volume);
 			if (!hit) {
-				Entity* fxObj = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx")[0];
-				RenderComponent::PlayAnimation(fxObj, u"trigger");
+				if (fxObj) RenderComponent::PlayAnimation(fxObj, u"trigger");
 			}
 		}
 	} else if (!self->GetVar<bool>(u"on") && self->GetVar<bool>(u"alive")) {
@@ -63,8 +65,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 			volumePhys->SetPhysicsEffectActive(true);
 			Game::entityManager->SerializeEntity(volume);
 			if (!hit) {
-				Entity* fxObj = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx")[0];
-				RenderComponent::PlayAnimation(fxObj, u"idle");
+				if (fxObj) RenderComponent::PlayAnimation(fxObj, u"idle");
 			}
 		}
 	}

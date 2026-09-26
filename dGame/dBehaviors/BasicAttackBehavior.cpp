@@ -68,7 +68,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 
 	if (isBlocked) {
-		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, 0U));
+		destroyableComponent->SetAttacksToBlock(std::max<int32_t>(static_cast<int32_t>(destroyableComponent->GetAttacksToBlock() - 1), 0));
 		Game::entityManager->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Handle(context, bitStream, branch);
 		return;
@@ -103,9 +103,10 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 			return;
 		}
 
-		uint32_t totalDamageDealt = armorDamageDealt + healthDamageDealt;
+		uint64_t totalDamageDealt = armorDamageDealt + healthDamageDealt;
 
 		// A value that's too large may be a cheating attempt, so we set it to MIN
+		// Can't overflow here either because should we somehow get to a 64 bit number it'll be clamped to a sane value.
 		if (totalDamageDealt > this->m_MaxDamage) {
 			totalDamageDealt = this->m_MinDamage;
 		}

@@ -6,6 +6,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB
 	"EnemySkeletonSpawner.cpp"
 	"FallingTile.cpp"
 	"FlameJetServer.cpp"
+	"LightningOrbServer.cpp"
 	"ImaginationShrineServer.cpp"
 	"Lieutenant.cpp"
 	"MonCoreNookDoors.cpp"
@@ -18,6 +19,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB
 	"NjJayMissionItems.cpp"
 	"NjNPCMissionSpinjitzuServer.cpp"
 	"NjNyaMissionitems.cpp"
+	"OldManNPC.cpp"
 	"NjScrollChestServer.cpp"
 	"NjWuNPC.cpp"
 	"RainOfArrows.cpp")

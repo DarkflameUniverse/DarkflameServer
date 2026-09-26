@@ -26,7 +26,10 @@ enum class PreconditionType
 	DoesNotHaveRacingLicence,
 	LegoClubMember,
 	NoInteraction,
-	HasLevel = 22
+	NotFreeTrial,
+	MissionActive,
+	HasLevel,
+	DoesNotHaveFlag = 23
 };
 
 

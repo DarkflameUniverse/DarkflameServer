@@ -66,6 +66,7 @@ public:
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissions> Query(std::function<bool(CDMissions)> predicate);
 
+	// Cannot be null.
 	const CDMissions* GetPtrByMissionID(uint32_t missionID) const;
 
 	const CDMissions& GetByMissionID(uint32_t missionID, bool& found) const;

@@ -101,36 +101,47 @@ void Zone::LoadZoneIntoMemory() {
 			m_Paths.reserve(pathCount);
 			for (uint32_t i = 0; i < pathCount; ++i) LoadPath(file);
 
-			for (Path path : m_Paths) {
+			for (const Path& path : m_Paths) {
 				if (path.pathType != PathType::Spawner) continue;
-				SpawnerInfo info = SpawnerInfo();
-				for (PathWaypoint waypoint : path.pathWaypoints) {
+				SpawnerInfo info{};
+				for (size_t i = 0; i < path.pathWaypoints.size(); i++) {
+					const auto& waypoint = path.pathWaypoints[i];
 					SpawnerNode* node = new SpawnerNode();
 					node->position = waypoint.position;
 					node->rotation = waypoint.rotation;
 					node->nodeID = 0;
-					node->config = waypoint.config;
+					node->config = path.pathWaypoints[0].config;
+					// All spawner waypoints get the config data of the first waypoint, but then we
+					// overwrite settings on this waypoint if we have another one defined of the same name
+					if (i != 0) {
+						for (const auto& [key, value] : waypoint.config) {
+							node->config.ParseInsert(value->GetString());
+						}
+					}
 
-					for (LDFBaseData* data : waypoint.config) {
+					for (const auto& data : waypoint.config | std::views::values) {
 						if (!data) continue;
 
 						if (data->GetKey() == u"spawner_node_id") {
-							node->nodeID = std::stoi(data->GetValueAsString());
+							node->nodeID = GeneralUtils::TryParse(data->GetValueAsString(), 0);
 						} else if (data->GetKey() == u"spawner_max_per_node") {
-							node->nodeMax = std::stoi(data->GetValueAsString());
+							node->nodeMax = GeneralUtils::TryParse(data->GetValueAsString(), 0);
 						} else if (data->GetKey() == u"groupID") { // Load object group
-							std::string groupStr = data->GetValueAsString();
-							info.groups = GeneralUtils::SplitString(groupStr, ';');
+							info.groups = GeneralUtils::SplitString(data->GetValueAsString(), ';');
 							if (info.groups.back().empty()) info.groups.erase(info.groups.end() - 1);
 						} else if (data->GetKey() == u"grpNameQBShowBricks") {
-							if (data->GetValueAsString().empty()) continue;
-							/*std::string groupStr = data->GetValueAsString();
-							info.groups.push_back(groupStr);*/
 							info.grpNameQBShowBricks = data->GetValueAsString();
 						} else if (data->GetKey() == u"spawner_name") {
 							info.name = data->GetValueAsString();
+						} else if (data->GetKey() == u"weight") {
+							node->weight = GeneralUtils::TryParse(data->GetValueAsString(), 1);
+							if (node->weight <= 0) {
+								LOG("Found a spawner with a weight of <= 0, is this intentional? %s:%i", info.name.c_str(), node->nodeID);
+								node->weight = 1;
+							}
 						}
 					}
+
 					info.nodes.push_back(node);
 				}
 				info.templateID = path.spawner.spawnedLOT;
@@ -465,7 +476,7 @@ void Zone::LoadPath(std::istream& file) {
 						command.data = value;
 					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
-					waypoint.config.emplace_back(LDFBaseData::DataFromString(parameter + "=" + value));
+					waypoint.config.ParseInsert(parameter + "=" + value);
 				}
 
 			}

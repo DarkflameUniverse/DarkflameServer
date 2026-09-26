@@ -89,7 +89,7 @@ void NtCombatChallengeServer::SpawnTargetDummy(Entity* self) {
 	info.spawnerID = self->GetObjectID();
 	info.pos = self->GetPosition();
 	info.rot = self->GetRotation();
-	info.settings = { new LDFData<std::string>(u"custom_script_server", "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua") };
+	info.settings.Insert(u"custom_script_server", "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua");
 
 	auto* dummy = Game::entityManager->CreateEntity(info, nullptr, self);
 

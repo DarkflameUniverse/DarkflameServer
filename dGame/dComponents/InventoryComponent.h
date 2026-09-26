@@ -31,6 +31,10 @@ typedef std::map<std::string, EquippedItem> EquipmentMap;
 
 enum class eItemType : int32_t;
 
+namespace GameMessages {
+	struct GetObjectReportInfo;
+}
+
 /**
  * Handles the inventory of entity, including the items they possess and have equipped. An entity can have inventories
  * of different types, each type representing a different group of items, see `eInventoryType` for a list of
@@ -130,7 +134,7 @@ public:
 		uint32_t count,
 		eLootSourceType lootSourceType = eLootSourceType::NONE,
 		eInventoryType inventoryType = INVALID,
-		const std::vector<LDFBaseData*>& config = {},
+		const LwoNameValue& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,
 		bool showFlyingLoot = true,
 		bool isModMoveAndEquip = false,
@@ -209,7 +213,7 @@ public:
 	 * @param item the item to place
 	 * @param keepCurrent stores the item in an additional temp slot if there's already an item equipped
 	 */
-	void UpdateSlot(const std::string& location, EquippedItem item, bool keepCurrent = false);
+	void UpdateSlot(const std::string& location, const EquippedItem& item, bool keepCurrent = false);
 
 	/**
 	 * Removes a slot from the inventory
@@ -363,11 +367,10 @@ public:
 	void RemoveDatabasePet(LWOOBJID id);
 
 	/**
-	 * Returns the current behavior slot active for the passed item type
-	 * @param type the item type to find the behavior slot for
-	 * @return the current behavior slot active for the passed item type
+	 * Returns the behavior slot for the given equipLocation string.
+	 * This is the authoritative mapping used for skill slot assignment.
 	 */
-	static BehaviorSlot FindBehaviorSlot(eItemType type);
+	static BehaviorSlot FindBehaviorSlot(const std::string& equipLocation);
 
 	/**
 	 * Checks if the inventory type is a temp inventory
@@ -399,6 +402,8 @@ public:
 
 	std::map<BehaviorSlot, uint32_t> GetSkills() { return m_Skills; };
 
+	void ClearSkills() { m_Skills.clear(); };
+
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
@@ -411,7 +416,7 @@ public:
 	// Used to migrate a character version, no need to call outside of that context
 	void RegenerateItemIDs();
 
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	~InventoryComponent() override;
 

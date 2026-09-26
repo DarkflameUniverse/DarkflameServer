@@ -34,6 +34,7 @@ public:
 	};
 
 	struct PropertyEntranceResult {
+		// This is the number of entries that are in the query IF it were ran without a limit.
 		int32_t totalEntriesMatchingQuery{};
 		// The entries that match the query. This should only contain up to 12 entries.
 		std::vector<IProperty::Info> entries;
@@ -48,7 +49,7 @@ public:
 	// Get the properties for the given property lookup params.
 	// This is expected to return a result set of up to 12 properties
 	// so as not to transfer too much data at once.
-	virtual std::optional<IProperty::PropertyEntranceResult> GetProperties(const PropertyLookup& params) = 0;
+	virtual IProperty::PropertyEntranceResult GetProperties(const PropertyLookup& params) = 0;
 
 	// Update the property moderation info for the given property id.
 	virtual void UpdatePropertyModerationInfo(const IProperty::Info& info) = 0;

@@ -51,7 +51,7 @@ public:
 	 */
 	void LookupPetSwitch();
 
-	bool MsgGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 private:
 	/**

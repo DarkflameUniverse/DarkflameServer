@@ -16,7 +16,9 @@ RUN --mount=type=cache,target=/app/build,id=build-cache \
     cd /app/build && \
     cmake .. && \
     make -j$(nproc --ignore 1) && \
-    cp -r /app/build/* /tmp/persisted-build/
+    cp -r /app/build/* /tmp/persisted-build/ && \
+    mkdir -p /tmp/persisted-build/mariadbcpp && \
+    cp /app/build/thirdparty/mariadb-connector-cpp/src/mariadb_connector_cpp-build/libmariadbcpp.so /tmp/persisted-build/mariadbcpp/
 
 FROM debian:12 as runtime
 

@@ -514,7 +514,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			return;
 		}
 
-		if (!Database::Get()->GetCharacterInfo(newName)) {
+		if (!Database::Get()->IsNameInUse(newName)) {
 			if (autoRejectNames) {
 				Database::Get()->SetCharacterName(objectID, newName);
 				LOG("Character %s auto-renamed to preapproved name %s due to mute", character->GetName().c_str(), newName.c_str());

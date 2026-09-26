@@ -44,8 +44,7 @@
 #include <ranges>
 
 InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
-	using namespace GameMessages;
-	RegisterMsg<GetObjectReportInfo>(this, &InventoryComponent::OnGetObjectReportInfo);
+	RegisterMsg(&InventoryComponent::OnGetObjectReportInfo);
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -174,7 +173,7 @@ void InventoryComponent::AddItem(
 	const uint32_t count,
 	eLootSourceType lootSourceType,
 	eInventoryType inventoryType,
-	const std::vector<LDFBaseData*>& config,
+	const LwoNameValue& config,
 	const LWOOBJID parent,
 	const bool showFlyingLoot,
 	bool isModMoveAndEquip,
@@ -205,7 +204,7 @@ void InventoryComponent::AddItem(
 
 	auto* inventory = GetInventory(inventoryType);
 
-	if (!config.empty() || bound) {
+	if (!config.values.empty() || bound) {
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
@@ -357,7 +356,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	const auto subkey = item->GetSubKey();
 
-	if (subkey == LWOOBJID_EMPTY && item->GetConfig().empty() && (!item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
+	if (subkey == LWOOBJID_EMPTY && item->GetConfig().values.empty() && (!item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
 		auto left = std::min<uint32_t>(count, origin->GetLotCount(lot));
 
 		while (left > 0) {
@@ -380,11 +379,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 			isModMoveAndEquip = false;
 		}
 	} else {
-		std::vector<LDFBaseData*> config;
-
-		for (auto* const data : item->GetConfig()) {
-			config.push_back(data->Copy());
-		}
+		const auto config = item->GetConfig();
 
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
@@ -728,10 +723,6 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 		for (const auto& pair : m_Equipped) {
 			const auto item = pair.second;
 
-			if (bIsInitialUpdate) {
-				AddItemSkills(item.lot);
-			}
-
 			outBitStream.Write(item.id);
 			outBitStream.Write(item.lot);
 
@@ -745,18 +736,17 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 
 			outBitStream.Write0();
 
-			bool flag = !item.config.empty();
+			bool flag = !item.config.values.empty();
 			outBitStream.Write(flag);
 			if (flag) {
 				RakNet::BitStream ldfStream;
-				ldfStream.Write<int32_t>(item.config.size()); // Key count
-				for (LDFBaseData* data : item.config) {
+				ldfStream.Write<int32_t>(item.config.values.size()); // Key count
+				for (const auto& data : item.config.values | std::views::values) {
 					if (data->GetKey() == u"assemblyPartLOTs") {
 						std::string newRocketStr = data->GetValueAsString() + ";";
 						GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
-						LDFData<std::u16string>* ldf_data = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
-						ldf_data->WriteToPacket(ldfStream);
-						delete ldf_data;
+						LDFData<std::u16string> ldf_data(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
+						ldf_data.WriteToPacket(ldfStream);
 					} else {
 						data->WriteToPacket(ldfStream);
 					}
@@ -783,7 +773,7 @@ void InventoryComponent::Update(float deltaTime) {
 	}
 }
 
-void InventoryComponent::UpdateSlot(const std::string& location, EquippedItem item, bool keepCurrent) {
+void InventoryComponent::UpdateSlot(const std::string& location, const EquippedItem& item, bool keepCurrent) {
 	const auto index = m_Equipped.find(location);
 
 	if (index != m_Equipped.end()) {
@@ -967,8 +957,9 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
 			LOG("null script?");
+		} else {
+			itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
 		}
-		itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
 	}
 }
 
@@ -982,15 +973,13 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
 			LOG("null script?");
+		} else {
+			itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 		}
-		itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 	}
 }
 
 void InventoryComponent::HandlePossession(Item* item) {
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	if (!characterComponent) return;
-
 	auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 	if (!possessorComponent) return;
 
@@ -1006,52 +995,31 @@ void InventoryComponent::HandlePossession(Item* item) {
 		return;
 	}
 
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStateChangeType::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
-
-	// Set the mount Item ID so that we know what were handling
+	// Set the mount item ID so that we know what we're handling
 	possessorComponent->SetMountItemID(item->GetId());
 	GameMessages::SendSetMountInventoryID(m_Parent, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
 
-	// Create entity to mount
-	auto startRotation = m_Parent->GetRotation();
-
+	// Create the mount entity
 	EntityInfo info{};
 	info.lot = item->GetLot();
 	info.pos = m_Parent->GetPosition();
-	info.rot = startRotation;
+	info.rot = m_Parent->GetRotation();
 	info.spawnerID = m_Parent->GetObjectID();
 
 	auto* mount = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 
-	// Check to see if the mount is a vehicle, if so, flip it
-	auto* vehicleComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
-	if (vehicleComponent) characterComponent->SetIsRacing(true);
-
-	// Setup the destroyable stats
-	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
-	if (destroyableComponent) {
-		destroyableComponent->SetIsImmune(true);
-	}
-
-	// Mount it
 	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetIsItemSpawned(true);
 		possessableComponent->SetPossessor(m_Parent->GetObjectID());
-		// Possess it
-		possessorComponent->SetPossessable(mount->GetObjectID());
-		possessorComponent->SetPossessableType(possessableComponent->GetPossessionType());
 	}
 
-	GameMessages::SendSetJetPackMode(m_Parent, false);
+	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) destroyableComponent->SetIsImmune(true);
 
-	// Make it go to the client
 	Game::entityManager->ConstructEntity(mount);
-	// Update the possessor
-	Game::entityManager->SerializeEntity(m_Parent);
+	possessorComponent->Mount(mount);
 
-	// have to unlock the input so it vehicle can be driven
-	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
 	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
 }
 
@@ -1079,7 +1047,7 @@ void InventoryComponent::PushEquippedItems() {
 }
 
 void InventoryComponent::PopEquippedItems() {
-	auto current = m_Equipped;
+	const auto current = m_Equipped;
 
 	for (const auto& pair : current) {
 		auto* const item = FindItemById(pair.second.id);
@@ -1179,13 +1147,11 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
 	}
-
-	const auto index = m_Skills.find(slot);
 
 	const auto skill = FindSkill(lot);
 
@@ -1214,7 +1180,7 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1226,15 +1192,31 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 		return;
 	}
 
-	const auto old = index->second;
+	const auto skillId = FindSkill(lot);
 
-	GameMessages::SendRemoveSkill(m_Parent, old);
+	// Only act on this slot if it still holds the skill from this item.
+	// Another item may have overwritten the slot since this one was equipped.
+	if (index->second != skillId) {
+		return;
+	}
 
 	m_Skills.erase(slot);
 
+	// Find another slot that still holds this skillID (if any).
+	const auto surviving = std::ranges::find_if(m_Skills, [skillId](const auto& pair) {
+		return pair.second == skillId;
+	});
+
+	// The client stores one acquiredSkillsInfo entry per skillID, tagged with the slotID
+	// it was originally added with. Always send RemoveSkill to clear that entry, then
+	// re-add with the surviving slot so the client shows it in the correct place.
+	GameMessages::SendRemoveSkill(m_Parent, skillId);
+	if (surviving != m_Skills.end()) {
+		GameMessages::SendAddSkill(m_Parent, skillId, surviving->first);
+	}
+
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-
 		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
 	}
 }
@@ -1326,22 +1308,16 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
-	switch (type) {
-	case eItemType::HAT:
-		return BehaviorSlot::Head;
-	case eItemType::NECK:
-		return BehaviorSlot::Neck;
-	case eItemType::LEFT_HAND:
-		return BehaviorSlot::Offhand;
-	case eItemType::RIGHT_HAND:
-		return BehaviorSlot::Primary;
-	case eItemType::CONSUMABLE:
-		return BehaviorSlot::Consumable;
-	default:
-		return BehaviorSlot::Invalid;
-	}
+BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation) {
+	// Skill slot is determined by equipLocation, not itemType.
+	// Mapping confirmed against live captures and client data (issue #1339).
+	if (equipLocation == "special_r") return BehaviorSlot::Primary;
+	if (equipLocation == "hair")      return BehaviorSlot::Head;
+	if (equipLocation == "special_l") return BehaviorSlot::Offhand;
+	if (equipLocation == "clavicle")  return BehaviorSlot::Neck;
+	return BehaviorSlot::Invalid;
 }
+
 
 bool InventoryComponent::IsTransferInventory(eInventoryType type, bool includeVault) {
 	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
@@ -1634,7 +1610,7 @@ void InventoryComponent::LoadPetXml(const tinyxml2::XMLDocument& document) {
 		DatabasePet databasePet;
 		databasePet.lot = lot;
 		databasePet.moderationState = moderationStatus;
-		databasePet.name = std::string(name);
+		databasePet.name = name ? name : "";
 
 		SetDatabasePet(id, databasePet);
 
@@ -1683,10 +1659,28 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
 		const auto old = index->second;
-		GameMessages::SendRemoveSkill(m_Parent, old);
+		// Only remove the old skill from the client if no other slot still holds it.
+		// The client's acquiredSkillsInfo is keyed by skillID (one entry per skill),
+		// so RemoveSkill clears it globally — sending it while another slot still uses
+		// the same skillID would break that slot on the client.
+		const auto usedElsewhere = std::ranges::any_of(m_Skills, [&](const auto& pair) {
+			return pair.first != slot && pair.second == old;
+		});
+		if (!usedElsewhere) {
+			GameMessages::SendRemoveSkill(m_Parent, old);
+		}
 	}
 
-	GameMessages::SendAddSkill(m_Parent, skillId, slot);
+	// Only send AddSkill if the client doesn't already know about this skillID.
+	// The client early-exits on duplicate AddSkill (same skillID already in
+	// acquiredSkillsInfo) without updating the slot — so only send when it's new.
+	const auto alreadyKnown = std::ranges::any_of(m_Skills, [&](const auto& pair) {
+		return pair.first != slot && pair.second == skillId;
+	});
+	if (!alreadyKnown) {
+		GameMessages::SendAddSkill(m_Parent, skillId, slot);
+	}
+
 	m_Skills.insert_or_assign(slot, skillId);
 	return true;
 }
@@ -1847,9 +1841,8 @@ std::string DebugInvToString(const eInventoryType inv, bool verbose) {
 	return "";
 }
 
-bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& report = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-	auto& cmpt = report.info->PushDebug("Inventory");
+bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+	auto& cmpt = reportInfo.info->PushDebug("Inventory");
 	cmpt.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
 	uint32_t numItems = 0;
 	for (auto* inventory : m_Inventories | std::views::values) numItems += inventory->GetItems().size();
@@ -1859,7 +1852,7 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	for (const auto& [id, inventoryMut] : m_Inventories) {
 		if (!inventoryMut) continue;
 		const auto* const inventory = inventoryMut;
-		auto& curInv = itemsInBags.PushDebug(DebugInvToString(id, report.bVerbose) + " - " + std::to_string(id));
+		auto& curInv = itemsInBags.PushDebug(DebugInvToString(id, reportInfo.bVerbose) + " - " + std::to_string(id));
 		for (uint32_t i = 0; i < inventory->GetSize(); i++) {
 			const auto* const item = inventory->FindItemBySlot(i);
 			if (!item) continue;
@@ -1867,16 +1860,16 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 			std::stringstream ss;
 			ss << "%[Objects_" << item->GetLot() << "_name] Slot " << item->GetSlot();
 			auto& slot = curInv.PushDebug(ss.str());
-			slot.PushDebug<AMFStringValue>("Object ID") = std::to_string(item->GetId());
-			slot.PushDebug<AMFIntValue>("LOT") = item->GetLot();
-			if (item->GetSubKey() != LWOOBJID_EMPTY) slot.PushDebug<AMFStringValue>("Subkey") = std::to_string(item->GetSubKey());
+			slot.PushDebug<AMFStringValue>("Object ID", "LWOOBJID") = std::to_string(item->GetId());
+			slot.PushDebug<AMFIntValue>("LOT", "LOT") = item->GetLot();
+			if (item->GetSubKey() != LWOOBJID_EMPTY) slot.PushDebug<AMFStringValue>("Subkey", "LWOOBJID") = std::to_string(item->GetSubKey());
 			slot.PushDebug<AMFIntValue>("Count") = item->GetCount();
 			slot.PushDebug<AMFIntValue>("Slot") = item->GetSlot();
 			slot.PushDebug<AMFBoolValue>("Bind on pickup") = item->GetInfo().isBOP;
 			slot.PushDebug<AMFBoolValue>("Bind on equip") = item->GetInfo().isBOE;
 			slot.PushDebug<AMFBoolValue>("Is currently bound") = item->GetBound();
 			auto& extra = slot.PushDebug("Extra Info");
-			for (const auto* const setting : item->GetConfig()) {
+			for (const auto& setting : item->GetConfig().values | std::views::values) {
 				if (setting) extra.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
 			}
 		}
@@ -1888,11 +1881,12 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 		ss << "%[Objects_" << info.lot << "_name]";
 		auto& equipSlot = equipped.PushDebug(ss.str());
 		equipSlot.PushDebug<AMFStringValue>("Location") = location;
-		equipSlot.PushDebug<AMFStringValue>("Object ID") = std::to_string(info.id);
+		equipSlot.PushDebug<AMFStringValue>("Object ID", "LWOOBJID") = std::to_string(info.id);
+		equipSlot.PushDebug<AMFIntValue>("LOT", "LOT") = info.lot;
 		equipSlot.PushDebug<AMFIntValue>("Slot") = info.slot;
 		equipSlot.PushDebug<AMFIntValue>("Count") = info.count;
 		auto& extra = equipSlot.PushDebug("Extra Info");
-		for (const auto* const setting : info.config) {
+		for (const auto& setting : info.config.values | std::views::values) {
 			if (setting) extra.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
 		}
 	}

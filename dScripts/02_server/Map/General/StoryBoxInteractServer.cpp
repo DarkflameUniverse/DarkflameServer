@@ -33,14 +33,18 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 	const auto storyText = self->GetVarAsString(u"storyText");
 	if (storyText.length() > 2) {
 		auto storyValue = GeneralUtils::TryParse<uint32_t>(storyText.substr(storyText.length() - 2));
-		if(!storyValue) return;
+		if (!storyValue) return;
 		int32_t boxFlag = self->GetVar<int32_t>(u"altFlagID");
 		if (boxFlag <= 0) {
 			boxFlag = (10000 + Game::server->GetZoneID() + storyValue.value());
 		}
-
-		if (user->GetCharacter()->GetPlayerFlag(boxFlag) == false) {
-			user->GetCharacter()->SetPlayerFlag(boxFlag, true);
+		GameMessages::GetFlag flagMsg;
+		flagMsg.target = user->GetObjectID();
+		flagMsg.flagID = boxFlag;
+		flagMsg.Send();
+		if (!flagMsg.flag) {
+			auto* const character = user->GetCharacter();
+			if (character) character->SetPlayerFlag(boxFlag, true);
 			GameMessages::SendFireEventClientSide(self->GetObjectID(), user->GetSystemAddress(), u"achieve", LWOOBJID_EMPTY, 0, -1, LWOOBJID_EMPTY);
 		}
 	}

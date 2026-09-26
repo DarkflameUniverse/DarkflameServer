@@ -7,7 +7,7 @@
 #include "zlib.h"
 
 constexpr uint32_t CRC32_INIT = 0xFFFFFFFF;
-constexpr auto NULL_TERMINATOR = std::string_view{"\0\0\0", 4};
+constexpr auto NULL_TERMINATOR = std::string_view{ "\0\0\0", 4 };
 
 AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
@@ -25,7 +25,7 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 		if (!std::filesystem::exists(m_Path / ".." / "versions")) {
 			throw std::runtime_error("No \"versions\" directory found in the parent directories of \"res\" - packed asset bundle cannot be loaded.");
 		}
-		
+
 		m_AssetBundleType = eAssetBundleType::Packed;
 
 		m_RootPath = (m_Path / "..");
@@ -34,7 +34,7 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 		if (!std::filesystem::exists(m_Path / ".." / ".." / "versions")) {
 			throw std::runtime_error("No \"versions\" directory found in the parent directories of \"res\" - packed asset bundle cannot be loaded.");
 		}
-		
+
 		m_AssetBundleType = eAssetBundleType::Packed;
 
 		m_RootPath = (m_Path / ".." / "..");
@@ -54,15 +54,15 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 	}
 
 	switch (m_AssetBundleType) {
-		case eAssetBundleType::Packed: {
-			this->LoadPackIndex();
-			break;
-		}
-		case eAssetBundleType::None:
-			[[fallthrough]];
-		case eAssetBundleType::Unpacked: {
-			break;
-		}
+	case eAssetBundleType::Packed: {
+		this->LoadPackIndex();
+		break;
+	}
+	case eAssetBundleType::None:
+		[[fallthrough]];
+	case eAssetBundleType::Unpacked: {
+		break;
+	}
 	}
 }
 
@@ -79,7 +79,7 @@ bool AssetManager::HasFile(std::string fixedName) const {
 	std::replace(fixedName.begin(), fixedName.end(), '\\', '/');
 	if (std::filesystem::exists(m_ResPath / fixedName)) return true;
 
-	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) return false;
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked || !m_PackIndex) return false;
 
 	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
 	if (fixedName.rfind("client\\res\\", 0) != 0) fixedName = "client\\res\\" + fixedName;
@@ -145,8 +145,12 @@ bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) co
 	}
 
 	const auto& pack = this->m_PackIndex->GetPacks().at(packIndex);
-	const bool success = pack.ReadFileFromPack(crc, data, len);
-
+	bool success = false;
+	try {
+		success = pack.ReadFileFromPack(crc, data, len);
+	} catch (std::exception& e) {
+		LOG("Failed to read file %s from pack file", fixedName.c_str());
+	}
 	return success;
 }
 
