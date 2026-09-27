@@ -264,9 +264,7 @@ TEST_F(CombatMessagesTests, StunsAndImmunitiesMatchLegacy) {
 					status.bImmuneToImaginationLoss = Bit(mask, 6);
 					status.bImmuneToQuickbuildInterrupt = Bit(mask, 7);
 					status.bImmuneToPullToPoint = Bit(mask, 8);
-					ExpectSameAsLegacy([&](const SystemAddress& a) {
-						LegacyGameMessages::SendSetStatusImmunity(target, state, a, Bit(mask, 0), Bit(mask, 1), Bit(mask, 2), Bit(mask, 3), Bit(mask, 4), Bit(mask, 5), Bit(mask, 6), Bit(mask, 7), Bit(mask, 8));
-						}, status);
+					// WIRE FIX: the legacy bytes use DLU's flag order; see SetStatusImmunityUsesClientOrder.
 					EXPECT_EQ(RoundTrip(status).bImmuneToPullToPoint, Bit(mask, 8));
 				}
 			}
@@ -378,4 +376,37 @@ TEST_F(CombatMessagesTests, GoldenBytes) {
 	remove.bRemoveImmunity = true;
 	remove.uiBuffID = 3;
 	EXPECT_PACKET_EQ(FromHex("20 60 00 00 00", 35), Payload(remove));
+}
+
+// WIRE FIX: the client writes and reads the immunity flags in alphabetical order after the u32 state
+// (GameMessage::SetStatusImmunity::Serialize @ 0x00d8f140). Setting one flag at a time must set exactly that bit.
+TEST_F(CombatMessagesTests, SetStatusImmunityUsesClientOrder) {
+	using Flag = bool GameMessages::SetStatusImmunity::*;
+	const std::array<Flag, 9> clientOrder = {
+		&GameMessages::SetStatusImmunity::bImmuneToBasicAttack,
+		&GameMessages::SetStatusImmunity::bImmuneToDOT,
+		&GameMessages::SetStatusImmunity::bImmuneToImaginationGain,
+		&GameMessages::SetStatusImmunity::bImmuneToImaginationLoss,
+		&GameMessages::SetStatusImmunity::bImmuneToInterrupt,
+		&GameMessages::SetStatusImmunity::bImmuneToKnockback,
+		&GameMessages::SetStatusImmunity::bImmuneToPullToPoint,
+		&GameMessages::SetStatusImmunity::bImmuneToQuickbuildInterrupt,
+		&GameMessages::SetStatusImmunity::bImmuneToSpeed,
+	};
+	for (size_t i = 0; i < clientOrder.size(); i++) {
+		GameMessages::SetStatusImmunity msg;
+		msg.StateChangeType = eStateChangeType::POP;
+		msg.*clientOrder[i] = true;
+		RakNet::BitStream bitStream;
+		msg.Serialize(bitStream);
+		ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), 32 + 9);
+		uint32_t state{};
+		ASSERT_TRUE(bitStream.Read(state));
+		EXPECT_EQ(state, 1u);
+		for (size_t bit = 0; bit < clientOrder.size(); bit++) {
+			bool value{};
+			ASSERT_TRUE(bitStream.Read(value));
+			EXPECT_EQ(value, bit == i) << "flag " << i << ", bit " << bit;
+		}
+	}
 }

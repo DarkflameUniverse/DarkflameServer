@@ -312,7 +312,7 @@ the 1.10.64 client.
 | `NotifyNotEnoughInvSpace` | Fixed (wire fix): used to be sent with message ID `VEHICLE_NOTIFY_FINISHED_RACE` (1396). | Its ID is `NOTIFY_NOT_ENOUGH_INV_SPACE` (1516, `0x00545c90`); payload read at `0x00d8b850`. |
 | `MoveInventoryBatch` | Now follows the client layout. | |
 | `UnEquipInventory` | The trailing optional `replacementObjectID` is never read. | The client can send it. |
-| `SetStatusImmunity` | Writes the flags in DLU's order. | The client reads DOT, ImaginationGain, ImaginationLoss, Interrupt, Knockback, PullToPoint, QuickbuildInterrupt, Speed, BasicAttack (`0x00d8f140`). |
+| `SetStatusImmunity` | Fixed (wire fix): used to write the flags in DLU's order (BasicAttack, DOT, Knockback, Interrupt, Speed, ImaginationGain, ImaginationLoss, QuickbuildInterrupt, PullToPoint). | The client uses alphabetical order: BasicAttack, DOT, ImaginationGain, ImaginationLoss, Interrupt, Knockback, PullToPoint, QuickbuildInterrupt, Speed (`0x00d8f140`; field offsets named by `0x00d8f410`). |
 | `RequestDie` | Read with the `Die` layout. | Starts with one `bDieAccepted` bit and has a mandatory `lootOwnerID` (`0x00e02d90`). |
 | `SetCurrency` | `sourceTradeID` is an optional `int32_t`. | lu_packets has an object ID (8 bytes). DLU only ever sends 0 (flag bit 0), so no bytes differ today. |
 | `FireEventClientSide` | Never writes `param1`/`param2` (both flag bits 0), whatever the caller passed: `RocketEquipped` loses the clone ID. | Optional `i64 param1` (default 0) and `i32 param2` (default -1). |

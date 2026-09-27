@@ -273,29 +273,30 @@ namespace GameMessages {
 	}
 
 	void SetStatusImmunity::Serialize(RakNet::BitStream& bitStream) const {
+		// The client's order (0x00d8f140): alphabetical.
 		bitStream.Write(StateChangeType);
 		bitStream.Write(bImmuneToBasicAttack);
 		bitStream.Write(bImmuneToDOT);
-		bitStream.Write(bImmuneToKnockback);
-		bitStream.Write(bImmuneToInterrupt);
-		bitStream.Write(bImmuneToSpeed);
 		bitStream.Write(bImmuneToImaginationGain);
 		bitStream.Write(bImmuneToImaginationLoss);
-		bitStream.Write(bImmuneToQuickbuildInterrupt);
+		bitStream.Write(bImmuneToInterrupt);
+		bitStream.Write(bImmuneToKnockback);
 		bitStream.Write(bImmuneToPullToPoint);
+		bitStream.Write(bImmuneToQuickbuildInterrupt);
+		bitStream.Write(bImmuneToSpeed);
 	}
 
 	bool SetStatusImmunity::Deserialize(RakNet::BitStream& bitStream) {
 		VALIDATE_READ(bitStream.Read(StateChangeType));
 		VALIDATE_READ(bitStream.Read(bImmuneToBasicAttack));
 		VALIDATE_READ(bitStream.Read(bImmuneToDOT));
-		VALIDATE_READ(bitStream.Read(bImmuneToKnockback));
-		VALIDATE_READ(bitStream.Read(bImmuneToInterrupt));
-		VALIDATE_READ(bitStream.Read(bImmuneToSpeed));
 		VALIDATE_READ(bitStream.Read(bImmuneToImaginationGain));
 		VALIDATE_READ(bitStream.Read(bImmuneToImaginationLoss));
-		VALIDATE_READ(bitStream.Read(bImmuneToQuickbuildInterrupt));
+		VALIDATE_READ(bitStream.Read(bImmuneToInterrupt));
+		VALIDATE_READ(bitStream.Read(bImmuneToKnockback));
 		VALIDATE_READ(bitStream.Read(bImmuneToPullToPoint));
+		VALIDATE_READ(bitStream.Read(bImmuneToQuickbuildInterrupt));
+		VALIDATE_READ(bitStream.Read(bImmuneToSpeed));
 		return true;
 	}
 

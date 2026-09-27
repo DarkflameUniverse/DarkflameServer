@@ -173,8 +173,9 @@ namespace GameMessages {
 	};
 
 	// Server -> client.
-	// NOTE: DLU writes the flags in this order; the client reads them in alphabetical order
-	// (GameMessage::SetStatusImmunity::Serialize @ 00d8f140 in 1.10.64). Kept as DLU sent it in this conversion.
+	// WIRE FIX: the flags go on the wire in alphabetical order, as the client's Serialize writes them
+	// (GameMessage::SetStatusImmunity::Serialize @ 00d8f140 in 1.10.64; field offsets named by its Flash export
+	// @ 00d8f410). DLU used to write them in the declaration order below.
 	struct SetStatusImmunity : public NetGameMsg {
 		SetStatusImmunity() : NetGameMsg(MessageType::Game::SET_STATUS_IMMUNITY) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
