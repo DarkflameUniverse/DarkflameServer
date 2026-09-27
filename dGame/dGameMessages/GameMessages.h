@@ -87,6 +87,10 @@ namespace GameMessages {
 		// nothing is delivered (RakNet rejects a non-broadcast send without an address).
 		void SendToClient(const SystemAddress& sysAddr) const;
 
+		// Sends the message to every client except excluded (a RakNet broadcast with that address left out).
+		// Used to echo a client's message to everyone else.
+		void BroadcastExcept(const SystemAddress& excluded) const;
+
 		// Writes the complete client packet (CLIENT/GAME_MSG header, target, msgId, then Serialize()) into bitStream.
 		// This is exactly what Send(sysAddr) puts on the wire; tests use it to compare bytes without a server.
 		void WritePacket(RakNet::BitStream& bitStream) const;
@@ -168,9 +172,6 @@ namespace GameMessages {
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
-
-	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
-	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);

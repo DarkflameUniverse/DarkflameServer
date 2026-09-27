@@ -3,8 +3,7 @@
 #include "GameMessageDecoder.h"
 #include "dCommonVars.h"
 #include "MessageType/Game.h"
-#include "EchoSyncSkill.h"
-#include "StartSkill.h"
+#include "SkillMessages.h"
 
 TEST(GameMessageDecoderTest, DecodesATypedClientMessage) {
 	RakNet::BitStream payload;
@@ -26,14 +25,14 @@ TEST(GameMessageDecoderTest, DecodesATypedClientMessage) {
 }
 
 TEST(GameMessageDecoderTest, ReadsWhatTheServerWrites) {
-	// The server's own Serialize writes the message ID first; the decoder gets what follows it
-	StartSkill sent(1234, std::string("\x01\x02", 2), 42);
+	// The decoder gets the payload, what follows the message ID
+	GameMessages::StartSkill sent;
+	sent.optionalOriginatorID = 1234;
+	sent.sBitStream = std::string("\x01\x02", 2);
+	sent.skillID = 42;
 	sent.optionalTargetID = 77;
 	RakNet::BitStream stream;
 	sent.Serialize(stream);
-	MessageType::Game id{};
-	ASSERT_TRUE(stream.Read(id));
-	ASSERT_EQ(id, MessageType::Game::START_SKILL);
 
 	const auto fields = GameMessageDecoder::Decode(MessageType::Game::START_SKILL, true, stream);
 	ASSERT_TRUE(fields);
@@ -44,13 +43,11 @@ TEST(GameMessageDecoderTest, ReadsWhatTheServerWrites) {
 }
 
 TEST(GameMessageDecoderTest, DirectionMatters) {
-	EchoSyncSkill sent;
+	GameMessages::EchoSyncSkill sent;
 	sent.bDone = true;
 	sent.uiSkillHandle = 5;
 	RakNet::BitStream stream;
 	sent.Serialize(stream);
-	MessageType::Game id{};
-	ASSERT_TRUE(stream.Read(id));
 
 	EXPECT_FALSE(GameMessageDecoder::CanDecode(MessageType::Game::ECHO_SYNC_SKILL, true));
 	const auto fields = GameMessageDecoder::Decode(MessageType::Game::ECHO_SYNC_SKILL, false, stream);

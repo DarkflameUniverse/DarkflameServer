@@ -10,6 +10,7 @@ set(DGAME_DGAMEMESSAGES_SOURCES
 	"PetMessages.cpp"
 	"PropertyMessages.cpp"
 	"RacingMessages.cpp"
+	"SkillMessages.cpp"
 	"TradeMessages.cpp"
 	"VendorMessages.cpp")
 

@@ -9,6 +9,7 @@ SET(DGAMEMESSAGES_TESTS
 	"PetMessagesTests.cpp"
 	"PropertyMessagesTests.cpp"
 	"RacingMessagesTests.cpp"
+	"SkillMessagesTests.cpp"
 	"UnSmashTests.cpp"
 	"VendorMessagesTests.cpp"
 	"LegacyGameMessageTests.cpp"

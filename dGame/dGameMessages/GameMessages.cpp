@@ -658,58 +658,6 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	SEND_PACKET;
 }
 
-void GameMessages::SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID) {
-	int AICombatWeight = 0;
-	bool bFromSkillSet = false;
-	int castType = 0;
-	float fTimeSecs = -1.0f;
-	int iTimesCanCast = -1;
-	bool temporary = true;
-
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::ADD_SKILL);
-
-	bitStream.Write(AICombatWeight != 0);
-	if (AICombatWeight != 0) bitStream.Write(AICombatWeight);
-
-	bitStream.Write(bFromSkillSet);
-
-	bitStream.Write(castType != 0);
-	if (castType != 0) bitStream.Write(castType);
-
-	bitStream.Write(fTimeSecs != -1.0f);
-	if (fTimeSecs != -1.0f) bitStream.Write(fTimeSecs);
-
-	bitStream.Write(iTimesCanCast != -1);
-	if (iTimesCanCast != -1) bitStream.Write(iTimesCanCast);
-
-	bitStream.Write(skillID);
-
-	bitStream.Write(slotID != BehaviorSlot::Invalid);
-	if (slotID != BehaviorSlot::Invalid) bitStream.Write(slotID);
-
-	bitStream.Write(temporary);
-
-	SystemAddress sysAddr = entity->GetSystemAddress();
-	SEND_PACKET;
-}
-
-void GameMessages::SendRemoveSkill(Entity* entity, TSkillID skillID) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::REMOVE_SKILL);
-	bitStream.Write(false);
-	bitStream.Write(skillID);
-
-	SystemAddress sysAddr = entity->GetSystemAddress();
-	SEND_PACKET;
-}
-
 void GameMessages::SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -2194,6 +2142,12 @@ namespace GameMessages {
 		CBITSTREAM;
 		WritePacket(bitStream);
 		SEND_PACKET;
+	}
+
+	void NetGameMsg::BroadcastExcept(const SystemAddress& excluded) const {
+		CBITSTREAM;
+		WritePacket(bitStream);
+		Game::server->Send(bitStream, excluded, true);
 	}
 
 	void NetGameMsg::Send(const SystemAddress& sysAddr) const {

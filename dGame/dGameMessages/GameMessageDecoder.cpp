@@ -6,12 +6,7 @@
 #include <utility>
 
 #include "GameMessages.h"
-#include "StartSkill.h"
-#include "SyncSkill.h"
-#include "EchoStartSkill.h"
-#include "EchoSyncSkill.h"
-#include "RequestServerProjectileImpact.h"
-#include "DoClientProjectileImpact.h"
+#include "SkillMessages.h"
 #include "master/MessageCapture.h"
 
 namespace {

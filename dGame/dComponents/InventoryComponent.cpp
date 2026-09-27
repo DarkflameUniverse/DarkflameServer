@@ -15,6 +15,7 @@
 #include "GameMessages.h"
 #include "InventoryMessages.h"
 #include "Database.h"
+#include "SkillMessages.h"
 #include "SkillComponent.h"
 #include "Character.h"
 #include "EntityManager.h"
@@ -1324,14 +1325,25 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	// The client stores one acquiredSkillsInfo entry per skillID, tagged with the slotID
 	// it was originally added with. Always send RemoveSkill to clear that entry, then
 	// re-add with the surviving slot so the client shows it in the correct place.
-	GameMessages::SendRemoveSkill(m_Parent, skillId);
+	GameMessages::RemoveSkill removeSkill;
+	removeSkill.target = m_Parent->GetObjectID();
+	removeSkill.skillID = skillId;
+	removeSkill.SendToClient(m_Parent->GetSystemAddress());
 	if (surviving != m_Skills.end()) {
-		GameMessages::SendAddSkill(m_Parent, skillId, surviving->first);
+		GameMessages::AddSkill addSkill;
+		addSkill.target = m_Parent->GetObjectID();
+		addSkill.skillID = skillId;
+		addSkill.slotID = surviving->first;
+		addSkill.SendToClient(m_Parent->GetSystemAddress());
 	}
 
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
+		GameMessages::AddSkill addSkill;
+		addSkill.target = m_Parent->GetObjectID();
+		addSkill.skillID = 1;
+		addSkill.slotID = BehaviorSlot::Primary;
+		addSkill.SendToClient(m_Parent->GetSystemAddress());
 	}
 }
 
@@ -1784,7 +1796,10 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 			return pair.first != slot && pair.second == old;
 		});
 		if (!usedElsewhere) {
-			GameMessages::SendRemoveSkill(m_Parent, old);
+			GameMessages::RemoveSkill removeSkill;
+			removeSkill.target = m_Parent->GetObjectID();
+			removeSkill.skillID = old;
+			removeSkill.SendToClient(m_Parent->GetSystemAddress());
 		}
 	}
 
@@ -1795,7 +1810,11 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 		return pair.first != slot && pair.second == skillId;
 	});
 	if (!alreadyKnown) {
-		GameMessages::SendAddSkill(m_Parent, skillId, slot);
+		GameMessages::AddSkill addSkill;
+		addSkill.target = m_Parent->GetObjectID();
+		addSkill.skillID = skillId;
+		addSkill.slotID = slot;
+		addSkill.SendToClient(m_Parent->GetSystemAddress());
 	}
 
 	m_Skills.insert_or_assign(slot, skillId);

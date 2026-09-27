@@ -26,15 +26,11 @@
 #include "CDSkillBehaviorTable.h"
 #include "SkillComponent.h"
 #include "RacingControlComponent.h"
-#include "RequestServerProjectileImpact.h"
-#include "SyncSkill.h"
-#include "StartSkill.h"
-#include "EchoStartSkill.h"
-#include "EchoSyncSkill.h"
 #include "ActivityMessages.h"
 #include "BuildingMessages.h"
 #include "RacingMessages.h"
 #include "MissionMessages.h"
+#include "SkillMessages.h"
 #include "TradeMessages.h"
 #include "VendorMessages.h"
 #include "EffectsMessages.h"
@@ -157,6 +153,12 @@ namespace {
 		{ CLIENT_TRADE_CANCEL, []() { return std::make_unique<ClientTradeCancel>(); } },
 		{ CLIENT_TRADE_ACCEPT, []() { return std::make_unique<ClientTradeAccept>(); } },
 		{ CLIENT_TRADE_UPDATE, []() { return std::make_unique<ClientTradeUpdate>(); } },
+
+		// Skills
+		{ SELECT_SKILL, []() { return std::make_unique<SelectSkill>(); } },
+		{ START_SKILL, []() { return std::make_unique<StartSkill>(); } },
+		{ SYNC_SKILL, []() { return std::make_unique<SyncSkill>(); } },
+		{ REQUEST_SERVER_PROJECTILE_IMPACT, []() { return std::make_unique<RequestServerProjectileImpact>(); } },
 	};
 };
 
@@ -206,18 +208,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	}
 
 	switch (messageID) {
-
-											  // Currently not actually used for our implementation, however its used right now to get around invisible inventory items in the client.
-	case MessageType::Game::SELECT_SKILL: {
-		auto var = entity->GetVar<bool>(u"dlu_first_time_load");
-		if (var) {
-			entity->SetVar<bool>(u"dlu_first_time_load", false);
-			InventoryComponent* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-			if (inventoryComponent) inventoryComponent->FixInvisibleItems();
-		}
-		break;
-	}
 
 	case MessageType::Game::PLAYER_LOADED: {
 		GameMessages::SendPlayerReady(entity, sysAddr);
@@ -371,113 +361,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::SendResurrect(entity);
 		break;
 	}
-	case MessageType::Game::REQUEST_SERVER_PROJECTILE_IMPACT:
-	{
-		auto message = RequestServerProjectileImpact();
-
-		message.Deserialize(inStream);
-
-		auto* skill_component = entity->GetComponent<SkillComponent>();
-
-		if (skill_component != nullptr) {
-			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&message.sBitStream[0]), message.sBitStream.size(), false);
-
-			skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
-		}
-
-		break;
-	}
-
-	case MessageType::Game::START_SKILL: {
-		StartSkill startSkill = StartSkill();
-		startSkill.Deserialize(inStream); // inStream replaces &bitStream
-
-		if (startSkill.skillID == 1561 || startSkill.skillID == 1562 || startSkill.skillID == 1541) return;
-
-		MissionComponent* comp = entity->GetComponent<MissionComponent>();
-		if (comp) {
-			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
-		}
-
-		CDSkillBehaviorTable* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
-		unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
-
-		bool success = false;
-
-		if (behaviorId > 0) {
-			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&startSkill.sBitStream[0]), startSkill.sBitStream.size(), false);
-
-			auto* const skillComponent = entity->GetComponent<SkillComponent>();
-
-			if (skillComponent) success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, bs, startSkill.optionalTargetID, startSkill.skillID);
-
-			if (success && entity->GetCharacter()) {
-				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
-				destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
-			}
-		}
-
-		if (Game::server->GetZoneID() == 1302) {
-			break;
-		}
-
-		if (success) {
-			//Broadcast our startSkill:
-			RakNet::BitStream bitStreamLocal;
-			BitStreamUtils::WriteHeader(bitStreamLocal, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-			bitStreamLocal.Write(entity->GetObjectID());
-
-			EchoStartSkill echoStartSkill;
-			echoStartSkill.bUsedMouse = startSkill.bUsedMouse;
-			echoStartSkill.fCasterLatency = startSkill.fCasterLatency;
-			echoStartSkill.iCastType = startSkill.iCastType;
-			echoStartSkill.lastClickedPosit = startSkill.lastClickedPosit;
-			echoStartSkill.optionalOriginatorID = startSkill.optionalOriginatorID;
-			echoStartSkill.optionalTargetID = startSkill.optionalTargetID;
-			echoStartSkill.originatorRot = startSkill.originatorRot;
-			echoStartSkill.sBitStream = startSkill.sBitStream;
-			echoStartSkill.skillID = startSkill.skillID;
-			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
-			echoStartSkill.Serialize(bitStreamLocal);
-
-			Game::server->Send(bitStreamLocal, entity->GetSystemAddress(), true);
-		}
-	} break;
-
-	case MessageType::Game::SYNC_SKILL: {
-		RakNet::BitStream bitStreamLocal;
-		BitStreamUtils::WriteHeader(bitStreamLocal, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-		bitStreamLocal.Write(entity->GetObjectID());
-
-		SyncSkill sync = SyncSkill(inStream); // inStream replaced &bitStream
-
-		std::ostringstream buffer;
-
-		for (unsigned int k = 0; k < sync.sBitStream.size(); k++) {
-			char s;
-			s = sync.sBitStream.at(k);
-			buffer << std::setw(2) << std::hex << std::setfill('0') << static_cast<int>(s) << " ";
-		}
-
-		if (usr != nullptr) {
-			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&sync.sBitStream[0]), sync.sBitStream.size(), false);
-
-			auto* const skillComponent = entity->GetComponent<SkillComponent>();
-
-			if (skillComponent) skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
-		}
-
-		EchoSyncSkill echo = EchoSyncSkill();
-		echo.bDone = sync.bDone;
-		echo.sBitStream = sync.sBitStream;
-		echo.uiBehaviorHandle = sync.uiBehaviorHandle;
-		echo.uiSkillHandle = sync.uiSkillHandle;
-
-		echo.Serialize(bitStreamLocal);
-
-		Game::server->Send(bitStreamLocal, sysAddr, true);
-	} break;
-
 	case MessageType::Game::REQUEST_SMASH_PLAYER:
 		entity->Smash(entity->GetObjectID());
 		break;

@@ -11,7 +11,7 @@
 #include <sstream>
 
 #include "DestroyableComponent.h"
-#include "EchoSyncSkill.h"
+#include "SkillMessages.h"
 #include "PhantomPhysicsComponent.h"
 #include "QuickBuildComponent.h"
 #include "eReplicaComponentType.h"
@@ -201,7 +201,8 @@ void BehaviorContext::UpdatePlayerSyncs(float deltaTime) {
 		}
 
 		if (this->skillUId != 0 && !clientInitalized) {
-			EchoSyncSkill echo;
+			GameMessages::EchoSyncSkill echo;
+			echo.target = this->originator;
 			echo.bDone = true;
 			echo.uiSkillHandle = this->skillUId;
 			echo.uiBehaviorHandle = entry.handle;
@@ -211,12 +212,7 @@ void BehaviorContext::UpdatePlayerSyncs(float deltaTime) {
 
 			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 
-			RakNet::BitStream message;
-			BitStreamUtils::WriteHeader(message, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-			message.Write(this->originator);
-			echo.Serialize(message);
-
-			Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
+			echo.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		this->syncEntries.erase(this->syncEntries.begin() + i);
@@ -268,7 +264,8 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		}
 
 		// Echo sync
-		EchoSyncSkill echo;
+		GameMessages::EchoSyncSkill echo;
+		echo.target = this->originator;
 
 		echo.bDone = true;
 		echo.uiBehaviorHandle = entry.handle;
@@ -282,14 +279,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		if (!clientInitalized) {
 			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 
-			// Write message
-			RakNet::BitStream message;
-
-			BitStreamUtils::WriteHeader(message, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-			message.Write(this->originator);
-			echo.Serialize(message);
-
-			Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
+			echo.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		ExecuteUpdates();

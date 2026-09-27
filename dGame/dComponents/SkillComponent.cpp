@@ -19,8 +19,7 @@
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
-#include "EchoStartSkill.h"
-#include "DoClientProjectileImpact.h"
+#include "SkillMessages.h"
 #include "CDClientManager.h"
 #include "CDSkillBehaviorTable.h"
 #include "ServiceType.h"
@@ -301,7 +300,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 
 	if (!clientInitalized) {
 		// Echo start skill
-		EchoStartSkill start;
+		GameMessages::EchoStartSkill start;
+		start.target = this->m_Parent->GetObjectID();
 
 		start.iCastType = castType;
 		start.skillID = skillId;
@@ -322,14 +322,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 
 		start.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 
-		// Write message
-		RakNet::BitStream message;
-
-		BitStreamUtils::WriteHeader(message, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-		message.Write(this->m_Parent->GetObjectID());
-		start.Serialize(message);
-
-		Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
+		start.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	context->ExecuteUpdates();
@@ -447,20 +440,15 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	behavior->Calculate(entry.context, bitStream, entry.branchContext);
 
-	DoClientProjectileImpact projectileImpact;
+	GameMessages::DoClientProjectileImpact projectileImpact;
+	projectileImpact.target = this->m_Parent->GetObjectID();
 
 	projectileImpact.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
 	projectileImpact.i64OrgID = entry.id;
 	projectileImpact.i64TargetID = entry.branchContext.target;
 
-	RakNet::BitStream message;
-
-	BitStreamUtils::WriteHeader(message, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-	message.Write(this->m_Parent->GetObjectID());
-	projectileImpact.Serialize(message);
-
-	Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
+	projectileImpact.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	entry.context->ExecuteUpdates();
 }
