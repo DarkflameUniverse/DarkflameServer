@@ -662,7 +662,7 @@ the newest log files of one or all servers.
 The UGC server's logs are `UgcServer_<time>.log`, listed with the others.
 
 Crash dumps: set `dump_folder` (for example `crash_dumps`, relative to the server binaries) and world servers and the
-UGC server write a backtrace file there when they crash (the UGC server's is `crash_Ugc_<pid>.log`; `generate_dump=1` also
+UGC server write a backtrace file there when they crash (the UGC server's is `Crash_UgcServer_<start time>_<pid>.log`; `generate_dump=1` also
 writes a memory dump on Windows). Server Health lists them
 to read or download for staff who also have `logs_system`.
 

@@ -148,7 +148,7 @@ list (enabled, connected, process ID). On the dashboard it shows on the home pag
 for `health_view`: up time, waiting/made/failed, busy workers and storage), on Server Health (uptime history and the
 Servers table with its process memory and CPU), on Diagnostics (its packets and HTTP requests, from the traffic report
 it sends every 5 seconds with its workers, totals and storage), in the `server` webhook alerts when it goes down or
-comes back, in the System Log (`UgcServer_*.log`) and crash dumps (`crash_Ugc_<pid>.log` in `dump_folder`), and in
+comes back, in the System Log (`UgcServer_*.log`) and crash dumps (`Crash_UgcServer_<start time>_<pid>.log` in `dump_folder`), and in
 Prometheus (`darkflame_ugc_up`, `darkflame_ugc_items`, `darkflame_server_ugc_*{server="ugc"}`). See docs/Dashboard.md.
 
 The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the new `ugc_manage` permission to make
