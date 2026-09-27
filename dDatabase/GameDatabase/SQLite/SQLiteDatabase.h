@@ -400,13 +400,13 @@ public:
 	void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) override;
 	std::optional<IUgc::ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) override;
 	uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override;
-	std::vector<IUgc::ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const uint32_t offset, const uint32_t limit) override;
+	std::vector<IUgc::ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) override;
 	std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetUgcProcessCounts() override;
 	std::vector<IUgcModularBuild::PendingBuild> GetModularBuildsToProcess(const uint32_t limit) override;
 	void SetModularBuildProcessed(const LWOOBJID id, const IUgc::eProcessState state, const uint32_t attempts, const std::string_view error) override;
 	std::optional<IUgc::ProcessInfo> GetModularBuildProcessInfo(const LWOOBJID id) override;
 	uint64_t ResetModularBuildProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override;
-	std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const uint32_t offset, const uint32_t limit) override;
+	std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) override;
 	std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetModularBuildProcessCounts() override;
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override;
 	std::string GetPropertiesTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true, bool pendingOnly = false) override;

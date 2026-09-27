@@ -1,20 +1,26 @@
 /**
- * The UGC Server page: counts and a list of what the UGC server made of players' models and modular builds (from the
- * database), its live status and previews (from the UGC server itself, at ugc_public_url), and making things again.
+ * The UGC Server page: counts, a gallery and a list of what the UGC server made of players' models and modular builds
+ * (from the database), its live status, and a viewer comparing a model's generated mesh, its LXFML and its icon, now
+ * and before it was made again. Everything from the UGC server comes through the dashboard (/api/ugc/server/status,
+ * /api/ugc/files/..., /api/ugc/mesh/...), so the browser never has to reach the UGC server itself.
  */
 (function () {
 	'use strict';
 
-	var kind = 'model', state = '', page = 0, ugcUrl = '', canManage = false, viewer = null;
+	var kind = 'model', state = '', search = '', page = 0, view = 'gallery', canManage = false, publicUrl = '';
+	var nifViewer = null, lxfmlViewer = null, current = null;
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'] };
+	var PAGE_SIZE = { gallery: 48, list: 50 };
 
-	function serverUrl() {
-		return (ugcUrl || (location.protocol + '//' + location.hostname + ':2008')).replace(/\/+$/, '');
+	try { view = localStorage.getItem('ugcView') === 'list' ? 'list' : 'gallery'; } catch (e) { /* storage blocked */ }
+
+	function $(id) { return document.getElementById(id); }
+
+	function fileUrl(itemKind, id, name) {
+		return '/api/ugc/files/' + itemKind + '/' + encodeURIComponent(id) + '/' + name;
 	}
 
-	function fileUrl(id, name) {
-		return serverUrl() + '/files/' + kind + '/' + encodeURIComponent(id) + '/' + name;
-	}
+	function mb(bytes) { return (bytes / 1048576).toFixed(0) + ' MB'; }
 
 	function countCard(title, c) {
 		return '<div class="col-md-6"><div class="card"><div class="card-body py-2"><div class="small text-body-secondary">' + esc(title) + '</div>' +
@@ -22,47 +28,84 @@
 			'</div></div></div>';
 	}
 
+	function owner(i) {
+		return i.characterName ? '<a href="/characters/' + esc(i.characterId) + '">' + esc(i.characterName) + '</a>' : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>';
+	}
+
+	function iconImg(i, size) {
+		if (i.state !== 'done') return '<span class="ugc-noicon text-body-secondary small border rounded" style="width:' + size + 'px;height:' + size + 'px">' + esc((STATES[i.state] || [i.state])[0]) + '</span>';
+		return '<img src="' + esc(fileUrl(kind, i.id, 'icon.png')) + '" width="' + size + '" height="' + size + '" loading="lazy" alt="" class="ugc-checker rounded" onerror="this.style.visibility=\'hidden\'">';
+	}
+
+	function tile(i) {
+		var s = STATES[i.state] || [i.state, 'secondary'];
+		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(i.error || '') + '">' + iconImg(i, 128) +
+			'<div class="small text-truncate mt-1">' + (i.characterName ? esc(i.characterName) : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>') + '</div>' +
+			'<div class="small text-body-secondary text-truncate">' + esc(i.id) + '</div><div>' + fmt.badge(s[0], s[1]) + '</div></div>';
+	}
+
 	function row(i) {
 		var s = STATES[i.state] || [i.state, 'secondary'];
-		var icon = i.state === 'done' ? '<img src="' + esc(fileUrl(i.id, 'icon.png')) + '" width="48" height="48" loading="lazy" alt="" onerror="this.style.visibility=\'hidden\'">' : '';
-		var owner = i.characterName ? '<a href="/characters/' + esc(i.characterId) + '">' + esc(i.characterName) + '</a>' : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>';
 		var details = kind === 'modular' ? '<code class="small">' + esc(i.modules) + '</code>' : '';
 		if (i.error) details += '<div class="small text-danger">' + esc(i.error) + '</div>';
-		var buttons = (kind === 'model' ? '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>' : '') +
+		var buttons = '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>' +
 			(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.id) + '">Make again</button>' : '');
-		return '<tr><td>' + icon + '</td><td class="small">' + esc(i.id) + '</td><td>' + owner + '</td><td>' + fmt.badge(s[0], s[1]) +
+		return '<tr><td>' + iconImg(i, 48) + '</td><td class="small">' + esc(i.id) + '</td><td>' + owner(i) + '</td><td>' + fmt.badge(s[0], s[1]) +
 			(i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + '</td>' +
 			'<td class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</td><td>' + details + '</td><td class="text-end text-nowrap">' + buttons + '</td></tr>';
 	}
 
+	var items = [];
 	function load() {
-		api.get('/api/ugc?kind=' + kind + '&state=' + state + '&page=' + page).then(function (d) {
+		var size = PAGE_SIZE[view];
+		api.get('/api/ugc?kind=' + kind + '&state=' + state + '&page=' + page + '&size=' + size + '&search=' + encodeURIComponent(search)).then(function (d) {
 			if (!d.success) return;
-			ugcUrl = d.ugcUrl;
+			items = d.items;
 			canManage = d.canManage;
-			document.getElementById('manageButtons').classList.toggle('d-none', !canManage);
-			document.getElementById('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets', d.counts.modular);
-			document.getElementById('rows').innerHTML = d.items.map(row).join('') || '<tr><td colspan="7" class="text-body-secondary">Nothing here.</td></tr>';
-			document.getElementById('prevPage').disabled = page === 0;
-			document.getElementById('nextPage').disabled = !d.more;
-			loadStatus();
+			publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
+			$('manageButtons').classList.toggle('d-none', !canManage);
+			$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets', d.counts.modular);
+			$('gallery').classList.toggle('d-none', view !== 'gallery');
+			$('listCard').classList.toggle('d-none', view !== 'list');
+			if (view === 'gallery') $('gallery').innerHTML = d.items.map(tile).join('') || '<div class="text-body-secondary">Nothing here.</div>';
+			else $('rows').innerHTML = d.items.map(row).join('') || '<tr><td colspan="7" class="text-body-secondary">Nothing here.</td></tr>';
+			$('prevPage').disabled = page === 0;
+			$('nextPage').disabled = !d.more;
 		}).catch(function () {});
 	}
 
+	function meter(label, value, limit, text) {
+		var share = limit > 0 ? Math.min(100, value / limit * 100) : 0;
+		var colour = share > 90 ? 'danger' : share > 70 ? 'warning' : 'success';
+		return '<div class="col-md-4"><div class="d-flex justify-content-between"><span>' + esc(label) + '</span><span class="text-body-secondary">' + text + '</span></div>' +
+			(limit > 0 ? '<div class="progress ugc-meter" role="progressbar" aria-label="' + esc(label) + '" aria-valuenow="' + Math.round(share) + '" aria-valuemin="0" aria-valuemax="100">' +
+				'<div class="progress-bar bg-' + colour + '" style="width:' + share.toFixed(0) + '%"></div></div>' : '') + '</div>';
+	}
+
 	function loadStatus() {
-		var box = document.getElementById('serverStatus');
-		fetch(serverUrl() + '/status').then(function (r) { return r.json(); }).then(function (s) {
-			var mb = function (b) { return (b / 1048576).toFixed(0) + ' MB'; };
-			var last = s.recent && s.recent[0];
-			box.innerHTML = fmt.badge('Online', 'success') + ' ' + esc(s.workers) + ' workers, ' + esc(s.active) + ' working, ' + esc(s.queued) + ' queued. ' +
+		var box = $('serverStatus');
+		api.get('/api/ugc/server/status').then(function (d) {
+			if (!d.success) {
+				box.innerHTML = fmt.badge('Unreachable', 'warning') + ' The dashboard can\'t reach the UGC server at ' + esc(d.url || '') + (d.error ? ' (' + esc(d.error) + ')' : '') +
+					'. Is <code>enable_ugc_server</code> on, and <code>ugc_internal_url</code> (dashboard settings) right?';
+				return;
+			}
+			var s = d.status, u = s.usage || {}, l = s.limits || {}, last = s.recent && s.recent[0];
+			var cores = u.cores || 1, machinePercent = (u.cpuPercent || 0) / cores;
+			var badges = fmt.badge('Online', 'success') + (u.throttled ? ' ' + fmt.badge('Throttled', 'warning') : '') + (u.paused ? ' ' + fmt.badge('Paused (' + esc(l.pauseHours) + ')', 'info') : '');
+			box.innerHTML = '<div class="mb-2">' + badges + ' ' + esc(s.workers) + ' workers, ' + esc(s.active) + ' working, ' + esc(s.queued) + ' queued. ' +
 				'Since it started: ' + esc(s.made) + ' made, ' + esc(s.failed) + ' failed attempts. Files: ' + esc(mb(s.storedBytes)) +
-				(s.maxStorageBytes ? ' of ' + esc(mb(s.maxStorageBytes)) : '') + (s.evicted ? ', ' + esc(s.evicted) + ' deleted to save space' : '') + '.' +
+				(s.maxStorageBytes ? ' of ' + esc(mb(s.maxStorageBytes)) : '') + (s.evicted ? ', ' + esc(s.evicted) + ' deleted to save space' : '') + '.</div>' +
+				'<div class="row g-3 mb-1">' +
+				meter('CPU', machinePercent, l.maxCpus ? l.maxCpus / cores * 100 : 0, machinePercent.toFixed(0) + '% of ' + cores + ' cores' +
+					(l.maxCpus ? ' (limit ' + (l.maxCpus / cores * 100).toFixed(0) + '%)' : ', no limit') + (u.throttledMs ? ', paused ' + (u.throttledMs / 1000).toFixed(0) + ' s to stay under it' : '')) +
+				meter('Memory', u.residentBytes || 0, 0, esc(mb(u.residentBytes || 0)) + ' in use') +
+				meter('Jobs\' memory', s.jobMemoryBytes || 0, l.maxMemoryBytes || 0, esc(mb(s.jobMemoryBytes || 0)) + ' estimated' +
+					(l.maxMemoryBytes ? ' of ' + esc(mb(l.maxMemoryBytes)) : ', no limit') + (s.memoryWaits ? ', ' + esc(s.memoryWaits) + ' waits' : '')) +
+				'</div>' + (l.nice ? '<div class="text-body-secondary">Workers run at priority ' + esc(l.nice) + '.</div>' : '') +
 				(last ? '<div class="text-body-secondary">Last: ' + esc(last.kind) + ' ' + esc(last.id) + (last.ok ? ' made in ' + esc(last.ms) + ' ms' : ' failed') +
 					(last.message ? ' (' + esc(last.message) + ')' : '') + '</div>' : '');
-		}).catch(function () {
-			box.innerHTML = fmt.badge('Unreachable', 'warning') + ' The UGC server doesn\'t answer at ' + esc(serverUrl()) +
-				'. Is <code>enable_ugc_server</code> on, and <code>ugc_public_url</code> right?';
-		});
+		}).catch(function () { box.innerHTML = fmt.badge('Unknown', 'secondary') + ' Couldn\'t ask the dashboard for the UGC server\'s status.'; });
 	}
 
 	function remake(body, question) {
@@ -75,23 +118,102 @@
 		});
 	}
 
-	function preview(id) {
-		document.getElementById('previewTitle').textContent = 'Model ' + id;
-		document.getElementById('previewIcon').src = fileUrl(id, 'icon.png');
-		document.getElementById('previewLinks').innerHTML = '<a href="' + esc(fileUrl(id, 'model.nif')) + '">Download the mesh (.nif)</a><br>' +
-			'<a href="/api/ugc/' + esc(id) + '/lxfml" download="ugc_' + esc(id) + '.lxfml">Download the LXFML</a>';
-		bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
-		var container = document.getElementById('previewViewer');
-		container.textContent = 'Loading…';
-		import('/js/lddviewer.js').then(function (module) {
-			if (viewer && viewer.dispose) viewer.dispose();
-			container.textContent = '';
-			viewer = module.createViewer(container, {});
-			return viewer.load([{ id: id, name: 'Model ' + id, position: [0, 0, 0], rotation: [0, 0, 0, 1], url: '/api/ugc/' + id + '/lxfml' }], 1);
-		}).catch(function (e) { container.textContent = 'The 3D view could not load: ' + e.message; });
+	// ---- the viewer ----
+
+	function fetchJson(url) {
+		return fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
 	}
 
-	document.getElementById('kindButtons').addEventListener('click', function (e) {
+	function statsTable(now, before) {
+		if (!now) return '<div class="small text-body-secondary">No stats for this model (made before the UGC server wrote them).</div>';
+		var lods = now.lods || [], old = before && before.lods || [];
+		var diff = function (a, b) {
+			if (b === undefined || b === null || a === b) return '';
+			var d = a - b;
+			return ' <span class="' + (d < 0 ? 'text-success' : 'text-warning') + '">(' + (d > 0 ? '+' : '') + d + ')</span>';
+		};
+		var rows = lods.map(function (l, i) {
+			var o = old[i] || {};
+			var removed = l.opaqueBefore ? (100 - l.opaqueAfter / l.opaqueBefore * 100).toFixed(0) + '%' : '';
+			return '<tr><td>LOD ' + esc(l.lod) + '</td><td>' + esc(l.near) + ' - ' + esc(l.far) + '</td><td>' + esc(l.opaqueBefore) + '</td><td>' + esc(l.opaqueAfter) + diff(l.opaqueAfter, o.opaqueAfter) +
+				'</td><td>' + esc(removed) + '</td><td>' + esc(l.transparent) + '</td><td>' + esc(l.vertices) + diff(l.vertices, o.vertices) + '</td><td>' + esc(l.shapes) + '</td></tr>';
+		}).join('');
+		var ms = now.ms || {}, set = now.settings || {};
+		return '<div class="table-responsive"><table class="table table-sm small mb-1"><thead><tr><th>Detail</th><th>Drawn from - to</th><th>Opaque triangles</th>' +
+			'<th>After removing hidden faces</th><th>Removed</th><th>Transparent triangles</th><th>Vertices</th><th>Shapes</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+			'<div class="small text-body-secondary">' + esc(now.bricks) + ' bricks' + (now.missingDesigns ? ', no geometry for ' + esc(now.missingDesigns.join(', ')) : '') +
+			'. Took ' + esc(ms.total) + ' ms (build ' + esc(ms.build) + ', hidden faces ' + esc(ms.hiddenSurfaces) + ', occlusion ' + esc(ms.ambientOcclusion) + ', icon ' + esc(ms.icon) + ')' +
+			(before && before.ms ? ', before ' + esc(before.ms.total) + ' ms' : '') + '. Colors: ' + esc(set.palette) + ', variation ' + esc(set.colorVariation) + '%' +
+			(set.ao ? ', occlusion ' + esc(set.aoSamples) + ' rays to ' + esc(set.aoDistance) : ', no occlusion') + '.</div>';
+	}
+
+	function loadMesh(reframe) {
+		if (!current || !nifViewer) return;
+		var lod = $('lodSelect').value || '0', version = $('versionSelect').value, ao = $('aoSwitch').checked ? '1' : '0';
+		var stats = $('nifStats');
+		stats.textContent = 'Loading…';
+		nifViewer.load('/api/ugc/mesh/' + encodeURIComponent(current.id) + '?lod=' + lod + '&version=' + version + '&ao=' + ao, reframe).then(function (r) {
+			var lodStats = current.stats && current.stats.lods && current.stats.lods[+lod];
+			stats.textContent = r.triangles.toLocaleString() + ' triangles, ' + r.vertices.toLocaleString() + ' vertices in ' + r.shapes + ' shape' + (r.shapes === 1 ? '' : 's') +
+				(lodStats && version === 'current' ? ' (' + lodStats.opaqueBefore.toLocaleString() + ' opaque triangles before hidden faces were removed)' : '');
+		}).catch(function (e) { stats.textContent = 'Could not load the mesh: ' + e.message; });
+	}
+
+	function preview(id) {
+		var item = items.find(function (i) { return i.id === id; }) || { id: id, state: 'done' };
+		current = { id: id, kind: kind, stats: null };
+		$('previewTitle').textContent = (kind === 'model' ? 'Model ' : 'Car or rocket ') + id + (item.characterName ? ' by ' + item.characterName : '');
+		$('previewIcon').src = fileUrl(kind, id, 'icon.png');
+		$('previousIconBox').classList.add('d-none');
+		var previous = $('previousIcon');
+		previous.onload = function () { $('previousIconBox').classList.remove('d-none'); };
+		previous.src = fileUrl(kind, id, 'previous.icon.png');
+		var links = '';
+		if (kind === 'model') {
+			links += '<a href="' + esc(fileUrl('model', id, 'model.nif')) + '" download="ugc_' + esc(id) + '.nif">Download the mesh (.nif)</a><br>' +
+				'<a href="/api/ugc/' + esc(id) + '/lxfml" download="ugc_' + esc(id) + '.lxfml">Download the LXFML</a><br>';
+		}
+		if (publicUrl) links += '<a href="' + esc(publicUrl + '/files/' + kind + '/' + id + '/icon.png') + '" target="_blank" rel="noopener">Open on the UGC server</a>';
+		if (canManage) links += '<div class="mt-2"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(id) + '">Make again</button></div>';
+		if (item.error) links += '<div class="text-danger mt-2">' + esc(item.error) + '</div>';
+		$('previewLinks').innerHTML = links;
+		var model = kind === 'model';
+		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', !model); });
+		$('statsBox').innerHTML = model ? '' : '<div class="small">Modules: <code>' + esc(item.modules || '') + '</code>. The game client puts cars and rockets together itself; only the icon is made.</div>';
+		bootstrap.Modal.getOrCreateInstance($('previewModal')).show();
+		if (!model) return;
+
+		Promise.all([fetchJson(fileUrl('model', id, 'stats.json')), fetchJson(fileUrl('model', id, 'previous.stats.json'))]).then(function (s) {
+			if (!current || current.id !== id) return;
+			current.stats = s[0];
+			current.statsLoaded = true;
+			$('statsBox').innerHTML = statsTable(s[0], s[1]);
+			var lods = (s[0] && s[0].lods) || [{ lod: 0 }];
+			$('lodSelect').innerHTML = lods.map(function (l, i) { return '<option value="' + i + '">LOD ' + esc(l.lod) + (l.far ? ' (' + esc(l.near) + '-' + esc(l.far) + ')' : '') + '</option>'; }).join('');
+			$('versionSelect').querySelector('[value=previous]').disabled = !s[1];
+			$('versionSelect').value = 'current';
+			loadMesh(true);
+		});
+
+		var nifBox = $('nifViewer'), lxfmlBox = $('lxfmlViewer');
+		import('/js/ugc-viewer.js').then(function (module) {
+			if (!nifViewer) {
+				nifViewer = module.createNifViewer(nifBox);
+				nifViewer.setWireframe($('wireframeSwitch').checked);
+				nifViewer.setVertexColors($('colorsSwitch').checked);
+			}
+			if (current && current.id === id && current.statsLoaded) loadMesh(true);
+		}).catch(function (e) { nifBox.textContent = 'The 3D view could not load: ' + e.message; });
+		lxfmlBox.textContent = 'Loading…';
+		import('/js/lddviewer.js').then(function (module) {
+			if (lxfmlViewer && lxfmlViewer.dispose) lxfmlViewer.dispose();
+			lxfmlBox.textContent = '';
+			lxfmlViewer = module.createViewer(lxfmlBox, {});
+			return lxfmlViewer.load([{ id: id, name: 'Model ' + id, position: [0, 0, 0], rotation: [0, 0, 0, 1], url: '/api/ugc/' + id + '/lxfml' }], 1);
+		}).catch(function (e) { lxfmlBox.textContent = 'The 3D view could not load: ' + e.message; });
+	}
+
+	$('kindButtons').addEventListener('click', function (e) {
 		var button = e.target.closest('[data-kind]');
 		if (!button) return;
 		kind = button.dataset.kind;
@@ -99,20 +221,55 @@
 		this.querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b === button); });
 		load();
 	});
-	document.getElementById('stateFilter').addEventListener('change', function () { state = this.value; page = 0; load(); });
-	document.getElementById('prevPage').addEventListener('click', function () { if (page > 0) { page--; load(); } });
-	document.getElementById('nextPage').addEventListener('click', function () { page++; load(); });
-	document.getElementById('retryFailed').addEventListener('click', function () { remake({ failedOnly: true }); });
-	document.getElementById('remakeAll').addEventListener('click', function () {
+	$('viewButtons').addEventListener('click', function (e) {
+		var button = e.target.closest('[data-view]');
+		if (!button) return;
+		view = button.dataset.view;
+		page = 0;
+		try { localStorage.setItem('ugcView', view); } catch (err) { /* storage blocked */ }
+		this.querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('active', b === button); });
+		load();
+	});
+	$('viewButtons').querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('active', b.dataset.view === view); });
+	$('stateFilter').addEventListener('change', function () { state = this.value; page = 0; load(); });
+	var searchTimer = null;
+	$('search').addEventListener('input', function () {
+		var value = this.value.trim();
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(function () { search = value; page = 0; load(); }, 300);
+	});
+	$('prevPage').addEventListener('click', function () { if (page > 0) { page--; load(); } });
+	$('nextPage').addEventListener('click', function () { page++; load(); });
+	$('retryFailed').addEventListener('click', function () { remake({ failedOnly: true }); });
+	$('remakeAll').addEventListener('click', function () {
 		remake({}, 'Make every ' + (kind === 'model' ? 'model' : 'car and rocket') + ' again? This can take a long time.');
 	});
-	document.getElementById('rows').addEventListener('click', function (e) {
+	function onItemClick(e) {
 		var remakeButton = e.target.closest('[data-remake]'), previewButton = e.target.closest('[data-preview]');
 		if (remakeButton) remake({ id: remakeButton.dataset.remake });
 		else if (previewButton) preview(previewButton.dataset.preview);
+	}
+	$('rows').addEventListener('click', onItemClick);
+	$('gallery').addEventListener('click', onItemClick);
+	$('gallery').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemClick(e); } });
+	$('previewLinks').addEventListener('click', function (e) {
+		var button = e.target.closest('[data-remake-open]');
+		if (button) remake({ id: button.dataset.remakeOpen });
+	});
+	$('lodSelect').addEventListener('change', function () { loadMesh(false); });
+	$('versionSelect').addEventListener('change', function () { loadMesh(false); });
+	$('aoSwitch').addEventListener('change', function () { loadMesh(false); });
+	$('wireframeSwitch').addEventListener('change', function () { if (nifViewer) nifViewer.setWireframe(this.checked); });
+	$('colorsSwitch').addEventListener('change', function () { if (nifViewer) nifViewer.setVertexColors(this.checked); });
+	$('reframeButton').addEventListener('click', function () { if (nifViewer) nifViewer.frame(); });
+	$('previewModal').addEventListener('hidden.bs.modal', function () {
+		current = null;
+		if (lxfmlViewer && lxfmlViewer.dispose) lxfmlViewer.dispose();
+		lxfmlViewer = null;
 	});
 	if (window.Live) Live.on('ugc', load);
 
 	load();
+	loadStatus();
 	setInterval(loadStatus, 10000);
 })();

@@ -727,9 +727,13 @@ TEST_F(ParitySeeded, UgcModel) {
 	});
 	Both("GetUgcProcessList", [&](GameDatabase& db) {
 		json out = json::array();
-		for (const auto& info : db.GetUgcProcessList(IUgc::eProcessState::FAILED, 0, 10)) out.push_back(infoJson(info));
-		out.push_back(db.GetUgcProcessList(std::nullopt, 0, 10).size());
-		out.push_back(db.GetUgcProcessList(IUgc::eProcessState::DONE, 0, 10).size());
+		for (const auto& info : db.GetUgcProcessList(IUgc::eProcessState::FAILED, "", 0, 10)) out.push_back(infoJson(info));
+		out.push_back(db.GetUgcProcessList(std::nullopt, "", 0, 10).size());
+		out.push_back(db.GetUgcProcessList(IUgc::eProcessState::DONE, "", 0, 10).size());
+		// Search: an id exactly, or part of the owner's name
+		out.push_back(db.GetUgcProcessList(std::nullopt, "1152921510000500001", 0, 10).size());
+		out.push_back(db.GetUgcProcessList(std::nullopt, "115292151000050000", 0, 10).size());
+		out.push_back(db.GetUgcProcessList(std::nullopt, "li", 0, 10).size());
 		return out;
 	});
 	Both("ResetUgcModelProcessing", [&](GameDatabase& db) {
@@ -744,7 +748,7 @@ TEST_F(ParitySeeded, UgcModel) {
 		db.SetModularBuildProcessed(1152921510000500002LL, IUgc::eProcessState::PENDING, 1, "no mesh");
 		out.push_back(infoJson(db.GetModularBuildProcessInfo(1152921510000500002LL)));
 		out.push_back(countsJson(db.GetModularBuildProcessCounts()));
-		out.push_back(db.GetModularBuildProcessList(std::nullopt, 0, 10).size());
+		out.push_back(db.GetModularBuildProcessList(std::nullopt, "", 0, 10).size());
 		out.push_back(db.ResetModularBuildProcessing(1152921510000500002LL, false));
 		out.push_back(infoJson(db.GetModularBuildProcessInfo(1152921510000500002LL)));
 		return out;

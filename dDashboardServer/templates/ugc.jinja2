@@ -22,16 +22,22 @@
 			<button type="button" class="btn btn-outline-primary active" data-kind="model">Models</button>
 			<button type="button" class="btn btn-outline-primary" data-kind="modular">Cars and rockets</button>
 		</div>
-		<select class="form-select form-select-sm w-auto" id="stateFilter">
+		<select class="form-select form-select-sm w-auto" id="stateFilter" aria-label="State">
 			<option value="">Every state</option><option value="pending">Waiting</option><option value="done">Made</option><option value="failed">Failed</option>
 		</select>
+		<input type="search" class="form-control form-control-sm w-auto" id="search" placeholder="ID or owner" aria-label="Search by ID or owner">
+		<div class="btn-group btn-group-sm" role="group" id="viewButtons">
+			<button type="button" class="btn btn-outline-secondary active" data-view="gallery">Icons</button>
+			<button type="button" class="btn btn-outline-secondary" data-view="list">List</button>
+		</div>
 		<div class="ms-auto d-none" id="manageButtons">
 			<button type="button" class="btn btn-sm btn-outline-warning" id="retryFailed">Try the failed ones again</button>
 			<button type="button" class="btn btn-sm btn-outline-danger" id="remakeAll">Make everything again</button>
 		</div>
 	</div>
 
-	<div class="card">
+	<div id="gallery" class="ugc-gallery mb-2"></div>
+	<div class="card d-none" id="listCard">
 		<table class="table table-sm align-middle mb-0 table-stack">
 			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Last attempt</th><th>Details</th><th></th></tr></thead>
 			<tbody id="rows"></tbody>
@@ -43,19 +49,62 @@
 	</div>
 
 	<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
-		<div class="modal-dialog modal-xl"><div class="modal-content">
-			<div class="modal-header"><h5 class="modal-title" id="previewTitle">Model</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+		<div class="modal-dialog modal-xl modal-fullscreen-lg-down"><div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="previewTitle">Model</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
 			<div class="modal-body">
-				<div class="row g-3">
-					<div class="col-md-3 text-center"><img id="previewIcon" alt="Icon" class="border rounded bg-body-tertiary" width="128" height="128">
-						<div class="small mt-2" id="previewLinks"></div></div>
-					<div class="col-md-9"><div id="previewViewer" style="height: 420px"></div>
-						<div class="small text-body-secondary">The model as built (its LXFML).</div></div>
+				<div class="d-flex flex-wrap gap-2 align-items-center mb-2 small" id="meshControls">
+					<label class="d-flex align-items-center gap-1">Detail
+						<select class="form-select form-select-sm w-auto" id="lodSelect"></select></label>
+					<label class="d-flex align-items-center gap-1">Version
+						<select class="form-select form-select-sm w-auto" id="versionSelect">
+							<option value="current">Now</option><option value="previous">Before it was made again</option>
+						</select></label>
+					<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="wireframeSwitch"><label class="form-check-label" for="wireframeSwitch">Wireframe</label></div>
+					<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="colorsSwitch" checked><label class="form-check-label" for="colorsSwitch">Vertex colors</label></div>
+					<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="aoSwitch" checked><label class="form-check-label" for="aoSwitch">Baked lighting</label></div>
+					<button type="button" class="btn btn-sm btn-outline-secondary" id="reframeButton">Reset view</button>
 				</div>
+				<div class="row g-3">
+					<div class="col-lg-5" id="nifColumn">
+						<div class="small fw-semibold mb-1">Generated mesh (.nif)</div>
+						<div id="nifViewer" class="rounded border" style="height: 420px"></div>
+						<div class="small text-body-secondary mt-1" id="nifStats"></div>
+					</div>
+					<div class="col-lg-4" id="lxfmlColumn">
+						<div class="small fw-semibold mb-1">As built (LXFML)</div>
+						<div id="lxfmlViewer" class="rounded border" style="height: 420px"></div>
+						<div class="small text-body-secondary mt-1">Every brick, before hidden faces are removed.</div>
+					</div>
+					<div class="col-lg-3">
+						<div class="small fw-semibold mb-1">Icon</div>
+						<div class="d-flex gap-2 flex-wrap">
+							<figure class="text-center mb-0"><img id="previewIcon" alt="Icon" class="border rounded bg-body-tertiary ugc-checker" width="128" height="128">
+								<figcaption class="small text-body-secondary">Now</figcaption></figure>
+							<figure class="text-center mb-0 d-none" id="previousIconBox"><img id="previousIcon" alt="Icon before" class="border rounded bg-body-tertiary ugc-checker" width="128" height="128">
+								<figcaption class="small text-body-secondary">Before</figcaption></figure>
+						</div>
+						<div class="small mt-2" id="previewLinks"></div>
+					</div>
+				</div>
+				<div class="mt-3" id="statsBox"></div>
 			</div>
 		</div></div>
 	</div>
 </div>
+<style>
+	.ugc-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+	.ugc-tile { cursor: pointer; text-align: center; }
+	.ugc-tile:hover, .ugc-tile:focus-visible { border-color: var(--bs-primary); }
+	.ugc-tile img, .ugc-tile .ugc-noicon { width: 128px; height: 128px; }
+	.ugc-noicon { display: inline-flex; align-items: center; justify-content: center; }
+	.ugc-checker { background-image: linear-gradient(45deg, rgba(128,128,128,.15) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.15) 75%),
+		linear-gradient(45deg, rgba(128,128,128,.15) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.15) 75%);
+		background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+	.ugc-meter { height: .4rem; }
+</style>
 {% endblock %}
 
 {% block scripts %}

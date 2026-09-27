@@ -140,23 +140,20 @@ uint64_t SQLiteDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> i
 	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '';");
 }
 
-std::vector<IUgc::ProcessInfo> SQLiteDatabase::GetUgcProcessList(const std::optional<eProcessState> state, const uint32_t offset, const uint32_t limit) {
+std::vector<IUgc::ProcessInfo> SQLiteDatabase::GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) {
 	const std::string select =
 		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao "
 		"FROM ugc AS u LEFT JOIN charinfo AS c ON c.id = u.character_id ";
 	std::vector<IUgc::ProcessInfo> list;
-	auto read = [&list](CppSQLite3Query& result) {
-		while (!result.eof()) {
-			list.push_back(ReadUgcProcessInfo(result, false));
-			result.nextRow();
-		}
-	};
-	if (state) {
-		auto [_, result] = ExecuteSelect(select + "WHERE u.is_optimized = ? ORDER BY u.id DESC LIMIT ? OFFSET ?;", static_cast<int32_t>(*state), limit, offset);
-		read(result);
-	} else {
-		auto [_, result] = ExecuteSelect(select + "ORDER BY u.id DESC LIMIT ? OFFSET ?;", limit, offset);
-		read(result);
+	// Every filter always bound, off when its first value says so
+	const int32_t stateValue = state ? static_cast<int32_t>(*state) : -1;
+	const std::string text(search);
+	const std::string pattern = "%" + text + "%";
+	const std::string where = "WHERE (? < 0 OR u.is_optimized = ?) AND (? = '' OR CAST(u.id AS CHAR) = ? OR c.name LIKE ?) ";
+	auto [_, result] = ExecuteSelect(select + where + "ORDER BY u.id DESC LIMIT ? OFFSET ?;", stateValue, stateValue, text, text, pattern, limit, offset);
+	while (!result.eof()) {
+		list.push_back(ReadUgcProcessInfo(result, false));
+		result.nextRow();
 	}
 	return list;
 }

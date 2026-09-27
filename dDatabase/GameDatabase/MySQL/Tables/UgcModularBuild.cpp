@@ -62,19 +62,16 @@ uint64_t MySQLDatabase::ResetModularBuildProcessing(const std::optional<LWOOBJID
 	return ExecuteUpdate("UPDATE ugc_modular_build SET is_optimized = 0, process_attempts = 0, process_error = '';");
 }
 
-std::vector<IUgc::ProcessInfo> MySQLDatabase::GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const uint32_t offset, const uint32_t limit) {
+std::vector<IUgc::ProcessInfo> MySQLDatabase::GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) {
 	std::vector<IUgc::ProcessInfo> list;
-	auto read = [&list](PreparedStmtResultSet& result) {
-		while (result->next()) {
-			list.push_back(ReadModularProcessInfo(result, true));
-		}
-	};
-	if (state) {
-		auto result = ExecuteSelect(MODULAR_SELECT + "WHERE b.is_optimized = ? ORDER BY b.ugc_id DESC LIMIT ? OFFSET ?;", static_cast<int32_t>(*state), limit, offset);
-		read(result);
-	} else {
-		auto result = ExecuteSelect(MODULAR_SELECT + "ORDER BY b.ugc_id DESC LIMIT ? OFFSET ?;", limit, offset);
-		read(result);
+	// Every filter always bound, off when its first value says so
+	const int32_t stateValue = state ? static_cast<int32_t>(*state) : -1;
+	const std::string text(search);
+	const std::string pattern = "%" + text + "%";
+	const std::string where = "WHERE (? < 0 OR b.is_optimized = ?) AND (? = '' OR CAST(b.ugc_id AS CHAR) = ? OR c.name LIKE ?) ";
+	auto result = ExecuteSelect(MODULAR_SELECT + where + "ORDER BY b.ugc_id DESC LIMIT ? OFFSET ?;", stateValue, stateValue, text, text, pattern, limit, offset);
+	while (result->next()) {
+		list.push_back(ReadModularProcessInfo(result, true));
 	}
 	return list;
 }

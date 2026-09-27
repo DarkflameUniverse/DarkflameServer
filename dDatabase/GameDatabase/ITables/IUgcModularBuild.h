@@ -26,7 +26,7 @@ public:
 	virtual void SetModularBuildProcessed(const LWOOBJID id, const IUgc::eProcessState state, const uint32_t attempts, const std::string_view error) = 0;
 	virtual std::optional<IUgc::ProcessInfo> GetModularBuildProcessInfo(const LWOOBJID id) = 0;
 	virtual uint64_t ResetModularBuildProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) = 0;
-	virtual std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const uint32_t offset, const uint32_t limit) = 0;
+	virtual std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) = 0;
 	virtual std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetModularBuildProcessCounts() = 0;
 };
 
