@@ -346,6 +346,13 @@ void UgcProcessor::Record(const Done& done) {
 		: attempts >= m_Config.maxAttempts ? IUgc::eProcessState::FAILED : IUgc::eProcessState::PENDING;
 	if (done.kind == Kind::MODEL) {
 		Database::Get()->SetUgcModelProcessed(done.id, state, attempts, error, done.outcome.ok && done.outcome.aoBaked);
+		// What it counted (stats.json), for sorting on the dashboard
+		const auto stats = done.outcome.ok && !done.outcome.stats.empty() ? nlohmann::json::parse(done.outcome.stats, nullptr, false) : nlohmann::json();
+		if (stats.is_object()) {
+			const auto& lods = stats.value("lods", nlohmann::json::array());
+			const auto& first = lods.is_array() && !lods.empty() ? lods.front() : nlohmann::json::object();
+			Database::Get()->SetUgcModelStats(done.id, stats.value("bricks", 0u), first.value("opaqueAfter", 0u) + first.value("transparent", 0u));
+		}
 	} else {
 		Database::Get()->SetModularBuildProcessed(done.id, state, attempts, error);
 	}

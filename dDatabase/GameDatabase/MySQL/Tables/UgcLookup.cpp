@@ -14,6 +14,12 @@ namespace {
 		entry.state = static_cast<IUgc::eProcessState>(result->getInt("is_optimized"));
 		entry.error = std::string(result->getString("process_error").c_str());
 		entry.detail = std::string(result->getString("detail").c_str());
+		entry.attempts = static_cast<uint32_t>(result->getInt("process_attempts"));
+		entry.processedAt = result->getInt64("processed_at");
+		entry.processAfter = result->getInt64("process_after");
+		entry.bakeAo = result->getInt("bake_ao") != 0;
+		entry.bricks = static_cast<uint32_t>(result->getInt64("brick_count"));
+		entry.triangles = static_cast<uint32_t>(result->getInt64("triangle_count"));
 		return entry;
 	}
 }
@@ -74,4 +80,27 @@ std::vector<IUgcLookup::UgcMail> MySQLDatabase::GetUgcMail(const std::vector<LWO
 		entry.config = std::string(result->getString("attachment_config").c_str());
 	}
 	return mail;
+}
+
+std::pair<std::vector<IUgcLookup::UgcEntry>, uint64_t> MySQLDatabase::ListUgc(const eUgcKind kind, const UgcListQuery& query) {
+	const bool modular = kind == eUgcKind::MODULAR;
+	const std::string pattern = "%" + query.search.text + "%";
+	const bool searching = UgcLookupSql::Searching(query.search);
+	const auto where = (searching ? UgcLookupSql::Where(query.search, modular) : std::string("WHERE 1=1 ")) + UgcLookupSql::ListFilter(query, modular);
+	std::vector<UgcEntry> entries;
+	uint64_t total = 0;
+	const auto page = UgcLookupSql::Select(modular) + where + UgcLookupSql::ListOrder(query, modular) + "LIMIT ? OFFSET ?;";
+	const auto count = "SELECT COUNT(*) AS n " + UgcLookupSql::From(modular) + where + ";";
+	if (searching) {
+		auto result = ExecuteSelect(page, pattern, pattern, pattern, pattern, pattern, pattern, query.limit, query.offset);
+		while (result->next()) entries.push_back(ReadEntry(result, kind));
+		auto counted = ExecuteSelect(count, pattern, pattern, pattern, pattern, pattern, pattern);
+		if (counted->next()) total = static_cast<uint64_t>(counted->getInt64("n"));
+	} else {
+		auto result = ExecuteSelect(page, query.limit, query.offset);
+		while (result->next()) entries.push_back(ReadEntry(result, kind));
+		auto counted = ExecuteSelect(count);
+		if (counted->next()) total = static_cast<uint64_t>(counted->getInt64("n"));
+	}
+	return { entries, total };
 }

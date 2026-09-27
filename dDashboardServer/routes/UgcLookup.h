@@ -76,7 +76,7 @@ namespace UgcLookup {
 			static const std::map<std::string, UgcSearch::eField> FIELDS = {
 				{ "id", UgcSearch::eField::ID }, { "owner", UgcSearch::eField::OWNER }, { "character", UgcSearch::eField::OWNER },
 				{ "account", UgcSearch::eField::OWNER }, { "property", UgcSearch::eField::PROPERTY }, { "model", UgcSearch::eField::MODEL },
-				{ "name", UgcSearch::eField::MODEL }, { "lot", UgcSearch::eField::LOT },
+				{ "name", UgcSearch::eField::MODEL }, { "lot", UgcSearch::eField::LOT }, { "module", UgcSearch::eField::LOT },
 			};
 			const auto field = FIELDS.find(key);
 			if (field != FIELDS.end()) {

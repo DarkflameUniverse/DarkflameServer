@@ -14,6 +14,12 @@ namespace {
 		entry.state = static_cast<IUgc::eProcessState>(result.getIntField("is_optimized"));
 		entry.error = result.getStringField("process_error", "");
 		entry.detail = result.getStringField("detail", "");
+		entry.attempts = static_cast<uint32_t>(result.getIntField("process_attempts"));
+		entry.processedAt = result.getInt64Field("processed_at");
+		entry.processAfter = result.getInt64Field("process_after");
+		entry.bakeAo = result.getIntField("bake_ao") != 0;
+		entry.bricks = static_cast<uint32_t>(result.getInt64Field("brick_count"));
+		entry.triangles = static_cast<uint32_t>(result.getInt64Field("triangle_count"));
 		return entry;
 	}
 }
@@ -74,4 +80,27 @@ std::vector<IUgcLookup::UgcMail> SQLiteDatabase::GetUgcMail(const std::vector<LW
 		entry.config = result.getStringField("attachment_config", "");
 	}
 	return mail;
+}
+
+std::pair<std::vector<IUgcLookup::UgcEntry>, uint64_t> SQLiteDatabase::ListUgc(const eUgcKind kind, const UgcListQuery& query) {
+	const bool modular = kind == eUgcKind::MODULAR;
+	const std::string pattern = "%" + query.search.text + "%";
+	const bool searching = UgcLookupSql::Searching(query.search);
+	const auto where = (searching ? UgcLookupSql::Where(query.search, modular) : std::string("WHERE 1=1 ")) + UgcLookupSql::ListFilter(query, modular);
+	std::vector<UgcEntry> entries;
+	uint64_t total = 0;
+	const auto page = UgcLookupSql::Select(modular) + where + UgcLookupSql::ListOrder(query, modular) + "LIMIT ? OFFSET ?;";
+	const auto count = "SELECT COUNT(*) AS n " + UgcLookupSql::From(modular) + where + ";";
+	if (searching) {
+		auto [_, result] = ExecuteSelect(page, pattern, pattern, pattern, pattern, pattern, pattern, query.limit, query.offset);
+		for (; !result.eof(); result.nextRow()) entries.push_back(ReadEntry(result, kind));
+		auto [__, counted] = ExecuteSelect(count, pattern, pattern, pattern, pattern, pattern, pattern);
+		if (!counted.eof()) total = static_cast<uint64_t>(counted.getInt64Field("n"));
+	} else {
+		auto [_, result] = ExecuteSelect(page, query.limit, query.offset);
+		for (; !result.eof(); result.nextRow()) entries.push_back(ReadEntry(result, kind));
+		auto [__, counted] = ExecuteSelect(count);
+		if (!counted.eof()) total = static_cast<uint64_t>(counted.getInt64Field("n"));
+	}
+	return { entries, total };
 }

@@ -206,6 +206,7 @@ public:
 
 	// IUgcLookup
 	std::vector<UgcEntry> SearchUgc(const UgcSearch& search, const uint32_t limit) override;
+	std::pair<std::vector<UgcEntry>, uint64_t> ListUgc(const eUgcKind kind, const UgcListQuery& query) override;
 	std::vector<UgcEntry> GetUgcEntries(const std::vector<LWOOBJID>& ids) override;
 	std::vector<UgcPlacement> GetUgcPlacements(const std::vector<LWOOBJID>& ugcIds) override;
 	std::vector<UgcMail> GetUgcMail(const std::vector<LWOOBJID>& subkeys, const LOT modelItemLot) override;
@@ -411,6 +412,7 @@ public:
 	void SetUgcIconSettings(const std::string_view target, const std::string_view params) override;
 	void DeleteUgcIconSettings(const std::string_view target) override;
 	void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) override;
+	void SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles) override;
 	std::optional<IUgc::ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) override;
 	uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override;
 	std::vector<IUgc::ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) override;

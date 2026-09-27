@@ -87,6 +87,46 @@ namespace {
 }
 
 namespace UgcLinks {
+	std::map<LWOOBJID, nlohmann::json> Whereabouts(const std::vector<IUgcLookup::UgcEntry>& entries) {
+		std::vector<LWOOBJID> ids, modularIds;
+		std::set<LWOOBJID> models, modular;
+		for (const auto& entry : entries) {
+			ids.push_back(entry.id);
+			if (entry.kind == eUgcKind::MODEL) {
+				models.insert(entry.id);
+			} else {
+				modular.insert(entry.id);
+				modularIds.push_back(entry.id);
+			}
+		}
+		std::map<LWOOBJID, nlohmann::json> where;
+		for (const auto& p : Database::Get()->GetUgcPlacements(ids)) {
+			where[p.ugcId].push_back({ { "type", "property" }, { "propertyId", std::to_string(p.propertyId) }, { "propertyName", p.propertyName },
+				{ "ownerId", std::to_string(p.ownerId) }, { "ownerName", p.ownerName }, { "zoneId", p.zoneId }, { "modelId", std::to_string(p.modelId) },
+				{ "lot", p.lot }, { "modelName", p.modelName }, { "modelDescription", p.modelDescription } });
+		}
+		for (const auto& mail : Database::Get()->GetUgcMail(modularIds, MODEL_ITEM_LOT)) {
+			if (const auto creation = MailCreation(mail, models, modular)) {
+				where[creation->second].push_back({ { "type", "mail" }, { "mailId", std::to_string(mail.id) }, { "characterId", std::to_string(mail.receiverId) },
+					{ "characterName", mail.receiverName } });
+			}
+		}
+		// Not placed or mailed: most are still with whoever made them
+		std::set<LWOOBJID> creators;
+		for (const auto& entry : entries) {
+			if (!where.contains(entry.id) && entry.characterId != LWOOBJID_EMPTY && creators.size() < MAX_INVENTORIES) creators.insert(entry.characterId);
+		}
+		for (const auto creator : creators) {
+			for (const auto& link : CharacterCreations(creator)) {
+				const bool wanted = link.kind == eUgcKind::MODEL ? models.contains(link.ugcId) : modular.contains(link.ugcId);
+				if (!wanted) continue;
+				where[link.ugcId].push_back({ { "type", "inventory" }, { "characterId", std::to_string(creator) }, { "inventory", link.item.inventory },
+					{ "itemId", std::to_string(link.item.itemId) }, { "lot", link.item.lot } });
+			}
+		}
+		return where;
+	}
+
 	void RegisterRoutes() {
 		Route(eHTTPMethod::GET, "/ugc_search", Perm("properties_view"), "Find players' models, cars and rockets and where they are",
 			[](HTTPReply& reply, const HTTPContext& context) {
@@ -105,44 +145,7 @@ namespace UgcLinks {
 				const auto limit = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "limit")).value_or(SEARCH_LIMIT), 1u, SEARCH_LIMIT);
 				const auto entries = Database::Get()->SearchUgc(search, limit);
 
-				std::vector<LWOOBJID> ids, modularIds;
-				std::set<LWOOBJID> models, modular;
-				for (const auto& entry : entries) {
-					ids.push_back(entry.id);
-					if (entry.kind == eUgcKind::MODEL) {
-						models.insert(entry.id);
-					} else {
-						modular.insert(entry.id);
-						modularIds.push_back(entry.id);
-					}
-				}
-				std::map<std::pair<eUgcKind, LWOOBJID>, nlohmann::json> where;
-				for (const auto& p : Database::Get()->GetUgcPlacements(ids)) {
-					const auto kind = models.contains(p.ugcId) ? eUgcKind::MODEL : eUgcKind::MODULAR;
-					where[{ kind, p.ugcId }].push_back({ { "type", "property" }, { "propertyId", std::to_string(p.propertyId) }, { "propertyName", p.propertyName },
-						{ "ownerId", std::to_string(p.ownerId) }, { "ownerName", p.ownerName }, { "zoneId", p.zoneId }, { "modelId", std::to_string(p.modelId) },
-						{ "lot", p.lot }, { "modelName", p.modelName }, { "modelDescription", p.modelDescription } });
-				}
-				for (const auto& mail : Database::Get()->GetUgcMail(modularIds, MODEL_ITEM_LOT)) {
-					if (const auto creation = MailCreation(mail, models, modular)) {
-						where[*creation].push_back({ { "type", "mail" }, { "mailId", std::to_string(mail.id) }, { "characterId", std::to_string(mail.receiverId) },
-							{ "characterName", mail.receiverName } });
-					}
-				}
-				// Not placed or mailed: most are still with whoever made them
-				std::set<LWOOBJID> creators;
-				for (const auto& entry : entries) {
-					if (!where.contains({ entry.kind, entry.id }) && entry.characterId != LWOOBJID_EMPTY && creators.size() < MAX_INVENTORIES) creators.insert(entry.characterId);
-				}
-				for (const auto creator : creators) {
-					for (const auto& link : CharacterCreations(creator)) {
-						const std::pair key{ link.kind, link.ugcId };
-						const bool wanted = link.kind == eUgcKind::MODEL ? models.contains(link.ugcId) : modular.contains(link.ugcId);
-						if (!wanted) continue;
-						where[key].push_back({ { "type", "inventory" }, { "characterId", std::to_string(creator) }, { "inventory", link.item.inventory },
-							{ "itemId", std::to_string(link.item.itemId) }, { "lot", link.item.lot } });
-					}
-				}
+				auto where = UgcLinks::Whereabouts(entries);
 
 				nlohmann::json items = nlohmann::json::array();
 				for (const auto& entry : entries) {
@@ -152,7 +155,7 @@ namespace UgcLinks {
 					item["characterName"] = entry.characterName;
 					item["accountId"] = entry.accountId;
 					item["accountName"] = entry.accountName;
-					const auto found = where.find({ entry.kind, entry.id });
+					const auto found = where.find(entry.id);
 					item["where"] = found == where.end() ? nlohmann::json::array() : found->second;
 					items.push_back(std::move(item));
 				}

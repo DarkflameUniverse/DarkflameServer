@@ -10,7 +10,10 @@
 #include "NifFile.h"
 #include "SettingsCatalog.h"
 #include "SettingsHistory.h"
+#include "UgcAssemblies.h"
 #include "UgcFetch.h"
+#include "UgcLinks.h"
+#include "UgcLookup.h"
 #include "UgcKeys.h"
 #include "Workers.h"
 #include "Game.h"
@@ -129,6 +132,76 @@ namespace {
 		return kinds;
 	}
 
+	// Web thread: every module in the client's data (ModuleComponent) with its build type and name, read once
+	const std::map<uint32_t, UgcAssemblies::ModuleInfo>& Modules() {
+		static std::map<uint32_t, UgcAssemblies::ModuleInfo> modules;
+		static bool loaded = false;
+		if (loaded) return modules;
+		loaded = true;
+		auto result = CDClientDatabase::ExecuteQuery("SELECT cr.id AS lot, m.buildType AS buildType, o.name AS name, o.displayName AS displayName FROM ComponentsRegistry cr "
+			"JOIN ModuleComponent m ON m.id = cr.component_id LEFT JOIN Objects o ON o.id = cr.id WHERE cr.component_type = 28;");
+		while (!result.eof()) {
+			std::string name = result.getStringField("displayName", "");
+			if (name.empty()) name = result.getStringField("name", "");
+			modules[static_cast<uint32_t>(result.getIntField("lot", 0))] = { result.getIntField("buildType", -1), name };
+			result.nextRow();
+		}
+		return modules;
+	}
+
+	// The /ugc search box: "state:" and "kind:" (or "type:") words are filters of their own, the rest is a UGC search
+	// (UgcLookup::ParseQuery: "owner:", "account:", "property:", "name:", "lot:"/"module:", "id:", or plain text)
+	struct ListSearch {
+		IUgcLookup::UgcSearch search;
+		std::optional<IUgc::eProcessState> state;
+		std::string kind;
+		std::string text; // what went to ParseQuery
+	};
+	ListSearch ParseListSearch(const std::string& input) {
+		ListSearch out;
+		std::string rest;
+		size_t start = 0;
+		while (start < input.size()) {
+			auto end = input.find(' ', start);
+			if (end == std::string::npos) end = input.size();
+			const auto word = input.substr(start, end - start);
+			const auto lower = UgcAssemblies::Lower(word);
+			if (lower.starts_with("state:") && IUgc::ParseProcessState(lower.substr(6))) out.state = IUgc::ParseProcessState(lower.substr(6));
+			else if (lower.starts_with("kind:") && lower.size() > 5) out.kind = lower.substr(5);
+			else if (lower.starts_with("type:") && lower.size() > 5) out.kind = lower.substr(5);
+			else if (!word.empty()) rest += (rest.empty() ? "" : " ") + word;
+			start = end + 1;
+		}
+		out.text = rest;
+		out.search = UgcLookup::ParseQuery(rest);
+		return out;
+	}
+
+	nlohmann::json ModulesJson(const std::vector<uint32_t>& lots) {
+		nlohmann::json out = nlohmann::json::array();
+		const auto& modules = Modules();
+		for (const auto lot : lots) {
+			const auto it = modules.find(lot);
+			out.push_back({ { "lot", lot }, { "name", it != modules.end() ? it->second.name : std::string() }, { "icon", "/api/icon/" + std::to_string(lot) } });
+		}
+		return out;
+	}
+
+	nlohmann::json EntryJson(const IUgcLookup::UgcEntry& entry) {
+		return { { "id", std::to_string(entry.id) }, { "characterId", std::to_string(entry.characterId) }, { "characterName", entry.characterName },
+			{ "accountId", entry.accountId }, { "accountName", entry.accountName }, { "state", IUgc::ProcessStateName(entry.state) }, { "attempts", entry.attempts },
+			{ "processedAt", entry.processedAt }, { "error", entry.error }, { "bakeAo", entry.bakeAo }, { "processAfter", entry.processAfter },
+			{ "detail", entry.detail }, { "bricks", entry.bricks }, { "triangles", entry.triangles } };
+	}
+
+	// Web thread: every car and rocket build (the assemblies are made from them)
+	std::vector<IUgcLookup::UgcEntry> AllBuilds(const IUgcLookup::UgcSearch& search = {}) {
+		IUgcLookup::UgcListQuery query;
+		query.search = search;
+		query.limit = 1000000;
+		return Database::Get()->ListUgc(IUgcLookup::eUgcKind::MODULAR, query).first;
+	}
+
 	// Web thread: the values stored for a target, or null
 	nlohmann::json StoredValues(const std::string& target) {
 		const auto stored = Database::Get()->GetUgcIconSettings(target);
@@ -165,35 +238,129 @@ namespace UgcRoutes {
 			[](HTTPReply& reply, const HTTPContext& context) { RenderPage(reply, context, "ugc.jinja2", "ugc"); });
 
 		Route(eHTTPMethod::GET, "/api/ugc", Perm("properties_view"),
-			"Processing state: {counts: {model, modular: {pending, done, failed}}, items: [{id, characterId, characterName, state, attempts, processedAt, "
-			"error, bakeAo, modules}], ugcPublicUrl, canManage}. Query: ?kind=model|modular&state=pending|done|failed&search=(id or owner name)&page=&size=",
+			"A page of player models (kind=model) or of car and rocket assemblies (kind=modular: one per combination of modules, however many builds use "
+			"it). Query: q= (\"state:\", \"kind:\"/\"type:\" (a build type, e.g. build6), \"owner:\", \"account:\", \"property:\", \"name:\", "
+			"\"lot:\"/\"module:\" (a LOT or a module's name), \"id:\", or plain text across names, owners and ids), state=, type=, sort=newest|oldest|owner|name|"
+			"bricks|triangles (models) or newest|oldest|references|name (assemblies), page= (from 0), size= (1-200). {items, total, page, size, counts, "
+			"kinds, ugcPublicUrl, canManage}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const bool modular = QueryValue(context.queryString, "kind") == "modular";
-				const auto state = ParseState(QueryValue(context.queryString, "state"));
+				auto parsed = ParseListSearch(QueryValue(context.queryString, "q").substr(0, 100));
+				if (const auto state = IUgc::ParseProcessState(QueryValue(context.queryString, "state"))) parsed.state = state;
+				if (const auto type = QueryValue(context.queryString, "type"); !type.empty()) parsed.kind = type;
 				const auto page = GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "page")).value_or(0);
-				const auto search = QueryValue(context.queryString, "search").substr(0, 64);
 				const auto size = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "size")).value_or(PAGE_SIZE), 1u, 200u);
-				const auto list = modular ? Database::Get()->GetModularBuildProcessList(state, search, page * size, size + 1)
-					: Database::Get()->GetUgcProcessList(state, search, page * size, size + 1);
-				// How many builds share each combination of modules (they share one icon)
-				std::map<std::string, uint64_t> reuse;
-				if (modular) {
-					for (const auto& [ldf, count] : Database::Get()->GetModularBuildConfigCounts()) reuse[UgcModularKey::Normalize(ldf)] += count;
-				}
+				const auto sortText = QueryValue(context.queryString, "sort");
 				nlohmann::json items = nlohmann::json::array();
-				for (size_t i = 0; i < list.size() && i < size; i++) {
-					const auto& info = list[i];
-					items.push_back({ { "id", std::to_string(info.id) }, { "characterId", std::to_string(info.characterId) }, { "characterName", info.characterName },
-						{ "state", StateName(info.state) }, { "attempts", info.attempts }, { "processedAt", info.processedAt }, { "error", info.error },
-						{ "bakeAo", info.bakeAo }, { "modules", info.details }, { "processAfter", info.processAfter } });
-					if (modular) {
-						const auto key = UgcModularKey::Normalize(info.details);
-						items.back()["combination"] = key;
-						items.back()["sharedBy"] = reuse[key];
+				uint64_t total = 0;
+				const auto kinds = IconKinds();
+				if (!modular) {
+					IUgcLookup::UgcListQuery query;
+					query.search = parsed.search;
+					query.state = parsed.state;
+					static const std::map<std::string, IUgcLookup::eSort> SORTS = { { "newest", IUgcLookup::eSort::NEWEST }, { "oldest", IUgcLookup::eSort::OLDEST },
+						{ "owner", IUgcLookup::eSort::OWNER }, { "name", IUgcLookup::eSort::NAME }, { "bricks", IUgcLookup::eSort::BRICKS }, { "triangles", IUgcLookup::eSort::TRIANGLES } };
+					if (const auto it = SORTS.find(sortText); it != SORTS.end()) query.sort = it->second;
+					query.offset = page * size;
+					query.limit = size;
+					const auto [entries, count] = Database::Get()->ListUgc(IUgcLookup::eUgcKind::MODEL, query);
+					total = count;
+					for (const auto& entry : entries) items.push_back(EntryJson(entry));
+				} else {
+					UgcAssemblies::Filter filter;
+					filter.state = parsed.state;
+					if (!parsed.kind.empty()) {
+						for (const auto& k : kinds) {
+							if (k.contains("buildType") && (k["kind"] == parsed.kind || UgcAssemblies::Lower(k["label"].get<std::string>()).find(parsed.kind) != std::string::npos)) {
+								filter.buildType = k["buildType"].get<int32_t>();
+								break;
+							}
+						}
+						if (!filter.buildType) filter.buildType = -2; // no such type: nothing
+					}
+					const auto& modules = Modules();
+					if (!parsed.search.text.empty() || parsed.search.number) {
+						using eField = IUgcLookup::UgcSearch::eField;
+						const auto field = parsed.search.field;
+						if (field != eField::LOT) {
+							std::set<LWOOBJID> matched;
+							for (const auto& build : AllBuilds(parsed.search)) matched.insert(build.id);
+							filter.builds = matched;
+						}
+						if (field == eField::ANY || field == eField::LOT) {
+							filter.moduleText = parsed.search.text;
+							if (parsed.search.number) filter.moduleLot = static_cast<uint32_t>(*parsed.search.number);
+						}
+					}
+					auto assemblies = UgcAssemblies::Group(AllBuilds(), modules);
+					std::erase_if(assemblies, [&](const auto& a) { return !UgcAssemblies::Matches(a, filter, modules); });
+					UgcAssemblies::Sort(assemblies, UgcAssemblies::ParseSort(sortText).value_or(UgcAssemblies::eSort::NEWEST), modules);
+					total = assemblies.size();
+					for (size_t i = static_cast<size_t>(page) * size; i < assemblies.size() && i < static_cast<size_t>(page + 1) * size; i++) {
+						const auto& a = assemblies[i];
+						std::string label, kind;
+						for (const auto& k : kinds) {
+							if (k.contains("buildType") && k["buildType"] == a.buildType) {
+								label = k["label"];
+								kind = k["kind"];
+							}
+						}
+						std::string ldf = a.key;
+						std::replace(ldf.begin(), ldf.end(), '-', '+');
+						items.push_back({ { "id", a.key }, { "key", a.key }, { "modules", ldf }, { "moduleList", ModulesJson(a.lots) }, { "buildType", a.buildType },
+							{ "kind", kind }, { "kindLabel", label }, { "state", IUgc::ProcessStateName(a.state) }, { "error", a.error }, { "uses", a.builds.size() },
+							{ "owners", a.owners.size() }, { "iconBuild", std::to_string(a.iconBuild) }, { "newestBuild", std::to_string(a.builds.front()) },
+							{ "storageId", std::to_string(UgcModularKey::StorageId(a.key)) } });
 					}
 				}
 				JsonSuccess(reply, { { "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } },
-					{ "items", items }, { "more", list.size() > size }, { "ugcPublicUrl", Game::config->GetValue("ugc_public_url") }, { "canManage", Can(context, "ugc_manage") } });
+					{ "items", items }, { "total", total }, { "page", page }, { "size", size }, { "more", static_cast<uint64_t>(page + 1) * size < total }, { "kinds", kinds },
+					{ "ugcPublicUrl", Game::config->GetValue("ugc_public_url") }, { "canManage", Can(context, "ugc_manage") } });
+			});
+
+		Route(eHTTPMethod::GET, "/api/ugc/assembly/builds", Perm("properties_view"),
+			"The builds (ugc_modular_build rows) that use a combination of modules: {items: [{id, characterId, characterName, accountId, accountName, state, "
+			"attempts, processedAt, error, where: [{type: property|mail|inventory, ...}]}], total, page, size}. Query: modules= (the combination), q= (owner, "
+			"account, property or id, as the list's search), page=, size=, build= (a build to show: the page holding it is given)",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				auto asked = QueryValue(context.queryString, "modules");
+				std::replace(asked.begin(), asked.end(), '-', '+');
+				const auto key = UgcModularKey::Normalize(asked);
+				if (key.empty()) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "No modules");
+				const auto parsed = ParseListSearch(QueryValue(context.queryString, "q").substr(0, 100));
+				auto builds = AllBuilds(parsed.search);
+				std::erase_if(builds, [&](const auto& b) { return UgcModularKey::Normalize(b.detail) != key || (parsed.state && b.state != *parsed.state); });
+				std::sort(builds.begin(), builds.end(), [](const auto& a, const auto& b) { return a.id > b.id; });
+				const auto size = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "size")).value_or(25), 1u, 200u);
+				auto page = GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "page")).value_or(0);
+				if (const auto wanted = GeneralUtils::TryParse<LWOOBJID>(QueryValue(context.queryString, "build"))) {
+					const auto it = std::find_if(builds.begin(), builds.end(), [&](const auto& b) { return b.id == *wanted; });
+					if (it != builds.end()) page = static_cast<uint32_t>((it - builds.begin()) / size);
+				}
+				std::vector<IUgcLookup::UgcEntry> shown;
+				for (size_t i = static_cast<size_t>(page) * size; i < builds.size() && i < static_cast<size_t>(page + 1) * size; i++) shown.push_back(builds[i]);
+				const auto where = UgcLinks::Whereabouts(shown);
+				nlohmann::json items = nlohmann::json::array();
+				for (const auto& build : shown) {
+					auto item = EntryJson(build);
+					const auto found = where.find(build.id);
+					item["where"] = found == where.end() ? nlohmann::json::array() : found->second;
+					items.push_back(std::move(item));
+				}
+				JsonSuccess(reply, { { "items", items }, { "total", builds.size() }, { "page", page }, { "size", size }, { "key", key } });
+			});
+
+		Route(eHTTPMethod::GET, "/api/ugc/assembly/of/:id", Perm("properties_view"),
+			"The assembly (combination of modules) a car or rocket build uses: {key, modules}",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto id = PathId<LWOOBJID>(context.path, 4);
+				if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
+				const auto info = Database::Get()->GetModularBuildProcessInfo(*id);
+				if (!info) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No such build");
+				const auto key = UgcModularKey::Normalize(info->details);
+				std::string ldf = key;
+				std::replace(ldf.begin(), ldf.end(), '-', '+');
+				JsonSuccess(reply, { { "key", key }, { "modules", ldf }, { "moduleList", ModulesJson(UgcModularKey::Lots(ldf)) } });
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/:id/lxfml", Perm("properties_view"), "A player model's LXFML",

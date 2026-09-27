@@ -19,15 +19,45 @@ namespace UgcLookupSql {
 		return list;
 	}
 
-	// The columns every entry query selects, for models (ugc AS u) or modular builds (ugc_modular_build AS b)
-	inline std::string Select(bool modular) {
+	// The tables every entry query reads, for models (ugc AS u) or modular builds (ugc_modular_build AS b)
+	inline std::string From(bool modular) {
 		return modular
+			? "FROM ugc_modular_build AS b LEFT JOIN charinfo AS c ON c.id = b.character_id LEFT JOIN accounts AS a ON a.id = c.account_id "
+			: "FROM ugc AS u LEFT JOIN charinfo AS c ON c.id = u.character_id LEFT JOIN accounts AS a ON a.id = u.account_id ";
+	}
+
+	// The columns every entry query selects
+	inline std::string Select(bool modular) {
+		return (modular
 			? "SELECT b.ugc_id AS id, b.character_id, c.name AS character_name, COALESCE(c.account_id, 0) AS account_id, a.name AS account_name, "
-			  "b.is_optimized, b.process_error, b.ldf_config AS detail FROM ugc_modular_build AS b "
-			  "LEFT JOIN charinfo AS c ON c.id = b.character_id LEFT JOIN accounts AS a ON a.id = c.account_id "
+			  "b.is_optimized, b.process_error, b.ldf_config AS detail, b.process_attempts, b.processed_at, 0 AS process_after, 0 AS bake_ao, "
+			  "0 AS brick_count, 0 AS triangle_count "
 			: "SELECT u.id, u.character_id, c.name AS character_name, u.account_id, a.name AS account_name, "
-			  "u.is_optimized, u.process_error, u.filename AS detail FROM ugc AS u "
-			  "LEFT JOIN charinfo AS c ON c.id = u.character_id LEFT JOIN accounts AS a ON a.id = u.account_id ";
+			  "u.is_optimized, u.process_error, u.filename AS detail, u.process_attempts, u.processed_at, u.process_after, u.bake_ao, "
+			  "u.brick_count, u.triangle_count ") + From(modular);
+	}
+
+	// Whether a search has anything to match (else a list is of everything)
+	inline bool Searching(const IUgcLookup::UgcSearch& search) { return !search.text.empty() || search.number.has_value(); }
+
+	// A list's state filter and order (after Where, or "WHERE 1=1 " when not searching)
+	inline std::string ListFilter(const IUgcLookup::UgcListQuery& query, bool modular) {
+		const std::string table = modular ? "b." : "u.";
+		std::string sql = query.state ? "AND " + table + "is_optimized = " + std::to_string(static_cast<int32_t>(*query.state)) + " " : "";
+		return sql;
+	}
+
+	inline std::string ListOrder(const IUgcLookup::UgcListQuery& query, bool modular) {
+		using eSort = IUgcLookup::eSort;
+		const std::string id = modular ? "b.ugc_id" : "u.id";
+		switch (query.sort) {
+		case eSort::OLDEST: return "ORDER BY " + id + " ASC ";
+		case eSort::OWNER: return "ORDER BY c.name ASC, " + id + " DESC ";
+		case eSort::NAME: return std::string("ORDER BY ") + (modular ? "b.ldf_config" : "u.filename") + " ASC, " + id + " DESC ";
+		case eSort::BRICKS: return modular ? "ORDER BY " + id + " DESC " : "ORDER BY u.brick_count DESC, u.id DESC ";
+		case eSort::TRIANGLES: return modular ? "ORDER BY " + id + " DESC " : "ORDER BY u.triangle_count DESC, u.id DESC ";
+		default: return "ORDER BY " + id + " DESC ";
+		}
 	}
 
 	// WHERE for a search; binds the search's %text% TEXT_BINDS times

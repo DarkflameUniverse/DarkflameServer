@@ -180,3 +180,7 @@ void SQLiteDatabase::ExpediteUgcModel(const LWOOBJID id) {
 void SQLiteDatabase::ExpediteUgcModels(const LWOOBJID characterId) {
 	ExecuteUpdate("UPDATE ugc SET process_after = 0 WHERE character_id = ? AND is_optimized = 0 AND process_after > 0;", characterId);
 }
+
+void SQLiteDatabase::SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles) {
+	ExecuteUpdate("UPDATE ugc SET brick_count = ?, triangle_count = ? WHERE id = ?;", bricks, triangles, id);
+}

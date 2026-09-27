@@ -30,6 +30,12 @@ public:
 		IUgc::eProcessState state{};
 		std::string error;          // why the UGC server failed, if it did
 		std::string detail;         // models: the file name it was uploaded as; modular builds: the modules
+		uint32_t attempts{};
+		int64_t processedAt{};      // Unix seconds of the UGC server's last attempt, 0 for none
+		int64_t processAfter{};     // models: the end of the quiet period after a save
+		bool bakeAo{};
+		uint32_t bricks{};          // models: counted by the UGC server when it made them (0: not yet)
+		uint32_t triangles{};       // models: of the made mesh's most detailed level (0: not yet)
 	};
 
 	// What SearchUgc matches. A number (when set) is matched against ids; text against names
@@ -46,6 +52,27 @@ public:
 		std::string text;              // matched as a part of names; empty for none
 		std::optional<int64_t> number; // matched exactly against ids
 	};
+
+	enum class eSort : uint8_t {
+		NEWEST,    // the highest id first (ids are handed out in order)
+		OLDEST,
+		OWNER,     // the creator's character name
+		NAME,      // models: the upload's file name; modular builds: the modules
+		BRICKS,    // models: the most bricks first
+		TRIANGLES, // models: the most triangles first
+	};
+
+	// A page of one kind: all of them or those matching the search (the same matching as SearchUgc), in a state or any
+	struct UgcListQuery {
+		UgcSearch search;
+		std::optional<IUgc::eProcessState> state;
+		eSort sort{ eSort::NEWEST };
+		uint32_t offset{};
+		uint32_t limit{ 50 };
+	};
+
+	// The page and how many match in all
+	virtual std::pair<std::vector<UgcEntry>, uint64_t> ListUgc(const eUgcKind kind, const UgcListQuery& query) = 0;
 
 	// Up to `limit` of each kind, the newest first
 	virtual std::vector<UgcEntry> SearchUgc(const UgcSearch& search, const uint32_t limit) = 0;
