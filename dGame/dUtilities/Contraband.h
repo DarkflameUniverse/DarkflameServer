@@ -9,10 +9,9 @@
 #include "dCommonVars.h"
 #include "eInventoryType.h"
 #include "eLootSourceType.h"
-#include "IContraband.h"
+#include "ContrabandRules.h"
 
 class Entity;
-enum class eGameMasterLevel : uint8_t;
 
 /**
  * Contraband (issue #1563): items staff don't want players to have, listed on the dashboard's Contraband page
@@ -29,32 +28,7 @@ enum class eGameMasterLevel : uint8_t;
  * Staff accounts (GM level above civilian) are not checked unless contraband_ignore_staff is 0.
  */
 namespace Contraband {
-	struct Entry {
-		std::string reason;
-		IContraband::eContrabandAction action{};
-	};
-
-	using List = std::map<LOT, Entry>;
-
-	struct HeldItem {
-		LWOOBJID id{};
-		LOT lot{};
-		uint32_t count{};
-		eInventoryType inventory{};
-	};
-
-	struct Finding {
-		HeldItem item;
-		Entry entry;
-	};
-
-	// ---- Pure rules, unit tested ----
-
-	// The held items that are on the list, in the order given
-	std::vector<Finding> Find(const std::vector<HeldItem>& items, const List& list);
-
-	// Whether an account at this GM level is checked
-	bool Applies(eGameMasterLevel accountLevel, bool ignoreStaff);
+	// ---- Pure rules, unit tested (Entry, List, HeldItem, Finding, Find and Applies are in ContrabandRules.h) ----
 
 	// Whether an added item should be checked: moves between a player's own inventories are not new items
 	bool CountsAsAdded(eLootSourceType source, eInventoryType sourceInventory);

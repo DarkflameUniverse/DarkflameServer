@@ -335,11 +335,13 @@
 			</div>
 			<div class="modal-body">
 				<div class="alert alert-danger small">Saving replaces all of this character's data. If the player is online they are disconnected first. Invalid data can make the character unplayable.</div>
+				<div id="xmlFindings" class="d-none"></div>
 				<textarea id="xmlEditor" class="form-control font-monospace" rows="24" spellcheck="false"></textarea>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-				<button type="button" class="btn btn-danger" onclick="saveXml()">Save</button>
+				<button type="button" class="btn btn-warning d-none" id="xmlConfirm" onclick="saveXml(true)">Save anyway</button>
+				<button type="button" class="btn btn-danger" onclick="saveXml(false)">Save</button>
 			</div>
 		</div>
 	</div>
@@ -575,16 +577,40 @@ function prettyXml(xml) {
 function openXmlEditor() {
 	var editor = document.getElementById('xmlEditor');
 	editor.value = 'Loading…';
+	showXmlFindings({});
+	editor.oninput = function () { document.getElementById('xmlConfirm').classList.add('d-none'); }; // changed XML is checked again
 	new bootstrap.Modal(document.getElementById('xmlModal')).show();
 	api.get('/api/characters/' + characterId + '/xml').then(function (r) { editor.value = prettyXml(r.text || ''); });
 }
 
-function saveXml() {
-	if (!confirm('Replace this character\'s data?')) return;
-	api.action('/api/characters/' + characterId + '/xml', { xml: document.getElementById('xmlEditor').value }).then(function (d) {
-		return d.result;
-	}).then(function (r) {
-		if (r && r.success) location.reload();
+// The server checks the XML first: problems the game can't load refuse it, suspicious content (contraband and values
+// out of reach) needs "Save anyway"
+function showXmlFindings(d) {
+	var box = document.getElementById('xmlFindings');
+	var list = function (items) { return '<ul class="mb-0">' + items.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; };
+	var html = '';
+	if (d.errors && d.errors.length) html += '<div class="alert alert-danger small"><strong>' + esc(d.error || 'The XML was not stored') + '</strong>' + list(d.errors) + '</div>';
+	if (d.warnings && d.warnings.length) html += '<div class="alert alert-warning small"><strong>Warnings</strong>' + list(d.warnings) +
+		((d.contraband || []).some(function (c) { return c.action === 'remove'; })
+			? '<div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="xmlRemoveContraband" checked><label class="form-check-label" for="xmlRemoveContraband">Remove the contraband marked "flag and remove" before storing</label></div>'
+			: '') + '<div class="mt-1">Contraband is flagged and the warnings are audited either way.</div></div>';
+	box.innerHTML = html;
+	box.classList.toggle('d-none', !html);
+	document.getElementById('xmlConfirm').classList.toggle('d-none', !d.confirm_required);
+	box.scrollIntoView({ block: 'nearest' });
+}
+
+function saveXml(confirmed) {
+	if (!confirmed && !confirm('Replace this character\'s data?')) return;
+	var remove = document.getElementById('xmlRemoveContraband');
+	api.post('/api/characters/' + characterId + '/xml', { xml: document.getElementById('xmlEditor').value, confirm: !!confirmed, remove_contraband: !!(remove && remove.checked) }).then(function (d) {
+		if (!d.success) { showXmlFindings(d); if (!d.errors && !d.confirm_required) toast(d.error || 'Request failed', 'danger'); return; }
+		showXmlFindings({});
+		if (!d.requestId) return;
+		Live.waitForAction(d.requestId).then(function (r) {
+			if (r.message) toast(r.message, r.success ? 'info' : 'danger');
+			if (r.success) location.reload();
+		});
 	}).catch(function () {});
 }
 

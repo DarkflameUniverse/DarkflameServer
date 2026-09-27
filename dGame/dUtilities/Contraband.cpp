@@ -85,20 +85,6 @@ namespace {
 }
 
 namespace Contraband {
-	std::vector<Finding> Find(const std::vector<HeldItem>& items, const List& list) {
-		std::vector<Finding> found;
-		if (list.empty()) return found;
-		for (const auto& item : items) {
-			const auto it = list.find(item.lot);
-			if (it != list.end() && item.count > 0) found.push_back({ item, it->second });
-		}
-		return found;
-	}
-
-	bool Applies(eGameMasterLevel accountLevel, bool ignoreStaff) {
-		return !ignoreStaff || accountLevel <= eGameMasterLevel::CIVILIAN;
-	}
-
 	bool CountsAsAdded(eLootSourceType source, eInventoryType sourceInventory) {
 		return sourceInventory == eInventoryType::INVALID && source != eLootSourceType::RELOCATE && source != eLootSourceType::INVENTORY;
 	}

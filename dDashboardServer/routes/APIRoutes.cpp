@@ -13,6 +13,7 @@
 #include "CharacterTools.h"
 #include "ClientAssets.h"
 #include "CharacterXml.h"
+#include "CharacterXmlCheck.h"
 #include "Scenery.h"
 #include "Workers.h"
 #include "LiveWorld.h"
@@ -133,6 +134,45 @@ namespace {
 			return std::nullopt;
 		}
 		return info->accountId;
+	}
+
+	// Checks an uploaded character XML (CharacterXmlCheck) with the CDClient, the contraband list and the owner's account
+	CharacterXmlCheck::Result CheckUploadedCharacterXml(const std::string& xml, uint32_t ownerAccountId) {
+		CharacterXmlCheck::Context context;
+		context.ownerAccountId = ownerAccountId;
+		const auto account = Database::Get()->GetAccountById(ownerAccountId);
+		context.accountGmLevel = account.is_object() && account.contains("gm_level") && account["gm_level"].is_number() ? account["gm_level"].get<int32_t>() : 0;
+		context.contrabandApplies = Contraband::Applies(static_cast<eGameMasterLevel>(context.accountGmLevel), ConfigFlag("contraband_ignore_staff", true));
+		for (const auto& item : Database::Get()->GetContrabandItems()) context.contraband[item.lot] = { item.reason, item.action };
+
+		auto& lookups = context.lookups;
+		lookups.isItem = [](LOT lot) {
+			auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT 1 FROM ComponentsRegistry WHERE id = ? AND component_type = 11 LIMIT 1;");
+			stmt.bind(1, static_cast<int32_t>(lot));
+			return !stmt.execQuery().eof();
+		};
+		lookups.stackSize = [](LOT lot) {
+			auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT ic.stackSize FROM ComponentsRegistry cr JOIN ItemComponent ic ON ic.id = cr.component_id "
+				"WHERE cr.id = ? AND cr.component_type = 11 LIMIT 1;");
+			stmt.bind(1, static_cast<int32_t>(lot));
+			auto result = stmt.execQuery();
+			return result.eof() ? 0 : result.getIntField(0, 0);
+		};
+		lookups.missionExists = [](int32_t id) {
+			auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT 1 FROM Missions WHERE id = ? LIMIT 1;");
+			stmt.bind(1, id);
+			return !stmt.execQuery().eof();
+		};
+		lookups.levelUScore = [](uint32_t level) -> std::optional<int64_t> {
+			auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT requiredUScore FROM LevelProgressionLookup WHERE id = ?;");
+			stmt.bind(1, static_cast<int32_t>(level));
+			auto result = stmt.execQuery();
+			if (result.eof()) return std::nullopt;
+			return result.getInt64Field(0, 0);
+		};
+		auto maxLevel = CDClientDatabase::ExecuteQuery("SELECT MAX(id) FROM LevelProgressionLookup;");
+		if (!maxLevel.eof()) lookups.maxLevel = static_cast<uint32_t>(maxLevel.getIntField(0, 0));
+		return CharacterXmlCheck::Check(xml, context);
 	}
 
 	// Random play key in the XXXX-XXXX-XXXX-XXXX format used by NexusDashboard
@@ -811,7 +851,9 @@ namespace {
 				JsonSuccess(reply, { {"requestId", requestId}, {"message", "Rescue requested"} });
 			});
 
-		Route(eHTTPMethod::POST, "/api/characters/:id/xml", Perm("characters_edit_xml"), "Replace a character's XML (enable_char_xml_upload=1). Disconnects the owner first. Body: {xml}",
+		Route(eHTTPMethod::POST, "/api/characters/:id/xml", Perm("characters_edit_xml"), "Replace a character's XML (enable_char_xml_upload=1). Disconnects the owner first. "
+			"Refused (400, errors) when the game couldn't load it; suspicious content (contraband, out of reach values) needs confirm=true (409, warnings). "
+			"Body: {xml, confirm, remove_contraband}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				if (!ConfigFlag("enable_char_xml_upload", false)) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "Character XML upload is disabled (enable_char_xml_upload)");
 				const auto charId = RequireId<LWOOBJID>(context, 2, reply);
@@ -821,21 +863,59 @@ namespace {
 				const auto owner = CharacterOwner(*charId, reply);
 				if (!owner || !AuthorizeAccountAction(context, *owner, reply, eAccountAction::ITEMS)) return;
 
-				const std::string xml = body->value("xml", "");
-				tinyxml2::XMLDocument doc;
-				if (xml.empty() || doc.Parse(xml.c_str()) != tinyxml2::XML_SUCCESS) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "That is not valid XML");
-				if (!doc.FirstChildElement("obj") || !doc.FirstChildElement("obj")->FirstChildElement("char")) {
-					return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Character XML must have an <obj> root with a <char> element");
+				const std::string xml = body->is_object() && (*body)["xml"].is_string() ? (*body)["xml"].get<std::string>() : std::string();
+				const auto check = CheckUploadedCharacterXml(xml, *owner);
+				if (!check.Ok()) {
+					return JsonReply(reply, eHTTPStatusCode::BAD_REQUEST, { {"success", false},
+						{"error", "The XML was not stored: " + std::to_string(check.errors.size()) + (check.errors.size() >= CharacterXmlCheck::MAX_REPORTED ? "+" : "") + " problem(s) the game can't load"},
+						{"errors", check.errors}, {"warnings", check.warnings} });
 				}
+				nlohmann::json contraband = nlohmann::json::array();
+				for (const auto& found : check.contraband) {
+					contraband.push_back({ {"id", std::to_string(found.item.id)}, {"lot", found.item.lot}, {"name", ClientAssets::ItemName(found.item.lot)}, {"count", found.item.count},
+						{"inventory", InventoryType::InventoryTypeToString(found.item.inventory)}, {"reason", found.entry.reason},
+						{"action", found.entry.action == IContraband::eContrabandAction::REMOVE ? "remove" : "flag"} });
+				}
+				if (!check.warnings.empty() && !body->value("confirm", false)) {
+					return JsonReply(reply, eHTTPStatusCode::CONFLICT, { {"success", false}, {"confirm_required", true},
+						{"error", "Check the warnings and confirm to store this XML"}, {"warnings", check.warnings}, {"contraband", contraband} });
+				}
+
+				// Contraband marked "flag and remove" only goes when the uploader chose so
+				const bool removeContraband = body->value("remove_contraband", false);
+				std::set<LWOOBJID> removeIds;
+				if (removeContraband) for (const auto& found : check.contraband) if (found.entry.action == IContraband::eContrabandAction::REMOVE) removeIds.insert(found.item.id);
 				// Store compactly like the game does
+				tinyxml2::XMLDocument doc;
+				doc.Parse(xml.c_str());
 				tinyxml2::XMLPrinter printer(nullptr, true);
 				doc.Print(&printer);
-				const std::string compact = printer.CStr();
+				const std::string compact = removeIds.empty() ? std::string(printer.CStr()) : CharacterXmlCheck::RemoveItems(printer.CStr(), removeIds);
 
-				// Through the safe path: the owner is disconnected first and the current version is kept as a snapshot
+				// Through the safe path: the owner is disconnected first and the current version is kept as a snapshot.
+				// Once stored, what the checks found is flagged and audited like the world's own contraband check.
+				const auto target = *charId;
+				const auto ownerId = *owner;
+				const auto actor = context.authenticatedUser;
+				const auto actorId = context.accountId;
+				const auto findings = check.contraband;
+				const auto warnings = check.warnings;
 				const auto requestId = WriteCharacterXml(*charId, *owner, context.authenticatedUser, context.accountId, "XML upload",
-					[compact](const std::string&, std::string&) { return std::optional<std::string>(compact); });
-				JsonSuccess(reply, { {"requestId", requestId}, {"message", "Uploading"} });
+					[compact](const std::string&, std::string&) { return std::optional<std::string>(compact); }, nullptr,
+					[target, ownerId, actor, actorId, findings, warnings, removeIds](const PlayerActions::Outcome& outcome) {
+						if (!outcome.success || warnings.empty()) return;
+						const auto today = static_cast<uint32_t>(std::time(nullptr) / 86400);
+						for (const auto& found : findings) {
+							const bool removed = removeIds.contains(found.item.id);
+							Database::Get()->InsertEconomyFlag({ today, IDashboardAdmin::eFlagKind::CONTRABAND, target, found.item.lot, found.item.id, found.item.count, removed ? 1 : 0,
+								std::string(removed ? "Removed from" : "Kept in") + " an uploaded character XML (" + InventoryType::InventoryTypeToString(found.item.inventory) + ", by " + actor + "): " + found.entry.reason });
+						}
+						std::string text = "Character " + std::to_string(target) + " XML uploaded with " + std::to_string(warnings.size()) + " warning(s)" +
+							(removeIds.empty() ? "" : ", " + std::to_string(removeIds.size()) + " contraband item stack(s) removed") + ":";
+						for (const auto& warning : warnings) text += "\n- " + warning;
+						Database::Get()->InsertAuditLog(actorId, actor, "character_xml_warnings", text, ownerId, target);
+					});
+				JsonSuccess(reply, { {"requestId", requestId}, {"message", "Uploading"}, {"warnings", check.warnings}, {"removed", removeIds.size()} });
 			});
 
 		Route(eHTTPMethod::GET, "/api/characters/:id/mail", 0, "A character's mailbox (up to 100 most recent). With characters_mail, or the character's owner",

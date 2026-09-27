@@ -17,6 +17,7 @@ set(DWEBTESTS_SOURCES
 	"SettingsCatalogTests.cpp"
 	"BehaviorXmlTests.cpp"
 	"CharacterXmlTests.cpp"
+	"CharacterXmlCheckTests.cpp"
 	"CharacterRestoreTests.cpp"
 	"ZonePathsTests.cpp"
 	"RawTerrainTests.cpp"

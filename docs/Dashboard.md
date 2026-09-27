@@ -680,6 +680,14 @@ shows under the account's related data); that world saves nothing more for the c
 connected to it is disconnected (the client's save failure message) so they load the newer data.
 
 - **Edit** (GM 8+, `characters_edit`): coins, U-score, level, and adding or removing items.
+- **Edit XML** (GM 8+, `characters_edit_xml`, needs `enable_char_xml_upload=1`): replace the whole character XML. The
+  upload is checked against everything the game assumes when it loads a character (required elements, numbers that
+  must parse, known inventory types and mission states, items and missions that exist, unique item IDs and slots, the
+  `acct` attribute matching the owner) and refused with the list of problems if the game couldn't load it. Suspicious
+  content (contraband, stacks above the item's stack size, coins, level or U-score out of reach, a GM level above the
+  account's) is shown as warnings and needs **Save anyway**; contraband marked *flag and remove* is taken out only if
+  you tick the box, and either way it is flagged (kind *Contraband*) and the warnings are audited
+  (`character_xml_warnings`).
 - **History** (GM 3+, `characters_history`): earlier versions of the character. Each one shows what differs from
   now, can be downloaded as XML, and (with `characters_edit`) restored. The `character_snapshots` task saves every
   character that changed once a day; old snapshots are removed after `snapshot_days` (90), but each character always
