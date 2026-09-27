@@ -19,6 +19,7 @@
 #include "GameMessages.h"
 #include "InventoryMessages.h"
 #include "Database.h"
+#include "CDModularBuildComponentTable.h"
 #include "SkillMessages.h"
 #include "MovementMessages.h"
 #include "SkillComponent.h"
@@ -610,6 +611,27 @@ bool InventoryComponent::HasSpaceForLoot(const Loot::Return& loot) {
 	return true;
 }
 
+namespace {
+	/**
+	 * Cars and rockets built before builds were recorded have no subkey, so the client has no blueprint id to ask for
+	 * their icon with. Give such an item what a new build gets (ModularBuildFinish): a persistent id as its subkey and a
+	 * ugc_modular_build row with its modules. The next save keeps the subkey. Main thread (character load).
+	 */
+	void AssignModularBuildId(Item& item, Entity* owner) {
+		if (item.GetSubKey() != LWOOBJID_EMPTY || !CDClientManager::GetTable<CDModularBuildComponentTable>()->IsCreatedLot(item.GetLot())) return;
+		const auto& config = item.GetConfig();
+		const auto modules = config.find(u"assemblyPartLOTs");
+		if (modules == config.values.end() || !modules->second) return;
+		const auto modulesText = modules->second->GetValueAsString();
+		if (modulesText.empty()) return;
+		const auto id = ObjectIDManager::GetPersistentID();
+		auto* character = owner ? owner->GetCharacter() : nullptr;
+		Database::Get()->InsertUgcBuild(modulesText, id, character ? std::optional(character->GetID()) : std::nullopt);
+		item.SetSubKey(id);
+		LOG("Gave the %i build %llu (made before builds were recorded) the build id %llu", item.GetLot(), item.GetId(), id);
+	}
+}
+
 void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 	LoadPetXml(document);
 
@@ -712,6 +734,7 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
 			item->LoadConfigXml(*itemElement);
+			AssignModularBuildId(*item, m_Parent);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);

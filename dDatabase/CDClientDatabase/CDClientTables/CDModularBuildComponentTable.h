@@ -21,6 +21,9 @@ public:
 	// The first build made of this many parts
 	std::optional<CDModularBuildComponent> GetByNumberOfParts(uint32_t numberOfParts) const;
 
+	// Whether a LOT is the item some build becomes (a car or rocket)
+	bool IsCreatedLot(LOT lot) const;
+
 	// Fills numberOfParts and rootPartExampleLOT from a ModularBuildComponent.xml
 	static void ParseXml(std::string_view xml, CDModularBuildComponent& build);
 	static std::optional<CDModularBuildComponent> FindByNumberOfParts(const std::vector<CDModularBuildComponent>& builds, uint32_t numberOfParts);

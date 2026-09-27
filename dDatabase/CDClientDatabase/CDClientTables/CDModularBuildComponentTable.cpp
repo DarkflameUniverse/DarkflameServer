@@ -1,5 +1,7 @@
 #include "CDModularBuildComponentTable.h"
 
+#include <algorithm>
+
 #include <regex>
 #include <string>
 
@@ -54,4 +56,9 @@ std::optional<CDModularBuildComponent> CDModularBuildComponentTable::FindByNumbe
 
 std::optional<CDModularBuildComponent> CDModularBuildComponentTable::GetByNumberOfParts(const uint32_t numberOfParts) const {
 	return FindByNumberOfParts(GetEntries(), numberOfParts);
+}
+
+bool CDModularBuildComponentTable::IsCreatedLot(LOT lot) const {
+	const auto& entries = GetEntries();
+	return std::any_of(entries.begin(), entries.end(), [lot](const CDModularBuildComponent& build) { return build.createdLOT == lot; });
 }
