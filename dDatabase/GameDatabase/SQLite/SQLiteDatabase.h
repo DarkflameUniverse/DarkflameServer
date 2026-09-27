@@ -199,6 +199,12 @@ public:
 	std::vector<ZoneLimit> GetZoneLimits() override;
 	void SetZoneLimit(const ZoneLimit& limit) override;
 	void DeleteZoneLimit(uint32_t zoneId) override;
+	// IPropertyReputation
+	VisitorHistory GetPropertyVisitorHistory(LWOOBJID propertyId, uint32_t accountId, uint32_t day, uint32_t days) override;
+	int64_t GetPropertyReputationOnDay(LWOOBJID propertyId, uint32_t day) override;
+	void AddPropertyReputation(LWOOBJID propertyId, uint32_t accountId, uint32_t day, int64_t points, int64_t seconds) override;
+	nlohmann::json GetPropertyReputationDays(LWOOBJID propertyId, uint32_t fromDay) override;
+
 	// IPropertyRent
 	std::vector<RentRate> GetPropertyRentRates() override;
 	void SetPropertyRentRate(const RentRate& rate) override;

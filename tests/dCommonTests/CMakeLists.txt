@@ -27,6 +27,7 @@ set(DCOMMONTEST_SOURCES
 	"ProcessAndLimitsTests.cpp"
 	"HotPropertySlotsTests.cpp"
 	"PropertyRentRulesTests.cpp"
+	"PropertyReputationRulesTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)

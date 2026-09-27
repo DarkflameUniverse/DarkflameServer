@@ -187,6 +187,20 @@ namespace {
 		c.Add(Bool(WORLD, "property_rent_enabled", "Charge rent", "Rent is taken from the owner's coins when they log in. Unpaid rent makes the property private until it is paid.", false));
 		c.Add(When(Unit(Int(WORLD, "property_rent_grace_days", "Grace period", "How long rent can be unpaid before the property is made private.", "3", 0, 365), "days"), WORLD, "property_rent_enabled", { "1" }));
 
+		c.AddSection("Property reputation", "Visitors earn properties reputation, which orders the property lists and the news screen's Today's Top Properties. "
+			"Only time other people spend moving around a property counts, with limits against farming it (see the dashboard documentation).");
+		c.Add(Bool(WORLD, "property_reputation_enabled", "Properties earn reputation", "", true));
+		c.Add(When(Unit(Int(WORLD, "property_reputation_min_visit", "Minimum visit", "A visit earns nothing before this (live's property reputation delay).", "120", 0, 3600), "seconds"), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Unit(Float(WORLD, "property_reputation_multiplier", "Points per minute", "Times the property's reputationPerMinute (1). Raise it for small servers.", "1", 0, 1000), "×"), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Unit(Int(WORLD, "property_reputation_max_minutes", "Minutes per visit", "At most this many minutes of one visit count.", "30", 1, 1440), "minutes"), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Unit(Int(WORLD, "property_reputation_visitor_daily_cap", "Per visitor per day", "Most one account can give one property in a day.", "30", 0, 100000), "points"), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Unit(Int(WORLD, "property_reputation_daily_cap", "Per property per day", "Most a property can get in a day from everyone.", "300", 0, 10000000), "points"), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Float(WORLD, "property_reputation_repeat_falloff", "Repeat visitor falloff", "A visitor who gave the property reputation on d recent days earns 1 / (1 + this × d) as much.", "0.5", 0, 100), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Unit(Int(WORLD, "property_reputation_repeat_days", "Recent days", "How far back repeat visits are counted.", "30", 1, 365), "days"), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Bool(WORLD, "property_reputation_require_activity", "Only active visitors", "A minute only counts if the visitor moved; idle characters earn nothing.", true), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Bool(WORLD, "property_reputation_ignore_staff", "Ignore staff", "Accounts with a GM level don't give reputation.", true), WORLD, "property_reputation_enabled", { "1" }));
+		c.Add(When(Bool(WORLD, "property_reputation_ignore_linked", "Ignore linked accounts", "Accounts sharing a play key, email or login address with the owner's don't give reputation.", true), WORLD, "property_reputation_enabled", { "1" }));
+
 		c.AddSection("Events", "Event flags sent at login; they switch on event content in levels (e.g. Talk_Like_A_Pirate).", eLayout::GRID);
 		for (int i = 1; i <= 8; i++) c.Add(Text(SHARED, "event_" + std::to_string(i), "Event " + std::to_string(i), "", ""));
 

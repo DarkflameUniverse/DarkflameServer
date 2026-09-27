@@ -20,6 +20,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"FeaturedProperties.cpp"
 	"Contraband.cpp"
 	"PropertyRent.cpp"
+	"PropertyReputation.cpp"
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"RelatedData.cpp"

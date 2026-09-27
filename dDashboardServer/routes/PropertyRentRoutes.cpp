@@ -97,6 +97,16 @@ namespace PropertyRentRoutes {
 				JsonSuccess(reply, { {"message", "Rent for " + name + " saved"} });
 			});
 
+		Route(eHTTPMethod::GET, "/api/properties/:id/reputation", Perm("properties_view"),
+			"Reputation a property got from visitors in the last 30 days: {reputation, days: [{day, visitors, points, seconds}]} (days since the Unix epoch, newest first)",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto propertyId = PathId<LWOOBJID>(context.path, 2);
+				const auto info = propertyId ? Database::Get()->GetPropertyInfo(*propertyId) : std::nullopt;
+				if (!info) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Property not found");
+				const auto today = static_cast<uint32_t>(std::time(nullptr) / PropertyRentRules::DAY);
+				JsonSuccess(reply, { {"reputation", info->reputation}, {"days", Database::Get()->GetPropertyReputationDays(*propertyId, today >= 30 ? today - 30 : 0)} });
+			});
+
 		Route(eHTTPMethod::POST, "/api/property_rent/delete", Perm("property_rent_manage"), "Go back to the template's rent for a property world. Body: {mapId}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);

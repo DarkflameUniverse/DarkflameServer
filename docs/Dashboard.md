@@ -899,6 +899,36 @@ property is made private. It can't be made public or best friends only again unt
 told in chat when they try), and a property world that loads with overdue rent makes itself private too. Nothing on
 the property changes. The property's page shows the rent last charged and when the next is due.
 
+### Property reputation
+
+Properties earn reputation from visitors; it orders the in-game property lists and the news screen's **Today's Top
+Properties**, and the showcase. Live first gave 1 point per minute a visitor spent on a property (each
+PropertyTemplate's `reputationPerMinute` is 1) and later replaced that with an unpublished algorithm because it was
+easy to farm. The client only displays the number the server sends, so the server decides. This one keeps "time
+other people spend on the property" as the signal and makes farming it expensive (settings under Gameplay, Property
+reputation; the code is `dCommon/PropertyReputationRules.h`):
+
+1. **Only other people.** Visitors are counted per account, so the owner's characters never count and one account
+   with several characters on the property is one visitor. Accounts linked to the owner's (same play key, email or
+   login address, as on the Linked accounts panel; `property_reputation_ignore_linked`) and staff
+   (`property_reputation_ignore_staff`) don't count either.
+2. **A minimum visit.** Nothing for the first `property_reputation_min_visit` seconds (120, WorldConfig's
+   `propertyReputationDelay`), so hopping in and out does nothing.
+3. **Active minutes.** Once a minute, a visitor who moved at least 2 units since the last minute
+   (`property_reputation_require_activity`) earns `reputationPerMinute` × `property_reputation_multiplier` points,
+   for at most `property_reputation_max_minutes` (30) minutes per visit. An idle alt parked on a property earns nothing.
+4. **Diminishing returns for regulars.** A visitor who gave the property reputation on *d* of the last
+   `property_reputation_repeat_days` (30) days earns 1 / (1 + `property_reputation_repeat_falloff` × *d*) as much
+   (0.5: half on the third day, a fifth after eight). Fractions carry over between the minutes of a visit.
+5. **Daily caps** (UTC days): one account gives one property at most `property_reputation_visitor_daily_cap` (30)
+   points a day, and a property gets at most `property_reputation_daily_cap` (300) a day from everyone.
+
+With the defaults a stranger spending 20 active minutes gives 19 points; the same account coming back every day for a
+week gives about 100 in total, less than seven different visitors staying 20 minutes each. Small servers can raise the
+multiplier. Nothing decays. What each account gave each property per day is kept in `property_reputation_visits`
+(`GET /api/properties/:id/reputation` sums the last 30 days); the character's own reputation (from missions) is not
+changed.
+
 ### Properties in 3D
 
 **Open 3D view** on a property page (or *View in 3D* next to a model) shows every placed model on the zone's terrain,

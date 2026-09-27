@@ -245,6 +245,12 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<ZoneLimit> GetZoneLimits() override { return {}; }
 	void SetZoneLimit(const ZoneLimit& limit) override {}
 	void DeleteZoneLimit(uint32_t zoneId) override {}
+	// IPropertyReputation
+	VisitorHistory GetPropertyVisitorHistory(LWOOBJID propertyId, uint32_t accountId, uint32_t day, uint32_t days) override { return {}; }
+	int64_t GetPropertyReputationOnDay(LWOOBJID propertyId, uint32_t day) override { return 0; }
+	void AddPropertyReputation(LWOOBJID propertyId, uint32_t accountId, uint32_t day, int64_t points, int64_t seconds) override {}
+	nlohmann::json GetPropertyReputationDays(LWOOBJID propertyId, uint32_t fromDay) override { return nlohmann::json::array(); }
+
 	// IPropertyRent
 	std::vector<RentRate> GetPropertyRentRates() override { return {}; }
 	void SetPropertyRentRate(const RentRate& rate) override {}

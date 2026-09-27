@@ -8,6 +8,7 @@
 #include "MessageInspector.h"
 #include "Contraband.h"
 #include "PropertyRent.h"
+#include "PropertyReputation.h"
 #include "LiveEvents.h"
 #include <iostream>
 #include <string>
@@ -542,6 +543,9 @@ int main(int argc, char** argv) {
 		} else {
 			framesSinceLastUser = 0;
 		}
+
+		// Visitors earn properties reputation (once a minute)
+		if (PropertyManagementComponent::Instance() != nullptr) PropertyReputation::Tick();
 
 		//Save all connected users every 10 minutes:
 		if (framesSinceLastUsersSave >= saveTime && zoneID != 0) {

@@ -148,6 +148,10 @@ public:
 
 	LWOOBJID GetId() const noexcept { return propertyId; }
 
+	// Reputation visitors just gave (PropertyReputation.h; the database is updated there), so property data shows it
+	void AddReputation(uint32_t points) { reputation += points; }
+	uint32_t GetReputation() const noexcept { return reputation; }
+
 
 	void OnChatMessageReceived(const std::string& sMessage) const;
 private:

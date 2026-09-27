@@ -1417,6 +1417,28 @@ TEST_F(ParitySeeded, PropertyRent) {
 	});
 }
 
+TEST_F(ParitySeeded, PropertyReputation) {
+	const auto before = Both("reputation before", [](GameDatabase& db) { return db.GetPropertyInfo(PROP2)->reputation; });
+	Both("AddPropertyReputation", [](GameDatabase& db) {
+		db.AddPropertyReputation(PROP2, 1, 20000, 5, 300);
+		db.AddPropertyReputation(PROP2, 1, 20000, 3, 120);
+		db.AddPropertyReputation(PROP2, 1, 19990, 7, 600);
+		db.AddPropertyReputation(PROP2, 1, 19950, 9, 600);   // outside a 30 day window
+		db.AddPropertyReputation(PROP2, 1, 19995, 0, 60);    // time without points: not a repeat day
+		db.AddPropertyReputation(PROP2, 2, 20000, 4, 240);
+		return db.GetPropertyInfo(PROP2)->reputation;
+	});
+	EXPECT_EQ(Both("reputation after", [](GameDatabase& db) { return db.GetPropertyInfo(PROP2)->reputation; }).get<int64_t>() - before.get<int64_t>(), 28);
+	const auto history = Both("GetPropertyVisitorHistory", [](GameDatabase& db) {
+		const auto h = db.GetPropertyVisitorHistory(PROP2, 1, 20000, 30);
+		const auto none = db.GetPropertyVisitorHistory(PROP2, 3, 20000, 30);
+		return json{ h.today, h.previousDays, none.today, none.previousDays };
+	});
+	EXPECT_EQ(history, json({ 8, 1, 0, 0 }));
+	EXPECT_EQ(Both("GetPropertyReputationOnDay", [](GameDatabase& db) { return db.GetPropertyReputationOnDay(PROP2, 20000); }), 12);
+	Both("GetPropertyReputationDays", [](GameDatabase& db) { return db.GetPropertyReputationDays(PROP2, 19980); });
+}
+
 TEST_F(ParitySeeded, Contraband) {
 	Both("GetContrabandItems empty", [](GameDatabase& db) { return db.GetContrabandItems(); });
 	Both("SetContrabandItem", [](GameDatabase& db) {

@@ -49,6 +49,7 @@
 #include "IMessageCaptures.h"
 #include "IContraband.h"
 #include "IPropertyRent.h"
+#include "IPropertyReputation.h"
 
 #ifdef _DEBUG
 #  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (std::exception& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
@@ -62,7 +63,7 @@ class GameDatabase :
 	public IPropertyContents, public IProperty, public IPetNames, public ICharXml,
 	public IMigrationHistory, public IUgc, public IFriends, public ICharInfo,
 	public IAccounts, public IActivityLog, public IAccountsRewardCodes, public IIgnoreList,
-	public IBehaviors, public IUgcModularBuild, public IAuditLog, public IDashboardStats, public IAccountEmails, public IDashboardMaintenance, public IEconomyLedger, public IDashboardAdmin, public IServerConfig, public IScheduledTasks, public ICharacterSnapshots, public IAccountNotes, public IServerHealth, public IRelatedData, public IChatLog, public IAccountStrikes, public ISlashCommands, public IModeration, public IServerOperations, public IPlayerPositions, public IAiSuggestions, public ILiveOps, public IFeaturedProperties, public IMessageCaptures, public IContraband, public IPropertyRent {
+	public IBehaviors, public IUgcModularBuild, public IAuditLog, public IDashboardStats, public IAccountEmails, public IDashboardMaintenance, public IEconomyLedger, public IDashboardAdmin, public IServerConfig, public IScheduledTasks, public ICharacterSnapshots, public IAccountNotes, public IServerHealth, public IRelatedData, public IChatLog, public IAccountStrikes, public ISlashCommands, public IModeration, public IServerOperations, public IPlayerPositions, public IAiSuggestions, public ILiveOps, public IFeaturedProperties, public IMessageCaptures, public IContraband, public IPropertyRent, public IPropertyReputation {
 public:
 	virtual ~GameDatabase() = default;
 	// TODO: These should be made private.
