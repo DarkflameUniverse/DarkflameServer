@@ -45,6 +45,7 @@ The frozen oracles in `tests/**/Legacy/` still use the macros verbatim through t
 | `EntityManager` | `ID_REPLICA_MANAGER_CONSTRUCTION`/`SERIALIZE`/`DESTRUCTION` headers written before the components | Replica serialization, out of scope (see below). |
 | `dGame/dBehaviors/*`, the `sBitStream` of skill messages | Behavior bit streams | The skill payload is its own format, carried as bytes inside the skill structs. |
 | `MessageInspector` | Copies the payload bytes of sent/received game messages | A capture tap; the header is read with `NetGameMsg::ReadPacketHeader`. |
+| `PacketCapture`, `RakPeer::Send` hook | Copies whole packets for packet captures ([CaptureReplay.md](CaptureReplay.md)) | A capture tap; reads only the 8 byte LU header, and rewrites packets with secrets through their structs (`PacketDecoder::Redact`). |
 
 Out of scope: replica/component serialization (`Component::Serialize`) and LDF/AMF, which are separate formats
 with their own tests.

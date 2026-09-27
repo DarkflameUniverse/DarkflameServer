@@ -184,6 +184,11 @@ namespace {
 				j = { {"selectedCharacterIndex", p.selectedCharacterIndex}, {"characters", characters} };
 			}),
 				nullptr, Scrub<ClientPackets::CharacterListResponse>(nullptr, [](auto& p) { for (auto& c : p.characters) { X(c.name); X(c.unapprovedName); } }) } },
+			{ K(S::CLIENT, MessageType::Client::CREATE_CHARACTER), { Make<ClientPackets::CreateCharacter>([](const auto& p, json& j) {
+				j = { {"objectID", Id(p.objectID)}, {"templateID", p.templateID}, {"name", GeneralUtils::UTF16ToWTF8(p.name)}, {"gmLevel", static_cast<int>(p.gmLevel)},
+					{"reputation", p.reputation}, {"propertyCloneID", p.propertyCloneID}, {"xmlBytes", p.xmlData.size()} };
+			}),
+				nullptr, Scrub<ClientPackets::CreateCharacter>(nullptr, [](auto& p) { X(p.name); }) } },
 			{ K(S::CLIENT, MessageType::Client::CHARACTER_CREATE_RESPONSE), { Make<ClientPackets::CharacterCreateResponse>([](const auto& p, json& j) {
 				j = { {"response", static_cast<int>(p.response)} };
 			}) } },
@@ -257,6 +262,7 @@ namespace {
 			{ K(S::CLIENT, MessageType::Client::LOAD_STATIC_ZONE), Rewrite<ClientPackets::LoadStaticZone>() },
 			{ K(S::CLIENT, MessageType::Client::CHARACTER_LIST_RESPONSE), Rewrite<ClientPackets::CharacterListResponse>() },
 			{ K(S::CLIENT, MessageType::Client::CHARACTER_CREATE_RESPONSE), Rewrite<ClientPackets::CharacterCreateResponse>() },
+			{ K(S::CLIENT, MessageType::Client::CREATE_CHARACTER), Rewrite<ClientPackets::CreateCharacter>() },
 			{ K(S::CLIENT, MessageType::Client::TRANSFER_TO_WORLD), Rewrite<ClientPackets::TransferToWorld>() },
 			{ K(S::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE), Rewrite<ChatPackets::GeneralChatMessage>() },
 			{ K(S::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE), Rewrite<ChatPackets::PrivateChatMessage>() },
@@ -328,6 +334,19 @@ namespace PacketDecoder {
 			out.service = "RAKNET";
 			out.messageId = static_cast<uint8_t>(bytes[0]);
 			out.name = RakNetName(static_cast<uint8_t>(bytes[0]));
+			// A construction starts with the object and its LOT: [ID][bit][u16 network ID][i64 object][i32 LOT]
+			if (out.messageId == ID_REPLICA_MANAGER_CONSTRUCTION) {
+				RakNet::BitStream stream(reinterpret_cast<unsigned char*>(const_cast<char*>(bytes.data())), static_cast<unsigned int>(bytes.size()), false);
+				stream.IgnoreBytes(1);
+				bool flag{};
+				uint16_t network{};
+				LWOOBJID object{};
+				int32_t lot{};
+				if (stream.Read(flag) && stream.Read(network) && stream.Read(object) && stream.Read(lot)) {
+					out.objectId = object;
+					out.fields = json{ {"networkID", network}, {"objectID", Id(object)}, {"lot", lot} };
+				}
+			}
 			return out;
 		}
 		out.lu = true;

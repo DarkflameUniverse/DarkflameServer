@@ -1775,6 +1775,33 @@ retention. The **Message capture pruning** task applies them every night (Tasks 
 deleted. Messages are stored as the world captured them (bytes plus the fields it decoded), so decoders added to the
 world server later only apply to new captures.
 
+#### Packet captures
+
+**Packet captures** (`/inspector/packets`, the **Packet captures** button on the inspector, same permission) record
+whole packets, not only game messages, on every server at once, on one timeline: auth (the handshake and the login),
+chat (friends, teams, whispers), every world (character list, creation and login, zone loading, position updates,
+game messages, replica constructions and serializations, routed chat) and the server-to-server messages that belong to
+the player (session keys, zone transfers, player added and removed, instance migration). Details, the file format,
+limits and the replay are in [CaptureReplay.md](CaptureReplay.md).
+
+- **Arm** a capture for an **account** (from its next login, or at once if it is online; every character), one
+  **character** (from when it is picked in a world) or **everything** (all traffic on all servers; one at a time).
+  The picker searches as you type: part of an account or character name, or a pasted account ID or character object
+  ID; online ones are marked. Captures run 1 to 15 minutes and stop by themselves; at most 8 run at once. Arming,
+  stopping and exporting are audited.
+- Passwords, session keys and user keys are never recorded: the servers blank them before a packet is kept.
+- The viewer plays a capture back: **Play**/**Pause** (space), speed, and a slider to seek; packets appear in order up
+  to the playhead. Filter by name or server; click a packet for its decoded fields (from the server's own packet
+  structs) and its bytes. Game messages show their names; their fields are decoded by the game message inspector.
+- **World 3D** opens the captured movement in World 3D's replay (needs `players_history`); while the capture page
+  plays, its playhead drives World 3D.
+- **Export bundle** downloads a portable bundle for the capture tool's replay; **Export anonymised** also replaces
+  character names and chat, for a local test fixture.
+
+Packet captures are saved like game message captures (same list, same retention settings; a **Packets** badge marks
+them), with their packets in a file under `capture_dir` (default `captures`, next to the dashboard) instead of the
+database. How often servers send what they recorded is set under Settings, **Packet capture**.
+
 ### CDClient browser
 
 **CDClient Browser** (`dev_cdclient`) is a raw viewer for the game's CDClient database (`resServer/CDServer.sqlite`),

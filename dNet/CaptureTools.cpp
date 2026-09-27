@@ -60,6 +60,13 @@ namespace {
 	std::string NameOf(const Record& record) {
 		return PacketDecoder::Decode(record.bytes, CaptureTools::FromClient(record.header)).name;
 	}
+
+	// How answers pair up in a diff: by name, and constructions by what they construct
+	std::string PairKey(const Record& record) {
+		const auto decoded = PacketDecoder::Decode(record.bytes, CaptureTools::FromClient(record.header));
+		if (decoded.name == "ID_REPLICA_MANAGER_CONSTRUCTION" && decoded.fields) return decoded.name + " LOT " + std::to_string((*decoded.fields)["lot"].get<int32_t>());
+		return decoded.name;
+	}
 }
 
 namespace CaptureTools {
@@ -85,7 +92,7 @@ namespace CaptureTools {
 			"timestamp", "stamps", "instanceID", "instanceId", "zoneInstance", "cloneID", "zoneClone", "serverIP", "serverPort",
 			"worldServerIP", "worldServerPort", "processID", "port",
 			// Per account on each server
-			"playerID", "targetID", "senderID", "username",
+			"playerID", "targetID", "senderID", "username", "networkID",
 		};
 		return fields.contains(name);
 	}
@@ -207,25 +214,25 @@ namespace CaptureTools {
 		};
 		const auto want = answers(expected), got = answers(actual);
 		report.expected = want.size();
+		std::vector<std::string> gotNames;
+		gotNames.reserve(got.size());
+		for (const auto* g : got) gotNames.push_back(PairKey(*g));
+		// Each recorded answer pairs with the next unpaired replayed answer of the same name (order kept per name)
+		std::map<std::string, std::vector<size_t>> byName;
+		for (size_t i = 0; i < got.size(); i++) byName[gotNames[i]].push_back(i);
+		std::map<std::string, size_t> next;
 		std::vector<bool> used(got.size());
-		size_t from = 0;
 		for (const auto* w : want) {
-			const auto name = NameOf(*w);
-			// The next unused answer with the same name, looking a little ahead so one missing packet doesn't shift everything
-			size_t found = got.size();
-			for (size_t i = from; i < got.size() && i < from + 200; i++) {
-				if (!used[i] && NameOf(*got[i]) == name) {
-					found = i;
-					break;
-				}
-			}
+			const auto name = PairKey(*w);
+			const auto& candidates = byName[name];
+			auto& at = next[name];
+			const size_t found = at < candidates.size() ? candidates[at++] : got.size();
 			if (found == got.size()) {
 				report.missing++;
 				report.missingByName[name]++;
 				continue;
 			}
 			used[found] = true;
-			while (from < used.size() && used[from]) from++;
 			auto a = PacketDecoder::Decode(w->bytes, false).fields.value_or(json());
 			auto b = PacketDecoder::Decode(got[found]->bytes, false).fields.value_or(json());
 			Strip(a);
@@ -246,7 +253,7 @@ namespace CaptureTools {
 		for (size_t i = 0; i < got.size(); i++) {
 			if (used[i]) continue;
 			report.extra++;
-			report.extraByName[NameOf(*got[i])]++;
+			report.extraByName[gotNames[i]]++;
 		}
 		return report;
 	}
