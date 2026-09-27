@@ -599,6 +599,46 @@ Changes reach the master straight away (no restart): new instances take the new 
 running instance's hard cap can only go down, not above what its world server was started with. Private instances and
 character selection aren't affected.
 
+
+### Traffic diagnostics
+
+**Diagnostics** (`health_view`, a tab next to Server Health and Instance Load) shows the load on every server: packets
+and bytes in and out per second (all servers together, or one picked from the list or by clicking it), packets per
+second of each server, HTTP requests per second of the dashboard and the UGC server with their errors, HTTP latency
+(p50, p95 and p99 of the busiest web server), the busiest packet and game message types, and the HTTP routes with
+their request counts, errors and latency. **Live** shows the last 5 minutes at one second and updates as reports arrive
+(the `traffic` WebSocket topic); **1 hour** is at 10 seconds; **24 hours** (5 minutes) and **7 days** (30 minutes)
+come from the database. The servers table also shows each server's RakNet connections, average ping and resent
+messages, and the worker threads of the dashboard and the UGC server.
+
+How it is counted:
+
+- Every server (master, auth, chat, each world, the dashboard's master link, UGC) counts in `TrafficStats`
+  (`dCommon/TrafficStats.h`): `dServer` counts each packet it receives (`Receive`, `ReceiveFromMaster`) and sends
+  (`Send`, `SendToMaster`, `Disconnect`) into one-second buckets, keyed by service and packet ID, and for game messages
+  the game message ID; replica construction and serialization are counted under `RAKNET`. A broadcast counts once per
+  connection it goes to. Counting is on the main loop only and costs about 40 ns a packet.
+- The web server (`dWeb`) counts each request under its route pattern (`GET /api/players/:id`, so there is one entry
+  per route; unknown paths are `(no route)`), its status class, the bytes of the body (a served file: its size) and a
+  latency histogram. A deferred request counts when its answer goes out, so its latency includes the worker's time.
+- Every 5 seconds a server sends `SERVER_TRAFFIC` (`dNet/master/ServerTraffic.h`, about 600 bytes) to master with its
+  seconds, its 24 busiest message types each way, its routes, RakNet's statistics for its connections (datagrams,
+  resends, ping) and a few gauges (`http_deferred_pending`, `websocket_clients`, `workers_busy`, `workers_queued`,
+  `workers_threads`). Master passes them to the dashboard and sends its own there; the dashboard keeps its own.
+- The dashboard keeps the last hour at one second in memory, the busiest message types per minute for an hour and per
+  hour for a day, and writes one row per server and minute to `server_traffic` once a minute (in one batch, on the
+  background thread), kept for `traffic_days` (30; Settings > Data retention, pruned by the Log pruning task). Latency
+  percentiles are worked out from mergeable histograms (three buckets per doubling, from 0.1 ms), so a minute's are
+  right; over 24 hours and 7 days a point shows the worst minute's.
+
+**Prometheus**: `/metrics` has the same counters, totals since the dashboard started: `darkflame_net_packets_total`,
+`darkflame_net_bytes_total` and `darkflame_net_datagrams_total` (labels `server`, `direction`),
+`darkflame_net_messages_total` (`server`, `direction`, `service`, `message`), `darkflame_net_resends_total`, the gauges
+`darkflame_net_connections` and `darkflame_net_ping_milliseconds`, `darkflame_http_requests_total` (`server`, `route`,
+`status` class), `darkflame_http_response_bytes_total` and the histogram `darkflame_http_request_duration_seconds`
+(buckets at every doubling from 0.1 ms), and the reported gauges as `darkflame_server_<name>`. `server` is `master`,
+`auth`, `chat`, `dashboard`, `ugc` or `world:<zone>:<instance>`. Use `rate()` for per-second values.
+
 ### Logs and crash dumps
 
 **System Log** (GM 8+, `logs_system`) shows the end of any server's log file (the newest by default; pick an older one
