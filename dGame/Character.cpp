@@ -225,15 +225,13 @@ void Character::DoQuickXMLDataParse() {
 			const auto* id = currentChild->Attribute("id");
 			const auto* si = currentChild->Attribute("si");
 			if (temp && id) {
-				// A malformed flag in the save should skip that flag, not throw out of the whole load.
-				const auto index = GeneralUtils::TryParse<uint32_t>(id);
-				const auto value = GeneralUtils::TryParse<uint64_t>(temp);
+				uint32_t index = 0;
+				uint64_t value = 0;
 
-				if (index && value) {
-					m_PlayerFlags.insert(std::make_pair(index.value(), value.value()));
-				} else {
-					LOG("Skipping malformed flag (id %s, v %s) for character %llu", id, temp, m_ObjectID);
-				}
+				index = std::stoul(id);
+				value = std::stoull(temp);
+
+				m_PlayerFlags.insert(std::make_pair(index, value));
 			} else if (si) {
 				auto value = GeneralUtils::TryParse<uint32_t>(si);
 				if (value) m_SessionFlags.insert(value.value());
