@@ -12,6 +12,7 @@
 #include "BehaviorXml.h"
 #include "CharacterTools.h"
 #include "ClientAssets.h"
+#include "CharacterXml.h"
 #include "Scenery.h"
 #include "Workers.h"
 #include "LiveWorld.h"
@@ -84,6 +85,30 @@ namespace {
 		for (auto& row : json["data"]) {
 			const auto zone = std::to_string(row.value("zone_id", 0));
 			row["zone_name"] = zones.contains(zone) ? zones[zone].get<std::string>() : "Zone " + zone;
+		}
+		return json.dump();
+	}
+
+	/**
+	 * Adds each pet's LOT and kind (its CDClient name) to pet_names rows. pet_names doesn't hold the LOT; the owner's
+	 * save does (<pet><p id l/>), so each owner on the page is read once. Pets whose owner is unknown, or who have
+	 * left the owner's save, get lot 0.
+	 */
+	std::string WithPetKinds(const std::string& raw) {
+		auto json = nlohmann::json::parse(raw, nullptr, false);
+		if (json.is_discarded() || !json.contains("data") || !json["data"].is_array()) return raw;
+		std::map<LWOOBJID, std::map<LWOOBJID, LOT>> owners;
+		for (auto& row : json["data"]) {
+			const auto owner = GeneralUtils::TryParse<LWOOBJID>(row.value("owner_id", std::string{})).value_or(0);
+			const auto pet = GeneralUtils::TryParse<LWOOBJID>(row.value("id", std::string{})).value_or(0);
+			LOT lot = 0;
+			if (owner && pet) {
+				auto [it, added] = owners.try_emplace(owner);
+				if (added) for (const auto& held : CharacterXml::Pets(Database::Get()->GetCharacterXml(owner))) it->second[held.id] = held.lot;
+				if (const auto found = it->second.find(pet); found != it->second.end()) lot = found->second;
+			}
+			row["lot"] = lot;
+			row["kind"] = lot > 0 ? ClientAssets::ItemName(lot) : "";
 		}
 		return json.dump();
 	}
@@ -1290,12 +1315,14 @@ namespace {
 	}
 
 	void RegisterPetRoutes() {
-		TableRoute("/api/tables/pet_names", Perm("moderate_pet_names"), "Pet names (DataTables)", [](const DataTablesRequest& r, const nlohmann::json& body) {
-			return Database::Get()->GetPetNamesTable(r.start, r.length, r.search, r.orderColumn, r.orderAsc, body.value("pending", false));
+		TableRoute("/api/tables/pet_names", Perm("moderate_pet_names"), "Pet names (DataTables); rows include the pet's lot and kind. Order columns: 0 id, 2 name, 3 status, 4 owner", [](const DataTablesRequest& r, const nlohmann::json& body) {
+			// The page shows the pet's kind (not sortable) as column 1; the database numbers its columns without it
+			const uint32_t column = r.orderColumn >= 2 ? r.orderColumn - 1 : 0;
+			return WithPetKinds(Database::Get()->GetPetNamesTable(r.start, r.length, r.search, column, r.orderAsc, body.value("pending", false)));
 		});
 
-		TableRoute("/api/tables/pending_pet_names", Perm("moderate_pet_names"), "Pet names awaiting review (DataTables)", [](const DataTablesRequest& r, const nlohmann::json&) {
-			return Database::Get()->GetPetNamesTable(r.start, r.length, r.search, r.orderColumn, r.orderAsc, true);
+		TableRoute("/api/tables/pending_pet_names", Perm("moderate_pet_names"), "Pet names awaiting review (DataTables); rows include the pet's lot and kind", [](const DataTablesRequest& r, const nlohmann::json&) {
+			return WithPetKinds(Database::Get()->GetPetNamesTable(r.start, r.length, r.search, r.orderColumn, r.orderAsc, true));
 		});
 
 		Route(eHTTPMethod::POST, "/api/pet_names/:id/approve", Perm("moderate_pet_names"), "Approve a pet name",

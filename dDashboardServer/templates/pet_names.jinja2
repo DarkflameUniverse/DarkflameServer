@@ -18,6 +18,7 @@
 			<thead>
 				<tr>
 					<th>ID</th>
+					<th>Pet</th>
 					<th>Pet Name</th>
 					<th>Status</th>
 					<th>Owner</th>
@@ -36,6 +37,7 @@ $(function () {
 	var pending = document.getElementById('pendingOnly');
 	var table = serverTable('#petNamesTable', '/api/tables/pet_names', [
 		{ data: 'id' },
+		{ data: 'lot', orderable: false, render: function (d, t, row) { return fmt.pet(row.lot, row.kind); } },
 		{ data: 'pet_name' },
 		// 1 = pending moderation, 2 = approved (rejected names are deleted)
 		{ data: 'approved', render: function (d) { return d === 2 ? fmt.badge('Approved', 'success') : fmt.badge('Pending', 'warning'); } },

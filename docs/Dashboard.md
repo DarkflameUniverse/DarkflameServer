@@ -721,6 +721,9 @@ tells the player in game if they're online. Rejecting asks for an optional reaso
 account page next to what they asked for. The queues show only what the game itself would still review: rejected
 properties and names whose player must pick a new one no longer appear.
 
+Pet names show what kind of pet each one is (its icon and name from the CDClient), read from the pet's entry in its
+owner's save. A pet whose owner is unknown or no longer has it shows as Unknown.
+
 ### Moderation history, warnings and bans
 
 Each account page has a **Moderation history** (GM 2+, `accounts_notes`): notes and warnings staff write, plus every
