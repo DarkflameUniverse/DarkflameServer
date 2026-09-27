@@ -221,6 +221,88 @@ namespace UgcLinks {
 				JsonSuccess(reply, { { "items", items } });
 			});
 
+		Route(eHTTPMethod::GET, "/api/ugc_links/model/:id", 0,
+			"Everything known of a player-built model (by its UGC / blueprint id) for the property pages: {ugcId, state, error, attempts, processedAt, "
+			"processAfter, bakeAo, fileName, characterId, characterName, accountName, placements: [{modelId, propertyId, name, description}], icon, "
+			"previousIcon, nif, previousNif, link, canManage, stats, previousStats} (stats: the UGC server's stats.json, null when it has none). "
+			"Who may see it as /api/ugc_links/icon; 404 when the model has no UGC row",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto id = PathId<LWOOBJID>(context.path, 3);
+				if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
+				const auto entries = Database::Get()->GetUgcEntries({ *id });
+				const auto entry = std::find_if(entries.begin(), entries.end(), [](const auto& e) { return e.kind == eUgcKind::MODEL; });
+				if (entry == entries.end()) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No UGC data for this model");
+				if (!MaySee(context, eUgcKind::MODEL, *id)) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "You may not view this creation");
+
+				// The query string that let the viewer see it, passed on to the file links
+				std::string via;
+				if (const auto property = GeneralUtils::TryParse<LWOOBJID>(QueryValue(context.queryString, "property"))) via = "property=" + std::to_string(*property);
+				else if (const auto character = GeneralUtils::TryParse<LWOOBJID>(QueryValue(context.queryString, "character"))) via = "character=" + std::to_string(*character);
+				const auto file = [&](const std::string& name) {
+					return "/api/ugc_links/file/" + std::to_string(*id) + "/" + name + (via.empty() ? "" : "?" + via);
+				};
+
+				auto out = EntryJson(*entry, via, Can(context, "properties_view"));
+				out["fileName"] = entry->detail;
+				out["characterId"] = std::to_string(entry->characterId);
+				out["characterName"] = entry->characterName;
+				out["accountName"] = Can(context, "accounts_view") ? nlohmann::json(entry->accountName) : nlohmann::json();
+				const auto process = Database::Get()->GetUgcProcessList(std::nullopt, std::to_string(*id), 0, 1);
+				if (!process.empty() && process.front().id == *id) {
+					const auto& info = process.front();
+					out["attempts"] = info.attempts;
+					out["processedAt"] = info.processedAt;
+					out["processAfter"] = info.processAfter;
+					out["bakeAo"] = info.bakeAo;
+				}
+				nlohmann::json placements = nlohmann::json::array();
+				for (const auto& placement : Database::Get()->GetUgcPlacements({ *id })) {
+					if (!MayViewProperty(context, placement.propertyId)) continue;
+					placements.push_back({ { "modelId", std::to_string(placement.modelId) }, { "propertyId", std::to_string(placement.propertyId) },
+						{ "propertyName", placement.propertyName }, { "name", placement.modelName }, { "description", placement.modelDescription } });
+				}
+				out["placements"] = placements;
+				out["previousIcon"] = file("previous.icon.png");
+				out["nif"] = file("model.nif");
+				out["previousNif"] = file("previous.model.nif");
+				out["canManage"] = Can(context, "ugc_manage");
+
+				const auto base = InternalUrl() + "/files/model/" + std::to_string(*id) + "/";
+				Workers::Reply(reply, context, false, [base, out = std::move(out)](HTTPReply& answer) mutable {
+					const auto stats = [&](const std::string& name) {
+						const auto fetched = CachedGet(base + name);
+						if (fetched->status != 200) return nlohmann::json();
+						auto parsed = nlohmann::json::parse(fetched->body, nullptr, false);
+						return parsed.is_discarded() ? nlohmann::json() : parsed;
+					};
+					out["stats"] = stats("stats.json");
+					out["previousStats"] = stats("previous.stats.json");
+					JsonSuccess(answer, out);
+				}, WorkerPool::ePriority::URGENT);
+			});
+
+		Route(eHTTPMethod::GET, "/api/ugc_links/file/:id/:name", 0,
+			"A file the UGC server made of a player-built model: model.nif, previous.model.nif (downloads) or previous.icon.png. "
+			"Who may see it as /api/ugc_links/icon",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto id = PathId<LWOOBJID>(context.path, 3);
+				const std::string name(PathSegment(context.path, 4));
+				if (!id || (name != "model.nif" && name != "previous.model.nif" && name != "previous.icon.png")) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id or file");
+				if (!MaySee(context, eUgcKind::MODEL, *id)) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "You may not view this creation");
+				const auto url = InternalUrl() + "/files/model/" + std::to_string(*id) + "/" + name;
+				const bool icon = name.ends_with(".png");
+				const auto download = std::to_string(*id) + (name.starts_with("previous.") ? ".previous.nif" : ".nif");
+				Workers::Reply(reply, context, false, [url, icon, download](HTTPReply& out) {
+					const auto fetched = CachedGet(url);
+					if (fetched->status != 200) return ReplyError(out, *fetched);
+					out.status = eHTTPStatusCode::OK;
+					out.contentType = icon ? eContentType::IMAGE_PNG : eContentType::APPLICATION_OCTET_STREAM;
+					out.message = fetched->body;
+					out.headers.push_back("Cache-Control: private, max-age=60");
+					if (!icon) out.headers.push_back("Content-Disposition: attachment; filename=\"" + download + "\"");
+				});
+			});
+
 		Route(eHTTPMethod::GET, "/api/ugc_links/icon/:kind/:id", 0,
 			"The icon the UGC server made of a creation (kind model or modular), fetched from ugc_internal_url. With properties_view, for your own "
 			"characters' creations, or with ?property= / ?character= naming a page you may view that shows it. 404 until it is made",
