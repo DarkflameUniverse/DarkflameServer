@@ -269,6 +269,14 @@ namespace {
 			handlers.On<FindPlayerRequest>(Chat::WHO, ChatPacketHandler::HandleWho);
 			handlers.On<ShowAllRequest>(Chat::SHOW_ALL, ChatPacketHandler::HandleShowAll);
 			handlers.On<AchievementNotify>(Chat::ACHIEVEMENT_NOTIFY, ChatPacketHandler::OnAchievementNotify);
+			// New mail: pass it on to the world the receiver is in, if they are online
+			handlers.On<MailNotify>(Chat::MAIL, [](const MailNotify& notify, const SystemAddress&) {
+				const auto& receiver = Game::playerContainer.GetPlayerData(notify.receiverID);
+				if (!receiver) return;
+				RakNet::BitStream bitStream;
+				notify.WritePacket(bitStream);
+				Game::server->Send(bitStream, receiver.worldServerSysAddr, false);
+			});
 			return handlers;
 		}();
 		return handlers;

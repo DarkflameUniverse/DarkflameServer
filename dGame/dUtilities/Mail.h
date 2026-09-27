@@ -210,6 +210,13 @@ namespace Mail {
 
 	void HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player);
 
+	// Tells the receiver about their unread mail if they are a player in this world. Returns false if they are not.
+	bool NotifyNewMailHere(LWOOBJID receiver);
+
+	// Tells the receiver about their new mail wherever they are online: in this world directly, otherwise through the
+	// chat server to the world they are in.
+	void NotifyNewMail(LWOOBJID receiver);
+
 	void SendMail(
 		const Entity* recipient,
 		const std::string& subject,

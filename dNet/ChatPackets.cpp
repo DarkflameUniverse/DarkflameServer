@@ -168,6 +168,15 @@ namespace ChatPackets {
 		return true;
 	}
 
+	void MailNotify::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(receiverID);
+	}
+
+	bool MailNotify::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(receiverID));
+		return true;
+	}
+
 	void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(requestor);
 		bitStream.Write(displayZoneData);

@@ -898,3 +898,12 @@ TEST_F(ChatPacketsTests, AchievementNotifyRoundTrips) {
 	EXPECT_EQ(copy.targetPlayerName.string, u"Friend");
 	ExpectTruncatedFails(notify);
 }
+
+// DLU's own world -> chat -> world new-mail notice: header (chat service, MAIL) and the receiver's object ID.
+TEST_F(ChatPacketsTests, MailNotifyRoundTrips) {
+	ChatPackets::MailNotify notify;
+	notify.receiverID = 0x1000000000000042LL;
+	EXPECT_PACKET_EQ(FromHex("53 02 00 24 00 00 00 00 42 00 00 00 00 00 00 10"), StructPacket(notify));
+	EXPECT_EQ(RoundTrip(notify).receiverID, notify.receiverID);
+	ExpectTruncatedFails(notify);
+}

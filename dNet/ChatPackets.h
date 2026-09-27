@@ -126,6 +126,15 @@ namespace ChatPackets {
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
+	// World -> chat -> world: receiverID has new mail. DLU's own server packet: the chat server passes it on to the world
+	// the receiver is in, which sends them the new-mail notification. Characters that are offline are skipped.
+	struct MailNotify : public LUBitStream {
+		LWOOBJID receiverID{ LWOOBJID_EMPTY };
+		MailNotify() : LUBitStream(ServiceType::CHAT, MessageType::Chat::MAIL) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
 	// World -> chat: /showall
 	struct ShowAllRequest : public LUBitStream {
 		LWOOBJID requestor = LWOOBJID_EMPTY;

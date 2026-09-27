@@ -22,6 +22,8 @@
 #include "Item.h"
 #include "MissionComponent.h"
 #include "ChatPackets.h"
+#include "ChatServerLink.h"
+#include "eObjectBits.h"
 #include "Character.h"
 #include "dZoneManager.h"
 #include "WorldConfig.h"
@@ -149,6 +151,7 @@ namespace Mail {
 
 							Database::Get()->InsertNewMail(mailInfo);
 							DashboardNotify::Changed("mail", mailInfo.receiverId);
+							NotifyNewMail(mailInfo.receiverId);
 							if (hasAttachment) {
 								EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::MAIL_SENT, .itemId = sentItemId,
 									.newItemId = mailInfo.itemID, .lot = mailInfo.itemLOT, .count = static_cast<uint32_t>(mailInfo.itemCount),
@@ -431,8 +434,35 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	Database::Get()->InsertNewMail(mailInsert);
 	DashboardNotify::Changed("mail", mailInsert.receiverId);
 
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+		NotifyNewMail(recipient);
+		return;
+	}
 	NotificationResponse response;
 	response.status = eNotificationResponse::NewMail;
 	response.Send(sysAddr);
+}
+
+bool Mail::NotifyNewMailHere(LWOOBJID receiver) {
+	// Mail stores the character ID; the player's object ID also carries the character bit
+	GeneralUtils::SetBit(receiver, eObjectBits::CHARACTER);
+	auto* const player = Game::entityManager->GetEntity(receiver);
+	if (!player || !player->IsPlayer()) return false;
+	auto* const character = player->GetCharacter();
+	if (!character) return false;
+
+	NotificationResponse response;
+	response.status = eNotificationResponse::NewMail;
+	response.mailCount = Database::Get()->GetUnreadMailCount(character->GetID());
+	response.Send(player->GetSystemAddress());
+	return true;
+}
+
+void Mail::NotifyNewMail(const LWOOBJID receiver) {
+	if (NotifyNewMailHere(receiver)) return;
+
+	ChatPackets::MailNotify notify;
+	notify.receiverID = receiver;
+	GeneralUtils::SetBit(notify.receiverID, eObjectBits::CHARACTER);
+	ChatServerLink::Send(notify, MEDIUM_PRIORITY);
 }

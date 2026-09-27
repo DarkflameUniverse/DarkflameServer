@@ -623,6 +623,11 @@ namespace {
 				Game::server->Send(bitStream, sysAddr, false); //send routed packet to player
 			});
 
+			// New mail for a player the chat server says is in this world
+			handlers.On<ChatPackets::MailNotify>(MessageType::Chat::MAIL, [](const ChatPackets::MailNotify& notify, const SystemAddress&) {
+				Mail::NotifyNewMailHere(notify.receiverID);
+			});
+
 			handlers.On<ChatPackets::Announcement>(MessageType::Chat::GM_ANNOUNCE, [](const ChatPackets::Announcement& announcement, const SystemAddress&) {
 				//Send to our clients:
 				AMFArrayValue args;
