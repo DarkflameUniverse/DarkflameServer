@@ -248,6 +248,9 @@ namespace {
 }
 
 int main(int argc, char** argv) {
+	Diagnostics::SetProcessName("Ugc");
+	Diagnostics::SetProcessFileName(argv[0]);
+	Diagnostics::Initialize();
 	Diagnostics::SetProduceMemoryDump(true);
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
@@ -262,6 +265,8 @@ int main(int argc, char** argv) {
 	// Like the other servers: logs/UgcServer/UgcServer_<start time>.log
 	Server::SetupLogger("UgcServer_" + std::to_string(time(nullptr)), "UgcServer");
 	if (!Game::logger) return EXIT_FAILURE;
+	// Crash reports go where the dashboard lists them (Server Health, crash dumps)
+	if (!Game::config->GetValue("dump_folder").empty()) Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	Game::config->LogSettings();
 	LOG("Starting UGC Server");
 
