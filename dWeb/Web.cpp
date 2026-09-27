@@ -266,6 +266,13 @@ namespace {
 		return reply.message.size();
 	}
 
+	// A temporary file the reply sent: gone once mongoose has it open (on Windows, left for its maker to clear out)
+	void RemoveSentFile(const HTTPReply& reply) {
+		if (!reply.removeFile || reply.file.empty()) return;
+		std::error_code ec;
+		std::filesystem::remove(reply.file, ec);
+	}
+
 	void CountRequest(const std::string& route, uint16_t status, TrafficClock::time_point started, uint64_t bytes) {
 		const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(TrafficClock::now() - started).count();
 		TrafficStats::Local().Http(TrafficStats::Now(), route, status, static_cast<uint64_t>(std::max<int64_t>(micros, 0)), bytes);
@@ -505,6 +512,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 
 	SendReply(connection, reply, http_msg);
 	CountRequest(trafficRoute, static_cast<uint16_t>(reply.status), started, ReplyBytes(reply));
+	RemoveSentFile(reply);
 }
 
 
@@ -780,13 +788,14 @@ void Web::SendDeferredReplies() {
 	for (auto& finished : g_Deferred.Drain()) {
 		mg_connection* connection = mgr.conns;
 		while (connection && connection->id != finished.connection) connection = connection->next;
-		if (!connection || connection->is_closing) continue;
+		if (!connection || connection->is_closing) { RemoveSentFile(finished.reply); continue; }
 		// Clears is_resp once the reply is out, so mongoose reads the connection's next request again
 		SendReply(connection, finished.reply, nullptr);
 		if (const auto timing = g_DeferredTiming.find(finished.connection); timing != g_DeferredTiming.end()) {
 			CountRequest(timing->second.route, static_cast<uint16_t>(finished.reply.status), timing->second.started, ReplyBytes(finished.reply));
 			g_DeferredTiming.erase(timing);
 		}
+		RemoveSentFile(finished.reply);
 		if (finished.close) connection->is_draining = 1;
 	}
 }

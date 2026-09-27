@@ -32,6 +32,9 @@ struct HTTPReply {
 	// When set on a 200 reply, this file is streamed from disk as the body (with contentType and headers) instead of
 	// message, so large downloads never sit in memory
 	std::string file{};
+	// Delete `file` once it's being sent (a temporary file made for this reply). Where an open file can't be deleted
+	// (Windows) it stays, so whoever makes such files should also clear out old ones.
+	bool removeFile{};
 	// Set by Web::Defer: the handler answers later, from another thread (DeferredReply), so nothing is sent now
 	std::shared_ptr<DeferredState> deferred{};
 };
