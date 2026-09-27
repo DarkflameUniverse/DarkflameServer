@@ -29,6 +29,12 @@ public:
 	virtual std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) = 0;
 	virtual std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetModularBuildProcessCounts() = 0;
 
+	// The combination of modules a build was made as (UgcModularKey::StorageId of its modules), whose files it shares
+	virtual void SetModularBuildCombination(const LWOOBJID id, const LWOOBJID combinationId) = 0;
+
+	// Up to `limit` builds whose combination isn't recorded yet (combination_id 0): their ids and modules
+	virtual std::vector<PendingBuild> GetModularBuildsWithoutCombination(const uint32_t limit) = 0;
+
 	// How many builds there are of each ldf_config as stored (the same modules may be written differently)
 	virtual std::vector<std::pair<std::string, uint64_t>> GetModularBuildConfigCounts() = 0;
 

@@ -10,6 +10,7 @@
 #include "PropertyRent.h"
 #include "PropertyReputation.h"
 #include "LiveEvents.h"
+#include "UgcManifest.h"
 #include <iostream>
 #include <string>
 #include <ctime>
@@ -474,6 +475,7 @@ int main(int argc, char** argv) {
 			DashboardNotify::SendPlayerPositions(g_InstanceID);
 			MessageInspector::Update();
 			LiveEvents::Update();
+			UgcManifest::Update();
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
 			Game::zoneManager->Update(deltaTime);
@@ -1104,6 +1106,7 @@ void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
 	// other instance has saved since
 	const bool savedByMigration = WorldMigration::IsLeaving(sysAddr);
 	WorldMigration::OnDisconnected(sysAddr);
+	UgcManifest::OnDisconnect(sysAddr);
 
 	auto user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) return;
@@ -1604,6 +1607,13 @@ namespace {
 		}
 	};
 
+	struct RequestUgcManifestInfoPacket final : public WorldPackets::RequestUgcManifestInfo {
+		void Handle() override {
+			if (!UserManager::Instance()->GetUser(sysAddr)) return;
+			UgcManifest::OnRequest(sysAddr, blueprintId, resourceType);
+		}
+	};
+
 	template<typename T>
 	std::unique_ptr<WorldPackets::WorldLUBitStream> Create() { return std::make_unique<T>(); }
 
@@ -1623,6 +1633,7 @@ namespace {
 		{ MessageType::World::GENERAL_CHAT_MESSAGE, Create<GeneralChatMessagePacket> },
 		{ MessageType::World::HANDLE_FUNNESS, Create<HandleFunnessPacket> },
 		{ MessageType::World::UI_HELP_TOP_5, Create<UIHelpTop5Packet> },
+		{ MessageType::World::REQUEST_UGC_MANIFEST_INFO, Create<RequestUgcManifestInfoPacket> },
 	};
 }
 

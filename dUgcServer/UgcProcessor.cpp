@@ -5,7 +5,10 @@
 #include "Logger.h"
 #include "UgcBricks.h"
 #include "UgcCdClient.h"
+#include "Sd0.h"
+#include "UgcFormats.h"
 #include "UgcKeys.h"
+#include "ZCompression.h"
 #include "UgcThrottle.h"
 #include "json.hpp"
 
@@ -26,6 +29,12 @@ namespace {
 	constexpr size_t LOG_LENGTH = 50;
 	constexpr auto EVICTION_INTERVAL = std::chrono::minutes(5);
 	constexpr auto RECENT_ANSWER_TIME = std::chrono::seconds(10);
+	// In the storage folder once every item stored has its sd0 icon and checksums (Backfill)
+	constexpr auto BACKFILL_MARKER = ".checksums-stored";
+	constexpr size_t BACKFILL_ITEMS_PER_UPDATE = 16;
+	constexpr uint32_t BACKFILL_BUILDS_PER_UPDATE = 200;
+	// Combination id of a build whose modules can't be told (so it isn't looked at again)
+	constexpr LWOOBJID NO_COMBINATION = -1;
 
 	const char* KindName(UgcStorage::Kind kind) {
 		return kind == UgcStorage::Kind::MODEL ? "model" : "modular";
@@ -95,7 +104,12 @@ UgcProcessor::~UgcProcessor() {
 }
 
 void UgcProcessor::Start() {
-	for (const auto& entry : m_Storage.List()) m_StoredBytes += entry.bytes;
+	const auto stored = m_Storage.List();
+	for (const auto& entry : stored) m_StoredBytes += entry.bytes;
+	// Items made before the checksums were stored get their sd0 icon and checksums once (Backfill)
+	std::error_code error;
+	m_BackfillItemsDone = std::filesystem::exists(m_Storage.GetRoot() / BACKFILL_MARKER, error);
+	if (!m_BackfillItemsDone) m_BackfillItems.assign(stored.begin(), stored.end());
 	m_NextEviction = std::chrono::steady_clock::now();
 	m_Stopping = false;
 	for (size_t i = 0; i < std::max<size_t>(m_Config.threads, 1); i++) m_Threads.emplace_back(&UgcProcessor::Worker, this);
@@ -233,6 +247,14 @@ void UgcProcessor::Worker() {
 			const auto bytes = job.iconOnly ? m_Storage.Update(job.kind, job.id, done.outcome.files, error) : m_Storage.Write(job.kind, job.id, done.outcome.files, error);
 			if (bytes) {
 				done.bytes = *bytes;
+				// The checksums of what the client downloads as sd0, for the main thread to store (the worlds answer
+				// the clients' manifest requests with them)
+				for (const std::string name : { "icon.dds", "model.nif" }) {
+					const auto checksum = done.outcome.files.find(name + ".checksum");
+					if (checksum == done.outcome.files.end() || !done.outcome.files.contains(name + ".sd0")) continue;
+					Checksum parsed{ name };
+					if (UgcFormats::ReadChecksumXml(checksum->second, parsed.md5, parsed.size)) done.checksums.push_back(std::move(parsed));
+				}
 			} else {
 				done.outcome.ok = false;
 				done.outcome.error = error;
@@ -355,6 +377,8 @@ void UgcProcessor::Record(const Done& done) {
 		}
 	} else {
 		Database::Get()->SetModularBuildProcessed(done.id, state, attempts, error);
+		// Which combination's files it shares, for the worlds' manifest answers
+		if (const auto combo = m_ComboOf.find(done.id); combo != m_ComboOf.end()) Database::Get()->SetModularBuildCombination(done.id, combo->second);
 	}
 	m_Recent.erase({ done.kind, done.id });
 
@@ -381,6 +405,8 @@ void UgcProcessor::Collect() {
 		finished.swap(m_Done);
 	}
 	for (const auto& done : finished) {
+		// done.id is the model, or the combination
+		if (done.outcome.ok) StoreChecksums(done.kind, done.id, done.checksums);
 		if (done.kind == Kind::MODEL) {
 			m_InFlight.erase({ done.kind, done.id });
 			if (!done.iconOnly) {
@@ -413,8 +439,58 @@ void UgcProcessor::Collect() {
 	if (!finished.empty()) m_NextPoll = std::min(m_NextPoll, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
 }
 
+void UgcProcessor::StoreChecksums(Kind kind, LWOOBJID storageId, const std::vector<Checksum>& checksums) {
+	const auto owner = kind == Kind::MODEL ? IUgc::eFileOwner::MODEL : IUgc::eFileOwner::COMBINATION;
+	for (const auto& checksum : checksums) Database::Get()->SetUgcFileChecksum(owner, storageId, checksum.file, checksum.md5, checksum.size);
+}
+
+void UgcProcessor::Backfill() {
+	if (!m_BackfillBuildsDone) {
+		const auto builds = Database::Get()->GetModularBuildsWithoutCombination(BACKFILL_BUILDS_PER_UPDATE);
+		for (const auto& build : builds) {
+			const auto key = UgcModularKey::Normalize(build.modules);
+			const auto combo = key.empty() ? NO_COMBINATION : UgcModularKey::StorageId(key);
+			m_ComboOf[build.id] = combo;
+			Database::Get()->SetModularBuildCombination(build.id, combo);
+		}
+		if (builds.size() < BACKFILL_BUILDS_PER_UPDATE) m_BackfillBuildsDone = true;
+	}
+	if (m_BackfillItemsDone) return;
+	const auto read = [](const std::filesystem::path& path) {
+		std::ifstream in(path, std::ios::binary);
+		return std::string(std::istreambuf_iterator<char>(in), {});
+	};
+	for (size_t i = 0; i < BACKFILL_ITEMS_PER_UPDATE && !m_BackfillItems.empty(); i++) {
+		const auto entry = m_BackfillItems.front();
+		m_BackfillItems.pop_front();
+		if (m_InFlight.contains({ entry.kind, entry.id }) || (entry.kind == Kind::MODULAR && m_ComboJobs.contains(entry.id))) continue;
+		// Only the icon: it is small (a model's .nif isn't asked for without 3D services and gets its sd0 when made again)
+		const auto checksumFile = m_Storage.File(entry.kind, entry.id, "icon.dds.checksum");
+		if (!checksumFile) continue;
+		Checksum checksum{ "icon.dds" };
+		if (!UgcFormats::ReadChecksumXml(read(*checksumFile), checksum.md5, checksum.size)) continue;
+		if (!m_Storage.File(entry.kind, entry.id, "icon.dds.sd0")) {
+			const auto packed = m_Storage.File(entry.kind, entry.id, "icon.dds.gz");
+			const auto icon = packed ? ZCompression::Gunzip(read(*packed)) : std::nullopt;
+			if (!icon || UgcFormats::Md5Hex(*icon) != checksum.md5) continue;
+			std::string error;
+			if (!m_Storage.Update(entry.kind, entry.id, { { "icon.dds.sd0", Sd0::Compress(*icon) } }, error)) {
+				LOG("Couldn't write the sd0 icon of %llu: %s", static_cast<unsigned long long>(entry.id), error.c_str());
+				continue;
+			}
+		}
+		StoreChecksums(entry.kind, entry.id, { checksum });
+	}
+	if (m_BackfillItems.empty()) {
+		m_BackfillItemsDone = true;
+		std::ofstream(m_Storage.GetRoot() / BACKFILL_MARKER) << "1\n";
+		LOG("Stored the checksums of the icons made before");
+	}
+}
+
 void UgcProcessor::Update() {
 	Collect();
+	Backfill();
 	const auto now = std::chrono::steady_clock::now();
 	if (now - m_CpuSampled >= std::chrono::seconds(2)) SampleUsage();
 	if (now >= m_NextPoll) {

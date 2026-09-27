@@ -372,4 +372,26 @@ namespace UgcFormats {
 	std::string ChecksumXml(std::string_view data) {
 		return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Checksum><MD5>" + Md5Hex(data) + "</MD5><Filesize>" + std::to_string(data.size()) + "</Filesize></Checksum>\n";
 	}
+
+	bool ReadChecksumXml(std::string_view xml, std::string& md5, uint32_t& size) {
+		const auto between = [xml](std::string_view open, std::string_view close) -> std::string_view {
+			const auto start = xml.find(open);
+			if (start == std::string_view::npos) return {};
+			const auto end = xml.find(close, start + open.size());
+			if (end == std::string_view::npos) return {};
+			return xml.substr(start + open.size(), end - start - open.size());
+		};
+		const auto hash = between("<MD5>", "</MD5>");
+		const auto length = between("<Filesize>", "</Filesize>");
+		if (hash.size() != 32 || length.empty()) return false;
+		uint64_t parsed = 0;
+		for (const char c : length) {
+			if (c < '0' || c > '9') return false;
+			parsed = parsed * 10 + static_cast<uint64_t>(c - '0');
+			if (parsed > std::numeric_limits<uint32_t>::max()) return false;
+		}
+		md5 = hash;
+		size = static_cast<uint32_t>(parsed);
+		return true;
+	}
 }

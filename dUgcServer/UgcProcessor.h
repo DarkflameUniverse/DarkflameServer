@@ -155,6 +155,13 @@ private:
 		UgcIconParams::Values iconValues; // models: the preset and override (UgcIconParams)
 	};
 
+	// A written file's MD5 and size as the client has it after inflating it (from its .checksum)
+	struct Checksum {
+		std::string file; // icon.dds, model.nif
+		std::string md5;
+		uint32_t size{};
+	};
+
 	struct Done {
 		Kind kind{};
 		LWOOBJID id{};
@@ -163,7 +170,18 @@ private:
 		uint64_t bytes{};
 		double milliseconds{};
 		bool iconOnly{};
+		std::vector<Checksum> checksums; // of the files written that the client downloads as sd0
 	};
+
+	// Main thread: records the checksums of an item's files (ugc_file_checksums)
+	void StoreChecksums(Kind kind, LWOOBJID storageId, const std::vector<Checksum>& checksums);
+
+	// Main thread: fills in what was made before the worlds answered manifest requests, a little per Update: the
+	// icons' sd0 files and checksums of the items stored, and the builds' combination ids
+	void Backfill();
+	std::deque<UgcStorage::Entry> m_BackfillItems;
+	bool m_BackfillItemsDone{ true };
+	bool m_BackfillBuildsDone{ false };
 
 	void Poll();
 	// Main thread: the icon values for a kind and an item (the kind's preset, then the item's override)

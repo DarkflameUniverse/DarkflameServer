@@ -21,9 +21,34 @@ Resource types are 0 LXFML, 1 NIF, 2 HKX, 3 DDS.
   * the same name with `.checksum` instead of `.gz`: `<Checksum><MD5>32 hex digits</MD5><Filesize>n</Filesize></Checksum>`,
     the MD5 and size of the uncompressed file. The client checks the download against it.
   * HTTP 408 makes the client try again later; other errors are logged as failed downloads.
-* Without 3D services the client asks the world server for each file's MD5 (`REQUEST_UGC_MANIFEST_INFO`, answered
-  with `UGC_MANIFEST_RESPONSE`) and downloads `BrickModels/UserMade/<id % 1000, 3 digits>/<id, 20 digits><ext>.sd0`.
-  That needs the world to answer the manifest requests, which it doesn't yet, so it is not supported.
+* `UGCUSE3DSERVICES=7:0` (the client's default, without 3D services). The client asks its world for each file's MD5
+  and size (`REQUEST_UGC_MANIFEST_INFO`, answered with `UGC_MANIFEST_RESPONSE`, below) and downloads
+  `UGCSERVERDIR/BrickModels/UserMade/<id % 1000, 3 digits>/<id, 20 digits><.lxfml|.nif|.hkx|.dds>.sd0`: the file as
+  an sd0 stream (the bytes `s` `d` `0` 0x01 0xff, then chunks of a u32 size and zlib data, each inflating to at most
+  256 KiB). It inflates it, saves it as `res/BrickModels/UserMade/<id % 1000>/<id><ext>` and checks its MD5 against
+  the world's answer; a file it has already is only downloaded again when its MD5 differs. HTTP 408 makes it try
+  again later. The worlds answer from checksums the UGC server stores (`ugc_file_checksums`), and the UGC server serves
+  the `.sd0` files; see "Without 3D services" below for what keeps this off by default.
+
+### The manifest packets (checked in the client)
+
+Both are plain packets (not game messages); offsets are after the 0x53 byte and the header (connection type, message
+id, a padding byte).
+
+| Packet | Layout |
+| --- | --- |
+| `REQUEST_UGC_MANIFEST_INFO` (world message 27), client to world | u64 blueprint id, u8 resource type (16 bytes after the 0x53). Sent by `SendRequestUGCManifestInfoPacket` when the client needs a blueprint's file and 3D services are off. |
+| `UGC_MANIFEST_RESPONSE` (client message 60), world to client | u64 blueprint id, u8 resource type, then 21 bytes of manifest info: u8 valid, u32 size of the inflated file, 16 bytes MD5 of it. The client ignores an answer that isn't exactly 37 bytes after the 0x53 (`PacketHandler_MSG_CLIENT_UGC_MANIFEST_RESPONSE`). |
+
+The answer is cached per blueprint and type (the same message the 3D services `.checksum` download produces). With
+it, the client uses a file it has when its MD5 matches and downloads it otherwise; with valid 0 it uses a file it has as
+it is and downloads it only when it has none. Structs: `WorldPackets::RequestUgcManifestInfo`,
+`ClientPackets::UgcManifestResponse` (`eUgcResourceType`).
+
+The blueprint id of an inventory item's icon (`LWOInventoryComponent_Client::LoadBlueprintIcon`) is the item's
+`blueprintid` config when it has one (Brick-by-Brick models, LOT 6662), else its subkey (cars and rockets: their
+`ugc_modular_build` id, which DLU gives them as subkey when they are built). Cars and rockets from before builds were
+stored have subkey 0 and no build row, so the client never asks for their icons.
 
 A model's render component uses the downloaded NIF when the model's spawn data has `renderUserGen=1` with its
 `blueprintid`; `NotifyClientUGCModelReady` (game message 909) makes the client fetch the blueprint's NIF and HKX
@@ -50,8 +75,18 @@ DATACENTERID=1:150,
   then don't show. So 3D services only work when the UGC server answers on port 80 of that address; it serves
   `/lwoclient/UserBrickModels/...` as well as `client_path` for that.
 * With `UGCUSE3DSERVICES=7:0` (the client's own default) the client builds the models itself from the LXFML the world
-  sends, and property models load. It also asks the world for manifests (`REQUEST_UGC_MANIFEST_INFO`), which the world
-  doesn't answer; that doesn't stop the models from loading. Use this until the UGC server can be reached as above.
+  sends, and property models load. Opening the backpack's models asks the world for each car's, rocket's and model's
+  icon manifest. With `ugc_manifest=1` the world answers (checked: the answers are read and the client goes on to
+  download each icon), and the client then downloads from the same built-in address as with 3D services, whatever its
+  `boot.cfg` says (`UGCSERVERPORT=1:14108`, `UGCSERVERDIR=0:/ugc`, `PATCHSERVERDIR=0:luclient` in the client tested):
+  its log shows `Download Info: Host 'http://127.0.0.1/'`, `UGC site Info: Sharing main download connection` and
+  requests for `lwoclient/UserBrickModels/BrickModels/UserMade/<bucket>/<id>.dds.sd0`. In the client the download
+  thread reads `PATCHSERVERIP`/`PORT`/`DIR` and `UGCSERVERIP`/`PORT`/`DIR` through the config interface
+  (`LWOResMgr2Interface::DownloadThread_Run`, defaults 127.0.0.1, 80 and `lwoclient`, the UGC ones defaulting to the
+  patch ones), but the values in `boot.cfg` don't reach it. A download that can't connect (HTTP status 0) counts as a
+  UGC connection failure, and the client logs the player out for it ("connection failed downloading UGC assets",
+  `MainThread_LogoutDueToConnectionFailures`) unless a client mod stops that. So, as with 3D services, the icons only
+  arrive when the UGC server answers on port 80 of the player's own machine; see "Without 3D services".
 * A NIF the UGC server makes, put in place of one of the game's own models and spawned, renders in the client with its
   colors: the NIFs are written like the game's `res/BrickModels/ndmade` files (nif.xml's 20.3.0.9, user version 0;
   every shape with a material, alpha blending by the vertex alpha, specular off and vertex colors, in that order).
@@ -183,10 +218,19 @@ shared files. `combo.json` in the combination's folder says its LOTs and build t
 Files live under `ugc_output_dir` (default `ugc` next to the server binaries):
 
 ```
-ugc/models/<id % 1000>/<id>/model.nif.gz, model.nif.checksum, icon.dds.gz, icon.dds.checksum, icon.png,
-                              model.noao.nif.gz, stats.json, previous.icon.png, previous.model.nif.gz, previous.stats.json
-ugc/modular/<combination id % 1000>/<combination id>/icon.dds.gz, icon.dds.checksum, icon.png, combo.json
+ugc/models/<id % 1000>/<id>/model.nif.gz, model.nif.checksum, model.nif.sd0, icon.dds.gz, icon.dds.checksum,
+                              icon.dds.sd0, icon.png, model.noao.nif.gz, stats.json, previous.icon.png,
+                              previous.model.nif.gz, previous.stats.json
+ugc/modular/<combination id % 1000>/<combination id>/icon.dds.gz, icon.dds.checksum, icon.dds.sd0, icon.png, combo.json
+ugc/.checksums-stored
 ```
+
+Every file the client downloads is written three ways: `.gz` and `.checksum` for 3D services and `.sd0` (dCommon's
+`Sd0::Compress`) without them. When a worker writes an item, the checksums of its `.sd0` files (MD5 and size of the
+inflated file, from the `.checksum`) go back to the main thread, which stores them in `ugc_file_checksums` for the
+worlds. Items made before this get their `icon.dds.sd0` (from `icon.dds.gz`) and their icon's checksum once, a few per
+tick on the main thread when the server starts; `.checksums-stored` marks that done. Their `.nif` gets its `.sd0` when
+the model is made again (the client doesn't ask for it without 3D services, see "Not done yet").
 
 A model's files are written to a temporary folder and renamed into place, so a half written model is never served.
 Meshes are only stored compressed (a model took about 18 MB when the .nif was kept uncompressed beside its .gz, so the
@@ -228,6 +272,39 @@ Migrations `dlu/mysql/86_ugc_debounce_icon_settings.sql` and `dlu/sqlite/69_ugc_
 `ugc.process_after` and the table `ugc_icon_settings` (`target`: `kind:<kind>`, `model:<id>` or `combo:<key>`; `params`
 JSON; `updated_at`).
 
+Migrations `dlu/mysql/89_ugc_file_checksums.sql` and `dlu/sqlite/72_ugc_file_checksums.sql`: the table
+`ugc_file_checksums` (`kind` 0 a player model, 1 a combination of car or rocket modules; `storage_id` the model's ugc
+id or the combination's id; `file` `icon.dds` or `model.nif`; `md5`, 32 lowercase hex digits, and `size` of the inflated
+file), written by the UGC server whenever it writes a file, and `ugc_modular_build.combination_id`, the combination a
+build shares its files with (0 until the UGC server has seen the build: it fills them in for existing builds when it
+starts, -1 when the modules can't be told). `IUgc::GetUgcFileChecksum(blueprint, file)` looks a blueprint up as a model
+first, then as a build through its combination.
+
+## Without 3D services (`UGCUSE3DSERVICES=7:0`)
+
+`UgcManifest` (dGame/dUtilities) answers `REQUEST_UGC_MANIFEST_INFO` when `ugc_manifest=1` (`sharedconfig.ini`,
+default 0):
+
+* The world's main thread handles the packet (`g_WorldHandlers`), looks the checksum up with one indexed query and sends
+  `UGC_MANIFEST_RESPONSE` to that client in the same tick. Only DDS (`icon.dds`) and NIF (`model.nif`) are answered;
+  LXFML and HKX aren't (the client builds those itself, as today).
+* A file that isn't made yet isn't answered: the request waits (at most 512, for 15 minutes) and `UgcManifest::Update`
+  (world tick) looks again every 5 seconds, answering once the UGC server has stored the checksum. A model still in its
+  quiet period after a save is made right away (`ExpediteUgcModel`), as when a client asks the UGC server directly.
+  Waiting requests are dropped when the client disconnects.
+* No worker threads, HTTP or file reads in the world: the UGC server precomputes everything into the database.
+
+The UGC server serves `BrickModels/UserMade/<bucket>/<id>.<ext>.sd0` under `client_path`, under
+`/<any folder>/UserBrickModels` (the client's default `UGCSERVERDIR`, `lwoclient/UserBrickModels` with its built-in
+patch folder) and at the root; `.dds` is a model's icon or a car or rocket build's combination icon, `.nif` a model's
+mesh, `.lxfml` the model's LXFML from the database, `.hkx` 404.
+
+It is off by default because the 1.10.64 client downloads from `http://127.0.0.1:80/lwoclient/UserBrickModels/`
+whatever its `boot.cfg` says (checked in game, see "What the 1.10.64 client does in practice"), and logs the player
+out when it can't connect there. Turning it on only helps when the UGC server answers on port 80 of every player's own
+machine, which normal players don't have; until a way is found to point the client at the server, the icons don't show
+in 7:0.
+
 ### Waiting while the owner is still building
 
 A saved model isn't made right away: `InsertNewUgcModel` stores `process_after` = now + `ugc_debounce_seconds`
@@ -255,8 +332,9 @@ No master messages are needed for any of it.
 The main thread owns RakNet (the master link), mongoose (HTTP) and the database. `worker_threads` (default: half the
 CPUs) workers do only pure work: parse LXFML, build and write meshes and icons, compress files. They get their input
 (LXFML text, module data) from the main thread and hand results back through a queue the main thread drains, which
-then updates the database. Brick geometry and materials are loaded once and shared read-only (the cache has its own
-lock).
+then updates the database (including the files' checksums, parsed by the worker from the `.checksum` it wrote).
+Brick geometry and materials are loaded once and shared read-only (the cache has its own lock). The start-up backfill
+of old items' `.sd0` icons and checksums and of builds' combination ids runs on the main thread, a few items per tick.
 
 ## CPU and memory
 
@@ -297,6 +375,9 @@ files are what every player on a property sees anyway):
   the client's `UGCSERVERDIR`), and the same under `/lwoclient/UserBrickModels` (the path the client really uses, see
   above). HKX answers 404. The LXFML comes from the database. A model that exists but isn't made yet (or was evicted) is moved to
   the front of the queue and answers 408 so the client asks again.
+* `<client_path>/BrickModels/UserMade/<id % 1000>/<id, 20 digits>.<lxfml|nif|hkx|dds>.sd0`, the same under
+  `/<folder>/UserBrickModels` and at the root, for clients without 3D services (see "Without 3D services"); 408 and 404
+  as above.
 * `/files/model/<id>/<file>` and `/files/modular/<id>/<file>` for the dashboard (`icon.png`, `model.nif` and
   `model.noao.nif` (inflated), `stats.json`, `combo.json` and `previous.` versions), not cached by browsers.
 * `/admin/preview`, `/admin/assembly`, `/admin/regenerate-icons`, `/admin/delete` (POST, JSON) for the dashboard only:
@@ -424,4 +505,10 @@ pages show the item's own icon.
   keeps building its own meshes; switching them to the served NIFs (and sending `NotifyClientUGCModelReady` when a
   model is made) is the next step, and needs checking in game.
 * HKX (physics) is not generated.
-* The non-3D-services download path (world manifest packets) is not answered.
+* Icons in game: both of the client's modes download from its built-in `http://127.0.0.1:80/lwoclient/...` whatever
+  its `boot.cfg` says, so neither reaches the UGC server for normal players. Worlds answer the 7:0 manifest requests
+  (`ugc_manifest=1`) and the UGC server serves the `.sd0` files, but it stays off until the client can be pointed at
+  the server (why the client ignores its `UGCSERVER*`/`PATCHSERVER*` lines is not found yet).
+* Cars and rockets built before builds were stored (subkey 0, no `ugc_modular_build` row) never get an icon: the client
+  has no blueprint id to ask for.
+* A model's `.nif` made before `.sd0` files were written has none until the model is made again.

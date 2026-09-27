@@ -107,5 +107,26 @@ public:
 
 	// How many models are in each state
 	virtual std::vector<std::pair<eProcessState, uint64_t>> GetUgcProcessCounts() = 0;
+
+	// ---- Checksums of the files the UGC server made (ugc_file_checksums), for the client's manifest requests ----
+
+	// What the files are stored under: a player model's ugc id, or a combination of car or rocket modules
+	enum class eFileOwner : int32_t {
+		MODEL = 0,
+		COMBINATION = 1
+	};
+
+	// A made file as the client has it after inflating the download: its MD5 (32 lowercase hex digits) and size
+	struct FileChecksum {
+		std::string md5;
+		uint32_t size{};
+	};
+
+	// Records (or replaces) the checksum of a made file, e.g. "icon.dds" or "model.nif"
+	virtual void SetUgcFileChecksum(const eFileOwner owner, const LWOOBJID storageId, const std::string_view file, const std::string_view md5, const uint32_t size) = 0;
+
+	// The checksum of a blueprint's file: a player model's (the blueprint is its ugc id), else a car or rocket build's
+	// (the blueprint is its ugc_modular_build id; the file is its combination's)
+	virtual std::optional<FileChecksum> GetUgcFileChecksum(const LWOOBJID blueprintId, const std::string_view file) = 0;
 };
 #endif  //!__IUGC__H__

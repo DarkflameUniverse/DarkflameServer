@@ -181,3 +181,16 @@ void MySQLDatabase::ExpediteUgcModels(const LWOOBJID characterId) {
 void MySQLDatabase::SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles) {
 	ExecuteUpdate("UPDATE ugc SET brick_count = ?, triangle_count = ? WHERE id = ?;", bricks, triangles, id);
 }
+
+void MySQLDatabase::SetUgcFileChecksum(const eFileOwner owner, const LWOOBJID storageId, const std::string_view file, const std::string_view md5, const uint32_t size) {
+	ExecuteInsert("INSERT INTO ugc_file_checksums (kind, storage_id, file, md5, size) VALUES (?, ?, ?, ?, ?) "
+		"ON DUPLICATE KEY UPDATE md5 = VALUES(md5), size = VALUES(size);", static_cast<int32_t>(owner), storageId, file, md5, size);
+}
+
+std::optional<IUgc::FileChecksum> MySQLDatabase::GetUgcFileChecksum(const LWOOBJID blueprintId, const std::string_view file) {
+	auto result = ExecuteSelect("SELECT md5, size FROM ugc_file_checksums WHERE kind = 0 AND storage_id = ? AND file = ? "
+		"UNION ALL SELECT f.md5, f.size FROM ugc_modular_build b JOIN ugc_file_checksums f ON f.kind = 1 AND f.storage_id = b.combination_id AND f.file = ? "
+		"WHERE b.ugc_id = ? AND b.combination_id != 0 LIMIT 1;", blueprintId, file, file, blueprintId);
+	if (!result->next()) return std::nullopt;
+	return IUgc::FileChecksum{ std::string(result->getString("md5").c_str()), static_cast<uint32_t>(result->getUInt("size")) };
+}

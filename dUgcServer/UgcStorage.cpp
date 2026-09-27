@@ -9,9 +9,9 @@
 
 namespace {
 	constexpr std::array KNOWN_FILES = {
-		"model.nif", "model.nif.gz", "model.nif.checksum",
+		"model.nif", "model.nif.gz", "model.nif.checksum", "model.nif.sd0",
 		"model.lxfml.gz", "model.lxfml.checksum",
-		"icon.dds.gz", "icon.dds.checksum", "icon.png",
+		"icon.dds.gz", "icon.dds.checksum", "icon.dds.sd0", "icon.png",
 		"model.noao.nif", "model.noao.nif.gz", "stats.json", "combo.json",
 		"previous.icon.png", "previous.model.nif.gz", "previous.stats.json",
 	};

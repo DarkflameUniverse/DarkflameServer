@@ -717,3 +717,35 @@ TEST_F(WorldPacketsTests, SmallRequestsMatchLegacy) {
 	ASSERT_TRUE(mailRead.Deserialize(mailBytes));
 	EXPECT_PACKET_EQ(FromBitStream(mail.data), FromBitStream(mailRead.data));
 }
+
+// The layouts the 1.10.64 client uses without 3D services (UGCUSE3DSERVICES=7:0): it sends 16 bytes after the 0x53
+// (SendRequestUGCManifestInfoPacket) and only reads an answer that is exactly 37 bytes after it
+// (PacketHandler_MSG_CLIENT_UGC_MANIFEST_RESPONSE: 21 bytes of manifest info after the blueprint and type).
+TEST_F(WorldPacketsTests, UgcManifestPacketsMatchTheClient) {
+	WorldPackets::RequestUgcManifestInfo request;
+	request.blueprintId = 0x0102030405060708;
+	request.resourceType = eUgcResourceType::DDS;
+	RakNet::BitStream requestBytes;
+	request.WritePacket(requestBytes);
+	EXPECT_PACKET_EQ(FromHex("53 04 00 1b 00 00 00 00 08 07 06 05 04 03 02 01 03"), FromBitStream(requestBytes));
+	EXPECT_EQ(requestBytes.GetNumberOfBytesUsed() - 1, 16);
+	EXPECT_EQ(RoundTrip(request).blueprintId, request.blueprintId);
+	ExpectTruncatedFails(request);
+
+	ClientPackets::UgcManifestResponse response;
+	response.blueprintId = 0x0102030405060708;
+	response.resourceType = eUgcResourceType::DDS;
+	response.valid = true;
+	response.fileSize = 65664;
+	for (size_t i = 0; i < response.md5.size(); i++) response.md5[i] = static_cast<uint8_t>(0xa0 + i);
+	RakNet::BitStream responseBytes;
+	response.WritePacket(responseBytes);
+	EXPECT_PACKET_EQ(FromHex("53 05 00 3c 00 00 00 00 08 07 06 05 04 03 02 01 03 01 80 00 01 00 "
+		"a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af"), FromBitStream(responseBytes));
+	EXPECT_EQ(responseBytes.GetNumberOfBytesUsed() - 1, 37);
+	const auto read = RoundTrip(response);
+	EXPECT_TRUE(read.valid);
+	EXPECT_EQ(read.fileSize, 65664u);
+	EXPECT_EQ(read.md5, response.md5);
+	ExpectTruncatedFails(response);
+}

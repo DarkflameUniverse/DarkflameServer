@@ -17,6 +17,7 @@ set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
 	"PlayerReports.cpp"
 	"Preconditions.cpp"
 	"SlashCommandHandler.cpp"
+	"UgcManifest.cpp"
 	"VanityUtilities.cpp"
 	"WorldMigration.cpp")
 

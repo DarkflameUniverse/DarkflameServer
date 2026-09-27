@@ -417,6 +417,7 @@ namespace {
 		c.Add(Format(Text(UGC, "listen_ip", "Listen address", "The game client has to reach it.", "0.0.0.0", true), eFormat::HOST));
 		c.Add(Port(UGC, "net_port", "Master connection port", "UDP; the next port is used too.", "2012"));
 		c.Add(Text(UGC, "client_path", "Download path", "The game client's UGCSERVERDIR.", "/ugc", true));
+		c.Add(Bool(SHARED, "ugc_manifest", "Answer clients without 3D services", "Worlds tell game clients with UGCUSE3DSERVICES=7:0 (the default) the checksums of the files the UGC server made, so they download icons of cars, rockets and models. The client then downloads from http://127.0.0.1:80/lwoclient/UserBrickModels/ whatever its boot.cfg says, and one that can't connect there is logged out: only turn on when the UGC server answers there for every player.", false));
 		c.Add(Format(Text(DASHBOARD, "ugc_internal_url", "UGC server address (internal)", "Where the dashboard itself reaches the UGC server for its status and files. Empty: http://127.0.0.1:2008.", ""), eFormat::URL));
 		c.Add(Format(Text(DASHBOARD, "ugc_public_url", "UGC server address (public)", "Only for the \"open on the UGC server\" links, e.g. https://ugc.example.com. The dashboard's own pages don't need the browser to reach it.", ""), eFormat::URL));
 		c.AddSection("UGC processing", "When models are made and how much of the machine the workers may use.", eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });

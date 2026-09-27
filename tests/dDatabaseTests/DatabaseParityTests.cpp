@@ -774,6 +774,21 @@ TEST_F(ParitySeeded, UgcModel) {
 		out.push_back(db.GetUgcIconSettings("combo:4713-4714-4715").value_or(""));
 		db.DeleteUgcIconSettings("combo:4713-4714-4715");
 		out.push_back(db.GetUgcIconSettings("combo:4713-4714-4715").has_value());
+		// The files' checksums the worlds answer manifest requests with: a build's are its combination's
+		const auto checksumJson = [](const std::optional<IUgc::FileChecksum>& checksum) {
+			return checksum ? json{ checksum->md5, checksum->size } : json(nullptr);
+		};
+		for (const auto& build : db.GetModularBuildsWithoutCombination(10)) out.push_back(build.id);
+		out.push_back(checksumJson(db.GetUgcFileChecksum(1152921510000500002LL, "icon.dds")));
+		db.SetModularBuildCombination(1152921510000500002LL, 77);
+		db.SetUgcFileChecksum(IUgc::eFileOwner::COMBINATION, 77, "icon.dds", "900150983cd24fb0d6963f7d28e17f72", 3);
+		db.SetUgcFileChecksum(IUgc::eFileOwner::COMBINATION, 77, "icon.dds", "0123456789abcdef0123456789abcdef", 65664);
+		out.push_back(db.GetModularBuildsWithoutCombination(10).size());
+		out.push_back(checksumJson(db.GetUgcFileChecksum(1152921510000500002LL, "icon.dds")));
+		out.push_back(checksumJson(db.GetUgcFileChecksum(1152921510000500002LL, "model.nif")));
+		db.SetUgcFileChecksum(IUgc::eFileOwner::MODEL, 1152921510000500009LL, "icon.dds", "11111111111111111111111111111111", 10);
+		out.push_back(checksumJson(db.GetUgcFileChecksum(1152921510000500009LL, "icon.dds")));
+		out.push_back(checksumJson(db.GetUgcFileChecksum(77, "icon.dds")));
 		return out;
 	});
 }

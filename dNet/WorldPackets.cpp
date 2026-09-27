@@ -340,6 +340,17 @@ namespace WorldPackets {
 		return true;
 	}
 
+	void RequestUgcManifestInfo::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(blueprintId);
+		bitStream.Write(resourceType);
+	}
+
+	bool RequestUgcManifestInfo::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(blueprintId));
+		VALIDATE_READ(bitStream.Read(resourceType));
+		return true;
+	}
+
 	void UIHelpTop5::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(language);
 	}

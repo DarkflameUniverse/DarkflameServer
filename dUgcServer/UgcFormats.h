@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -57,4 +58,7 @@ namespace UgcFormats {
 
 	// What the client reads from a UGC file's .checksum: the MD5 and size of the file as it is after inflating it
 	std::string ChecksumXml(std::string_view data);
+
+	// The MD5 (lowercase hex) and size a .checksum (ChecksumXml) holds; false when it doesn't hold both
+	bool ReadChecksumXml(std::string_view xml, std::string& md5, uint32_t& size);
 }

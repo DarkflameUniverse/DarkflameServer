@@ -5,6 +5,7 @@
 #include "ChatPackets.h"
 #include "dCommonVars.h"
 #include "eFunnessTypes.h"
+#include "eUgcResourceType.h"
 #include "MessageType/Game.h"
 #include "MessageType/World.h"
 #include "PositionUpdate.h"
@@ -197,6 +198,17 @@ namespace WorldPackets {
 		eFunnessTypes cheatType{};
 
 		HandleFunness() : WorldLUBitStream(MessageType::World::HANDLE_FUNNESS) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Client -> server, when its UGCUSE3DSERVICES is off (the default): the MD5 and size of one of a blueprint's files
+	// (a player's model, or a car or rocket's build), answered with ClientPackets::UgcManifestResponse.
+	struct RequestUgcManifestInfo : public WorldLUBitStream {
+		LWOOBJID blueprintId{};
+		eUgcResourceType resourceType{};
+
+		RequestUgcManifestInfo() : WorldLUBitStream(MessageType::World::REQUEST_UGC_MANIFEST_INFO) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};

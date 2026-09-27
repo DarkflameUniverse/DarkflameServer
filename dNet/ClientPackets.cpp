@@ -484,6 +484,25 @@ bool ClientPackets::BlueprintLoadItemResponse::Deserialize(RakNet::BitStream& bi
 	return true;
 }
 
+void ClientPackets::UgcManifestResponse::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(blueprintId);
+	bitStream.Write(resourceType);
+	bitStream.Write<uint8_t>(valid ? 1 : 0);
+	bitStream.Write(fileSize);
+	for (const auto byte : md5) bitStream.Write(byte);
+}
+
+bool ClientPackets::UgcManifestResponse::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(blueprintId));
+	VALIDATE_READ(bitStream.Read(resourceType));
+	uint8_t validByte{};
+	VALIDATE_READ(bitStream.Read(validByte));
+	valid = validByte != 0;
+	VALIDATE_READ(bitStream.Read(fileSize));
+	for (auto& byte : md5) VALIDATE_READ(bitStream.Read(byte));
+	return true;
+}
+
 namespace {
 	// A zone ID as three fields: map (u16), instance (u16), clone (u32)
 	void WriteZone(RakNet::BitStream& bitStream, const LWOZONEID& zoneID) {

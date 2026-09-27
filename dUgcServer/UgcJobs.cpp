@@ -17,6 +17,9 @@ namespace UgcJobs {
 	void AddDownload(UgcStorage::Files& files, const std::string& name, const std::string& data) {
 		files[name + ".gz"] = ZCompression::Gzip(data);
 		files[name + ".checksum"] = UgcFormats::ChecksumXml(data);
+		// Without 3D services the client downloads it as sd0 (after asking its world for the checksum)
+		auto sd0 = Sd0::Compress(data);
+		if (!sd0.empty()) files[name + ".sd0"] = std::move(sd0);
 	}
 
 	std::string LxfmlFromBlob(const std::string& blob) {

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <unistd.h>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,6 +23,7 @@
 #include "UgcRender.h"
 #include "UgcStorage.h"
 #include "UgcThrottle.h"
+#include "Sd0.h"
 #include "ZCompression.h"
 #include "json.hpp"
 
@@ -269,6 +271,28 @@ TEST(UgcFormats, ImagesAndChecksums) {
 	EXPECT_EQ(dds[128 + 2], 10); // stored BGRA
 	EXPECT_EQ(UgcFormats::Md5Hex("abc"), "900150983cd24fb0d6963f7d28e17f72");
 	EXPECT_NE(UgcFormats::ChecksumXml("abc").find("<Checksum><MD5>900150983cd24fb0d6963f7d28e17f72</MD5><Filesize>3</Filesize></Checksum>"), std::string::npos);
+	std::string md5;
+	uint32_t size{};
+	ASSERT_TRUE(UgcFormats::ReadChecksumXml(UgcFormats::ChecksumXml("abc"), md5, size));
+	EXPECT_EQ(md5, "900150983cd24fb0d6963f7d28e17f72");
+	EXPECT_EQ(size, 3u);
+	EXPECT_FALSE(UgcFormats::ReadChecksumXml("<Checksum><MD5>abc</MD5><Filesize>3</Filesize></Checksum>", md5, size));
+	EXPECT_FALSE(UgcFormats::ReadChecksumXml("<Checksum><MD5>900150983cd24fb0d6963f7d28e17f72</MD5><Filesize>x</Filesize></Checksum>", md5, size));
+}
+
+// A download is written for both of the client's modes: .gz and .checksum (3D services) and .sd0 (without), all
+// holding the same file
+TEST(UgcJobs, AddsTheDownloadForBothClientModes) {
+	UgcStorage::Files files;
+	UgcJobs::AddDownload(files, "icon.dds", "abc");
+	EXPECT_EQ(ZCompression::Gunzip(files.at("icon.dds.gz")).value_or(""), "abc");
+	std::istringstream sd0(files.at("icon.dds.sd0"));
+	EXPECT_EQ(Sd0(sd0).GetAsStringUncompressed(), "abc");
+	std::string md5;
+	uint32_t size{};
+	ASSERT_TRUE(UgcFormats::ReadChecksumXml(files.at("icon.dds.checksum"), md5, size));
+	EXPECT_EQ(md5, "900150983cd24fb0d6963f7d28e17f72");
+	EXPECT_EQ(size, 3u);
 }
 
 TEST(UgcModular, ParsesTheCdClientData) {

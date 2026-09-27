@@ -34,6 +34,7 @@
 #include "UgcCdClient.h"
 #include "UgcIconParams.h"
 #include "UgcJobs.h"
+#include "Sd0.h"
 #include "UgcFormats.h"
 #include "ZCompression.h"
 #include "UgcModel.h"
@@ -228,6 +229,49 @@ namespace {
 		// .hkx: no physics is made
 	}
 
+	/**
+	 * A game client download without 3D services (UGCUSE3DSERVICES=7:0, the client's default):
+	 * BrickModels/UserMade/<id % 1000, 3 digits>/<id, 20 digits><.lxfml|.nif|.hkx|.dds>.sd0 under its UGCSERVERDIR. The
+	 * client asked its world for the file's checksum first (UGC_MANIFEST_RESPONSE) and checks the inflated download
+	 * against it.
+	 */
+	void ServeClientSd0(HTTPReply& reply, const std::string& bucket, const std::string& name) {
+		NotFound(reply);
+		auto file = Lower(name);
+		if (!file.ends_with(".sd0")) return;
+		file.resize(file.size() - 4);
+		const auto dot = file.find('.');
+		if (dot == std::string::npos) return;
+		const auto extension = file.substr(dot);
+		const auto number = file.substr(0, dot);
+		const auto id = GeneralUtils::TryParse<uint64_t>(number);
+		if (!id || number.empty() || GeneralUtils::TryParse<uint64_t>(bucket) != *id % 1000) return;
+		const auto blueprint = static_cast<LWOOBJID>(*id);
+		if (extension == ".lxfml") {
+			// Straight from the ugc row, like the 3D services download; the last few are kept
+			static std::map<LWOOBJID, std::string> cache; // main thread only
+			auto it = cache.find(blueprint);
+			if (it == cache.end()) {
+				const auto model = Database::Get()->GetUgcModel(blueprint);
+				const auto lxfml = model ? UgcJobs::LxfmlFromBlob(model->lxfmlData.str()) : std::string();
+				if (lxfml.empty()) return;
+				if (cache.size() >= 64) cache.erase(cache.begin());
+				it = cache.emplace(blueprint, Sd0::Compress(lxfml)).first;
+			}
+			reply.status = eHTTPStatusCode::OK;
+			reply.contentType = eContentType::APPLICATION_OCTET_STREAM;
+			reply.message = it->second;
+			reply.headers.push_back("Cache-Control: public, max-age=60");
+		} else if (extension == ".nif") {
+			ServeFile(reply, UgcStorage::Kind::MODEL, blueprint, "model.nif.sd0", eContentType::APPLICATION_OCTET_STREAM, false);
+		} else if (extension == ".dds") {
+			// A player model's icon, else a car or rocket's (its combination's)
+			ServeFile(reply, UgcStorage::Kind::MODEL, blueprint, "icon.dds.sd0", eContentType::APPLICATION_OCTET_STREAM, false);
+			if (reply.status == eHTTPStatusCode::NOT_FOUND) ServeFile(reply, UgcStorage::Kind::MODULAR, blueprint, "icon.dds.sd0", eContentType::APPLICATION_OCTET_STREAM, false);
+		}
+		// .hkx: no physics is made, the client makes its own
+	}
+
 	void RegisterRoutes() {
 		// The configured path, and the one the 1.10.64 client uses whatever its boot.cfg says (its built-in patch server
 		// folder, lwoclient/UserBrickModels; see docs/UgcServer.md)
@@ -251,6 +295,25 @@ namespace {
 			Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
 			Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:type/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
 			LOG("Serving the client's downloads under %s/UGCC<datacenter>/", base.c_str());
+		}
+
+		// Without 3D services: <UGCSERVERDIR>/BrickModels/UserMade/<bucket>/<file>.sd0, where UGCSERVERDIR is client_path
+		// when boot.cfg sets it, else the client's default <PATCHSERVERDIR>/UserBrickModels (any patch folder), or empty
+		std::set<std::string> sd0Bases = { "/:patchdir/userbrickmodels", "" };
+		{
+			std::string base;
+			for (const auto& segment : Segments(Lower(Game::config->GetValue("client_path").empty() ? std::string("/ugc") : Game::config->GetValue("client_path")))) base += "/" + segment;
+			sd0Bases.insert(base);
+		}
+		for (const auto& base : sd0Bases) {
+			Game::web.RegisterHTTPRoute({ .path = base + "/brickmodels/usermade/:bucket/:file", .method = eHTTPMethod::GET, .middleware = {},
+				.handle = [](HTTPReply& reply, const HTTPContext& context) {
+					const auto segments = Segments(context.originalPath);
+					if (segments.size() < 2) return NotFound(reply);
+					ServeClientSd0(reply, segments[segments.size() - 2], segments.back());
+					LOG("Client download %s -> %i%s", context.originalPath.c_str(), static_cast<int>(reply.status), reply.file.empty() ? "" : " (file)");
+				} });
+			LOG("Serving the client's sd0 downloads under %s/BrickModels/UserMade/", base.c_str());
 		}
 
 		// Previews for the dashboard

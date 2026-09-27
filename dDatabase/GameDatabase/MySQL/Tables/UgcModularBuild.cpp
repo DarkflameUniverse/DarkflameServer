@@ -106,3 +106,16 @@ void MySQLDatabase::SetUgcIconSettings(const std::string_view target, const std:
 void MySQLDatabase::DeleteUgcIconSettings(const std::string_view target) {
 	ExecuteDelete("DELETE FROM ugc_icon_settings WHERE target = ?;", target);
 }
+
+void MySQLDatabase::SetModularBuildCombination(const LWOOBJID id, const LWOOBJID combinationId) {
+	ExecuteUpdate("UPDATE ugc_modular_build SET combination_id = ? WHERE ugc_id = ?;", combinationId, id);
+}
+
+std::vector<IUgcModularBuild::PendingBuild> MySQLDatabase::GetModularBuildsWithoutCombination(const uint32_t limit) {
+	auto result = ExecuteSelect("SELECT ugc_id, ldf_config, process_attempts FROM ugc_modular_build WHERE combination_id = 0 LIMIT ?;", limit);
+	std::vector<PendingBuild> builds;
+	while (result->next()) {
+		builds.push_back({ result->getInt64("ugc_id"), std::string(result->getString("ldf_config").c_str()), static_cast<uint32_t>(result->getInt("process_attempts")) });
+	}
+	return builds;
+}

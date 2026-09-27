@@ -6,6 +6,7 @@
 #ifndef CLIENTPACKETS_H
 #define CLIENTPACKETS_H
 
+#include <array>
 #include <cstdint>
 #include <ctime>
 #include <set>
@@ -18,6 +19,7 @@
 #include "eAddFriendResponseType.h"
 #include "eAddIgnoreResponse.h"
 #include "eBlueprintSaveResponseType.h"
+#include "eUgcResourceType.h"
 #include "MessageType/Client.h"
 #include "MessageType/Game.h"
 #include "NiPoint3.h"
@@ -263,6 +265,23 @@ namespace ClientPackets {
 		uint8_t success{};
 		LWOOBJID itemId{};
 		LWOOBJID destItemId{};
+	};
+
+	// Server -> client. The answer to REQUEST_UGC_MANIFEST_INFO: the MD5 and size of one of a blueprint's files as the
+	// client has it after downloading and inflating it (BrickModels/UserMade/<id % 1000>/<id>.<ext>.sd0 from the UGC
+	// server). The client checks a file it has against it and downloads the file when it differs; with valid 0 it uses
+	// a file it has as it is and downloads it only when it has none. The client ignores the answer unless it is exactly
+	// this long (37 bytes after the 0x53).
+	struct UgcManifestResponse : public LUBitStream {
+		UgcManifestResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::UGC_MANIFEST_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		LWOOBJID blueprintId{};
+		eUgcResourceType resourceType{};
+		bool valid{}; // A byte
+		uint32_t fileSize{}; // Of the inflated file
+		std::array<uint8_t, 16> md5{}; // Of the inflated file, as bytes
 	};
 };
 

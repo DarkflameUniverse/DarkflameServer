@@ -112,3 +112,17 @@ void SQLiteDatabase::SetUgcIconSettings(const std::string_view target, const std
 void SQLiteDatabase::DeleteUgcIconSettings(const std::string_view target) {
 	ExecuteDelete("DELETE FROM ugc_icon_settings WHERE target = ?;", target);
 }
+
+void SQLiteDatabase::SetModularBuildCombination(const LWOOBJID id, const LWOOBJID combinationId) {
+	ExecuteUpdate("UPDATE ugc_modular_build SET combination_id = ? WHERE ugc_id = ?;", combinationId, id);
+}
+
+std::vector<IUgcModularBuild::PendingBuild> SQLiteDatabase::GetModularBuildsWithoutCombination(const uint32_t limit) {
+	auto [_, result] = ExecuteSelect("SELECT ugc_id, ldf_config, process_attempts FROM ugc_modular_build WHERE combination_id = 0 LIMIT ?;", limit);
+	std::vector<PendingBuild> builds;
+	while (!result.eof()) {
+		builds.push_back({ result.getInt64Field("ugc_id"), result.getStringField("ldf_config", ""), static_cast<uint32_t>(result.getIntField("process_attempts")) });
+		result.nextRow();
+	}
+	return builds;
+}
