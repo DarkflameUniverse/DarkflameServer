@@ -130,7 +130,6 @@ namespace {
 		c.AddSection("Startup");
 		c.Add(Bool(MASTER, "prestart_servers", "Start auth, chat and char servers", "Master starts the other servers itself.", true, true));
 		c.Add(Bool(MASTER, "enable_dashboard", "Start the web dashboard", "", false, true));
-		c.Add(Bool(MASTER, "enable_ugc_server", "Start the UGC server", "Makes and serves the meshes and icons of what players build (docs/UgcServer.md).", false, true));
 		c.Add(Bool(SHARED, "skip_account_creation", "Skip the first-account prompt", "For non-interactive setups: master doesn't ask for an account when there are none.", false, true));
 
 		c.AddSection("Game client");
@@ -298,8 +297,6 @@ namespace {
 		c.Add(Port(DASHBOARD, "port", "Web port", "Where the dashboard listens for browsers.", "2006"));
 		c.Add(Format(Text(DASHBOARD, "listen_ip", "Listen address", "127.0.0.1 for this machine only (put a reverse proxy in front); 0.0.0.0 for everyone.", "127.0.0.1", true), eFormat::HOST));
 		c.Add(Port(DASHBOARD, "net_port", "Server link port", "UDP port for the connection to master (the next one is used too). Keep clear of other servers' ports.", "2010"));
-		c.Add(Format(Text(DASHBOARD, "ugc_internal_url", "UGC server address (internal)", "Where the dashboard itself reaches the UGC server for its status and files. Empty: http://127.0.0.1:2008.", ""), eFormat::URL));
-		c.Add(Format(Text(DASHBOARD, "ugc_public_url", "UGC server address (public)", "Only for the \"open on the UGC server\" links, e.g. https://ugc.example.com. The dashboard's own pages don't need the browser to reach it.", ""), eFormat::URL));
 		c.Add(Format(Text(DASHBOARD, "dashboard_url", "Public address", "For links in emails and alerts, e.g. https://dashboard.example.com.", ""), eFormat::URL));
 		c.Add(Bool(DASHBOARD, "secure_cookies", "HTTPS only cookies", "Turn on when the dashboard is served over HTTPS.", false));
 		c.Add(Bool(DASHBOARD, "behind_proxy", "Behind a reverse proxy", "Use the proxy's X-Forwarded-For for rate limits. Only when the dashboard can't be reached directly.", false));
@@ -412,14 +409,17 @@ namespace {
 		c.AddSection("Character history");
 		c.Add(Days("snapshot_days", "Snapshots", "Older snapshots are deleted, but each character keeps its newest few (below).", "90", 1));
 		c.Add(Unit(Int(DASHBOARD, "snapshot_keep", "Always keep per character", "", "10", 1, 1000), "snapshots"));
-		c.AddSection("UGC server", "Makes the meshes and icons of what players build and serves them to the game client. See docs/UgcServer.md.",
-			eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
+		// The UGC server's settings, also shown beside what they change on the UGC page (/ugc reads these sections)
+		c.AddCategory("ugc", "UGC server", "Makes the meshes and icons of what players build and serves them to the game client. See docs/UgcServer.md; the UGC page shows these beside what they change.");
+		c.AddSection("UGC serving", "Where the game client downloads from and where the dashboard reaches the UGC server.");
+		c.Add(Bool(MASTER, "enable_ugc_server", "Start the UGC server", "Makes and serves the meshes and icons of what players build (docs/UgcServer.md).", false, true));
 		c.Add(Port(UGC, "port", "Download port", "The game client's UGCSERVERPORT.", "2008"));
 		c.Add(Format(Text(UGC, "listen_ip", "Listen address", "The game client has to reach it.", "0.0.0.0", true), eFormat::HOST));
 		c.Add(Port(UGC, "net_port", "Master connection port", "UDP; the next port is used too.", "2012"));
 		c.Add(Text(UGC, "client_path", "Download path", "The game client's UGCSERVERDIR.", "/ugc", true));
-		c.Add(Format(Text(UGC, "ugc_output_dir", "Files folder", "Relative to the server binaries.", "ugc", true), eFormat::PATH));
-		c.Add(Unit(Int(UGC, "ugc_max_storage_mb", "Most space for files", "The files used longest ago are deleted past this and made again when asked for. 0: no limit.", "2048", 0, std::nullopt, true), "MB"));
+		c.Add(Format(Text(DASHBOARD, "ugc_internal_url", "UGC server address (internal)", "Where the dashboard itself reaches the UGC server for its status and files. Empty: http://127.0.0.1:2008.", ""), eFormat::URL));
+		c.Add(Format(Text(DASHBOARD, "ugc_public_url", "UGC server address (public)", "Only for the \"open on the UGC server\" links, e.g. https://ugc.example.com. The dashboard's own pages don't need the browser to reach it.", ""), eFormat::URL));
+		c.AddSection("UGC processing", "When models are made and how much of the machine the workers may use.", eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
 		c.Add(Unit(Int(SHARED, "ugc_debounce_seconds", "Wait after a save", "A saved model is made this long after the owner's last save (their other waiting models wait too), or as soon as a game client asks for it or the owner leaves. 0: right away.", "120", 0, 86400), "seconds"));
 		c.Add(Int(UGC, "worker_threads", "Worker threads", "0: half the CPU cores.", "0", 0, 64, true));
 		c.Add(Unit(Float(UGC, "max_cpu_percent", "Most CPU", "The workers together average at most this share of all CPU cores; they pause between bits of work to stay under it. 0: no limit.", "0", 0, 100), "%"));
@@ -430,6 +430,7 @@ namespace {
 		c.Add(Unit(Int(UGC, "poll_interval_ms", "Look for new models every", "", "2000", 100, 600000, true), "ms"));
 		c.Add(Int(UGC, "poll_batch", "Models taken at once", "", "32", 1, 1000, true));
 		c.Add(Int(UGC, "max_attempts", "Attempts before giving up", "", "3", 1, 100, true));
+		c.AddSection("UGC models", "How a model's mesh is made from its bricks (LU Toolbox's steps).", eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
 		c.Add(Labels(Choice(UGC, "color_palette", "Colors", "LU Toolbox's LU palette (unknown colors black), or the client's Materials.xml.", "lu_toolbox", { "lu_toolbox", "brickdb" }), { "LU Toolbox", "Brick database" }));
 		c.Add(Unit(Float(UGC, "color_variation", "Color variation", "Each brick's brightness is shifted by up to this much (the same every time the model is made). 0: none.", "5", 0, 100), "%"));
 		c.Add(Unit(Float(UGC, "transparent_opacity", "Transparent opacity", "", "58.82", 0, 100), "%"));
@@ -449,6 +450,11 @@ namespace {
 		c.Add(Float(UGC, "ao_distance", "Occlusion distance", "", "5", 0, 1000));
 		c.Add(Float(UGC, "ao_strength", "Darkening strength", "0 to 1.", "1", 0, 1));
 		c.Add(Float(UGC, "glow_strength", "Glow strength", "What glowing colors add to the baked light.", "6", 0, 100));
+		c.AddSection("UGC storage", "The files made, kept on disk.", eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
+		c.Add(Format(Text(UGC, "ugc_output_dir", "Files folder", "Relative to the server binaries.", "ugc", true), eFormat::PATH));
+		c.Add(Unit(Int(UGC, "ugc_max_storage_mb", "Most space for files", "The files used longest ago are deleted past this and made again when asked for. 0: no limit.", "2048", 0, std::nullopt, true), "MB"));
+		c.AddSection("UGC icons", "The icons' size and the defaults of their framing and light. Presets per type and values for single items are set in the UGC page's icon editor.",
+			eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
 		c.Add(Unit(Int(UGC, "icon_size", "Icon size", "", "128", 16, 1024), "pixels"));
 		// The icon's framing and light, from the one list of them (UgcIconParams); presets and overrides are set on the
 		// UGC page's icon editor

@@ -535,10 +535,12 @@
 			d.sections.forEach(function (sec) { if (sec.condition) state.controllers[sec.condition.file + '/' + sec.condition.key] = true; });
 			// Drop edits to settings that no longer exist
 			Object.keys(state.pending).forEach(function (key) { if (!state.byKey[key]) delete state.pending[key]; });
-			var fromHash = location.hash.slice(1);
-			if (!state.category) state.category = state.categories.some(function (c) { return c.id === fromHash; }) ? fromHash : state.categories[0].id;
+			// #<category>, or #<file>/<name> for one setting (the UGC page's "Open in Settings" links)
+			var fromHash = decodeURIComponent(location.hash.slice(1)), linked = !state.category && state.byKey[fromHash];
+			if (!state.category) state.category = state.categories.some(function (c) { return c.id === fromHash; }) ? fromHash : linked ? linked.category : state.categories[0].id;
 			document.getElementById('addFile').innerHTML = d.files.map(function (f) { return '<option value="' + esc(f.file) + '">' + esc(f.name) + ' (' + esc(f.file) + ')</option>'; }).join('');
 			render();
+			if (linked) goTo(fromHash);
 		});
 	}
 

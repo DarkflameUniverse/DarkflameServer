@@ -14,7 +14,10 @@
 	<div class="row g-2 mb-3" id="counts"></div>
 
 	<div class="card mb-3">
-		<div class="card-body py-2 small" id="serverStatus">Asking the UGC server…</div>
+		<div class="card-body py-2 small"><div id="serverStatus">Asking the UGC server…</div>
+			<div data-ugc-settings="UGC processing" data-title="Processing settings"></div>
+			<div data-ugc-settings="UGC models" data-title="How models are made"></div>
+			<div data-ugc-settings="UGC serving" data-title="Serving settings"></div></div>
 	</div>
 
 	<details class="card mb-3" id="presetsCard">
@@ -23,6 +26,7 @@
 			<p class="text-body-secondary mb-2">Each type of icon (player models, and each car or rocket build type in the client's data) has a preset over the
 				default settings. Open one to set its camera, the model's turn, the light and the border on an example.</p>
 			<div class="d-flex flex-wrap gap-2" id="presetsList">Loading…</div>
+			<div data-ugc-settings="UGC icons" data-title="Icon defaults (under every preset)"></div>
 		</div>
 	</details>
 
@@ -41,6 +45,7 @@
 				<button type="button" class="btn btn-sm btn-outline-danger" id="purgeAllButton">Purge all…</button>
 			</div>
 			<div class="mt-2" id="purgeResult"></div>
+			<div data-ugc-settings="UGC storage" data-title="Storage settings"></div>
 		</div>
 	</details>
 
@@ -205,6 +210,7 @@
 }
 </script>
 <script src="/js/ldd-materials.js"></script>
+<script src="/js/ugc-settings.js"></script>
 <script src="/js/ugc-icon-editor.js"></script>
 <script src="/js/ugc.js"></script>
 {% endblock %}
