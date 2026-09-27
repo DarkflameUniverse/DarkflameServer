@@ -1,18 +1,15 @@
 #include "UgcRoutes.h"
 
 #include <memory>
-#include <mutex>
 #include <set>
-
-#include <curl/curl.h>
 
 #include "CDClientDatabase.h"
 #include "Database.h"
 #include "UgcIconParams.h"
 #include "NifFile.h"
-#include "TtlCache.h"
 #include "SettingsCatalog.h"
 #include "SettingsHistory.h"
+#include "UgcFetch.h"
 #include "UgcKeys.h"
 #include "Workers.h"
 #include "Game.h"
@@ -24,6 +21,7 @@
 #include "eHTTPMethod.h"
 
 using namespace RouteUtils;
+using namespace UgcFetch;
 
 namespace {
 	constexpr uint32_t PAGE_SIZE = 50;
@@ -32,91 +30,6 @@ namespace {
 
 	std::optional<IUgc::eProcessState> ParseState(const std::string& text) { return IUgc::ParseProcessState(text); }
 
-
-	/**
-	 * The dashboard's own way to the UGC server (ugc_internal_url, normally the same machine): its status and the files
-	 * it made are fetched here and handed to the browser, which may not be able to reach the UGC server at all. Fetches
-	 * run on worker threads (Workers::Reply) with the URL worked out on the web thread; small answers are kept briefly.
-	 */
-	struct Fetched {
-		long status{};      // HTTP status, 0 when the UGC server didn't answer
-		std::string body;
-		std::string error;
-	};
-
-	std::mutex g_CacheMutex;
-	TtlCache<std::string, std::shared_ptr<const Fetched>> g_Cache(std::chrono::seconds(15), 32 * 1024 * 1024);
-	TtlCache<std::string, std::shared_ptr<const Fetched>> g_StatusCache(std::chrono::seconds(2), 1024 * 1024);
-
-	constexpr size_t MAX_FETCH_BYTES = 128 * 1024 * 1024;
-
-	size_t Collect(char* data, size_t size, size_t count, void* userData) {
-		auto* out = static_cast<std::string*>(userData);
-		if (out->size() + size * count > MAX_FETCH_BYTES) return 0;
-		out->append(data, size * count);
-		return size * count;
-	}
-
-	// Web thread: where the dashboard reaches the UGC server
-	std::string InternalUrl() {
-		auto url = Game::config->GetValue("ugc_internal_url");
-		if (url.empty()) url = "http://127.0.0.1:2008";
-		while (url.ends_with('/')) url.pop_back();
-		return url;
-	}
-
-	// Any thread: a GET to the UGC server
-	std::shared_ptr<const Fetched> Get(const std::string& url) {
-		auto out = std::make_shared<Fetched>();
-		CURL* curl = curl_easy_init();
-		if (!curl) {
-			out->error = "could not start a request";
-			return out;
-		}
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
-		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 3L);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "DarkflameServer-Dashboard");
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Collect);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out->body);
-		const auto code = curl_easy_perform(curl);
-		if (code == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &out->status);
-		else out->error = curl_easy_strerror(code);
-		curl_easy_cleanup(curl);
-		return out;
-	}
-
-	// Any thread: a POST of JSON to one of the UGC server's /admin routes, with the key it checks (the master password)
-	std::shared_ptr<const Fetched> AdminPost(const std::string& url, const std::string& key, const std::string& body) {
-		auto out = std::make_shared<Fetched>();
-		CURL* curl = curl_easy_init();
-		if (!curl) {
-			out->error = "could not start a request";
-			return out;
-		}
-		curl_slist* headers = curl_slist_append(nullptr, "Content-Type: application/json");
-		headers = curl_slist_append(headers, ("X-Ugc-Admin-Key: " + key).c_str());
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
-		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 3L);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120L);
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Collect);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out->body);
-		const auto code = curl_easy_perform(curl);
-		if (code == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &out->status);
-		else out->error = curl_easy_strerror(code);
-		curl_slist_free_all(headers);
-		curl_easy_cleanup(curl);
-		return out;
-	}
 
 	// Web thread: the key the UGC server's /admin routes want
 	std::string AdminKey() {
@@ -192,27 +105,6 @@ namespace {
 		const auto stored = Database::Get()->GetUgcIconSettings(target);
 		if (!stored) return nullptr;
 		return nlohmann::json::parse(UgcIconParams::ToJson(UgcIconParams::Parse(*stored)));
-	}
-
-	// Any thread: Get, through the cache (answers that aren't a file being made are kept)
-	std::shared_ptr<const Fetched> CachedGet(const std::string& url, bool status) {
-		{
-			std::lock_guard lock(g_CacheMutex);
-			if (auto hit = (status ? g_StatusCache : g_Cache).Get(url)) return *hit;
-		}
-		auto fetched = Get(url);
-		if (fetched->status == 200 || fetched->status == 404) {
-			std::lock_guard lock(g_CacheMutex);
-			(status ? g_StatusCache : g_Cache).Put(url, fetched, fetched->body.size() + 64);
-		}
-		return fetched;
-	}
-
-	void FetchError(HTTPReply& reply, const Fetched& fetched, const std::string& url) {
-		if (fetched.status == 408) return JsonError(reply, eHTTPStatusCode::REQUEST_TIMEOUT, "The UGC server is making it; try again in a moment");
-		if (fetched.status == 404) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "The UGC server has no such file");
-		if (fetched.status == 0) return JsonError(reply, eHTTPStatusCode::BAD_GATEWAY, "The UGC server doesn't answer at " + url + " (" + fetched.error + ")");
-		JsonError(reply, eHTTPStatusCode::BAD_GATEWAY, "The UGC server answered " + std::to_string(fetched.status));
 	}
 
 	const std::set<std::string> FILES = { "icon.png", "model.nif", "model.noao.nif", "stats.json", "combo.json",
@@ -293,7 +185,7 @@ namespace UgcRoutes {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto base = InternalUrl();
 				Workers::Reply(reply, context, false, [base](HTTPReply& out) {
-					const auto fetched = CachedGet(base + "/status", true);
+					const auto fetched = CachedGet(base + "/status", eCache::STATUS);
 					if (fetched->status != 200) {
 						JsonReply(out, eHTTPStatusCode::OK, { { "success", false }, { "url", base }, { "error", fetched->status == 0 ? fetched->error : "answered " + std::to_string(fetched->status) } });
 						return;
@@ -315,8 +207,8 @@ namespace UgcRoutes {
 				if (!kind || !id || !FILES.contains(file)) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid kind, id or file");
 				const auto url = InternalUrl() + "/files/" + *kind + "/" + std::to_string(*id) + "/" + file;
 				Workers::Reply(reply, context, false, [url, file](HTTPReply& out) {
-					const auto fetched = CachedGet(url, false);
-					if (fetched->status != 200) return FetchError(out, *fetched, url);
+					const auto fetched = CachedGet(url);
+					if (fetched->status != 200) return ReplyError(out, *fetched, url);
 					out.status = eHTTPStatusCode::OK;
 					out.contentType = file.ends_with(".png") ? eContentType::IMAGE_PNG : file.ends_with(".json") ? eContentType::APPLICATION_JSON : eContentType::APPLICATION_OCTET_STREAM;
 					out.message = fetched->body;
@@ -336,8 +228,8 @@ namespace UgcRoutes {
 				const std::string file = std::string(previous ? "previous." : "") + (baked ? "model.nif" : "model.noao.nif");
 				const auto url = InternalUrl() + "/files/model/" + std::to_string(*id) + "/" + file;
 				Workers::Reply(reply, context, false, [url, lod](HTTPReply& out) {
-					const auto fetched = CachedGet(url, false);
-					if (fetched->status != 200) return FetchError(out, *fetched, url);
+					const auto fetched = CachedGet(url);
+					if (fetched->status != 200) return ReplyError(out, *fetched, url);
 					std::string error;
 					const auto model = NifFile::Parse(fetched->body, lod, error);
 					if (!model) return JsonError(out, eHTTPStatusCode::UNPROCESSABLE_ENTITY, "The .nif can't be read: " + error);

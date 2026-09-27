@@ -58,6 +58,7 @@ set(DASHBOARDROUTES_SOURCES
 	"ContrabandRoutes.cpp"
 	"UgcRoutes.cpp"
 	"UgcLinks.cpp"
+	"UgcFetch.cpp"
 	"PropertyRentRoutes.cpp"
 	"PasswordRecovery.cpp"
 	"PrometheusMetrics.cpp"

@@ -2,10 +2,7 @@
 
 #include <map>
 #include <memory>
-#include <mutex>
 #include <set>
-
-#include <curl/curl.h>
 
 #include "Database.h"
 #include "dConfig.h"
@@ -14,83 +11,19 @@
 #include "GeneralUtils.h"
 #include "NifFile.h"
 #include "RouteUtils.h"
-#include "TtlCache.h"
+#include "UgcFetch.h"
 #include "UgcLookup.h"
 #include "Workers.h"
 
 using namespace RouteUtils;
 using namespace UgcLookup;
+using namespace UgcFetch;
 
 namespace {
 	constexpr uint32_t SEARCH_LIMIT = 50;
 	// Creators whose inventories a search looks in for creations that are not placed or mailed
 	constexpr size_t MAX_INVENTORIES = 25;
 
-	// ---- The UGC server's files, fetched by the dashboard (as the /ugc page's routes do) ----
-
-	struct Fetched {
-		long status{}; // HTTP status, 0 when the UGC server didn't answer
-		std::string body;
-		std::string error;
-	};
-
-	std::mutex g_CacheMutex;
-	TtlCache<std::string, std::shared_ptr<const Fetched>> g_Cache(std::chrono::seconds(15), 32 * 1024 * 1024);
-	constexpr size_t MAX_FETCH_BYTES = 128 * 1024 * 1024;
-
-	size_t Collect(char* data, size_t size, size_t count, void* userData) {
-		auto* out = static_cast<std::string*>(userData);
-		if (out->size() + size * count > MAX_FETCH_BYTES) return 0;
-		out->append(data, size * count);
-		return size * count;
-	}
-
-	// Web thread
-	std::string InternalUrl() {
-		auto url = Game::config->GetValue("ugc_internal_url");
-		if (url.empty()) url = "http://127.0.0.1:2008";
-		while (url.ends_with('/')) url.pop_back();
-		return url;
-	}
-
-	// Any thread
-	std::shared_ptr<const Fetched> Fetch(const std::string& url) {
-		{
-			std::lock_guard lock(g_CacheMutex);
-			if (auto hit = g_Cache.Get(url)) return *hit;
-		}
-		auto out = std::make_shared<Fetched>();
-		CURL* curl = curl_easy_init();
-		if (!curl) {
-			out->error = "could not start a request";
-			return out;
-		}
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
-		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 3L);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "DarkflameServer-Dashboard");
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Collect);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out->body);
-		const auto code = curl_easy_perform(curl);
-		if (code == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &out->status);
-		else out->error = curl_easy_strerror(code);
-		curl_easy_cleanup(curl);
-		if (out->status == 200 || out->status == 404) {
-			std::lock_guard lock(g_CacheMutex);
-			g_Cache.Put(url, out, out->body.size() + 64);
-		}
-		return out;
-	}
-
-	void FetchError(HTTPReply& reply, const Fetched& fetched) {
-		if (fetched.status == 408) return JsonError(reply, eHTTPStatusCode::REQUEST_TIMEOUT, "The UGC server is making it; try again in a moment");
-		if (fetched.status == 404) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "The UGC server has not made it");
-		if (fetched.status == 0) return JsonError(reply, eHTTPStatusCode::BAD_GATEWAY, "The UGC server doesn't answer (" + fetched.error + ")");
-		JsonError(reply, eHTTPStatusCode::BAD_GATEWAY, "The UGC server answered " + std::to_string(fetched.status));
-	}
 
 	// ---- Who may see a creation ----
 
@@ -298,8 +231,8 @@ namespace UgcLinks {
 				if (!MaySee(context, *kind, *id)) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "You may not view this creation");
 				const auto url = InternalUrl() + "/files/" + KindName(*kind) + "/" + std::to_string(*id) + "/icon.png";
 				Workers::Reply(reply, context, false, [url](HTTPReply& out) {
-					const auto fetched = Fetch(url);
-					if (fetched->status != 200) return FetchError(out, *fetched);
+					const auto fetched = CachedGet(url);
+					if (fetched->status != 200) return ReplyError(out, *fetched);
 					out.status = eHTTPStatusCode::OK;
 					out.contentType = eContentType::IMAGE_PNG;
 					out.message = fetched->body;
@@ -317,8 +250,8 @@ namespace UgcLinks {
 				const auto lod = std::min(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "lod")).value_or(0), 3u);
 				const auto url = InternalUrl() + "/files/model/" + std::to_string(*id) + "/model.nif";
 				Workers::Reply(reply, context, false, [url, lod](HTTPReply& out) {
-					const auto fetched = Fetch(url);
-					if (fetched->status != 200) return FetchError(out, *fetched);
+					const auto fetched = CachedGet(url);
+					if (fetched->status != 200) return ReplyError(out, *fetched);
 					std::string error;
 					const auto model = NifFile::Parse(fetched->body, lod, error);
 					if (!model) return JsonError(out, eHTTPStatusCode::UNPROCESSABLE_ENTITY, "The .nif can't be read: " + error);
