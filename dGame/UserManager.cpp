@@ -241,22 +241,24 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 
 	chars.clear();
 
-	for (const auto& characterId : Database::Get()->GetAccountCharacterIds(u->GetAccountID())) {
+	// Newest last login first (charinfo.last_login; a new character counts as logged in when it is made)
+	const auto characterIds = Database::Get()->GetAccountCharacterIds(u->GetAccountID());
+	for (const auto& characterId : characterIds) {
 		Character* character = new Character(characterId, u);
 		character->UpdateFromDatabase();
 		character->SetIsNewLogin();
 		chars.push_back(character);
 	}
 
-	// Live kept the characters in the order they were made and selected the one with the latest last login (a new
-	// character counts as logged in when it is made), as 2014 captures of the character list show. Character IDs
-	// only grow, so sorting by ID gives the order they were made in.
+	// Live kept the characters in the order they were made and selected the one with the latest last login, as 2014
+	// captures of the character list show. Character IDs only grow, so sorting by ID gives the order they were made in.
 	std::ranges::sort(chars, {}, &Character::GetID);
 
 	ClientPackets::CharacterListResponse response;
 	response.selectedCharacterIndex = 0;
-	for (size_t i = 1; i < chars.size(); i++) {
-		if (chars[i]->GetLastLogin() > chars[response.selectedCharacterIndex]->GetLastLogin()) response.selectedCharacterIndex = static_cast<uint8_t>(i);
+	if (!characterIds.empty()) {
+		const auto lastUsed = std::ranges::find(chars, characterIds.front(), &Character::GetID);
+		if (lastUsed != chars.end()) response.selectedCharacterIndex = static_cast<uint8_t>(lastUsed - chars.begin());
 	}
 
 	for (const auto* const character : u->GetCharacters()) {
