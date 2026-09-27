@@ -77,6 +77,12 @@ private:
 
 	// The signed degrees the current rotation action has progressed so far
 	float m_RotationProgress{ 0.0f };
+
+	static constexpr float DEFAULT_SPEED = 3.0f;
+	static constexpr float MIN_SPEED = 0.1f;
+
+	// Speed applied to moves and rotations started by this strip
+	float m_Speed{ DEFAULT_SPEED };
 };
 
 #endif  //!__STRIP__H__

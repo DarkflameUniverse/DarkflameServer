@@ -46,12 +46,10 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& 
 	if (reset.bResetPos) m_Parent->SetPosition(m_OriginalPosition);
 	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
-	m_MoveDirection = NiPoint3Constant::ZERO;
-	m_WasMoving = false;
+	m_Move = MoveState{};
 	SyncLinearVelocity();
 	ResetRotationState(m_Parent->GetRotation());
 
-	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
 
 	m_NumActiveAttack = 0;
@@ -295,85 +293,77 @@ void ModelComponent::RemoveUnSmash() {
 	m_NumActiveUnSmash--;
 }
 
-bool ModelComponent::TryStartMove(const int axis, const float direction) {
-	if (axis < 0 || axis > 2 || direction == 0.0f) return false;
-	if (m_MoveDirection[axis] != 0.0f) return false;
+bool ModelComponent::TryStartMove(const int axis, const float direction, const float speed) {
+	if (axis < 0 || axis > 2 || direction == 0.0f || speed <= 0.0f) return false;
+	if (m_Move.velocity[axis] != 0.0f) return false;
 
-	m_MoveDirection[axis] = direction > 0.0f ? 1.0f : -1.0f;
+	m_Move.velocity[axis] = std::copysign(speed, direction);
 	return true;
 }
 
 void ModelComponent::StopMove(const int axis) {
 	if (axis < 0 || axis > 2) return;
-	m_MoveDirection[axis] = 0.0f;
+	m_Move.velocity[axis] = 0.0f;
 }
 
 void ModelComponent::SyncLinearVelocity() {
 	const auto& rotation = m_Parent->GetRotation();
-	m_MoveBasis = { QuatUtils::Right(rotation), QuatUtils::Up(rotation), QuatUtils::Forward(rotation) };
+	m_Move.basis = { QuatUtils::Right(rotation), QuatUtils::Up(rotation), QuatUtils::Forward(rotation) };
 
 	NiPoint3 velocity = NiPoint3Constant::ZERO;
-	for (int axis = 0; axis < 3; axis++) velocity += m_MoveBasis[axis] * (m_MoveDirection[axis] * m_Speed);
+	for (int axis = 0; axis < 3; axis++) velocity += m_Move.basis[axis] * m_Move.velocity[axis];
 
 	// Leave velocity alone unless a move owns it, e.g. pets are driven elsewhere
 	const bool isMoving = velocity != NiPoint3Constant::ZERO;
-	if (!isMoving && !m_WasMoving) return;
-	m_WasMoving = isMoving;
+	if (!isMoving && !m_Move.wasMoving) return;
+	m_Move.wasMoving = isMoving;
 
 	// Setting velocity always marks it dirty for serialization
 	if (velocity != m_Parent->GetVelocity()) m_Parent->SetVelocity(velocity);
 }
 
-bool ModelComponent::TryStartRotation(const int axis, const float direction) {
-	if (axis < 0 || axis > 2 || direction == 0.0f) return false;
-	if (m_RotationDirection[axis] != 0.0f) return false;
+bool ModelComponent::TryStartRotation(const int axis, const float direction, const float speed) {
+	if (axis < 0 || axis > 2 || direction == 0.0f || speed <= 0.0f) return false;
+	if (m_Rotation.velocity[axis] != 0.0f) return false;
 
 	// Rebase only when nothing is rotating so simultaneous rotations stay relative to the same base
-	if (m_RotationDirection == NiPoint3Constant::ZERO) ResetRotationState(m_Parent->GetRotation());
+	if (m_Rotation.velocity == NiPoint3Constant::ZERO) ResetRotationState(m_Parent->GetRotation());
 
-	m_RotationDegrees[axis] = std::fmod(m_RotationDegrees[axis], 360.0f);
-	m_RotationActionStart[axis] = m_RotationDegrees[axis];
-	m_RotationDirection[axis] = direction > 0.0f ? 1.0f : -1.0f;
+	m_Rotation.degrees[axis] = std::fmod(m_Rotation.degrees[axis], 360.0f);
+	m_Rotation.actionStart[axis] = m_Rotation.degrees[axis];
+	m_Rotation.velocity[axis] = std::copysign(BASE_ANGULAR_SPEED * speed, direction);
 	SyncAngularVelocity();
 	return true;
 }
 
 void ModelComponent::SetRotationProgress(const int axis, const float degrees) {
 	if (axis < 0 || axis > 2) return;
-	m_RotationDegrees[axis] = m_RotationActionStart[axis] + degrees;
+	m_Rotation.degrees[axis] = m_Rotation.actionStart[axis] + degrees;
 
 	// Whole turns wrap to exactly 0 so e.g. 720 degrees yields exactly the base rotation
 	const NiPoint3 radians(
-		Math::DegToRad(std::fmod(m_RotationDegrees.x, 360.0f)),
-		Math::DegToRad(std::fmod(m_RotationDegrees.y, 360.0f)),
-		Math::DegToRad(std::fmod(m_RotationDegrees.z, 360.0f))
+		Math::DegToRad(std::fmod(m_Rotation.degrees.x, 360.0f)),
+		Math::DegToRad(std::fmod(m_Rotation.degrees.y, 360.0f)),
+		Math::DegToRad(std::fmod(m_Rotation.degrees.z, 360.0f))
 	);
-	m_Parent->SetRotation(QuatUtils::FromEuler(radians) * m_RotationBase);
+	m_Parent->SetRotation(QuatUtils::FromEuler(radians) * m_Rotation.base);
 }
 
 void ModelComponent::StopRotation(const int axis) {
 	if (axis < 0 || axis > 2) return;
-	m_RotationDirection[axis] = 0.0f;
+	m_Rotation.velocity[axis] = 0.0f;
 	SyncAngularVelocity();
-}
-
-void ModelComponent::SetSpeed(const float newSpeed) {
-	m_Speed = newSpeed;
-	if (m_RotationDirection != NiPoint3Constant::ZERO) SyncAngularVelocity();
 }
 
 void ModelComponent::SyncAngularVelocity() const {
 	GameMessages::SetAngularVelocity setAngVel{};
 	setAngVel.target = m_Parent->GetObjectID();
-	setAngVel.angVelocity = m_RotationDirection * Math::DegToRad(GetAngularSpeed());
+	setAngVel.angVelocity = m_Rotation.velocity * Math::DegToRad(1.0f);
 	setAngVel.Send();
 }
 
 void ModelComponent::ResetRotationState(const NiQuaternion& newBase) {
-	m_RotationBase = newBase;
-	m_RotationDegrees = NiPoint3Constant::ZERO;
-	m_RotationActionStart = NiPoint3Constant::ZERO;
-	m_RotationDirection = NiPoint3Constant::ZERO;
+	m_Rotation = RotationState{ .base = newBase };
 	SyncAngularVelocity();
 }
 

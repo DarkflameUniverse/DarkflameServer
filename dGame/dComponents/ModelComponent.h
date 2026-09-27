@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <map>
 
 #include "dCommonVars.h"
@@ -139,19 +140,19 @@ public:
 
 	void Resume();
 
-	// Attempts to claim a local axis (0 = right, 1 = up, 2 = forward) for movement in direction (+1 or -1).
+	// Attempts to claim a local axis (0 = right, 1 = up, 2 = forward) for movement in direction (+1 or -1) at speed units per second.
 	// Returns false if the axis is already controlled by a behavior.
-	bool TryStartMove(const int axis, const float direction);
+	bool TryStartMove(const int axis, const float direction, const float speed);
 
 	// Releases the local axis so another behavior can move along it.
 	void StopMove(const int axis);
 
 	// World space direction of the local axis used for the most recently applied velocity.
-	const NiPoint3& GetMoveAxis(const int axis) const { return m_MoveBasis[axis]; }
+	const NiPoint3& GetMoveAxis(const int axis) const { return m_Move.basis[axis]; }
 
-	// Attempts to claim a world axis (0 = x, 1 = y, 2 = z) for rotation in direction (+1 or -1).
+	// Attempts to claim a world axis (0 = x, 1 = y, 2 = z) for rotation in direction (+1 or -1) at the given behavior speed.
 	// Returns false if the axis is already controlled by a behavior.
-	bool TryStartRotation(const int axis, const float direction);
+	bool TryStartRotation(const int axis, const float direction, const float speed);
 
 	// Sets how many signed degrees the active rotation on axis has progressed and updates the entity.
 	void SetRotationProgress(const int axis, const float degrees);
@@ -159,15 +160,12 @@ public:
 	// Releases the axis so another behavior can rotate it.
 	void StopRotation(const int axis);
 
-	// Degrees per second for rotation actions at the current speed.
-	float GetAngularSpeed() const noexcept { return BASE_ANGULAR_SPEED * m_Speed; }
+	// Degrees per second of the active rotation on axis.
+	float GetAngularSpeed(const int axis) const noexcept { return std::abs(m_Rotation.velocity[axis]); }
 
 	void OnChatMessageReceived(const std::string& sMessage);
 
 	void OnHit();
-
-	// Sets the speed of the model
-	void SetSpeed(const float newSpeed);
 
 	// Whether or not to restart at the end of the frame
 	void RestartAtEndOfFrame() { m_RestartAtEndOfFrame = true; }
@@ -179,11 +177,34 @@ public:
 	// Decrements the number of strips listening for an attack.
 	// If this is the last strip removing an attack, it will reset the factions to the default of -1.
 	void RemoveAttack();
-
-	float GetSpeed() const noexcept { return m_Speed; }
 private:
-	// Degrees per second per unit of m_Speed
+	// Degrees per second per unit of behavior speed
 	static constexpr float BASE_ANGULAR_SPEED = 15.0f;
+
+	struct RotationState {
+		// The rotation that degrees is applied on top of
+		NiQuaternion base = QuatUtils::IDENTITY;
+
+		// Accumulated signed degrees per world axis since base was set
+		NiPoint3 degrees{};
+
+		// degrees at the moment the current rotation on each axis started
+		NiPoint3 actionStart{};
+
+		// Signed degrees per second per world axis. Non-zero means a behavior owns that axis.
+		NiPoint3 velocity{};
+	};
+
+	struct MoveState {
+		// Signed units per second along local right, up and forward. Non-zero means a behavior owns that axis.
+		NiPoint3 velocity{};
+
+		// Right, up and forward in world space as of the last velocity update
+		std::array<NiPoint3, 3> basis{ NiPoint3Constant::UNIT_X, NiPoint3Constant::UNIT_Y, NiPoint3Constant::UNIT_Z };
+
+		// Whether the last velocity update came from an active move
+		bool wasMoving{ false };
+	};
 
 	// Sends the client-side angular velocity for the currently active rotation axes.
 	void SyncAngularVelocity() const;
@@ -236,30 +257,10 @@ private:
 	 */
 	LWOOBJID m_userModelID;
 
-	// The speed at which this model moves
-	float m_Speed{ 3.0f };
-
 	// Whether or not to restart at the end of the frame.
 	bool m_RestartAtEndOfFrame{ false };
 
-	// The rotation that m_RotationDegrees is applied on top of
-	NiQuaternion m_RotationBase = QuatUtils::IDENTITY;
+	RotationState m_Rotation;
 
-	// Accumulated signed degrees per world axis since m_RotationBase was set
-	NiPoint3 m_RotationDegrees{};
-
-	// m_RotationDegrees at the moment the current rotation on each axis started
-	NiPoint3 m_RotationActionStart{};
-
-	// Per axis -1, 0 or 1. Non-zero means a behavior currently owns rotation on that axis.
-	NiPoint3 m_RotationDirection{};
-
-	// Per local axis (right, up, forward) -1, 0 or 1. Non-zero means a behavior currently owns movement on that axis.
-	NiPoint3 m_MoveDirection{};
-
-	// Right, up and forward in world space as of the last velocity update
-	std::array<NiPoint3, 3> m_MoveBasis{ NiPoint3Constant::UNIT_X, NiPoint3Constant::UNIT_Y, NiPoint3Constant::UNIT_Z };
-
-	// Whether the last velocity update came from an active move
-	bool m_WasMoving{ false };
+	MoveState m_Move;
 };

@@ -109,6 +109,7 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_PreviousFramePosition = NiPoint3Constant::ZERO;
 	m_InActionRotation = NiPoint3Constant::ZERO;
 	m_RotationProgress = 0.0f;
+	m_Speed = DEFAULT_SPEED;
 }
 
 void Strip::OnChatMessageReceived(const std::string& sMessage) {
@@ -176,21 +177,21 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
 		// Local right axis
 		const bool isMoveLeft = nextActionType == "MoveLeft";
-		if (modelComponent.TryStartMove(0, isMoveLeft ? -1.0f : 1.0f)) {
+		if (modelComponent.TryStartMove(0, isMoveLeft ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionTranslation.x = isMoveLeft ? -number : number;
 		}
 	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
 		// Local up axis
 		const bool isFlyDown = nextActionType == "FlyDown";
-		if (modelComponent.TryStartMove(1, isFlyDown ? -1.0f : 1.0f)) {
+		if (modelComponent.TryStartMove(1, isFlyDown ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionTranslation.y = isFlyDown ? -number : number;
 		}
 	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
 		// Local forward axis
 		const bool isMoveBackward = nextActionType == "MoveBackward";
-		if (modelComponent.TryStartMove(2, isMoveBackward ? -1.0f : 1.0f)) {
+		if (modelComponent.TryStartMove(2, isMoveBackward ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionTranslation.z = isMoveBackward ? -number : number;
 		}
@@ -201,21 +202,21 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 	else if (nextActionType == "Spin" || nextActionType == "SpinNegative") {
 		// Y axis
 		const float direction = nextActionType == "SpinNegative" ? -1.0f : 1.0f;
-		if (number != 0.0 && modelComponent.TryStartRotation(1, direction)) {
+		if (number != 0.0 && modelComponent.TryStartRotation(1, direction, m_Speed)) {
 			m_InActionRotation.y = direction * number;
 			m_RotationProgress = 0.0f;
 		}
 	} else if (nextActionType == "Tilt" || nextActionType == "TiltNegative") {
 		// X axis
 		const float direction = nextActionType == "TiltNegative" ? -1.0f : 1.0f;
-		if (number != 0.0 && modelComponent.TryStartRotation(0, direction)) {
+		if (number != 0.0 && modelComponent.TryStartRotation(0, direction, m_Speed)) {
 			m_InActionRotation.x = direction * number;
 			m_RotationProgress = 0.0f;
 		}
 	} else if (nextActionType == "Roll" || nextActionType == "RollNegative") {
 		// Z axis
 		const float direction = nextActionType == "RollNegative" ? -1.0f : 1.0f;
-		if (number != 0.0 && modelComponent.TryStartRotation(2, direction)) {
+		if (number != 0.0 && modelComponent.TryStartRotation(2, direction, m_Speed)) {
 			m_InActionRotation.z = direction * number;
 			m_RotationProgress = 0.0f;
 		}
@@ -224,7 +225,8 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 
 	/* BEGIN Navigation */
 	else if (nextActionType == "SetSpeed") {
-		modelComponent.SetSpeed(number);
+		// Floored so a move or rotation can never stall forever
+		m_Speed = std::max(static_cast<float>(number), MIN_SPEED);
 	}
 	/* END Navigation */
 
@@ -353,7 +355,7 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 		if (target == 0.0f) continue;
 
 		// Snapping to the target keeps the final angle exact regardless of speed or frame time
-		const float step = modelComponent.GetAngularSpeed() * deltaTime;
+		const float step = modelComponent.GetAngularSpeed(axis) * deltaTime;
 		if (std::abs(target - m_RotationProgress) <= step) m_RotationProgress = target;
 		else m_RotationProgress += std::copysign(step, target);
 
@@ -394,6 +396,7 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 	// Check for trigger blocks and if not a trigger block proc this blocks action
 	if (m_NextActionIndex == 0) {
 		LOG("Behavior strip started %s", nextAction.GetType().data());
+		m_Speed = DEFAULT_SPEED;
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
 		} else if (nextAction.GetType() == "OnChat") {
