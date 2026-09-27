@@ -1,4 +1,5 @@
 #include "AuthPackets.h"
+#include "MasterPackets.h"
 
 #include <ctime>
 #include "BitStreamUtils.h"
@@ -294,12 +295,11 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	//Inform the master server that we've created a session for this user, before the client can reach the world server:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		stamps.Add(eStamps::PASSPORT_AUTH_IM_COMMUNICATION_START);
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SET_SESSION_KEY);
-		bitStream.Write(sessionKey);
-		bitStream.Write(LUString(username));
+		MasterPackets::SetSessionKey setSessionKey;
+		setSessionKey.sessionKey = sessionKey;
+		setSessionKey.username = LUString(username);
 		stamps.Add(eStamps::PASSPORT_AUTH_IM_LOGIN_START);
-		server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(setSessionKey, server);
 		stamps.Add(eStamps::PASSPORT_AUTH_IM_COMMUNICATION_END, 1);
 
 		LOG("Set session key for user %s", username.c_str());

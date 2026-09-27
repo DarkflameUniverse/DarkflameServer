@@ -1,4 +1,5 @@
 #include "DEVGMCommands.h"
+#include "MasterPackets.h"
 
 #include <ranges>
 
@@ -527,9 +528,7 @@ namespace DEVGMCommands {
 
 	void ShutdownUniverse(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		//Tell the master server that we're going to be shutting down whole "universe":
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN_UNIVERSE);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(MasterPackets::ShutdownUniverse());
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
 		//Tell chat to send an announcement to all servers

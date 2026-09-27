@@ -10,7 +10,7 @@
 #include "LiveWorld.h"
 #include "LiveOpsRules.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "ServerState.h"
 #include "GameLabels.h"
 

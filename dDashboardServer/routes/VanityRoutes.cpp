@@ -9,7 +9,7 @@
 #include "RouteUtils.h"
 #include "VanityJson.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "DashboardRoutes.h"
 #include "ClientAssets.h"
 #include "BinaryPathFinder.h"

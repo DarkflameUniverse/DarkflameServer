@@ -6,7 +6,7 @@
 #include "RouteUtils.h"
 #include "CharacterTools.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "ClientAssets.h"
 #include "GameLabels.h"
 #include "WSRoutes.h"

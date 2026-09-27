@@ -6,6 +6,8 @@
 #include <string>
 
 #include "BitStream.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Master.h"
 #include "dCommonVars.h"
 
 /**
@@ -35,7 +37,9 @@ enum class ePlayerAction : uint8_t {
 	RELOAD_LIVE_OPS,    // load the running live events and open challenges again (every world, answering 1 each; see LiveEvents.h)
 };
 
-struct PlayerActionRequest {
+struct PlayerActionRequest : public LUBitStream {
+	PlayerActionRequest() : LUBitStream(ServiceType::MASTER, MessageType::Master::PLAYER_ACTION) {}
+
 	uint32_t requestId{};
 	ePlayerAction action{};
 	uint32_t accountId{};
@@ -61,7 +65,7 @@ struct PlayerActionRequest {
 		return length;
 	}
 
-	void Serialize(RakNet::BitStream& bitStream) const {
+	void Serialize(RakNet::BitStream& bitStream) const override {
 		bitStream.Write(requestId);
 		bitStream.Write(action);
 		bitStream.Write(accountId);
@@ -79,7 +83,7 @@ struct PlayerActionRequest {
 		bitStream.Write(instanceId);
 	}
 
-	bool Deserialize(RakNet::BitStream& bitStream) {
+	bool Deserialize(RakNet::BitStream& bitStream) override {
 		uint8_t approvedByte{};
 		uint16_t length{};
 		if (!(bitStream.Read(requestId) && bitStream.Read(action) && bitStream.Read(accountId) && bitStream.Read(characterId) &&
@@ -96,7 +100,9 @@ struct PlayerActionRequest {
 	}
 };
 
-struct PlayerActionResult {
+struct PlayerActionResult : public LUBitStream {
+	PlayerActionResult() : LUBitStream(ServiceType::MASTER, MessageType::Master::PLAYER_ACTION_RESULT) {}
+
 	uint32_t requestId{};
 	ePlayerAction action{};
 	// Number of sessions/characters the action applied to. Zero means the player was not online.
@@ -104,14 +110,14 @@ struct PlayerActionResult {
 	// Set by master when not every world answered before the timeout
 	bool timedOut{};
 
-	void Serialize(RakNet::BitStream& bitStream) const {
+	void Serialize(RakNet::BitStream& bitStream) const override {
 		bitStream.Write(requestId);
 		bitStream.Write(action);
 		bitStream.Write(affected);
 		bitStream.Write<uint8_t>(timedOut);
 	}
 
-	bool Deserialize(RakNet::BitStream& bitStream) {
+	bool Deserialize(RakNet::BitStream& bitStream) override {
 		uint8_t timedOutByte{};
 		const bool ok = bitStream.Read(requestId) && bitStream.Read(action) && bitStream.Read(affected) && bitStream.Read(timedOutByte);
 		timedOut = timedOutByte != 0;

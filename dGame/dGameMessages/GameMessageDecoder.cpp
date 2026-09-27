@@ -12,7 +12,7 @@
 #include "EchoSyncSkill.h"
 #include "RequestServerProjectileImpact.h"
 #include "DoClientProjectileImpact.h"
-#include "MessageCapture.h"
+#include "master/MessageCapture.h"
 
 namespace {
 	using json = nlohmann::json;

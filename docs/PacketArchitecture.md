@@ -180,6 +180,9 @@ Every non-game-message packet is an `LUBitStream` subclass. The base owns the fu
   doesn't link `dGame`) is in `ClientPackets`; chat-service packets the client receives are in `ChatPackets::Client`.
 - Chat -> client packets are wrapped in `ChatPackets::WorldRoutePacket` (`dNet/WorldRoutePacket.h`: target object ID
   + the inner packet of any service); the world passes the inner bytes on unchanged.
+- MASTER structs: `MasterPackets.h` for the core ones (session keys, zone transfer, private zones, player counts,
+  world ready, shutdown, server list); topic groups (dashboard player actions, data changes, positions and
+  announcements, message capture, instance migration) in `dNet/master/<Topic>.h`, all included by `MasterPackets.h`.
 
 ```cpp
 // dNet/ChatPackets.h

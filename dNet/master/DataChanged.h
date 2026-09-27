@@ -7,13 +7,17 @@
 #include <vector>
 
 #include "BitStream.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Master.h"
 #include "dCommonVars.h"
 
 /**
  * DATA_CHANGED payload: the tables and rows a game server just wrote. The dashboard turns each entry into a
  * table_changed event so open pages refresh without waiting for its periodic database check.
  */
-struct DataChanged {
+struct DataChanged : public LUBitStream {
+	DataChanged() : LUBitStream(ServiceType::MASTER, MessageType::Master::DATA_CHANGED) {}
+
 	struct Entry {
 		std::string table; // dashboard table name, e.g. "characters", "mail", "economy"
 		LWOOBJID id{};     // row the change is about, 0 for the table as a whole
@@ -24,7 +28,7 @@ struct DataChanged {
 
 	std::vector<Entry> entries;
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		const auto count = static_cast<uint16_t>(std::min(entries.size(), MAX_ENTRIES));
 		stream.Write(count);
 		for (size_t i = 0; i < count; i++) {
@@ -36,7 +40,7 @@ struct DataChanged {
 		}
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint16_t count{};
 		if (!stream.Read(count) || count > MAX_ENTRIES) return false;
 		entries.clear();

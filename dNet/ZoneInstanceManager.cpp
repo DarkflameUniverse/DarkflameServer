@@ -17,40 +17,30 @@ void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, 
 	const auto nextID = ++currentRequestID;
 	requests[nextID] = callback;
 
-	MasterPackets::SendZoneTransferRequest(server, nextID, mythranShift, zoneID, zoneClone, stamps);
+	MasterPackets::RequestZoneTransfer request;
+	request.requestID = nextID;
+	request.mythranShift = mythranShift;
+	request.zoneID = zoneID;
+	request.cloneID = zoneClone;
+	request.stamps = stamps;
+	MasterPackets::SendToMaster(request, server);
 }
 
 //! Handles a zone transfer response
-void ZoneInstanceManager::HandleRequestZoneTransferResponse(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	uint64_t requestID;
-	inStream.Read(requestID);
-	bool mythranShift;
-	uint8_t tmp;
-	inStream.Read(tmp);
-	mythranShift = tmp > 0;
-	uint32_t zoneID;
-	inStream.Read(zoneID);
-	uint32_t zoneInstance;
-	inStream.Read(zoneInstance);
-	uint32_t zoneClone;
-	inStream.Read(zoneClone);
-	uint16_t serverPort;
-	inStream.Read(serverPort);
-	LUString serverIP(255);
-	inStream.Read(serverIP);
-	Stamps stamps;
-	if (!stamps.Deserialize(inStream)) stamps = {};
-
-	const auto entry = requests.find(requestID);
+void ZoneInstanceManager::HandleRequestZoneTransferResponse(const MasterPackets::RequestZoneTransferResponse& response) {
+	const auto entry = requests.find(response.requestID);
 	if (entry != requests.end()) {
-		entry->second(mythranShift, zoneID, zoneInstance, zoneClone, serverIP.string, serverPort, stamps);
+		entry->second(response.mythranShift > 0, response.zoneID, response.zoneInstance, response.zoneClone, response.serverIP.string, response.serverPort, response.stamps);
 		requests.erase(entry);
 	}
 }
 
 void ZoneInstanceManager::CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password) {
-	MasterPackets::SendZoneCreatePrivate(server, zoneID, zoneClone, password);
+	MasterPackets::CreatePrivateZone request;
+	request.zoneID = zoneID;
+	request.cloneID = zoneClone;
+	request.password = password;
+	MasterPackets::SendToMaster(request, server);
 }
 
 void ZoneInstanceManager::RequestPrivateZone(
@@ -63,5 +53,9 @@ void ZoneInstanceManager::RequestPrivateZone(
 		callback(mythranShift, zoneID, zoneInstance, zoneClone, serverIP, serverPort);
 	};
 
-	MasterPackets::SendZoneRequestPrivate(server, nextID, mythranShift, password);
+	MasterPackets::RequestPrivateZone request;
+	request.requestID = nextID;
+	request.mythranShift = mythranShift;
+	request.password = password;
+	MasterPackets::SendToMaster(request, server);
 }

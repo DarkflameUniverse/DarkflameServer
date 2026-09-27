@@ -1,4 +1,5 @@
 #include "PlayerActions.h"
+#include "MasterPackets.h"
 
 #include <chrono>
 #include <deque>
@@ -90,10 +91,7 @@ uint32_t PlayerActions::Request(PlayerActionRequest request, uint32_t ownerAccou
 		return request.requestId;
 	}
 
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ACTION);
-	request.Serialize(bitStream);
-	Game::server->SendToMaster(bitStream);
+	MasterPackets::SendToMaster(request);
 	return request.requestId;
 }
 

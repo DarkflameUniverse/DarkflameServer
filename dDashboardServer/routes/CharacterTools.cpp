@@ -8,7 +8,7 @@
 #include "Scheduler.h"
 #include "Background.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "WSRoutes.h"
 #include "ClientAssets.h"
 #include "DashboardRoutes.h"

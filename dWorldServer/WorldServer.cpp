@@ -2,9 +2,9 @@
 #include "ConfigSync.h"
 #include "EconomyLedger.h"
 #include "DashboardNotify.h"
-#include "DashboardMessages.h"
-#include "PlayerAction.h"
-#include "MessageCapture.h"
+#include "master/DashboardMessages.h"
+#include "master/PlayerAction.h"
+#include "master/MessageCapture.h"
 #include "MessageInspector.h"
 #include "LiveEvents.h"
 #include <iostream>
@@ -62,6 +62,7 @@
 #include "WorldRoutePacket.h"
 #include "ChatServerLink.h"
 #include "PacketDispatcher.h"
+#include "MasterPackets.h"
 #include "GameMessageHandler.h"
 #include "GameMessages.h"
 #include "Mail.h"
@@ -69,7 +70,6 @@
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "MasterPackets.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
@@ -576,7 +576,10 @@ int main(int argc, char** argv) {
 		if (!ready && Game::server->GetIsConnectedToMaster()) {
 			LOG("Finished loading world with zone (%i), ready up!", Game::server->GetZoneID());
 
-			MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
+			MasterPackets::WorldReady worldReady;
+			worldReady.zoneID = static_cast<LWOMAPID>(Game::server->GetZoneID());
+			worldReady.instanceID = static_cast<LWOINSTANCEID>(Game::server->GetInstanceID());
+			MasterPackets::SendToMaster(worldReady);
 
 			ready = true;
 		}
@@ -682,18 +685,11 @@ void HandlePacketChat(Packet* packet) {
 	}
 }
 
-void HandleMasterPacket(Packet* packet) {
-	if (packet->length < 2) return;
-	if (static_cast<ServiceType>(packet->data[1]) != ServiceType::MASTER || packet->length < 4) return;
-	switch (static_cast<MessageType::Master>(packet->data[3])) {
-
-	case MessageType::Master::SESSION_KEY_RESPONSE: {
+namespace {
+	void OnSessionKeyResponse(const MasterPackets::SessionKeyResponse& response, const SystemAddress& masterAddr) {
 		//Read our session key and to which user it belongs:
-		CINSTREAM_SKIP_HEADER;
-		uint32_t sessionKey = 0;
-		inStream.Read(sessionKey);
-		LUWString username;
-		inStream.Read(username);
+		const uint32_t sessionKey = response.sessionKey;
+		const LUWString& username = response.username;
 
 		//Find them:
 		auto it = g_PendingUsers.find(username.GetAsString());
@@ -711,7 +707,7 @@ void HandleMasterPacket(Packet* packet) {
 		} else {
 			LOG("User %s authenticated with correct key.", username.GetAsString().c_str());
 
-			UserManager::Instance()->DeleteUser(packet->systemAddress);
+			UserManager::Instance()->DeleteUser(masterAddr);
 
 			//Create our user and send them in:
 			UserManager::Instance()->CreateUser(it->second.sysAddr, username.GetAsString(), userHash);
@@ -754,11 +750,10 @@ void HandleMasterPacket(Packet* packet) {
 
 			//Notify master:
 			{
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ADDED);
-				bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
-				bitStream.Write<LWOINSTANCEID>(g_InstanceID);
-				Game::server->SendToMaster(bitStream);
+				MasterPackets::PlayerAdded added;
+				added.zoneID = static_cast<LWOMAPID>(Game::server->GetZoneID());
+				added.instanceID = static_cast<LWOINSTANCEID>(g_InstanceID);
+				MasterPackets::SendToMaster(added);
 			}
 
 			if (seamlessCharacter != LWOOBJID_EMPTY) {
@@ -766,89 +761,20 @@ void HandleMasterPacket(Packet* packet) {
 				WorldMigration::OnSeamlessArrival(Game::entityManager->GetEntity(seamlessCharacter));
 			}
 		}
-
-		break;
 	}
-	case MessageType::Master::AFFIRM_TRANSFER_REQUEST: {
-		CINSTREAM_SKIP_HEADER;
-		uint64_t requestID;
-		inStream.Read(requestID);
+
+	void OnAffirmTransferRequest(const MasterPackets::AffirmTransferRequest& request, const SystemAddress& sysAddr) {
+		const uint64_t requestID = request.requestID;
 		LOG("Got affirmation request of transfer %llu", requestID);
 
-		CBITSTREAM;
-
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::AFFIRM_TRANSFER_RESPONSE);
-		bitStream.Write(requestID);
-		Game::server->SendToMaster(bitStream);
-
-		break;
+		MasterPackets::AffirmTransferResponse response;
+		response.requestID = requestID;
+		MasterPackets::SendToMaster(response);
 	}
 
-	case MessageType::Master::SHUTDOWN: {
-		Game::lastSignal = -1;
-		LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
-		break;
-	}
-
-	case MessageType::Master::MIGRATE_PLAYERS: {
-		CINSTREAM_SKIP_HEADER;
-		MigratePlayersOrder order;
-		if (order.Deserialize(inStream)) WorldMigration::HandleOrder(order);
-		break;
-	}
-
-	case MessageType::Master::MIGRATE_PLAYER_STATE: {
-		CINSTREAM_SKIP_HEADER;
-		CarriedPlayerState state;
-		if (state.Deserialize(inStream)) WorldMigration::StoreCarriedState(state);
-		break;
-	}
-
-	case MessageType::Master::MIGRATE_STATUS: {
-		CINSTREAM_SKIP_HEADER;
-		MigrationStatus status;
-		if (status.Deserialize(inStream)) WorldMigration::HandleStatus(status);
-		break;
-	}
-
-	case MessageType::Master::PLAYER_ACTION: {
-		CINSTREAM_SKIP_HEADER;
-		PlayerActionRequest request;
-		if (!request.Deserialize(inStream)) break;
-
-		PlayerActionResult result;
-		result.requestId = request.requestId;
-		result.action = request.action;
-		result.affected = DashboardActions::Apply(request);
-
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ACTION_RESULT);
-		result.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
-		break;
-	}
-
-	case MessageType::Master::MESSAGE_CAPTURE_CONTROL: {
-		CINSTREAM_SKIP_HEADER;
-		MessageCaptureControl control;
-		if (control.Deserialize(inStream)) MessageInspector::Control(control);
-		break;
-	}
-
-	case MessageType::Master::ANNOUNCE: {
-		CINSTREAM_SKIP_HEADER;
-		Announcement announcement;
-		if (announcement.Deserialize(inStream)) DashboardNotify::Announce(announcement.title, announcement.message);
-		break;
-	}
-
-	case MessageType::Master::NEW_SESSION_ALERT: {
-		CINSTREAM_SKIP_HEADER;
-		uint32_t sessionKey{};
-		inStream.Read(sessionKey);
-
-		LUString username;
-		inStream.Read(username);
+	void OnNewSessionAlert(const MasterPackets::NewSessionAlert& alert, const SystemAddress& sysAddr) {
+		const uint32_t sessionKey = alert.sessionKey;
+		const LUString& username = alert.username;
 		LOG("Got new session alert for user %s", username.string.c_str());
 		//Find them:
 		User* user = UserManager::Instance()->GetUser(username.string.c_str());
@@ -863,9 +789,43 @@ void HandleMasterPacket(Packet* packet) {
 			Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
 		}
-		break;
 	}
-	default:
+
+	void OnPlayerAction(const PlayerActionRequest& request, const SystemAddress& sysAddr) {
+		PlayerActionResult result;
+		result.requestId = request.requestId;
+		result.action = request.action;
+		result.affected = DashboardActions::Apply(request);
+		MasterPackets::SendToMaster(result);
+	}
+
+	// Packets from master that dServer hands back to us
+	const PacketDispatcher<MessageType::Master>& MasterHandlers() {
+		static const auto handlers = [] {
+			PacketDispatcher<MessageType::Master> handlers;
+			using MessageType::Master;
+			handlers.On<MasterPackets::SessionKeyResponse>(Master::SESSION_KEY_RESPONSE, OnSessionKeyResponse);
+			handlers.On<MasterPackets::AffirmTransferRequest>(Master::AFFIRM_TRANSFER_REQUEST, OnAffirmTransferRequest);
+			handlers.On<MasterPackets::Shutdown>(Master::SHUTDOWN, [](const MasterPackets::Shutdown&, const SystemAddress&) {
+				Game::lastSignal = -1;
+				LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+			});
+			handlers.On<MigratePlayersOrder>(Master::MIGRATE_PLAYERS, [](const MigratePlayersOrder& order, const SystemAddress&) { WorldMigration::HandleOrder(order); });
+			handlers.On<CarriedPlayerState>(Master::MIGRATE_PLAYER_STATE, [](const CarriedPlayerState& state, const SystemAddress&) { WorldMigration::StoreCarriedState(state); });
+			handlers.On<MigrationStatus>(Master::MIGRATE_STATUS, [](const MigrationStatus& status, const SystemAddress&) { WorldMigration::HandleStatus(status); });
+			handlers.On<PlayerActionRequest>(Master::PLAYER_ACTION, OnPlayerAction);
+			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, [](const MessageCaptureControl& control, const SystemAddress&) { MessageInspector::Control(control); });
+			handlers.On<Announcement>(Master::ANNOUNCE, [](const Announcement& announcement, const SystemAddress&) { DashboardNotify::Announce(announcement.title, announcement.message); });
+			handlers.On<MasterPackets::NewSessionAlert>(Master::NEW_SESSION_ALERT, OnNewSessionAlert);
+			return handlers;
+		}();
+		return handlers;
+	}
+}
+
+void HandleMasterPacket(Packet* packet) {
+	if (packet->length < 4) return;
+	if (!MasterHandlers().Dispatch(packet, ServiceType::MASTER)) {
 		LOG("Unknown packet ID from master %i", int(packet->data[3]));
 	}
 }
@@ -1151,11 +1111,10 @@ void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
 		PropertyManagementComponent::Instance()->Save();
 	}
 
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_REMOVED);
-	bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
-	bitStream.Write<LWOINSTANCEID>(g_InstanceID);
-	Game::server->SendToMaster(bitStream);
+	MasterPackets::PlayerRemoved removed;
+	removed.zoneID = static_cast<LWOMAPID>(Game::server->GetZoneID());
+	removed.instanceID = static_cast<LWOINSTANCEID>(g_InstanceID);
+	MasterPackets::SendToMaster(removed);
 }
 
 // The world server's handlers for what clients send (ServiceType::WORLD). WorldPackets has the structs; each one is
@@ -1202,10 +1161,9 @@ namespace {
 			}
 
 			//Request the session info from Master:
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_SESSION_KEY);
-			bitStream.Write(username);
-			Game::server->SendToMaster(bitStream);
+			MasterPackets::RequestSessionKey request;
+			request.username = username;
+			MasterPackets::SendToMaster(request);
 
 			//Insert info into our pending list
 			TempSessionInfo info;
@@ -1742,7 +1700,5 @@ void FinalizeShutdown() {
 }
 
 void SendShutdownMessageToMaster() {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN_RESPONSE);
-	Game::server->SendToMaster(bitStream);
+	MasterPackets::SendToMaster(MasterPackets::ShutdownResponse());
 }

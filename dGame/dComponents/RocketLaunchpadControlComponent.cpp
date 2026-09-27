@@ -1,4 +1,5 @@
 #include "RocketLaunchpadControlComponent.h"
+#include "MasterPackets.h"
 
 #include <sstream>
 
@@ -136,10 +137,9 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 }
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PREP_ZONE);
-	bitStream.Write(zoneID);
-	Game::server->SendToMaster(bitStream);
+	MasterPackets::PrepZone request;
+	request.zoneID = zoneID;
+	MasterPackets::SendToMaster(request);
 }
 
 

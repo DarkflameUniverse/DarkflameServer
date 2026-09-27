@@ -1,5 +1,5 @@
-#include "PlayerAction.h"
-#include "DashboardMessages.h"
+#include "master/PlayerAction.h"
+#include "master/DashboardMessages.h"
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
@@ -47,6 +47,10 @@
 #include "CDZoneTableTable.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
+#include "PacketDispatcher.h"
+#include "master/DataChanged.h"
+#include "master/MessageCapture.h"
+#include "master/InstanceMigration.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
 
@@ -101,10 +105,7 @@ namespace {
 			result.affected = it->second.affected;
 			result.timedOut = timedOut;
 
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ACTION_RESULT);
-			result.Serialize(bitStream);
-			Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
+			MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, result);
 		}
 		g_PendingPlayerActions.erase(it);
 	}
@@ -423,11 +424,8 @@ int main(int argc, char** argv) {
 
 	// Instance migration progress goes to every world, where the GM who asked for it hears about it
 	MigrationCoordinator::SetReporter([](const MigrationStatus& status) {
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MIGRATE_STATUS);
-		status.Serialize(bitStream);
 		for (const auto& instance : Game::im->GetInstances()) {
-			if (instance && instance->GetIsReady() && !instance->GetShutdownComplete()) Game::server->Send(bitStream, instance->GetSysAddr(), false);
+			if (instance && instance->GetIsReady() && !instance->GetShutdownComplete()) MasterPackets::SendTo(instance->GetSysAddr(), status);
 		}
 	});
 	Game::im->LoadZoneLimits();
@@ -559,6 +557,421 @@ int main(int argc, char** argv) {
 	return ShutdownSequence(EXIT_SUCCESS);
 }
 
+namespace {
+	using namespace MasterPackets;
+
+	void OnRequestZoneTransfer(const RequestZoneTransfer& request, const SystemAddress& sysAddr) {
+		LOG("Received zone transfer req");
+		const uint64_t requestID = request.requestID;
+		const uint8_t mythranShift = request.mythranShift;
+		const uint32_t zoneID = request.zoneID;
+		const uint32_t zoneClone = request.cloneID;
+		// The login stamps travelling with the request (see Stamps.h); master adds its steps
+		Stamps stamps = request.stamps;
+		if (!stamps.empty()) stamps.Add(eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED, zoneID);
+		if (shutdownSequenceStarted) {
+			LOG("Shutdown sequence has been started.  Not creating a new zone.");
+			return;
+		}
+		const auto& in = Game::im->GetInstance(zoneID, false, zoneClone);
+
+		for (const auto& instance : Game::im->GetInstances()) {
+			LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
+		}
+
+		if (in && !in->GetIsReady()) //Instance not ready, make a pending request
+		{
+			if (!stamps.empty()) stamps.Add(eStamps::PASSPORT_AUTH_IM_LOGIN_QUEUED, in->GetInstanceID());
+			in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), sysAddr, stamps });
+			LOG("Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
+			return;
+		}
+
+		//Instance is ready, transfer
+		LOG("Responding to transfer request %llu for zone %i %i", requestID, zoneID, zoneClone);
+		Game::im->RequestAffirmation(in, { requestID, static_cast<bool>(mythranShift), sysAddr, stamps });
+	}
+
+	//This is here because otherwise we'd have to include IM in
+	//non-master servers. This packet allows us to add World
+	//servers back if master crashed
+	void OnServerInfo(const ServerInfo& info, const SystemAddress& sysAddr) {
+		const uint32_t theirPort = info.port;
+		const uint32_t theirZoneID = info.zoneID;
+		const uint32_t theirInstanceID = info.instanceID;
+		const ServiceType theirServerType = info.serverType;
+		const LUString& theirIP = info.ip;
+
+		switch (theirServerType) {
+		case ServiceType::WORLD:
+			if (!Game::im->IsPortInUse(theirPort)) {
+				auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
+				in->SetSysAddr(sysAddr);
+				Game::im->AddInstance(in);
+			} else {
+				const auto& instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
+				if (instance) {
+					instance->SetSysAddr(sysAddr);
+				}
+			}
+			break;
+		case ServiceType::CHAT:
+			chatServerMasterPeerSysAddr = sysAddr;
+			break;
+		case ServiceType::AUTH:
+			authServerMasterPeerSysAddr = sysAddr;
+			break;
+		case ServiceType::DASHBOARD:
+			dashboardServerMasterPeerSysAddr = sysAddr;
+			break;
+		default:
+			break;
+		}
+
+		if (theirServerType != ServiceType::DASHBOARD && dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+			MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, info);
+		}
+
+		LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
+	}
+
+	void OnSetSessionKey(const SetSessionKey& request, const SystemAddress& sysAddr) {
+		const uint32_t sessionKey = request.sessionKey;
+		const LUString& username = request.username;
+
+		for (auto it : activeSessions) {
+			if (it.second == username.string) {
+				activeSessions.erase(it.first);
+
+				NewSessionAlert alert;
+				alert.sessionKey = sessionKey;
+				alert.username = username;
+				alert.Broadcast();
+
+				break;
+			}
+		}
+
+		activeSessions.insert(std::make_pair(sessionKey, username.string));
+		LOG("Got sessionKey %i for user %s", sessionKey, username.string.c_str());
+	}
+
+	void OnRequestSessionKey(const RequestSessionKey& request, const SystemAddress& sysAddr) {
+		const LUWString& username = request.username;
+		LOG("Requesting session key for %s", username.GetAsString().c_str());
+		for (auto key : activeSessions) {
+			if (key.second == username.GetAsString()) {
+				SessionKeyResponse response;
+				response.sessionKey = key.first;
+				response.username = username;
+				MasterPackets::SendTo(sysAddr, response);
+				break;
+			}
+		}
+	}
+
+	void OnPlayerAdded(const PlayerAdded& added, const SystemAddress& sysAddr) {
+		const auto& instance =
+			Game::im->FindInstanceWithPrivate(added.zoneID, added.instanceID);
+		if (instance) {
+			instance->AddPlayer(Player());
+		} else {
+			LOG("Instance missing? What?");
+		}
+
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+			MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, added);
+		}
+	}
+
+	void OnPlayerRemoved(const PlayerRemoved& removed, const SystemAddress& sysAddr) {
+		const auto& instance =
+			Game::im->FindInstance(removed.zoneID, removed.instanceID);
+		if (instance) {
+			instance->RemovePlayer(Player());
+		}
+
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+			MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, removed);
+		}
+	}
+
+	void OnCreatePrivateZone(const CreatePrivateZone& request, const SystemAddress& sysAddr) {
+		// Passwords were cut to 50 characters when read
+		const auto& newInst = Game::im->CreatePrivateInstance(request.zoneID, request.cloneID, request.password.c_str());
+		LOG("Creating private zone %i/%i/%i", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID());
+	}
+
+	void OnRequestPrivateZone(const RequestPrivateZone& request, const SystemAddress& sysAddr) {
+		const uint64_t requestID = request.requestID;
+		const uint8_t mythranShift = request.mythranShift;
+
+		const auto& instance = Game::im->FindPrivateInstance(request.password.c_str());
+
+		LOG("Join private zone: %llu %d %p", requestID, mythranShift, instance.get());
+
+		if (instance == nullptr) {
+			return;
+		}
+
+		const auto& zone = instance->GetZoneID();
+
+		RequestZoneTransferResponse response;
+		response.requestID = requestID;
+		response.mythranShift = static_cast<bool>(mythranShift);
+		response.zoneID = zone.GetMapID();
+		response.zoneInstance = instance->GetInstanceID();
+		response.zoneClone = zone.GetCloneID();
+		response.serverPort = static_cast<uint16_t>(instance->GetPort());
+		response.serverIP = LUString(instance->GetIP(), 255);
+		MasterPackets::SendTo(sysAddr, response);
+	}
+
+	void OnWorldReady(const WorldReady& ready, const SystemAddress& sysAddr) {
+		const LWOMAPID zoneID = ready.zoneID;
+		const LWOINSTANCEID instanceID = ready.instanceID;
+
+		LOG("Got world ready %i %i", zoneID, instanceID);
+
+		const auto& instance = Game::im->FindInstanceWithPrivate(zoneID, instanceID);
+
+		if (instance == nullptr) {
+			LOG("Failed to find zone to ready");
+			return;
+		}
+
+		LOG("Ready zone %i", zoneID);
+		Game::im->ReadyInstance(instance);
+
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+			WorldReadyInfo info;
+			info.zoneID = zoneID;
+			info.instanceID = instanceID;
+			info.cloneID = instance->GetCloneID();
+			info.ip = LUString(instance->GetIP());
+			info.port = instance->GetPort();
+			info.isPrivate = instance->GetIsPrivate() ? 1 : 0;
+			MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, info);
+		}
+	}
+
+	void OnPrepZone(const PrepZone& request, const SystemAddress& sysAddr) {
+		const int32_t zoneID = request.zoneID;
+		if (shutdownSequenceStarted) {
+			LOG("Shutdown sequence has been started.  Not prepping a new zone.");
+		} else {
+			LOG("Prepping zone %i", zoneID);
+			Game::im->GetInstance(zoneID, false, 0);
+		}
+	}
+
+	void OnAffirmTransferResponse(const AffirmTransferResponse& response, const SystemAddress& sysAddr) {
+		const uint64_t requestID = response.requestID;
+
+		LOG("Got affirmation of transfer %llu", requestID);
+
+		const auto& instance = Game::im->GetInstanceBySysAddr(sysAddr);
+
+		if (instance == nullptr)
+			return;
+
+		Game::im->AffirmTransfer(instance, requestID);
+		LOG("Affirmation complete %llu", requestID);
+	}
+
+	void OnShutdownResponse(const ShutdownResponse& response, const SystemAddress& sysAddr) {
+		const auto& instance = Game::im->GetInstanceBySysAddr(sysAddr);
+		LOG("Got shutdown response from %s", sysAddr.ToString());
+		if (instance == nullptr) {
+			return;
+		}
+
+		LOG("Got shutdown response from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+		instance->SetIsShuttingDown(true);
+	}
+
+	void OnShutdownUniverse(const ShutdownUniverse& request, const SystemAddress& sysAddr) {
+		LOG("Received shutdown universe command, shutting down in 10 minutes.");
+		Game::universeShutdownRequested = true;
+	}
+
+	void OnInstanceMigrate(const InstanceMigrationRequest& request, const SystemAddress& sysAddr) {
+		// Only servers connected to master can send this (a world, for a GM's /replaceinstance or /mergeinstance)
+		if (shutdownSequenceStarted) {
+			LOG("Shutdown sequence has been started. Not starting instance migration %u.", request.requestId);
+			return;
+		}
+		MigrationCoordinator::Start(request);
+	}
+
+	void OnPlayerAction(const PlayerActionRequest& request, const SystemAddress& sysAddr) {
+		// Only the dashboard may ask worlds to act on players
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring player action from a server that is not the dashboard");
+			return;
+		}
+
+		PendingPlayerAction pending;
+		pending.action = request.action;
+		pending.deadline = std::chrono::steady_clock::now() + PLAYER_ACTION_TIMEOUT;
+
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (!instance || !instance->GetIsReady() || instance->GetIsShuttingDown()) continue;
+			MasterPackets::SendTo(instance->GetSysAddr(), request);
+			pending.waitingOn.insert(instance->GetSysAddr());
+		}
+		// The chat server checks web chat with the same filter: it reloads too, but doesn't answer
+		if (request.action == ePlayerAction::RELOAD_CHAT_FILTER && chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+			MasterPackets::SendTo(chatServerMasterPeerSysAddr, request);
+		}
+
+		LOG("Dashboard player action %i (request %u) sent to %zu world(s)", static_cast<int>(request.action), request.requestId, pending.waitingOn.size());
+		const bool noWorlds = pending.waitingOn.empty();
+		g_PendingPlayerActions[request.requestId] = std::move(pending);
+		if (noWorlds) FinishPlayerAction(request.requestId, false);
+	}
+
+	void OnPlayerActionResult(const PlayerActionResult& result, const SystemAddress& sysAddr) {
+		const auto it = g_PendingPlayerActions.find(result.requestId);
+		if (it == g_PendingPlayerActions.end()) return;
+		it->second.affected += result.affected;
+		it->second.waitingOn.erase(sysAddr);
+		if (it->second.waitingOn.empty()) FinishPlayerAction(result.requestId, false);
+	}
+
+	// World -> dashboard messages master passes on (only from worlds, only when a dashboard is connected)
+	template<typename Msg>
+	void ForwardWorldToDashboard(const Msg& msg, const SystemAddress& sysAddr) {
+		if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS || !Game::im->GetInstanceBySysAddr(sysAddr)) return;
+		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, msg);
+	}
+
+	void OnAnnounce(const Announcement& announcement, const SystemAddress& sysAddr) {
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring announcement from a server that is not the dashboard");
+			return;
+		}
+		uint32_t worlds = 0;
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (!instance || !instance->GetIsReady() || instance->GetIsShuttingDown() || !announcement.ShownIn(instance->GetMapID())) continue;
+			MasterPackets::SendTo(instance->GetSysAddr(), announcement);
+			worlds++;
+		}
+		LOG("Dashboard announcement sent to %u world(s)", worlds);
+	}
+
+	void OnConfigReload(const ConfigReload& reload, const SystemAddress& sysAddr) {
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring config reload from a server that is not the dashboard");
+			return;
+		}
+		LOG("Reloading settings (changed on the dashboard)");
+		Game::config->ReloadConfig();
+		Game::im->LoadZoneLimits();
+		// Everyone else: auth, chat and every world
+		for (const auto& peer : { authServerMasterPeerSysAddr, chatServerMasterPeerSysAddr }) {
+			if (peer != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(peer, reload);
+		}
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (instance && instance->GetIsReady()) MasterPackets::SendTo(instance->GetSysAddr(), reload);
+		}
+	}
+
+	void OnInstanceShutdown(const InstanceShutdown& request, const SystemAddress& sysAddr) {
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring instance shutdown from a server that is not the dashboard");
+			return;
+		}
+		const uint32_t zoneId = request.zoneID, instanceId = request.instanceID;
+		const auto& instance = Game::im->FindInstanceWithPrivate(static_cast<LWOMAPID>(zoneId), static_cast<LWOINSTANCEID>(instanceId));
+		if (!instance) {
+			LOG("Dashboard asked to shut down zone %u instance %u, which isn't running", zoneId, instanceId);
+			return;
+		}
+		LOG("Shutting down zone %u instance %u (from the dashboard)", zoneId, instanceId);
+		instance->Shutdown();
+	}
+
+	void OnDashboardShutdown(const DashboardShutdown& request, const SystemAddress& sysAddr) {
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring shutdown request from a server that is not the dashboard");
+			return;
+		}
+		LOG("Shutdown requested from the dashboard (scheduled restart)");
+		Game::lastSignal = -1;
+	}
+
+	void OnMessageCaptureControl(const MessageCaptureControl& control, const SystemAddress& sysAddr) {
+		// Only the dashboard starts message captures; every world gets it, and the one with the player acts on it
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring a message capture request from a server that is not the dashboard");
+			return;
+		}
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (instance && instance->GetIsReady() && !instance->GetIsShuttingDown()) MasterPackets::SendTo(instance->GetSysAddr(), control);
+		}
+	}
+
+	void OnRequestServerList(const RequestServerList& request, const SystemAddress& sysAddr) {
+		LOG("Dashboard requested server list");
+
+		ServerListResponse response;
+		response.authOnline = authServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+		response.chatOnline = chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+
+		for (const auto& inst : Game::im->GetInstances()) {
+			if (!inst || !inst->GetIsReady() || inst->GetIsShuttingDown()) continue;
+			auto& entry = response.instances.emplace_back();
+			entry.mapID = inst->GetMapID();
+			entry.instanceID = inst->GetInstanceID();
+			entry.cloneID = inst->GetCloneID();
+			entry.players = static_cast<uint32_t>(inst->GetCurrentClientCount());
+			entry.ip = LUString(inst->GetIP());
+			entry.port = inst->GetPort();
+			entry.isPrivate = inst->GetIsPrivate() ? 1 : 0;
+		}
+
+		MasterPackets::SendTo(sysAddr, response);
+	}
+
+	const PacketDispatcher<MessageType::Master>& MasterHandlers() {
+		static const auto handlers = [] {
+			PacketDispatcher<MessageType::Master> handlers;
+			using MessageType::Master;
+			handlers.On<RequestZoneTransfer>(Master::REQUEST_ZONE_TRANSFER, OnRequestZoneTransfer);
+			handlers.On<ServerInfo>(Master::SERVER_INFO, OnServerInfo);
+			handlers.On<SetSessionKey>(Master::SET_SESSION_KEY, OnSetSessionKey);
+			handlers.On<RequestSessionKey>(Master::REQUEST_SESSION_KEY, OnRequestSessionKey);
+			handlers.On<PlayerAdded>(Master::PLAYER_ADDED, OnPlayerAdded);
+			handlers.On<PlayerRemoved>(Master::PLAYER_REMOVED, OnPlayerRemoved);
+			handlers.On<CreatePrivateZone>(Master::CREATE_PRIVATE_ZONE, OnCreatePrivateZone);
+			handlers.On<RequestPrivateZone>(Master::REQUEST_PRIVATE_ZONE, OnRequestPrivateZone);
+			handlers.On<WorldReady>(Master::WORLD_READY, OnWorldReady);
+			handlers.On<PrepZone>(Master::PREP_ZONE, OnPrepZone);
+			handlers.On<AffirmTransferResponse>(Master::AFFIRM_TRANSFER_RESPONSE, OnAffirmTransferResponse);
+			handlers.On<ShutdownResponse>(Master::SHUTDOWN_RESPONSE, OnShutdownResponse);
+			handlers.On<ShutdownUniverse>(Master::SHUTDOWN_UNIVERSE, OnShutdownUniverse);
+			handlers.On<InstanceMigrationRequest>(Master::INSTANCE_MIGRATE, OnInstanceMigrate);
+			handlers.On<MigrationStatus>(Master::MIGRATE_STATUS, [](const MigrationStatus& status, const SystemAddress& sysAddr) { MigrationCoordinator::HandleStatus(sysAddr, status); });
+			handlers.On<CarriedPlayerState>(Master::MIGRATE_PLAYER_STATE, [](const CarriedPlayerState& state, const SystemAddress& sysAddr) { MigrationCoordinator::HandleCarriedState(sysAddr, state); });
+			handlers.On<PlayerActionRequest>(Master::PLAYER_ACTION, OnPlayerAction);
+			handlers.On<PlayerActionResult>(Master::PLAYER_ACTION_RESULT, OnPlayerActionResult);
+			handlers.On<PlayerPositions>(Master::PLAYER_POSITIONS, ForwardWorldToDashboard<PlayerPositions>);
+			handlers.On<Announcement>(Master::ANNOUNCE, OnAnnounce);
+			handlers.On<ConfigReload>(Master::CONFIG_RELOAD, OnConfigReload);
+			handlers.On<InstanceShutdown>(Master::INSTANCE_SHUTDOWN, OnInstanceShutdown);
+			handlers.On<DashboardShutdown>(Master::DASHBOARD_SHUTDOWN, OnDashboardShutdown);
+			// Only world servers report game writes; pass them on unchanged
+			handlers.On<DataChanged>(Master::DATA_CHANGED, ForwardWorldToDashboard<DataChanged>);
+			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);
+			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, ForwardWorldToDashboard<MessageCaptureData>);
+			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
+			return handlers;
+		}();
+		return handlers;
+	}
+}
+
 void HandlePacket(Packet* packet) {
 	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
@@ -572,11 +985,10 @@ void HandlePacket(Packet* packet) {
 
 			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS &&
 				packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN_RESPONSE);
-				bitStream.Write(instance->GetMapID());
-				bitStream.Write(instance->GetInstanceID());
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
+				MasterPackets::WorldShutDown shutDown;
+				shutDown.zoneID = instance->GetMapID();
+				shutDown.instanceID = instance->GetInstanceID();
+				MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, shutDown);
 			}
 
 			MigrationCoordinator::OnInstanceGone(*instance);
@@ -587,14 +999,10 @@ void HandlePacket(Packet* packet) {
 			chatServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 
 			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SERVER_INFO);
-				bitStream.Write<uint32_t>(0);
-				bitStream.Write<uint32_t>(0);
-				bitStream.Write<uint32_t>(0);
-				bitStream.Write(ServiceType::CHAT);
-				bitStream.Write(LUString("offline"));
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
+				MasterPackets::ServerInfo offline;
+				offline.serverType = ServiceType::CHAT;
+				offline.ip = LUString("offline");
+				MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, offline);
 			}
 
 			StartChatServer();
@@ -604,14 +1012,10 @@ void HandlePacket(Packet* packet) {
 			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 
 			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SERVER_INFO);
-				bitStream.Write<uint32_t>(0);
-				bitStream.Write<uint32_t>(0);
-				bitStream.Write<uint32_t>(0);
-				bitStream.Write(ServiceType::AUTH);
-				bitStream.Write(LUString("offline"));
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
+				MasterPackets::ServerInfo offline;
+				offline.serverType = ServiceType::AUTH;
+				offline.ip = LUString("offline");
+				MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, offline);
 			}
 
 			StartAuthServer();
@@ -625,566 +1029,8 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->length < 4) return;
 
-	if (static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
-		switch (static_cast<MessageType::Master>(packet->data[3])) {
-
-		case MessageType::Master::REQUEST_ZONE_TRANSFER: {
-			LOG("Received zone transfer req");
-			CINSTREAM_SKIP_HEADER;
-			uint64_t requestID = 0;
-			uint8_t mythranShift = false;
-			uint32_t zoneID = 0;
-			uint32_t zoneClone = 0;
-
-			inStream.Read(requestID);
-			inStream.Read(mythranShift);
-			inStream.Read(zoneID);
-			inStream.Read(zoneClone);
-			// The login stamps travelling with the request (see Stamps.h); master adds its steps
-			Stamps stamps;
-			if (!stamps.Deserialize(inStream)) stamps = {};
-			if (!stamps.empty()) stamps.Add(eStamps::PASSPORT_AUTH_WORLD_PACKET_RECEIVED, zoneID);
-			if (shutdownSequenceStarted) {
-				LOG("Shutdown sequence has been started.  Not creating a new zone.");
-				break;
-			}
-			const auto& in = Game::im->GetInstance(zoneID, false, zoneClone);
-
-			for (const auto& instance : Game::im->GetInstances()) {
-				LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
-			}
-
-			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
-			{
-				if (!stamps.empty()) stamps.Add(eStamps::PASSPORT_AUTH_IM_LOGIN_QUEUED, in->GetInstanceID());
-				in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), packet->systemAddress, stamps });
-				LOG("Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
-				break;
-			}
-
-			//Instance is ready, transfer
-			LOG("Responding to transfer request %llu for zone %i %i", requestID, zoneID, zoneClone);
-			Game::im->RequestAffirmation(in, { requestID, static_cast<bool>(mythranShift), packet->systemAddress, stamps });
-			break;
-		}
-
-		case MessageType::Master::SERVER_INFO: {
-			//MasterPackets::HandleServerInfo(packet);
-
-			//This is here because otherwise we'd have to include IM in
-			//non-master servers. This packet allows us to add World
-			//servers back if master crashed
-			CINSTREAM_SKIP_HEADER;
-
-			uint32_t theirPort = 0;
-			uint32_t theirZoneID = 0;
-			uint32_t theirInstanceID = 0;
-			ServiceType theirServerType;
-			LUString theirIP;
-
-			inStream.Read(theirPort);
-			inStream.Read(theirZoneID);
-			inStream.Read(theirInstanceID);
-			inStream.Read(theirServerType);
-			inStream.Read(theirIP);
-
-			switch (theirServerType) {
-			case ServiceType::WORLD:
-				if (!Game::im->IsPortInUse(theirPort)) {
-					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
-					in->SetSysAddr(packet->systemAddress);
-					Game::im->AddInstance(in);
-				} else {
-					const auto& instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
-					if (instance) {
-						instance->SetSysAddr(packet->systemAddress);
-					}
-				}
-				break;
-			case ServiceType::CHAT:
-				chatServerMasterPeerSysAddr = packet->systemAddress;
-				break;
-			case ServiceType::AUTH:
-				authServerMasterPeerSysAddr = packet->systemAddress;
-				break;
-			case ServiceType::DASHBOARD:
-				dashboardServerMasterPeerSysAddr = packet->systemAddress;
-				break;
-			default:
-				break;
-			}
-
-			if (theirServerType != ServiceType::DASHBOARD && dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SERVER_INFO);
-				bitStream.Write(theirPort);
-				bitStream.Write(theirZoneID);
-				bitStream.Write(theirInstanceID);
-				bitStream.Write(theirServerType);
-				bitStream.Write(theirIP);
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
-			}
-
-			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
-
-			break;
-		}
-
-		case MessageType::Master::SET_SESSION_KEY: {
-			CINSTREAM_SKIP_HEADER;
-			uint32_t sessionKey = 0;
-			inStream.Read(sessionKey);
-			LUString username;
-			inStream.Read(username);
-
-			for (auto it : activeSessions) {
-				if (it.second == username.string) {
-					activeSessions.erase(it.first);
-
-					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::NEW_SESSION_ALERT);
-					bitStream.Write(sessionKey);
-					bitStream.Write(username);
-					SEND_PACKET_BROADCAST;
-
-					break;
-				}
-			}
-
-			activeSessions.insert(std::make_pair(sessionKey, username.string));
-			LOG("Got sessionKey %i for user %s", sessionKey, username.string.c_str());
-			break;
-		}
-
-		case MessageType::Master::REQUEST_SESSION_KEY: {
-			CINSTREAM_SKIP_HEADER;
-			LUWString username;
-			inStream.Read(username);
-			LOG("Requesting session key for %s", username.GetAsString().c_str());
-			for (auto key : activeSessions) {
-				if (key.second == username.GetAsString()) {
-					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
-					bitStream.Write(key.first);
-					bitStream.Write(username);
-					Game::server->Send(bitStream, packet->systemAddress, false);
-					break;
-				}
-			}
-			break;
-		}
-
-		case MessageType::Master::PLAYER_ADDED: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID theirZoneID = 0;
-			LWOINSTANCEID theirInstanceID = 0;
-
-			inStream.Read(theirZoneID);
-			inStream.Read(theirInstanceID);
-
-			const auto& instance =
-				Game::im->FindInstanceWithPrivate(theirZoneID, theirInstanceID);
-			if (instance) {
-				instance->AddPlayer(Player());
-			} else {
-				LOG("Instance missing? What?");
-			}
-
-			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ADDED);
-				bitStream.Write(theirZoneID);
-				bitStream.Write(theirInstanceID);
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
-			}
-			break;
-		}
-
-		case MessageType::Master::PLAYER_REMOVED: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID theirZoneID = 0;
-			LWOINSTANCEID theirInstanceID = 0;
-
-			inStream.Read(theirZoneID);
-			inStream.Read(theirInstanceID);
-
-			const auto& instance =
-				Game::im->FindInstance(theirZoneID, theirInstanceID);
-			if (instance) {
-				instance->RemovePlayer(Player());
-			}
-
-			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_REMOVED);
-				bitStream.Write(theirZoneID);
-				bitStream.Write(theirInstanceID);
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
-			}
-			break;
-		}
-
-		case MessageType::Master::CREATE_PRIVATE_ZONE: {
-			CINSTREAM_SKIP_HEADER;
-
-			uint32_t mapId;
-			LWOCLONEID cloneId;
-			std::string password;
-
-			inStream.Read(mapId);
-			inStream.Read(cloneId);
-
-			uint32_t len;
-			inStream.Read<uint32_t>(len);
-			len = std::min<uint32_t>(len, 50); // cap the master password at 50 characters
-
-			for (uint32_t i = 0; len > i; i++) {
-				char character;
-				inStream.Read<char>(character);
-				password += character;
-			}
-			const auto& newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
-			LOG("Creating private zone %i/%i/%i", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID());
-
-			break;
-		}
-
-		case MessageType::Master::REQUEST_PRIVATE_ZONE: {
-			CINSTREAM_SKIP_HEADER;
-
-			uint64_t requestID = 0;
-			uint8_t mythranShift = false;
-
-			std::string password;
-
-			inStream.Read(requestID);
-			inStream.Read(mythranShift);
-
-			uint32_t len;
-			inStream.Read<uint32_t>(len);
-			len = std::min<uint32_t>(len, 50);
-
-			for (uint32_t i = 0; i < len; i++) {
-				char character; inStream.Read<char>(character);
-				password += character;
-			}
-
-			const auto& instance = Game::im->FindPrivateInstance(password.c_str());
-
-			LOG("Join private zone: %llu %d %p", requestID, mythranShift, instance.get());
-
-			if (instance == nullptr) {
-				return;
-			}
-
-			const auto& zone = instance->GetZoneID();
-
-			MasterPackets::SendZoneTransferResponse(Game::server, packet->systemAddress, requestID, static_cast<bool>(mythranShift), zone.GetMapID(), instance->GetInstanceID(), zone.GetCloneID(), instance->GetIP(), instance->GetPort());
-
-			break;
-		}
-
-		case MessageType::Master::WORLD_READY: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID zoneID;
-			LWOINSTANCEID instanceID;
-
-			inStream.Read(zoneID);
-			inStream.Read(instanceID);
-
-			LOG("Got world ready %i %i", zoneID, instanceID);
-
-			const auto& instance = Game::im->FindInstanceWithPrivate(zoneID, instanceID);
-
-			if (instance == nullptr) {
-				LOG("Failed to find zone to ready");
-				return;
-			}
-
-			LOG("Ready zone %i", zoneID);
-			Game::im->ReadyInstance(instance);
-
-			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::WORLD_READY);
-				bitStream.Write(zoneID);
-				bitStream.Write(instanceID);
-				bitStream.Write(instance->GetCloneID());
-				bitStream.Write(LUString(instance->GetIP()));
-				bitStream.Write(instance->GetPort());
-				bitStream.Write<uint8_t>(instance->GetIsPrivate() ? 1 : 0);
-				Game::server->Send(bitStream, dashboardServerMasterPeerSysAddr, false);
-			}
-			break;
-		}
-
-		case MessageType::Master::PREP_ZONE: {
-			CINSTREAM_SKIP_HEADER;
-
-			int32_t zoneID;
-			inStream.Read(zoneID);
-			if (shutdownSequenceStarted) {
-				LOG("Shutdown sequence has been started.  Not prepping a new zone.");
-				break;
-			} else {
-				LOG("Prepping zone %i", zoneID);
-				Game::im->GetInstance(zoneID, false, 0);
-			}
-			break;
-		}
-
-		case MessageType::Master::AFFIRM_TRANSFER_RESPONSE: {
-			CINSTREAM_SKIP_HEADER;
-
-			uint64_t requestID;
-
-			inStream.Read(requestID);
-
-			LOG("Got affirmation of transfer %llu", requestID);
-
-			const auto& instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
-
-			if (instance == nullptr)
-				return;
-
-			Game::im->AffirmTransfer(instance, requestID);
-			LOG("Affirmation complete %llu", requestID);
-			break;
-		}
-
-		case MessageType::Master::SHUTDOWN_RESPONSE: {
-			CINSTREAM_SKIP_HEADER;
-
-			const auto& instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
-			LOG("Got shutdown response from %s", packet->systemAddress.ToString());
-			if (instance == nullptr) {
-				return;
-			}
-
-			LOG("Got shutdown response from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
-			instance->SetIsShuttingDown(true);
-			break;
-		}
-
-		case MessageType::Master::SHUTDOWN_UNIVERSE: {
-			LOG("Received shutdown universe command, shutting down in 10 minutes.");
-			Game::universeShutdownRequested = true;
-			break;
-		}
-
-		case MessageType::Master::INSTANCE_MIGRATE: {
-			// Only servers connected to master can send this (a world, for a GM's /replaceinstance or /mergeinstance)
-			CINSTREAM_SKIP_HEADER;
-			InstanceMigrationRequest request;
-			if (!request.Deserialize(inStream)) break;
-			if (shutdownSequenceStarted) {
-				LOG("Shutdown sequence has been started. Not starting instance migration %u.", request.requestId);
-				break;
-			}
-			MigrationCoordinator::Start(request);
-			break;
-		}
-
-		case MessageType::Master::MIGRATE_STATUS: {
-			CINSTREAM_SKIP_HEADER;
-			MigrationStatus status;
-			if (status.Deserialize(inStream)) MigrationCoordinator::HandleStatus(packet->systemAddress, status);
-			break;
-		}
-
-		case MessageType::Master::MIGRATE_PLAYER_STATE: {
-			CINSTREAM_SKIP_HEADER;
-			CarriedPlayerState state;
-			if (state.Deserialize(inStream)) MigrationCoordinator::HandleCarriedState(packet->systemAddress, state, packet->data, packet->length);
-			break;
-		}
-
-		case MessageType::Master::PLAYER_ACTION: {
-			// Only the dashboard may ask worlds to act on players
-			if (packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				LOG("Ignoring player action from a server that is not the dashboard");
-				break;
-			}
-
-			CINSTREAM_SKIP_HEADER;
-			PlayerActionRequest request;
-			if (!request.Deserialize(inStream)) break;
-
-			PendingPlayerAction pending;
-			pending.action = request.action;
-			pending.deadline = std::chrono::steady_clock::now() + PLAYER_ACTION_TIMEOUT;
-
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_ACTION);
-			request.Serialize(bitStream);
-			for (const auto& instance : Game::im->GetInstances()) {
-				if (!instance || !instance->GetIsReady() || instance->GetIsShuttingDown()) continue;
-				Game::server->Send(bitStream, instance->GetSysAddr(), false);
-				pending.waitingOn.insert(instance->GetSysAddr());
-			}
-			// The chat server checks web chat with the same filter: it reloads too, but doesn't answer
-			if (request.action == ePlayerAction::RELOAD_CHAT_FILTER && chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				Game::server->Send(bitStream, chatServerMasterPeerSysAddr, false);
-			}
-
-			LOG("Dashboard player action %i (request %u) sent to %zu world(s)", static_cast<int>(request.action), request.requestId, pending.waitingOn.size());
-			const bool noWorlds = pending.waitingOn.empty();
-			g_PendingPlayerActions[request.requestId] = std::move(pending);
-			if (noWorlds) FinishPlayerAction(request.requestId, false);
-			break;
-		}
-
-		case MessageType::Master::PLAYER_ACTION_RESULT: {
-			CINSTREAM_SKIP_HEADER;
-			PlayerActionResult result;
-			if (!result.Deserialize(inStream)) break;
-
-			const auto it = g_PendingPlayerActions.find(result.requestId);
-			if (it == g_PendingPlayerActions.end()) break;
-			it->second.affected += result.affected;
-			it->second.waitingOn.erase(packet->systemAddress);
-			if (it->second.waitingOn.empty()) FinishPlayerAction(result.requestId, false);
-			break;
-		}
-
-		case MessageType::Master::PLAYER_POSITIONS: {
-			if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS || !Game::im->GetInstanceBySysAddr(packet->systemAddress)) break;
-			RakNet::BitStream forward(packet->data, packet->length, false);
-			Game::server->Send(forward, dashboardServerMasterPeerSysAddr, false);
-			break;
-		}
-
-		case MessageType::Master::ANNOUNCE: {
-			if (packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				LOG("Ignoring announcement from a server that is not the dashboard");
-				break;
-			}
-			CINSTREAM_SKIP_HEADER;
-			Announcement announcement;
-			if (!announcement.Deserialize(inStream)) break;
-			RakNet::BitStream forward(packet->data, packet->length, false);
-			uint32_t worlds = 0;
-			for (const auto& instance : Game::im->GetInstances()) {
-				if (!instance || !instance->GetIsReady() || instance->GetIsShuttingDown() || !announcement.ShownIn(instance->GetMapID())) continue;
-				Game::server->Send(forward, instance->GetSysAddr(), false);
-				worlds++;
-			}
-			LOG("Dashboard announcement sent to %u world(s)", worlds);
-			break;
-		}
-
-		case MessageType::Master::CONFIG_RELOAD: {
-			if (packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				LOG("Ignoring config reload from a server that is not the dashboard");
-				break;
-			}
-			LOG("Reloading settings (changed on the dashboard)");
-			Game::config->ReloadConfig();
-			Game::im->LoadZoneLimits();
-			// Everyone else: auth, chat and every world
-			RakNet::BitStream forward(packet->data, packet->length, false);
-			for (const auto& peer : { authServerMasterPeerSysAddr, chatServerMasterPeerSysAddr }) {
-				if (peer != UNASSIGNED_SYSTEM_ADDRESS) Game::server->Send(forward, peer, false);
-			}
-			for (const auto& instance : Game::im->GetInstances()) {
-				if (instance && instance->GetIsReady()) Game::server->Send(forward, instance->GetSysAddr(), false);
-			}
-			break;
-		}
-
-		case MessageType::Master::INSTANCE_SHUTDOWN: {
-			if (packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				LOG("Ignoring instance shutdown from a server that is not the dashboard");
-				break;
-			}
-			CINSTREAM_SKIP_HEADER;
-			uint32_t zoneId = 0, instanceId = 0;
-			if (!inStream.Read(zoneId) || !inStream.Read(instanceId)) break;
-			const auto& instance = Game::im->FindInstanceWithPrivate(static_cast<LWOMAPID>(zoneId), static_cast<LWOINSTANCEID>(instanceId));
-			if (!instance) {
-				LOG("Dashboard asked to shut down zone %u instance %u, which isn't running", zoneId, instanceId);
-				break;
-			}
-			LOG("Shutting down zone %u instance %u (from the dashboard)", zoneId, instanceId);
-			instance->Shutdown();
-			break;
-		}
-
-		case MessageType::Master::DASHBOARD_SHUTDOWN: {
-			if (packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				LOG("Ignoring shutdown request from a server that is not the dashboard");
-				break;
-			}
-			LOG("Shutdown requested from the dashboard (scheduled restart)");
-			Game::lastSignal = -1;
-			break;
-		}
-
-		case MessageType::Master::DATA_CHANGED: {
-			// Only world servers report game writes; pass them on unchanged
-			if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS || !Game::im->GetInstanceBySysAddr(packet->systemAddress)) break;
-			RakNet::BitStream forward(packet->data, packet->length, false);
-			Game::server->Send(forward, dashboardServerMasterPeerSysAddr, false);
-			break;
-		}
-
-		case MessageType::Master::MESSAGE_CAPTURE_CONTROL: {
-			// Only the dashboard starts message captures; every world gets it, and the one with the player acts on it
-			if (packet->systemAddress != dashboardServerMasterPeerSysAddr) {
-				LOG("Ignoring a message capture request from a server that is not the dashboard");
-				break;
-			}
-			RakNet::BitStream forward(packet->data, packet->length, false);
-			for (const auto& instance : Game::im->GetInstances()) {
-				if (instance && instance->GetIsReady() && !instance->GetIsShuttingDown()) Game::server->Send(forward, instance->GetSysAddr(), false);
-			}
-			break;
-		}
-
-		case MessageType::Master::MESSAGE_CAPTURE_DATA: {
-			if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS || !Game::im->GetInstanceBySysAddr(packet->systemAddress)) break;
-			RakNet::BitStream forward(packet->data, packet->length, false);
-			Game::server->Send(forward, dashboardServerMasterPeerSysAddr, false);
-			break;
-		}
-
-		case MessageType::Master::REQUEST_SERVER_LIST: {
-			LOG("Dashboard requested server list");
-
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SERVER_LIST_RESPONSE);
-
-			bitStream.Write<uint8_t>(authServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0);
-			bitStream.Write<uint8_t>(chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0);
-
-			const auto& instances = Game::im->GetInstances();
-			uint32_t instanceCount = 0;
-			for (const auto& inst : instances) {
-				if (inst && inst->GetIsReady() && !inst->GetIsShuttingDown()) instanceCount++;
-			}
-			bitStream.Write(instanceCount);
-
-			for (const auto& inst : instances) {
-				if (!inst || !inst->GetIsReady() || inst->GetIsShuttingDown()) continue;
-				bitStream.Write(inst->GetMapID());
-				bitStream.Write(inst->GetInstanceID());
-				bitStream.Write(inst->GetCloneID());
-				bitStream.Write<uint32_t>(inst->GetCurrentClientCount());
-				bitStream.Write(LUString(inst->GetIP()));
-				bitStream.Write(inst->GetPort());
-				bitStream.Write<uint8_t>(inst->GetIsPrivate() ? 1 : 0);
-			}
-
-			Game::server->Send(bitStream, packet->systemAddress, false);
-			break;
-		}
-
-		default:
-			LOG("Unknown master packet ID from server: %i", packet->data[3]);
-		}
+	if (!MasterHandlers().Dispatch(packet, ServiceType::MASTER) && packet->data[0] == ID_USER_PACKET_ENUM && static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
+		LOG("Unknown master packet ID from server: %i", packet->data[3]);
 	}
 }
 
@@ -1205,9 +1051,7 @@ int ShutdownSequence(int32_t signal) {
 	Game::lastSignal = -1;
 
 	{
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN);
-		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		MasterPackets::Shutdown().Broadcast();
 		LOG("Triggered master shutdown");
 	}
 

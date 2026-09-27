@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "BitStream.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Master.h"
 #include "dCommonVars.h"
 
 namespace DashboardMessages {
@@ -29,7 +31,9 @@ namespace DashboardMessages {
  * PLAYER_POSITIONS (world -> master -> dashboard): where each player in a world instance is, sent every
  * second while anyone is online and once more when the world empties.
  */
-struct PlayerPositions {
+struct PlayerPositions : public LUBitStream {
+	PlayerPositions() : LUBitStream(ServiceType::MASTER, MessageType::Master::PLAYER_POSITIONS) {}
+
 	struct Player {
 		LWOOBJID characterId{};
 		float x{}, y{}, z{};
@@ -42,7 +46,7 @@ struct PlayerPositions {
 	uint32_t cloneId{};
 	std::vector<Player> players;
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(zoneId);
 		stream.Write(instanceId);
 		stream.Write(cloneId);
@@ -56,7 +60,7 @@ struct PlayerPositions {
 		}
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint16_t count{};
 		if (!stream.Read(zoneId) || !stream.Read(instanceId) || !stream.Read(cloneId) || !stream.Read(count) || count > MAX_PLAYERS) return false;
 		players.resize(count);
@@ -71,7 +75,9 @@ struct PlayerPositions {
  * ANNOUNCE (dashboard -> master -> worlds): a message shown to every player online, or only to those in the listed
  * zones (master only forwards it to worlds of those zones).
  */
-struct Announcement {
+struct Announcement : public LUBitStream {
+	Announcement() : LUBitStream(ServiceType::MASTER, MessageType::Master::ANNOUNCE) {}
+
 	static constexpr uint16_t MAX_TITLE = 100;
 	static constexpr uint16_t MAX_MESSAGE = 1000;
 	static constexpr uint16_t MAX_ZONES = 200;
@@ -80,7 +86,7 @@ struct Announcement {
 	std::string message;
 	std::vector<uint32_t> zones; // empty: every world
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		DashboardMessages::WriteText(stream, title, MAX_TITLE);
 		DashboardMessages::WriteText(stream, message, MAX_MESSAGE);
 		const auto count = static_cast<uint16_t>(std::min<size_t>(zones.size(), MAX_ZONES));
@@ -88,7 +94,7 @@ struct Announcement {
 		for (uint16_t i = 0; i < count; i++) stream.Write(zones[i]);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		if (!DashboardMessages::ReadText(stream, title, MAX_TITLE) || !DashboardMessages::ReadText(stream, message, MAX_MESSAGE)) return false;
 		uint16_t count{};
 		if (!stream.Read(count) || count > MAX_ZONES) return false;

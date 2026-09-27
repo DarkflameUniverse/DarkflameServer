@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "InstanceMigration.h"
+#include "master/InstanceMigration.h"
 
 using namespace InstanceMigration;
 

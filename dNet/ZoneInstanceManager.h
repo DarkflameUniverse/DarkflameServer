@@ -11,6 +11,10 @@
 
 class dServer;
 
+namespace MasterPackets {
+	struct RequestZoneTransferResponse;
+}
+
 /*!
   \file ZoneInstanceManager.hpp
   \brief A class for handling zone transfers and zone-related functions
@@ -56,7 +60,7 @@ public:
 	  \param requestID The request ID
 	  \param packet The packet
 	 */
-	void HandleRequestZoneTransferResponse(Packet* packet);
+	void HandleRequestZoneTransferResponse(const MasterPackets::RequestZoneTransferResponse& response);
 
 	void CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password);
 

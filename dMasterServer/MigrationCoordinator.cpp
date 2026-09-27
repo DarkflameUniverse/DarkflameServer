@@ -8,6 +8,7 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "InstanceManager.h"
+#include "MasterPackets.h"
 #include "Logger.h"
 #include "MessageType/Master.h"
 #include "ServiceType.h"
@@ -114,10 +115,7 @@ namespace {
 		order.targetZone = migration.zone;
 		order.targetInstance = migration.target;
 		order.targetPort = 0;
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MIGRATE_PLAYERS);
-		order.Serialize(bitStream);
-		Game::server->Send(bitStream, source->GetSysAddr(), false);
+		MasterPackets::SendTo(source->GetSysAddr(), order);
 	}
 
 	// Ends a migration. The source goes back to taking players unless it is being shut down.
@@ -153,10 +151,7 @@ namespace {
 		// Without a loading screen the "dimensional shift" notice would be the only sign; leave it out then
 		order.seamless = migration.seamless;
 		order.mythranShift = !migration.seamless;
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MIGRATE_PLAYERS);
-		order.Serialize(bitStream);
-		Game::server->Send(bitStream, source.GetSysAddr(), false);
+		MasterPackets::SendTo(source.GetSysAddr(), order);
 
 		migration.state = migration.warnSeconds > 0 ? eState::WARNING : eState::MOVING;
 		migration.deadline = Clock::now() + std::chrono::seconds(migration.warnSeconds) + MOVE_TIMEOUT;
@@ -257,15 +252,14 @@ void MigrationCoordinator::HandleStatus(const SystemAddress& from, const Migrati
 	Report(migration, status.state, status.message, status.remaining);
 }
 
-void MigrationCoordinator::HandleCarriedState(const SystemAddress& from, const CarriedPlayerState& state, const unsigned char* data, uint32_t length) {
+void MigrationCoordinator::HandleCarriedState(const SystemAddress& from, const CarriedPlayerState& state) {
 	for (const auto& [id, migration] : g_Active) {
 		if (migration.zone != state.targetZone || migration.target != state.targetInstance) continue;
 		const auto& source = FindInstance(migration.zone, migration.source);
 		if (!source || source->GetSysAddr() != from) continue;
 		const auto& target = FindInstance(migration.zone, migration.target);
 		if (!target) return;
-		RakNet::BitStream forward(const_cast<unsigned char*>(data), length, false);
-		Game::server->Send(forward, target->GetSysAddr(), false);
+		MasterPackets::SendTo(target->GetSysAddr(), state);
 		return;
 	}
 }

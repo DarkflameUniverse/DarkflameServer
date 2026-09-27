@@ -1,6 +1,7 @@
 SET(DNET_TESTS
 	"ChatPacketsTests.cpp"
 	"CommonAuthPacketsTests.cpp"
+	"MasterPacketsTests.cpp"
 	"WorldPacketsTests.cpp")
 
 # Get the folder name and prepend it to the files above

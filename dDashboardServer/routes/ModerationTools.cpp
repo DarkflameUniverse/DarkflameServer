@@ -10,7 +10,7 @@
 #include "ClientAssets.h"
 #include "GameLabels.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "Strikes.h"
 #include "WSRoutes.h"
 #include "Database.h"

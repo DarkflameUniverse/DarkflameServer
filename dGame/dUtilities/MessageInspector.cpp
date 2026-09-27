@@ -1,4 +1,5 @@
 #include "MessageInspector.h"
+#include "MasterPackets.h"
 
 #include <chrono>
 #include <cstring>
@@ -11,7 +12,7 @@
 #include "Game.h"
 #include "GameMessageDecoder.h"
 #include "Logger.h"
-#include "MessageCapture.h"
+#include "master/MessageCapture.h"
 #include "MessageType/Client.h"
 #include "MessageType/Master.h"
 #include "PlayerManager.h"
@@ -64,10 +65,7 @@ namespace {
 		data.dropped = dropped;
 		data.entries = std::move(entries);
 
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MESSAGE_CAPTURE_DATA);
-		data.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(data);
 	}
 
 	// Send what is waiting: a couple of batches per call (the rest goes next time), or everything when `all`

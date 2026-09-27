@@ -10,6 +10,8 @@
 #include <vector>
 
 #include "BitStream.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Master.h"
 #include "dCommonVars.h"
 
 /**
@@ -93,7 +95,9 @@ namespace MessageCapture {
 }
 
 // MESSAGE_CAPTURE_CONTROL payload
-struct MessageCaptureControl {
+struct MessageCaptureControl : public LUBitStream {
+	MessageCaptureControl() : LUBitStream(ServiceType::MASTER, MessageType::Master::MESSAGE_CAPTURE_CONTROL) {}
+
 	uint32_t captureId{};
 	eMessageCaptureControl action{};
 	LWOOBJID characterId{};
@@ -103,7 +107,7 @@ struct MessageCaptureControl {
 	std::vector<uint16_t> only;   // START: capture only these message IDs (empty: all)
 	std::vector<uint16_t> skip;   // START: never capture these message IDs
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(captureId);
 		stream.Write(action);
 		stream.Write(characterId);
@@ -114,7 +118,7 @@ struct MessageCaptureControl {
 		MessageCapture::WriteIds(stream, skip);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint8_t server{}, client{};
 		if (!stream.Read(captureId) || !stream.Read(action) || !stream.Read(characterId) || !stream.Read(seconds) ||
 			!stream.Read(server) || !stream.Read(client)) return false;
@@ -166,7 +170,9 @@ struct MessageCaptureEntry {
 };
 
 // MESSAGE_CAPTURE_DATA payload
-struct MessageCaptureData {
+struct MessageCaptureData : public LUBitStream {
+	MessageCaptureData() : LUBitStream(ServiceType::MASTER, MessageType::Master::MESSAGE_CAPTURE_DATA) {}
+
 	static constexpr uint16_t MAX_ENTRIES = 500;
 
 	uint32_t captureId{};
@@ -179,7 +185,7 @@ struct MessageCaptureData {
 	std::vector<MessageCaptureEntry> entries;
 	uint32_t cloneId{};          // the world's clone (a property's owner), 0 elsewhere
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(captureId);
 		stream.Write(status);
 		stream.Write(characterId);
@@ -193,7 +199,7 @@ struct MessageCaptureData {
 		stream.Write(cloneId);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint16_t count{};
 		if (!stream.Read(captureId) || !stream.Read(status) || !stream.Read(characterId) || !stream.Read(zoneId) ||
 			!stream.Read(instanceId) || !stream.Read(reason) || !stream.Read(dropped) || !stream.Read(count) || count > MAX_ENTRIES) return false;

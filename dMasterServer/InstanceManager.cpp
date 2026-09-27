@@ -21,6 +21,22 @@ using std::make_unique;
 
 namespace {
 	const InstancePtr g_Empty{ nullptr };
+
+	// Where the player of request goes: instance
+	void SendZoneTransferResponse(const PendingInstanceRequest& request, const Instance& instance) {
+		const auto& zoneId = instance.GetZoneID();
+		MasterPackets::RequestZoneTransferResponse response;
+		response.requestID = request.id;
+		response.mythranShift = request.mythranShift;
+		response.zoneID = zoneId.GetMapID();
+		response.zoneInstance = zoneId.GetInstanceID();
+		response.zoneClone = zoneId.GetCloneID();
+		response.serverPort = static_cast<uint16_t>(instance.GetPort());
+		response.serverIP = LUString(instance.GetIP(), 255);
+		response.stamps = request.stamps;
+		response.stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, zoneId.GetInstanceID());
+		MasterPackets::SendTo(request.sysAddr, response);
+	}
 }
 
 InstanceManager::InstanceManager(const std::string& externalIP) : mExternalIP{ externalIP } {
@@ -156,20 +172,7 @@ void InstanceManager::ReadyInstance(const InstancePtr& instance) {
 
 		LOG("Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
 
-		auto stamps = request.stamps;
-		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, zoneId.GetInstanceID());
-		MasterPackets::SendZoneTransferResponse(
-			Game::server,
-			request.sysAddr,
-			request.id,
-			request.mythranShift,
-			zoneId.GetMapID(),
-			zoneId.GetInstanceID(),
-			zoneId.GetCloneID(),
-			instance->GetIP(),
-			instance->GetPort(),
-			stamps
-		);
+		SendZoneTransferResponse(request, *instance);
 	}
 
 	pending.clear();
@@ -178,13 +181,9 @@ void InstanceManager::ReadyInstance(const InstancePtr& instance) {
 void InstanceManager::RequestAffirmation(const InstancePtr& instance, const PendingInstanceRequest& request) {
 	instance->GetPendingAffirmations().push_back(request);
 
-	CBITSTREAM;
-
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::AFFIRM_TRANSFER_REQUEST);
-
-	bitStream.Write(request.id);
-
-	Game::server->Send(bitStream, instance->GetSysAddr(), false);
+	MasterPackets::AffirmTransferRequest affirm;
+	affirm.requestID = request.id;
+	MasterPackets::SendTo(instance->GetSysAddr(), affirm);
 
 	LOG("Sent affirmation request %llu to %i/%i", request.id,
 		static_cast<int>(instance->GetZoneID().GetMapID()),
@@ -200,22 +199,7 @@ void InstanceManager::AffirmTransfer(const InstancePtr& instance, const uint64_t
 
 		if (request.id != transferID) continue;
 
-		const auto& zoneId = instance->GetZoneID();
-
-		auto stamps = request.stamps;
-		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, zoneId.GetInstanceID());
-		MasterPackets::SendZoneTransferResponse(
-			Game::server,
-			request.sysAddr,
-			request.id,
-			request.mythranShift,
-			zoneId.GetMapID(),
-			zoneId.GetInstanceID(),
-			zoneId.GetCloneID(),
-			instance->GetIP(),
-			instance->GetPort(),
-			stamps
-		);
+		SendZoneTransferResponse(request, *instance);
 
 		pending.erase(pending.begin() + i);
 
@@ -240,7 +224,7 @@ void InstanceManager::RedirectPendingRequests(const InstancePtr& instance) {
 	}
 }
 
-const InstancePtr& InstanceManager::GetInstanceBySysAddr(SystemAddress& sysAddr) {
+const InstancePtr& InstanceManager::GetInstanceBySysAddr(const SystemAddress& sysAddr) {
 	for (const auto& instance : m_Instances) {
 		if (instance && instance->GetSysAddr() == sysAddr) {
 			return instance;
@@ -418,11 +402,7 @@ bool Instance::GetShutdownComplete() const {
 }
 
 void Instance::Shutdown() {
-	CBITSTREAM;
-
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN);
-
-	Game::server->Send(bitStream, this->m_SysAddr, false);
+	MasterPackets::SendTo(this->m_SysAddr, MasterPackets::Shutdown());
 
 	LOG("Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }

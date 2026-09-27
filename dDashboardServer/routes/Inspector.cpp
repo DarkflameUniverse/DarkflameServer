@@ -1,4 +1,5 @@
 #include "Inspector.h"
+#include "MasterPackets.h"
 
 #include <chrono>
 #include <ctime>
@@ -11,7 +12,7 @@
 #include "Game.h"
 #include "InspectorFormat.h"
 #include "Logger.h"
-#include "MessageCapture.h"
+#include "master/MessageCapture.h"
 #include "MessageType/Master.h"
 #include "Permissions.h"
 #include "RouteUtils.h"
@@ -85,10 +86,7 @@ namespace {
 
 	void SendControl(const MessageCaptureControl& control) {
 		if (!Connected()) return;
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MESSAGE_CAPTURE_CONTROL);
-		control.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(control);
 	}
 
 	// (Re)start in whichever world has the player, for the time that is left

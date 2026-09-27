@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "PlayerAction.h"
-#include "DataChanged.h"
+#include "master/PlayerAction.h"
+#include "master/DataChanged.h"
 
 TEST(PlayerActionTest, RequestRoundTrip) {
 	PlayerActionRequest request;

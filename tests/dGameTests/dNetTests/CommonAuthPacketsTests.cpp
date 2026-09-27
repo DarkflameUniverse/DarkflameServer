@@ -433,9 +433,21 @@ TEST_F(CommonAuthPacketsTests, StampsRoundTrip) {
 }
 
 TEST_F(CommonAuthPacketsTests, ZoneTransferResponseCarriesStamps) {
+	const auto sendResponse = [](const Stamps& stamps) {
+		MasterPackets::RequestZoneTransferResponse response;
+		response.requestID = 99;
+		response.mythranShift = true;
+		response.zoneID = 1000;
+		response.zoneInstance = 7;
+		response.zoneClone = 0;
+		response.serverIP = LUString("127.0.0.1", 255);
+		response.serverPort = 2001;
+		response.stamps = stamps;
+		MasterPackets::SendTo(TestAddress(), response);
+	};
 	Stamps stamps;
 	stamps.list = { Stamp(eStamps::PASSPORT_AUTH_START, 0, 10), Stamp(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, 7, 11) };
-	const auto sent = Capture([&] { MasterPackets::SendZoneTransferResponse(Game::server, TestAddress(), 99, true, 1000, 7, 0, "127.0.0.1", 2001, stamps); });
+	const auto sent = Capture([&] { sendResponse(stamps); });
 	ASSERT_EQ(sent.size(), 1);
 
 	RakNet::BitStream bitStream(const_cast<uint8_t*>(sent[0].bytes.data()), sent[0].bytes.size(), true);
@@ -469,7 +481,7 @@ TEST_F(CommonAuthPacketsTests, ZoneTransferResponseCarriesStamps) {
 	EXPECT_EQ(copy.list[1].timestamp, 11);
 
 	// Without a login the list is empty: just its size field
-	const auto plain = Capture([&] { MasterPackets::SendZoneTransferResponse(Game::server, TestAddress(), 99, true, 1000, 7, 0, "127.0.0.1", 2001); });
+	const auto plain = Capture([&] { sendResponse({}); });
 	ASSERT_EQ(plain.size(), 1);
 	EXPECT_EQ(plain[0].bytes.size() + 32, sent[0].bytes.size());
 	const std::vector<uint8_t> tail(plain[0].bytes.end() - 4, plain[0].bytes.end());

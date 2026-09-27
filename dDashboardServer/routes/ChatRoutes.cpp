@@ -6,7 +6,7 @@
 #include "RouteUtils.h"
 #include "DashboardRoutes.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "WSRoutes.h"
 #include "Permissions.h"
 #include "Database.h"

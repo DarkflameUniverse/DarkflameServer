@@ -1,4 +1,5 @@
 #include "WorldMigration.h"
+#include "MasterPackets.h"
 
 #include <ctime>
 #include <map>
@@ -74,10 +75,7 @@ namespace {
 		status.failed = failed;
 		status.remaining = remaining;
 		status.message = message;
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MIGRATE_STATUS);
-		status.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(status);
 	}
 
 	void SendStatus(eState state, uint16_t remaining, const std::string& message) {
@@ -147,10 +145,7 @@ namespace {
 		g_Leaving[sysAddr] = { playerId, 0.0f };
 
 		{
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::MIGRATE_PLAYER_STATE);
-			carried.Serialize(bitStream);
-			Game::server->SendToMaster(bitStream);
+			MasterPackets::SendToMaster(carried);
 		}
 
 		// Seamless: take every object we sent away first. The client deletes them but keeps its own player object when
@@ -360,10 +355,7 @@ void WorldMigration::RequestMigration(Entity* requester, eKind kind, uint32_t ta
 	}
 	LOG("Asking master to %s this instance (migration %u, requested by %s)", KindName(kind), request.requestId, request.requestedBy.c_str());
 
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::INSTANCE_MIGRATE);
-	request.Serialize(bitStream);
-	Game::server->SendToMaster(bitStream);
+	MasterPackets::SendToMaster(request);
 }
 
 namespace {

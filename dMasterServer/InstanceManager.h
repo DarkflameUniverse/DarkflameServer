@@ -146,7 +146,7 @@ public:
 
 	void RedirectPendingRequests(const InstancePtr& instance);
 
-	const InstancePtr& GetInstanceBySysAddr(SystemAddress& sysAddr);
+	const InstancePtr& GetInstanceBySysAddr(const SystemAddress& sysAddr);
 
 	const InstancePtr& FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId = 0);
 	const InstancePtr& FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID);

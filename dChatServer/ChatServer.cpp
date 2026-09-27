@@ -11,7 +11,7 @@
 #include "Database.h"
 #include "dConfig.h"
 #include "dChatFilter.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "MessageType/Master.h"
 #include "Diagnostics.h"
 #include "AssetManager.h"
@@ -273,20 +273,26 @@ namespace {
 		}();
 		return handlers;
 	}
+
+	// Messages from master that dServer doesn't handle itself
+	const PacketDispatcher<MessageType::Master>& MasterHandlers() {
+		static const auto handlers = [] {
+			PacketDispatcher<MessageType::Master> handlers;
+			handlers.On<PlayerActionRequest>(MessageType::Master::PLAYER_ACTION, [](const PlayerActionRequest& request, const SystemAddress&) {
+				// Words added or removed on the dashboard: web chat is checked with the same filter as the worlds
+				if (request.action == ePlayerAction::RELOAD_CHAT_FILTER && Game::chatFilter) {
+					Game::chatFilter->ReloadCustomWords();
+					LOG("Reloaded the chat filter's words (changed on the dashboard)");
+				}
+			});
+			return handlers;
+		}();
+		return handlers;
+	}
 }
 
-// Messages from master that dServer doesn't handle itself
 void HandleMasterPacket(Packet* packet) {
-	if (packet->length < 4 || static_cast<ServiceType>(packet->data[1]) != ServiceType::MASTER) return;
-	if (static_cast<MessageType::Master>(packet->data[3]) != MessageType::Master::PLAYER_ACTION) return;
-	CINSTREAM_SKIP_HEADER;
-	PlayerActionRequest request;
-	if (!request.Deserialize(inStream)) return;
-	// Words added or removed on the dashboard: web chat is checked with the same filter as the worlds
-	if (request.action == ePlayerAction::RELOAD_CHAT_FILTER && Game::chatFilter) {
-		Game::chatFilter->ReloadCustomWords();
-		LOG("Reloaded the chat filter's words (changed on the dashboard)");
-	}
+	MasterHandlers().Dispatch(packet, ServiceType::MASTER);
 }
 
 void HandlePacket(Packet* packet) {

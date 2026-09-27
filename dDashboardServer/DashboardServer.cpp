@@ -17,6 +17,8 @@
 #include "BinaryPathFinder.h"
 #include "ServiceType.h"
 #include "MessageType/Master.h"
+#include "MasterPackets.h"
+#include "PacketDispatcher.h"
 #include "Game.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
@@ -62,7 +64,7 @@
 #include "ChallengeRoutes.h"
 #include "Inspector.h"
 #include "CDClientBrowser.h"
-#include "MessageCapture.h"
+#include "master/MessageCapture.h"
 #include "PublicRoutes.h"
 #include "Showcase.h"
 #include "FeaturedProperties.h"
@@ -75,8 +77,8 @@
 #include "WorldView.h"
 #include "PrometheusMetrics.h"
 #include "Background.h"
-#include "DashboardMessages.h"
-#include "DataChanged.h"
+#include "master/DashboardMessages.h"
+#include "master/DataChanged.h"
 #include "EmailService.h"
 #include "AuthMiddleware.h"
 #include "DashboardAuthService.h"
@@ -181,228 +183,144 @@ namespace {
 		} catch (const std::exception&) {}
 	}
 
-	void HandleMasterPacket(Packet* packet) {
-		if (packet->length < 4) return;
-		if (static_cast<ServiceType>(packet->data[1]) != ServiceType::MASTER) return;
+	void OnServerList(const MasterPackets::ServerListResponse& list, const SystemAddress&) {
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		ServerState::g_AuthStatus.online = list.authOnline != 0;
+		ServerState::g_AuthStatus.lastSeen = std::chrono::steady_clock::now();
+		ServerState::g_ChatStatus.online = list.chatOnline != 0;
+		ServerState::g_ChatStatus.lastSeen = std::chrono::steady_clock::now();
 
-		switch (static_cast<MessageType::Master>(packet->data[3])) {
-		case MessageType::Master::SERVER_LIST_RESPONSE: {
-			CINSTREAM_SKIP_HEADER;
-
-			uint8_t authOnline = 0;
-			uint8_t chatOnline = 0;
-			uint32_t instanceCount = 0;
-
-			inStream.Read(authOnline);
-			inStream.Read(chatOnline);
-			inStream.Read(instanceCount);
-
-			std::lock_guard lock(ServerState::g_StatusMutex);
-			ServerState::g_AuthStatus.online = authOnline != 0;
-			ServerState::g_AuthStatus.lastSeen = std::chrono::steady_clock::now();
-			ServerState::g_ChatStatus.online = chatOnline != 0;
-			ServerState::g_ChatStatus.lastSeen = std::chrono::steady_clock::now();
-
-			ServerState::g_WorldInstances.clear();
-			for (uint32_t i = 0; i < instanceCount; i++) {
-				WorldInstanceInfo info;
-				LUString ip;
-				// Same types as MasterServer writes them (map and instance IDs are 16 bits)
-				LWOMAPID mapID = 0;
-				LWOINSTANCEID instanceID = 0;
-				inStream.Read(mapID);
-				inStream.Read(instanceID);
-				info.mapID = mapID;
-				info.instanceID = instanceID;
-				inStream.Read(info.cloneID);
-				inStream.Read(info.players);
-				inStream.Read(ip);
-				info.ip = ip.string;
-				inStream.Read(info.port);
-				uint8_t isPrivate = 0;
-				inStream.Read(isPrivate);
-				info.isPrivate = isPrivate != 0;
-				info.zoneName = GetZoneDisplayName(info.mapID);
-				AddPropertyDetails(info);
-				ServerState::g_WorldInstances.push_back(info);
-			}
-
-			LOG_DEBUG("Received server list: auth=%s chat=%s worlds=%u",
-				authOnline ? "online" : "offline",
-				chatOnline ? "online" : "offline",
-				instanceCount);
-			break;
-		}
-
-		case MessageType::Master::SERVER_INFO: {
-			CINSTREAM_SKIP_HEADER;
-
-			uint32_t theirPort = 0;
-			uint32_t theirZoneID = 0;
-			uint32_t theirInstanceID = 0;
-			ServiceType theirServerType;
-			LUString theirIP;
-
-			inStream.Read(theirPort);
-			inStream.Read(theirZoneID);
-			inStream.Read(theirInstanceID);
-			inStream.Read(theirServerType);
-			inStream.Read(theirIP);
-
-			std::lock_guard lock(ServerState::g_StatusMutex);
-			switch (theirServerType) {
-			case ServiceType::AUTH:
-				if (theirIP.string == "offline") {
-					ServerState::g_AuthStatus.online = false;
-				} else {
-					ServerState::g_AuthStatus.online = true;
-					ServerState::g_AuthStatus.lastSeen = std::chrono::steady_clock::now();
-				}
-				break;
-			case ServiceType::CHAT:
-				if (theirIP.string == "offline") {
-					ServerState::g_ChatStatus.online = false;
-				} else {
-					ServerState::g_ChatStatus.online = true;
-					ServerState::g_ChatStatus.lastSeen = std::chrono::steady_clock::now();
-				}
-				break;
-			default:
-				break;
-			}
-			break;
-		}
-
-		case MessageType::Master::WORLD_READY: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID zoneID;
-			LWOINSTANCEID instanceID;
-			LWOCLONEID cloneID;
-			LUString ip;
-			uint32_t port;
-			uint8_t isPrivate;
-
-			inStream.Read(zoneID);
-			inStream.Read(instanceID);
-			inStream.Read(cloneID);
-			inStream.Read(ip);
-			inStream.Read(port);
-			inStream.Read(isPrivate);
-
-			std::lock_guard lock(ServerState::g_StatusMutex);
+		ServerState::g_WorldInstances.clear();
+		for (const auto& instance : list.instances) {
 			WorldInstanceInfo info;
-			info.mapID = zoneID;
-			info.instanceID = instanceID;
-			info.cloneID = cloneID;
-			info.players = 0;
-			info.ip = ip.string;
-			info.port = port;
-			info.isPrivate = isPrivate != 0;
-			info.zoneName = GetZoneDisplayName(zoneID);
+			info.mapID = instance.mapID;
+			info.instanceID = instance.instanceID;
+			info.cloneID = instance.cloneID;
+			info.players = instance.players;
+			info.ip = instance.ip.string;
+			info.port = instance.port;
+			info.isPrivate = instance.isPrivate != 0;
+			info.zoneName = GetZoneDisplayName(info.mapID);
 			AddPropertyDetails(info);
-			// Master can report a world more than once (in the server list and when it becomes ready): replace, don't add
-			auto& instances = ServerState::g_WorldInstances;
-			const auto existing = std::ranges::find_if(instances, [&](const WorldInstanceInfo& w) { return w.mapID == zoneID && w.instanceID == instanceID; });
-			if (existing != instances.end()) {
-				info.players = existing->players;
-				*existing = info;
+			ServerState::g_WorldInstances.push_back(info);
+		}
+
+		LOG_DEBUG("Received server list: auth=%s chat=%s worlds=%u",
+			list.authOnline ? "online" : "offline",
+			list.chatOnline ? "online" : "offline",
+			static_cast<uint32_t>(list.instances.size()));
+	}
+
+	void OnServerInfo(const MasterPackets::ServerInfo& serverInfo, const SystemAddress&) {
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		switch (serverInfo.serverType) {
+		case ServiceType::AUTH:
+			if (serverInfo.ip.string == "offline") {
+				ServerState::g_AuthStatus.online = false;
 			} else {
-				instances.push_back(info);
-			}
-
-			LOG("World ready: zone %i instance %i", zoneID, instanceID);
-			break;
-		}
-
-		case MessageType::Master::PLAYER_ADDED: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID zoneID;
-			LWOINSTANCEID instanceID;
-			inStream.Read(zoneID);
-			inStream.Read(instanceID);
-
-			std::lock_guard lock(ServerState::g_StatusMutex);
-			for (auto& world : ServerState::g_WorldInstances) {
-				if (world.mapID == zoneID && world.instanceID == instanceID) {
-					world.players++;
-					break;
-				}
+				ServerState::g_AuthStatus.online = true;
+				ServerState::g_AuthStatus.lastSeen = std::chrono::steady_clock::now();
 			}
 			break;
-		}
-
-		case MessageType::Master::PLAYER_REMOVED: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID zoneID;
-			LWOINSTANCEID instanceID;
-			inStream.Read(zoneID);
-			inStream.Read(instanceID);
-
-			std::lock_guard lock(ServerState::g_StatusMutex);
-			for (auto& world : ServerState::g_WorldInstances) {
-				if (world.mapID == zoneID && world.instanceID == instanceID) {
-					if (world.players > 0) world.players--;
-					break;
-				}
+		case ServiceType::CHAT:
+			if (serverInfo.ip.string == "offline") {
+				ServerState::g_ChatStatus.online = false;
+			} else {
+				ServerState::g_ChatStatus.online = true;
+				ServerState::g_ChatStatus.lastSeen = std::chrono::steady_clock::now();
 			}
 			break;
-		}
-
-		case MessageType::Master::PLAYER_POSITIONS: {
-			CINSTREAM_SKIP_HEADER;
-			PlayerPositions positions;
-			if (positions.Deserialize(inStream)) LiveWorld::HandlePlayerPositions(positions);
-			break;
-		}
-
-		case MessageType::Master::MESSAGE_CAPTURE_DATA: {
-			CINSTREAM_SKIP_HEADER;
-			MessageCaptureData data;
-			if (data.Deserialize(inStream)) Inspector::HandleData(data);
-			break;
-		}
-
-		case MessageType::Master::DATA_CHANGED: {
-			CINSTREAM_SKIP_HEADER;
-			DataChanged changed;
-			if (changed.Deserialize(inStream)) BroadcastDataChanged(changed);
-			break;
-		}
-
-		case MessageType::Master::PLAYER_ACTION_RESULT: {
-			CINSTREAM_SKIP_HEADER;
-			PlayerActionResult result;
-			if (result.Deserialize(inStream)) PlayerActions::HandleResult(result);
-			break;
-		}
-
-		case MessageType::Master::SHUTDOWN_RESPONSE: {
-			CINSTREAM_SKIP_HEADER;
-
-			LWOMAPID zoneID;
-			LWOINSTANCEID instanceID;
-			inStream.Read(zoneID);
-			inStream.Read(instanceID);
-
-			std::lock_guard lock(ServerState::g_StatusMutex);
-			auto& instances = ServerState::g_WorldInstances;
-			instances.erase(
-				std::remove_if(instances.begin(), instances.end(),
-					[zoneID, instanceID](const WorldInstanceInfo& w) {
-						return w.mapID == zoneID && w.instanceID == instanceID;
-					}),
-				instances.end());
-
-			LOG("World shutdown: zone %i instance %i", zoneID, instanceID);
-			break;
-		}
-
 		default:
 			break;
 		}
+	}
+
+	void OnWorldReady(const MasterPackets::WorldReadyInfo& ready, const SystemAddress&) {
+		const LWOMAPID zoneID = ready.zoneID;
+		const LWOINSTANCEID instanceID = ready.instanceID;
+
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		WorldInstanceInfo info;
+		info.mapID = zoneID;
+		info.instanceID = instanceID;
+		info.cloneID = ready.cloneID;
+		info.players = 0;
+		info.ip = ready.ip.string;
+		info.port = ready.port;
+		info.isPrivate = ready.isPrivate != 0;
+		info.zoneName = GetZoneDisplayName(zoneID);
+		AddPropertyDetails(info);
+		// Master can report a world more than once (in the server list and when it becomes ready): replace, don't add
+		auto& instances = ServerState::g_WorldInstances;
+		const auto existing = std::ranges::find_if(instances, [&](const WorldInstanceInfo& w) { return w.mapID == zoneID && w.instanceID == instanceID; });
+		if (existing != instances.end()) {
+			info.players = existing->players;
+			*existing = info;
+		} else {
+			instances.push_back(info);
+		}
+
+		LOG("World ready: zone %i instance %i", zoneID, instanceID);
+	}
+
+	void OnPlayerAdded(const MasterPackets::PlayerAdded& added, const SystemAddress&) {
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		for (auto& world : ServerState::g_WorldInstances) {
+			if (world.mapID == added.zoneID && world.instanceID == added.instanceID) {
+				world.players++;
+				break;
+			}
+		}
+	}
+
+	void OnPlayerRemoved(const MasterPackets::PlayerRemoved& removed, const SystemAddress&) {
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		for (auto& world : ServerState::g_WorldInstances) {
+			if (world.mapID == removed.zoneID && world.instanceID == removed.instanceID) {
+				if (world.players > 0) world.players--;
+				break;
+			}
+		}
+	}
+
+	void OnWorldShutDown(const MasterPackets::WorldShutDown& shutDown, const SystemAddress&) {
+		const LWOMAPID zoneID = shutDown.zoneID;
+		const LWOINSTANCEID instanceID = shutDown.instanceID;
+
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		auto& instances = ServerState::g_WorldInstances;
+		instances.erase(
+			std::remove_if(instances.begin(), instances.end(),
+				[zoneID, instanceID](const WorldInstanceInfo& w) {
+					return w.mapID == zoneID && w.instanceID == instanceID;
+				}),
+			instances.end());
+
+		LOG("World shutdown: zone %i instance %i", zoneID, instanceID);
+	}
+
+	// Packets from master
+	const PacketDispatcher<MessageType::Master>& MasterHandlers() {
+		static const auto handlers = [] {
+			PacketDispatcher<MessageType::Master> handlers;
+			using MessageType::Master;
+			handlers.On<MasterPackets::ServerListResponse>(Master::SERVER_LIST_RESPONSE, OnServerList);
+			handlers.On<MasterPackets::ServerInfo>(Master::SERVER_INFO, OnServerInfo);
+			handlers.On<MasterPackets::WorldReadyInfo>(Master::WORLD_READY, OnWorldReady);
+			handlers.On<MasterPackets::PlayerAdded>(Master::PLAYER_ADDED, OnPlayerAdded);
+			handlers.On<MasterPackets::PlayerRemoved>(Master::PLAYER_REMOVED, OnPlayerRemoved);
+			handlers.On<PlayerPositions>(Master::PLAYER_POSITIONS, [](const PlayerPositions& positions, const SystemAddress&) { LiveWorld::HandlePlayerPositions(positions); });
+			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, [](const MessageCaptureData& data, const SystemAddress&) { Inspector::HandleData(data); });
+			handlers.On<DataChanged>(Master::DATA_CHANGED, [](const DataChanged& changed, const SystemAddress&) { BroadcastDataChanged(changed); });
+			handlers.On<PlayerActionResult>(Master::PLAYER_ACTION_RESULT, [](const PlayerActionResult& result, const SystemAddress&) { PlayerActions::HandleResult(result); });
+			handlers.On<MasterPackets::WorldShutDown>(Master::SHUTDOWN_RESPONSE, OnWorldShutDown);
+			return handlers;
+		}();
+		return handlers;
+	}
+
+	void HandleMasterPacket(Packet* packet) {
+		MasterHandlers().Dispatch(packet, ServiceType::MASTER);
 	}
 }
 
@@ -622,9 +540,7 @@ int main(int argc, char** argv) {
 
 			// Only once the master link is up; sent earlier, the request is dropped and auth/chat look offline
 			if (g_Server->GetIsConnectedToMaster() && std::chrono::steady_clock::now() >= g_NextServerListRequest) {
-				RakNet::BitStream bitStream;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_SERVER_LIST);
-				g_Server->SendToMaster(bitStream);
+				MasterPackets::SendToMaster(MasterPackets::RequestServerList());
 				g_NextServerListRequest = std::chrono::steady_clock::now() + SERVER_LIST_INTERVAL;
 			}
 

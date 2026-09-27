@@ -1,4 +1,5 @@
 #include "LiveWorld.h"
+#include "MasterPackets.h"
 #include "WorldView.h"
 #include "Permissions.h"
 #include "DashboardRoutes.h"
@@ -11,7 +12,7 @@
 #include "Alerts.h"
 #include "BitStreamUtils.h"
 #include "ServerState.h"
-#include "DashboardMessages.h"
+#include "master/DashboardMessages.h"
 #include "Database.h"
 #include "Game.h"
 #include "Logger.h"
@@ -73,11 +74,11 @@ namespace {
 
 	void SendAnnouncement(const std::string& title, const std::string& message, const std::vector<uint32_t>& zones = {}) {
 		if (!Game::server || !Game::server->GetIsConnectedToMaster()) return;
-		Announcement announcement{ title, message, zones };
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::ANNOUNCE);
-		announcement.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
+		Announcement announcement;
+		announcement.title = title;
+		announcement.message = message;
+		announcement.zones = zones;
+		MasterPackets::SendToMaster(announcement);
 	}
 
 	std::string Duration(int64_t seconds) {
@@ -130,9 +131,7 @@ namespace {
 			g_Restart.reset();
 			SaveRestart();
 			if (Game::server && Game::server->GetIsConnectedToMaster()) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::DASHBOARD_SHUTDOWN);
-				Game::server->SendToMaster(bitStream);
+				MasterPackets::SendToMaster(MasterPackets::DashboardShutdown());
 			}
 			return;
 		}
@@ -235,11 +234,10 @@ namespace LiveWorld {
 				}
 				if (!running) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "That world instance isn't running");
 				if (!Game::server || !Game::server->GetIsConnectedToMaster()) return JsonError(reply, eHTTPStatusCode::SERVICE_UNAVAILABLE, "Not connected to the master server");
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::INSTANCE_SHUTDOWN);
-				bitStream.Write(zone);
-				bitStream.Write(instance);
-				Game::server->SendToMaster(bitStream);
+				MasterPackets::InstanceShutdown request;
+				request.zoneID = zone;
+				request.instanceID = instance;
+				MasterPackets::SendToMaster(request);
 				Audit(context, "shutdown_instance", "Zone " + std::to_string(zone) + " instance " + std::to_string(instance) + " (" + std::to_string(players) + " player(s))");
 				JsonSuccess(reply, { {"message", "Shutting it down"} });
 			});

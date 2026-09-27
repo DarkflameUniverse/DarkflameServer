@@ -1,6 +1,6 @@
 #include "DashboardActions.h"
 
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "Game.h"
 #include "Logger.h"
 #include "Database.h"

@@ -8,7 +8,7 @@
 #include <string>
 
 #include "json.hpp"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 
 /**
  * Sends player actions (kick, refresh, rescue) through master to every world server and reports the outcome.

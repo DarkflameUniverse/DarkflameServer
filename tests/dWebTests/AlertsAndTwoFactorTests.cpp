@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "DashboardMessages.h"
+#include "master/DashboardMessages.h"
 #include "EconomyScan.h"
 #include "IDashboardAdmin.h"
 #include "Totp.h"
@@ -192,7 +192,9 @@ TEST(DashboardMessagesTests, PlayerPositionsRoundTrip) {
 }
 
 TEST(DashboardMessagesTests, AnnouncementRoundTripAndLimits) {
-	Announcement announcement{ "Title", "Hello everyone" };
+	Announcement announcement;
+	announcement.title = "Title";
+	announcement.message = "Hello everyone";
 	RakNet::BitStream stream;
 	announcement.Serialize(stream);
 	Announcement read;

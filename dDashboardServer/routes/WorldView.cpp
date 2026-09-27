@@ -21,7 +21,7 @@
 
 #include "RouteUtils.h"
 #include "CDClientDatabase.h"
-#include "DashboardMessages.h"
+#include "master/DashboardMessages.h"
 #include "Database.h"
 #include "Game.h"
 #include "Logger.h"

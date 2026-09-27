@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "InstanceMigration.h"
+#include "master/InstanceMigration.h"
 #include "RakNetTypes.h"
 
 class Instance;
@@ -25,7 +25,7 @@ namespace MigrationCoordinator {
 	void HandleStatus(const SystemAddress& from, const MigrationStatus& status);
 
 	// A source world sent state to carry over for one player: passed on to the target world as is
-	void HandleCarriedState(const SystemAddress& from, const CarriedPlayerState& state, const unsigned char* data, uint32_t length);
+	void HandleCarriedState(const SystemAddress& from, const CarriedPlayerState& state);
 
 	// A world server went away; migrations it was part of end
 	void OnInstanceGone(const Instance& instance);

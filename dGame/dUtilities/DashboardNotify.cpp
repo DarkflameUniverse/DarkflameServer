@@ -1,15 +1,16 @@
 #include "DashboardNotify.h"
+#include "MasterPackets.h"
 
 #include <chrono>
 #include <set>
 
 #include "BitStreamUtils.h"
-#include "DataChanged.h"
+#include "master/DataChanged.h"
 #include "Game.h"
 #include "dServer.h"
 #include "MessageType/Master.h"
 #include "ServiceType.h"
-#include "DashboardMessages.h"
+#include "master/DashboardMessages.h"
 #include "PlayerManager.h"
 #include "Entity.h"
 #include "Character.h"
@@ -44,10 +45,7 @@ namespace DashboardNotify {
 		for (const auto& [table, id] : g_Pending) message.entries.push_back({ table, id });
 		g_Pending.clear();
 
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::DATA_CHANGED);
-		message.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(message);
 	}
 }
 
@@ -75,10 +73,7 @@ namespace DashboardNotify {
 			message.players.push_back({ character->GetID(), position.x, position.y, position.z });
 		}
 
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PLAYER_POSITIONS);
-		message.Serialize(bitStream);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(message);
 	}
 
 	std::string ChatLine(const std::string& title, const std::string& message) {

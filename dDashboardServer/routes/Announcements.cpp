@@ -2,7 +2,7 @@
 #include "AnnouncementSchedule.h"
 #include "LiveWorld.h"
 #include "DashboardRoutes.h"
-#include "DashboardMessages.h"
+#include "master/DashboardMessages.h"
 
 #include <algorithm>
 #include <chrono>

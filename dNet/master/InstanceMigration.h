@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "BitStream.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Master.h"
 #include "dCommonVars.h"
 
 /**
@@ -227,7 +229,9 @@ namespace InstanceMigration {
  * INSTANCE_MIGRATE (a world for a GM command, or anything else connected to master): move everyone in one instance. targetInstance 0 picks a target for
  * merges (the best fit); replaces always start a fresh instance.
  */
-struct InstanceMigrationRequest {
+struct InstanceMigrationRequest : public LUBitStream {
+	InstanceMigrationRequest() : LUBitStream(ServiceType::MASTER, MessageType::Master::INSTANCE_MIGRATE) {}
+
 	static constexpr uint16_t MAX_BY = 64;
 	static constexpr uint16_t MAX_WARN_SECONDS = 300;
 
@@ -242,7 +246,7 @@ struct InstanceMigrationRequest {
 	LWOOBJID requesterId{}; // the character who asked, told how it goes; 0 for none
 	std::string requestedBy;
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(requestId);
 		stream.Write(static_cast<uint8_t>(kind));
 		stream.Write(zoneId);
@@ -255,7 +259,7 @@ struct InstanceMigrationRequest {
 		InstanceMigration::WriteText(stream, requestedBy, MAX_BY);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint8_t kindValue{}, shutdown{}, seamlessValue{};
 		if (!stream.Read(requestId) || !stream.Read(kindValue) || !stream.Read(zoneId) || !stream.Read(sourceInstance) ||
 			!stream.Read(targetInstance) || !stream.Read(warnSeconds) || !stream.Read(shutdown) || !stream.Read(seamlessValue) ||
@@ -272,7 +276,9 @@ struct InstanceMigrationRequest {
  * MIGRATE_PLAYERS (master -> source world): send everyone to this instance. The target is already running and has
  * seats held for them.
  */
-struct MigratePlayersOrder {
+struct MigratePlayersOrder : public LUBitStream {
+	MigratePlayersOrder() : LUBitStream(ServiceType::MASTER, MessageType::Master::MIGRATE_PLAYERS) {}
+
 	static constexpr uint16_t MAX_IP = 255;
 
 	uint32_t migrationId{};
@@ -292,7 +298,7 @@ struct MigratePlayersOrder {
 	 */
 	bool seamless{};
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(migrationId);
 		stream.Write(targetZone);
 		stream.Write(targetInstance);
@@ -305,7 +311,7 @@ struct MigratePlayersOrder {
 		stream.Write<uint8_t>(seamless ? 1 : 0);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint8_t shift{}, seamlessValue{};
 		if (!stream.Read(migrationId) || !stream.Read(targetZone) || !stream.Read(targetInstance) || !stream.Read(targetClone) ||
 			!InstanceMigration::ReadText(stream, targetIp, MAX_IP) || !stream.Read(targetPort) || !stream.Read(warnSeconds) ||
@@ -321,7 +327,9 @@ struct MigratePlayersOrder {
  * MIGRATE_STATUS (source world -> master, master -> every world): progress of one migration. Master passes it on
  * with who asked for it, and sends its own (STARTING_TARGET, FAILED) the same way.
  */
-struct MigrationStatus {
+struct MigrationStatus : public LUBitStream {
+	MigrationStatus() : LUBitStream(ServiceType::MASTER, MessageType::Master::MIGRATE_STATUS) {}
+
 	static constexpr uint16_t MAX_MESSAGE = 300;
 
 	uint32_t migrationId{};
@@ -338,7 +346,7 @@ struct MigrationStatus {
 
 	bool Finished() const { return state == InstanceMigration::eState::DONE || state == InstanceMigration::eState::FAILED; }
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(migrationId);
 		stream.Write(static_cast<uint8_t>(state));
 		stream.Write(static_cast<uint8_t>(kind));
@@ -352,7 +360,7 @@ struct MigrationStatus {
 		InstanceMigration::WriteText(stream, message, MAX_MESSAGE);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint8_t stateValue{}, kindValue{};
 		if (!stream.Read(migrationId) || !stream.Read(stateValue) || !stream.Read(kindValue) || !stream.Read(zoneId) ||
 			!stream.Read(sourceInstance) || !stream.Read(targetInstance) || !stream.Read(moved) || !stream.Read(remaining) ||
@@ -369,14 +377,16 @@ struct MigrationStatus {
  * character doesn't keep, put back when they finish loading in the target. Everything else (position, health,
  * imagination, armor, buffs, inventory, missions) is in the character XML, saved just before the transfer.
  */
-struct CarriedPlayerState {
+struct CarriedPlayerState : public LUBitStream {
+	CarriedPlayerState() : LUBitStream(ServiceType::MASTER, MessageType::Master::MIGRATE_PLAYER_STATE) {}
+
 	uint32_t targetZone{};
 	uint32_t targetInstance{};
 	LWOOBJID characterId{};
 	LWOOBJID petItemId{}; // the pet that was out (its item), summoned again; 0 for none
 	bool seamless{}; // the client kept its scene: skip LOAD_STATIC_ZONE and load the player at once
 
-	void Serialize(RakNet::BitStream& stream) const {
+	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(targetZone);
 		stream.Write(targetInstance);
 		stream.Write(characterId);
@@ -384,7 +394,7 @@ struct CarriedPlayerState {
 		stream.Write<uint8_t>(seamless ? 1 : 0);
 	}
 
-	bool Deserialize(RakNet::BitStream& stream) {
+	bool Deserialize(RakNet::BitStream& stream) override {
 		uint8_t seamlessValue{};
 		if (!stream.Read(targetZone) || !stream.Read(targetInstance) || !stream.Read(characterId) || !stream.Read(petItemId) || !stream.Read(seamlessValue)) return false;
 		seamless = seamlessValue != 0;

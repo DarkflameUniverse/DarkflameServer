@@ -1,4 +1,5 @@
 #include "InstanceLoad.h"
+#include "MasterPackets.h"
 #include "InstanceLimits.h"
 #include "DashboardRoutes.h"
 #include "ServerState.h"
@@ -62,9 +63,7 @@ namespace {
 	// Master reloads its settings and zone limits on CONFIG_RELOAD (and passes it on to every server)
 	bool TellMaster() {
 		if (!Game::server || !Game::server->GetIsConnectedToMaster()) return false;
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::CONFIG_RELOAD);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(MasterPackets::ConfigReload());
 		return true;
 	}
 

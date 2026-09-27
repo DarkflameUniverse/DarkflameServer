@@ -148,14 +148,26 @@ Packet* dServer::ReceiveFromMaster() {
 			LOG("Established connection to master: ServiceType (%s), Zone (%i), Instance (%i)", StringifiedEnum::ToString(this->GetServerType()).data(), this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
-			MasterPackets::SendServerInfo(this, packet);
+			LOG("SendServerInfo called for server type %i", static_cast<int>(GetServerType()));
+			MasterPackets::ServerInfo info;
+			info.port = GetPort();
+			info.zoneID = GetZoneID();
+			info.instanceID = GetInstanceID();
+			info.serverType = GetServerType();
+			info.ip = LUString(GetIP());
+			MasterPackets::SendToMaster(info, this);
 			break;
 		}
 		case ID_USER_PACKET_ENUM: {
-			if (static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
-				switch (static_cast<MessageType::Master>(packet->data[3])) {
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			LUBitStream header;
+			if (header.ReadHeader(inStream) && header.connectionType == ServiceType::MASTER) {
+				// What every server does with these; the rest goes back to the server's own handlers
+				switch (static_cast<MessageType::Master>(header.internalPacketID)) {
 				case MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE: {
-					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(packet);
+					MasterPackets::RequestZoneTransferResponse response;
+					if (response.Deserialize(inStream)) ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(response);
+					else LOG("Dropped a zone transfer response from master that failed to read");
 					break;
 				}
 				case MessageType::Master::SHUTDOWN:

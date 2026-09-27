@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "MessageCapture.h"
+#include "master/MessageCapture.h"
 #include "InspectorFormat.h"
 
 using namespace std::chrono_literals;

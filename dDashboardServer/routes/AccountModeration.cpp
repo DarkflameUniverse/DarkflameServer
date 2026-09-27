@@ -4,7 +4,7 @@
 
 #include "RouteUtils.h"
 #include "PlayerActions.h"
-#include "PlayerAction.h"
+#include "master/PlayerAction.h"
 #include "WSRoutes.h"
 #include "Database.h"
 #include "HTTPContext.h"

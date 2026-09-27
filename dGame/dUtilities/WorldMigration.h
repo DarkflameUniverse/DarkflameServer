@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "InstanceMigration.h"
+#include "master/InstanceMigration.h"
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
 

@@ -11,7 +11,7 @@
 #include "json.hpp"
 #include "magic_enum.hpp"
 #include "IMessageCaptures.h"
-#include "MessageCapture.h"
+#include "master/MessageCapture.h"
 #include "MessageType/Game.h"
 
 /**

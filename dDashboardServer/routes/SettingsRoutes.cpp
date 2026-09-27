@@ -1,4 +1,5 @@
 #include "SettingsRoutes.h"
+#include "MasterPackets.h"
 #include "Permissions.h"
 #include "SettingsCatalog.h"
 #include "SettingsHistory.h"
@@ -160,9 +161,7 @@ namespace {
 	void ReloadEverywhere() {
 		Game::config->ReloadConfig();
 		if (!Game::server || !Game::server->GetIsConnectedToMaster()) return;
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::CONFIG_RELOAD);
-		Game::server->SendToMaster(bitStream);
+		MasterPackets::SendToMaster(MasterPackets::ConfigReload());
 	}
 
 	bool ValidName(const std::string& name) {
