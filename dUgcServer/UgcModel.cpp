@@ -313,7 +313,10 @@ namespace UgcModel {
 					normal = length > 0.0f ? normal / length : glm::vec3(0.0f, 1.0f, 0.0f);
 				}
 			}
-			(source.material.alphaBlend ? model.transparent : model.opaque).Append(mesh);
+			// Blending only shows where something is see-through (the game's brick models blend every shape)
+			bool seeThrough = source.material.alphaBlend && source.material.alpha < 0.99f;
+			for (size_t v = 0; source.material.alphaBlend && !seeThrough && v < mesh.colors.size(); v++) seeThrough = mesh.colors[v].a < 0.99f;
+			(seeThrough ? model.transparent : model.opaque).Append(mesh);
 		}
 		return model;
 	}

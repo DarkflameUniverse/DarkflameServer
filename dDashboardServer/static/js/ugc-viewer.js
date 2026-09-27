@@ -113,9 +113,12 @@ export function createNifViewer(container) {
 				geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
 				if (!mesh.normals) geometry.computeVertexNormals();
 				const baseColor = new THREE.Color().setRGB(mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2], THREE.SRGBColorSpace);
-				const material = new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: !!mesh.blend, roughness: 0.6, metalness: 0 });
+				// Blending only matters where something is see-through (every shape of a brick model blends)
+				let seeThrough = !!mesh.blend && mesh.alpha < 0.99;
+				if (mesh.blend && hasColors) for (let i = 3; i < mesh.colors.length && !seeThrough; i += 4) seeThrough = mesh.colors[i] < 250;
+				const material = new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough, roughness: 0.6, metalness: 0 });
 				const object = new THREE.Mesh(geometry, material);
-				if (mesh.blend) object.renderOrder = 1;
+				if (seeThrough) object.renderOrder = 1;
 				root.add(object);
 				parts.push({ mesh: object, hasColors, baseColor });
 				triangles += mesh.indices.length / 3;

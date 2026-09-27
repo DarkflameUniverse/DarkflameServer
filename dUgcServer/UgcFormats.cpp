@@ -113,7 +113,9 @@ namespace {
 		std::vector<std::string> m_Strings;
 	};
 
-	constexpr uint16_t AV_FLAGS = 14; // the usual NiAVObject flags (selective update), not hidden
+	// NiAVObject flags as the game's own brick models (res/BrickModels/ndmade) have them: nodes 0x110, shapes 0x10
+	constexpr uint16_t NODE_FLAGS = 0x110;
+	constexpr uint16_t SHAPE_FLAGS = 0x10;
 
 	void WriteNet(Writer& out, int32_t name) {
 		out.I32(name);
@@ -121,9 +123,9 @@ namespace {
 		out.I32(-1); // controller
 	}
 
-	void WriteAv(Writer& out, int32_t name, const std::vector<int32_t>& properties) {
+	void WriteAv(Writer& out, int32_t name, const std::vector<int32_t>& properties, uint16_t flags = NODE_FLAGS) {
 		WriteNet(out, name);
-		out.U16(AV_FLAGS);
+		out.U16(flags);
 		for (int i = 0; i < 3; i++) out.Float(0.0f); // translation
 		for (int row = 0; row < 3; row++) {
 			for (int col = 0; col < 3; col++) out.Float(row == col ? 1.0f : 0.0f);
@@ -207,7 +209,7 @@ namespace {
 			for (int i = 0; i < 3; i++) material.Float(1.0f); // diffuse
 			for (int i = 0; i < 3; i++) material.Float(0.0f); // specular
 			for (int i = 0; i < 3; i++) material.Float(0.0f); // emissive
-			material.Float(10.0f); // glossiness
+			material.Float(4.0f);  // glossiness, as the game's brick models
 			material.Float(1.0f);  // alpha
 			m_Material = nif.Add("NiMaterialProperty", std::move(material.Data()));
 
@@ -220,21 +222,25 @@ namespace {
 		// An NiTriShape of `mesh` (-1 when it is empty or too big for the format)
 		int32_t Shape(const std::string& name, const UgcModel::Mesh* mesh, bool transparent) {
 			if (!mesh || mesh->Empty() || mesh->positions.size() > 65535 || mesh->TriangleCount() > 65535) return -1;
-			std::vector<int32_t> properties{ m_Material, m_VertexColor };
-			if (transparent) {
-				if (m_Alpha < 0) {
-					Writer alpha;
-					WriteNet(alpha, -1);
-					alpha.U16(1 | (6 << 1) | (7 << 5)); // blend source alpha over one minus source alpha
-					alpha.U8(0);
-					m_Alpha = m_Nif.Add("NiAlphaProperty", std::move(alpha.Data()));
-				}
-				properties.push_back(m_Alpha);
+			// The properties every shape of the game's own brick models has, in their order: material, alpha (blending
+			// by the vertex alpha: 1 on opaque bricks), specular (off) and vertex colors
+			if (m_Alpha < 0) {
+				Writer alpha;
+				WriteNet(alpha, -1);
+				alpha.U16(0x00ED); // blend source alpha over one minus source alpha, as the game's files
+				alpha.U8(0);
+				m_Alpha = m_Nif.Add("NiAlphaProperty", std::move(alpha.Data()));
+				Writer specular;
+				WriteNet(specular, -1);
+				specular.U16(0); // off
+				m_Specular = m_Nif.Add("NiSpecularProperty", std::move(specular.Data()));
 			}
+			(void)transparent;
+			std::vector<int32_t> properties{ m_Material, m_Alpha, m_Specular, m_VertexColor };
 			const auto shapeBlock = m_Nif.Reserve("NiTriShape");
 			const auto dataBlock = m_Nif.Add("NiTriShapeData", TriShapeData(*mesh));
 			Writer tri;
-			WriteAv(tri, m_Nif.String(name), properties);
+			WriteAv(tri, m_Nif.String(name), properties, SHAPE_FLAGS);
 			tri.I32(dataBlock);
 			tri.I32(-1); // skin instance
 			tri.U32(0);  // materials
@@ -249,6 +255,7 @@ namespace {
 		int32_t m_Material{ -1 };
 		int32_t m_VertexColor{ -1 };
 		int32_t m_Alpha{ -1 };
+		int32_t m_Specular{ -1 };
 	};
 }
 

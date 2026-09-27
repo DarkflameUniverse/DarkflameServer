@@ -217,8 +217,11 @@ TEST(UgcFormats, NifReadsBack) {
 	ASSERT_EQ(model->meshes.size(), 2u);
 	EXPECT_EQ(model->meshes[0].indices.size(), 3u);
 	EXPECT_EQ(model->meshes[0].colors[0], 255);
-	EXPECT_FALSE(model->meshes[0].material.alphaBlend);
+	// Every shape blends by its vertex alpha, as the game's own brick models do
+	EXPECT_TRUE(model->meshes[0].material.alphaBlend);
+	EXPECT_EQ(model->meshes[0].colors[3], 255);
 	EXPECT_TRUE(model->meshes[1].material.alphaBlend);
+	EXPECT_EQ(UgcModel::FromNif(*model).transparent.TriangleCount(), 1u);
 	EXPECT_EQ(model->meshes[1].colors[3], 128);
 	EXPECT_EQ(model->meshes[0].material.vertexColorMode, 2);
 	EXPECT_TRUE(model->nodes.contains("SceneNode_Model"));
