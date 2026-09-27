@@ -222,6 +222,9 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertHealthSample(const HealthSample& sample) override {}
 	std::vector<HealthSample> GetHealthSamples(int64_t from, int64_t to, int64_t bucketSeconds) override { return {}; }
 	uint32_t PruneHealthSamples(int64_t beforeTime) override { return 0; }
+	void InsertTrafficMinutes(const std::vector<TrafficMinute>& minutes) override {}
+	std::vector<TrafficMinute> GetTrafficMinutes(int64_t from, int64_t to, int64_t bucketSeconds) override { return {}; }
+	uint32_t PruneTrafficMinutes(int64_t beforeTime) override { return 0; }
 	void InsertInstanceSamples(const std::vector<InstanceSample>& samples) override {}
 	std::vector<InstanceSample> GetInstanceSamples(int64_t from, int64_t to, int64_t bucketSeconds, uint32_t zoneId) override { return {}; }
 	void InsertPositionSamples(const std::vector<PositionSample>& samples) override {}

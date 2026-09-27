@@ -215,6 +215,10 @@ public:
 	std::vector<ZoneLimit> GetZoneLimits() override;
 	void SetZoneLimit(const ZoneLimit& limit) override;
 	void DeleteZoneLimit(uint32_t zoneId) override;
+	// IServerTraffic
+	void InsertTrafficMinutes(const std::vector<TrafficMinute>& minutes) override;
+	std::vector<TrafficMinute> GetTrafficMinutes(int64_t from, int64_t to, int64_t bucketSeconds) override;
+	uint32_t PruneTrafficMinutes(int64_t beforeTime) override;
 	// IBbbAutosave
 	std::optional<IBbbAutosave::Info> GetBbbAutosave(const LWOOBJID characterId) override;
 	void SetBbbAutosave(const LWOOBJID characterId, const IBbbAutosave::Info& info) override;

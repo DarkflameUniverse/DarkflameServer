@@ -22,6 +22,7 @@ set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
 	"PropertyRent.cpp"
 	"PropertyReputation.cpp"
 	"BbbAutosave.cpp"
+	"ServerTraffic.cpp"
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"RelatedData.cpp"
