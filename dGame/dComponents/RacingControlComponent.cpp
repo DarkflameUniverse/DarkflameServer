@@ -371,6 +371,13 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 				resetInfo.respawnPos = racingPlayer.respawnPosition;
 				resetInfo.upcomingPlane = racingPlayer.respawnIndex + 1;
 				resetInfo.Send(UNASSIGNED_SYSTEM_ADDRESS);
+				for (auto& current : m_RacingPlayers) {
+					if (current.playerID != racingPlayer.playerID) continue;
+					current.lastPlane = resetInfo.furthestResetPlane;
+					current.upcomingPlane = resetInfo.upcomingPlane;
+					current.wrongWayCount = 0;
+					current.wrongWayTime = -1.0f;
+				}
 
 				DestroyableComponent::Resurrect(*vehicle);
 				auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
@@ -392,6 +399,10 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 			resetInfo.respawnPos = racingPlayer.respawnPosition;
 			resetInfo.upcomingPlane = racingPlayer.respawnIndex + 1;
 			resetInfo.Send(UNASSIGNED_SYSTEM_ADDRESS);
+			racingPlayer.lastPlane = resetInfo.furthestResetPlane;
+			racingPlayer.upcomingPlane = resetInfo.upcomingPlane;
+			racingPlayer.wrongWayCount = 0;
+			racingPlayer.wrongWayTime = -1.0f;
 
 			GameMessages::RacingResetPlayerToLastReset resetPlayer;
 			resetPlayer.target = m_Parent->GetObjectID();
@@ -804,6 +815,8 @@ void RacingControlComponent::Update(float deltaTime) {
 
 		if (m_Finished != 0) Game::entityManager->SerializeEntity(m_Parent);
 
+		if (path && player.lap < m_NumberOfLaps) UpdateWrongWay(player, *vehicle, *path, deltaTime);
+
 		// Loop through all the waypoints and see if the player has reached a
 		// new checkpoint
 		uint32_t respawnIndex = 0;
@@ -943,4 +956,71 @@ bool RacingControlComponent::MsgConfigureRacingControl(const GameMessages::Confi
 		}
 	}
 	return true;
+}
+
+void RacingControlComponent::StepResetPlanes(RacingPlayerInfo& player, const std::vector<PathWaypoint>& waypoints, const NiPoint3& position) {
+	// How long the client counts down (its "UpdateRaceWrongWay" timer, 6 in 1.10.64) before a wrong way racer should
+	// be put back
+	constexpr float WRONG_WAY_SECONDS = 6.0f;
+	constexpr float EPSILON = 1e-5f;
+
+	const auto count = static_cast<uint32_t>(waypoints.size());
+	if (count == 0) return;
+
+	// Which side of a reset plane the car is on: the plane goes through the waypoint, facing along its rotation
+	// (ClassifyPointAgainstFacingPlane @ 010e2b80 in 1.10.64). 1 = in front, 2 = behind, 3 = on it.
+	const auto side = [&](const uint32_t index) {
+		const auto& waypoint = waypoints[index];
+		const float distance = QuatUtils::Forward(waypoint.rotation).DotProduct(position - waypoint.position);
+		return distance > EPSILON ? 1 : distance < -EPSILON ? 2 : 3;
+	};
+
+	// Behind the last plane: driven back through it (LWORacingControlComponent::CheckLastResetPlane @ 00c7f1a0, CrossResetPlaneBackward @ 00cba380). The second plane in a row makes the
+	// client show its wrong way countdown (UpdateWrongWayCount @ 00be5c10).
+	bool wentBack = false;
+	for (uint32_t guard = 0; guard < count && player.lastPlane < count && side(player.lastPlane) == 2; guard++) {
+		wentBack = true;
+		player.wrongWayCount++;
+		if (player.wrongWayCount == 2) player.wrongWayTime = WRONG_WAY_SECONDS;
+		player.upcomingPlane = player.lastPlane;
+		player.lastPlane = player.lastPlane == 0 ? count - 1 : player.lastPlane - 1;
+	}
+	if (wentBack) return;
+
+	// In front of the upcoming plane: driven forward through it, which ends going the wrong way (CheckUpcomingResetPlane @ 00c7edf0)
+	for (uint32_t guard = 0; guard < count && player.upcomingPlane < count && side(player.upcomingPlane) == 1; guard++) {
+		player.wrongWayCount = 0;
+		player.wrongWayTime = -1.0f;
+		player.lastPlane = player.upcomingPlane;
+		player.upcomingPlane = (player.upcomingPlane + 1) % count;
+	}
+}
+
+void RacingControlComponent::UpdateWrongWay(RacingPlayerInfo& player, const Entity& vehicle, const Path& path, const float deltaTime) {
+	StepResetPlanes(player, path.pathWaypoints, vehicle.GetPosition());
+
+	if (player.wrongWayTime < 0.0f) return;
+	player.wrongWayTime -= deltaTime;
+	if (player.wrongWayTime > 0.0f) return;
+
+	// Out of time: back to the last reset point, the way a reset without a smash does it (the client moves the car,
+	// clears its wrong way state and hides the countdown when it gets the reset info)
+	GameMessages::RacingSetPlayerResetInfo resetInfo;
+	resetInfo.target = m_Parent->GetObjectID();
+	resetInfo.currentLap = static_cast<int32_t>(player.lap);
+	resetInfo.furthestResetPlane = player.respawnIndex;
+	resetInfo.playerID = player.playerID;
+	resetInfo.respawnPos = player.respawnPosition;
+	resetInfo.upcomingPlane = player.respawnIndex + 1;
+	resetInfo.Send(UNASSIGNED_SYSTEM_ADDRESS);
+
+	GameMessages::RacingResetPlayerToLastReset resetPlayer;
+	resetPlayer.target = m_Parent->GetObjectID();
+	resetPlayer.playerID = player.playerID;
+	resetPlayer.Send(UNASSIGNED_SYSTEM_ADDRESS);
+
+	player.lastPlane = resetInfo.furthestResetPlane;
+	player.upcomingPlane = resetInfo.upcomingPlane;
+	player.wrongWayCount = 0;
+	player.wrongWayTime = -1.0f;
 }

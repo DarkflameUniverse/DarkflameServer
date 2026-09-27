@@ -99,11 +99,28 @@ struct RacingPlayerInfo {
 	 * Unused
 	 */
 	std::chrono::milliseconds raceTime;
+
+	/**
+	 * The reset planes (path waypoints) the player is between, and how many planes they have driven back through
+	 * since they last went forward through one, tracked the way the client tracks them
+	 * (LWORacingControlComponent::HandlePlayerAddedToRace @ 00cba0c0 starts them at 0 and 1).
+	 */
+	uint32_t lastPlane = 0;
+	uint32_t upcomingPlane = 1;
+	uint32_t wrongWayCount = 0;
+
+	/**
+	 * Seconds left until a player going the wrong way is put back on the track, negative when not counting down
+	 */
+	float wrongWayTime = -1.0f;
 };
 
 /**
  * Component that's attached to a manager entity in each race zone that loads player vehicles, keep scores, etc.
  */
+struct Path;
+struct PathWaypoint;
+
 class RacingControlComponent final : public ActivityComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
@@ -118,6 +135,18 @@ public:
 	 * Invoked when a player loads into the zone.
 	 */
 	void OnPlayerLoaded(Entity* player);
+
+	/**
+	 * Moves the player's reset planes as they drive through them and puts them back on the track when they have been
+	 * going the wrong way for as long as the client counts down.
+	 */
+	void UpdateWrongWay(RacingPlayerInfo& player, const Entity& vehicle, const Path& path, float deltaTime);
+
+	/**
+	 * Moves the player's reset planes for the car being at position, like the client does each frame, and starts the
+	 * wrong way countdown when they have driven back through a second plane.
+	 */
+	static void StepResetPlanes(RacingPlayerInfo& player, const std::vector<PathWaypoint>& waypoints, const NiPoint3& position);
 
 	/**
 	 * Initalize the player's vehicle.
