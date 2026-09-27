@@ -3,7 +3,6 @@ set(DCOMMONTEST_SOURCES
 	"Amf3Tests.cpp"
 	"ToUnderlyingTests.cpp"
 	"InstanceMigrationTests.cpp"
-	"HeaderSkipTest.cpp"
 	"TestCDFeatureGatingTable.cpp"
 	"TestLDFFormat.cpp"
 	"TestNiPoint3.cpp"

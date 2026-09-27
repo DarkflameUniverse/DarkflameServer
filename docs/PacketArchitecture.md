@@ -12,38 +12,46 @@ be wrong, the fix is its own clearly labelled change, verified against the clien
 Sources for layouts, in order of trust: the 1.10.64 client in Ghidra, then lu_packets, then lcdr-utils packet
 definitions. When they disagree, the client wins.
 
-## 1. Where we are (survey, `origin/main` @ 129199e4)
+## 1. Where we are
 
-### 1.1 The newer style already in the tree
+### 1.1 Final state
 
-| Family | Base | Header written by | Handler signature | Dispatch | Users on main |
-|---|---|---|---|---|---|
-| Game messages | `GameMessages::GameMsg` (`dGame/dGameMessages/GameMessages.h`) | `GameMsg::Send(sysAddr)` writes `CLIENT/GAME_MSG` header, `target`, `msgId`, then `Serialize()` | `Handle(Entity&, const SystemAddress&)` | `g_MessageHandlers` map in `GameMessageHandler.cpp` (4 entries), with a GM-level check; everything else is a 112-case switch | 34 structs: 12 outbound (`Serialize`), 4 inbound (`Deserialize` + `Handle`), 18 server-internal events used via `Entity::RegisterMsg`/`HandleMsg` and never sent |
-| Packets | `LUBitStream` (`dNet/BitStreamUtils.h`) | `LUBitStream::WriteHeader` (`0x53`, `ServiceType` u16, packet id u32, pad u8) | `Handle()` (context comes from members such as `sysAddr`, `player`) | `g_Handlers` map in `Mail.cpp`; nothing else | Mail (6 requests + 5 responses, with a `MailLUBitStream` sub-header), `ChatPackets::{Announcement, AchievementNotify, TeamInviteInitialResponse}` |
-| Old one-off classes | none | the class writes its own `msgId` in a non-virtual `Serialize` | deserialized in a constructor, result ignored | switch | `EchoStartSkill`, `EchoSyncSkill`, `StartSkill`, `SyncSkill`, `RequestServerProjectileImpact`, `DoClientProjectileImpact`, `PropertyDataMessage`, `PropertySelectQueryProperty`, `ShowAllRequest`, `FindPlayerRequest`, `HTTPMonitorInfo` |
+Every packet and every game message is a struct. The migration in [section 4](#4-migration-plan) is complete.
 
-Helpers: `LUString`/`LUWString` (fixed-width, zero-padded strings, default 33 chars) with `BitStream`
-specializations; `BitStreamUtils::WriteHeader`; `VALIDATE_READ`; macros `CBITSTREAM`, `CMSGHEADER`,
-`CINSTREAM(_SKIP_HEADER)`, `SEND_PACKET(_BROADCAST)` in `dCommonVars.h`.
+| Family | Base | Where | Dispatch |
+|---|---|---|---|
+| Game messages (wire) | `GameMessages::NetGameMsg` | 17 per-domain files `dGame/dGameMessages/<Domain>Messages.{h,cpp}`: Activity, Building, Combat, Effects, Inventory, Mission, Movement, Object, Pet, Player, Property, QuickBuild, Racing, Skill, Trade, Vendor, Zone (about 280 structs) | `g_MessageHandlers` in `GameMessageHandler.cpp` (118 inbound messages); no switch. Unknown IDs are logged at debug level, messages that fail `Deserialize` are logged and dropped. |
+| Game messages (internal) | `GameMessages::GameMsg`, `NetGameMsgEvent<Msg>` | `GameMessages.h` (base types and the server-internal events only) | `Entity::RegisterMsg` / `HandleMsg` |
+| Packets | `LUBitStream` | one file pair per `ServiceType` in `dNet/` (`CommonPackets`, `AuthPackets`, `ChatPackets`, `WorldPackets`, `ClientPackets`, `MasterPackets` + `master/*`), `Stamps`, `WorldRoutePacket`, Mail in `dGame/dUtilities/Mail.*` | per-service maps and `PacketDispatcher` |
 
-### 1.2 What is left in the old style
+`GameMessages.cpp` holds only the base code (`GameMsg::Send`, `NetGameMsg::WritePacket`/`ReadPacketHeader`/`Send`/
+`SendToClient`/`BroadcastExcept`). There are no `GameMessages::Send*`/`Handle*` functions left. Inbound messages are
+handled by the struct's `Handle`, which delegates to a component method where the behaviour belongs to one
+component (for example `PossessorComponent::OnDismountComplete`, `InventoryComponent::On*`) or keeps logic that
+spans several entities (platform resyncs, rails, activities) in the handler.
 
-Hand-written `bitStream.Write`/`Read` sequences inside functions:
+Removed: the `CBITSTREAM`, `CMSGHEADER`, `CINSTREAM`, `CINSTREAM_SKIP_HEADER`, `SEND_PACKET`, `SEND_PACKET_BROADCAST`
+and `HEADER_SIZE` macros, the free `BitStreamUtils::WriteHeader` (use `LUBitStream::WriteHeader`) and `PacketUtils`.
+The frozen oracles in `tests/**/Legacy/` still use the macros verbatim through the test-only
+`tests/dGameTests/LegacyPacketMacros.h`.
 
-| Area | Where | Count |
+`ChatPackets::SendSystemMessage` stays as a thin helper: it builds the general chat struct and sends it.
+
+### 1.2 What still touches raw bytes, and why
+
+| Where | What | Why it stays |
 |---|---|---|
-| Outbound game messages | `GameMessages::Send*` in `GameMessages.cpp` (6.5k lines) | **161** functions (162 `CMSGHEADER` uses) |
-| Inbound game messages | `GameMessages::Handle*` + `GameMessageHandler` switch | **101** functions, **112** switch cases |
-| Game messages written outside `GameMessages.cpp` | `dChatServer/TeamContainer.cpp` (routed through chat), the 6 one-off skill/projectile classes | 6 + 6 |
-| Auth + Common | `AuthPackets.cpp` (`HandleHandshake`, `SendHandshake`, `HandleLoginRequest`, `SendLoginResponse`), `dServer::Disconnect`, `AuthServer` if-chain | 4 functions + 1 |
-| World | `WorldPackets.cpp` (11 `Send*`), `ClientPackets.cpp` (4 parse functions), `UserManager.cpp` (char list/create/delete/rename), `WorldServer::HandlePacket` inline (15 World + 4 Chat + 4 Master cases) | ~40 |
-| Chat | `ChatPacketHandler.cpp` (15), `TeamContainer.cpp` (7 handlers + 7 sends), `ChatIgnoreList.cpp` (3), `PlayerContainer.cpp`, `ChatPackets.cpp` (4 functions + 2 structs), `ChatServer` switch (26 handled cases) | ~55 |
-| Master | `MasterPackets.cpp` (7), `MasterServer` switch (13 inline cases), `InstanceManager.cpp` (2), `ZoneInstanceManager.cpp` | ~25 |
-| Raw header sites | `BitStreamUtils::WriteHeader(` calls | 90 in 25 files |
-| Raw read sites | `CINSTREAM*` uses / `packet->data[i]` peeks | 58 / 29 |
+| `AuthServer`, `ChatServer`, `MasterServer`, `WorldServer`, `dServer` `HandlePacket` | `packet->data[0]` compared with RakNet IDs (`ID_USER_PACKET_ENUM`, `ID_DISCONNECTION_NOTIFICATION`, `ID_CONNECTION_LOST`, `ID_NEW_INCOMING_CONNECTION`, ...) | RakNet's own connection messages, not LU packets. Everything after the RakNet ID is read with `LUBitStream::ReadHeader` and a struct. |
+| `EntityManager` | `ID_REPLICA_MANAGER_CONSTRUCTION`/`SERIALIZE`/`DESTRUCTION` headers written before the components | Replica serialization, out of scope (see below). |
+| `dGame/dBehaviors/*`, the `sBitStream` of skill messages | Behavior bit streams | The skill payload is its own format, carried as bytes inside the skill structs. |
+| `MessageInspector` | Copies the payload bytes of sent/received game messages | A capture tap; the header is read with `NetGameMsg::ReadPacketHeader`. |
 
 Out of scope: replica/component serialization (`Component::Serialize`) and LDF/AMF, which are separate formats
 with their own tests.
+
+Before the migration (survey of `origin/main` @ 129199e4) there were 161 hand written `GameMessages::Send*`
+functions, 101 `Handle*` functions behind a 112-case switch, about 120 hand written packet functions across the
+servers, 90 raw header writes and 58 `CINSTREAM` / 29 `packet->data[i]` reads.
 
 ### 1.3 Inconsistencies inside the new style, and how they are settled
 
@@ -266,12 +274,12 @@ clean range of commits on the working branch. Target: under ~1.5k changed lines 
 | 7 | GMs: combat and skills | Skill add/remove, stun, buffs, die/resurrect/smash, knockback; the one-off `EchoStartSkill`/`EchoSyncSkill`/`StartSkill`/`SyncSkill`/projectile classes become `NetGameMsg`s | M |
 | 8 | GMs: pets | Taming minigame, pet naming, commands | M |
 | 9 | GMs: property and building | Property management, models, BBB, modular build, `PropertyDataMessage`, `PropertySelectQueryProperty`, `ControlBehaviors` (may split in two) | L |
-| 10 | GMs: remaining + switch removal | Movement, teleport, platforms, rails, camera, control scheme, misc, team GMs sent from `TeamContainer`; delete the switch and `GameMessages.cpp` | M |
+| 10 | GMs: remaining + switch removal | Movement, teleport, platforms, rails, camera, control scheme, misc, team GMs sent from `TeamContainer`; delete the switch and `GameMessages.cpp` (done: `Movement`, `Zone`, `Player`, `Object`, `QuickBuild` files; `GameMessages.cpp` keeps only the base code) | M |
 | 11 | Common + Auth packets | `CommonPackets` (version confirm, disconnect notify, general notify; `dServer::Disconnect`), `AuthPackets` login request, `ClientPackets` login response + stamps; `AuthServer` dispatch map | S |
 | 12 | World packets | Validation, character list/create/delete/rename, world login, level load complete, position update, string check, general chat, route packet, top-5, funness, and the `ClientPackets` responses they send; handlers move out of the `WorldServer.cpp` switch into a dispatch map | M |
 | 13 | Chat packets | Friends, ignore list, teams, who/show-all, private/general chat, routing (`WORLD_ROUTE_PACKET` wraps an `LUBitStream`), achievement notify, GM announce/mute, plus the chat-side of `WorldServer`'s chat cases (may split friends/teams) | L |
 | 14 | Master packets | Session keys, zone transfer, private zones, player added/removed, world ready, prep zone, shutdown; `MasterServer` switch becomes a dispatch map; `InstanceManager`/`ZoneInstanceManager` senders | M |
-| 15 | Cleanup | Remove `CBITSTREAM`/`CMSGHEADER`/`SEND_PACKET*`/`CINSTREAM*`, the free `BitStreamUtils::WriteHeader`, `PacketUtils`; update this document | S |
+| 15 | Cleanup | Remove `CBITSTREAM`/`CMSGHEADER`/`SEND_PACKET*`/`CINSTREAM*`, the free `BitStreamUtils::WriteHeader`, `PacketUtils`; update this document (done) | S |
 
 Game-message PRs (2-10) are independent of each other and of the packet PRs (11-14), so they can be reviewed in
 any order after PR 0.
@@ -287,3 +295,42 @@ any order after PR 0.
 - **Handler behaviour.** Keep each handler's logic verbatim in the conversion; behaviour changes are separate.
 - **Merge conflicts** with feature work in `GameMessages.cpp`: small PRs, landed domain by domain.
 - **Personal data.** Captures contain account names, chat and IDs; they stay out of the repository entirely.
+
+## 5. Known wire discrepancies
+
+Found while converting; none of them is fixed by a conversion (the structs reproduce DLU's bytes, pinned by the
+oracle tests). Each fix, if wanted, is its own labelled wire change verified against the client. Addresses are in
+the 1.10.64 client.
+
+### Game messages
+
+| Message | DLU | Client / reference |
+|---|---|---|
+| `PlaceModelResponse` | Writes a 4-byte `response` where the client expects the rotation. | The client reads a 16-byte quaternion when the rotation isn't identity (`0x00dc0170`). |
+| `NotifyPetTamingPuzzleSelected` | Written as the client's `Serialize` (`0x00db6880`) writes it. | The client's own `Deserialize` (`0x00e3a7c0`) reads an extra `u32` its `Serialize` never writes. |
+| `SetBuildModeConfirmed` | Always sends the default flags. | The client has non-default flag fields. |
+| `NotifyNotEnoughInvSpace` | Sent with message ID `VEHICLE_NOTIFY_FINISHED_RACE` (1396). | Its ID is `NOTIFY_NOT_ENOUGH_INV_SPACE` (1516). |
+| `MoveInventoryBatch` | Now follows the client layout. | |
+| `UnEquipInventory` | The trailing optional `replacementObjectID` is never read. | The client can send it. |
+| `SetStatusImmunity` | Writes the flags in DLU's order. | The client reads DOT, ImaginationGain, ImaginationLoss, Interrupt, Knockback, PullToPoint, QuickbuildInterrupt, Speed, BasicAttack (`0x00d8f140`). |
+| `RequestDie` | Read with the `Die` layout. | Starts with one `bDieAccepted` bit and has a mandatory `lootOwnerID` (`0x00e02d90`). |
+| `SetCurrency` | `sourceTradeID` is an optional `int32_t`. | lu_packets has an object ID (8 bytes). DLU only ever sends 0 (flag bit 0), so no bytes differ today. |
+| `FireEventClientSide` | Never writes `param1`/`param2` (both flag bits 0), whatever the caller passed: `RocketEquipped` loses the clone ID. | Optional `i64 param1` (default 0) and `i32 param2` (default -1). |
+| `PickupCurrency` | Reads only the amount. | lu_packets has a position after it (ignored, harmless). |
+| `MatchUpdate`, `MatchRequest` | Name-value text is widened/narrowed one byte per UTF-16 unit, so non-ASCII names are garbled. | UTF-16 text. |
+| `ScriptNetworkVarUpdate` | The text goes through `ASCIIToUTF16`. | UTF-16 text (non-ASCII values are garbled). |
+| `SetShootingGalleryParams` | Removed: had no callers, and its field order was a guess ("No clue about the order here"). | Not verified. |
+
+Behaviour changes that come with dropping malformed messages: `ParseChatMessage` longer than `MAX_MESSAGE_LENGTH`
+is dropped instead of truncated; `PLAYER_LOADED` (`0x00dc36f0`), `READY_FOR_UPDATES` and `MISSION_DIALOGUE_CANCELLED`
+(`0x00d9cc10`) now read the fields the client sends (DLU ignores them) and would be dropped if they were missing.
+
+### Packets
+
+| Packet | DLU | Client / reference |
+|---|---|---|
+| `VERSION_CONFIRM` (server -> client) | Sends 8 trailing bytes. | |
+| `LoadStaticZone` | Always sends clone 0. | The zone's clone ID. |
+| `ChatModerationString` | The accepted byte is `segments.empty()`. | |
+| `StringCheck` | Keeps 42 narrowed characters, including whatever garbage follows the text. | |
+| Route packets | Forwarded from byte 23, using the low byte of the routed packet ID. | |

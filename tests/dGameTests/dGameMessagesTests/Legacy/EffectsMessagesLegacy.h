@@ -6,6 +6,7 @@
 // (dGame/dGameMessages/GameMessages.cpp, branched from origin/main 129199e4). Only the namespace changed.
 // The Read* functions are the read sequences of the replaced GameMessages::Handle* functions.
 
+#include "LegacyPacketMacros.h"
 #include "Amf3.h"
 #include "AmfSerialize.h"
 #include "BitStreamUtils.h"

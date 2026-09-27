@@ -11,6 +11,7 @@
 #include "Entity.h"
 #include "Game.h"
 #include "GameMessageDecoder.h"
+#include "GameMessages.h"
 #include "Logger.h"
 #include "master/MessageCapture.h"
 #include "MessageType/Client.h"
@@ -140,21 +141,15 @@ namespace {
 
 	// Packets the server sends: only game messages are kept
 	void OnSend(const RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) {
-		static const auto header = [] {
-			RakNet::BitStream expected;
-			BitStreamUtils::WriteHeader(expected, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-			return std::string(reinterpret_cast<const char*>(expected.GetData()), expected.GetNumberOfBytesUsed());
-		}();
 		const auto totalBits = bitStream.GetNumberOfBitsUsed();
 		if (totalBits < GAME_MESSAGE_HEADER_BYTES * 8) return;
-		const auto* data = bitStream.GetData();
-		if (std::memcmp(data, header.data(), header.size()) != 0) return;
-
+		auto* data = bitStream.GetData();
+		RakNet::BitStream stream(data, bitStream.GetNumberOfBytesUsed(), false);
 		LWOOBJID objectId{};
-		uint16_t messageId{};
-		std::memcpy(&objectId, data + 8, sizeof(objectId));
-		std::memcpy(&messageId, data + 8 + sizeof(objectId), sizeof(messageId));
-		Record(eMessageDirection::TO_CLIENT, sysAddr, broadcast, objectId, messageId, data + GAME_MESSAGE_HEADER_BYTES,
+		MessageType::Game messageId{};
+		if (!GameMessages::NetGameMsg::ReadPacketHeader(stream, objectId, messageId)) return;
+
+		Record(eMessageDirection::TO_CLIENT, sysAddr, broadcast, objectId, static_cast<uint16_t>(messageId), data + GAME_MESSAGE_HEADER_BYTES,
 			static_cast<uint32_t>(totalBits - GAME_MESSAGE_HEADER_BYTES * 8));
 	}
 

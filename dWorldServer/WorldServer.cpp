@@ -838,7 +838,9 @@ namespace {
 void HandleMasterPacket(Packet* packet) {
 	if (packet->length < 4) return;
 	if (!MasterHandlers().Dispatch(packet, ServiceType::MASTER)) {
-		LOG("Unknown packet ID from master %i", int(packet->data[3]));
+		RakNet::BitStream inStream(packet->data, packet->length, false);
+		LUBitStream header;
+		if (header.ReadHeader(inStream)) LOG("Unknown packet ID from master %i", header.internalPacketID);
 	}
 }
 
@@ -1627,7 +1629,7 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
 
-	CINSTREAM;
+	RakNet::BitStream inStream(packet->data, packet->length, false);
 	LUBitStream luBitStream;
 	if (!luBitStream.ReadHeader(inStream)) return;
 

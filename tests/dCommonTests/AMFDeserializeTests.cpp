@@ -21,7 +21,7 @@ std::unique_ptr<AMFBaseValue> ReadFromBitStream(RakNet::BitStream& bitStream) {
  * @brief Test reading an AMFUndefined value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x00);
 	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::Undefined);
@@ -32,7 +32,7 @@ TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
  *
  */
 TEST(dCommonTests, AMFDeserializeAMFNullTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x01);
 	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::Null);
@@ -42,7 +42,7 @@ TEST(dCommonTests, AMFDeserializeAMFNullTest) {
  * @brief Test reading an AMFFalse value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x02);
 	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::False);
@@ -52,7 +52,7 @@ TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
  * @brief Test reading an AMFTrue value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFTrueTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x03);
 	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::True);
@@ -62,7 +62,7 @@ TEST(dCommonTests, AMFDeserializeAMFTrueTest) {
  * @brief Test reading an AMFInteger value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	{
 		bitStream.Write<uint8_t>(0x04);
 		// 127 == 01111111
@@ -113,7 +113,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
  * @brief Test reading an AMFDouble value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
 	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
@@ -125,7 +125,7 @@ TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
  * @brief Test reading an AMFString value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFStringTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0F);
 	std::string toWrite = "stateID";
@@ -139,7 +139,7 @@ TEST(dCommonTests, AMFDeserializeAMFStringTest) {
  * @brief Test reading an AMFArray value from a BitStream.
  */
 TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	// Test empty AMFArray
 	bitStream.Write<uint8_t>(0x09);
 	bitStream.Write<uint8_t>(0x01);
@@ -490,20 +490,20 @@ TEST_F(AMFDeserializeLimitsTest, NestingLimitTest) {
 	};
 
 	{
-		CBITSTREAM;
+		RakNet::BitStream bitStream;
 		writeNested(bitStream, AMFDeserialize::MaxDepth);
 		std::unique_ptr<AMFBaseValue> res;
 		ASSERT_NO_THROW(res = ReadFromBitStream(bitStream));
 		ASSERT_EQ(res->GetValueType(), eAmf::Array);
 	}
 	{
-		CBITSTREAM;
+		RakNet::BitStream bitStream;
 		writeNested(bitStream, AMFDeserialize::MaxDepth + 1);
 		ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
 	}
 	{
 		// Far past the limit, what a malicious client would send to overflow the stack.
-		CBITSTREAM;
+		RakNet::BitStream bitStream;
 		writeNested(bitStream, 100'000);
 		ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
 	}
@@ -524,14 +524,14 @@ TEST_F(AMFDeserializeLimitsTest, AssociativeLimitTest) {
 	};
 
 	{
-		CBITSTREAM;
+		RakNet::BitStream bitStream;
 		writeArray(bitStream, AMFDeserialize::MaxArraySize);
 		std::unique_ptr<AMFBaseValue> res;
 		ASSERT_NO_THROW(res = ReadFromBitStream(bitStream));
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociative().size(), AMFDeserialize::MaxArraySize);
 	}
 	{
-		CBITSTREAM;
+		RakNet::BitStream bitStream;
 		writeArray(bitStream, AMFDeserialize::MaxArraySize + 1);
 		ASSERT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
 	}
@@ -541,7 +541,7 @@ TEST_F(AMFDeserializeLimitsTest, AssociativeLimitTest) {
  * @brief The dense size is checked before any of the associative part is read.
  */
 TEST_F(AMFDeserializeLimitsTest, DenseLimitTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x09);
 	WriteU29(bitStream, ((AMFDeserialize::MaxArraySize + 1) << 1) | 1);
 	bitStream.Write<uint8_t>(0x01);
@@ -552,7 +552,7 @@ TEST_F(AMFDeserializeLimitsTest, DenseLimitTest) {
  * @brief Many small arrays that are each within limits still count toward one total budget.
  */
 TEST_F(AMFDeserializeLimitsTest, TotalValueLimitTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	// An outer array of 20 arrays with 10,000 values each is 200,000 values.
 	bitStream.Write<uint8_t>(0x09);
 	WriteU29(bitStream, (20 << 1) | 1);
@@ -570,7 +570,7 @@ TEST_F(AMFDeserializeLimitsTest, TotalValueLimitTest) {
  * @brief Sending a key twice keeps the last value, and the returned reference is to a live value.
  */
 TEST_F(AMFDeserializeLimitsTest, DuplicateKeyTest) {
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	bitStream.Write<uint8_t>(0x09);
 	bitStream.Write<uint8_t>(0x01);
 	WriteShortAmfString(bitStream, "key");

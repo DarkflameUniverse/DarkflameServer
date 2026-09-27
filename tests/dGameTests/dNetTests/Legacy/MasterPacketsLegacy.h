@@ -11,6 +11,7 @@
 // These messages never reach a client, but master, worlds, auth, chat and the dashboard can run different builds
 // during an update, so their bytes are pinned too.
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
 #include "MessageType/Master.h"

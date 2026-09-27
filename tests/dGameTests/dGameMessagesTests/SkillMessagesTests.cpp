@@ -30,7 +30,7 @@ namespace {
 	template<typename Legacy>
 	PacketBytes LegacyPacket(LWOOBJID target, Legacy& legacy) {
 		RakNet::BitStream bitStream;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
+		LUBitStream(ServiceType::CLIENT, MessageType::Client::GAME_MSG).WriteHeader(bitStream);
 		bitStream.Write(target);
 		legacy.Serialize(bitStream);
 		return FromBitStream(bitStream);
@@ -262,7 +262,7 @@ TEST_F(SkillMessagesTests, EchoesBroadcastExceptTheCaster) {
 	const auto caster = ClientAddress();
 	const auto legacy = Capture([&] {
 		RakNet::BitStream bitStreamLocal;
-		BitStreamUtils::WriteHeader(bitStreamLocal, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
+		LUBitStream(ServiceType::CLIENT, MessageType::Client::GAME_MSG).WriteHeader(bitStreamLocal);
 		bitStreamLocal.Write(echo.target);
 		LegacyGameMessages::EchoSyncSkill legacyEcho("ab", 0, 0, true);
 		legacyEcho.Serialize(bitStreamLocal);

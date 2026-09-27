@@ -3,7 +3,7 @@
 #include "dCommonVars.h"
 
 TEST(LUWString33Test, SerializeWriteTestOld) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 33; i++) testString += u'ü';
     for (const auto& c : testString) bitStream.Write(c);
@@ -14,7 +14,7 @@ TEST(LUWString33Test, SerializeWriteTestOld) {
 }
 
 TEST(LUWString33Test, SerializeWriteTestOldPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 15; i++) testString += u'ü';
     for (const auto& c : testString) bitStream.Write(c);
@@ -34,7 +34,7 @@ TEST(LUWString33Test, SerializeWriteTestOldPartial) {
 }
 
 TEST(LUWString33Test, SerializeWriteTestNew) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 33; i++) testString += u'ü';
     bitStream.Write(LUWString(testString, 33));
@@ -45,7 +45,7 @@ TEST(LUWString33Test, SerializeWriteTestNew) {
 }
 
 TEST(LUWString33Test, SerializeWriteTestNewPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 15; i++) testString += u'ü';
     bitStream.Write(LUWString(testString, 33));
@@ -64,7 +64,7 @@ TEST(LUWString33Test, SerializeWriteTestNewPartial) {
 }
 
 TEST(LUWString33Test, SerializeReadTestOld) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 33; i++) testString += u'ü';
     for (const auto& c : testString) bitStream.Write(c);
@@ -76,7 +76,7 @@ TEST(LUWString33Test, SerializeReadTestOld) {
 }
 
 TEST(LUWString33Test, SerializeReadTestOldPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 15; i++) testString += u'ü';
     for (const auto& c : testString) bitStream.Write(c);
@@ -97,7 +97,7 @@ TEST(LUWString33Test, SerializeReadTestOldPartial) {
 }
 
 TEST(LUWString33Test, SerializeReadTestNew) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 33; i++) testString += u'ü';
     bitStream.Write(LUWString(testString, 33));
@@ -109,7 +109,7 @@ TEST(LUWString33Test, SerializeReadTestNew) {
 }
 
 TEST(LUWString33Test, SerializeReadTestNewPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::u16string testString;
     for (int i = 0; i < 15; i++) testString += u'ü';
     bitStream.Write(LUWString(testString, 33));

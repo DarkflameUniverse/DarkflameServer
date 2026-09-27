@@ -7,6 +7,7 @@
 // news screen's hot properties). Only the namespace changed. The Read* functions are the read sequences of the
 // replaced GameMessages::Handle* functions (and PlayerReports' report readers).
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "CDClientManager.h"
 #include "CDPropertyTemplateTable.h"

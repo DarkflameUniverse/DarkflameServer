@@ -7,6 +7,7 @@
 // The Read* functions are the read sequences of the replaced GameMessages::Handle* functions, verbatim up to
 // the point where the handler starts using what it read.
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
 #include "dServer.h"

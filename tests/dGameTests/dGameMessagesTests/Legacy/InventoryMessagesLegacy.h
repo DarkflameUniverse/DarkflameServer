@@ -7,6 +7,7 @@
 // The Read* functions are the read sequences of the replaced GameMessages::Handle* functions.
 // SendMoveInventoryBatch is not here: nothing called it, and MoveInventoryBatch follows the client's layout.
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
 #include "dServer.h"

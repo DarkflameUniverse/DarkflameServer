@@ -11,7 +11,7 @@ class DestroyableTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	DestroyableComponent* destroyableComponent;
-	CBITSTREAM
+	RakNet::BitStream bitStream;
 		uint32_t flags = 0;
 	void SetUp() override {
 		SetUpDependencies();

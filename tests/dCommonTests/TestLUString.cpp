@@ -3,7 +3,7 @@
 #include "dCommonVars.h"
 
 TEST(LUString33Test, SerializeWriteTestOld) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 33; i++) testString += "a";
     for (const auto& c : testString) bitStream.Write(c);
@@ -14,7 +14,7 @@ TEST(LUString33Test, SerializeWriteTestOld) {
 }
 
 TEST(LUString33Test, SerializeWriteTestOldPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 15; i++) testString += "a";
     for (const auto& c : testString) bitStream.Write(c);
@@ -34,7 +34,7 @@ TEST(LUString33Test, SerializeWriteTestOldPartial) {
 }
 
 TEST(LUString33Test, SerializeWriteTestNew) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 33; i++) testString += "a";
     bitStream.Write(LUString(testString, 33));
@@ -45,7 +45,7 @@ TEST(LUString33Test, SerializeWriteTestNew) {
 }
 
 TEST(LUString33Test, SerializeWriteTestNewPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 15; i++) testString += "a";
     bitStream.Write(LUString(testString, 33));
@@ -64,7 +64,7 @@ TEST(LUString33Test, SerializeWriteTestNewPartial) {
 }
 
 TEST(LUString33Test, SerializeReadTestOld) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 33; i++) testString += "a";
     for (const auto& c : testString) bitStream.Write(c);
@@ -76,7 +76,7 @@ TEST(LUString33Test, SerializeReadTestOld) {
 }
 
 TEST(LUString33Test, SerializeReadTestOldPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 15; i++) testString += "a";
     for (const auto& c : testString) bitStream.Write(c);
@@ -97,7 +97,7 @@ TEST(LUString33Test, SerializeReadTestOldPartial) {
 }
 
 TEST(LUString33Test, SerializeReadTestNew) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 33; i++) testString += "a";
     bitStream.Write(LUString(testString, 33));
@@ -109,7 +109,7 @@ TEST(LUString33Test, SerializeReadTestNew) {
 }
 
 TEST(LUString33Test, SerializeReadTestNewPartial) {
-    CBITSTREAM;
+    RakNet::BitStream bitStream;
     std::string testString;
     for (int i = 0; i < 15; i++) testString += "a";
     bitStream.Write(LUString(testString, 33));

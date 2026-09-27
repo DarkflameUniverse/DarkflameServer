@@ -28,16 +28,6 @@ constexpr uint32_t highFrameDelta = FRAMES_TO_MS(highFramerate);
 constexpr uint32_t mediumFrameDelta = FRAMES_TO_MS(mediumFramerate);
 constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 
-//========== MACROS ===========
-
-#define HEADER_SIZE 8
-#define CBITSTREAM RakNet::BitStream bitStream;
-#define CINSTREAM RakNet::BitStream inStream(packet->data, packet->length, false);
-#define CINSTREAM_SKIP_HEADER CINSTREAM if (inStream.GetNumberOfUnreadBits() >= BYTES_TO_BITS(HEADER_SIZE)) inStream.IgnoreBytes(HEADER_SIZE); else inStream.IgnoreBits(inStream.GetNumberOfUnreadBits());
-#define CMSGHEADER BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
-#define SEND_PACKET Game::server->Send(bitStream, sysAddr, false);
-#define SEND_PACKET_BROADCAST Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
-
 //=========== TYPEDEFS ==========
 
 using LOT = int32_t;                        //!< A LOT

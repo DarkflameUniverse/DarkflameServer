@@ -1029,8 +1029,12 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->length < 4) return;
 
-	if (!MasterHandlers().Dispatch(packet, ServiceType::MASTER) && packet->data[0] == ID_USER_PACKET_ENUM && static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
-		LOG("Unknown master packet ID from server: %i", packet->data[3]);
+	if (!MasterHandlers().Dispatch(packet, ServiceType::MASTER)) {
+		RakNet::BitStream inStream(packet->data, packet->length, false);
+		LUBitStream header;
+		if (header.ReadHeader(inStream) && header.connectionType == ServiceType::MASTER) {
+			LOG("Unknown master packet ID from server: %i", header.internalPacketID);
+		}
 	}
 }
 

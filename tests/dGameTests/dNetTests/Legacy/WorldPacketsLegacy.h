@@ -9,6 +9,7 @@
 // returns what was read, or the packet that was built, instead of acting on it).
 // Only the namespace changed. The byte-equality tests run the same inputs through these and the new structs.
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
 #include "dServer.h"

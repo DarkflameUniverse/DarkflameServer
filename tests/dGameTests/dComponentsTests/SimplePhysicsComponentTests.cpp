@@ -11,7 +11,7 @@ class SimplePhysicsTest : public GameDependenciesTest {
 protected:
 	std::unique_ptr<Entity> baseEntity;
 	SimplePhysicsComponent* simplePhysicsComponent;
-	CBITSTREAM;
+	RakNet::BitStream bitStream;
 	void SetUp() override {
 		SetUpDependencies();
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);

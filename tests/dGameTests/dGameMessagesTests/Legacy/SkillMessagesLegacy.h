@@ -9,6 +9,7 @@
 // Each class's Serialize writes the message ID and then the payload; the old senders wrote the CLIENT/GAME_MSG
 // header and the target object ID before it. The Read* function is the read sequence of the replaced switch case.
 
+#include "LegacyPacketMacros.h"
 #include "BehaviorSlot.h"
 #include "BitStream.h"
 #include "BitStreamUtils.h"

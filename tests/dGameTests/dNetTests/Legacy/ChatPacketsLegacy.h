@@ -11,6 +11,7 @@
 // The byte-equality tests send the same inputs through these and through the new structs and require identical
 // bytes, so the wire format is pinned even after the production code is deleted.
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
 #include "dServer.h"

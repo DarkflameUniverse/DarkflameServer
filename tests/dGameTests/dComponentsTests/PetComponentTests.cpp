@@ -12,7 +12,7 @@ class PetTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	PetComponent* petComponent;
-	CBITSTREAM
+	RakNet::BitStream bitStream;
 
 	void SetUp() override {
 		SetUpDependencies();

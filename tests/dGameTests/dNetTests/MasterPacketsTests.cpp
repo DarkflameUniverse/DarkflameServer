@@ -48,7 +48,7 @@ namespace {
 	template<typename T>
 	void ExpectHeaderThenSerialize(const T& msg, MessageType::Master id) {
 		RakNet::BitStream old;
-		BitStreamUtils::WriteHeader(old, ServiceType::MASTER, id);
+		LUBitStream(ServiceType::MASTER, id).WriteHeader(old);
 		msg.Serialize(old);
 		EXPECT_PACKET_EQ(FromBitStream(old), StructPacket(msg));
 		RoundTrip(msg);

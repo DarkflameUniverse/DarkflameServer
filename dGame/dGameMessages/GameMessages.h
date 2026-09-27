@@ -90,6 +90,10 @@ namespace GameMessages {
 		// This is exactly what Send(sysAddr) puts on the wire; tests use it to compare bytes without a server.
 		void WritePacket(RakNet::BitStream& bitStream) const;
 
+		// Reads what WritePacket writes before Serialize(): the CLIENT/GAME_MSG header, the target and the message ID.
+		// Returns false if the stream is too short or holds a different kind of packet.
+		static bool ReadPacketHeader(RakNet::BitStream& bitStream, LWOOBJID& target, MessageType::Game& msgId);
+
 		virtual void Serialize(RakNet::BitStream& bitStream) const {}
 		virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
 

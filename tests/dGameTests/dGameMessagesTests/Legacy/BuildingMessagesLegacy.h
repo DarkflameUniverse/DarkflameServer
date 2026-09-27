@@ -8,6 +8,7 @@
 // were inline in HandleUnUseModel, HandleBBBSaveRequest and WorldServer's level load, wrapped in a function; the
 // Read* functions are the read sequences of the replaced GameMessages::Handle* functions.
 
+#include "LegacyPacketMacros.h"
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
 #include "dServer.h"

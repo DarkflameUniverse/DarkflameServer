@@ -27,6 +27,15 @@ namespace GameMessages {
 		Serialize(bitStream); // write the message data
 	}
 
+	bool NetGameMsg::ReadPacketHeader(RakNet::BitStream& bitStream, LWOOBJID& target, MessageType::Game& msgId) {
+		LUBitStream header;
+		if (!header.ReadHeader(bitStream)) return false;
+		if (header.connectionType != ServiceType::CLIENT || header.internalPacketID != static_cast<uint32_t>(MessageType::Client::GAME_MSG)) return false;
+		VALIDATE_READ(bitStream.Read(target));
+		VALIDATE_READ(bitStream.Read(msgId));
+		return true;
+	}
+
 	void NetGameMsg::SendToClient(const SystemAddress& sysAddr) const {
 		RakNet::BitStream bitStream;
 		WritePacket(bitStream);

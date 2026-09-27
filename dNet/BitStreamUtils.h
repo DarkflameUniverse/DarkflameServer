@@ -75,16 +75,7 @@ struct LUBitStream {
 };
 
 
-#define BITSTREAMUTILS_HAS_WRITEHEADER
 namespace BitStreamUtils {
-	template<typename T>
-	void WriteHeader(RakNet::BitStream& bitStream, ServiceType connectionType, T internalPacketID) {
-		bitStream.Write<MessageID>(ID_USER_PACKET_ENUM);
-		bitStream.Write<ServiceType>(connectionType);
-		bitStream.Write(static_cast<uint32_t>(internalPacketID));
-		bitStream.Write<uint8_t>(0);
-	}
-
 	/**
 	 * Writes an optional ("default flag") field: one bit saying whether value differs from defaultValue, then
 	 * the value itself only if it does. This is how the client encodes game message parameters that have a default.

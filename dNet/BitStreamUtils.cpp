@@ -1,7 +1,6 @@
 #include "BitStreamUtils.h"
 #include "dServer.h"
 #include "BitStream.h"
-#include "PacketUtils.h"
 
 
 void LUBitStream::WriteHeader(RakNet::BitStream& bitStream) const {
