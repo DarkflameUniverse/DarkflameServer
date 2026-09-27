@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { parseModel, mergeMeshes, linearColors } from '/js/scenery-core.js';
 
 const GEOMETRY_MAGIC = 0x42473031; // "10GB"
 const MAX_PARALLEL_FETCHES = 6;
@@ -140,6 +141,33 @@ export function parseLxfml(text) {
 		}
 	};
 	doc.querySelectorAll('Scene > Model').forEach((model) => walk(model, new THREE.Matrix4()));
+	return parts;
+}
+
+/**
+ * The parts of a model the UGC server made (a .nif, converted by the dashboard like the scenery's models: see
+ * scenery-core.js), as [{geometry, material}] in the model's own coordinates. Each part owns its geometry and material.
+ */
+async function loadGeneratedModel(url) {
+	const response = await limitedFetch(url);
+	if (!response.ok) throw new Error('HTTP ' + response.status);
+	const model = parseModel(await response.arrayBuffer());
+	const parts = [];
+	for (const mesh of mergeMeshes(model.meshes)) {
+		if (!mesh.vertices || !mesh.indices.length) continue;
+		const geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.BufferAttribute(mesh.positions, 3));
+		if (mesh.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(mesh.normals, 3, true));
+		const hasColors = !!(mesh.colors && mesh.vertexColors !== 0);
+		if (hasColors) geometry.setAttribute('color', new THREE.BufferAttribute(linearColors(mesh.colors), 4, true));
+		geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
+		if (!mesh.normals) geometry.computeVertexNormals();
+		geometry.computeBoundingBox();
+		const color = new THREE.Color().setRGB(mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2], THREE.SRGBColorSpace);
+		const material = new THREE.MeshStandardMaterial({ color, vertexColors: hasColors, transparent: !!mesh.blend, roughness: 0.5, metalness: 0 });
+		parts.push({ geometry, material });
+	}
+	if (!parts.length) throw new Error('empty model');
 	return parts;
 }
 
@@ -523,6 +551,7 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 	function clear() {
 		for (const mesh of meshes) {
 			root.remove(mesh);
+			if (mesh.userData.owned) { mesh.geometry.dispose(); mesh.material.dispose(); }
 			mesh.dispose();
 		}
 		meshes = [];
@@ -533,15 +562,34 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 		if (grid) { scene.remove(grid); grid.geometry.dispose(); grid = null; }
 	}
 
-	/** Load property models: [{id, name, lot, position: [x,y,z], rotation: [x,y,z,w]}], each from `url` when given (else its property model LXFML). */
+	/**
+	 * Load property models: [{id, name, lot, position: [x,y,z], rotation: [x,y,z,w]}], each from `url` when given (else
+	 * its property model LXFML). A model with `meshUrl` is drawn from the model the UGC server made of it instead, or
+	 * from its LXFML when that can't be had (model.generated says which it is drawn from).
+	 */
 	async function load(list, lod = 2) {
 		clear();
 		const batches = new Map(); // "design/part/material" -> {geometry, material, matrices: [], modelIndex: []}
 		const boxes = list.map(() => new THREE.Box3());
+		const generated = new Set(); // indexes of the models drawn from the UGC server's model
 		let loaded = 0;
 
 		await Promise.all(list.map(async (model, modelIndex) => {
 			try {
+				if (model.meshUrl) {
+					try {
+						const placement = new THREE.Matrix4().compose(new THREE.Vector3(...model.position), new THREE.Quaternion(...model.rotation), new THREE.Vector3(1, 1, 1));
+						const parts = await loadGeneratedModel(model.meshUrl);
+						parts.forEach((part, index) => {
+							batches.set(`generated/${modelIndex}/${index}`, { ...part, owned: true, matrices: [placement], modelIndex: [modelIndex] });
+							boxes[modelIndex].union(part.geometry.boundingBox.clone().applyMatrix4(placement));
+						});
+						generated.add(modelIndex);
+						return;
+					} catch (e) {
+						// Not made yet, or the UGC server is away: its LXFML instead
+					}
+				}
 				const response = await fetch(model.url || `/api/property_models/${model.id}/lxfml`, { credentials: 'same-origin' });
 				if (!response.ok) return;
 				const parts = parseLxfml(await response.text());
@@ -576,12 +624,13 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 			mesh.castShadow = true;
 			mesh.receiveShadow = true;
 			mesh.userData.modelIndex = batch.modelIndex;
+			mesh.userData.owned = !!batch.owned; // its geometry and material are its own, not shared bricks
 			mesh.computeBoundingSphere();
 			root.add(mesh);
 			meshes.push(mesh);
 		}
 
-		models = list.map((model, i) => ({ ...model, box: boxes[i], instances: [], offset: new THREE.Vector3(), visible: true }));
+		models = list.map((model, i) => ({ ...model, generated: generated.has(i), box: boxes[i], instances: [], offset: new THREE.Vector3(), visible: true }));
 		for (const mesh of meshes) {
 			mesh.userData.modelIndex.forEach((modelIndex, index) => {
 				const base = new THREE.Matrix4();

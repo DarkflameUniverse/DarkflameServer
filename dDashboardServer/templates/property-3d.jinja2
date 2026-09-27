@@ -92,6 +92,7 @@
 							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="shadowToggle" data-pref="property3d.shadows" checked><label class="form-check-label" for="shadowToggle">Shadows</label></div>
 							<div class="form-check form-switch mb-0 small" title="The zone's sky, as the game draws it (with Scenery on)"><input class="form-check-input" type="checkbox" id="skyToggle" data-pref="property3d.sky" checked><label class="form-check-label" for="skyToggle">Sky</label></div>
 							<div class="form-check form-switch mb-0 small" title="The models placed on the property"><input class="form-check-input" type="checkbox" id="modelsToggle" data-pref="property3d.models" checked><label class="form-check-label" for="modelsToggle">Placed models</label></div>
+							{% if not exists("showcase") %}<div class="form-check form-switch mb-0 small d-none" id="generatedWrap" title="Draw player-built models as the UGC server made them for the game (on: generated models; off: built from their LXFML). Models it hasn't made yet are built from their LXFML either way"><input class="form-check-input" type="checkbox" id="generatedToggle" data-pref="property3d.generated" checked><label class="form-check-label" for="generatedToggle">Generated models</label></div>{% endif %}
 							<div class="form-check form-switch mb-0 small" title="Also draw, see-through, the models of objects the game doesn't draw: trigger and blocking volumes (with Scenery on)"><input class="form-check-input" type="checkbox" id="hiddenToggle" data-pref="property3d.hidden"><label class="form-check-label" for="hiddenToggle">Hidden objects</label></div>
 						</div>
 						<div class="text-body-secondary" id="boundaryInfo"></div>
@@ -118,6 +119,7 @@
 }
 </script>
 <script src="/js/ldd-materials.js"></script>
+<script src="/js/ugc-links.js"></script>
 <script type="module">
 import { createViewer } from '/js/lddviewer.js';
 import { createBehaviorPlayer, describeAction, isTrigger, isSupported } from '/js/behaviorplayer.js';
@@ -130,6 +132,7 @@ const propertyApi = (showcase ? '/api/showcase/' : '/api/properties/') + propert
 const assetApi = showcase ? '/api/showcase' : '/api';
 const setText = (id, value) => { document.getElementById(id).textContent = value; };
 let property = null;
+let ugc = {}; // model id -> what the UGC server made of it (/api/ugc_links/property/:id)
 let loadedLod = null;
 let selectedIndex = -1;
 let terrainData; // undefined: not fetched yet; null: none for this zone
@@ -213,8 +216,17 @@ function showSelection(model, index) {
 		'<dt class="col-4">LOT</dt><dd class="col-8">' + esc(model.lot) + '</dd>' +
 		'<dt class="col-4">Model ID</dt><dd class="col-8 text-break">' + esc(model.id) + '</dd>' +
 		'<dt class="col-4">Position</dt><dd class="col-8">' + model.position.map((v) => esc(v.toFixed(2))).join(', ') + '</dd>' +
-		'<dt class="col-4">Rotation</dt><dd class="col-8">' + esc(yaw) + '&deg;</dd></dl>' +
+		'<dt class="col-4">Rotation</dt><dd class="col-8">' + esc(yaw) + '&deg;</dd>' + ugcInfo(model) + '</dl>' +
 		(showcase ? '' : '<a class="btn btn-sm btn-outline-secondary" href="/api/property_models/' + esc(model.id) + '/lxfml">Download LXFML</a>');
+}
+
+// A player-built model's UGC server state, what it is drawn from, and a link to it in the UGC viewer
+function ugcInfo(model) {
+	const item = ugc[model.id];
+	if (!item) return '';
+	return '<dt class="col-4">UGC</dt><dd class="col-8">' + UgcLinks.state(item) + ' <span class="small text-body-secondary">' +
+		(model.generated ? 'drawn from the generated model' : 'drawn from its LXFML') + '</span>' +
+		(item.link ? '<br><a class="small" href="' + esc(item.link) + '">Open in UGC viewer</a>' : '') + '</dd>';
 }
 
 function renderBehaviors() {
@@ -384,6 +396,10 @@ async function loadScene() {
 	if (!property || loadedLod === lod) return;
 	loadedLod = lod;
 	const keep = selectedIndex >= 0 ? viewer.models()[selectedIndex].id : (location.hash.match(/model=(\d+)/) || [])[1];
+	// Player-built models the UGC server made are drawn as it made them, unless switched off
+	const generatedToggle = document.getElementById('generatedToggle');
+	const generated = !!(generatedToggle && generatedToggle.checked);
+	property.models.forEach((m) => { m.meshUrl = generated && ugc[m.id] && ugc[m.id].mesh ? ugc[m.id].mesh : null; });
 	await viewer.load(property.models, lod);
 	player.reset();
 	renderModelList();
@@ -396,8 +412,11 @@ async function loadScene() {
 }
 
 function load() {
-	api.get(propertyApi).then((p) => {
+	Promise.all([api.get(propertyApi), showcase ? {} : UgcLinks.forProperty(propertyId)]).then(([p, made]) => {
 		if (p.success === false) { setText('propName', p.error); return; }
+		ugc = made;
+		const generatedWrap = document.getElementById('generatedWrap');
+		if (generatedWrap) generatedWrap.classList.toggle('d-none', !Object.values(made).some((item) => item.mesh));
 		// Showcase models come through the showcase, which checks they're on this property
 		if (showcase) p.models.forEach((m) => { m.url = propertyApi + '/models/' + m.id + '/lxfml'; });
 		property = p;
@@ -422,6 +441,7 @@ document.getElementById('sceneryToggle').addEventListener('change', showScenery)
 document.getElementById('skyToggle').addEventListener('change', showScenery);
 document.getElementById('hiddenToggle').addEventListener('change', showScenery);
 document.getElementById('modelsToggle').addEventListener('change', (e) => viewer.setModelsVisible(e.target.checked));
+if (document.getElementById('generatedToggle')) document.getElementById('generatedToggle').addEventListener('change', () => { loadedLod = null; loadScene(); });
 document.getElementById('shadowToggle').addEventListener('change', (e) => viewer.setShadows(e.target.checked));
 document.getElementById('resetViewBtn').addEventListener('click', () => viewer.resetView());
 document.getElementById('fullscreenBtn').addEventListener('click', () => {
