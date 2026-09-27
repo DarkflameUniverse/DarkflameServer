@@ -63,6 +63,13 @@ public:
 	size_t Busy() const { std::lock_guard lock(m_Mutex); return m_Active; }
 	size_t Threads() const { return m_Config.threads; }
 
+	// Main thread: totals since the start and the files' size (traffic reports, then the dashboard and /metrics)
+	uint64_t Made() const { return m_Made; }
+	uint64_t Failed() const { return m_Failed; }
+	uint64_t Evicted() const { return m_Evicted; }
+	uint64_t StoredBytes() const { return m_StoredBytes; }
+	uint64_t MaxStorageBytes() const { return m_Config.maxStorageBytes; }
+
 private:
 	struct Job {
 		Kind kind{};

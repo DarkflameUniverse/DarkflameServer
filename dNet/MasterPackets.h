@@ -262,6 +262,11 @@ namespace MasterPackets {
 		uint8_t authOnline{};
 		uint8_t chatOnline{};
 		std::vector<Instance> instances; // u32 count
+		// The UGC server (docs/UgcServer.md), after the instances: whether master starts it (enable_ugc_server),
+		// whether it is connected, and the process id master last started it as (0: unknown)
+		uint8_t ugcEnabled{};
+		uint8_t ugcOnline{};
+		uint32_t ugcPid{};
 
 		ServerListResponse() : LUBitStream(ServiceType::MASTER, MessageType::Master::SERVER_LIST_RESPONSE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

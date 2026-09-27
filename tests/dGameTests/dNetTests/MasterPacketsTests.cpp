@@ -353,7 +353,16 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			entry.port = instance.port;
 			entry.isPrivate = instance.isPrivate ? 1 : 0;
 		}
-		EXPECT_PACKET_EQ(Written([&](RakNet::BitStream& b) { LegacyMaster::WriteServerList(b, true, count % 2, instances); }), StructPacket(response));
+		response.ugcEnabled = 1;
+		response.ugcOnline = count % 2;
+		response.ugcPid = 4242 + count;
+		// The legacy list, then the UGC server's state
+		EXPECT_PACKET_EQ(Written([&](RakNet::BitStream& b) {
+			LegacyMaster::WriteServerList(b, true, count % 2, instances);
+			b.Write<uint8_t>(1);
+			b.Write<uint8_t>(count % 2);
+			b.Write<uint32_t>(4242 + count);
+		}), StructPacket(response));
 
 		RakNet::BitStream stream; LoadPayload(stream, response);
 		const auto legacy = LegacyMaster::ReadServerList(stream);
@@ -365,6 +374,9 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			EXPECT_EQ(legacy.instances[i].ip, copy.instances[i].ip.string);
 			EXPECT_EQ(legacy.instances[i].isPrivate, copy.instances[i].isPrivate != 0);
 		}
+		EXPECT_EQ(copy.ugcEnabled, 1);
+		EXPECT_EQ(copy.ugcOnline, count % 2);
+		EXPECT_EQ(copy.ugcPid, 4242 + count);
 		ExpectTruncatedFails(response);
 	}
 }

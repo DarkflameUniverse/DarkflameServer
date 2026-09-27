@@ -84,6 +84,8 @@ SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 SystemAddress dashboardServerMasterPeerSysAddr;
 SystemAddress ugcServerMasterPeerSysAddr;
+// The UGC server's process id from its last start (0: not started), for the dashboard
+uint32_t ugcServerPid = 0;
 
 namespace {
 	// Dashboard player actions waiting for world servers to answer
@@ -452,7 +454,7 @@ int main(int argc, char** argv) {
 
 	// The UGC server makes and serves player models' meshes and icons (docs/UgcServer.md)
 	if (Game::config->GetValue("enable_ugc_server") == "1") {
-		StartUgcServer();
+		ugcServerPid = StartUgcServer();
 	}
 
 	auto t = std::chrono::high_resolution_clock::now();
@@ -888,8 +890,8 @@ namespace {
 		LOG("Reloading settings (changed on the dashboard)");
 		Game::config->ReloadConfig();
 		Game::im->LoadZoneLimits();
-		// Everyone else: auth, chat and every world
-		for (const auto& peer : { authServerMasterPeerSysAddr, chatServerMasterPeerSysAddr }) {
+		// Everyone else: auth, chat, UGC and every world
+		for (const auto& peer : { authServerMasterPeerSysAddr, chatServerMasterPeerSysAddr, ugcServerMasterPeerSysAddr }) {
 			if (peer != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(peer, reload);
 		}
 		for (const auto& instance : Game::im->GetInstances()) {
@@ -938,6 +940,9 @@ namespace {
 		ServerListResponse response;
 		response.authOnline = authServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
 		response.chatOnline = chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+		response.ugcEnabled = Game::config->GetValue("enable_ugc_server") == "1" ? 1 : 0;
+		response.ugcOnline = ugcServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+		response.ugcPid = ugcServerPid;
 
 		for (const auto& inst : Game::im->GetInstances()) {
 			if (!inst || !inst->GetIsReady() || inst->GetIsShuttingDown()) continue;
@@ -1057,7 +1062,7 @@ void HandlePacket(Packet* packet) {
 				MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, offline);
 			}
 
-			StartUgcServer();
+			ugcServerPid = StartUgcServer();
 		}
 	}
 
@@ -1132,6 +1137,7 @@ int ShutdownSequence(int32_t signal) {
 		if (allInstancesShutdown && \
 			authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && \
 			chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && \
+			ugcServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && \
 			dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 			LOG("Finished shutting down MasterServer!");
 			break;
@@ -1153,6 +1159,9 @@ int ShutdownSequence(int32_t signal) {
 			}
 			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
 				LOG("Dashboard server did not shutdown in time");
+			}
+			if (ugcServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+				LOG("UGC server did not shutdown in time");
 			}
 			for (const auto& instance : Game::im->GetInstances()) {
 				if (instance == nullptr) {

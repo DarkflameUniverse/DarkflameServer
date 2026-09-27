@@ -323,6 +323,15 @@ int main(int argc, char** argv) {
 	TrafficStats::Local().SetGauge("workers_busy", [&processor] { return static_cast<double>(processor.Busy()); });
 	TrafficStats::Local().SetGauge("workers_queued", [&processor] { return static_cast<double>(processor.Queued()); });
 	TrafficStats::Local().SetGauge("workers_threads", [&processor] { return static_cast<double>(processor.Threads()); });
+	// Read on this thread, when a traffic report is taken (dServer::ReceiveFromMaster)
+	const std::vector<std::pair<std::string, std::function<double()>>> ugcGauges{
+		{ "ugc_made_total", [&processor] { return static_cast<double>(processor.Made()); } },
+		{ "ugc_failed_total", [&processor] { return static_cast<double>(processor.Failed()); } },
+		{ "ugc_evicted_total", [&processor] { return static_cast<double>(processor.Evicted()); } },
+		{ "ugc_stored_bytes", [&processor] { return static_cast<double>(processor.StoredBytes()); } },
+		{ "ugc_max_storage_bytes", [&processor] { return static_cast<double>(processor.MaxStorageBytes()); } },
+	};
+	for (const auto& [name, gauge] : ugcGauges) TrafficStats::Local().SetGauge(name, gauge);
 
 	const auto listenIp = Game::config->GetValue("listen_ip").empty() ? std::string("0.0.0.0") : Game::config->GetValue("listen_ip");
 	const auto port = Setting<uint32_t>("port", 2008);
@@ -355,6 +364,7 @@ int main(int argc, char** argv) {
 	TrafficStats::Local().SetGauge("workers_busy", nullptr);
 	TrafficStats::Local().SetGauge("workers_queued", nullptr);
 	TrafficStats::Local().SetGauge("workers_threads", nullptr);
+	for (const auto& [name, gauge] : ugcGauges) TrafficStats::Local().SetGauge(name, nullptr);
 	Game::web.Shutdown();
 	g_Processor = nullptr;
 	Database::Destroy("UgcServer");

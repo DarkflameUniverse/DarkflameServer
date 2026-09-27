@@ -241,6 +241,9 @@ namespace MasterPackets {
 			bitStream.Write(instance.port);
 			bitStream.Write(instance.isPrivate);
 		}
+		bitStream.Write(ugcEnabled);
+		bitStream.Write(ugcOnline);
+		bitStream.Write(ugcPid);
 	}
 
 	bool ServerListResponse::Deserialize(RakNet::BitStream& bitStream) {
@@ -259,6 +262,9 @@ namespace MasterPackets {
 			VALIDATE_READ(bitStream.Read(instance.port));
 			VALIDATE_READ(bitStream.Read(instance.isPrivate));
 		}
+		VALIDATE_READ(bitStream.Read(ugcEnabled));
+		VALIDATE_READ(bitStream.Read(ugcOnline));
+		VALIDATE_READ(bitStream.Read(ugcPid));
 		return true;
 	}
 
