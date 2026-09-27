@@ -21,6 +21,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"Contraband.cpp"
 	"PropertyRent.cpp"
 	"PropertyReputation.cpp"
+	"BbbAutosave.cpp"
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"RelatedData.cpp"

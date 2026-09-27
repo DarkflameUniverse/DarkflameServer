@@ -2,6 +2,7 @@
 #define TESTSQLDATABASE_H
 
 #include "GameDatabase.h"
+#include <map>
 
 class TestSQLDatabase : public GameDatabase {
 	void Connect() override;
@@ -245,6 +246,16 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<ZoneLimit> GetZoneLimits() override { return {}; }
 	void SetZoneLimit(const ZoneLimit& limit) override {}
 	void DeleteZoneLimit(uint32_t zoneId) override {}
+	// IBbbAutosave: kept in memory so the build workflow can be tested
+	std::optional<IBbbAutosave::Info> GetBbbAutosave(const LWOOBJID characterId) override {
+		const auto it = m_BbbAutosaves.find(characterId);
+		if (it == m_BbbAutosaves.end()) return std::nullopt;
+		return it->second;
+	}
+	void SetBbbAutosave(const LWOOBJID characterId, const IBbbAutosave::Info& info) override { m_BbbAutosaves[characterId] = info; }
+	void DeleteBbbAutosave(const LWOOBJID characterId) override { m_BbbAutosaves.erase(characterId); }
+	std::map<LWOOBJID, IBbbAutosave::Info> m_BbbAutosaves;
+
 	// IPropertyReputation
 	VisitorHistory GetPropertyVisitorHistory(LWOOBJID propertyId, uint32_t accountId, uint32_t day, uint32_t days) override { return {}; }
 	int64_t GetPropertyReputationOnDay(LWOOBJID propertyId, uint32_t day) override { return 0; }

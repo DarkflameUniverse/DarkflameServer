@@ -199,6 +199,11 @@ public:
 	std::vector<ZoneLimit> GetZoneLimits() override;
 	void SetZoneLimit(const ZoneLimit& limit) override;
 	void DeleteZoneLimit(uint32_t zoneId) override;
+	// IBbbAutosave
+	std::optional<IBbbAutosave::Info> GetBbbAutosave(const LWOOBJID characterId) override;
+	void SetBbbAutosave(const LWOOBJID characterId, const IBbbAutosave::Info& info) override;
+	void DeleteBbbAutosave(const LWOOBJID characterId) override;
+
 	// IPropertyReputation
 	VisitorHistory GetPropertyVisitorHistory(LWOOBJID propertyId, uint32_t accountId, uint32_t day, uint32_t days) override;
 	int64_t GetPropertyReputationOnDay(LWOOBJID propertyId, uint32_t day) override;

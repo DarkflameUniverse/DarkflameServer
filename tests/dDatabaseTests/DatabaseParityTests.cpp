@@ -1506,6 +1506,25 @@ TEST_F(ParitySeeded, PropertyReputation) {
 	Both("GetPropertyReputationDays", [](GameDatabase& db) { return db.GetPropertyReputationDays(PROP_REP, 19980); });
 }
 
+TEST_F(ParitySeeded, BbbAutosave) {
+	std::string binary = "sd0\x01\xff";
+	for (int i = 0; i < 256; i++) binary += static_cast<char>(i);
+	const auto describe = [](const std::optional<IBbbAutosave::Info>& info) {
+		if (!info) return json(nullptr);
+		return json{ info->lxfml, info->sourceItems, info->updatedAt };
+	};
+	EXPECT_EQ(Both("GetBbbAutosave empty", [&](GameDatabase& db) { return describe(db.GetBbbAutosave(CHAR_BOB)); }), json(nullptr));
+	Both("SetBbbAutosave", [&](GameDatabase& db) {
+		db.SetBbbAutosave(CHAR_BOB, { "first", { 1152921510000000001LL }, 1700000000 });
+		db.SetBbbAutosave(CHAR_BOB, { binary, { 1152921510000000002LL, 1152921510000000003LL }, 1700000001 });
+		return describe(db.GetBbbAutosave(CHAR_BOB));
+	});
+	EXPECT_EQ(Both("DeleteBbbAutosave", [&](GameDatabase& db) {
+		db.DeleteBbbAutosave(CHAR_BOB);
+		return describe(db.GetBbbAutosave(CHAR_BOB));
+	}), json(nullptr));
+}
+
 TEST_F(ParitySeeded, Contraband) {
 	Both("GetContrabandItems empty", [](GameDatabase& db) { return db.GetContrabandItems(); });
 	Both("SetContrabandItem", [](GameDatabase& db) {
