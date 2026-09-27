@@ -1,86 +1,186 @@
 /**
- * The UGC Server page: counts, a gallery and a list of what the UGC server made of players' models and modular builds
- * (from the database), its live status, and a viewer comparing a model's generated mesh, its LXFML and its icon, now
- * and before it was made again. Everything from the UGC server comes through the dashboard (/api/ugc/server/status,
- * /api/ugc/files/..., /api/ugc/mesh/...), so the browser never has to reach the UGC server itself.
+ * The UGC Server page: counts, the UGC server's live status, and what it made: player models, and cars and rockets as
+ * assemblies (one per combination of modules, however many builds use it), paged on the server with a search box
+ * (field prefixes), filters and sorting, all kept in the address so Back and links work. An item opens with its
+ * generated mesh and LXFML (models), its modules and the builds that use it (assemblies), and the icon editor
+ * (ugc-icon-editor.js). Everything from the UGC server comes through the dashboard, so the browser never has to reach
+ * the UGC server itself.
  */
 (function () {
 	'use strict';
 
-	var kind = 'model', state = '', search = '', page = 0, view = 'gallery', canManage = false, publicUrl = '';
-	var nifViewer = null, lxfmlViewer = null, current = null;
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
-	var PAGE_SIZE = { gallery: 48, list: 50 };
-
-	try { view = localStorage.getItem('ugcView') === 'list' ? 'list' : 'gallery'; } catch (e) { /* storage blocked */ }
+	var SORTS = {
+		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['owner', 'Owner'], ['name', 'File name']],
+		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['name', 'Name']]
+	};
+	// The list's state, as in the address: ?kind=&q=&state=&type=&sort=&page= (from 1)&view=, and the open item (&item=, &build=)
+	var list = { kind: 'model', q: '', state: '', type: '', sort: 'newest', page: 0, view: 'gallery' };
+	var canManage = false, publicUrl = '', items = [], total = 0, kinds = [];
+	var nifViewer = null, lxfmlViewer = null, current = null;
 
 	function $(id) { return document.getElementById(id); }
+	function fileUrl(itemKind, id, name) { return '/api/ugc/files/' + itemKind + '/' + encodeURIComponent(id) + '/' + name; }
+	function mb(bytes) { return (bytes / 1048576).toFixed(0) + ' MB'; }
+	function pageSize() { return +Prefs.get('ugc.pageSize.' + list.view, list.view === 'gallery' ? 48 : 50) || 48; }
 
-	function fileUrl(itemKind, id, name) {
-		return '/api/ugc/files/' + itemKind + '/' + encodeURIComponent(id) + '/' + name;
+	// ---- the address ----
+
+	function readUrl() {
+		var p = new URLSearchParams(location.search);
+		list.kind = p.get('kind') === 'modular' ? 'modular' : 'model';
+		list.q = p.get('q') || '';
+		list.state = p.get('state') || '';
+		list.type = p.get('type') || '';
+		list.sort = p.get('sort') || 'newest';
+		list.page = Math.max(0, (parseInt(p.get('page'), 10) || 1) - 1);
+		var v = p.get('view');
+		if (v === 'list' || v === 'gallery') list.view = v;
+		else try { list.view = localStorage.getItem('ugcView') === 'list' ? 'list' : 'gallery'; } catch (e) { /* storage blocked */ }
+		var item = p.get('item');
+		return item && /^[\d-]{1,200}$/.test(item) ? { id: item, kind: list.kind, build: p.get('build') || '' } : null;
+	}
+	function writeUrl(push, item) {
+		var p = new URLSearchParams();
+		p.set('kind', list.kind);
+		if (list.q) p.set('q', list.q);
+		if (list.state) p.set('state', list.state);
+		if (list.type && list.kind === 'modular') p.set('type', list.type);
+		if (list.sort !== 'newest') p.set('sort', list.sort);
+		if (list.page) p.set('page', list.page + 1);
+		p.set('view', list.view);
+		if (item) {
+			p.set('item', item.id);
+			if (item.build) p.set('build', item.build);
+		}
+		var url = location.pathname + '?' + p.toString();
+		if (url === location.pathname + location.search) return;
+		if (push) history.pushState(null, '', url);
+		else history.replaceState(null, '', url);
+	}
+	function showControls() {
+		$('kindButtons').querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === list.kind); });
+		$('viewButtons').querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('active', b.dataset.view === list.view); });
+		if (document.activeElement !== $('search')) $('search').value = list.q;
+		$('stateFilter').value = list.state;
+		$('typeFilter').classList.toggle('d-none', list.kind !== 'modular');
+		$('typeFilter').value = list.type;
+		$('sortSelect').innerHTML = SORTS[list.kind].map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join('');
+		$('sortSelect').value = SORTS[list.kind].some(function (o) { return o[0] === list.sort; }) ? list.sort : 'newest';
+		$('pageSize').value = String(pageSize());
 	}
 
-	function mb(bytes) { return (bytes / 1048576).toFixed(0) + ' MB'; }
+	// ---- the list ----
 
 	function countCard(title, c) {
 		return '<div class="col-md-6"><div class="card"><div class="card-body py-2"><div class="small text-body-secondary">' + esc(title) + '</div>' +
 			fmt.badge(c.done + ' made', 'success') + ' ' + fmt.badge(c.pending + ' waiting', 'secondary') + ' ' + fmt.badge(c.failed + ' failed', c.failed ? 'danger' : 'secondary') +
 			(c.empty ? ' ' + fmt.badge(c.empty + ' empty', 'light') : '') + '</div></div></div>';
 	}
-
 	function owner(i) {
 		return i.characterName ? '<a href="/characters/' + esc(i.characterId) + '">' + esc(i.characterName) + '</a>' : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>';
 	}
-
+	function badge(state) { var s = STATES[state] || [state, 'secondary']; return fmt.badge(s[0], s[1]); }
+	// The id whose files show an item's icon: a model's own, an assembly's made build's (the UGC server finds its combination)
+	function iconId(i) { return list.kind === 'modular' ? i.iconBuild : i.id; }
 	function iconImg(i, size) {
 		if (i.state !== 'done') return '<span class="ugc-noicon text-body-secondary small border rounded" style="width:' + size + 'px;height:' + size + 'px">' + esc((STATES[i.state] || [i.state])[0]) + '</span>';
-		return '<img src="' + esc(fileUrl(kind, i.id, 'icon.png')) + '" width="' + size + '" height="' + size + '" loading="lazy" alt="" class="ugc-checker rounded" onerror="this.style.visibility=\'hidden\'">';
+		return '<img src="' + esc(fileUrl(list.kind, iconId(i), 'icon.png')) + '" width="' + size + '" height="' + size + '" loading="lazy" alt="" class="ugc-checker rounded" onerror="this.style.visibility=\'hidden\'">';
 	}
-
+	function moduleNames(i) { return (i.moduleList || []).map(function (m) { return m.name || m.lot; }).join(', '); }
+	function waitBadge(i) {
+		return i.state === 'pending' && i.processAfter > Date.now() / 1000 ? ' <span class="small text-body-secondary" title="Waits for the owner to stop saving">after ' + esc(fmt.unix(i.processAfter)) + '</span>' : '';
+	}
 	function tile(i) {
-		var s = STATES[i.state] || [i.state, 'secondary'];
-		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(i.error || '') + '">' + iconImg(i, 128) +
-			'<div class="small text-truncate mt-1">' + (i.characterName ? esc(i.characterName) : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>') + '</div>' +
-			'<div class="small text-body-secondary text-truncate">' + esc(i.id) + '</div><div>' + fmt.badge(s[0], s[1]) + extraBadges(i) + '</div></div>';
+		var title = list.kind === 'modular' ? esc(i.kindLabel || 'Build type ' + i.buildType) : (i.characterName ? esc(i.characterName) : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>');
+		var sub = list.kind === 'modular' ? esc(moduleNames(i)) : esc(i.id);
+		var extra = list.kind === 'modular' ? ' ' + fmt.badge(i.uses + ' build' + (i.uses === 1 ? '' : 's'), 'info') : waitBadge(i);
+		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(i.error || sub) + '">' + iconImg(i, 128) +
+			'<div class="small text-truncate mt-1">' + title + '</div><div class="small text-body-secondary text-truncate">' + sub + '</div><div>' + badge(i.state) + extra + '</div></div>';
 	}
-
-	// Cars and rockets: how many builds share this icon; waiting models: when their quiet period after a save ends
-	function extraBadges(i) {
-		var out = '';
-		if (i.sharedBy > 1) out += ' ' + fmt.badge('shared by ' + i.sharedBy, 'info');
-		if (i.state === 'pending' && i.processAfter > Date.now() / 1000) out += ' <span class="small text-body-secondary" title="Waits for the owner to stop saving">after ' + esc(fmt.unix(i.processAfter)) + '</span>';
-		return out;
+	function listHead() {
+		return list.kind === 'modular' ? '<tr><th>Icon</th><th>Type</th><th>Modules</th><th>State</th><th>Builds</th><th>Owners</th><th></th></tr>'
+			: '<tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Made</th><th>Size</th><th>Details</th><th></th></tr>';
 	}
-
 	function row(i) {
-		var s = STATES[i.state] || [i.state, 'secondary'];
-		var details = (kind === 'modular' ? '<code class="small">' + esc(i.modules) + '</code>' : '') + extraBadges(i);
-		if (i.error) details += '<div class="small text-danger">' + esc(i.error) + '</div>';
-		var buttons = '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>' +
-			(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.id) + '">Make again</button>' : '');
-		return '<tr><td>' + iconImg(i, 48) + '</td><td class="small">' + esc(i.id) + '</td><td>' + owner(i) + '</td><td>' + fmt.badge(s[0], s[1]) +
-			(i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + '</td>' +
-			'<td class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</td><td>' + details + '</td><td class="text-end text-nowrap">' + buttons + '</td></tr>';
+		var view = '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>';
+		var error = i.error ? '<div class="small text-danger">' + esc(i.error) + '</div>' : '';
+		if (list.kind === 'modular') {
+			return '<tr><td>' + iconImg(i, 48) + '</td><td>' + esc(i.kindLabel || i.buildType) + '</td><td class="small">' + esc(moduleNames(i)) + '<div><code>' + esc(i.key) + '</code></div>' + error +
+				'</td><td>' + badge(i.state) + '</td><td>' + esc(i.uses) + '</td><td>' + esc(i.owners) + '</td><td class="text-end text-nowrap">' + view +
+				(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.iconBuild) + '">Make again</button>' : '') + '</td></tr>';
+		}
+		return '<tr><td>' + iconImg(i, 48) + '</td><td class="small">' + esc(i.id) + '</td><td>' + owner(i) + '</td><td>' + badge(i.state) +
+			(i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i) + '</td>' +
+			'<td class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</td><td class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') +
+			'</td><td class="small">' + esc(i.detail || '') + error + '</td><td class="text-end text-nowrap">' + view +
+			(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.id) + '">Make again</button>' : '') + '</td></tr>';
 	}
 
-	var items = [];
+	// Numbered pages with first and last, around the current one
+	function pager(el, page, pages, onPage) {
+		if (pages <= 1) { el.innerHTML = ''; return; }
+		var shown = [];
+		for (var p = Math.max(0, page - 2); p <= Math.min(pages - 1, page + 2); p++) shown.push(p);
+		var li = function (p, label, disabled, active) {
+			return '<li class="page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '') + '"><a class="page-link" href="#" data-page="' + p + '"' +
+				(active ? ' aria-current="page"' : '') + '>' + label + '</a></li>';
+		};
+		var html = li(0, '&laquo;', page === 0) + li(Math.max(0, page - 1), '&lsaquo;', page === 0);
+		if (shown[0] > 0) html += li(0, '1') + (shown[0] > 1 ? '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>' : '');
+		shown.forEach(function (p) { html += li(p, p + 1, false, p === page); });
+		if (shown[shown.length - 1] < pages - 1) html += (shown[shown.length - 1] < pages - 2 ? '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>' : '') + li(pages - 1, pages);
+		html += li(Math.min(pages - 1, page + 1), '&rsaquo;', page >= pages - 1) + li(pages - 1, '&raquo;', page >= pages - 1);
+		el.innerHTML = html;
+		el.onclick = function (e) {
+			var a = e.target.closest('[data-page]');
+			if (!a || a.parentElement.classList.contains('disabled')) return;
+			e.preventDefault();
+			onPage(+a.dataset.page);
+		};
+	}
+
+	var loadSequence = 0;
 	function load() {
-		var size = PAGE_SIZE[view];
-		api.get('/api/ugc?kind=' + kind + '&state=' + state + '&page=' + page + '&size=' + size + '&search=' + encodeURIComponent(search)).then(function (d) {
-			if (!d.success) return;
+		var size = pageSize(), sequence = ++loadSequence;
+		showControls();
+		var query = 'kind=' + list.kind + '&q=' + encodeURIComponent(list.q) + '&state=' + list.state + '&type=' + encodeURIComponent(list.kind === 'modular' ? list.type : '') +
+			'&sort=' + list.sort + '&page=' + list.page + '&size=' + size;
+		return api.get('/api/ugc?' + query).then(function (d) {
+			if (!d.success || sequence !== loadSequence) return;
 			items = d.items;
+			total = d.total;
 			canManage = d.canManage;
 			publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
+			if (d.kinds && !kinds.length) {
+				kinds = d.kinds;
+				$('typeFilter').innerHTML = '<option value="">Every type</option>' + kinds.filter(function (k) { return k.buildType !== undefined; })
+					.map(function (k) { return '<option value="' + esc(k.kind) + '">' + esc(k.label) + '</option>'; }).join('');
+				$('typeFilter').value = list.type;
+			}
 			$('manageButtons').classList.toggle('d-none', !canManage);
 			$('cacheCard').classList.toggle('d-none', !canManage);
-			$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets', d.counts.modular);
-			$('gallery').classList.toggle('d-none', view !== 'gallery');
-			$('listCard').classList.toggle('d-none', view !== 'list');
-			if (view === 'gallery') $('gallery').innerHTML = d.items.map(tile).join('') || '<div class="text-body-secondary">Nothing here.</div>';
-			else $('rows').innerHTML = d.items.map(row).join('') || '<tr><td colspan="7" class="text-body-secondary">Nothing here.</td></tr>';
-			$('prevPage').disabled = page === 0;
-			$('nextPage').disabled = !d.more;
+			$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular);
+			$('gallery').classList.toggle('d-none', list.view !== 'gallery');
+			$('listCard').classList.toggle('d-none', list.view !== 'list');
+			var nothing = list.q || list.state || list.type ? 'Nothing matches.' : 'Nothing here.';
+			if (list.view === 'gallery') $('gallery').innerHTML = items.map(tile).join('') || '<div class="text-body-secondary">' + nothing + '</div>';
+			else {
+				$('listHead').innerHTML = listHead();
+				$('rows').innerHTML = items.map(row).join('') || '<tr><td colspan="8" class="text-body-secondary">' + nothing + '</td></tr>';
+			}
+			var pages = Math.max(1, Math.ceil(total / size));
+			pager($('pager'), list.page, pages, function (p) { list.page = p; writeUrl(true); load(); });
+			$('jumpPage').max = pages;
+			$('jumpPage').placeholder = (list.page + 1) + ' / ' + pages;
+			$('totalText').textContent = total.toLocaleString() + (list.kind === 'modular' ? ' assembl' + (total === 1 ? 'y' : 'ies') : ' model' + (total === 1 ? '' : 's'));
 		}).catch(function () {});
+	}
+
+	function changeList(changes, push) {
+		for (var k in changes) list[k] = changes[k];
+		writeUrl(push);
+		load();
 	}
 
 	function meter(label, value, limit, text) {
@@ -119,7 +219,7 @@
 
 	function remake(body, question) {
 		if (question && !confirm(question)) return;
-		body.kind = kind;
+		body.kind = list.kind;
 		api.post('/api/ugc/reprocess', body).then(function (d) {
 			if (!d.success) { toast(d.error || 'Failed', 'danger'); return; }
 			toast(d.message, 'success');
@@ -127,11 +227,7 @@
 		});
 	}
 
-	// ---- the viewer ----
-
-	function fetchJson(url) {
-		return fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-	}
+	// ---- the open item ----
 
 	function statsTable(now, before) {
 		if (!now) return '<div class="small text-body-secondary">No stats for this model (made before the UGC server wrote them).</div>';
@@ -168,78 +264,72 @@
 		}).catch(function (e) { stats.textContent = 'Could not load the mesh: ' + e.message; });
 	}
 
-	// ---- the open item in the address bar (?item=<id>&kind=model|modular), so it can be shared and Back closes it ----
-
-	var pushedItem = false;
-
-	function urlItem() {
-		var params = new URLSearchParams(location.search), id = params.get('item');
-		if (!id || !/^\d{1,20}$/.test(id)) return null;
-		return { id: id, kind: params.get('kind') === 'modular' ? 'modular' : 'model' };
-	}
-
-	function setKind(value) {
-		if (value === kind) return;
-		kind = value;
-		page = 0;
-		$('kindButtons').querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === kind); });
-		load();
-	}
-
-	// Opens the item the address names, or closes the open one when it names none
-	function openFromUrl() {
-		var wanted = urlItem();
-		if (!wanted) {
-			if (current) bootstrap.Modal.getOrCreateInstance($('previewModal')).hide();
-			return;
+	function openItem(itemKind, id, build) {
+		if (list.kind !== itemKind) changeList({ kind: itemKind, page: 0, sort: 'newest', type: '' }, true);
+		var known = items.find(function (i) { return i.id === id; });
+		if (known) return preview(known, build);
+		if (itemKind === 'modular' && /^\d+$/.test(id) && id.length > 12) {
+			// A build's id (links from elsewhere): open the assembly it uses, with the build shown in References
+			return api.get('/api/ugc/assembly/of/' + id).then(function (d) {
+				if (!d.success) { toast(d.error || 'No such build', 'warning'); return; }
+				findAndOpen('modular', d.key, id);
+			});
 		}
-		setKind(wanted.kind);
-		if (current && current.id === wanted.id && current.kind === wanted.kind) return;
-		var known = items.find(function (i) { return i.id === wanted.id; });
-		if (known) return preview(wanted.id, known);
-		// Not on the page of the list that is showing: look it up by its id
-		api.get('/api/ugc?kind=' + wanted.kind + '&search=' + wanted.id + '&size=10').then(function (d) {
+		findAndOpen(itemKind, id, build);
+	}
+	// Not on the page showing: looked up by its id (a model's) or its modules (an assembly's)
+	function findAndOpen(itemKind, id, build) {
+		var q = itemKind === 'modular' ? 'lot:' + id.split('-')[0] : 'id:' + id;
+		api.get('/api/ugc?kind=' + itemKind + '&q=' + encodeURIComponent(q) + '&size=200').then(function (d) {
 			canManage = d.canManage;
-			publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
-			preview(wanted.id, (d.items || []).find(function (i) { return i.id === wanted.id; }));
-		}).catch(function () { preview(wanted.id); });
+			var found = (d.items || []).find(function (i) { return i.id === id; });
+			preview(found || (itemKind === 'modular' ? { id: id, key: id, modules: id.replace(/-/g, '+'), moduleList: [], state: 'pending', uses: 0 } : { id: id, state: 'done' }), build);
+		}).catch(function () {});
 	}
 
-	function preview(id, found) {
-		var item = found || items.find(function (i) { return i.id === id; }) || { id: id, state: 'done' };
-		current = { id: id, kind: kind, stats: null };
-		var shown = urlItem();
-		if (!shown || shown.id !== id || shown.kind !== kind) {
-			history.pushState(null, '', location.pathname + '?item=' + encodeURIComponent(id) + '&kind=' + kind);
-			pushedItem = true;
-		}
-		$('previewTitle').textContent = (kind === 'model' ? 'Model ' : 'Car or rocket ') + id + (item.characterName ? ' by ' + item.characterName : '');
-		$('previewIcon').src = fileUrl(kind, id, 'icon.png');
+	function modulesHtml(i) {
+		return '<div class="d-flex flex-wrap gap-2 ugc-modules">' + (i.moduleList || []).map(function (m) {
+			return '<div class="d-flex align-items-center gap-1 border rounded px-1"><img src="' + esc(m.icon) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
+				'<div><div>' + esc(m.name || 'LOT ' + m.lot) + '</div><div class="text-body-secondary">' + (DASH.can('dev_cdclient') ? '<a href="/cdclient#/object/' + esc(m.lot) + '">LOT ' + esc(m.lot) + '</a>' : 'LOT ' + esc(m.lot)) + '</div></div></div>';
+		}).join('') + '</div>';
+	}
+
+	function preview(item, build) {
+		var modular = list.kind === 'modular', id = item.id;
+		current = { id: id, kind: list.kind, stats: null, fileId: modular ? item.iconBuild : id, item: item, build: build || '' };
+		var shown = readUrlItem();
+		if (!shown || shown.id !== id) writeUrl(true, { id: id, build: build });
+		$('previewTitle').textContent = modular ? (item.kindLabel || 'Car or rocket') + ': ' + (moduleNames(item) || item.key) : 'Model ' + id + (item.characterName ? ' by ' + item.characterName : '');
+		$('previewIcon').src = modular && !item.iconBuild ? '' : fileUrl(list.kind, current.fileId, 'icon.png');
 		$('previousIconBox').classList.add('d-none');
 		var previous = $('previousIcon');
 		previous.onload = function () { $('previousIconBox').classList.remove('d-none'); };
-		previous.src = fileUrl(kind, id, 'previous.icon.png');
+		previous.src = modular && !item.iconBuild ? '' : fileUrl(list.kind, current.fileId, 'previous.icon.png');
 		var links = '';
-		if (kind === 'model') {
+		if (!modular) {
 			links += '<a href="' + esc(fileUrl('model', id, 'model.nif')) + '" download="ugc_' + esc(id) + '.nif">Download the mesh (.nif)</a><br>' +
 				'<a href="/api/ugc/' + esc(id) + '/lxfml" download="ugc_' + esc(id) + '.lxfml">Download the LXFML</a><br>';
 		}
-		if (publicUrl) links += '<a href="' + esc(publicUrl + '/files/' + kind + '/' + id + '/icon.png') + '" target="_blank" rel="noopener">Open on the UGC server</a>';
-		if (canManage) {
-			links += '<div class="mt-2 d-flex flex-wrap gap-1"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(id) + '">Make again</button>' +
+		if (publicUrl && current.fileId) links += '<a href="' + esc(publicUrl + '/files/' + list.kind + '/' + current.fileId + '/icon.png') + '" target="_blank" rel="noopener">Open on the UGC server</a>';
+		if (canManage && current.fileId) {
+			links += '<div class="mt-2 d-flex flex-wrap gap-1"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(current.fileId) + '">Make again</button>' +
 				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="now">Delete files, make again</button>' +
 				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="gone">Delete files, leave deleted</button></div>';
-			if (item.sharedBy > 1) links += '<div class="text-body-secondary mt-1">This icon is shared by ' + esc(item.sharedBy) + ' builds of the same modules.</div>';
 		}
 		if (item.error) links += '<div class="text-danger mt-2">' + esc(item.error) + '</div>';
 		$('previewLinks').innerHTML = links;
-		var model = kind === 'model';
-		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', !model); });
-		$('statsBox').innerHTML = model ? '' : '<div class="small">Modules: <code>' + esc(item.modules || '') + '</code> (combination <code>' + esc(item.combination || '') +
-			'</code>). The game client puts cars and rockets together itself; only the icon is made, once per combination of modules.</div>';
-		UgcIconEditor.open(model ? { model: true, id: id } : { model: false, modules: item.modules || '', label: item.combination });
+		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', modular); });
+		$('statsBox').innerHTML = modular ? '<div class="small mb-1">Modules (combination <code>' + esc(item.key) + '</code>, used by ' + esc(item.uses) + ' build' + (item.uses === 1 ? '' : 's') +
+			'). The game client puts cars and rockets together itself; the UGC server only draws the icon, once per combination.</div>' + modulesHtml(item) : '';
+		$('referencesCard').classList.toggle('d-none', !modular);
+		if (modular) {
+			refs = { key: item.key, page: 0, q: '', highlight: build || '' };
+			$('refSearch').value = '';
+			loadRefs();
+		}
+		UgcIconEditor.open(modular ? { model: false, modules: item.modules || item.key.replace(/-/g, '+'), label: item.key } : { model: true, id: id });
 		bootstrap.Modal.getOrCreateInstance($('previewModal')).show();
-		if (!model) return;
+		if (modular) return;
 
 		Promise.all([fetchJson(fileUrl('model', id, 'stats.json')), fetchJson(fileUrl('model', id, 'previous.stats.json'))]).then(function (s) {
 			if (!current || current.id !== id) return;
@@ -247,12 +337,11 @@
 			current.statsLoaded = true;
 			$('statsBox').innerHTML = statsTable(s[0], s[1]);
 			var lods = (s[0] && s[0].lods) || [{ lod: 0 }];
-			$('lodSelect').innerHTML = lods.map(function (l, i) { return '<option value="' + i + '">LOD ' + esc(l.lod) + (l.far ? ' (' + esc(l.near) + '-' + esc(l.far) + ')' : '') + '</option>'; }).join('');
+			$('lodSelect').innerHTML = lods.map(function (l, n) { return '<option value="' + n + '">LOD ' + esc(l.lod) + (l.far ? ' (' + esc(l.near) + '-' + esc(l.far) + ')' : '') + '</option>'; }).join('');
 			$('versionSelect').querySelector('[value=previous]').disabled = !s[1];
 			$('versionSelect').value = 'current';
 			loadMesh(true);
 		});
-
 		var nifBox = $('nifViewer'), lxfmlBox = $('lxfmlViewer');
 		import('/js/ugc-viewer.js').then(function (module) {
 			if (!nifViewer) {
@@ -270,38 +359,89 @@
 			return lxfmlViewer.load([{ id: id, name: 'Model ' + id, position: [0, 0, 0], rotation: [0, 0, 0, 1], url: '/api/ugc/' + id + '/lxfml' }], 1);
 		}).catch(function (e) { lxfmlBox.textContent = 'The 3D view could not load: ' + e.message; });
 	}
+	function fetchJson(url) {
+		return fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+	}
+	function readUrlItem() {
+		var p = new URLSearchParams(location.search), item = p.get('item');
+		return item ? { id: item, build: p.get('build') || '' } : null;
+	}
+
+	// ---- an assembly's references: the builds that use it, and where they are ----
+
+	var refs = null, refTimer = null;
+	function whereText(w) {
+		return (w || []).map(function (x) {
+			if (x.type === 'property') return 'On <a href="/properties/' + esc(x.propertyId) + '">' + esc(x.propertyName || 'property ' + x.propertyId) + '</a>' + (x.ownerName ? ' of ' + esc(x.ownerName) : '');
+			if (x.type === 'mail') return 'In a mail to <a href="/characters/' + esc(x.characterId) + '">' + esc(x.characterName || x.characterId) + '</a>';
+			return 'In the creator\'s ' + esc(x.inventory || 'inventory');
+		}).join('<br>') || '<span class="text-body-secondary">Not found placed, mailed or with its creator</span>';
+	}
+	function loadRefs() {
+		if (!refs) return;
+		var wanted = refs;
+		$('refRows').innerHTML = '<tr><td colspan="6" class="text-body-secondary">Loading…</td></tr>';
+		api.get('/api/ugc/assembly/builds?modules=' + encodeURIComponent(refs.key) + '&q=' + encodeURIComponent(refs.q) + '&page=' + refs.page + '&size=25' +
+			(refs.highlight ? '&build=' + encodeURIComponent(refs.highlight) : '')).then(function (d) {
+			if (refs !== wanted) return;
+			if (!d.success) { $('refRows').innerHTML = '<tr><td colspan="6" class="text-danger">' + esc(d.error || 'Failed') + '</td></tr>'; return; }
+			refs.page = d.page;
+			$('refRows').innerHTML = d.items.map(function (b) {
+				return '<tr' + (b.id === refs.highlight ? ' class="ugc-highlight" id="refHighlight"' : '') + '><td><code>' + esc(b.id) + '</code></td><td>' + owner(b) + '</td><td>' +
+					(b.accountId ? '<a href="/accounts/' + esc(b.accountId) + '">' + esc(b.accountName || b.accountId) + '</a>' : '') + '</td><td>' + badge(b.state) +
+					(b.error ? '<div class="text-danger">' + esc(b.error) + '</div>' : '') + '</td><td>' + whereText(b.where) + '</td><td class="text-end">' +
+					'<a class="btn btn-sm btn-outline-secondary" href="/ugc_search?q=' + encodeURIComponent('id:' + b.id) + '">Find</a></td></tr>';
+			}).join('') || '<tr><td colspan="6" class="text-body-secondary">No builds match.</td></tr>';
+			pager($('refPager'), d.page, Math.max(1, Math.ceil(d.total / d.size)), function (p) { refs.page = p; refs.highlight = ''; loadRefs(); });
+			$('refTotal').textContent = d.total + ' build' + (d.total === 1 ? '' : 's');
+			var hl = $('refHighlight');
+			if (hl) hl.scrollIntoView({ block: 'nearest' });
+		});
+	}
+	$('refSearch').addEventListener('input', function () {
+		var value = this.value.trim();
+		clearTimeout(refTimer);
+		refTimer = setTimeout(function () { if (refs) { refs.q = value; refs.page = 0; refs.highlight = ''; loadRefs(); } }, 300);
+	});
+
+	// ---- controls ----
 
 	$('kindButtons').addEventListener('click', function (e) {
 		var button = e.target.closest('[data-kind]');
-		if (button) setKind(button.dataset.kind);
+		if (button && button.dataset.kind !== list.kind) changeList({ kind: button.dataset.kind, page: 0, sort: 'newest', type: '' }, true);
 	});
 	$('viewButtons').addEventListener('click', function (e) {
 		var button = e.target.closest('[data-view]');
 		if (!button) return;
-		view = button.dataset.view;
-		page = 0;
-		try { localStorage.setItem('ugcView', view); } catch (err) { /* storage blocked */ }
-		this.querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('active', b === button); });
-		load();
+		try { localStorage.setItem('ugcView', button.dataset.view); } catch (err) { /* storage blocked */ }
+		changeList({ view: button.dataset.view, page: 0 }, false);
 	});
-	$('viewButtons').querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('active', b.dataset.view === view); });
-	$('stateFilter').addEventListener('change', function () { state = this.value; page = 0; load(); });
+	$('stateFilter').addEventListener('change', function () { changeList({ state: this.value, page: 0 }, true); });
+	$('typeFilter').addEventListener('change', function () { changeList({ type: this.value, page: 0 }, true); });
+	$('sortSelect').addEventListener('change', function () { changeList({ sort: this.value, page: 0 }, true); });
+	$('pageSize').addEventListener('change', function () { Prefs.set('ugc.pageSize.' + list.view, +this.value); changeList({ page: 0 }, false); });
+	$('jumpPage').addEventListener('change', function () {
+		var p = Math.max(1, Math.min(+this.max || 1, parseInt(this.value, 10) || 1));
+		this.value = '';
+		changeList({ page: p - 1 }, true);
+	});
 	var searchTimer = null;
 	$('search').addEventListener('input', function () {
 		var value = this.value.trim();
 		clearTimeout(searchTimer);
-		searchTimer = setTimeout(function () { search = value; page = 0; load(); }, 300);
+		searchTimer = setTimeout(function () { changeList({ q: value, page: 0 }, false); }, 300);
 	});
-	$('prevPage').addEventListener('click', function () { if (page > 0) { page--; load(); } });
-	$('nextPage').addEventListener('click', function () { page++; load(); });
 	$('retryFailed').addEventListener('click', function () { remake({ failedOnly: true }); });
 	$('remakeAll').addEventListener('click', function () {
-		remake({}, 'Make every ' + (kind === 'model' ? 'model' : 'car and rocket') + ' again? This can take a long time.');
+		remake({}, 'Make every ' + (list.kind === 'model' ? 'model' : 'car and rocket') + ' again? This can take a long time.');
 	});
 	function onItemClick(e) {
 		var remakeButton = e.target.closest('[data-remake]'), previewButton = e.target.closest('[data-preview]');
 		if (remakeButton) remake({ id: remakeButton.dataset.remake });
-		else if (previewButton) preview(previewButton.dataset.preview);
+		else if (previewButton) {
+			var item = items.find(function (i) { return i.id === previewButton.dataset.preview; });
+			if (item) preview(item);
+		}
 	}
 	$('rows').addEventListener('click', onItemClick);
 	$('gallery').addEventListener('click', onItemClick);
@@ -318,20 +458,22 @@
 	$('reframeButton').addEventListener('click', function () { if (nifViewer) nifViewer.frame(); });
 	$('previewModal').addEventListener('hidden.bs.modal', function () {
 		current = null;
+		refs = null;
 		UgcIconEditor.close();
 		if (lxfmlViewer && lxfmlViewer.dispose) lxfmlViewer.dispose();
 		lxfmlViewer = null;
-		// Closed here rather than with Back: take the item out of the address too
-		if (urlItem()) {
-			if (pushedItem) history.back();
-			else history.replaceState(null, '', location.pathname);
-		}
-		pushedItem = false;
+		if (readUrlItem()) writeUrl(true);
 	});
 	window.addEventListener('popstate', function () {
-		pushedItem = false;
-		openFromUrl();
+		var item = readUrl();
+		load();
+		if (!item) {
+			if (current) bootstrap.Modal.getOrCreateInstance($('previewModal')).hide();
+		} else if (!current || current.id !== item.id) {
+			openItem(item.kind, item.id, item.build);
+		}
 	});
+
 	// ---- deleting and purging stored files ----
 
 	function showDeleteResult(box, d) {
@@ -347,19 +489,19 @@
 		if (!button || !current) return;
 		var after = button.dataset.deleteOpen;
 		if (!confirm('Delete the files made for ' + current.id + (after === 'gone' ? ' and leave them deleted?' : ' and make them again?'))) return;
-		api.post('/api/ugc/cache/delete', { kind: current.kind, id: current.id, after: after }).then(function (d) { showDeleteResult(null, d); });
+		api.post('/api/ugc/cache/delete', { kind: current.kind, id: current.fileId, after: after }).then(function (d) { showDeleteResult(null, d); });
 	});
 	function purge(all) {
-		var body = { kind: kind, state: $('purgeState').value, owner: $('purgeOwner').value.trim(), olderThanDays: +$('purgeOlder').value || 0,
+		var body = { kind: list.kind, state: $('purgeState').value, owner: $('purgeOwner').value.trim(), olderThanDays: +$('purgeOlder').value || 0,
 			unusedDays: +$('purgeUnused').value || 0, after: $('purgeAfter').value };
 		if (all) {
-			var typed = prompt('This deletes every stored ' + (kind === 'model' ? 'model' : 'car and rocket') + ' file. Type PURGE ALL to go ahead.');
+			var typed = prompt('This deletes every stored ' + (list.kind === 'model' ? 'model' : 'car and rocket') + ' file. Type PURGE ALL to go ahead.');
 			if (typed !== 'PURGE ALL') return;
-			body = { kind: kind, all: true, confirm: typed, after: $('purgeAfter').value };
+			body = { kind: list.kind, all: true, confirm: typed, after: $('purgeAfter').value };
 		} else if (!body.state && !body.owner && !body.olderThanDays && !body.unusedDays) {
 			toast('Pick a filter first, or purge all', 'warning');
 			return;
-		} else if (!confirm('Delete the stored files of every ' + (kind === 'model' ? 'model' : 'car and rocket') + ' matching the filter?')) {
+		} else if (!confirm('Delete the stored files of every ' + (list.kind === 'model' ? 'model' : 'car and rocket') + ' matching the filter?')) {
 			return;
 		}
 		$('purgeResult').textContent = 'Deleting…';
@@ -381,13 +523,7 @@
 				var button = e.target.closest('[data-preset]');
 				var entry = button && kinds.find(function (k) { return k.kind === button.dataset.preset; });
 				if (!entry || !entry.sample) return;
-				if (entry.kind === 'model') {
-					setKind('model');
-					preview(String(entry.sample));
-				} else {
-					setKind('modular');
-					preview(entry.sample, { id: entry.sample, modules: entry.sample.replace(/-/g, '+'), combination: entry.sample, state: 'done', sharedBy: entry.sampleBuilds });
-				}
+				openItem(entry.kind === 'model' ? 'model' : 'modular', String(entry.sample));
 			};
 		}).catch(function (e) { $('presetsList').textContent = 'Could not load the icon types: ' + e.message; });
 	}
@@ -395,11 +531,9 @@
 
 	if (window.Live) Live.on('ugc', load);
 
-	var linked = urlItem();
-	if (linked) kind = linked.kind;
-	$('kindButtons').querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === kind); });
-	load();
-	if (linked) openFromUrl();
+	var linked = readUrl();
+	writeUrl(false, linked);
+	load().then(function () { if (linked) openItem(linked.kind, linked.id, linked.build); });
 	loadStatus();
 	setInterval(loadStatus, 10000);
 })();

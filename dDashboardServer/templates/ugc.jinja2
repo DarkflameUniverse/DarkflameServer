@@ -49,10 +49,13 @@
 			<button type="button" class="btn btn-outline-primary active" data-kind="model">Models</button>
 			<button type="button" class="btn btn-outline-primary" data-kind="modular">Cars and rockets</button>
 		</div>
+		<input type="search" class="form-control form-control-sm" style="max-width: 22rem" id="search" placeholder="Search: text, owner:, account:, property:, name:, lot:, id:, state:, kind:"
+			aria-label="Search" title="Plain text matches names, owners and ids. Prefixes search one field: owner:, account:, property:, name:, lot: or module:, id:, state: (pending, done, failed, empty), kind: (a car or rocket type)">
 		<select class="form-select form-select-sm w-auto" id="stateFilter" aria-label="State">
 			<option value="">Every state</option><option value="pending">Waiting</option><option value="done">Made</option><option value="failed">Failed</option><option value="empty">Empty (no bricks)</option>
 		</select>
-		<input type="search" class="form-control form-control-sm w-auto" id="search" placeholder="ID or owner" aria-label="Search by ID or owner">
+		<select class="form-select form-select-sm w-auto d-none" id="typeFilter" aria-label="Type"><option value="">Every type</option></select>
+		<select class="form-select form-select-sm w-auto" id="sortSelect" aria-label="Sort"></select>
 		<div class="btn-group btn-group-sm" role="group" id="viewButtons">
 			<button type="button" class="btn btn-outline-secondary active" data-view="gallery">Icons</button>
 			<button type="button" class="btn btn-outline-secondary" data-view="list">List</button>
@@ -66,13 +69,16 @@
 	<div id="gallery" class="ugc-gallery mb-2"></div>
 	<div class="card d-none" id="listCard">
 		<table class="table table-sm align-middle mb-0 table-stack">
-			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Last attempt</th><th>Details</th><th></th></tr></thead>
+			<thead id="listHead"></thead>
 			<tbody id="rows"></tbody>
 		</table>
 	</div>
-	<div class="d-flex gap-2 mt-2">
-		<button type="button" class="btn btn-sm btn-outline-secondary" id="prevPage">Newer</button>
-		<button type="button" class="btn btn-sm btn-outline-secondary" id="nextPage">Older</button>
+	<div class="d-flex flex-wrap gap-2 align-items-center mt-2" id="pagerBar">
+		<nav aria-label="Pages"><ul class="pagination pagination-sm mb-0" id="pager"></ul></nav>
+		<label class="d-flex align-items-center gap-1 small">Page <input type="number" min="1" class="form-control form-control-sm" style="width:5rem" id="jumpPage" aria-label="Go to page"></label>
+		<label class="d-flex align-items-center gap-1 small">Show <select class="form-select form-select-sm w-auto" id="pageSize" aria-label="Per page">
+			<option>24</option><option>48</option><option>96</option><option>200</option></select> per page</label>
+		<span class="small text-body-secondary ms-auto" id="totalText"></span>
 	</div>
 
 	<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
@@ -156,6 +162,15 @@
 						<div class="row g-2 mt-1" id="framingControls"></div>
 					</div>
 				</div>
+				<div class="card mt-3 d-none" id="referencesCard">
+					<div class="card-header py-2 small fw-semibold d-flex flex-wrap align-items-center gap-2">References <span class="text-body-secondary fw-normal">the builds that use these modules</span>
+						<input type="search" class="form-control form-control-sm ms-auto" style="max-width: 16rem" id="refSearch" placeholder="Owner, account, property or id" aria-label="Search the builds"></div>
+					<div class="table-responsive"><table class="table table-sm small align-middle mb-0">
+						<thead><tr><th>Build (blueprint id)</th><th>Owner</th><th>Account</th><th>State</th><th>Where it is</th><th></th></tr></thead>
+						<tbody id="refRows"></tbody></table></div>
+					<div class="card-footer py-1 d-flex align-items-center gap-2 small"><nav aria-label="Reference pages"><ul class="pagination pagination-sm mb-0" id="refPager"></ul></nav>
+						<span class="ms-auto text-body-secondary" id="refTotal"></span></div>
+				</div>
 			</div>
 		</div></div>
 	</div>
@@ -170,6 +185,8 @@
 		linear-gradient(45deg, rgba(128,128,128,.15) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.15) 75%);
 		background-size: 16px 16px; background-position: 0 0, 8px 8px; }
 	.ugc-meter { height: .4rem; }
+	.ugc-modules img { width: 32px; height: 32px; }
+	tr.ugc-highlight > td { background-color: var(--bs-warning-bg-subtle); }
 </style>
 {% endblock %}
 
