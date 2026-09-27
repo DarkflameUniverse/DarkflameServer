@@ -967,6 +967,11 @@ are time taken, so less is better.
 
 ## Properties
 
+The property page's model list shows each model's icon: for a player-built model (or a car or rocket) the icon the UGC
+server made of it (the item's icon until it has), with its UGC state and a link to it on the UGC page. The character
+page's inventories (models, vault models and the brick building ones included) show creations the same way.
+**UGC Search** (`/ugc_search`, `properties_view`) finds creations and where they are: see docs/UgcServer.md.
+
 **Today's Top Properties** (Properties page, permission `feature_properties`, default GM 5). The game's news screen has
 four "Today's Top Properties" slots, one per small property world: Block Yard, Nimbus Rock, Chantey Shanty and Raven
 Bluff (from the client's PropertyTemplate and PropertyEntranceComponent tables). A slot only displays what the server
@@ -1049,6 +1054,11 @@ red. Terrain needs `client_location` to be set.
 **Layers.** The property 3D view (and the showcase's) fills the window with its panels scrolling inside; its **Layers**
 tab has the same switches as World 3D where they apply: detail, Terrain, Scenery, Sky, Placed models, Build area,
 Shadows and Hidden objects (off by default), remembered per account.
+
+**Generated models.** When the UGC server has made a player-built model, the property 3D view draws it from the model
+the UGC server made (the NIF the game client gets), and builds the rest from their LXFML as before; switch
+**Generated models** off in Layers to build every model from its LXFML. The switch shows once the property has a
+made model; a model's Selected tab says which it is drawn from, with its UGC state. See docs/UgcServer.md.
 
 **Scenery.** The property 3D view (and the showcase's) draws the zone around the property as the game does: every
 scene object's model and the zone's sky, from the game client's files (needs `client_location`). Models load nearest

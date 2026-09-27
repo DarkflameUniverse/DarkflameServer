@@ -256,6 +256,35 @@ or before it was made again, with wireframe, vertex colors and baked lighting sw
 it, the icon now and before, and the stats (triangles per LOD before and after hidden faces were removed, how many
 were removed, vertices, shapes, timings, with the change since the version before).
 
+### Finding creations and showing them elsewhere
+
+**UGC Search** (`/ugc_search`, in the menu under Properties, `properties_view`; `?q=` fills the search in) finds
+players' creations with `GET /api/ugc_links/search?q=`. A number matches the UGC / blueprint id, a placed model's
+object id, the property it is placed on, the creator's character or account id, or a LOT (a model placed as that LOT,
+or a car or rocket with that module); text matches the creator's character and account names, property names, the
+name and description a player gave a placed model and the upload's file name. `owner:`, `property:`, `model:`, `id:`
+and `lot:` search one field. Each result has its icon, state, creator and where it is: placed on a property (from
+`properties_contents`), attached to a mail (a car's or rocket's subkey, a model item's blueprint in the attachment's
+config) or in its creator's inventories (their saved XML); anything else is "Not found" (traded, sold or deleted).
+
+Results, the property page and the character page link to a creation on the UGC page as
+`/ugc?item=<id>&kind=model|modular`, for the page to open that item.
+
+What the UGC server made shows on the pages that show a creation, to whoever may view that page:
+
+* The property page: each player-built model's icon, state and link (`GET /api/ugc_links/property/<property id>`).
+* The property 3D view: made models are drawn from their NIF (`GET /api/ugc_links/mesh/<ugc id>?property=`),
+  switchable with **Generated models** (see docs/Dashboard.md); the rest from their LXFML.
+* The character page's inventories: creations get their icon and link (`GET /api/ugc_links/character/<character id>`).
+  A model item is known by its blueprint (`blueprintid`, which the item now keeps in its saved config as `x@bp`); a car
+  or rocket by its subkey (its `ugc_modular_build` id).
+
+Icons come from `GET /api/ugc_links/icon/model|modular/<id>` (the UGC server's `icon.png`, fetched by the dashboard
+like the `/ugc` page's files). It is served with `properties_view`, for a creation one of your own characters made, or
+with `?property=<id>` / `?character=<id>` naming a page you may view (properties: `properties_view`, or the owner with
+`own_properties`; characters: `characters_view`, or your own) that holds it. Until the UGC server has made an icon the
+pages show the item's own icon.
+
 ## Not done yet
 
 * Worlds still send every model's LXFML to the client on property load and don't set `renderUserGen`, so the client
