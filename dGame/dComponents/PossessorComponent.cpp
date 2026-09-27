@@ -7,6 +7,9 @@
 #include "RacingMessages.h"
 #include "eUnequippableActiveType.h"
 #include "InventoryMessages.h"
+#include "MovementMessages.h"
+#include "ControllablePhysicsComponent.h"
+#include "SkillMessages.h"
 
 PossessorComponent::PossessorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Possessable = LWOOBJID_EMPTY;
@@ -63,7 +66,10 @@ void PossessorComponent::Mount(Entity* mount) {
 	}
 
 	// GM's to send
-	GameMessages::SendSetJetPackMode(m_Parent, false);
+	GameMessages::SetJetPackMode jetPackMode;
+	jetPackMode.target = m_Parent->GetObjectID();
+	jetPackMode.bUse = false;
+	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	if (mount->GetComponent<HavokVehiclePhysicsComponent>()) {
 		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SetIsRacing(true);
@@ -104,4 +110,40 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 			if (characterComponent) characterComponent->SetIsRacing(false);
 		}
 	}
+}
+
+void PossessorComponent::OnDismountComplete(const LWOOBJID mountId) {
+	auto* mount = Game::entityManager->GetEntity(mountId);
+	// make sure we have the things we need and they aren't null
+	if (!mount) return;
+	if (!GetIsDismounting()) return;
+	SetIsDismounting(false);
+	SetPossessable(LWOOBJID_EMPTY);
+	SetPossessableType(ePossessionType::NO_POSSESSION);
+
+	// character related things
+	auto* character = m_Parent->GetComponent<CharacterComponent>();
+	if (character) {
+		// If we had an active item turn it off
+		if (GetMountItemID() != LWOOBJID_EMPTY) {
+			GameMessages::MarkInventoryItemAsActive markActive;
+			markActive.target = m_Parent->GetObjectID();
+			markActive.bActive = false;
+			markActive.iType = eUnequippableActiveType::MOUNT;
+			markActive.itemID = GetMountItemID();
+			markActive.Send(m_Parent->GetSystemAddress());
+		}
+		SetMountItemID(LWOOBJID_EMPTY);
+	}
+
+	// Set that the controllabel phsyics comp is teleporting
+	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetIsTeleporting(true);
+
+	// Call dismoint on the possessable comp to let it handle killing the possessable
+	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+	if (possessableComponent) possessableComponent->Dismount();
+
+	// Update the entity that was possessing
+	Game::entityManager->SerializeEntity(m_Parent);
 }

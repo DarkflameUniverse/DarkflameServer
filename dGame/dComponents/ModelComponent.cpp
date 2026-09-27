@@ -17,6 +17,7 @@
 
 #include "Database.h"
 #include "DluAssert.h"
+#include "ObjectMessages.h"
 
 ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();

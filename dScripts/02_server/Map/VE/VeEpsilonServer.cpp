@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "eMissionState.h"
 #include "Entity.h"
 
@@ -22,7 +23,7 @@ void VeEpsilonServer::OnMissionDialogueOK(Entity* self, Entity* target, int miss
 	// Notify the client that all objects have updated
 	self->AddCallbackTimer(3.0f, [this]() {
 		for (const auto* console : Game::entityManager->GetEntitiesInGroup(m_ConsoleGroup)) {
-			GameMessages::SendNotifyClientObject(console->GetObjectID(), u"");
+			GameMessages::NotifyClientObject(console->GetObjectID(), u"").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 		});
 }

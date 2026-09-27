@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "eTerminateType.h"
 
 bool ChooseYourDestinationNsToNt::CheckChoice(Entity* self, Entity* player) {
@@ -67,6 +68,6 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
 		messageBox.userData = u"";
 		messageBox.Send(sender->GetSystemAddress());
 	} else {
-		GameMessages::SendTerminateInteraction(sender->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+		GameMessages::TerminateInteraction(sender->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }

@@ -14,6 +14,9 @@
 #include "dServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
+#include "PlayerMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Zone.h"
@@ -107,6 +110,8 @@
 #include "StringifiedEnum.h"
 
 #include <ranges>
+#include "InventoryMessages.h"
+#include "ActivityMessages.h"
 
 Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
 
@@ -623,7 +628,7 @@ void Entity::Initialize() {
 			// FV tree handler for when built so it sets the state to moving at the correct time
 			if (GetLOT() == 9483) quickBuildComponent->AddQuickBuildCompleteCallback([objectID](Entity* user) {
 				auto* const entity = Game::entityManager->GetEntity(objectID);
-				if (entity) GameMessages::SendPlatformResync(entity, UNASSIGNED_SYSTEM_ADDRESS, false, 0, 1, 1, eMovementPlatformState::Moving, true);
+				if (entity) GameMessages::PlatformResync(*entity, false, 0, 1, 1, eMovementPlatformState::Moving, true).Send(UNASSIGNED_SYSTEM_ADDRESS);
 				});
 
 			const auto activityID = GetVar<int32_t>(u"activityID");
@@ -942,7 +947,10 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 
 	characterComponent->SetGMLevel(value);
 
-	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
+	GameMessages::SetGMLevel setGMLevel;
+	setGMLevel.target = m_ObjectID;
+	setGMLevel.level = value;
+	setGMLevel.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Update the chat server of our GM Level
 	{
@@ -1300,7 +1308,7 @@ void Entity::OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent eve
 }
 
 void Entity::NotifyObject(Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	GameMessages::SendNotifyObject(GetObjectID(), sender->GetObjectID(), GeneralUtils::ASCIIToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyObject(GetObjectID(), sender->GetObjectID(), GeneralUtils::ASCIIToUTF16(name)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	GetScript()->OnNotifyObject(this, sender, name, param1, param2);
 }
@@ -1899,7 +1907,10 @@ std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 }
 
 void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAddr) {
-	GameMessages::SendSetNetworkScriptVar(this, sysAddr, data);
+	GameMessages::ScriptNetworkVarUpdate scriptVar;
+	scriptVar.target = this->GetObjectID();
+	scriptVar.tableOfVars = GeneralUtils::ASCIIToUTF16(data);
+	scriptVar.Send(sysAddr);
 }
 
 const LDFBaseData* const Entity::GetVarData(const std::u16string& name) const {

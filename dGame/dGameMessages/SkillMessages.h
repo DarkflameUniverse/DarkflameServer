@@ -137,6 +137,16 @@ namespace GameMessages {
 		LWOOBJID i64TargetID{ LWOOBJID_EMPTY }; // optional
 		std::string sBitStream{};
 	};
+
+	struct UseSkillSet : public NetGameMsg {
+		UseSkillSet() : NetGameMsg(MessageType::Game::USE_SKILL_SET) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		bool bRemove{};
+		LWOOBJID possessedId{ LWOOBJID_EMPTY };
+		int32_t setId{ -1 };
+	};
 };
 
 #endif // SKILLMESSAGES_H

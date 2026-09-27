@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "Loot.h"
+#include "InventoryMessages.h"
 
 void NsQbImaginationStatue::OnStartup(Entity* self) {
 

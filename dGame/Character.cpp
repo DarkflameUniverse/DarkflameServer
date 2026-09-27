@@ -12,6 +12,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "MissionMessages.h"
+#include "PlayerMessages.h"
 #include "MissionComponent.h"
 #include "dZoneManager.h"
 #include "dServer.h"
@@ -597,7 +598,16 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 	EconomyLedger::RecordCoins(m_ID, newCoins - m_Coins, lootSource);
 	m_Coins = newCoins;
 
-	GameMessages::SendSetCurrency(Game::entityManager->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
+	auto* entity = Game::entityManager->GetEntity(m_ObjectID);
+	GameMessages::SetCurrency setCurrency;
+	setCurrency.target = entity->GetObjectID();
+	setCurrency.currency = m_Coins;
+	setCurrency.lootType = 0;
+	setCurrency.sourceLOT = 0;
+	setCurrency.sourceID = 0;
+	setCurrency.sourceTradeID = 0;
+	setCurrency.sourceType = lootSource;
+	setCurrency.SendToClient(entity->GetSystemAddress());
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const {

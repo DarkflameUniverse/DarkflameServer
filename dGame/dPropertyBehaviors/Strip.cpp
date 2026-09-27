@@ -16,6 +16,9 @@
 #include "DluAssert.h"
 #include "Loot.h"
 #include "PropertyBehaviorActions.h"
+#include "ObjectMessages.h"
+#include "InventoryMessages.h"
+#include "PropertyMessages.h"
 
 template <>
 void Strip::HandleMsg(AddStripMessage& msg) {

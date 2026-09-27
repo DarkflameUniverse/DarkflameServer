@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "eMissionState.h"
 #include "ePlayerFlag.h"
 
@@ -30,8 +31,7 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 
 			// Hide the chest
 			for (auto* chest : Game::entityManager->GetEntitiesInGroup(m_DragonChestGroup)) {
-				GameMessages::SendNotifyClientObject(chest->GetObjectID(), m_ShowChestNotification, 0, -1,
-					target->GetObjectID(), "", target->GetSystemAddress());
+				GameMessages::NotifyClientObject(chest->GetObjectID(), m_ShowChestNotification, 0, -1, target->GetObjectID(), "").Send(target->GetSystemAddress());
 			}
 
 			return;
@@ -43,8 +43,7 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 
 			// Show the chest
 			for (auto* chest : Game::entityManager->GetEntitiesInGroup(m_DragonChestGroup)) {
-				GameMessages::SendNotifyClientObject(chest->GetObjectID(), m_ShowChestNotification, 1, -1,
-					target->GetObjectID(), "", target->GetSystemAddress());
+				GameMessages::NotifyClientObject(chest->GetObjectID(), m_ShowChestNotification, 1, -1, target->GetObjectID(), "").Send(target->GetSystemAddress());
 			}
 
 			auto playerID = target->GetObjectID();

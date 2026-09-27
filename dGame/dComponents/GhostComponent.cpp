@@ -7,6 +7,7 @@
 
 #include "Amf3.h"
 #include "GameMessages.h"
+#include "PlayerMessages.h"
 
 GhostComponent::GhostComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_GhostReferencePoint = NiPoint3Constant::ZERO;

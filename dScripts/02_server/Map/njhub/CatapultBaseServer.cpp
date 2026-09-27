@@ -2,6 +2,7 @@
 #include "PetMessages.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "Entity.h"
 #include "RenderComponent.h"
@@ -65,7 +66,7 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		if (bouncer == nullptr) return;
 
 		// kill the bouncer
-		GameMessages::SendNotifyClientObject(bouncer->GetObjectID(), u"TimeToDie");
+		GameMessages::NotifyClientObject(bouncer->GetObjectID(), u"TimeToDie").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		bouncer->Smash(self->GetObjectID(), eKillType::VIOLENT);
 	}
 }

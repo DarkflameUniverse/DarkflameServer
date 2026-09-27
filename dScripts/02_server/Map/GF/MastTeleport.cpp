@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "MovementMessages.h"
 #include "Preconditions.h"
 #include "eEndBehavior.h"
 #include "DestroyableComponent.h"
@@ -51,9 +52,9 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		auto position = self->GetPosition();
 		auto rotation = self->GetRotation();
 
-		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
+		GameMessages::Teleport(playerId, position, rotation, true).SendToClient(player->GetSystemAddress());
 
-		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
+		GameMessages::Teleport(playerId, position, rotation, true).SendToClient(player->GetSystemAddress());
 
 		const auto cinematic = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Cinematic"));
 		const auto leanIn = self->GetVar<float>(u"LeanIn");
@@ -97,9 +98,13 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		position.y += 12;
 		position.z += (forward.z * 20.5f);
 
-		GameMessages::SendOrientToAngle(playerId, true, rads, player->GetSystemAddress());
+		GameMessages::OrientToAngle orientToAngle;
+		orientToAngle.target = playerId;
+		orientToAngle.bRelativeToCurrent = true;
+		orientToAngle.fAngle = rads;
+		orientToAngle.Send(player->GetSystemAddress());
 
-		GameMessages::SendTeleport(playerId, position, QuatUtils::IDENTITY, player->GetSystemAddress());
+		GameMessages::Teleport(playerId, position, QuatUtils::IDENTITY).SendToClient(player->GetSystemAddress());
 
 		GameMessages::SetStunned stun;
 		stun.target = playerId;

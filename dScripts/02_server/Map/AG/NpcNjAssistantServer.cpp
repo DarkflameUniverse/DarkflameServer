@@ -1,5 +1,6 @@
 #include "NpcNjAssistantServer.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 #include "Item.h"
@@ -10,7 +11,7 @@ void NpcNjAssistantServer::OnMissionDialogueOK(Entity* self, Entity* target, int
 	if (missionID != mailMission) return;
 
 	if (missionState == eMissionState::COMPLETE || missionState == eMissionState::READY_TO_COMPLETE) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"switch", 0, 0, LWOOBJID_EMPTY, "", target->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"switch", 0, 0, LWOOBJID_EMPTY, "").Send(target->GetSystemAddress());
 
 		auto* inv = static_cast<InventoryComponent*>(target->GetComponent(eReplicaComponentType::INVENTORY));
 

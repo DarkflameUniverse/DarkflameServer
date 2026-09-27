@@ -4,6 +4,7 @@
 #include "PetMessages.h"
 #include "InventoryMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
 #include "CDTamingBuildPuzzleTable.h"
@@ -740,7 +741,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		Game::entityManager->SerializeEntity(tamer);
 	}
-	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	GameMessages::TerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto* modelEntity = Game::entityManager->GetEntity(m_ModelId);
 
@@ -791,7 +792,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		msg.Send(tamer->GetSystemAddress());
 	}
 
-	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	GameMessages::TerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	currentActivities.erase(m_Tamer);
 
@@ -847,7 +848,7 @@ void PetComponent::ClientFailTamingMinigame() {
 		msg.Send(tamer->GetSystemAddress());
 	}
 
-	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	GameMessages::TerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	currentActivities.erase(m_Tamer);
 

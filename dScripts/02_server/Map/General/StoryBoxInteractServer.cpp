@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "dServer.h"
 #include "Amf3.h"
 #include "Entity.h"
@@ -54,7 +55,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		if (!flagMsg.flag) {
 			auto* const character = user->GetCharacter();
 			if (character) character->SetPlayerFlag(boxFlag, true);
-			GameMessages::SendFireEventClientSide(self->GetObjectID(), user->GetSystemAddress(), u"achieve", LWOOBJID_EMPTY, 0, -1, LWOOBJID_EMPTY);
+			GameMessages::FireEventClientSide(self->GetObjectID(), u"achieve", LWOOBJID_EMPTY, LWOOBJID_EMPTY).SendToClient(user->GetSystemAddress());
 		}
 	}
 }

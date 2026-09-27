@@ -3,6 +3,7 @@
 #include "Amf3.h"
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
+#include "ObjectMessages.h"
 
 template <>
 void State::HandleMsg(AddStripMessage& msg) {

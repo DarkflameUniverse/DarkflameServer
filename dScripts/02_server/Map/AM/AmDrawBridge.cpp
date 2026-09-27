@@ -1,6 +1,7 @@
 #include "AmDrawBridge.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "SimplePhysicsComponent.h"
 #include "eTerminateType.h"
 
@@ -26,7 +27,7 @@ void AmDrawBridge::OnUse(Entity* self, Entity* user) {
 
 	auto* player = user;
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {

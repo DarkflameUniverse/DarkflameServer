@@ -14,6 +14,7 @@
 #include "PropertyBehavior.h"
 #include "PropertyBehaviorActions.h"
 #include "StripUiPosition.h"
+#include "ObjectMessages.h"
 
 class AddMessage;
 class AMFArrayValue;

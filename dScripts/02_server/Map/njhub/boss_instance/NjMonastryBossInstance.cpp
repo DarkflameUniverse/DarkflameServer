@@ -5,6 +5,8 @@
 #include "dZoneManager.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "BaseCombatAIComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
@@ -84,8 +86,7 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity* self, Entity* player) {
 	self->AddCallbackTimer(0.0f, [self, player]() {
 		if (player != nullptr) {
 			// If we don't have enough players yet, wait for the others to load and notify the client to play a cool cinematic
-			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLoaded", 0, 0,
-				player->GetObjectID(), "", player->GetSystemAddress());
+			GameMessages::NotifyClientObject(self->GetObjectID(), u"PlayerLoaded", 0, 0, player->GetObjectID(), "").Send(player->GetSystemAddress());
 		}
 		});
 
@@ -114,7 +115,7 @@ void NjMonastryBossInstance::OnPlayerExit(Entity* self, Entity* player) {
 	// resize the instance to account for such.
 	if (totalPlayersLoaded.size() <= 2) self->SetVar<bool>(LargeTeamVariable, false);
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0, player->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string& name) {
@@ -173,8 +174,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		}
 
 		ActivityTimerStart(self, SpawnLowerFrakjawTimer, 1.0f, 1.0f);
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
-			LWOOBJID_EMPTY, BottomFrakSpawn, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY, BottomFrakSpawn).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == SpawnLowerFrakjawTimer) {
 		auto spawners = Game::zoneManager->GetSpawnersByName(LowerFrakjawSpawner);
 		if (!spawners.empty()) {
@@ -182,8 +182,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 			spawner->Activate();
 		}
 	} else if (timerName == SpawnRailTimer) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
-			LWOOBJID_EMPTY, FireRailSpawn, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY, FireRailSpawn).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		auto spawners = Game::zoneManager->GetSpawnersByName(FireRailSpawner);
 		if (!spawners.empty()) {
@@ -230,15 +229,10 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 
 			switch (state) {
 			case eQuickBuildState::BUILDING:
-				GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification,
-					0, 0, counterWeight->GetObjectID(),
-					BaseCounterweightQB + std::to_string(self->GetVar<uint32_t>(WaveNumberVariable)),
-					UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, counterWeight->GetObjectID(), BaseCounterweightQB + std::to_string(self->GetVar<uint32_t>(WaveNumberVariable))).Send(UNASSIGNED_SYSTEM_ADDRESS);
 				return;
 			case eQuickBuildState::INCOMPLETE:
-				GameMessages::SendNotifyClientObject(self->GetObjectID(), EndCinematicNotification,
-					0, 0, LWOOBJID_EMPTY, "",
-					UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::NotifyClientObject(self->GetObjectID(), EndCinematicNotification, 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 				return;
 			case eQuickBuildState::RESETTING:
 				ActivityTimerStart(self, SpawnCounterWeightTimer, 0.0f, 0.0f);
@@ -255,8 +249,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 
 					auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 					if (frakjaw == nullptr) {
-						GameMessages::SendNotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0,
-							0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+						GameMessages::NotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 						return;
 					}
 
@@ -304,8 +297,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* low
 		NjMonastryBossInstance::HandleLowerFrakjawDied(self, lowerFrakjaw);
 		});
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0, 0,
-		LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (self->GetVar<bool>(LargeTeamVariable)) {
 		// Double frakjaws health for large teams
@@ -397,37 +389,30 @@ void NjMonastryBossInstance::HandleWaveEnemyDied(Entity* self, Entity* waveEnemy
 
 void NjMonastryBossInstance::TeleportPlayer(Entity* player, uint32_t position) {
 	for (const auto* spawnPoint : Game::entityManager->GetEntitiesInGroup("SpawnPoint" + std::to_string(position))) {
-		GameMessages::SendTeleport(player->GetObjectID(), spawnPoint->GetPosition(), spawnPoint->GetRotation(),
-			player->GetSystemAddress(), true);
+		GameMessages::Teleport(player->GetObjectID(), spawnPoint->GetPosition(), spawnPoint->GetRotation(), true).SendToClient(player->GetSystemAddress());
 	}
 }
 
 void NjMonastryBossInstance::SummonWave(Entity* self, Entity* frakjaw) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY,
-		LedgeFrakSummon, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY, LedgeFrakSummon).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	RenderComponent::PlayAnimation(frakjaw, SummonAnimation);
 
 	// Stop the music for the first, fourth and fifth wave
 	const auto wave = self->GetVar<uint32_t>(WaveNumberVariable);
 	if (wave >= 1 && wave < (m_Waves.size() - 1)) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), StopMusicNotification, 0, 0,
-			LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(wave - 1),
-			UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), StopMusicNotification, 0, 0, LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(wave - 1)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	// After frakjaw moves down the music stays the same
 	if (wave < (m_Waves.size() - 1)) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), StartMusicNotification, 0, 0,
-			LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(wave),
-			UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), StartMusicNotification, 0, 0, LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(wave)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	ActivityTimerStart(self, SpawnWaveTimer, 4.0f, 4.0f);
 }
 
 void NjMonastryBossInstance::LowerFrakjawSummon(Entity* self, Entity* frakjaw) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
-		LWOOBJID_EMPTY, BottomFrakSummon, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY, BottomFrakSummon).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	ActivityTimerStart(self, SpawnWaveTimer, 2.0f, 2.0f);
 	RenderComponent::PlayAnimation(frakjaw, SummonAnimation);
 }
@@ -451,10 +436,8 @@ void NjMonastryBossInstance::LowerFrakjaw(Entity* self, Entity* frakjaw) {
 	RenderComponent::PlayAnimation(frakjaw, TeleportOutAnimation);
 	ActivityTimerStart(self, LowerFrakjawCamTimer, 2.0f, 2.0f);
 
-	GameMessages::SendNotifyClientObject(frakjaw->GetObjectID(), StopMusicNotification, 0, 0,
-		LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(m_Waves.size() - 3), UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendNotifyClientObject(frakjaw->GetObjectID(), StartMusicNotification, 0, 0,
-		LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(m_Waves.size() - 2), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(frakjaw->GetObjectID(), StopMusicNotification, 0, 0, LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(m_Waves.size() - 3)).Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(frakjaw->GetObjectID(), StartMusicNotification, 0, 0, LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(m_Waves.size() - 2)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void NjMonastryBossInstance::SpawnOnNetwork(Entity* self, const LOT& toSpawn, const uint32_t& numberToSpawn, const std::string& spawnerName) {
@@ -475,16 +458,13 @@ void NjMonastryBossInstance::WaveOver(Entity* self) {
 	if (wave >= m_Waves.size() - 1)
 		return;
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
-		LWOOBJID_EMPTY, BaseCounterweightSpawn + std::to_string(wave),
-		UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY, BaseCounterweightSpawn + std::to_string(wave)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	ActivityTimerStart(self, SpawnCounterWeightTimer, 1.5f, 1.5f);
 	RemovePoison(self);
 }
 
 void NjMonastryBossInstance::FightOver(Entity* self) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"GroundFrakjawDead", 0, 0,
-		LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"GroundFrakjawDead", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Remove all the enemies from the battlefield
 	for (auto i = 1; i < 5; i++) {
@@ -500,13 +480,9 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 	ActivityTimerStart(self, SpawnRailTimer, 1.5f, 1.5f);
 
 	// Set the music to play the victory music
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), StopMusicNotification, 0, 0,
-		LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(m_Waves.size() - 2),
-		UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), FlashMusicNotification, 0, 0,
-		LWOOBJID_EMPTY, "Monastery_Frakjaw_Battle_Win", UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
-		LWOOBJID_EMPTY, TreasureChestSpawning, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), StopMusicNotification, 0, 0, LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(m_Waves.size() - 2)).Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), FlashMusicNotification, 0, 0, LWOOBJID_EMPTY, "Monastery_Frakjaw_Battle_Win").Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY, TreasureChestSpawning).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto treasureChests = Game::entityManager->GetEntitiesInGroup(ChestSpawnpointGroup);
 	for (auto* treasureChest : treasureChests) {

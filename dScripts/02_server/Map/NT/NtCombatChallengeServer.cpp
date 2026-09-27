@@ -2,13 +2,14 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "ActivityMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 
 void NtCombatChallengeServer::OnUse(Entity* self, Entity* user) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"UI_Open", 0, 0, user->GetObjectID(), "", user->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"UI_Open", 0, 0, user->GetObjectID(), "").Send(user->GetSystemAddress());
 }
 
 void NtCombatChallengeServer::OnDie(Entity* self, Entity* killer) {
@@ -40,7 +41,7 @@ void NtCombatChallengeServer::OnHitOrHealResult(Entity* self, Entity* attacker, 
 
 void NtCombatChallengeServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
 	int32_t param2, int32_t param3) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"UI_Close", 0, 0, sender->GetObjectID(), "", sender->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"UI_Close", 0, 0, sender->GetObjectID(), "").Send(sender->GetSystemAddress());
 }
 
 
@@ -66,7 +67,7 @@ void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender,
 
 		self->SetNetworkVar(u"toggle", true);
 	} else if (identifier == u"CloseButton") {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"UI_Close", 1, 0, sender->GetObjectID(), "", sender->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"UI_Close", 1, 0, sender->GetObjectID(), "").Send(sender->GetSystemAddress());
 	}
 }
 

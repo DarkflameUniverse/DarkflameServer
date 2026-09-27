@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "ActivityMessages.h"
+#include "MovementMessages.h"
 #include "dZoneManager.h"
 #include "Character.h"
 #include "ShootingGalleryComponent.h"
@@ -19,6 +20,7 @@
 #include "eGameActivity.h"
 #include "Item.h"
 #include <ranges>
+#include "BuildingMessages.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	LOG("OnStartup");
@@ -314,7 +316,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		// Save the enemy and tell it to start pathing
 		if (enemy != nullptr) {
 			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::PlatformResync(*enemy).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }
@@ -713,12 +715,13 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 
 	UpdateStreak(self);
 
-	GameMessages::SendNotifyClientShootingGalleryScore(self->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS,
-		0.0f,
-		score,
-		target->GetObjectID(),
-		target->GetPosition()
-	);
+	GameMessages::NotifyClientShootingGalleryScore galleryScore;
+	galleryScore.target = self->GetObjectID();
+	galleryScore.addTime = 0.0f;
+	galleryScore.score = score;
+	galleryScore.targetID = target->GetObjectID();
+	galleryScore.targetPos = target->GetPosition();
+	galleryScore.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto newScore = self->GetVar<int32_t>(TotalScoreVariable) + score;
 

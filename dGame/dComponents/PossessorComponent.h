@@ -41,6 +41,13 @@ public:
 	void Dismount(Entity* mount, bool forceDismount = false);
 
 	/**
+	 * @brief Handles the client's DismountComplete: finishes a dismount started by Dismount
+	 *
+	 * @param mountId The object ID of the mount the client finished dismounting
+	 */
+	void OnDismountComplete(const LWOOBJID mountId);
+
+	/**
 	 * Sets the ID that this entity is possessing
 	 * @param value The ID that this entity is possessing
 	 */

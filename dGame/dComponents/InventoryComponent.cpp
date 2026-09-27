@@ -16,6 +16,7 @@
 #include "InventoryMessages.h"
 #include "Database.h"
 #include "SkillMessages.h"
+#include "MovementMessages.h"
 #include "SkillComponent.h"
 #include "Character.h"
 #include "EntityManager.h"
@@ -1105,7 +1106,10 @@ void InventoryComponent::HandlePossession(Item* item) {
 
 	// Set the mount item ID so that we know what we're handling
 	possessorComponent->SetMountItemID(item->GetId());
-	GameMessages::SendSetMountInventoryID(m_Parent, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SetMountInventoryID mountInventoryID;
+	mountInventoryID.target = m_Parent->GetObjectID();
+	mountInventoryID.inventoryMountID = item->GetId();
+	mountInventoryID.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Create the mount entity
 	EntityInfo info{};

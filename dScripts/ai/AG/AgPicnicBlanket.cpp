@@ -1,11 +1,13 @@
 #include "AgPicnicBlanket.h"
 #include "Loot.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "Entity.h"
 #include "eTerminateType.h"
+#include "InventoryMessages.h"
 
 void AgPicnicBlanket::OnUse(Entity* self, Entity* user) {
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	if (self->GetVar<bool>(u"active"))
 		return;
 	self->SetVar<bool>(u"active", true);

@@ -103,6 +103,8 @@
 #include "eFunnessTypes.h"
 #include "WorldMigration.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "ZoneMessages.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -990,7 +992,11 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS);
 
 			if (respawnPoint != NiPoint3Constant::ZERO) {
-				GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, QuatUtils::IDENTITY);
+				GameMessages::PlayerReachedRespawnCheckpoint respawnCheckpoint;
+				respawnCheckpoint.target = player->GetObjectID();
+				respawnCheckpoint.pos = respawnPoint;
+				respawnCheckpoint.rot = QuatUtils::IDENTITY;
+				respawnCheckpoint.SendToClient(player->GetSystemAddress());
 			}
 
 			Game::entityManager->ConstructAllEntities(sysAddr);
@@ -1046,8 +1052,16 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 		noBBB:
 
 			// Tell the client it's done loading:
-			GameMessages::SendInvalidZoneTransferList(player, sysAddr, GeneralUtils::ASCIIToUTF16(Game::config->GetValue("source")), u"", false, false);
-			GameMessages::SendServerDoneLoadingAllObjects(player, sysAddr);
+			GameMessages::InvalidZoneTransferList invalidTransferList;
+			invalidTransferList.target = player->GetObjectID();
+			invalidTransferList.customerFeedbackURL = GeneralUtils::ASCIIToUTF16(Game::config->GetValue("source"));
+			invalidTransferList.invalidMapTransferList = u"";
+			invalidTransferList.bCustomerFeedbackOnExit = false;
+			invalidTransferList.bCustomerFeedbackOnInvalidMapTransfer = false;
+			invalidTransferList.SendToClient(sysAddr);
+			GameMessages::ServerDoneLoadingAllObjects doneLoading;
+			doneLoading.target = player->GetObjectID();
+			doneLoading.SendToClient(sysAddr);
 
 			//Send the player it's mail count:
 			//update: this might not be needed so im going to try disabling this here.

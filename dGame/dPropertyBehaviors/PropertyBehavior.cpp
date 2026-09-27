@@ -8,6 +8,7 @@
 #include "StringifiedEnum.h"
 
 #include <ranges>
+#include "ObjectMessages.h"
 
 PropertyBehavior::PropertyBehavior(bool _isTemplated) {
 	m_LastEditedState = BehaviorState::HOME_STATE;

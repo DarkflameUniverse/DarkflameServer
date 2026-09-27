@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "QuickBuildComponent.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "Character.h"
 #include "dZoneManager.h"
 #include "RenderComponent.h"
@@ -158,7 +159,7 @@ void CavePrisonCage::OnTimerDone(Entity* self, std::string timerName) {
 			return;
 		}
 
-		GameMessages::SendNotifyClientObject(villager->GetObjectID(), u"TimeToChat", 0, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(villager->GetObjectID(), u"TimeToChat", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		// Get the builder and make sure it still exists
 		auto* builder = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Builder"));

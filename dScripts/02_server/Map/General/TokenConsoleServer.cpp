@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "Character.h"
 #include "eReplicaComponentType.h"
 #include "eTerminateType.h"
@@ -38,5 +39,5 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		inv->AddItem(tokenLOT, tokensToGive, eLootSourceType::NONE);
 	}
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

@@ -1,6 +1,7 @@
 #include "PetFromObjectServer.h"
 #include "PetComponent.h"
 #include "ePetTamingNotifyType.h"
+#include "ObjectMessages.h"
 
 void PetFromObjectServer::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"pettamer", std::to_string(self->GetVar<LWOOBJID>(u"tamer")));
@@ -27,8 +28,7 @@ void PetFromObjectServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer,
 		break;
 	case ePetTamingNotifyType::SUCCESS:
 		// TODO: Remove from groups?
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"UpdateSuccessPicking", 0,
-			0, tamer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"UpdateSuccessPicking", 0, 0, tamer->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	default:
 		break;
 	}

@@ -4,6 +4,8 @@
 #include <sstream>
 
 #include "GameMessages.h"
+#include "ObjectMessages.h"
+#include "ZoneMessages.h"
 #include "CharacterComponent.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
@@ -78,9 +80,12 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
-	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
+	GameMessages::FireEventClientSide(m_Parent->GetObjectID(), u"RocketEquipped", rocket->GetId(), originator->GetObjectID()).SendToClient(originator->GetSystemAddress());
 
-	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::ChangeObjectWorldState worldState;
+	worldState.target = rocket->GetId();
+	worldState.newState = eObjectWorldState::ATTACHED;
+	worldState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(originator);
 }

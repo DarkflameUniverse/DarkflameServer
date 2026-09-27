@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
@@ -39,7 +41,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 
 	auto rotation = self->GetRotation();
 
-	GameMessages::SendTeleport(user->GetObjectID(), position, rotation, user->GetSystemAddress());
+	GameMessages::Teleport(user->GetObjectID(), position, rotation).SendToClient(user->GetSystemAddress());
 
 	RenderComponent::PlayAnimation(user, u"cannon-strike-no-equip");
 
@@ -107,6 +109,6 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 			missionComponent->ForceProgress(601, 910, 1);
 		}
 
-		GameMessages::SendTerminateInteraction(playerId, eTerminateType::FROM_INTERACTION, self->GetObjectID());
+		GameMessages::TerminateInteraction(playerId, eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }

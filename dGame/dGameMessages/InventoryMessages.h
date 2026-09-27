@@ -309,6 +309,54 @@ namespace GameMessages {
 		eInventoryType inventoryType{};
 		LOT lot{};
 	};
+
+	struct UseItemOnClient : public NetGameMsg {
+		UseItemOnClient() : NetGameMsg(MessageType::Game::USE_ITEM_ON_CLIENT) {}
+		LWOOBJID playerId{};
+		LWOOBJID itemToUse{};
+		uint32_t itemType{};
+		LOT itemLOT{};
+		NiPoint3 targetPosition{};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct DropClientLoot : public NetGameMsg {
+		DropClientLoot() : NetGameMsg(MessageType::Game::DROP_CLIENT_LOOT) {}
+
+		void Serialize(RakNet::BitStream& stream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		LWOOBJID sourceID{ LWOOBJID_EMPTY };
+		LOT item{ LOT_NULL };
+		int32_t currency{};
+		NiPoint3 spawnPos{};
+		NiPoint3 finalPosition{};
+		int32_t count{};
+		bool bUsePosition{};
+		LWOOBJID lootID{ LWOOBJID_EMPTY };
+		LWOOBJID ownerID{ LWOOBJID_EMPTY };
+	};
+	using DropClientLootEvent = NetGameMsgEvent<DropClientLoot>;
+
+	struct PickupItem : public NetGameMsg {
+		PickupItem() : NetGameMsg(MessageType::Game::PICKUP_ITEM) {}
+
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+		bool Deserialize(RakNet::BitStream& stream) override;
+		LWOOBJID lootID{};
+		LWOOBJID lootOwnerID{};
+	};
+	using PickupItemEvent = NetGameMsgEvent<PickupItem>;
+
+	struct TeamPickupItem : public NetGameMsg {
+		TeamPickupItem() : NetGameMsg(MessageType::Game::TEAM_PICKUP_ITEM) {}
+
+		void Serialize(RakNet::BitStream& stream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		LWOOBJID lootID{};
+		LWOOBJID lootOwnerID{};
+	};
 };
 
 #endif // INVENTORYMESSAGES_H

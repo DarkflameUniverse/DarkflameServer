@@ -1,5 +1,6 @@
 #include "ZoneAgSpiderQueen.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "ZoneAgProperty.h"
 #include "DestroyableComponent.h"
@@ -36,16 +37,14 @@ void ZoneAgSpiderQueen::BasePlayerLoaded(Entity* self, Entity* player) {
 	}
 
 	self->SetNetworkVar(u"unclaimed", true);
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY,
-		"", player->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY, "").Send(player->GetSystemAddress());
 }
 
 void
 ZoneAgSpiderQueen::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
 	int32_t param3) {
 	if (args == "ClearProperty") {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
-			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0, LWOOBJID_EMPTY, destroyedCinematic).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->AddTimer("tornadoOff", 0.5f);
 	} else {
 		ZoneAgProperty::BaseOnFireEventServerSide(self, sender, args);

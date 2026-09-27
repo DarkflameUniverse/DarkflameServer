@@ -4,6 +4,7 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include <unordered_set>
+#include "PlayerMessages.h"
 
 class NiPoint3;
 

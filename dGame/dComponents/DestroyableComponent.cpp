@@ -14,6 +14,7 @@
 #include "AmfSerialize.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "PlayerMessages.h"
 #include "User.h"
 #include "CDClientManager.h"
 #include "CDDestructibleComponentTable.h"
@@ -47,6 +48,7 @@
 #include <ranges>
 
 #include "CDComponentsRegistryTable.h"
+#include "InventoryMessages.h"
 
 Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
 Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
@@ -967,7 +969,11 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 		LOG("Player %llu has lost %llu uscore!", m_Parent->GetObjectID(), uscoreToLose);
 		character->SetUScore(uscore - uscoreToLose, EconomyLedger::HARDCORE_DEATH_SOURCE);
 
-		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
+		GameMessages::ModifyLEGOScore modifyScore;
+		modifyScore.target = m_Parent->GetObjectID();
+		modifyScore.score = -uscoreToLose;
+		modifyScore.sourceType = eLootSourceType::MISSION;
+		modifyScore.SendToClient(m_Parent->GetSystemAddress());
 
 		if (Game::entityManager->GetHardcoreDropinventoryOnDeath()) {
 			//drop all items from inventory:
@@ -1051,7 +1057,11 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 			int uscore = maxHealth * Game::entityManager->GetHardcoreUscoreEnemiesMultiplier() * uscoreReduction;
 			LOG("Rewarding player %llu with %i uscore for killing enemy %i", player->GetObjectID(), uscore, lot);
 			playerStats->SetUScore(playerStats->GetUScore() + uscore, EconomyLedger::HARDCORE_KILL_SOURCE);
-			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::MISSION);
+			GameMessages::ModifyLEGOScore modifyScore;
+			modifyScore.target = player->GetObjectID();
+			modifyScore.score = uscore;
+			modifyScore.sourceType = eLootSourceType::MISSION;
+			modifyScore.SendToClient(player->GetSystemAddress());
 
 			Game::entityManager->SerializeEntity(m_Parent);
 		}

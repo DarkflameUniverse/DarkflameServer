@@ -1,5 +1,6 @@
 #include "AgTurret.h"
 #include "GameMessages.h"
+#include "MovementMessages.h"
 
 void AgTurret::OnStartup(Entity* self) {
 	// TODO: do this legit way
@@ -13,5 +14,8 @@ void AgTurret::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void AgTurret::OnQuickBuildStart(Entity* self, Entity* user) {
-	GameMessages::SendLockNodeRotation(self, "base");
+	GameMessages::LockNodeRotation lockNodeRotation;
+	lockNodeRotation.target = self->GetObjectID();
+	lockNodeRotation.nodeName = "base";
+	lockNodeRotation.Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

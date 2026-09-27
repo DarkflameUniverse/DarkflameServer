@@ -1,6 +1,7 @@
 #include "InstanceExitTransferPlayerToLastNonInstance.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "CharacterComponent.h"
 #include "Character.h"
 #include "dServer.h"
@@ -50,7 +51,7 @@ void InstanceExitTransferPlayerToLastNonInstance::OnMessageBoxResponse(Entity* s
 		}
 	}
 
-	GameMessages::SendTerminateInteraction(sender->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(sender->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 

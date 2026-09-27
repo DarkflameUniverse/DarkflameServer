@@ -1,6 +1,7 @@
 #include "BankInteractServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "Entity.h"
 #include "Amf3.h"
 
@@ -29,6 +30,6 @@ void BankInteractServer::OnFireEventServerSide(Entity* self, Entity* sender, std
 		uiMessage.args = std::move(args);
 		uiMessage.SendToClient(sender->GetSystemAddress());
 
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"CloseBank", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"CloseBank", 0, 0, LWOOBJID_EMPTY, "").Send(sender->GetSystemAddress());
 	}
 }

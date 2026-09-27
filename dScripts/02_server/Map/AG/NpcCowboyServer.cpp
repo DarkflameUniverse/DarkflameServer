@@ -2,6 +2,7 @@
 #include "eMissionState.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
+#include "ObjectMessages.h"
 
 void NpcCowboyServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionID != 1880) {
@@ -34,7 +35,6 @@ void NpcCowboyServer::OnMissionDialogueOK(Entity* self, Entity* target, int miss
 	auto spawners = Game::zoneManager->GetSpawnersByName("PlungerGunTargets");
 	for (auto* spawner : spawners) {
 		for (const auto entity : spawner->GetSpawnedObjectIDs())
-			GameMessages::SendNotifyClientObject(entity, u"SetVisibility", visible, 0,
-				target->GetObjectID(), "", target->GetSystemAddress());
+			GameMessages::NotifyClientObject(entity, u"SetVisibility", visible, 0, target->GetObjectID(), "").Send(target->GetSystemAddress());
 	}
 }

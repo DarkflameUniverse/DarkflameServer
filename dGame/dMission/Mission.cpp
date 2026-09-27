@@ -12,6 +12,7 @@
 #include "Game.h"
 #include "GameMessages.h"
 #include "MissionMessages.h"
+#include "PlayerMessages.h"
 #include "Mail.h"
 #include "MissionComponent.h"
 #include "eRacingTaskParam.h"
@@ -483,7 +484,11 @@ void Mission::YieldRewards() {
 		} else {
 			const auto uscore = LiveEvents::ScaleUScore(info.LegoScore); // a live event's U-score bonus, if one is running here
 			characterComponent->SetUScore(characterComponent->GetUScore() + uscore, static_cast<uint32_t>(lootSource));
-			GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootSource);
+			GameMessages::ModifyLEGOScore modifyScore;
+			modifyScore.target = entity->GetObjectID();
+			modifyScore.score = uscore;
+			modifyScore.sourceType = lootSource;
+			modifyScore.SendToClient(entity->GetSystemAddress());
 		}
 	}
 
@@ -493,7 +498,10 @@ void Mission::YieldRewards() {
 		auto* const character = entity->GetComponent<CharacterComponent>();
 		if (character) {
 			character->SetReputation(character->GetReputation() + info.reward_reputation);
-			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
+			GameMessages::UpdateReputation updateReputation;
+			updateReputation.target = entity->GetObjectID();
+			updateReputation.reputation = character->GetReputation();
+			updateReputation.SendToClient(entity->GetSystemAddress());
 		}
 	}
 

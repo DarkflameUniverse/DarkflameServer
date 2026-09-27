@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "ActivityMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -140,8 +142,7 @@ void BaseSurvivalServer::BasePlayerDied(Entity* self, Entity* player) {
 		SetActivityValue(self, player->GetObjectID(), 1, finalTime);
 
 		auto paramString = CheckAllPlayersDead() ? "true" : "false";
-		GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Player_Died", finalTime, 0,
-			player->GetObjectID(), paramString, player->GetSystemAddress());
+		GameMessages::NotifyClientZoneObject(self->GetObjectID(), u"Player_Died", finalTime, 0, player->GetObjectID(), paramString).Send(player->GetSystemAddress());
 		GameOver(self);
 	} else {
 		player->Resurrect();
@@ -303,7 +304,9 @@ void BaseSurvivalServer::StartWaves(Entity* self) {
 				TakeActivityCost(self, playerID);
 			}
 
-			GameMessages::SendPlayerSetCameraCyclingMode(playerID, player->GetSystemAddress());
+			GameMessages::PlayerSetCameraCyclingMode cameraCyclingMode;
+			cameraCyclingMode.target = playerID;
+			cameraCyclingMode.SendToClient(player->GetSystemAddress());
 		}
 	}
 
@@ -336,7 +339,7 @@ void BaseSurvivalServer::SetPlayerSpawnPoints() {
 			auto possibleSpawners = Game::entityManager->GetEntitiesInGroup("P" + std::to_string(spawnerIndex) + "_Spawn");
 			if (!possibleSpawners.empty()) {
 				auto* spawner = possibleSpawners.at(0);
-				GameMessages::SendTeleport(playerID, spawner->GetPosition(), spawner->GetRotation(), player->GetSystemAddress(), true);
+				GameMessages::Teleport(playerID, spawner->GetPosition(), spawner->GetRotation(), true).SendToClient(player->GetSystemAddress());
 			}
 		}
 
@@ -364,8 +367,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 		const auto time = GetActivityValue(self, playerID, 1);
 		SaveScore(self, playerID, score, time);
 
-		GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Update_ScoreBoard", time, 0,
-			playerID, std::to_string(score), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientZoneObject(self->GetObjectID(), u"Update_ScoreBoard", time, 0, playerID, std::to_string(score)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		player->Resurrect();
 
 		// Update all mission progression

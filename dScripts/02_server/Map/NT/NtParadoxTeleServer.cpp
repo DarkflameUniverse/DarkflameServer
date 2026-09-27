@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "MovementMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -85,7 +86,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 		cinematic.Send(player->GetSystemAddress());
 	}
 
-	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
+	GameMessages::Teleport(player->GetObjectID(), destPosition, destRotation, true).SendToClient(player->GetSystemAddress());
 
 	RenderComponent::PlayAnimation(player, u"paradox-teleport-in", 4.0f);
 

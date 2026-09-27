@@ -1,6 +1,7 @@
 #include "BasePropertyServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Character.h"
@@ -179,8 +180,7 @@ void BasePropertyServer::PropGuardCheck(Entity* self, Entity* player) {
 }
 
 void BasePropertyServer::BaseZonePropertyRented(Entity* self, Entity* player) const {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0, LWOOBJID_EMPTY, "ShowProperty",
-		UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0, LWOOBJID_EMPTY, "ShowProperty").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->AddTimer(BoundsVisOnTimer, 2);
 	self->SetVar<LWOOBJID>(PropertyOwnerVariable, player->GetObjectID());
@@ -247,8 +247,7 @@ void BasePropertyServer::StartMaelstrom(Entity* self, Entity* player) {
 
 	StartTornadoFx(self);
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY,
-		"", player->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY, "").Send(player->GetSystemAddress());
 
 	self->AddTimer(StartGeneratorTimer, 0.0f);
 	self->AddTimer(StartOrbTimer, 0.0f);
@@ -354,9 +353,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 			return;
 
 		auto* guard = entities[0];
-		GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(),
-			u"GuardChat", 0, 0, guard->GetObjectID(),
-			"", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"GuardChat", 0, 0, guard->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddTimer(KillGuardTimer, 5.0f);
 	} else if (timerName == KillGuardTimer) {
@@ -388,8 +385,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 		self->AddTimer(KillFXObjectTimer, 8.0f);
 	} else if (timerName == TurnSkyOffTimer) {
 		auto* controller = Game::zoneManager->GetZoneControlObject();
-		GameMessages::SendNotifyClientObject(controller->GetObjectID(), u"SkyOff", 0, 0,
-			LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(controller->GetObjectID(), u"SkyOff", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == KillStrombiesTimer) {
 		const auto enemies = Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(EnemiesGroup));
 		for (auto* enemy : enemies) {
@@ -429,16 +425,13 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 
 		self->AddTimer(ShowVendorTimer, 1.0f);
 	} else if (timerName == ShowVendorTimer) {
-		GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(),
-			u"vendorOn", 0, 0, LWOOBJID_EMPTY, "",
-			UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"vendorOn", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		for (const auto& ambientFXSpawner : self->GetVar<std::vector<std::string>>(AmbientFXSpawner)) {
 			ActivateSpawner(ambientFXSpawner);
 		}
 	} else if (timerName == BoundsVisOnTimer) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"boundsAnim", 0, 0,
-			LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"boundsAnim", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == RunPlayerLoadedAgainTimer) {
 		CheckForOwner(self);
 	} else if (timerName == PollTornadoFXTimer) {
@@ -483,9 +476,7 @@ void BasePropertyServer::HandleOrbsTimer(Entity* self) {
 				}
 
 				DestroySpawner(self->GetVar<std::string>(GeneratorFXSpawner));
-				GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(),
-					u"PlayCinematic", 0, 0, LWOOBJID_EMPTY,
-					"DestroyMaelstrom", UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::NotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"PlayCinematic", 0, 0, LWOOBJID_EMPTY, "DestroyMaelstrom").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 				// Notifies the client that the property has been claimed with a flag, completes missions too
 				auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));

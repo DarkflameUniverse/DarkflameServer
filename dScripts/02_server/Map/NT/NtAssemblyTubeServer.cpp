@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "MovementMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -103,7 +104,7 @@ void NtAssemblyTubeServer::TeleportPlayer(Entity* self, Entity* player) {
 	const auto destPosition = destination->GetPosition();
 	const auto destRotation = destination->GetRotation();
 
-	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
+	GameMessages::Teleport(player->GetObjectID(), destPosition, destRotation, true).SendToClient(player->GetSystemAddress());
 
 	RenderComponent::PlayAnimation(player, u"tube-resurrect", 4.0f);
 

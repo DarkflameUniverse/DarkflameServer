@@ -58,6 +58,9 @@
 #include "StringifiedEnum.h"
 #include "BinaryPathFinder.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "PlayerMessages.h"
+#include "ObjectMessages.h"
 
 namespace DEVGMCommands {
 	void SetGMLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -88,7 +91,10 @@ namespace DEVGMCommands {
 			response.previousLevel = entity->GetGMLevel();
 			response.newLevel = level;
 			response.Send(entity->GetSystemAddress());
-			GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
+			GameMessages::UpdateChatMode chatMode;
+			chatMode.target = entity->GetObjectID();
+			chatMode.level = level;
+			chatMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 			entity->SetGMLevel(level);
 			LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
 		}
@@ -101,7 +107,10 @@ namespace DEVGMCommands {
 			response.previousLevel = entity->GetGMLevel();
 			response.newLevel = eGameMasterLevel::CIVILIAN;
 			response.Send(entity->GetSystemAddress());
-			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
+			GameMessages::UpdateChatMode chatMode;
+			chatMode.target = entity->GetObjectID();
+			chatMode.level = eGameMasterLevel::CIVILIAN;
+			chatMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 			entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
 
 			GameMessages::ToggleGMInvisEvent msg;
@@ -299,7 +308,10 @@ namespace DEVGMCommands {
 		const auto state = !entity->GetVar<bool>(u"freecam");
 		entity->SetVar<bool>(u"freecam", state);
 
-		GameMessages::SendSetPlayerControlScheme(entity, static_cast<eControlScheme>(state ? 9 : 1));
+		GameMessages::SetPlayerControlScheme controlScheme;
+		controlScheme.target = entity->GetObjectID();
+		controlScheme.iScheme = static_cast<eControlScheme>(state ? 9 : 1);
+		controlScheme.SendToClient(entity->GetSystemAddress());
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled freecam.");
 	}
@@ -315,7 +327,10 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		GameMessages::SendSetPlayerControlScheme(entity, static_cast<eControlScheme>(scheme.value()));
+		GameMessages::SetPlayerControlScheme controlScheme;
+		controlScheme.target = entity->GetObjectID();
+		controlScheme.iScheme = static_cast<eControlScheme>(scheme.value());
+		controlScheme.SendToClient(entity->GetSystemAddress());
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched control scheme.");
 	}
@@ -674,7 +689,7 @@ namespace DEVGMCommands {
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
 		}
-		GameMessages::SendTeleport(sourceEntity->GetObjectID(), pos, sourceEntity->GetRotation(), sourceEntity->GetSystemAddress());
+		GameMessages::Teleport(sourceEntity->GetObjectID(), pos, sourceEntity->GetRotation()).SendToClient(sourceEntity->GetSystemAddress());
 
 		auto* possessorComponent = sourceEntity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
@@ -685,7 +700,7 @@ namespace DEVGMCommands {
 				if (havokVehiclePhysicsComponent) {
 					havokVehiclePhysicsComponent->SetPosition(pos);
 					Game::entityManager->SerializeEntity(possassableEntity);
-				} else GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, QuatUtils::IDENTITY, sysAddr);
+				} else GameMessages::Teleport(possassableEntity->GetObjectID(), pos, QuatUtils::IDENTITY).SendToClient(sysAddr);
 			}
 		}
 	}
@@ -705,7 +720,7 @@ namespace DEVGMCommands {
 				skipped++;
 				continue;
 			}
-			GameMessages::SendTeleport(character->GetObjectID(), pos, QuatUtils::IDENTITY, character->GetSystemAddress());
+			GameMessages::Teleport(character->GetObjectID(), pos, QuatUtils::IDENTITY).SendToClient(character->GetSystemAddress());
 		}
 		if (skipped > 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"/tpall: left " + GeneralUtils::to_u16string(skipped) +
@@ -934,7 +949,11 @@ namespace DEVGMCommands {
 			lootType = type.value_or(lootType);
 		}
 
-		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
+		GameMessages::ModifyLEGOScore modifyScore;
+		modifyScore.target = entity->GetObjectID();
+		modifyScore.score = uscore;
+		modifyScore.sourceType = lootType;
+		modifyScore.SendToClient(entity->GetSystemAddress());
 	}
 
 	void SetLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

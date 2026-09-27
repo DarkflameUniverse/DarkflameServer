@@ -3,13 +3,14 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "Character.h"
 #include "eMissionState.h"
 
 void Darkitect::Reveal(Entity* self, Entity* player) {
 	const auto playerID = player->GetObjectID();
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"reveal", 0, 0, playerID, "", player->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"reveal", 0, 0, playerID, "").Send(player->GetSystemAddress());
 
 	self->AddCallbackTimer(20, [this, self, playerID]() {
 		auto* player = Game::entityManager->GetEntity(playerID);

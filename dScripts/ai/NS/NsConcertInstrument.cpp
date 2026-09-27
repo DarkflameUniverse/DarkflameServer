@@ -1,6 +1,8 @@
 #include "NsConcertInstrument.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "Item.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
@@ -71,8 +73,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 	}
 
 	if (activePlayer != nullptr && name == "checkPlayer" && self->GetVar<bool>(u"beingPlayed")) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"checkMovement", 0, 0,
-			activePlayer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"checkMovement", 0, 0, activePlayer->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		auto* stats = activePlayer->GetComponent<DestroyableComponent>();
 		if (stats) {
 			if (stats->GetImagination() > 0) {
@@ -90,8 +91,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 	} else if (name == "cleanupAfterStop") {
 		if (activePlayer != nullptr) {
 			UnEquipInstruments(self, activePlayer);
-			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stopPlaying", 0, 0,
-				activePlayer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::NotifyClientObject(self->GetObjectID(), u"stopPlaying", 0, 0, activePlayer->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
@@ -120,8 +120,7 @@ void NsConcertInstrument::StartPlayingInstrument(Entity* self, Entity* player) {
 
 	// Stuff to notify the player
 	EquipInstruments(self, player);
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"startPlaying", 0, 0,
-		player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"startPlaying", 0, 0, player->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::PlayCinematic cinematic;
 	cinematic.target = player->GetObjectID();
 	cinematic.pathName = cinematics.at(instrumentLot);
@@ -163,8 +162,7 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 		endCinematic.leadOut = 1.0f;
 		endCinematic.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		RenderComponent::PlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stopCheckingMovement", 0, 0,
-			player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"stopCheckingMovement", 0, 0, player->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	self->SetVar<bool>(u"beingPlayed", false);
@@ -288,7 +286,7 @@ void NsConcertInstrument::RepositionPlayer(Entity* self, Entity* player) {
 		break;
 	}
 
-	GameMessages::SendTeleport(player->GetObjectID(), position, rotation, player->GetSystemAddress());
+	GameMessages::Teleport(player->GetObjectID(), position, rotation).SendToClient(player->GetSystemAddress());
 }
 
 InstrumentLot NsConcertInstrument::GetInstrumentLot(Entity* self) {

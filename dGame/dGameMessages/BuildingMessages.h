@@ -205,6 +205,22 @@ namespace GameMessages {
 		std::string lxfmlDataCompressed{}; // u32 byte count, then the bytes
 		uint32_t timeTakenInMs{};
 	};
+
+	struct SetModelToBuild : public NetGameMsg {
+		SetModelToBuild() : NetGameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		LOT modelLot{ -1 };
+	};
+
+	struct SpawnModelBricks : public NetGameMsg {
+		SpawnModelBricks() : NetGameMsg(MessageType::Game::SPAWN_MODEL_BRICKS) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		float amount{ 0.0f };
+		NiPoint3 position{ NiPoint3Constant::ZERO };
+	};
 };
 
 #endif // BUILDINGMESSAGES_H

@@ -1,6 +1,7 @@
 #include "SpawnPetBaseServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "PetComponent.h"
 #include "EntityInfo.h"
@@ -46,7 +47,7 @@ void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
 		cinematic.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {

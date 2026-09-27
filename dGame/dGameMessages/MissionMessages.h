@@ -79,6 +79,18 @@ namespace GameMessages {
 		LWOOBJID responder{};
 	};
 
+	// Client -> server. The player closed a mission offer without accepting. Nothing to do: the client carries on.
+	struct MissionDialogueCancelled : public NetGameMsg {
+		MissionDialogueCancelled() : NetGameMsg(MessageType::Game::MISSION_DIALOGUE_CANCELLED) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		bool bIsComplete{};
+		eMissionState iMissionState{};
+		int32_t missionID{};
+		LWOOBJID responder{};
+	};
+
 	// Client -> server.
 	struct RequestLinkedMission : public NetGameMsg {
 		RequestLinkedMission() : NetGameMsg(MessageType::Game::REQUEST_LINKED_MISSION) {}

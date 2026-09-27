@@ -1,6 +1,7 @@
 #include "AgQbElevator.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "MovementMessages.h"
 
 void AgQbElevator::OnStartup(Entity* self) {
 
@@ -14,8 +15,7 @@ void AgQbElevator::OnQuickBuildComplete(Entity* self, Entity* target) {
 	float delayTime = killTime - endTime;
 	if (delayTime < 1) delayTime = 1;
 
-	GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0,
-		0, 0, eMovementPlatformState::Stationary);
+	GameMessages::PlatformResync(*self, true, 0, 0, 0, eMovementPlatformState::Stationary).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	//add a timer that will kill the QB if no players get on in the killTime
 	self->AddTimer("startKillTimer", killTime);
@@ -32,8 +32,7 @@ void AgQbElevator::OnProximityUpdate(Entity* self, Entity* entering, std::string
 			self->SetBoolean(u"qbPlayerRdy", true);
 			self->CancelTimer("StartElevator");
 
-			GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0,
-				1, 1, eMovementPlatformState::Moving);
+			GameMessages::PlatformResync(*self, true, 0, 1, 1, eMovementPlatformState::Moving).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		} else if (!self->GetBoolean(u"StartTimer")) {
 			self->SetBoolean(u"StartTimer", true);
 			self->AddTimer("StartElevator", startTime);
@@ -44,8 +43,7 @@ void AgQbElevator::OnProximityUpdate(Entity* self, Entity* entering, std::string
 void AgQbElevator::OnTimerDone(Entity* self, std::string timerName) {
 
 	if (timerName == "StartElevator") {
-		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0,
-			1, 1, eMovementPlatformState::Moving);
+		GameMessages::PlatformResync(*self, true, 0, 1, 1, eMovementPlatformState::Moving).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "startKillTimer") {
 		killTimerStartup(self);
 	} else if (timerName == "KillTimer") {

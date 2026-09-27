@@ -393,6 +393,15 @@ namespace GameMessages {
 
 		std::vector<HotPropertyInfo> properties;
 	};
+
+	struct PlayBehaviorSound : public NetGameMsg {
+		PlayBehaviorSound() : NetGameMsg(MessageType::Game::PLAY_BEHAVIOR_SOUND) {}
+
+		void Serialize(RakNet::BitStream& stream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		int32_t soundID{ -1 };
+	};
 };
 
 #endif // PROPERTYMESSAGES_H

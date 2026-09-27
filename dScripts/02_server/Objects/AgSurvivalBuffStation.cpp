@@ -5,6 +5,7 @@
 #include "SkillComponent.h"
 #include "TeamManager.h"
 #include "Loot.h"
+#include "InventoryMessages.h"
 
 void AgSurvivalBuffStation::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto destroyableComponent = self->GetComponent<DestroyableComponent>();

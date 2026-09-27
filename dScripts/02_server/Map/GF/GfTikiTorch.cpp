@@ -1,5 +1,6 @@
 #include "GfTikiTorch.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
@@ -8,6 +9,7 @@
 #include "RenderComponent.h"
 #include "eTerminateType.h"
 #include "Loot.h"
+#include "InventoryMessages.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -43,7 +45,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 		Entity* player = Game::entityManager->GetEntity(self->GetI64(u"userID"));
 
 		if (player != nullptr && player->GetCharacter()) {
-			GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+			GameMessages::TerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		self->SetBoolean(u"isInUse", false);

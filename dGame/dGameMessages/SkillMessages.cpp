@@ -262,4 +262,19 @@ namespace GameMessages {
 		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, sBitStream));
 		return true;
 	}
+
+	void UseSkillSet::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(bRemove);
+		bitStream.Write(possessedId != LWOOBJID_EMPTY);
+		if (possessedId != LWOOBJID_EMPTY) bitStream.Write(possessedId);
+		bitStream.Write(setId != -1);
+		if (setId != -1) bitStream.Write(setId);
+	}
+
+	bool UseSkillSet::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(bRemove));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, possessedId, LWOOBJID_EMPTY));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, setId, -1));
+		return true;
+	}
 }

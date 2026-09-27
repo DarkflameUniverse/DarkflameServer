@@ -19,6 +19,7 @@
 
 #include <glm/gtc/quaternion.hpp>
 #include "EffectsMessages.h"
+#include "ZoneMessages.h"
 
 TriggerComponent::TriggerComponent(Entity* parent, const int32_t componentID, const std::string triggerInfo) : Component(parent, componentID) {
 	m_Parent = parent;
@@ -130,9 +131,15 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 		case eTriggerCommandType::CAST_SKILL:
 			HandleCastSkill(targetEntity, command->args);
 			break;
-		case eTriggerCommandType::DISPLAY_ZONE_SUMMARY:
-			GameMessages::SendDisplayZoneSummary(targetEntity->GetObjectID(), targetEntity->GetSystemAddress(), false, command->args == "1", m_Parent->GetObjectID());
+		case eTriggerCommandType::DISPLAY_ZONE_SUMMARY: {
+			GameMessages::DisplayZoneSummary zoneSummary;
+			zoneSummary.target = targetEntity->GetObjectID();
+			zoneSummary.isPropertyMap = false;
+			zoneSummary.isZoneStart = command->args == "1";
+			zoneSummary.sender = m_Parent->GetObjectID();
+			zoneSummary.Send(targetEntity->GetSystemAddress());
 			break;
+		}
 		case eTriggerCommandType::SET_PHYSICS_VOLUME_EFFECT:
 			HandleSetPhysicsVolumeEffect(targetEntity, argArray);
 			break;

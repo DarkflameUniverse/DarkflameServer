@@ -6,6 +6,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "MovementMessages.h"
 #include "QuickBuildComponent.h"
 #include "Game.h"
 #include "Logger.h"
@@ -74,11 +75,24 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 			return;
 		}
 
-		GameMessages::SendStartRailMovement(originator->GetObjectID(), m_Path, m_StartSound,
-			m_loopSound, m_StopSound, originator->GetSystemAddress(),
-			m_PathStart, m_PathDirection, m_DamageImmune, m_NoAggro, m_NotifyArrived,
-			m_ShowNameBillboard, m_CameraLocked, m_CollisionEnabled, m_UseDB, m_ComponentID,
-			m_Parent->GetObjectID());
+		GameMessages::StartRailMovement startRail;
+		startRail.target = originator->GetObjectID();
+		startRail.pathName = m_Path;
+		startRail.startSound = m_StartSound;
+		startRail.loopSound = m_loopSound;
+		startRail.stopSound = m_StopSound;
+		startRail.pathStart = m_PathStart;
+		startRail.goForward = m_PathDirection;
+		startRail.bDamageImmune = m_DamageImmune;
+		startRail.bNoAggro = m_NoAggro;
+		startRail.bNotifyActor = m_NotifyArrived;
+		startRail.bShowNameBillboard = m_ShowNameBillboard;
+		startRail.bCameraLocked = m_CameraLocked;
+		startRail.bCollisionEnabled = m_CollisionEnabled;
+		startRail.bUseDB = m_UseDB;
+		startRail.railActivatorComponentID = m_ComponentID;
+		startRail.railActivatorObjectID = m_Parent->GetObjectID();
+		startRail.Send(originator->GetSystemAddress());
 		});
 }
 
@@ -111,9 +125,14 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 			RenderComponent::PlayAnimation(originator, m_LoopAnimation);
 		}
 
-		GameMessages::SendSetRailMovement(originator->GetObjectID(), m_PathDirection, m_Path, m_PathStart,
-			originator->GetSystemAddress(), m_ComponentID,
-			m_Parent->GetObjectID());
+		GameMessages::SetRailMovement setRail;
+		setRail.target = originator->GetObjectID();
+		setRail.pathGoForward = m_PathDirection;
+		setRail.pathName = m_Path;
+		setRail.pathStart = m_PathStart;
+		setRail.railActivatorComponentID = m_ComponentID;
+		setRail.railActivatorObjectID = m_Parent->GetObjectID();
+		setRail.Send(originator->GetSystemAddress());
 	}
 }
 

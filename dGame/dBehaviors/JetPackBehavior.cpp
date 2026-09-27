@@ -2,6 +2,7 @@
 
 #include "BehaviorBranchContext.h"
 #include "GameMessages.h"
+#include "MovementMessages.h"
 
 #include "Character.h"
 
@@ -9,7 +10,17 @@ void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_st
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 	if (!entity) return;
 
-	GameMessages::SendSetJetPackMode(entity, true, this->m_BypassChecks, this->m_EnableHover, this->m_effectId, this->m_Airspeed, this->m_MaxAirspeed, this->m_VerticalVelocity, this->m_WarningEffectID);
+	GameMessages::SetJetPackMode jetPackMode;
+	jetPackMode.target = entity->GetObjectID();
+	jetPackMode.bUse = true;
+	jetPackMode.bBypassChecks = this->m_BypassChecks;
+	jetPackMode.bDoHover = this->m_EnableHover;
+	jetPackMode.effectID = this->m_effectId;
+	jetPackMode.fAirspeed = this->m_Airspeed;
+	jetPackMode.fMaxAirspeed = this->m_MaxAirspeed;
+	jetPackMode.fVertVel = this->m_VerticalVelocity;
+	jetPackMode.iWarningEffectID = this->m_WarningEffectID;
+	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (entity->IsPlayer()) {
 		auto* character = entity->GetCharacter();
@@ -24,7 +35,10 @@ void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext bra
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 	if (!entity) return;
 
-	GameMessages::SendSetJetPackMode(entity, false);
+	GameMessages::SetJetPackMode jetPackMode;
+	jetPackMode.target = entity->GetObjectID();
+	jetPackMode.bUse = false;
+	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (entity->IsPlayer()) {
         auto* character = entity->GetCharacter();

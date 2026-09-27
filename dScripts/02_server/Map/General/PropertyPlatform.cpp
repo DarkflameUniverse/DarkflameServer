@@ -1,6 +1,7 @@
 #include "PropertyPlatform.h"
 #include "QuickBuildComponent.h"
 #include "GameMessages.h"
+#include "MovementMessages.h"
 #include "MovingPlatformComponent.h"
 
 void PropertyPlatform::OnQuickBuildComplete(Entity* self, Entity* target) {
@@ -9,8 +10,7 @@ void PropertyPlatform::OnQuickBuildComplete(Entity* self, Entity* target) {
 	//        movingPlatform->StopPathing();
 	//        movingPlatform->SetNoAutoStart(true);
 	//    }
-	GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0,
-		0, 0, eMovementPlatformState::Stationary);
+	GameMessages::PlatformResync(*self, true, 0, 0, 0, eMovementPlatformState::Stationary).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void PropertyPlatform::OnUse(Entity* self, Entity* user) {
@@ -20,8 +20,7 @@ void PropertyPlatform::OnUse(Entity* self, Entity* user) {
 		//        if (movingPlatform != nullptr) {
 		//            movingPlatform->GotoWaypoint(1);
 		//        }
-		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0,
-			1, 1, eMovementPlatformState::Moving);
+		GameMessages::PlatformResync(*self, true, 0, 1, 1, eMovementPlatformState::Moving).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddCallbackTimer(movementDelay + effectDelay, [self, this]() {
 			self->SetNetworkVar<float_t>(u"startEffect", dieDelay);

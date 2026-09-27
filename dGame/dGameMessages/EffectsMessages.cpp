@@ -486,4 +486,41 @@ namespace GameMessages {
 		VALIDATE_READ(bitStream.Read(emoteID));
 		return true;
 	}
+
+	void DisplayTooltip::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(doOrDie);
+		bitStream.Write(noRepeat);
+		bitStream.Write(noRevive);
+		bitStream.Write(isPropertyTooltip);
+		bitStream.Write(show);
+		bitStream.Write(translate);
+		bitStream.Write(time);
+		bitStream.Write<int32_t>(id.size());
+		bitStream.Write(id);
+
+		std::string toWrite;
+		for (const auto& item : localizeParams | std::views::values) {
+			toWrite += item->GetString() + "\n";
+		}
+		if (!toWrite.empty()) toWrite.pop_back();
+		bitStream.Write<int32_t>(toWrite.size());
+		bitStream.Write(GeneralUtils::ASCIIToUTF16(toWrite));
+		if (!toWrite.empty()) bitStream.Write<uint16_t>(0x00); // Null Terminator
+
+		bitStream.Write<int32_t>(imageName.size());
+		bitStream.Write(imageName);
+		bitStream.Write<int32_t>(text.size());
+		bitStream.Write(text);
+	}
+
+	void EmotePlayed::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(emoteID);
+		stream.Write(targetID);
+	}
+
+	bool EmotePlayed::Deserialize(RakNet::BitStream& stream) {
+		VALIDATE_READ(stream.Read(emoteID));
+		VALIDATE_READ(stream.Read(targetID));
+		return true;
+	}
 }

@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "ObjectMessages.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -11,9 +12,9 @@
 #include "eStateChangeType.h"
 
 void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"bActive", 1, 0, user->GetObjectID(), "", user->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"bActive", 1, 0, user->GetObjectID(), "").Send(user->GetSystemAddress());
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->SetVar(u"bActive", true);
 
@@ -40,7 +41,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 			RenderComponent::PlayAnimation(player, u"rebuild-celebrate");
 
-			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SparkStop", 0, 0, player->GetObjectID(), "", player->GetSystemAddress());
+			GameMessages::NotifyClientObject(self->GetObjectID(), u"SparkStop", 0, 0, player->GetObjectID(), "").Send(player->GetSystemAddress());
 			GameMessages::SetStunned stun;
 			stun.target = player->GetObjectID();
 			stun.StateChangeType = eStateChangeType::POP;
@@ -81,7 +82,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 			return;
 		}
 
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"bActive", 0, 0, player->GetObjectID(), "", player->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"bActive", 0, 0, player->GetObjectID(), "").Send(player->GetSystemAddress());
 
 		GameMessages::StopFXEffect(self->GetObjectID(), true, "console_sparks").Send(UNASSIGNED_SYSTEM_ADDRESS);
 

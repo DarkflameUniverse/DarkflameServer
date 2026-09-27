@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "eMissionState.h"
@@ -25,8 +26,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 	} else if (missionState == eMissionState::READY_TO_COMPLETE) {
 		// Makes the guard disappear once the mission has been completed
 		const auto zoneControlID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
-		GameMessages::SendNotifyClientObject(zoneControlID, u"GuardChat", 0, 0, self->GetObjectID(),
-			"", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(zoneControlID, u"GuardChat", 0, 0, self->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddCallbackTimer(5.0f, [self]() {
 			auto spawnerName = self->GetVar<std::string>(u"spawner_name");

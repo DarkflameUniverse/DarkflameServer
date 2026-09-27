@@ -3,6 +3,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "InventoryComponent.h"
 #include "PhantomPhysicsComponent.h"
 #include "ProximityMonitorComponent.h"
@@ -349,8 +350,7 @@ void NPCTalk(Entity* npc) {
 	const auto& selected
 		= chats[GeneralUtils::GenerateRandomNumber<int32_t>(0, static_cast<int32_t>(chats.size() - 1))];
 
-	GameMessages::SendNotifyClientZoneObject(
-		npc->GetObjectID(), u"sendToclient_bubble", 0, 0, npc->GetObjectID(), selected, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientZoneObject(npc->GetObjectID(), u"sendToclient_bubble", 0, 0, npc->GetObjectID(), selected).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(npc);
 

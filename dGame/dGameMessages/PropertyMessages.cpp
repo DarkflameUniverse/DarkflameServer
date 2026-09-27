@@ -738,4 +738,13 @@ namespace GameMessages {
 		}
 		return true;
 	}
+
+	void PlayBehaviorSound::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(soundID != -1);
+		if (soundID != -1) stream.Write(soundID);
+	}
+
+	bool PlayBehaviorSound::Deserialize(RakNet::BitStream& stream) {
+		return BitStreamUtils::ReadOptional(stream, soundID, -1);
+	}
 }

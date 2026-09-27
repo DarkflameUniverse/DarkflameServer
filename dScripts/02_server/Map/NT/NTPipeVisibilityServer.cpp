@@ -1,6 +1,7 @@
 #include "NTPipeVisibilityServer.h"
 #include "Entity.h"
 #include "Character.h"
+#include "ObjectMessages.h"
 
 void NTPipeVisibilityServer::OnQuickBuildComplete(Entity* self, Entity* target) {
 	const auto flag = self->GetVar<int32_t>(u"flag");
@@ -11,5 +12,5 @@ void NTPipeVisibilityServer::OnQuickBuildComplete(Entity* self, Entity* target) 
 
 	character->SetPlayerFlag(flag, true);
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PipeBuilt");
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"PipeBuilt").Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

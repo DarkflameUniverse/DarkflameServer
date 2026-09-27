@@ -11,6 +11,10 @@ enum class eMissionState : int32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eQuickBuildState : uint32_t;
 
+namespace GameMessages {
+	struct ShootingGalleryFire;
+};
+
 namespace CppScripts {
 	/**
 	 * Base class for all scripts. Includes virtual methods to be overridden to handle LUA equivelent events.

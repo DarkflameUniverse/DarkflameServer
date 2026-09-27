@@ -6,6 +6,9 @@
 #include <utility>
 
 #include "GameMessages.h"
+#include "ActivityMessages.h"
+#include "InventoryMessages.h"
+#include "ObjectMessages.h"
 #include "SkillMessages.h"
 #include "master/MessageCapture.h"
 

@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
 #include "ProximityMonitorComponent.h"
 
 void AgBusDoor::OnStartup(Entity* self) {
@@ -49,9 +50,9 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 
 void AgBusDoor::MoveDoor(Entity* self, bool bOpen) {
 	if (bOpen) {
-		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 1, 0);
+		GameMessages::PlatformResync(*self, true, 1, 0).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else {
-		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0, 1);
+		GameMessages::PlatformResync(*self, true, 0, 1).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->AddTimer("dustTimer", 2.0f);
 	}
 

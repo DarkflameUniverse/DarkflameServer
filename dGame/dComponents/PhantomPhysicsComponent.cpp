@@ -14,6 +14,7 @@
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
+#include "MovementMessages.h"
 #include "ePhysicsEffectType.h"
 
 #include "CDClientManager.h"
@@ -157,7 +158,10 @@ void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effec
 			// dont want to apply an effect to nothing.
 			if (!controllablePhysicsComponent) return;
 			controllablePhysicsComponent->SetGravityScale(effectScale);
-			GameMessages::SendSetGravityScale(target, effectScale, targetEntity->GetSystemAddress());
+			GameMessages::SetGravityScale gravityScale;
+			gravityScale.target = target;
+			gravityScale.scale = effectScale;
+			gravityScale.SendToClient(targetEntity->GetSystemAddress());
 		}
 		break;
 	}
@@ -185,7 +189,11 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 			auto* const entity = Game::entityManager->GetEntity(id);
 
 			if (entity) {
-				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
+				GameMessages::PlayerReachedRespawnCheckpoint respawnCheckpoint;
+				respawnCheckpoint.target = entity->GetObjectID();
+				respawnCheckpoint.pos = m_RespawnPos;
+				respawnCheckpoint.rot = m_RespawnRot;
+				respawnCheckpoint.SendToClient(entity->GetSystemAddress());
 				entity->SetRespawnPos(m_RespawnPos);
 				entity->SetRespawnRot(m_RespawnRot);
 			}

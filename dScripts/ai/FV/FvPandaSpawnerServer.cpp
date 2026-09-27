@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "EntityInfo.h"
 #include "ScriptedActivityComponent.h"
 
@@ -21,16 +22,14 @@ void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 		// If the player already spawned a panda
 		auto playerPandas = Game::entityManager->GetEntitiesInGroup("panda" + std::to_string(target->GetObjectID()));
 		if (!playerPandas.empty()) {
-			GameMessages::SendFireEventClientSide(self->GetObjectID(), target->GetSystemAddress(), u"playerPanda",
-				target->GetObjectID(), 0, 0, target->GetObjectID());
+			GameMessages::FireEventClientSide(self->GetObjectID(), u"playerPanda", target->GetObjectID(), target->GetObjectID()).SendToClient(target->GetSystemAddress());
 			return;
 		}
 
 		// If there's already too many spawned pandas
 		auto pandas = Game::entityManager->GetEntitiesInGroup("pandas");
 		if (pandas.size() > 4) {
-			GameMessages::SendFireEventClientSide(self->GetObjectID(), target->GetSystemAddress(), u"tooManyPandas",
-				target->GetObjectID(), 0, 0, target->GetObjectID());
+			GameMessages::FireEventClientSide(self->GetObjectID(), u"tooManyPandas", target->GetObjectID(), target->GetObjectID()).SendToClient(target->GetSystemAddress());
 			return;
 		}
 

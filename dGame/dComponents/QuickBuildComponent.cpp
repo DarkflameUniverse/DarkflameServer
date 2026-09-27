@@ -4,6 +4,8 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "ObjectMessages.h"
+#include "QuickBuildMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
 #include "Logger.h"
@@ -406,8 +408,21 @@ void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 
 		Game::entityManager->SerializeEntity(user);
 
-		GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::BUILDING, user->GetObjectID());
-		GameMessages::SendEnableQuickBuild(m_Parent, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
+		GameMessages::RebuildNotifyState notifyState;
+		notifyState.target = m_Parent->GetObjectID();
+		notifyState.prevState = m_State;
+		notifyState.state = eQuickBuildState::BUILDING;
+		notifyState.player = user->GetObjectID();
+		notifyState.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::EnableRebuild enableRebuild;
+		enableRebuild.target = m_Parent->GetObjectID();
+		enableRebuild.bEnable = true;
+		enableRebuild.bFail = false;
+		enableRebuild.bSuccess = false;
+		enableRebuild.eFailReason = eQuickBuildFailReason::NOT_GIVEN;
+		enableRebuild.fDuration = 0.0f;
+		enableRebuild.user = user->GetObjectID();
+		enableRebuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		SetState(eQuickBuildState::BUILDING);
 		Game::entityManager->SerializeEntity(m_Parent);
@@ -442,12 +457,25 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 
 	Game::entityManager->SerializeEntity(user);
 
-	GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::COMPLETED, user->GetObjectID());
+	GameMessages::RebuildNotifyState notifyState;
+	notifyState.target = m_Parent->GetObjectID();
+	notifyState.prevState = m_State;
+	notifyState.state = eQuickBuildState::COMPLETED;
+	notifyState.player = user->GetObjectID();
+	notifyState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::PlayFXEffect fx(m_Parent->GetObjectID(), 507, u"create", "BrickFadeUpVisCompleteEffect");
 	fx.priority = 0.4f;
 	fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendEnableQuickBuild(m_Parent, false, false, true, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, user->GetObjectID());
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	GameMessages::EnableRebuild enableRebuild;
+	enableRebuild.target = m_Parent->GetObjectID();
+	enableRebuild.bEnable = false;
+	enableRebuild.bFail = false;
+	enableRebuild.bSuccess = true;
+	enableRebuild.eFailReason = eQuickBuildFailReason::NOT_GIVEN;
+	enableRebuild.fDuration = m_ResetTime;
+	enableRebuild.user = user->GetObjectID();
+	enableRebuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 
 	SetState(eQuickBuildState::COMPLETED);
@@ -522,14 +550,27 @@ void QuickBuildComponent::ResetQuickBuild(const bool failed) {
 	Entity* builder = GetBuilder();
 
 	if (m_State == eQuickBuildState::BUILDING && builder) {
-		GameMessages::SendEnableQuickBuild(m_Parent, false, false, failed, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, builder->GetObjectID());
+		GameMessages::EnableRebuild enableRebuild;
+		enableRebuild.target = m_Parent->GetObjectID();
+		enableRebuild.bEnable = false;
+		enableRebuild.bFail = false;
+		enableRebuild.bSuccess = failed;
+		enableRebuild.eFailReason = eQuickBuildFailReason::NOT_GIVEN;
+		enableRebuild.fDuration = m_ResetTime;
+		enableRebuild.user = builder->GetObjectID();
+		enableRebuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		if (failed) {
 			RenderComponent::PlayAnimation(builder, u"rebuild-fail");
 		}
 	}
 
-	GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::RESETTING, LWOOBJID_EMPTY);
+	GameMessages::RebuildNotifyState notifyState;
+	notifyState.target = m_Parent->GetObjectID();
+	notifyState.prevState = m_State;
+	notifyState.state = eQuickBuildState::RESETTING;
+	notifyState.player = LWOOBJID_EMPTY;
+	notifyState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	SetState(eQuickBuildState::RESETTING);
 	SetTimer(0.0f);
@@ -559,12 +600,25 @@ void QuickBuildComponent::CancelQuickBuild(Entity* const entity, const eQuickBui
 		const auto entityID = entity != nullptr ? entity->GetObjectID() : LWOOBJID_EMPTY;
 
 		// Notify the client that a state has changed
-		GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::INCOMPLETE, entityID);
-		GameMessages::SendEnableQuickBuild(m_Parent, false, true, false, failReason, m_Timer, entityID);
+		GameMessages::RebuildNotifyState notifyState;
+		notifyState.target = m_Parent->GetObjectID();
+		notifyState.prevState = m_State;
+		notifyState.state = eQuickBuildState::INCOMPLETE;
+		notifyState.player = entityID;
+		notifyState.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::EnableRebuild enableRebuild;
+		enableRebuild.target = m_Parent->GetObjectID();
+		enableRebuild.bEnable = false;
+		enableRebuild.bFail = true;
+		enableRebuild.bSuccess = false;
+		enableRebuild.eFailReason = failReason;
+		enableRebuild.fDuration = m_Timer;
+		enableRebuild.user = entityID;
+		enableRebuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		// Now terminate any interaction with the rebuild
-		GameMessages::SendTerminateInteraction(entityID, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
-		GameMessages::SendTerminateInteraction(m_Parent->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+		GameMessages::TerminateInteraction(entityID, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::TerminateInteraction(m_Parent->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		// Now update the component itself
 		SetState(eQuickBuildState::INCOMPLETE);

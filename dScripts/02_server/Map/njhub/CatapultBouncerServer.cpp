@@ -1,9 +1,10 @@
 #include "CatapultBouncerServer.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 
 void CatapultBouncerServer::OnQuickBuildComplete(Entity* self, Entity* target) {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"Built", 0, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"Built", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->SetNetworkVar<bool>(u"Built", true);
 

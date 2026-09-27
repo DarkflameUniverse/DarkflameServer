@@ -12,6 +12,8 @@
 #include "ChatPackets.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "PlayerMessages.h"
 #include "PlayerManager.h"
 #include "User.h"
 #include "UserManager.h"
@@ -66,7 +68,10 @@ namespace {
 			response.previousLevel = entity->GetGMLevel();
 			response.newLevel = info->maxGmLevel;
 			response.Send(entity->GetSystemAddress());
-			GameMessages::SendChatModeUpdate(entity->GetObjectID(), info->maxGmLevel);
+			GameMessages::UpdateChatMode chatMode;
+			chatMode.target = entity->GetObjectID();
+			chatMode.level = info->maxGmLevel;
+			chatMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 			entity->SetGMLevel(info->maxGmLevel);
 			if (info->maxGmLevel == eGameMasterLevel::CIVILIAN) {
 				GameMessages::ToggleGMInvisEvent msg;
@@ -115,7 +120,7 @@ namespace {
 		auto* target = PlayerManager::GetPlayer(targetId);
 		if (!entity || !target || entity == target) return 0;
 		const auto position = target->GetPosition();
-		GameMessages::SendTeleport(entity->GetObjectID(), position, entity->GetRotation(), entity->GetSystemAddress());
+		GameMessages::Teleport(entity->GetObjectID(), position, entity->GetRotation()).SendToClient(entity->GetSystemAddress());
 		ChatPackets::SendSystemMessage(entity->GetSystemAddress(), u"A moderator moved you to " + GeneralUtils::ASCIIToUTF16(target->GetCharacter() ? target->GetCharacter()->GetName() : "another player") + u".");
 		LOG("Dashboard teleport of %llu to %llu", characterId, targetId);
 		return 1;

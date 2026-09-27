@@ -38,6 +38,11 @@
 #include "InventoryMessages.h"
 #include "PetMessages.h"
 #include "PropertyMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
+#include "PlayerMessages.h"
+#include "QuickBuildMessages.h"
+#include "ZoneMessages.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
@@ -168,14 +173,49 @@ namespace {
 		{ RESURRECT, []() { return std::make_unique<Resurrect>(); } },
 		{ ACTIVATE_BUBBLE_BUFF, []() { return std::make_unique<ActivateBubbleBuff>(); } },
 		{ DECTIVATE_BUBBLE_BUFF, []() { return std::make_unique<DeactivateBubbleBuff>(); } },
+		// Zone lifecycle
+		{ PLAYER_LOADED, []() { return std::make_unique<PlayerLoaded>(); } },
+		{ READY_FOR_UPDATES, []() { return std::make_unique<ReadyForUpdates>(); } },
+		{ NOTIFY_SERVER_LEVEL_PROCESSING_COMPLETE, []() { return std::make_unique<NotifyServerLevelProcessingComplete>(); } },
+		{ ZONE_SUMMARY_DISMISSED, []() { return std::make_unique<ZoneSummaryDismissed>(); } },
+		{ MISSION_DIALOGUE_CANCELLED, []() { return std::make_unique<MissionDialogueCancelled>(); } },
+
+		// Objects and scripts
+		{ FIRE_EVENT_SERVER_SIDE, []() { return std::make_unique<FireEventServerSide>(); } },
+
+		// Player state, chat commands, reports
+		{ PARSE_CHAT_MESSAGE, []() { return std::make_unique<ParseChatMessage>(); } },
+		{ PICKUP_CURRENCY, []() { return std::make_unique<PickupCurrency>(); } },
+		{ MODIFY_PLAYER_ZONE_STATISTIC, []() { return std::make_unique<ModifyPlayerZoneStatistic>(); } },
+		{ UPDATE_PLAYER_STATISTIC, []() { return std::make_unique<UpdatePlayerStatistic>(); } },
+		{ REPORT_BUG, []() { return std::make_unique<ReportBug>(); } },
+		{ VERIFY_ACK, []() { return std::make_unique<VerifyAck>(); } },
+
+		// Quickbuilds
+		{ REBUILD_CANCEL, []() { return std::make_unique<RebuildCancel>(); } },
+
+		// Activities, matches, leaderboards, shooting galleries
+		{ MATCH_REQUEST, []() { return std::make_unique<MatchRequest>(); } },
+		{ REQUEST_ACTIVITY_SUMMARY_LEADERBOARD_DATA, []() { return std::make_unique<RequestActivitySummaryLeaderboardData>(); } },
+		{ SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA, []() { return std::make_unique<SendActivitySummaryLeaderboardData>(); } },
+		{ ACTIVITY_STATE_CHANGE_REQUEST, []() { return std::make_unique<ActivityStateChangeRequest>(); } },
+		{ UPDATE_SHOOTING_GALLERY_ROTATION, []() { return std::make_unique<UpdateShootingGalleryRotation>(); } },
+
+		// Movement: platforms, rails, mounts, ghosting
+		{ REQUEST_PLATFORM_RESYNC, []() { return std::make_unique<RequestPlatformResync>(); } },
+		{ CLIENT_RAIL_MOVEMENT_READY, []() { return std::make_unique<ClientRailMovementReady>(); } },
+		{ CANCEL_RAIL_MOVEMENT, []() { return std::make_unique<CancelRailMovement>(); } },
+		{ PLAYER_RAIL_ARRIVED_NOTIFICATION, []() { return std::make_unique<PlayerRailArrivedNotification>(); } },
+		{ DISMOUNT_COMPLETE, []() { return std::make_unique<DismountComplete>(); } },
+		{ ACKNOWLEDGE_POSSESSION, []() { return std::make_unique<AcknowledgePossession>(); } },
+		{ TOGGLE_GHOST_REFERENCE_OVERRIDE, []() { return std::make_unique<ToggleGhostReferenceOverride>(); } },
+		{ SET_GHOST_REFERENCE_POSITION, []() { return std::make_unique<SetGhostReferencePosition>(); } },
 	};
 };
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, MessageType::Game messageID) {
 	// The dashboard's message inspector (sees every message a client sends; nothing to do unless a capture runs)
 	if (MessageInspector::IsCapturing()) MessageInspector::RecordReceived(sysAddr, objectID, messageID, inStream);
-
-	CBITSTREAM;
 
 	// Get the entity
 	Entity* entity = Game::entityManager->GetEntity(objectID);
@@ -216,218 +256,5 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		return;
 	}
 
-	switch (messageID) {
-
-	case MessageType::Game::PLAYER_LOADED: {
-		GameMessages::SendPlayerReady(entity, sysAddr);
-		entity->SetPlayerReadyForUpdates();
-
-		auto* ghostComponent = entity->GetComponent<GhostComponent>();
-		if (ghostComponent != nullptr) {
-			ghostComponent->ConstructLimboEntities();
-		}
-
-		InventoryComponent* inv = entity->GetComponent<InventoryComponent>();
-		if (inv) {
-			// Clear server-side skill state so AddItemSkills sends fresh AddSkill
-			// packets to the now-ready client. Skills sent during entity construction
-			// (Serialize) arrive before LWOSkillComponent is initialized and are dropped.
-			inv->ClearSkills();
-			auto items = inv->GetEquippedItems();
-			for (auto pair : items) {
-				const auto item = pair.second;
-
-				inv->AddItemSkills(item.lot);
-			}
-
-			// Fixes a bug where testmapping too fast causes large item inventories to become invisible.
-			// Only affects item inventory
-			GameMessages::SetInventorySize setSize;
-			setSize.target = entity->GetObjectID();
-			setSize.inventoryType = eInventoryType::ITEMS;
-			setSize.size = inv->GetInventory(eInventoryType::ITEMS)->GetSize();
-			setSize.SendToClient(entity->GetSystemAddress());
-		}
-
-		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
-
-		auto* const destroyable = entity->GetComponent<DestroyableComponent>();
-		if (destroyable) destroyable->SetImagination(destroyable->GetImagination());
-		Game::entityManager->SerializeEntity(entity);
-
-		std::vector<Entity*> racingControllers = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
-		for (Entity* racingController : racingControllers) {
-			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
-			if (racingComponent != nullptr) {
-				racingComponent->OnPlayerLoaded(entity);
-			}
-		}
-
-		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-		if (zoneControl) {
-			zoneControl->GetScript()->OnPlayerLoaded(zoneControl, entity);
-		}
-
-		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
-		for (Entity* scriptEntity : scriptedActs) {
-			if (!zoneControl || scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				scriptEntity->GetScript()->OnPlayerLoaded(scriptEntity, entity);
-			}
-		}
-
-		//Kill player if health == 0
-		if (entity->GetIsDead()) {
-			entity->Smash(entity->GetObjectID());
-		}
-
-		//if the player has moved significantly, move them back:
-		if ((entity->GetPosition().y - entity->GetCharacter()->GetOriginalPos().y) > 2.0f) {
-			// Disabled until fixed
-			//GameMessages::SendTeleport(entity->GetObjectID(), entity->GetCharacter()->GetOriginalPos(), entity->GetCharacter()->GetOriginalRot(), entity->GetSystemAddress(), true, true);
-		}
-
-		/**
-		 * Invoke the OnZoneLoad event on the player character
-		 */
-		auto* character = entity->GetCharacter();
-
-		if (character != nullptr) {
-			character->OnZoneLoad();
-		}
-
-		// Moved here from another instance: put back what their save doesn't keep (the pet that was out)
-		WorldMigration::OnPlayerLoaded(entity);
-
-		LOG("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
-
-		// After we've done our thing, tell the client they're ready
-		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
-
-		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-			|| !entity->GetCharacter()
-			|| !entity->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
-		entity->AddCallbackTimer(0.5f, [entity, sysAddr]() {
-			if (!entity) return;
-			GameMessages::EndCinematic endCinematic;
-			endCinematic.target = entity->GetObjectID();
-			endCinematic.Send(sysAddr);
-			});
-		break;
-	}
-
-	case MessageType::Game::MISSION_DIALOGUE_CANCELLED: {
-		// This message is pointless for our implementation, as the client just carries on after
-		// rejecting a mission offer. We dont need to do anything. This is just here to remove a warning in our logs :)
-		break;
-	}
-
-	case MessageType::Game::REQUEST_PLATFORM_RESYNC: {
-		GameMessages::HandleRequestPlatformResync(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::FIRE_EVENT_SERVER_SIDE: {
-		GameMessages::HandleFireEventServerSide(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
-		GameMessages::HandleActivitySummaryLeaderboardData(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::REQUEST_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
-		GameMessages::HandleRequestActivitySummaryLeaderboardData(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::ACTIVITY_STATE_CHANGE_REQUEST: {
-		GameMessages::HandleActivityStateChangeRequest(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::PARSE_CHAT_MESSAGE: {
-		GameMessages::HandleParseChatMessage(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::NOTIFY_SERVER_LEVEL_PROCESSING_COMPLETE: {
-		GameMessages::HandleNotifyServerLevelProcessingComplete(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::PICKUP_CURRENCY: {
-		GameMessages::HandlePickupCurrency(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::REBUILD_CANCEL:
-		GameMessages::HandleQuickBuildCancel(inStream, entity);
-		break;
-
-	case MessageType::Game::MATCH_REQUEST:
-		GameMessages::HandleMatchRequest(inStream, entity);
-		break;
-
-	case MessageType::Game::VERIFY_ACK:
-		GameMessages::HandleVerifyAck(inStream, entity, sysAddr);
-		break;
-
-		// Trading
-	case MessageType::Game::ACKNOWLEDGE_POSSESSION:
-		GameMessages::HandleAcknowledgePossession(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::UPDATE_SHOOTING_GALLERY_ROTATION:
-		GameMessages::HandleUpdateShootingGalleryRotation(inStream, entity, sysAddr);
-		break;
-
-		// NT
-	case MessageType::Game::TOGGLE_GHOST_REFERENCE_OVERRIDE:
-		GameMessages::HandleToggleGhostReferenceOverride(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::SET_GHOST_REFERENCE_POSITION:
-		GameMessages::HandleSetGhostReferencePosition(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::READY_FOR_UPDATES:
-		//We don't really care about this message, as it's simply here to inform us that the client is done loading an object.
-		//In the event we _do_ send an update to an object that hasn't finished loading, the client will handle it anyway.
-		break;
-
-	case MessageType::Game::REPORT_BUG:
-		GameMessages::HandleReportBug(inStream, entity);
-		break;
-
-	case MessageType::Game::CLIENT_RAIL_MOVEMENT_READY:
-		GameMessages::HandleClientRailMovementReady(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::CANCEL_RAIL_MOVEMENT:
-		GameMessages::HandleCancelRailMovement(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PLAYER_RAIL_ARRIVED_NOTIFICATION:
-		GameMessages::HandlePlayerRailArrivedNotification(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::MODIFY_PLAYER_ZONE_STATISTIC:
-		GameMessages::HandleModifyPlayerZoneStatistic(inStream, entity);
-		break;
-
-	case MessageType::Game::UPDATE_PLAYER_STATISTIC:
-		GameMessages::HandleUpdatePlayerStatistic(inStream, entity);
-		break;
-
-	case MessageType::Game::DISMOUNT_COMPLETE:
-		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::ZONE_SUMMARY_DISMISSED:
-		GameMessages::HandleZoneSummaryDismissed(inStream, entity);
-		break;
-	default:
-		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
-		break;
-	}
+	LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 }

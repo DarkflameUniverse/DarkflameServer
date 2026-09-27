@@ -7,6 +7,7 @@
 #include "EntityInfo.h"
 #include "RenderComponent.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 
 void FvMaelstromDragon::OnStartup(Entity* self) {
 	self->SetVar<int32_t>(u"weakspot", 0);
@@ -164,7 +165,7 @@ void FvMaelstromDragon::OnTimerDone(Entity* self, std::string timerName) {
 		idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar<int32_t>(u"weakspot", -1);
 
-		GameMessages::SendNotifyObject(self->GetObjectID(), self->GetObjectID(), u"DragonRevive", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyObject(self->GetObjectID(), self->GetObjectID(), u"DragonRevive").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 

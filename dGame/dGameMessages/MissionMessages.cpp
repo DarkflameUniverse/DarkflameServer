@@ -123,6 +123,21 @@ namespace GameMessages {
 		return true;
 	}
 
+	void MissionDialogueCancelled::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(bIsComplete);
+		bitStream.Write(iMissionState);
+		bitStream.Write(missionID);
+		bitStream.Write(responder);
+	}
+
+	bool MissionDialogueCancelled::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(bIsComplete));
+		VALIDATE_READ(bitStream.Read(iMissionState));
+		VALIDATE_READ(bitStream.Read(missionID));
+		VALIDATE_READ(bitStream.Read(responder));
+		return true;
+	}
+
 	void MissionDialogueOK::Handle(Entity& entityRef, const SystemAddress& sysAddr) {
 		Entity* entity = &entityRef;
 		Entity* player = Game::entityManager->GetEntity(responder);

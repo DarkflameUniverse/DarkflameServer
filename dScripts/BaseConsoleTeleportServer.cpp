@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "ObjectMessages.h"
+#include "ZoneMessages.h"
 #include "CharacterComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
@@ -69,10 +71,15 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 				return;
 			}
 
-			GameMessages::SendDisplayZoneSummary(playerID, player->GetSystemAddress(), false, false, self->GetObjectID());
+			GameMessages::DisplayZoneSummary zoneSummary;
+			zoneSummary.target = playerID;
+			zoneSummary.isPropertyMap = false;
+			zoneSummary.isZoneStart = false;
+			zoneSummary.sender = self->GetObjectID();
+			zoneSummary.Send(player->GetSystemAddress());
 			});
 	} else if (button == -1 || button == 0) {
-		GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID());
+		GameMessages::TerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 
@@ -116,7 +123,7 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 	stun.bCantUseItem = true;
 	stun.Send(player->GetSystemAddress());
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID());
+	GameMessages::TerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");
 

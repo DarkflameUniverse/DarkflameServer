@@ -2,6 +2,7 @@
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "Loot.h"
 #include "EntityManager.h"
 #include "eTerminateType.h"
@@ -29,7 +30,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 		GeneralUtils::GenerateRandomNumber<int32_t>(1, 1000)
 	);
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"StartCooldown", 0, 0, LWOOBJID_EMPTY, "", user->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"StartCooldown", 0, 0, LWOOBJID_EMPTY, "").Send(user->GetSystemAddress());
 
 	const auto userID = user->GetObjectID();
 
@@ -38,10 +39,10 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 
 		if (user == nullptr) return;
 
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"StopCooldown", 0, 0, LWOOBJID_EMPTY, "", user->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"StopCooldown", 0, 0, LWOOBJID_EMPTY, "").Send(user->GetSystemAddress());
 		});
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void WishingWellServer::OnTimerDone(Entity* self, std::string timerName) {

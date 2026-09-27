@@ -1,5 +1,6 @@
 #include "ImaginationBackpackHealServer.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
@@ -15,8 +16,7 @@ void ImaginationBackpackHealServer::OnSkillEventFired(Entity* self, Entity* cast
 		auto* missionComponent = caster->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr && missionComponent->GetMissionState(healMission) == eMissionState::ACTIVE) {
 			missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
-			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ClearMaelstrom", 0, 0,
-				caster->GetObjectID(), "", caster->GetSystemAddress());
+			GameMessages::NotifyClientObject(self->GetObjectID(), u"ClearMaelstrom", 0, 0, caster->GetObjectID(), "").Send(caster->GetSystemAddress());
 		}
 	}
 }

@@ -2,12 +2,13 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "ObjectMessages.h"
 #include "RenderComponent.h"
 #include "Entity.h"
 #include "eTerminateType.h"
 
 void AgShipPlayerShockServer::OnUse(Entity* self, Entity* user) {
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	if (active) {
 		return;
 	}

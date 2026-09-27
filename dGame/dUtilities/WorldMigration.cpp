@@ -1,4 +1,5 @@
 #include "WorldMigration.h"
+#include "ZoneMessages.h"
 #include "MasterPackets.h"
 
 #include <ctime>
@@ -82,27 +83,14 @@ namespace {
 		if (g_Active) SendStatus(g_Active->order.migrationId, g_Active->order.targetInstance, state, g_Active->moved, g_Active->failed, remaining, message);
 	}
 
-	void WriteWString(RakNet::BitStream& bitStream, const std::u16string& text) {
-		bitStream.Write<uint32_t>(text.size());
-		for (const auto character : text) bitStream.Write<uint16_t>(character);
-	}
-
 	// LocalizedAnnouncementServerToSingleClient: the client looks both strings up in its locale (falling back to
 	// the text itself) and shows the announcement popup, like its own instance-lock warning did in live
 	void SendLocalizedAnnouncement(Entity* player, const std::u16string& body, const std::u16string& title) {
-		const auto& sysAddr = player->GetSystemAddress();
-		CBITSTREAM;
-		CMSGHEADER;
-		bitStream.Write(player->GetObjectID());
-		bitStream.Write(MessageType::Game::LOCALIZED_ANNOUNCEMENT_SERVER_TO_SINGLE_CLIENT);
-		bitStream.Write<uint32_t>(0); // body parameters (LDF), none
-		bitStream.Write(false); // force open chat box
-		bitStream.Write(true); // show the announcement
-		bitStream.Write(true); // and put the text in chat
-		WriteWString(bitStream, body);
-		WriteWString(bitStream, title);
-		bitStream.Write<uint32_t>(0); // title parameters (LDF), none
-		SEND_PACKET;
+		GameMessages::LocalizedAnnouncementServerToSingleClient announcement;
+		announcement.target = player->GetObjectID();
+		announcement.body = body;
+		announcement.title = title;
+		announcement.SendToClient(player->GetSystemAddress());
 	}
 
 	uint16_t Remaining() {

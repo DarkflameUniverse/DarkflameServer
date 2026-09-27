@@ -322,6 +322,32 @@ namespace GameMessages {
 		bool bLock{};
 		int32_t emoteID{};
 	};
+
+	struct DisplayTooltip : public NetGameMsg {
+		DisplayTooltip() : NetGameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}
+		bool doOrDie{};
+		bool noRepeat{};
+		bool noRevive{};
+		bool isPropertyTooltip{};
+		bool show{};
+		bool translate{};
+		int32_t time{};
+		std::u16string id{};
+		LwoNameValue localizeParams{};
+		std::u16string imageName{};
+		std::u16string text{};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct EmotePlayed : public NetGameMsg {
+		EmotePlayed() : NetGameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(0), targetID(0) {}
+
+		void Serialize(RakNet::BitStream& stream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		int32_t emoteID;
+		LWOOBJID targetID;
+	};
 };
 
 #endif // EFFECTSMESSAGES_H

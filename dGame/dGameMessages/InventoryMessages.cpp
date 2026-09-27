@@ -1,6 +1,7 @@
 #include "InventoryMessages.h"
 
 #include "BitStreamUtils.h"
+#include "TeamManager.h"
 #include "EntityManager.h"
 #include "Game.h"
 #include "Entity.h"
@@ -454,5 +455,95 @@ namespace GameMessages {
 	void UpdateInventoryGroupContents::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* inventoryComponent = entity.GetComponent<InventoryComponent>();
 		if (inventoryComponent) inventoryComponent->OnUpdateInventoryGroupContents(*this);
+	}
+
+	void UseItemOnClient::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(itemLOT);
+		bitStream.Write(itemToUse);
+		bitStream.Write(itemType);
+		bitStream.Write(playerId);
+		bitStream.Write(targetPosition.x);
+		bitStream.Write(targetPosition.y);
+		bitStream.Write(targetPosition.z);
+	}
+
+	void DropClientLoot::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(bUsePosition);
+
+		stream.Write(finalPosition != NiPoint3Constant::ZERO);
+		if (finalPosition != NiPoint3Constant::ZERO) stream.Write(finalPosition);
+
+		stream.Write(currency);
+		stream.Write(item);
+		stream.Write(lootID);
+		stream.Write(ownerID);
+		stream.Write(sourceID);
+
+		stream.Write(spawnPos != NiPoint3Constant::ZERO);
+		if (spawnPos != NiPoint3Constant::ZERO) stream.Write(spawnPos);
+	}
+
+	bool PickupItem::Deserialize(RakNet::BitStream& stream) {
+		if (!stream.Read(lootID)) return false;
+		if (!stream.Read(lootOwnerID)) return false;
+		return true;
+	}
+
+	void PickupItem::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* team = TeamManager::Instance()->GetTeam(entity.GetObjectID());
+		LOG("Has team %i picking up %llu:%llu", team != nullptr, lootID, lootOwnerID);
+		if (team) {
+			for (const auto memberId : team->members) {
+				PickupItemEvent event(*this);
+				event.Send(memberId);
+				TeamPickupItem teamPickupMsg{};
+				teamPickupMsg.target = lootID;
+				teamPickupMsg.lootID = lootID;
+				teamPickupMsg.lootOwnerID = lootOwnerID;
+				const auto* const memberEntity = Game::entityManager->GetEntity(memberId);
+				if (memberEntity) teamPickupMsg.Send(memberEntity->GetSystemAddress());
+			}
+		} else {
+			entity.PickupItem(lootID);
+		}
+	}
+
+	void TeamPickupItem::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(lootID);
+		stream.Write(lootOwnerID);
+	}
+
+	bool UseItemOnClient::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(itemLOT));
+		VALIDATE_READ(bitStream.Read(itemToUse));
+		VALIDATE_READ(bitStream.Read(itemType));
+		VALIDATE_READ(bitStream.Read(playerId));
+		VALIDATE_READ(bitStream.Read(targetPosition.x));
+		VALIDATE_READ(bitStream.Read(targetPosition.y));
+		VALIDATE_READ(bitStream.Read(targetPosition.z));
+		return true;
+	}
+
+	bool DropClientLoot::Deserialize(RakNet::BitStream& stream) {
+		VALIDATE_READ(stream.Read(bUsePosition));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(stream, finalPosition, NiPoint3Constant::ZERO));
+		VALIDATE_READ(stream.Read(currency));
+		VALIDATE_READ(stream.Read(item));
+		VALIDATE_READ(stream.Read(lootID));
+		VALIDATE_READ(stream.Read(ownerID));
+		VALIDATE_READ(stream.Read(sourceID));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(stream, spawnPos, NiPoint3Constant::ZERO));
+		return true;
+	}
+
+	void PickupItem::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(lootID);
+		stream.Write(lootOwnerID);
+	}
+
+	bool TeamPickupItem::Deserialize(RakNet::BitStream& stream) {
+		VALIDATE_READ(stream.Read(lootID));
+		VALIDATE_READ(stream.Read(lootOwnerID));
+		return true;
 	}
 }

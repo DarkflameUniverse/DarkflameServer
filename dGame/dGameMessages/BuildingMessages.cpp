@@ -728,4 +728,37 @@ namespace GameMessages {
 			}
 		}
 	}
+
+	void SetModelToBuild::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(modelLot != -1);
+		if (modelLot != -1) bitStream.Write(modelLot);
+	}
+
+	void SpawnModelBricks::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(amount != 0.0f);
+		if (amount != 0.0f) bitStream.Write(amount);
+		bitStream.Write(position != NiPoint3Constant::ZERO);
+		if (position != NiPoint3Constant::ZERO) {
+			bitStream.Write(position.x);
+			bitStream.Write(position.y);
+			bitStream.Write(position.z);
+		}
+	}
+
+	bool SetModelToBuild::Deserialize(RakNet::BitStream& bitStream) {
+		return BitStreamUtils::ReadOptional(bitStream, modelLot, LOT{ -1 });
+	}
+
+	bool SpawnModelBricks::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, amount, 0.0f));
+		bool hasPosition{};
+		VALIDATE_READ(bitStream.Read(hasPosition));
+		position = NiPoint3Constant::ZERO;
+		if (hasPosition) {
+			VALIDATE_READ(bitStream.Read(position.x));
+			VALIDATE_READ(bitStream.Read(position.y));
+			VALIDATE_READ(bitStream.Read(position.z));
+		}
+		return true;
+	}
 }

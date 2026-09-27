@@ -3,6 +3,8 @@
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
 #include "ActivityMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -22,7 +24,9 @@ void BaseWavesServer::SetGameVariables(Entity* self) {
 
 // Done
 void BaseWavesServer::BasePlayerLoaded(Entity* self, Entity* player) {
-	GameMessages::SendPlayerSetCameraCyclingMode(player->GetObjectID(), player->GetSystemAddress());
+	GameMessages::PlayerSetCameraCyclingMode cameraCyclingMode;
+	cameraCyclingMode.target = player->GetObjectID();
+	cameraCyclingMode.SendToClient(player->GetSystemAddress());
 	GameMessages::SetPlayerAllowedRespawn allowedRespawn;
 	allowedRespawn.target = player->GetObjectID();
 	allowedRespawn.dontPromptForRespawn = true;
@@ -132,8 +136,7 @@ void BaseWavesServer::BasePlayerDied(Entity* self, Entity* player) {
 
 	auto paramString = CheckAllPlayersDead() ? "true" : "false";
 
-	GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Player_Died", finalTime, finalWave,
-		player->GetObjectID(), paramString, player->GetSystemAddress());
+	GameMessages::NotifyClientZoneObject(self->GetObjectID(), u"Player_Died", finalTime, finalWave, player->GetObjectID(), paramString).Send(player->GetSystemAddress());
 
 	if (!self->GetNetworkVar<bool>(WavesStartedVariable)) {
 		player->Resurrect();
@@ -145,8 +148,7 @@ void BaseWavesServer::BasePlayerDied(Entity* self, Entity* player) {
 
 // Done
 void BaseWavesServer::BasePlayerResurrected(Entity* self, Entity* player) {
-	GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Player_Res", 0, 0,
-		player->GetObjectID(), "", player->GetSystemAddress());
+	GameMessages::NotifyClientZoneObject(self->GetObjectID(), u"Player_Res", 0, 0, player->GetObjectID(), "").Send(player->GetSystemAddress());
 
 	if (self->GetNetworkVar<bool>(WavesStartedVariable))
 		return;
@@ -335,7 +337,7 @@ void BaseWavesServer::SetPlayerSpawnPoints(const LWOOBJID& specificPlayerID) {
 			auto possibleSpawners = Game::entityManager->GetEntitiesInGroup("P" + std::to_string(spawnerIndex) + "_Spawn");
 			if (!possibleSpawners.empty()) {
 				auto* spawner = possibleSpawners.at(0);
-				GameMessages::SendTeleport(playerID, spawner->GetPosition(), spawner->GetRotation(), player->GetSystemAddress(), true);
+				GameMessages::Teleport(playerID, spawner->GetPosition(), spawner->GetRotation(), true).SendToClient(player->GetSystemAddress());
 			}
 		}
 
@@ -369,8 +371,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 		const auto time = GetActivityValue(self, playerID, 1);
 		const auto wave = GetActivityValue(self, playerID, 2);
 
-		GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Update_ScoreBoard", time, 0,
-			playerID, std::to_string(wave), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientZoneObject(self->GetObjectID(), u"Update_ScoreBoard", time, 0, playerID, std::to_string(wave)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		if (won) {
 			SetPlayerSpawnPoints();

@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "dZoneManager.h"
 #include "RenderComponent.h"
 #include "MissionComponent.h"
@@ -67,8 +68,7 @@ void ZoneAgProperty::OnPlayerLoaded(Entity* self, Entity* player) {
 		ambientSound.target = player->GetObjectID();
 		ambientSound.audioGUID = GUIDMaelstrom;
 		ambientSound.SendToClient(player->GetSystemAddress());
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0,
-			LWOOBJID_EMPTY, "", player->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY, "").Send(player->GetSystemAddress());
 
 		self->SetNetworkVar(u"unclaimed", true);
 
@@ -176,8 +176,7 @@ void ZoneAgProperty::StartMaelstrom(Entity* self, Entity* player) {
 	StartTornadoFx(self);
 
 	if (player != nullptr) {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY,
-			"", player->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0, LWOOBJID_EMPTY, "").Send(player->GetSystemAddress());
 	}
 }
 
@@ -205,7 +204,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 
 		auto* entity = entities[0];
 
-		GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"GuardChat", 0, 0, entity->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"GuardChat", 0, 0, entity->GetObjectID(), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		LoadProperty(self);
 
 		self->AddTimer("KillGuard", 5);
@@ -235,8 +234,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		self->AddTimer("turnSkyOff", 1.5f);
 		self->AddTimer("killFXObject", 8);
 	} else if (timerName == "turnSkyOff") {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SkyOff", 0, 0, LWOOBJID_EMPTY,
-			"", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"SkyOff", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "killSpider") {
 		for (auto* entity : Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(EnemiesGroup))) {
 			entity->Kill();
@@ -271,13 +269,12 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 			ambientSound.SendToClient(player->GetSystemAddress());
 		}
 	} else if (timerName == "ShowVendor") {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"vendorOn", 0, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"vendorOn", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		for (const auto& ambient : self->GetVar<std::vector<std::string>>(AmbientFXSpawner)) {
 			ActivateSpawner(ambient);
 		}
 	} else if (timerName == "BoundsVisOn") {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"boundsAnim", 0, 0,
-			LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"boundsAnim", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "runPlayerLoadedAgain") {
 		CheckForOwner(self);
 	} else if (timerName == "pollTornadoFX") {
@@ -424,8 +421,7 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 
 		auto* const character = player->GetCharacter();
 		if (character) character->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
-			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0, LWOOBJID_EMPTY, destroyedCinematic).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddTimer("tornadoOff", 0.5f);
 	}

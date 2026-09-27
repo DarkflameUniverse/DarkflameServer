@@ -1,6 +1,7 @@
 #include "FvConsoleLeftQuickbuild.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "eTerminateType.h"
 #include "eQuickBuildState.h"
 
@@ -45,5 +46,5 @@ void FvConsoleLeftQuickbuild::OnUse(Entity* self, Entity* user) {
 		}
 	}
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

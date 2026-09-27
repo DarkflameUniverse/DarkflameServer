@@ -47,11 +47,6 @@ enum class eReponseMoveItemBetweenInventoryTypeCode : int32_t;
 enum class eMissionState : int;
 enum class AiState : uint32_t;
 
-enum class eCameraTargetCyclingMode : int32_t {
-	ALLOW_CYCLE_TEAMMATES,
-	DISALLOW_CYCLING
-};
-
 namespace GameMessages {
 	/**
 	 * A server-internal event, delivered only to the handlers entities/components/scripts registered with
@@ -129,203 +124,7 @@ namespace GameMessages {
 		return event.Send();
 	}
 
-	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
-	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
-	void SendPlayerReady(Entity* entity, const SystemAddress& sysAddr);
-	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
-
-	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr, bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = eCyclingMode::ALLOW_CYCLE_TEAMMATES);
-
-	void SendStartPathing(Entity* entity);
-
-	// special is for the FV tree platform, feature is complete if we just do that so meh
-	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
-		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		eMovementPlatformState movementState = eMovementPlatformState::Moving, bool special = false);
-
-	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
-	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
-	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
-	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
-
-	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
-
-	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
-
-	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
-
-	void SendQuickBuildNotifyState(Entity* entity, eQuickBuildState prevState, eQuickBuildState state, const LWOOBJID& playerID);
-	void SendEnableQuickBuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID);
-	void AddActivityOwner(Entity* entity, LWOOBJID& ownerID);
-	void SendTerminateInteraction(const LWOOBJID& objectID, eTerminateType type, const LWOOBJID& terminator);
-
-	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
-
-	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
-	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
-
-	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
-	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
-
-	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
-	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
-
-	// Rails stuff
-	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
-		const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
-		int32_t railActivatorComponentID = -1, LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
-
-	void SendStartRailMovement(const LWOOBJID& objectID, std::u16string pathName, std::u16string startSound,
-		std::u16string loopSound, std::u16string stopSound, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
-		uint32_t pathStart = 0, bool goForward = true, bool damageImmune = true, bool noAggro = true,
-		bool notifyActor = false, bool showNameBillboard = true, bool cameraLocked = true,
-		bool collisionEnabled = true, bool useDB = true, int32_t railComponentID = -1,
-		LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
-
-	void HandleClientRailMovementReady(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleCancelRailMovement(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandlePlayerRailArrivedNotification(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void SendNotifyClientObject(const LWOOBJID& objectID, std::u16string name, int param1 = 0, int param2 = 0, const LWOOBJID& paramObj = LWOOBJID_EMPTY, std::string paramStr = "", const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-	void SendNotifyClientZoneObject(const LWOOBJID& objectID, const std::u16string& name, int param1, int param2, const LWOOBJID& paramObj, const std::string& paramStr, const SystemAddress& sysAddr);
-
-	void SendNotifyClientFailedPrecondition(LWOOBJID objectId, const SystemAddress& sysAddr, const std::u16string& failedReason, int preconditionID);
-
-	void SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr);
-
-	void SendLockNodeRotation(Entity* entity, std::string nodeName);
-
-	void SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr);
-
-	void SendNotifyObject(LWOOBJID objectId, LWOOBJID objIDSender, std::u16string name, const SystemAddress& sysAddr, int param1 = 0, int param2 = 0);
-
-	void HandleVerifyAck(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void SendTeamPickupItem(LWOOBJID objectId, LWOOBJID lootID, LWOOBJID lootOwnerID, const SystemAddress& sysAddr);
-
-	//Pets:
-
-	void SendDisplayZoneSummary(LWOOBJID objectId, const SystemAddress& sysAddr, bool isPropertyMap = false, bool isZoneStart = false, LWOOBJID sender = LWOOBJID_EMPTY);
-
-	// Mounts
-	/**
-	 * @brief Set the Inventory LWOOBJID of the mount
-	 *
-	 * @param entity The entity that is mounting
-	 * @param sysAddr the system address to send game message responses to
-	 * @param objectID LWOOBJID of the item in inventory that is being used
-	 */
-	void SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr);
-
-	/**
-	 * @brief Handle client dismounting mount
-	 *
-	 * @param inStream Raknet BitStream of incoming data
-	 * @param entity The Entity that is dismounting
-	 * @param sysAddr the system address to send game message responses to
-	 */
-	void HandleDismountComplete(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	/**
-	 * @brief Handle acknowledging that the client possessed something
-	 *
-	 * @param inStream Raknet BitStream of incoming data
-	 * @param entity The Entity that is possessing
-	 * @param sysAddr the system address to send game message responses to
-	 */
-	void HandleAcknowledgePossession(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	//Racing:
-
-	// SG:
-
-	void SendSetShootingGalleryParams(LWOOBJID objectId, const SystemAddress& sysAddr,
-		float cameraFOV,
-		float cooldown,
-		float minDistance,
-		NiPoint3 muzzlePosOffset,
-		NiPoint3 playerPosOffset,
-		float projectileVelocity,
-		float timeLimit,
-		bool bUseLeaderboards
-	);
-
-	void SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const SystemAddress& sysAddr,
-		float addTime,
-		int32_t score,
-		LWOOBJID target,
-		NiPoint3 targetPos
-	);
-
-	void HandleUpdateShootingGalleryRotation(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr);
-
-	// Leaderboards
-	void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,
-		const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-	void HandleActivitySummaryLeaderboardData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void SendRequestActivitySummaryLeaderboardData(const LWOOBJID& objectID, const LWOOBJID& targetID,
-		const SystemAddress& sysAddr, const int32_t& gameID = 0,
-		const int32_t& queryType = 1, const int32_t& resultsEnd = 10,
-		const int32_t& resultsStart = 0, bool weekly = false);
-	void HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleActivityStateChangeRequest(RakNet::BitStream& inStream, Entity* entity);
-
-	//NT:
-
-	//Handlers:
-
-	void HandleToggleGhostReferenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetGhostReferencePosition(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleParseChatMessage(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleToggleGhostReffrenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetGhostReffrenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleFireEventServerSide(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleRequestPlatformResync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
-	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
-	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
-	void HandlePickupItem(RakNet::BitStream& inStream, Entity* entity);
-	void HandleModifyPlayerZoneStatistic(RakNet::BitStream& inStream, Entity* entity);
-	void HandleUpdatePlayerStatistic(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandleReportBug(RakNet::BitStream& inStream, Entity* entity);
-
-	// bubble
-
-	void HandleZoneSummaryDismissed(RakNet::BitStream& inStream, Entity* entity);
-
-	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
-
-	struct DisplayTooltip : public NetGameMsg {
-		DisplayTooltip() : NetGameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}
-		bool doOrDie{};
-		bool noRepeat{};
-		bool noRevive{};
-		bool isPropertyTooltip{};
-		bool show{};
-		bool translate{};
-		int32_t time{};
-		std::u16string id{};
-		LwoNameValue localizeParams{};
-		std::u16string imageName{};
-		std::u16string text{};
-		void Serialize(RakNet::BitStream& bitStream) const override;
-	};
-
-	struct UseItemOnClient : public NetGameMsg {
-		UseItemOnClient() : NetGameMsg(MessageType::Game::USE_ITEM_ON_CLIENT) {}
-		LWOOBJID playerId{};
-		LWOOBJID itemToUse{};
-		uint32_t itemType{};
-		LOT itemLOT{};
-		NiPoint3 targetPosition{};
-		void Serialize(RakNet::BitStream& bitStream) const override;
-	};
+	// Server-internal events (GameMsg). Wire messages live in the per-domain <Domain>Messages.h files.
 
 	struct ZoneLoadedInfo : public GameMsg {
 		ZoneLoadedInfo() : GameMsg(MessageType::Game::ZONE_LOADED_INFO) {}
@@ -337,19 +136,7 @@ namespace GameMessages {
 		LwoNameValue racingSettings{};
 	};
 
-	struct SetModelToBuild : public NetGameMsg {
-		SetModelToBuild() : NetGameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
-		void Serialize(RakNet::BitStream& bitStream) const override;
-		LOT modelLot{ -1 };
-	};
 
-	struct SpawnModelBricks : public NetGameMsg {
-		SpawnModelBricks() : NetGameMsg(MessageType::Game::SPAWN_MODEL_BRICKS) {}
-		void Serialize(RakNet::BitStream& bitStream) const override;
-
-		float amount{ 0.0f };
-		NiPoint3 position{ NiPoint3Constant::ZERO };
-	};
 
 	struct ActivityNotify : public GameMsg {
 		ActivityNotify() : GameMsg(MessageType::Game::ACTIVITY_NOTIFY) {}
@@ -357,14 +144,6 @@ namespace GameMessages {
 		LwoNameValue notification{};
 	};
 
-	struct ShootingGalleryFire : public NetGameMsg {
-		ShootingGalleryFire() : NetGameMsg(MessageType::Game::SHOOTING_GALLERY_FIRE) {}
-		bool Deserialize(RakNet::BitStream& bitStream) override;
-		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
-
-		NiPoint3 target{};
-		NiQuaternion rotation = QuatUtils::IDENTITY;
-	};
 
 	struct ChildLoaded : public GameMsg {
 		ChildLoaded() : GameMsg(MessageType::Game::CHILD_LOADED) {}
@@ -377,16 +156,6 @@ namespace GameMessages {
 		PlayerResurrectionFinished() : GameMsg(MessageType::Game::PLAYER_RESURRECTION_FINISHED) {}
 	};
 
-	struct RequestServerObjectInfo : public NetGameMsg {
-		bool bVerbose{};
-		LWOOBJID clientId{};
-		LWOOBJID targetForReport{};
-
-		RequestServerObjectInfo() : NetGameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
-		bool Deserialize(RakNet::BitStream& bitStream) override;
-		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
-	};
-	using RequestServerObjectInfoEvent = NetGameMsgEvent<RequestServerObjectInfo>;
 
 	struct GetObjectReportInfo : public GameMsg {
 		AMFArrayValue* info{};
@@ -397,34 +166,7 @@ namespace GameMessages {
 		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO) {}
 	};
 
-	struct RequestUse : public NetGameMsg {
-		RequestUse() : NetGameMsg(MessageType::Game::REQUEST_USE) {}
 
-		bool Deserialize(RakNet::BitStream& stream) override;
-		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
-
-		LWOOBJID object{};
-
-		bool secondary{ false };
-
-		// Set to true if this coming from a multi-interaction UI on the client.
-		bool bIsMultiInteractUse{};
-
-		// Used only for multi-interaction
-		unsigned int multiInteractID{};
-
-		// Used only for multi-interaction, is of the enum type InteractionType
-		int multiInteractType{};
-	};
-	using RequestUseEvent = NetGameMsgEvent<RequestUse>;
-
-	struct PlayBehaviorSound : public NetGameMsg {
-		PlayBehaviorSound() : NetGameMsg(MessageType::Game::PLAY_BEHAVIOR_SOUND) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-
-		int32_t soundID{ -1 };
-	};
 
 	struct ResetModelToDefaults : public GameMsg {
 		ResetModelToDefaults() : GameMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS) {}
@@ -435,14 +177,6 @@ namespace GameMessages {
 		bool bResetBehaviors{ true };
 	};
 
-	struct EmotePlayed : public NetGameMsg {
-		EmotePlayed() : NetGameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(0), targetID(0) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-
-		int32_t emoteID;
-		LWOOBJID targetID;
-	};
 
 	struct GetPosition : public GameMsg {
 		GetPosition() : GameMsg(MessageType::Game::GET_POSITION) {}
@@ -458,21 +192,6 @@ namespace GameMessages {
 		bool bIgnoreChecks{ false };
 	};
 
-	struct DropClientLoot : public NetGameMsg {
-		DropClientLoot() : NetGameMsg(MessageType::Game::DROP_CLIENT_LOOT) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-		LWOOBJID sourceID{ LWOOBJID_EMPTY };
-		LOT item{ LOT_NULL };
-		int32_t currency{};
-		NiPoint3 spawnPos{};
-		NiPoint3 finalPosition{};
-		int32_t count{};
-		bool bUsePosition{};
-		LWOOBJID lootID{ LWOOBJID_EMPTY };
-		LWOOBJID ownerID{ LWOOBJID_EMPTY };
-	};
-	using DropClientLootEvent = NetGameMsgEvent<DropClientLoot>;
 
 	struct GetMissionState : public GameMsg {
 		GetMissionState() : GameMsg(MessageType::Game::GET_MISSION_STATE) {}
@@ -502,23 +221,7 @@ namespace GameMessages {
 		LOT item{};
 	};
 
-	struct PickupItem : public NetGameMsg {
-		PickupItem() : NetGameMsg(MessageType::Game::PICKUP_ITEM) {}
 
-		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
-		bool Deserialize(RakNet::BitStream& stream) override;
-		LWOOBJID lootID{};
-		LWOOBJID lootOwnerID{};
-	};
-	using PickupItemEvent = NetGameMsgEvent<PickupItem>;
-
-	struct TeamPickupItem : public NetGameMsg {
-		TeamPickupItem() : NetGameMsg(MessageType::Game::TEAM_PICKUP_ITEM) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-		LWOOBJID lootID{};
-		LWOOBJID lootOwnerID{};
-	};
 
 	struct IsDead : public GameMsg {
 		IsDead() : GameMsg(MessageType::Game::IS_DEAD) {}
@@ -526,14 +229,6 @@ namespace GameMessages {
 		bool bDead{};
 	};
 
-	struct ToggleGMInvis : public NetGameMsg {
-		ToggleGMInvis() : NetGameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-		bool bStateOut{ false };
-
-	};
-	using ToggleGMInvisEvent = NetGameMsgEvent<ToggleGMInvis>;
 
 	struct GetGMInvis : public GameMsg {
 		GetGMInvis() : GameMsg(MessageType::Game::GET_GM_INVIS) {}
@@ -547,14 +242,6 @@ namespace GameMessages {
 		LWOOBJID childID{};
 	};
 
-	struct UseSkillSet : public NetGameMsg {
-		UseSkillSet() : NetGameMsg(MessageType::Game::USE_SKILL_SET) {}
-		void Serialize(RakNet::BitStream& bitStream) const override;
-
-		bool bRemove{};
-		LWOOBJID possessedId{ LWOOBJID_EMPTY };
-		int32_t setId{ -1 };
-	};
 
 	struct ObjectLoaded : public GameMsg {
 		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}

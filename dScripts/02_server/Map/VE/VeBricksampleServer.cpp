@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "eMissionState.h"
 
 void VeBricksampleServer::OnUse(Entity* self, Entity* user) {
@@ -15,7 +16,7 @@ void VeBricksampleServer::OnUse(Entity* self, Entity* user) {
 			inventoryComponent->AddItem(loot, 1, eLootSourceType::NONE);
 
 			for (auto* brickEntity : Game::entityManager->GetEntitiesInGroup("Bricks")) {
-				GameMessages::SendNotifyClientObject(brickEntity->GetObjectID(), u"Pickedup");
+				GameMessages::NotifyClientObject(brickEntity->GetObjectID(), u"Pickedup").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			}
 		}
 	}

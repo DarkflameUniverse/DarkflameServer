@@ -2,6 +2,7 @@
 #include "ChatServerLink.h"
 #include "ChatPackets.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "CDClientManager.h"
 #include "MissionComponent.h"
 #include "Character.h"
@@ -124,8 +125,12 @@ void ActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
-		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
+	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD)) {
+		GameMessages::MatchResponse matchResponse;
+		matchResponse.target = player->GetObjectID();
+		matchResponse.response = 0;
+		matchResponse.SendToClient(player->GetSystemAddress()); // tell the client they joined a lobby
+	}
 	LobbyPlayer newLobbyPlayer{};
 	newLobbyPlayer.entityID = player->GetObjectID();
 	LWOOBJID playerLobbyID = LWOOBJID_EMPTY;
@@ -154,9 +159,17 @@ void ActivityComponent::PlayerJoinLobby(Entity* player) {
 				LDFData<LWOOBJID> entityLDF("player", entity->GetObjectID());
 				LDFData<std::string> entityName("playerName", entity->GetCharacter()->GetName());
 				std::string matchUpdate = entityLDF.GetString() + "\n" + entityName.GetString();
-				GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchUpdate, eMatchUpdate::PLAYER_ADDED);
+				GameMessages::MatchUpdate existingPlayerUpdate;
+				existingPlayerUpdate.target = player->GetObjectID();
+				existingPlayerUpdate.data = matchUpdate;
+				existingPlayerUpdate.type = eMatchUpdate::PLAYER_ADDED;
+				existingPlayerUpdate.SendToClient(player->GetSystemAddress());
 				PlayerReady(entity, joinedPlayer.ready);
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::PLAYER_ADDED);
+				GameMessages::MatchUpdate joinedPlayerUpdate;
+				joinedPlayerUpdate.target = entity->GetObjectID();
+				joinedPlayerUpdate.data = matchUpdateJoined;
+				joinedPlayerUpdate.type = eMatchUpdate::PLAYER_ADDED;
+				joinedPlayerUpdate.SendToClient(entity->GetSystemAddress());
 			}
 			break;
 		}
@@ -174,7 +187,11 @@ void ActivityComponent::PlayerJoinLobby(Entity* player) {
 	if (m_ActivityInfo.maxTeamSize != 1 && lobby.players.size() >= m_ActivityInfo.minTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() >= m_ActivityInfo.minTeams) {
 		// Update the joining player on the match timer
 		LDFData<float> matchTimer("time", lobby.timer);
-		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimer.GetString(), eMatchUpdate::PHASE_WAIT_READY);
+		GameMessages::MatchUpdate matchUpdate;
+		matchUpdate.target = player->GetObjectID();
+		matchUpdate.data = matchTimer.GetString();
+		matchUpdate.type = eMatchUpdate::PHASE_WAIT_READY;
+		matchUpdate.SendToClient(player->GetSystemAddress());
 	}
 }
 
@@ -190,7 +207,11 @@ void ActivityComponent::PlayerLeave(LWOOBJID playerID) {
 					if (entity == nullptr)
 						continue;
 
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft.GetString(), eMatchUpdate::PLAYER_REMOVED);
+					GameMessages::MatchUpdate matchUpdate;
+					matchUpdate.target = entity->GetObjectID();
+					matchUpdate.data = matchUpdateLeft.GetString();
+					matchUpdate.type = eMatchUpdate::PLAYER_REMOVED;
+					matchUpdate.SendToClient(entity->GetSystemAddress());
 				}
 
 				lobby.players.erase(lobby.players.begin() + i);
@@ -229,7 +250,11 @@ void ActivityComponent::Update(float deltaTime) {
 						continue;
 
 					LDFData<float> matchTimerUpdate("time", lobby.timer);
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate.GetString(), eMatchUpdate::PHASE_WAIT_READY);
+					GameMessages::MatchUpdate matchUpdate;
+					matchUpdate.target = entity->GetObjectID();
+					matchUpdate.data = matchTimerUpdate.GetString();
+					matchUpdate.type = eMatchUpdate::PHASE_WAIT_READY;
+					matchUpdate.SendToClient(entity->GetSystemAddress());
 				}
 			}
 
@@ -254,7 +279,11 @@ void ActivityComponent::Update(float deltaTime) {
 				if (entity == nullptr)
 					continue;
 
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate.GetString(), eMatchUpdate::PHASE_WAIT_START);
+				GameMessages::MatchUpdate matchUpdate;
+				matchUpdate.target = entity->GetObjectID();
+				matchUpdate.data = matchTimerUpdate.GetString();
+				matchUpdate.type = eMatchUpdate::PHASE_WAIT_START;
+				matchUpdate.SendToClient(entity->GetSystemAddress());
 			}
 		}
 
@@ -349,7 +378,11 @@ void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
 					if (entity == nullptr)
 						continue;
 
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchReadyUpdate.GetString(), readyStatus);
+					GameMessages::MatchUpdate matchUpdate;
+					matchUpdate.target = entity->GetObjectID();
+					matchUpdate.data = matchReadyUpdate.GetString();
+					matchUpdate.type = readyStatus;
+					matchUpdate.SendToClient(entity->GetSystemAddress());
 				}
 			}
 		}

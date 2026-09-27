@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "InventoryComponent.h"
@@ -89,7 +90,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 
 		self->SetNetworkVar(u"used", true);
 
-		GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+		GameMessages::TerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 

@@ -3,6 +3,7 @@
 #include "dZoneManager.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "eMissionState.h"
 #include "Spawner.h"
 
@@ -39,8 +40,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 		auto spawners = Game::zoneManager->GetSpawnersByName(group);
 		for (const auto* spawner : spawners) {
 			for (const auto objId : spawner->GetSpawnedObjectIDs())
-			GameMessages::SendNotifyClientObject(objId, u"SetVisibility", visible, 0,
-				target->GetObjectID(), "", target->GetSystemAddress());
+			GameMessages::NotifyClientObject(objId, u"SetVisibility", visible, 0, target->GetObjectID(), "").Send(target->GetSystemAddress());
 		}
 	}
 }

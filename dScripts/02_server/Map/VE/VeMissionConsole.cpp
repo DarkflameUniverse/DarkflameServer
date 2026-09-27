@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "Character.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "Loot.h"
 #include "eTerminateType.h"
 
@@ -22,6 +23,6 @@ void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 		character->SetPlayerFlag(flag, true);
 	}
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"");
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"").Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

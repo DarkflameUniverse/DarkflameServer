@@ -13,6 +13,7 @@
 
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
@@ -88,7 +89,7 @@ void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 	// There is suppose to be a 0.1 second delay here but that may be admitted?
 	auto* controller = Game::entityManager->GetZoneControlEntity();
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->SetPosition({ 10000, 0, 10000 });
 
@@ -108,7 +109,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 	if (withdraw) {
 		//Move spider away from battle zone
 		// Disabled because we cant option the reset collition group right now
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		//First rotate for anim
 		NiQuaternion rot = QuatUtils::IDENTITY;
@@ -536,7 +537,7 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	} else if (timerName == "AdvanceComplete") {
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 11, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"SetColGroup", 11, 0, 0, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		//Wind up, telegraphing next round
 		float animTime = PlayAnimAndReturnTime(self, spiderJeerAnim);

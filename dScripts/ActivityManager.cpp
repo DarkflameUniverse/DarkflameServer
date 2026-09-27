@@ -3,6 +3,7 @@
 #include "ScriptedActivityComponent.h"
 #include "LeaderboardManager.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include <algorithm>
 #include "Logger.h"
 #include "Loot.h"
@@ -91,7 +92,7 @@ void ActivityManager::SaveScore(Entity* self, const LWOOBJID playerID, const flo
 	LeaderboardManager::SaveScore(playerID, gameID, primaryScore, secondaryScore, tertiaryScore);
 
 	// Makes the leaderboard show up for the player
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard", gameID, 0, playerID, "", player->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard", gameID, 0, playerID, "").Send(player->GetSystemAddress());
 }
 
 bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID playerID) {

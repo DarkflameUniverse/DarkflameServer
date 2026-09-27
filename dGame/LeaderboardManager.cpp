@@ -9,6 +9,7 @@
 #include "Character.h"
 #include "Game.h"
 #include "GameMessages.h"
+#include "ActivityMessages.h"
 #include "Logger.h"
 #include "dConfig.h"
 #include "CDClientManager.h"
@@ -243,7 +244,10 @@ void Leaderboard::SetupLeaderboard(bool weekly) {
 void Leaderboard::Send(const LWOOBJID targetID) const {
 	auto* player = Game::entityManager->GetEntity(relatedPlayer);
 	if (player != nullptr) {
-		GameMessages::SendActivitySummaryLeaderboardData(targetID, this, player->GetSystemAddress());
+		GameMessages::SendActivitySummaryLeaderboardData leaderboardData;
+		leaderboardData.target = targetID;
+		leaderboardData.leaderboard = this;
+		leaderboardData.SendToClient(player->GetSystemAddress());
 	}
 }
 

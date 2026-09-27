@@ -2,6 +2,7 @@
 #include "eMissionState.h"
 #include "Game.h"
 #include "dZoneManager.h"
+#include "ObjectMessages.h"
 
 void VisToggleNotifierServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionId, eMissionState missionState) {
 	auto itr = m_GameVariables.find(missionId);
@@ -16,7 +17,7 @@ void VisToggleNotifierServer::OnMissionDialogueOK(Entity* self, Entity* target, 
 		for (const auto spawner : spawners) {
 			const auto& spawnedObjIds = spawner->GetSpawnedObjectIDs();
 			for (const auto& objId : spawnedObjIds) {
-				GameMessages::SendNotifyClientObject(objId, u"SetVisibility", visible);
+				GameMessages::NotifyClientObject(objId, u"SetVisibility", visible).Send(UNASSIGNED_SYSTEM_ADDRESS);
 			}
 		}
 	}

@@ -75,6 +75,7 @@ struct LUBitStream {
 };
 
 
+#define BITSTREAMUTILS_HAS_WRITEHEADER
 namespace BitStreamUtils {
 	template<typename T>
 	void WriteHeader(RakNet::BitStream& bitStream, ServiceType connectionType, T internalPacketID) {
@@ -124,6 +125,20 @@ namespace BitStreamUtils {
 	 * Reads a string written by WriteLengthPrefixed. Fails (returns false) if the stream runs out of data or
 	 * if the length is negative or larger than maxLength characters.
 	 */
+	/**
+	 * Writes name-value (LDF) text the way the client reads it: a u32 character count, the characters, and a null
+	 * terminator (not counted) when the text isn't empty.
+	 */
+	inline void WriteNameValueText(RakNet::BitStream& bitStream, const std::u16string& text) {
+		WriteLengthPrefixed<uint32_t>(bitStream, text);
+		if (!text.empty()) bitStream.Write<uint16_t>(0);
+	}
+
+	/**
+	 * Reads text written by WriteNameValueText (the null terminator is consumed and not kept).
+	 */
+	inline bool ReadNameValueText(RakNet::BitStream& bitStream, std::u16string& text, const uint32_t maxLength = 0x500000 /* MAX_MESSAGE_LENGTH */);
+
 	template<typename LenT = uint32_t, typename StringT>
 	bool ReadLengthPrefixed(RakNet::BitStream& bitStream, StringT& value, const uint32_t maxLength = 0x500000 /* MAX_MESSAGE_LENGTH */) {
 		LenT length{};
@@ -135,6 +150,12 @@ namespace BitStreamUtils {
 		value.resize(length);
 		if (length == 0) return true;
 		return bitStream.ReadBits(reinterpret_cast<unsigned char*>(value.data()), BYTES_TO_BITS(value.size() * sizeof(typename StringT::value_type)), true);
+	}
+
+	inline bool ReadNameValueText(RakNet::BitStream& bitStream, std::u16string& text, const uint32_t maxLength) {
+		if (!ReadLengthPrefixed<uint32_t>(bitStream, text, maxLength)) return false;
+		uint16_t terminator{};
+		return text.empty() || bitStream.Read(terminator);
 	}
 }
 

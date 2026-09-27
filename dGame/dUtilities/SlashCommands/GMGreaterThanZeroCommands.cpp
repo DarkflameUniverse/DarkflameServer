@@ -22,6 +22,9 @@
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
 #include "EffectsMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
+#include "PlayerMessages.h"
 
 namespace GMGreaterThanZeroCommands {
 
@@ -199,7 +202,10 @@ namespace GMGreaterThanZeroCommands {
 			bool isFlying = character->GetIsFlying();
 
 			if (isFlying) {
-				GameMessages::SendSetJetPackMode(entity, false);
+				GameMessages::SetJetPackMode jetPackMode;
+				jetPackMode.target = entity->GetObjectID();
+				jetPackMode.bUse = false;
+				jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 				character->SetIsFlying(false);
 			} else {
@@ -219,7 +225,16 @@ namespace GMGreaterThanZeroCommands {
 				float maxAirSpeed = 30 * speedScale;
 				float verticalVelocity = 1.5 * speedScale;
 
-				GameMessages::SendSetJetPackMode(entity, true, true, false, 167, airSpeed, maxAirSpeed, verticalVelocity);
+				GameMessages::SetJetPackMode jetPackMode;
+				jetPackMode.target = entity->GetObjectID();
+				jetPackMode.bUse = true;
+				jetPackMode.bBypassChecks = true;
+				jetPackMode.bDoHover = false;
+				jetPackMode.effectID = 167;
+				jetPackMode.fAirspeed = airSpeed;
+				jetPackMode.fMaxAirspeed = maxAirSpeed;
+				jetPackMode.fVertVel = verticalVelocity;
+				jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 				character->SetIsFlying(true);
 			}
@@ -264,12 +279,18 @@ namespace GMGreaterThanZeroCommands {
 	}
 
 	void SetName(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		GameMessages::SendSetName(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(args), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::SetName setName;
+		setName.target = entity->GetObjectID();
+		setName.name = GeneralUtils::UTF8ToUTF16(args);
+		setName.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void Title(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		std::string name = entity->GetCharacter()->GetName() + " - " + args;
-		GameMessages::SendSetName(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::SetName setName;
+		setName.target = entity->GetObjectID();
+		setName.name = GeneralUtils::UTF8ToUTF16(name);
+		setName.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void ShowAll(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -301,7 +322,12 @@ namespace GMGreaterThanZeroCommands {
 
 	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		if (args.empty()) {
-			GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, entity->GetObjectID());
+			GameMessages::ForceCameraTargetCycle cameraCycle;
+			cameraCycle.target = entity->GetObjectID();
+			cameraCycle.bForceCycling = false;
+			cameraCycle.cyclingMode = eCameraTargetCyclingMode::DISALLOW_CYCLING;
+			cameraCycle.optionalTargetID = entity->GetObjectID();
+			cameraCycle.SendToClient(entity->GetSystemAddress());
 			return;
 		}
 
@@ -311,6 +337,11 @@ namespace GMGreaterThanZeroCommands {
 			return;
 		}
 		GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Spectating Player").SendToClient(entity->GetSystemAddress());
-		GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, player->GetObjectID());
+		GameMessages::ForceCameraTargetCycle cameraCycle;
+		cameraCycle.target = entity->GetObjectID();
+		cameraCycle.bForceCycling = false;
+		cameraCycle.cyclingMode = eCameraTargetCyclingMode::DISALLOW_CYCLING;
+		cameraCycle.optionalTargetID = player->GetObjectID();
+		cameraCycle.SendToClient(entity->GetSystemAddress());
 	}
 }

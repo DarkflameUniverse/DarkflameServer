@@ -1,6 +1,7 @@
 #include "AmTeapotServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "Item.h"
 #include "eTerminateType.h"
 
@@ -14,5 +15,5 @@ void AmTeapotServer::OnUse(Entity* self, Entity* user) {
 		inventoryComponent->AddItem(WU_S_IMAGINATION_TEA, 1);
 	}
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

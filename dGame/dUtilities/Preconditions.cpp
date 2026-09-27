@@ -12,6 +12,7 @@
 #include "LevelProgressionComponent.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "eMissionState.h"
 #include "PetComponent.h"
 
@@ -292,7 +293,11 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
 	const auto a = Preconditions::Check(player, condition, evaluateCosts);
 
 	if (!a) {
-		GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
+		GameMessages::NotifyClientFailedPrecondition failedPrecondition;
+		failedPrecondition.target = player->GetObjectID();
+		failedPrecondition.failedReason = u"";
+		failedPrecondition.preconditionID = condition;
+		failedPrecondition.Send(player->GetSystemAddress());
 	}
 
 	const auto b = next == nullptr ? true : next->Check(player, evaluateCosts);

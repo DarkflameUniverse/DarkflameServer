@@ -25,6 +25,7 @@
 #include "ObjectIDManager.h"
 #include "CDActivitiesTable.h"
 #include "ScriptedActivityComponent.h"
+#include "InventoryMessages.h"
 
 namespace {
 	std::unordered_set<uint32_t> CachedMatrices;

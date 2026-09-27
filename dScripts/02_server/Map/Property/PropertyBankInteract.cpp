@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "Amf3.h"
 #include "Entity.h"
 
@@ -31,8 +32,7 @@ void PropertyBankInteract::OnUse(Entity* self, Entity* user) {
 	uiMessage.args = std::move(args);
 	uiMessage.SendToClient(user->GetSystemAddress());
 
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"OpenBank", 0, 0, LWOOBJID_EMPTY,
-		"", user->GetSystemAddress());
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"OpenBank", 0, 0, LWOOBJID_EMPTY, "").Send(user->GetSystemAddress());
 }
 
 void PropertyBankInteract::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
@@ -48,7 +48,6 @@ void PropertyBankInteract::OnFireEventServerSide(Entity* self, Entity* sender, s
 		uiMessage.args = std::move(amfArgs);
 		uiMessage.SendToClient(sender->GetSystemAddress());
 
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"CloseBank", 0, 0, LWOOBJID_EMPTY,
-			"", sender->GetSystemAddress());
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"CloseBank", 0, 0, LWOOBJID_EMPTY, "").Send(sender->GetSystemAddress());
 	}
 }

@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 
 void RockHydrantBroken::OnStartup(Entity* self) {
 	self->AddTimer("playEffect", 1);
@@ -20,7 +21,7 @@ void RockHydrantBroken::OnStartup(Entity* self) {
 		msg.bActive = true;
 		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
-		GameMessages::SendNotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"enableCollision", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::NotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"enableCollision").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	self->AddTimer("KillBroken", 10);
@@ -36,7 +37,7 @@ void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName) {
 			msg.bActive = false;
 			msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
-			GameMessages::SendNotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"disableCollision", UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::NotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"disableCollision").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		self->Kill();

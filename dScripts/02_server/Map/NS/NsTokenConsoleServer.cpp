@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "Character.h"
 #include "MissionComponent.h"
 #include "QuickBuildComponent.h"
@@ -58,5 +59,5 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 
 	missionComponent->ForceProgressTaskType(863, 1, 1, false);
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

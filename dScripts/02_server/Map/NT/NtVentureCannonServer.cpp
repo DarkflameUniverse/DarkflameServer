@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "CombatMessages.h"
+#include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "Entity.h"
 #include "GeneralUtils.h"
@@ -40,7 +42,7 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 
 	auto destRotation = self->GetRotation();
 
-	GameMessages::SendTeleport(playerID, destPosition, destRotation, player->GetSystemAddress(), true);
+	GameMessages::Teleport(playerID, destPosition, destRotation, true).SendToClient(player->GetSystemAddress());
 
 	RenderComponent::PlayAnimation(player, u"scale-down", 4.0f);
 
@@ -140,7 +142,7 @@ void NtVentureCannonServer::UnlockCannonPlayer(Entity* self, Entity* player) {
 
 	self->SetNetworkVar(u"bIsInUse", false);
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+	GameMessages::TerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void NtVentureCannonServer::FirePlayer(Entity* self, Entity* player) {
@@ -158,7 +160,7 @@ void NtVentureCannonServer::FirePlayer(Entity* self, Entity* player) {
 	const auto destPosition = destination->GetPosition();
 	const auto destRotation = destination->GetRotation();
 
-	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
+	GameMessages::Teleport(player->GetObjectID(), destPosition, destRotation, true).SendToClient(player->GetSystemAddress());
 
 	RenderComponent::PlayAnimation(player, u"venture-cannon-out", 4.0f);
 }

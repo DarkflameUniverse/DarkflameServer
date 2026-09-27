@@ -6,6 +6,7 @@
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
 #include "Loot.h"
+#include "InventoryMessages.h"
 
 void AgImagSmashable::OnDie(Entity* self, Entity* killer) {
 	bool maxImagGreaterThanZero = false;

@@ -1,6 +1,7 @@
 #include "AgCagedBricksServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "Character.h"
 #include "EntityManager.h"
 #include "eReplicaComponentType.h"
@@ -10,7 +11,7 @@ void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	//Tell the client to spawn the baby spiderling:
 	auto spooders = Game::entityManager->GetEntitiesInGroup("cagedSpider");
 	for (auto spodder : spooders) {
-		GameMessages::SendFireEventClientSide(spodder->GetObjectID(), user->GetSystemAddress(), u"toggle", LWOOBJID_EMPTY, 0, 0, user->GetObjectID());
+		GameMessages::FireEventClientSide(spodder->GetObjectID(), u"toggle", LWOOBJID_EMPTY, user->GetObjectID()).SendToClient(user->GetSystemAddress());
 	}
 
 	//Set the flag & mission status:

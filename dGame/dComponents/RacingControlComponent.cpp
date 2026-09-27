@@ -11,6 +11,7 @@
 #include "CombatMessages.h"
 #include "ActivityMessages.h"
 #include "RacingMessages.h"
+#include "MovementMessages.h"
 #include "InventoryComponent.h"
 #include "Item.h"
 #include "MissionComponent.h"
@@ -152,8 +153,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	// Make sure the player is at the correct position.
 
-	GameMessages::SendTeleport(player->GetObjectID(), startPosition,
-		startRotation, player->GetSystemAddress(), true);
+	GameMessages::Teleport(player->GetObjectID(), startPosition, startRotation, true).SendToClient(player->GetSystemAddress());
 
 	// Spawn the vehicle entity.
 
@@ -265,7 +265,10 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		resetPlayer.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		});
 
-	GameMessages::SendSetJetPackMode(player, false);
+	GameMessages::SetJetPackMode jetPackMode;
+	jetPackMode.target = player->GetObjectID();
+	jetPackMode.bUse = false;
+	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Set the vehicle's state.
 	GameMessages::NotifyVehicleOfRacingObject notifyVehicle;
@@ -280,10 +283,8 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	wheelLockState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Make sure everything has the correct position.
-	GameMessages::SendTeleport(player->GetObjectID(), startPosition,
-		startRotation, player->GetSystemAddress(), true);
-	GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition,
-		startRotation, player->GetSystemAddress(), true);
+	GameMessages::Teleport(player->GetObjectID(), startPosition, startRotation, true).SendToClient(player->GetSystemAddress());
+	GameMessages::Teleport(carEntity->GetObjectID(), startPosition, startRotation, true).SendToClient(player->GetSystemAddress());
 }
 
 void RacingControlComponent::OnRacingClientReady(Entity* player) {
@@ -691,10 +692,7 @@ void RacingControlComponent::Update(float deltaTime) {
 						Game::entityManager->GetEntity(player.playerID);
 
 					if (vehicle != nullptr && playerEntity != nullptr) {
-						GameMessages::SendTeleport(
-							player.playerID, player.respawnPosition,
-							player.respawnRotation,
-							playerEntity->GetSystemAddress(), true);
+						GameMessages::Teleport(player.playerID, player.respawnPosition, player.respawnRotation, true).SendToClient(playerEntity->GetSystemAddress());
 
 						vehicle->SetPosition(player.respawnPosition);
 						vehicle->SetRotation(player.respawnRotation);

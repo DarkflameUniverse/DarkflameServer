@@ -1,6 +1,7 @@
 #include "AgJetEffectServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
@@ -8,9 +9,7 @@
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	if (inUse || self->GetLOT() != 6859) return;
-	GameMessages::SendNotifyClientObject(
-		self->GetObjectID(), u"toggleInUse", 1, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS
-	);
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"toggleInUse", 1, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	inUse = true;
 
 	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
@@ -53,9 +52,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
 		auto* skillComponent = mortar->GetComponent<SkillComponent>();
 		if (skillComponent) skillComponent->CastSkill(318);
 	} else if (timerName == "CineDone") {
-		GameMessages::SendNotifyClientObject(
-			self->GetObjectID(), u"toggleInUse", -1, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS
-		);
+		GameMessages::NotifyClientObject(self->GetObjectID(), u"toggleInUse", -1, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		inUse = false;
 	}
 }

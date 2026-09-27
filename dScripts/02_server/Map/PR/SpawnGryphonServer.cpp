@@ -1,6 +1,7 @@
 #include "SpawnGryphonServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "ObjectMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eTerminateType.h"
@@ -21,7 +22,7 @@ void SpawnGryphonServer::OnUse(Entity* self, Entity* user) {
 	if (missionComponent != nullptr && inventoryComponent != nullptr
 		&& missionComponent->GetMissionState(1391) == eMissionState::ACTIVE) {
 		inventoryComponent->RemoveItem(12483, inventoryComponent->GetLotCount(12483), eInventoryType::ALL);
-		GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
+		GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		return;
 	}
 
