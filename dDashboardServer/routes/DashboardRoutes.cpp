@@ -496,7 +496,15 @@ void RegisterDashboardRoutes() {
 			servers.push_back({ {"name", server}, {"time", files.front().time}, {"files", files.size()} });
 			types.insert(server.substr(0, server.find('_')));
 		}
-		nlohmann::json data{ {"servers", servers}, {"server_types", types}, {"selected_server", selected}, {"files", nlohmann::json::array()} };
+		// World zones with log files, for Download logs
+		std::set<uint32_t> zoneIds;
+		for (const auto& [server, files] : logs) {
+			if (!server.starts_with("WorldServer_")) continue;
+			if (const auto zone = GeneralUtils::TryParse<uint32_t>(server.substr(12, server.find('_', 12) - 12))) zoneIds.insert(*zone);
+		}
+		nlohmann::json zones = nlohmann::json::array();
+		for (const auto zone : zoneIds) zones.push_back({ {"id", zone}, {"name", GetZoneNamesJson().value(std::to_string(zone), "")} });
+		nlohmann::json data{ {"servers", servers}, {"server_types", types}, {"selected_server", selected}, {"files", nlohmann::json::array()}, {"bundle_zones", zones} };
 		if (!selected.empty()) {
 			const auto& files = logs.at(selected);
 			const auto wanted = QueryValue(context.queryString, "file");

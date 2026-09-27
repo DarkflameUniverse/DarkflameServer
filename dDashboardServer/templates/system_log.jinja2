@@ -46,6 +46,56 @@
 	</div>
 </div>
 
+<div class="card mb-3">
+	<div class="card-header"><h5 class="mb-0">Download logs</h5></div>
+	<div class="card-body">
+		<p class="small text-body-secondary">Log files from a date range, as one zip file with a <code>manifest.txt</code> of what's in it. A file is picked when the time from its start to its last write overlaps the range.</p>
+		<form id="bundleForm" class="row g-2">
+			<div class="col-sm-6 col-lg-3"><label class="form-label small mb-1" for="bundleFrom">From</label><input type="datetime-local" class="form-control form-control-sm" id="bundleFrom"></div>
+			<div class="col-sm-6 col-lg-3"><label class="form-label small mb-1" for="bundleTo">To</label><input type="datetime-local" class="form-control form-control-sm" id="bundleTo"></div>
+			<div class="col-lg-6 d-flex align-items-end gap-1 flex-wrap">
+				<span class="small text-body-secondary me-1">Last</span>
+				<button type="button" class="btn btn-sm btn-outline-secondary" data-hours="1">hour</button>
+				<button type="button" class="btn btn-sm btn-outline-secondary" data-hours="24">day</button>
+				<button type="button" class="btn btn-sm btn-outline-secondary" data-hours="168">week</button>
+				<button type="button" class="btn btn-sm btn-outline-secondary" data-hours="0">all time</button>
+			</div>
+			<div class="col-12">
+				<span class="form-label small d-block mb-1">Servers</span>
+				<div class="form-check form-check-inline"><input class="form-check-input bundle-server" type="checkbox" id="bundleServer_master" value="master" checked><label class="form-check-label" for="bundleServer_master">Master</label></div>
+				<div class="form-check form-check-inline"><input class="form-check-input bundle-server" type="checkbox" id="bundleServer_auth" value="auth" checked><label class="form-check-label" for="bundleServer_auth">Auth</label></div>
+				<div class="form-check form-check-inline"><input class="form-check-input bundle-server" type="checkbox" id="bundleServer_chat" value="chat" checked><label class="form-check-label" for="bundleServer_chat">Chat</label></div>
+				<div class="form-check form-check-inline"><input class="form-check-input bundle-server" type="checkbox" id="bundleServer_dashboard" value="dashboard" checked><label class="form-check-label" for="bundleServer_dashboard">Dashboard</label></div>
+				<div class="form-check form-check-inline"><input class="form-check-input bundle-server" type="checkbox" id="bundleServer_ugc" value="ugc" checked><label class="form-check-label" for="bundleServer_ugc">UGC</label></div>
+				<div class="form-check form-check-inline"><input class="form-check-input bundle-server" type="checkbox" id="bundleServer_world" value="world" checked><label class="form-check-label" for="bundleServer_world">Worlds</label></div>
+			</div>
+			<div class="col-sm-6" id="bundleWorlds">
+				<label class="form-label small mb-1" for="bundleZones">Worlds (none picked: every zone)</label>
+				<select class="form-select form-select-sm" id="bundleZones" multiple size="4">
+					{% for zone in bundle_zones %}<option value="{{ zone.id }}">{{ zone.id }}{% if zone.name != "" %} {{ zone.name }}{% endif %}</option>{% endfor %}
+				</select>
+				<div class="row g-2 mt-0">
+					<div class="col"><input type="number" min="0" class="form-control form-control-sm" id="bundleClone" placeholder="Clone (any)" aria-label="Clone"></div>
+					<div class="col"><input type="number" min="0" class="form-control form-control-sm" id="bundleInstance" placeholder="Instance (any)" aria-label="Instance"></div>
+				</div>
+			</div>
+			<div class="col-sm-6">
+				<label class="form-label small mb-1" for="bundleText">Only lines with (optional)</label>
+				<input class="form-control form-control-sm mb-2" id="bundleText" maxlength="200" placeholder="e.g. a player name or an error">
+				<div class="form-check"><input class="form-check-input" type="checkbox" id="bundleTrim"><label class="form-check-label" for="bundleTrim">Only lines written in the date range (not whole files)</label></div>
+				<div class="form-check"><input class="form-check-input" type="checkbox" id="bundleRedact"><label class="form-check-label" for="bundleRedact">Hide IP addresses</label></div>
+				<div class="form-check"><input class="form-check-input" type="checkbox" id="bundleCrash" checked><label class="form-check-label" for="bundleCrash">Crash dumps too</label></div>
+			</div>
+			<div class="col-12 d-flex gap-2">
+				<button type="button" class="btn btn-sm btn-outline-primary" id="bundlePreview">Preview</button>
+				<button type="button" class="btn btn-sm btn-primary" id="bundleDownload">Download zip</button>
+				<span class="small align-self-center" id="bundleStatus" role="status"></span>
+			</div>
+		</form>
+		<div id="bundleFiles" class="mt-3"></div>
+	</div>
+</div>
+
 <div class="card">
 	<div class="card-header"><h5 class="mb-0">Search the logs</h5></div>
 	<div class="card-body">
@@ -80,6 +130,73 @@ document.querySelectorAll('#logFilePick option').forEach(function (o) {
 });
 document.getElementById('logServerPick').addEventListener('change', function () { location.href = '/system_log?server=' + encodeURIComponent(this.value); });
 document.getElementById('logFilePick').addEventListener('change', function () { this.form.submit(); });
+
+// Download logs
+function bundleLocal(date) { var d = new Date(date.getTime() - date.getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
+function bundleRange(hours) {
+	document.getElementById('bundleTo').value = hours ? bundleLocal(new Date()) : '';
+	document.getElementById('bundleFrom').value = hours ? bundleLocal(new Date(Date.now() - hours * 3600000)) : '';
+}
+bundleRange(24);
+document.querySelectorAll('[data-hours]').forEach(function (b) { b.addEventListener('click', function () { bundleRange(Number(b.dataset.hours)); }); });
+function bundleWorldsShown() { document.getElementById('bundleWorlds').classList.toggle('opacity-50', !document.getElementById('bundleServer_world').checked); }
+document.getElementById('bundleServer_world').addEventListener('change', bundleWorldsShown);
+function bundleQuery() {
+	var q = new URLSearchParams(), v;
+	['From', 'To'].forEach(function (k) { v = document.getElementById('bundle' + k).value; if (v) q.set(k.toLowerCase(), Math.floor(new Date(v).getTime() / 1000)); });
+	var servers = Array.from(document.querySelectorAll('.bundle-server:checked')).map(function (c) { return c.value; });
+	if (servers.length < 6) q.set('servers', servers.join(','));
+	var zones = Array.from(document.getElementById('bundleZones').selectedOptions).map(function (o) { return o.value; });
+	if (zones.length) q.set('zones', zones.join(','));
+	['Clone', 'Instance'].forEach(function (k) { v = document.getElementById('bundle' + k).value; if (v !== '') q.set(k.toLowerCase(), v); });
+	if (document.getElementById('bundleCrash').checked) q.set('crash', '1');
+	if (document.getElementById('bundleTrim').checked) q.set('trim', '1');
+	if (document.getElementById('bundleRedact').checked) q.set('redact', '1');
+	v = document.getElementById('bundleText').value.trim(); if (v) q.set('text', v);
+	return q.toString();
+}
+var bundleStatus = document.getElementById('bundleStatus');
+function bundleSay(text, cls) { bundleStatus.className = 'small align-self-center ' + (cls || 'text-body-secondary'); bundleStatus.textContent = text; }
+function bundleCheck() {
+	if (!document.querySelectorAll('.bundle-server:checked').length) { bundleSay('Pick at least one server', 'text-danger'); return false; }
+	return true;
+}
+document.getElementById('bundlePreview').addEventListener('click', function () {
+	if (!bundleCheck()) return;
+	var out = document.getElementById('bundleFiles');
+	bundleSay('Looking\u2026');
+	fetch('/api/logs/bundle/preview?' + bundleQuery(), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+		if (d.error) { bundleSay(d.error, 'text-danger'); out.innerHTML = ''; return; }
+		var total = fileSize(d.total_size) + ' in ' + d.count + ' file' + (d.count === 1 ? '' : 's');
+		bundleSay(d.over_limit ? total + ': over the ' + fileSize(d.max_bytes) + ' limit' : total + (d.filters_lines ? ' before filtering lines' : ''), d.over_limit ? 'text-danger' : 'text-body-secondary');
+		if (!d.files.length) { out.innerHTML = '<p class="text-body-secondary mb-0">No log files match.</p>'; return; }
+		out.innerHTML = '<div class="table-responsive" style="max-height:24rem"><table class="table table-sm small mb-0"><thead><tr><th>File</th><th>Server</th><th>World</th><th class="text-end">Size</th><th>From</th><th>To</th></tr></thead><tbody>' +
+			d.files.map(function (f) {
+				return '<tr><td class="text-break"><code>' + esc(f.name) + '</code>' + (f.crash_dump ? ' <span class="badge text-bg-danger">crash</span>' : '') + '</td><td>' + esc(f.server || '?') + '</td><td>' +
+					(f.zone === null ? '' : esc(f.zone + (f.zone_name ? ' ' + f.zone_name : '') + ' (clone ' + f.clone + ', instance ' + f.instance + ')')) + '</td><td class="text-end text-nowrap">' + fileSize(f.size) +
+					'</td><td class="text-nowrap">' + fmt.unix(f.started) + '</td><td class="text-nowrap">' + fmt.unix(f.written) + '</td></tr>';
+			}).join('') + '</tbody></table></div>' + (d.count > d.files.length ? '<p class="small text-body-secondary mt-1 mb-0">Showing the first ' + d.files.length + '.</p>' : '');
+	}).catch(function () { bundleSay('Preview failed', 'text-danger'); });
+});
+document.getElementById('bundleDownload').addEventListener('click', function () {
+	if (!bundleCheck()) return;
+	var button = this;
+	button.disabled = true;
+	bundleSay('Building the zip\u2026');
+	fetch('/api/logs/bundle?' + bundleQuery(), { credentials: 'same-origin' }).then(function (r) {
+		if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || ('HTTP ' + r.status)); });
+		var name = ((r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/) || [])[1] || 'logs.zip';
+		return r.blob().then(function (blob) {
+			var a = document.createElement('a');
+			a.href = URL.createObjectURL(blob);
+			a.download = name;
+			document.body.appendChild(a);
+			a.click();
+			setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+			bundleSay('Downloaded ' + name + ' (' + fileSize(blob.size) + ')', 'text-success');
+		});
+	}).catch(function (e) { bundleSay(e.message, 'text-danger'); }).finally(function () { button.disabled = false; });
+});
 
 document.getElementById('logSearch').addEventListener('submit', function (e) {
 	e.preventDefault();
