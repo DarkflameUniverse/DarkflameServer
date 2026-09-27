@@ -159,9 +159,14 @@ Every non-game-message packet is an `LUBitStream` subclass. The base owns the fu
 - Each service has one dispatch function with a `std::map<MessageType::X, factory>`, exactly like
   `Mail::HandleMail`: read the id, create, set context, `Deserialize` (log and drop on failure), `Handle`. Each
   server's `HandlePacket` only routes by `ServiceType`.
-- Structs live in their service's namespace and file: `AuthPackets`, `ChatPackets`, `ClientPackets`,
-  `CommonPackets` (new, for `ServiceType::COMMON`), `MasterPackets`, `WorldPackets` in `dNet/`; Mail stays in
-  `dGame/dUtilities/Mail.*`. Handlers that need game or server state stay in the server that owns that state
+- **One file pair per `ServiceType`; a packet goes in the file of the `ServiceType` written in its header**, in
+  that namespace: `CommonPackets` (COMMON), `AuthPackets` (AUTH), `ChatPackets` (CHAT), `WorldPackets` (WORLD:
+  what a client sends to a world server), `ClientPackets` (CLIENT: what any server sends to the client),
+  `MasterPackets` (MASTER), all in `dNet/`. So the auth server's login response is in `ClientPackets`, and a
+  world server's message to chat is in `ChatPackets`. Anything used by several services (for example `Stamps`,
+  which rides in auth, master and client packets, or generic helpers) gets its own small file named for what it
+  is (`dNet/Stamps.h`), not one service's file. A packet found in the wrong file is moved (a pure move, same
+  bytes). Mail stays in `dGame/dUtilities/Mail.*`. Handlers that need game or server state stay in the server that owns that state
   (`dChatServer`, `dMasterServer`, `dWorldServer`, `dAuthServer`) and are attached to the struct by overriding
   `Handle` in that server's translation unit.
 - Fixed-width strings use `LUString`/`LUWString` with the width spelled out (`LUWString password(41)`).

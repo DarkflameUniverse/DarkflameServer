@@ -9,6 +9,7 @@
 struct SystemAddress;
 
 #include <string>
+#include <vector>
 #include "dCommonVars.h"
 #include "MessageType/Chat.h"
 #include "BitStreamUtils.h"
@@ -55,6 +56,17 @@ namespace ChatPackets {
 
 		void Serialize(RakNet::BitStream& bitstream) const override;
 		// No Deserialize needed on our end
+	};
+
+	// World -> chat. A chat packet the client sent through the world server (WorldPackets::RoutePacket): its id,
+	// the object ID of the player who sent it (the chat server has no other way to know), then the routed bytes.
+	struct RoutedFromClient : public LUBitStream {
+		LWOOBJID senderID{};
+		std::vector<uint8_t> data{};
+
+		RoutedFromClient(uint8_t routedMessageID = 0) : LUBitStream(ServiceType::CHAT, routedMessageID) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
 	void SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message);

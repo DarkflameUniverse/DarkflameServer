@@ -22,7 +22,7 @@
 #include "CDRewardCodesTable.h"
 #include "Mail.h"
 #include "ZoneInstanceManager.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "MessageType/Game.h"
 #include <ctime>
 #include <ranges>
@@ -899,7 +899,11 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 			character->SaveXMLToDatabase();
 		}
 
-		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+		ClientPackets::TransferToWorld transfer;
+		transfer.serverIP = LUString(serverIP);
+		transfer.serverPort = serverPort;
+		transfer.mythranShift = mythranShift;
+		transfer.Send(sysAddr);
 
 		Game::entityManager->DestructEntity(entity);
 		});

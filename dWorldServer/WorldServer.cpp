@@ -12,6 +12,8 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <functional>
+#include <memory>
 
 #include "MD5.h"
 
@@ -773,7 +775,14 @@ void HandleMasterPacket(Packet* packet) {
 					z = pos.z;
 				}
 
-				WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum(), Game::zoneManager->GetZoneID());
+				ClientPackets::LoadStaticZone loadZone;
+				const auto zoneID = Game::zoneManager->GetZoneID();
+				loadZone.mapID = zoneID.GetMapID();
+				loadZone.instanceID = zoneID.GetInstanceID();
+				loadZone.cloneID = 0; // DLU has always sent 0 here, whatever the clone
+				loadZone.mapChecksum = zone->GetChecksum();
+				loadZone.playerPosition = NiPoint3(x, y, z);
+				loadZone.Send(it->second.sysAddr);
 			}
 
 			if (Game::server->GetZoneID() == 0) {
@@ -1029,8 +1038,18 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				destroyableComponent->FixStats();
 			}
 
-			WorldPackets::SendCreateCharacter(sysAddr, characterComponent->GetReputation(), player->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel(), c->GetPropertyCloneID());
-			WorldPackets::SendServerState(sysAddr);
+			ClientPackets::CreateCharacter createCharacter;
+			createCharacter.objectID = player->GetObjectID();
+			createCharacter.xmlData = c->GetXMLData();
+			createCharacter.name = username;
+			createCharacter.gmLevel = c->GetGMLevel();
+			createCharacter.chatMode = static_cast<int32_t>(c->GetGMLevel());
+			createCharacter.reputation = characterComponent->GetReputation();
+			createCharacter.propertyCloneID = c->GetPropertyCloneID();
+			createCharacter.Send(sysAddr);
+			LOG("Sent CreateCharacter for ID: %llu", player->GetObjectID());
+			ClientPackets::ServerStates serverStates;
+			serverStates.Send(sysAddr);
 
 			const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
 
@@ -1192,6 +1211,463 @@ void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
 	Game::server->SendToMaster(bitStream);
 }
 
+// The world server's handlers for what clients send (ServiceType::WORLD). WorldPackets has the structs; each one is
+// handled by overriding Handle here, where the server's state is.
+namespace {
+	struct ValidationPacket final : public WorldPackets::Validation {
+		void Handle() override {
+			const auto& clientDatabaseChecksum = fdbChecksum;
+
+			// If the check is turned on, validate the client's database checksum.
+			if (Game::config->GetValue("check_fdb") == "1" && !g_DatabaseChecksum.empty()) {
+				auto accountInfo = Database::Get()->GetAccountInfo(username.GetAsString());
+				if (!accountInfo) {
+					LOG("Client's account does not exist in the database, aborting connection.");
+					Game::server->Disconnect(sysAddr, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
+					return;
+				}
+
+				// Developers may skip this check
+				if (clientDatabaseChecksum.string != g_DatabaseChecksum) {
+
+					if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
+						LOG("Client's database checksum does not match the server's, aborting connection.");
+						Stamps stamps;
+						stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
+
+						// Using the LoginResponse here since the UI is still in the login screen state
+						// and we have a way to send a message about the client mismatch.
+						AuthPackets::SendLoginResponse(
+							Game::server, sysAddr, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH,
+							Game::config->GetValue("cdclient_mismatch_message"), "", 0, "", stamps);
+						return;
+					} else {
+						AMFArrayValue args;
+
+						args.Insert("title", Game::config->GetValue("cdclient_mismatch_title"));
+						args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
+
+						GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, sysAddr);
+						LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
+							, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
+					}
+				}
+			}
+
+			//Request the session info from Master:
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_SESSION_KEY);
+			bitStream.Write(username);
+			Game::server->SendToMaster(bitStream);
+
+			//Insert info into our pending list
+			TempSessionInfo info;
+			info.sysAddr = sysAddr;
+			info.hash = sessionKey.GetAsString();
+			g_PendingUsers[username.GetAsString()] = info;
+		}
+	};
+
+	struct CharacterListRequestPacket final : public WorldPackets::CharacterListRequest {
+		void Handle() override {
+			//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
+			if (Game::server->GetZoneID() != 0) {
+				auto user = UserManager::Instance()->GetUser(sysAddr);
+				if (!user || !user->GetLastUsedChar()) return;
+				Game::entityManager->DestroyEntity(user->GetLastUsedChar()->GetEntity());
+			}
+
+			//This loops prevents users who aren't authenticated to double-request the char list, which
+			//would make the login screen freeze sometimes.
+			if (g_PendingUsers.size() > 0) {
+				for (const auto& it : g_PendingUsers) {
+					if (it.second.sysAddr == sysAddr) {
+						return;
+					}
+				}
+			}
+
+			UserManager::Instance()->RequestCharacterList(sysAddr);
+		}
+	};
+
+	struct GameMessagePacket final : public WorldPackets::GameMessage {
+		void Handle() override {
+			auto isSender = CheatDetection::VerifyLwoobjidIsSender(
+				objectID,
+				sysAddr,
+				CheckType::Entity,
+				"Sending GM with a sending player that does not match their own. GM ID: %i",
+				static_cast<int32_t>(messageID)
+			);
+
+			if (isSender) GameMessageHandler::HandleMessage(data, sysAddr, objectID, messageID);
+		}
+	};
+
+	struct CharacterCreateRequestPacket final : public WorldPackets::CharacterCreateRequest {
+		void Handle() override {
+			UserManager::Instance()->CreateCharacter(sysAddr, *this);
+		}
+	};
+
+	struct CharacterLoginRequestPacket final : public WorldPackets::CharacterLoginRequest {
+		void Handle() override {
+			LOG("User is requesting to login with character %llu", playerID);
+			bool valid = CheatDetection::VerifyLwoobjidIsSender(
+				playerID,
+				sysAddr,
+				CheckType::User,
+				"Sending login request with a sending player that does not match their own. Player ID: %llu",
+				playerID
+			);
+			LOG("Login request for player %llu is %s", playerID, valid ? "valid" : "invalid");
+			if (!valid) return;
+
+			auto user = UserManager::Instance()->GetUser(sysAddr);
+
+			if (user) {
+				auto lastCharacter = user->GetLoggedInChar();
+				// This means we swapped characters and we need to remove the previous player from the container.
+				if (lastCharacter != playerID) {
+					CBITSTREAM;
+					BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
+					bitStream.Write(lastCharacter);
+					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+				}
+			}
+
+			UserManager::Instance()->LoginCharacter(sysAddr, playerID);
+		}
+	};
+
+	struct CharacterDeleteRequestPacket final : public WorldPackets::CharacterDeleteRequest {
+		void Handle() override {
+			UserManager::Instance()->DeleteCharacter(sysAddr, *this);
+		}
+	};
+
+	struct CharacterRenameRequestPacket final : public WorldPackets::CharacterRenameRequest {
+		void Handle() override {
+			UserManager::Instance()->RenameCharacter(sysAddr, *this);
+		}
+	};
+
+	struct LevelLoadCompletePacket final : public WorldPackets::LevelLoadComplete {
+		void Handle() override {
+			LOG("Received level load complete from user.");
+			LoadPlayer(sysAddr);
+		}
+	};
+
+	struct PositionUpdatePacket final : public WorldPackets::PositionUpdate {
+		void Handle() override {
+			auto positionUpdate = update;
+
+			User* user = UserManager::Instance()->GetUser(sysAddr);
+			if (!user) {
+				LOG("Unable to get user to parse position update");
+				return;
+			}
+
+			if (const auto* const lastChar = user->GetLastUsedChar()) {
+				if (auto* const entity = Game::entityManager->GetEntity(lastChar->GetObjectID())) {
+					entity->ProcessPositionUpdate(positionUpdate);
+				}
+			}
+		}
+	};
+
+	struct MailPacket final : public WorldPackets::MailPacket {
+		void Handle() override {
+			if (auto* const user = UserManager::Instance()->GetUser(sysAddr)) {
+				if (auto* const lastChar = user->GetLastUsedChar()) {
+					if (auto* const entity = lastChar->GetEntity()) {
+						Mail::HandleMail(data, sysAddr, entity);
+					}
+				}
+			}
+		}
+	};
+
+	struct RoutePacket final : public WorldPackets::RoutePacket {
+		void Handle() override {
+			//Yeet to chat
+			if (size > 20000) {
+				LOG("Tried to route a packet with a read size > 20000, so likely a false packet.");
+				return;
+			}
+
+			//We need to insert the player's objectID so the chat server can find who originated this request:
+			LWOOBJID objectID = 0;
+			auto user = UserManager::Instance()->GetUser(sysAddr);
+			if (user) {
+				const auto* const lastChar = user->GetLastUsedChar();
+				if (lastChar) objectID = lastChar->GetObjectID();
+			}
+
+			const auto routed = ToChat(objectID);
+			RakNet::BitStream bitStream;
+			routed.WritePacket(bitStream);
+			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
+		}
+	};
+
+	struct StringCheckPacket final : public WorldPackets::StringCheck {
+		void Handle() override {
+			const auto receiver = GetNarrowReceiver();
+			const auto message = GetNarrowMessage();
+
+			// TODO: Find a good home for the logic in this case.
+			User* user = UserManager::Instance()->GetUser(sysAddr);
+			if (!user) {
+				LOG("Unable to get user to parse chat moderation request");
+				return;
+			}
+
+			auto* entity = PlayerManager::GetPlayer(sysAddr);
+
+			if (entity == nullptr) {
+				LOG("Unable to get player to parse chat moderation request");
+				return;
+			}
+
+			// Check if the player has restricted chat access
+			auto* character = entity->GetCharacter();
+
+			if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
+				// Send a message to the player
+				ChatPackets::SendSystemMessage(
+					sysAddr,
+					u"This character has restricted chat access."
+				);
+
+				return;
+			}
+
+			bool isBestFriend = false;
+
+			if (chatLevel == 1) {
+				// Private chat
+				LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
+
+				{
+					auto characterIdFetch = Database::Get()->GetCharacterInfo(receiver);
+
+					if (characterIdFetch) {
+						idOfReceiver = characterIdFetch->id;
+					}
+				}
+				const auto& bffMap = user->GetIsBestFriendMap();
+				if (bffMap.find(receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
+					auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
+
+					if (bffInfo) {
+						isBestFriend = bffInfo->bestFriendStatus == 3;
+					}
+
+					if (isBestFriend) {
+						user->UpdateBestFriendValue(receiver, true);
+					}
+				} else if (bffMap.find(receiver) != bffMap.end()) {
+					isBestFriend = true;
+				}
+			}
+
+			const auto segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatLevel == 1));
+
+			bool bAllClean = segments.empty();
+
+			if (user->GetIsMuted()) {
+				bAllClean = false;
+			}
+
+			user->SetLastChatMessageApproved(bAllClean);
+
+			ClientPackets::ChatModerationString response;
+			response.requestAccepted = segments.empty(); // What DLU has always sent, even when bAllClean is false
+			response.requestID = requestID;
+			response.receiver = LUWString(receiver, 42);
+			response.rejectedSegments = segments;
+			response.Send(sysAddr);
+		}
+	};
+
+	struct GeneralChatMessagePacket final : public WorldPackets::GeneralChatMessage {
+		void Handle() override {
+			if (g_ChatDisabled) {
+				ChatPackets::SendMessageFail(sysAddr);
+			} else {
+				// TODO: Find a good home for the logic in this case.
+				User* user = UserManager::Instance()->GetUser(sysAddr);
+				if (!user) {
+					LOG("Unable to get user to parse chat message");
+					return;
+				}
+
+				const auto* const lastChar = user->GetLastUsedChar();
+				if (!lastChar) {
+					LOG("No last used character for chat message %i", user->GetAccountID());
+					return;
+				}
+
+				if (user->GetIsMuted()) {
+					lastChar->SendMuteNotice();
+					return;
+				}
+				std::string playerName = lastChar->GetName();
+				bool isMythran = lastChar->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+				bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), lastChar->GetGMLevel()).empty();
+				LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
+				// Kept for moderation and chat bridges, including what the filter stopped (log_chat=0 turns it off)
+				if (Game::config->GetValue("log_chat") != "0") {
+					IChatLog::ChatMessage entry;
+					entry.time = static_cast<int64_t>(std::time(nullptr));
+					entry.channel = "zone";
+					entry.senderId = user->GetLoggedInChar();
+					entry.senderName = lastChar->GetName();
+					entry.accountId = user->GetAccountID();
+					entry.zoneId = Game::server->GetZoneID();
+					entry.instanceId = static_cast<uint32_t>(Game::server->GetInstanceID());
+					entry.cloneId = Game::zoneManager->GetZoneID().GetCloneID();
+					entry.message = GeneralUtils::UTF16ToWTF8(message);
+					entry.blocked = !isOk;
+					try {
+						Database::Get()->InsertChatMessage(entry);
+					} catch (const std::exception& ex) {
+						LOG("Couldn't log a chat message: %s", ex.what());
+					}
+				}
+				if (!isOk) return;
+				if (!isOk && !isMythran) return;
+
+				std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
+				LOG("%s: %s", playerName.c_str(), sMessage.c_str());
+				ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
+				if (PropertyManagementComponent::Instance()) PropertyManagementComponent::Instance()->OnChatMessageReceived(sMessage);
+			}
+		}
+	};
+
+	struct HandleFunnessPacket final : public WorldPackets::HandleFunness {
+		void Handle() override {
+			//This means the client is running slower or faster than it should.
+			//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
+			//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
+			//This is hopefully going to fix the random disconnects people face sometimes.
+
+			CaughtFunness funness;
+			funness.cheatInfo = this->cheatInfo;
+			funness.cheatType = this->cheatType;
+			const auto [cheatType, cheatInfo] = funness;
+			LOG_DEBUG("Received cheat type %s with info %f", StringifiedEnum::ToString(cheatType).data(), cheatInfo);
+			const auto disabledCheats = Game::config->GetValue("disable_anti_speedhack") == "1";
+
+			User* user = UserManager::Instance()->GetUser(sysAddr);
+			if (!user) {
+				Game::server->Disconnect(sysAddr, eServerDisconnectIdentifiers::KICK);
+				return;
+			}
+
+			const auto* const character = user->GetLastUsedChar();
+			if (character) {
+				const auto dcUser = [](const User& user, const SystemAddress& sysAddr) {
+					if (user.GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) {
+						Game::server->Disconnect(sysAddr, eServerDisconnectIdentifiers::KICK);
+					}
+					};
+				if (cheatType == eFunnessTypes::DebuggerActive) {
+					LOG("Player %s was detected to be using a debugger (funness thread was %f seconds longer than expected deviation).", character->GetName().c_str(), cheatInfo);
+					// Immediately kick unless they are a gm
+					if (!disabledCheats) dcUser(*user, sysAddr);
+				} else if (cheatType == eFunnessTypes::FdbFailedChecksum) {
+					LOG("Player %s has failed the fdb checksum after passing it to sign into this server, highly likely cheating.", character->GetName().c_str());
+					// Immedately kick unless they are a gm
+					if (!disabledCheats) dcUser(*user, sysAddr);
+				} else if (cheatType == eFunnessTypes::RacingBoostTimeTooLong) {
+					if (cheatInfo == 0.0f) LOG("Player %s has enabled a speedboost for far too long (> 3.501 seconds).", character->GetName().c_str());
+					else if (cheatInfo == 1.0f) LOG("Unknown racing boost/speed variable was tampered with.");
+					else if (cheatInfo == 2.0f) LOG("Player vehicle top speed was tampered with.");
+					if (!disabledCheats) dcUser(*user, sysAddr);
+				} else if (cheatType == eFunnessTypes::SomeRacingManipCheat) {
+					if (cheatInfo >= 0.0f && cheatInfo <= 6.0f) LOG("Cheat RNG value A does not match what it should be %f.", cheatInfo);
+					else if (cheatInfo >= 7.0f && cheatInfo <= 10.0f) LOG("Cheat RNG value B does not match what it should be %f.", cheatInfo);
+				} else if (cheatType == eFunnessTypes::Unknown_9) {
+					LOG("Racing cheat 9 detected with value %f.", cheatInfo);
+				} else if (cheatType == eFunnessTypes::Unknown_10) {
+					LOG("Racing cheat 10 detected with value %f.", cheatInfo);
+				} else if (cheatType == eFunnessTypes::CharacterPosLength) {
+					LOG("Detected pos length of %f which is greater than the expected value 1.0f, not normal!", cheatInfo);
+				} else if (cheatType == eFunnessTypes::CharacterVelLength) {
+					LOG("Detected vel length of %f which is greater than the expected value 1.0f, not normal!", cheatInfo);
+				} else if (cheatType == eFunnessTypes::CharacterGravityScale) {
+					LOG("Detected gravity scale difference of %f which is greater than the expected value of 0.0f, not normal!", cheatInfo);
+				} else if (cheatType == eFunnessTypes::CharacterRunMultiplier) {
+					LOG("Detected run multiplier difference of %f which is greater than the expected value 0.0f, not normal!", cheatInfo);
+				}
+
+				if (!disabledCheats && user->GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) user->UserOutOfSync(funness);
+			}
+		}
+	};
+
+	struct UIHelpTop5Packet final : public WorldPackets::UIHelpTop5 {
+		void Handle() override {
+			// TODO: Handle different languages in a nice way
+			// 0: en_US
+			// 1: pl_US
+			// 2: de_DE
+			// 3: en_GB
+
+			// TODO: Find a good home for the logic in this case.
+			auto* user = UserManager::Instance()->GetUser(sysAddr);
+			if (!user) return;
+			auto* character = user->GetLastUsedChar();
+			if (!character) return;
+			auto* entity = character->GetEntity();
+			if (!entity) return;
+
+			AMFArrayValue data;
+			// Summaries
+			data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
+			data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
+			data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
+			data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
+			data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
+
+			// Descriptions
+			data.Insert("Description0", Game::config->GetValue("help_0_description"));
+			data.Insert("Description1", Game::config->GetValue("help_1_description"));
+			data.Insert("Description2", Game::config->GetValue("help_2_description"));
+			data.Insert("Description3", Game::config->GetValue("help_3_description"));
+			data.Insert("Description4", Game::config->GetValue("help_4_description"));
+
+			GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "UIHelpTop5", data);
+		}
+	};
+
+	template<typename T>
+	std::unique_ptr<WorldPackets::WorldLUBitStream> Create() { return std::make_unique<T>(); }
+
+	const std::map<MessageType::World, std::function<std::unique_ptr<WorldPackets::WorldLUBitStream>()>> g_WorldHandlers = {
+		{ MessageType::World::VALIDATION, Create<ValidationPacket> },
+		{ MessageType::World::CHARACTER_LIST_REQUEST, Create<CharacterListRequestPacket> },
+		{ MessageType::World::GAME_MSG, Create<GameMessagePacket> },
+		{ MessageType::World::CHARACTER_CREATE_REQUEST, Create<CharacterCreateRequestPacket> },
+		{ MessageType::World::LOGIN_REQUEST, Create<CharacterLoginRequestPacket> },
+		{ MessageType::World::CHARACTER_DELETE_REQUEST, Create<CharacterDeleteRequestPacket> },
+		{ MessageType::World::CHARACTER_RENAME_REQUEST, Create<CharacterRenameRequestPacket> },
+		{ MessageType::World::LEVEL_LOAD_COMPLETE, Create<LevelLoadCompletePacket> },
+		{ MessageType::World::POSITION_UPDATE, Create<PositionUpdatePacket> },
+		{ MessageType::World::MAIL, Create<MailPacket> },
+		{ MessageType::World::ROUTE_PACKET, Create<RoutePacket> },
+		{ MessageType::World::STRING_CHECK, Create<StringCheckPacket> },
+		{ MessageType::World::GENERAL_CHAT_MESSAGE, Create<GeneralChatMessagePacket> },
+		{ MessageType::World::HANDLE_FUNNESS, Create<HandleFunnessPacket> },
+		{ MessageType::World::UI_HELP_TOP_5, Create<UIHelpTop5Packet> },
+	};
+}
+
 void HandlePacket(Packet* packet) {
 	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
@@ -1205,476 +1681,30 @@ void HandlePacket(Packet* packet) {
 
 	CINSTREAM;
 	LUBitStream luBitStream;
-	luBitStream.ReadHeader(inStream);
+	if (!luBitStream.ReadHeader(inStream)) return;
 
 	if (luBitStream.connectionType == ServiceType::COMMON) {
 		CommonPackets::Handle(inStream, packet->systemAddress, luBitStream.internalPacketID);
 	}
 
 	if (luBitStream.connectionType != ServiceType::WORLD) return;
-	LOG_DEBUG("Got world packet %s", StringifiedEnum::ToString(static_cast<MessageType::World>(luBitStream.internalPacketID)).data());
-	switch (static_cast<MessageType::World>(luBitStream.internalPacketID)) {
-	case MessageType::World::VALIDATION: {
-		CINSTREAM_SKIP_HEADER;
-		LUWString username;
-		inStream.Read(username);
-
-		LUWString sessionKey;
-		// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
-		inStream.Read(sessionKey);
-		LUString clientDatabaseChecksum(32);
-		inStream.Read(clientDatabaseChecksum);
-
-		// If the check is turned on, validate the client's database checksum.
-		if (Game::config->GetValue("check_fdb") == "1" && !g_DatabaseChecksum.empty()) {
-			auto accountInfo = Database::Get()->GetAccountInfo(username.GetAsString());
-			if (!accountInfo) {
-				LOG("Client's account does not exist in the database, aborting connection.");
-				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
-				return;
-			}
-
-			// Developers may skip this check
-			if (clientDatabaseChecksum.string != g_DatabaseChecksum) {
-
-				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
-					LOG("Client's database checksum does not match the server's, aborting connection.");
-					Stamps stamps;
-					stamps.Add(eStamps::PASSPORT_AUTH_ERROR, 1);
-
-					// Using the LoginResponse here since the UI is still in the login screen state
-					// and we have a way to send a message about the client mismatch.
-					AuthPackets::SendLoginResponse(
-						Game::server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH,
-						Game::config->GetValue("cdclient_mismatch_message"), "", 0, "", stamps);
-					return;
-				} else {
-					AMFArrayValue args;
-
-					args.Insert("title", Game::config->GetValue("cdclient_mismatch_title"));
-					args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
-
-					GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, packet->systemAddress);
-					LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
-						, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
-				}
-			}
-		}
-
-		//Request the session info from Master:
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_SESSION_KEY);
-		bitStream.Write(username);
-		Game::server->SendToMaster(bitStream);
-
-		//Insert info into our pending list
-		TempSessionInfo info;
-		info.sysAddr = packet->systemAddress;
-		info.hash = sessionKey.GetAsString();
-		g_PendingUsers[username.GetAsString()] = info;
-
-		break;
-	}
-
-	case MessageType::World::CHARACTER_LIST_REQUEST: {
-		//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
-		if (Game::server->GetZoneID() != 0) {
-			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-			if (!user || !user->GetLastUsedChar()) return;
-			Game::entityManager->DestroyEntity(user->GetLastUsedChar()->GetEntity());
-		}
-
-		//This loops prevents users who aren't authenticated to double-request the char list, which
-		//would make the login screen freeze sometimes.
-		if (g_PendingUsers.size() > 0) {
-			for (const auto& it : g_PendingUsers) {
-				if (it.second.sysAddr == packet->systemAddress) {
-					return;
-				}
-			}
-		}
-
-		UserManager::Instance()->RequestCharacterList(packet->systemAddress);
-		break;
-	}
-
-	case MessageType::World::GAME_MSG: {
-		RakNet::BitStream bitStream(packet->data, packet->length, false);
-
-		uint64_t header;
-		LWOOBJID objectID;
-		MessageType::Game messageID;
-
-		bitStream.Read(header);
-		bitStream.Read(objectID);
-		bitStream.Read(messageID);
-
-		RakNet::BitStream dataStream;
-		bitStream.Read(dataStream, bitStream.GetNumberOfUnreadBits());
-
-		auto isSender = CheatDetection::VerifyLwoobjidIsSender(
-			objectID,
-			packet->systemAddress,
-			CheckType::Entity,
-			"Sending GM with a sending player that does not match their own. GM ID: %i",
-			static_cast<int32_t>(messageID)
-		);
-
-		if (isSender) GameMessageHandler::HandleMessage(dataStream, packet->systemAddress, objectID, messageID);
-		break;
-	}
-
-	case MessageType::World::CHARACTER_CREATE_REQUEST: {
-		UserManager::Instance()->CreateCharacter(packet->systemAddress, packet);
-		break;
-	}
-
-	case MessageType::World::LOGIN_REQUEST: {
-		CINSTREAM_SKIP_HEADER;
-
-		LWOOBJID playerID = 0;
-		inStream.Read(playerID);
-		LOG("User is requesting to login with character %llu", playerID);
-		bool valid = CheatDetection::VerifyLwoobjidIsSender(
-			playerID,
-			packet->systemAddress,
-			CheckType::User,
-			"Sending login request with a sending player that does not match their own. Player ID: %llu",
-			playerID
-		);
-		LOG("Login request for player %llu is %s", playerID, valid ? "valid" : "invalid");
-		if (!valid) return;
-
-		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-
-		if (user) {
-			auto lastCharacter = user->GetLoggedInChar();
-			// This means we swapped characters and we need to remove the previous player from the container.
-			if (lastCharacter != playerID) {
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
-				bitStream.Write(lastCharacter);
-				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-			}
-		}
-
-		UserManager::Instance()->LoginCharacter(packet->systemAddress, playerID);
-		break;
-	}
-
-	case MessageType::World::CHARACTER_DELETE_REQUEST: {
-		UserManager::Instance()->DeleteCharacter(packet->systemAddress, packet);
-		break;
-	}
-
-	case MessageType::World::CHARACTER_RENAME_REQUEST: {
-		UserManager::Instance()->RenameCharacter(packet->systemAddress, packet);
-		break;
-	}
-
-	case MessageType::World::LEVEL_LOAD_COMPLETE: {
-		LOG("Received level load complete from user.");
-		LoadPlayer(packet->systemAddress);
-		break;
-	}
-
-	case MessageType::World::POSITION_UPDATE: {
-		auto positionUpdate = ClientPackets::HandleClientPositionUpdate(packet);
-
-		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (!user) {
-			LOG("Unable to get user to parse position update");
-			return;
-		}
-
-		if (const auto* const lastChar = user->GetLastUsedChar()) {
-			if (auto* const entity = Game::entityManager->GetEntity(lastChar->GetObjectID())) {
-				entity->ProcessPositionUpdate(positionUpdate);
-			}
-		}
-		break;
-	}
-
-	case MessageType::World::MAIL: {
-		if (auto* const user = UserManager::Instance()->GetUser(packet->systemAddress)) {
-			if (auto* const lastChar = user->GetLastUsedChar()) {
-				if (auto* const entity = lastChar->GetEntity()) {
-					Mail::HandleMail(inStream, packet->systemAddress, entity);
-				}
-			}
-		}
-		break;
-	}
-
-	case MessageType::World::ROUTE_PACKET: {
-		//Yeet to chat
-		CINSTREAM_SKIP_HEADER;
-		uint32_t size = 0;
-		inStream.Read(size);
-
-		if (size > 20000) {
-			LOG("Tried to route a packet with a read size > 20000, so likely a false packet.");
-			return;
-		}
-
-		CBITSTREAM;
-
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, packet->data[14]);
-
-		//We need to insert the player's objectID so the chat server can find who originated this request:
-		LWOOBJID objectID = 0;
-		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (user) {
-			const auto* const lastChar = user->GetLastUsedChar();
-			if (lastChar) objectID = lastChar->GetObjectID();
-		}
-
-		bitStream.Write(objectID);
-
-		//Now write the rest of the data:
-		auto data = inStream.GetData();
-		for (uint32_t i = 23; i - 23 < size && i < packet->length; ++i) {
-			bitStream.Write(data[i]);
-		}
-
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
-		break;
-	}
-
-	case MessageType::World::STRING_CHECK: {
-		auto request = ClientPackets::HandleChatModerationRequest(packet);
-
-		// TODO: Find a good home for the logic in this case.
-		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (!user) {
-			LOG("Unable to get user to parse chat moderation request");
-			return;
-		}
-
-		auto* entity = PlayerManager::GetPlayer(packet->systemAddress);
-
-		if (entity == nullptr) {
-			LOG("Unable to get player to parse chat moderation request");
-			return;
-		}
-
-		// Check if the player has restricted chat access
-		auto* character = entity->GetCharacter();
-
-		if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
-			// Send a message to the player
-			ChatPackets::SendSystemMessage(
-				packet->systemAddress,
-				u"This character has restricted chat access."
-			);
-
-			return;
-		}
-
-		bool isBestFriend = false;
-
-		if (request.chatLevel == 1) {
-			// Private chat
-			LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
-
-			{
-				auto characterIdFetch = Database::Get()->GetCharacterInfo(request.receiver);
-
-				if (characterIdFetch) {
-					idOfReceiver = characterIdFetch->id;
-				}
-			}
-			const auto& bffMap = user->GetIsBestFriendMap();
-			if (bffMap.find(request.receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
-				auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
-
-				if (bffInfo) {
-					isBestFriend = bffInfo->bestFriendStatus == 3;
-				}
-
-				if (isBestFriend) {
-					user->UpdateBestFriendValue(request.receiver, true);
-				}
-			} else if (bffMap.find(request.receiver) != bffMap.end()) {
-				isBestFriend = true;
-			}
-		}
-
-		const auto segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
-
-		bool bAllClean = segments.empty();
-
-		if (user->GetIsMuted()) {
-			bAllClean = false;
-		}
-
-		user->SetLastChatMessageApproved(bAllClean);
-		WorldPackets::SendChatModerationResponse(packet->systemAddress, bAllClean, request.requestID, request.receiver, segments);
-		break;
-	}
-
-	case MessageType::World::GENERAL_CHAT_MESSAGE: {
-		if (g_ChatDisabled) {
-			ChatPackets::SendMessageFail(packet->systemAddress);
-		} else {
-			auto chatMessage = ClientPackets::HandleChatMessage(packet);
-
-			// TODO: Find a good home for the logic in this case.
-			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-			if (!user) {
-				LOG("Unable to get user to parse chat message");
-				return;
-			}
-
-			const auto* const lastChar = user->GetLastUsedChar();
-			if (!lastChar) {
-				LOG("No last used character for chat message %i", user->GetAccountID());
-				return;
-			}
-
-			if (user->GetIsMuted()) {
-				lastChar->SendMuteNotice();
-				return;
-			}
-			std::string playerName = lastChar->GetName();
-			bool isMythran = lastChar->GetGMLevel() > eGameMasterLevel::CIVILIAN;
-			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), lastChar->GetGMLevel()).empty();
-			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
-			// Kept for moderation and chat bridges, including what the filter stopped (log_chat=0 turns it off)
-			if (Game::config->GetValue("log_chat") != "0") {
-				IChatLog::ChatMessage entry;
-				entry.time = static_cast<int64_t>(std::time(nullptr));
-				entry.channel = "zone";
-				entry.senderId = user->GetLoggedInChar();
-				entry.senderName = lastChar->GetName();
-				entry.accountId = user->GetAccountID();
-				entry.zoneId = Game::server->GetZoneID();
-				entry.instanceId = static_cast<uint32_t>(Game::server->GetInstanceID());
-				entry.cloneId = Game::zoneManager->GetZoneID().GetCloneID();
-				entry.message = GeneralUtils::UTF16ToWTF8(chatMessage.message);
-				entry.blocked = !isOk;
-				try {
-					Database::Get()->InsertChatMessage(entry);
-				} catch (const std::exception& ex) {
-					LOG("Couldn't log a chat message: %s", ex.what());
-				}
-			}
-			if (!isOk) return;
-			if (!isOk && !isMythran) return;
-
-			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
-			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
-			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
-			if (PropertyManagementComponent::Instance()) PropertyManagementComponent::Instance()->OnChatMessageReceived(sMessage);
-		}
-
-		break;
-	}
-
-	case MessageType::World::HANDLE_FUNNESS: {
-		//This means the client is running slower or faster than it should.
-		//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
-		//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
-		//This is hopefully going to fix the random disconnects people face sometimes.
-
-		CINSTREAM_SKIP_HEADER;
-		CaughtFunness funness;
-		inStream.Read(funness.cheatInfo);
-		inStream.Read(funness.cheatType);
-		const auto [cheatType, cheatInfo] = funness;
-		LOG_DEBUG("Received cheat type %s with info %f", StringifiedEnum::ToString(cheatType).data(), cheatInfo);
-		const auto disabledCheats = Game::config->GetValue("disable_anti_speedhack") == "1";
-
-		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (!user) {
-			Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::KICK);
-			return;
-		}
-
-		const auto* const character = user->GetLastUsedChar();
-		if (character) {
-			const auto dcUser = [](const User& user, const SystemAddress& sysAddr) {
-				if (user.GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) {
-					Game::server->Disconnect(sysAddr, eServerDisconnectIdentifiers::KICK);
-				}
-				};
-			if (cheatType == eFunnessTypes::DebuggerActive) {
-				LOG("Player %s was detected to be using a debugger (funness thread was %f seconds longer than expected deviation).", character->GetName().c_str(), cheatInfo);
-				// Immediately kick unless they are a gm
-				if (!disabledCheats) dcUser(*user, packet->systemAddress);
-			} else if (cheatType == eFunnessTypes::FdbFailedChecksum) {
-				LOG("Player %s has failed the fdb checksum after passing it to sign into this server, highly likely cheating.", character->GetName().c_str());
-				// Immedately kick unless they are a gm
-				if (!disabledCheats) dcUser(*user, packet->systemAddress);
-			} else if (cheatType == eFunnessTypes::RacingBoostTimeTooLong) {
-				if (cheatInfo == 0.0f) LOG("Player %s has enabled a speedboost for far too long (> 3.501 seconds).", character->GetName().c_str());
-				else if (cheatInfo == 1.0f) LOG("Unknown racing boost/speed variable was tampered with.");
-				else if (cheatInfo == 2.0f) LOG("Player vehicle top speed was tampered with.");
-				if (!disabledCheats) dcUser(*user, packet->systemAddress);
-			} else if (cheatType == eFunnessTypes::SomeRacingManipCheat) {
-				if (cheatInfo >= 0.0f && cheatInfo <= 6.0f) LOG("Cheat RNG value A does not match what it should be %f.", cheatInfo);
-				else if (cheatInfo >= 7.0f && cheatInfo <= 10.0f) LOG("Cheat RNG value B does not match what it should be %f.", cheatInfo);
-			} else if (cheatType == eFunnessTypes::Unknown_9) {
-				LOG("Racing cheat 9 detected with value %f.", cheatInfo);
-			} else if (cheatType == eFunnessTypes::Unknown_10) {
-				LOG("Racing cheat 10 detected with value %f.", cheatInfo);
-			} else if (cheatType == eFunnessTypes::CharacterPosLength) {
-				LOG("Detected pos length of %f which is greater than the expected value 1.0f, not normal!", cheatInfo);
-			} else if (cheatType == eFunnessTypes::CharacterVelLength) {
-				LOG("Detected vel length of %f which is greater than the expected value 1.0f, not normal!", cheatInfo);
-			} else if (cheatType == eFunnessTypes::CharacterGravityScale) {
-				LOG("Detected gravity scale difference of %f which is greater than the expected value of 0.0f, not normal!", cheatInfo);
-			} else if (cheatType == eFunnessTypes::CharacterRunMultiplier) {
-				LOG("Detected run multiplier difference of %f which is greater than the expected value 0.0f, not normal!", cheatInfo);
-			}
-
-			if (!disabledCheats && user->GetMaxGMLevel() < eGameMasterLevel::DEVELOPER) user->UserOutOfSync(funness);
-		}
-
-		break;
-	}
-
-
-	case MessageType::World::UI_HELP_TOP_5: {
-		auto language = ClientPackets::SendTop5HelpIssues(packet);
-		// TODO: Handle different languages in a nice way
-		// 0: en_US
-		// 1: pl_US
-		// 2: de_DE
-		// 3: en_GB
-
-		// TODO: Find a good home for the logic in this case.
-		auto* user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (!user) return;
-		auto* character = user->GetLastUsedChar();
-		if (!character) return;
-		auto* entity = character->GetEntity();
-		if (!entity) return;
-
-		AMFArrayValue data;
-		// Summaries
-		data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
-		data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
-		data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
-		data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
-		data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
-
-		// Descriptions
-		data.Insert("Description0", Game::config->GetValue("help_0_description"));
-		data.Insert("Description1", Game::config->GetValue("help_1_description"));
-		data.Insert("Description2", Game::config->GetValue("help_2_description"));
-		data.Insert("Description3", Game::config->GetValue("help_3_description"));
-		data.Insert("Description4", Game::config->GetValue("help_4_description"));
-
-		GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "UIHelpTop5", data);
-		break;
-	}
-
-	default:
-		const auto messageId = *reinterpret_cast<MessageType::World*>(&packet->data[3]);
+	const auto messageId = static_cast<MessageType::World>(luBitStream.internalPacketID);
+	LOG_DEBUG("Got world packet %s", StringifiedEnum::ToString(messageId).data());
+
+	const auto handler = g_WorldHandlers.find(messageId);
+	if (handler == g_WorldHandlers.end()) {
 		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
+		return;
 	}
+
+	auto request = handler->second();
+	request->sysAddr = packet->systemAddress;
+	if (!request->Deserialize(inStream)) {
+		LOG("Failed to read world packet %s from %s", StringifiedEnum::ToString(messageId).data(), packet->systemAddress.ToString());
+		return;
+	}
+	request->Handle();
 }
 
 void WorldShutdownProcess(uint32_t zoneId) {

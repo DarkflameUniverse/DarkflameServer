@@ -10,6 +10,8 @@
 #include "Logger.h"
 #include "User.h"
 #include "WorldPackets.h"
+#include "ClientPackets.h"
+#include "ClientPackets.h"
 #include "Character.h"
 #include "BitStream.h"
 #include "ObjectIDManager.h"
@@ -244,89 +246,59 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars.push_back(character);
 	}
 
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::CHARACTER_LIST_RESPONSE);
+	ClientPackets::CharacterListResponse response;
+	response.selectedCharacterIndex = 0; //TODO: Pick the most recent played index.  character index in front, just picking 0
 
-	std::vector<Character*> characters = u->GetCharacters();
-	bitStream.Write<uint8_t>(characters.size());
-	bitStream.Write<uint8_t>(0); //TODO: Pick the most recent played index.  character index in front, just picking 0
+	for (const auto* const character : u->GetCharacters()) {
+		auto& entry = response.characters.emplace_back();
+		entry.objectID = character->GetObjectID();
 
-	for (uint32_t i = 0; i < characters.size(); ++i) {
-		bitStream.Write(characters[i]->GetObjectID());
-		bitStream.Write<uint32_t>(0);
+		entry.name = LUWString(character->GetName());
+		entry.unapprovedName = LUWString(character->GetUnapprovedName());
 
-		bitStream.Write(LUWString(characters[i]->GetName()));
-		bitStream.Write(LUWString(characters[i]->GetUnapprovedName()));
+		entry.nameRejected = character->GetNameRejected();
 
-		bitStream.Write<uint8_t>(characters[i]->GetNameRejected());
-		bitStream.Write<uint8_t>(false);
+		entry.shirtColor = character->GetShirtColor();
+		entry.shirtStyle = character->GetShirtStyle();
+		entry.pantsColor = character->GetPantsColor();
+		entry.hairStyle = character->GetHairStyle();
+		entry.hairColor = character->GetHairColor();
+		entry.leftHand = character->GetLeftHand();
+		entry.rightHand = character->GetRightHand();
+		entry.eyebrows = character->GetEyebrows();
+		entry.eyes = character->GetEyes();
+		entry.mouth = character->GetMouth();
 
-		bitStream.Write(LUString("", 10));
+		entry.zoneID = character->GetZoneID();
+		entry.zoneInstance = character->GetZoneInstance();
+		entry.zoneClone = character->GetZoneClone();
 
-		bitStream.Write(characters[i]->GetShirtColor());
-		bitStream.Write(characters[i]->GetShirtStyle());
-		bitStream.Write(characters[i]->GetPantsColor());
-		bitStream.Write(characters[i]->GetHairStyle());
-		bitStream.Write(characters[i]->GetHairColor());
-		bitStream.Write(characters[i]->GetLeftHand());
-		bitStream.Write(characters[i]->GetRightHand());
-		bitStream.Write(characters[i]->GetEyebrows());
-		bitStream.Write(characters[i]->GetEyes());
-		bitStream.Write(characters[i]->GetMouth());
-		bitStream.Write<uint32_t>(0);
+		entry.lastLogin = character->GetLastLogin();
 
-		bitStream.Write<uint16_t>(characters[i]->GetZoneID());
-		bitStream.Write<uint16_t>(characters[i]->GetZoneInstance());
-		bitStream.Write(characters[i]->GetZoneClone());
-
-		bitStream.Write(characters[i]->GetLastLogin());
-
-		const auto& equippedItems = characters[i]->GetEquippedItems();
-		bitStream.Write<uint16_t>(equippedItems.size());
-
-		for (uint32_t j = 0; j < equippedItems.size(); ++j) {
-			bitStream.Write(equippedItems[j]);
-		}
+		entry.equippedItems = character->GetEquippedItems();
 	}
 
-	SEND_PACKET;
+	response.Send(sysAddr);
 }
 
-void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
+void UserManager::CreateCharacter(const SystemAddress& sysAddr, const WorldPackets::CharacterCreateRequest& request) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
 
-	LUWString LUWStringName;
-	uint32_t firstNameIndex;
-	uint32_t middleNameIndex;
-	uint32_t lastNameIndex;
-	uint32_t shirtColor;
-	uint32_t shirtStyle;
-	uint32_t pantsColor;
-	uint32_t hairStyle;
-	uint32_t hairColor;
-	uint32_t lh;
-	uint32_t rh;
-	uint32_t eyebrows;
-	uint32_t eyes;
-	uint32_t mouth;
-
-	CINSTREAM_SKIP_HEADER;
-	inStream.Read(LUWStringName);
-	inStream.Read(firstNameIndex);
-	inStream.Read(middleNameIndex);
-	inStream.Read(lastNameIndex);
-	inStream.IgnoreBytes(9);
-	inStream.Read(shirtColor);
-	inStream.Read(shirtStyle);
-	inStream.Read(pantsColor);
-	inStream.Read(hairStyle);
-	inStream.Read(hairColor);
-	inStream.Read(lh);
-	inStream.Read(rh);
-	inStream.Read(eyebrows);
-	inStream.Read(eyes);
-	inStream.Read(mouth);
+	const auto& LUWStringName = request.name;
+	const uint32_t firstNameIndex = request.firstNameIndex;
+	const uint32_t middleNameIndex = request.middleNameIndex;
+	const uint32_t lastNameIndex = request.lastNameIndex;
+	const uint32_t shirtColor = request.shirtColor;
+	const uint32_t shirtStyle = request.shirtStyle;
+	const uint32_t pantsColor = request.pantsColor;
+	const uint32_t hairStyle = request.hairStyle;
+	const uint32_t hairColor = request.hairColor;
+	const uint32_t lh = request.leftHand;
+	const uint32_t rh = request.rightHand;
+	const uint32_t eyebrows = request.eyebrows;
+	const uint32_t eyes = request.eyes;
+	const uint32_t mouth = request.mouth;
 
 	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
 
@@ -338,13 +310,17 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	if (!name.empty() && Database::Get()->IsNameInUse(name)) {
 		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
+		ClientPackets::CharacterCreateResponse response;
+		response.response = eCharacterCreationResponse::CUSTOM_NAME_IN_USE;
+		response.Send(sysAddr);
 		return;
 	}
 
 	if (Database::Get()->IsNameInUse(predefinedName)) {
 		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
+		ClientPackets::CharacterCreateResponse response;
+		response.response = eCharacterCreationResponse::PREDEFINED_NAME_IN_USE;
+		response.Send(sysAddr);
 		return;
 	}
 
@@ -370,7 +346,9 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	if (tries >= maxRetries) {
 		LOG("Failed to get a unique objectID for new character after %i tries, aborting char creation for account %i", maxRetries, u->GetAccountID());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
+		ClientPackets::CharacterCreateResponse response;
+		response.response = eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE;
+		response.Send(sysAddr);
 		return;
 	}
 
@@ -430,20 +408,20 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	//Now finally insert our character xml:
 	Database::Get()->InsertCharacterXml(objectID, xml.str());
 
-	WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+	ClientPackets::CharacterCreateResponse response;
+	response.response = eCharacterCreationResponse::SUCCESS;
+	response.Send(sysAddr);
 	UserManager::RequestCharacterList(sysAddr);
 }
 
-void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
+void UserManager::DeleteCharacter(const SystemAddress& sysAddr, const WorldPackets::CharacterDeleteRequest& request) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
 		LOG("Couldn't get user to delete character");
 		return;
 	}
 
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID objectID;
-	inStream.Read(objectID);
+	const LWOOBJID objectID = request.objectID;
 
 	LOG("Received char delete req for ID: %llu", objectID);
 
@@ -455,7 +433,9 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		u->GetAccountID());
 
 	if (!hasCharacter) {
-		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
+		ClientPackets::DeleteCharacterResponse response;
+		response.success = false;
+		response.Send(sysAddr);
 	} else {
 		LOG("Deleting character %llu", objectID);
 		Database::Get()->DeleteCharacter(objectID);
@@ -466,26 +446,24 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		bitStream.Write(objectID);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 
-		WorldPackets::SendCharacterDeleteResponse(sysAddr, true);
+		ClientPackets::DeleteCharacterResponse response;
+		response.success = true;
+		response.Send(sysAddr);
 	}
 }
 
-void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
+void UserManager::RenameCharacter(const SystemAddress& sysAddr, const WorldPackets::CharacterRenameRequest& request) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
 		LOG("Couldn't get user to delete character");
 		return;
 	}
 
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID objectID;
-	inStream.Read(objectID);
+	const LWOOBJID objectID = request.objectID;
 
 	LOG("Received char rename request for ID: %llu", objectID);
 
-	LUWString LUWStringName;
-	inStream.Read(LUWStringName);
-	auto newName = LUWStringName.GetAsString();
+	auto newName = request.name.GetAsString();
 
 	Character* character = nullptr;
 	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
@@ -507,7 +485,9 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		});
 
 	if (!ownsCharacter || !character) {
-		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
+		ClientPackets::CharacterRenameResponse response;
+		response.response = eRenameResponse::UNKNOWN_ERROR;
+		response.Send(sysAddr);
 	} else if (ownsCharacter && character) {
 		if (autoRejectNames) {
 			// Create a random preapproved name (fallback to default if none available)
@@ -522,7 +502,9 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		}
 
 		if (newName == character->GetName()) {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
+			ClientPackets::CharacterRenameResponse response;
+			response.response = eRenameResponse::NAME_UNAVAILABLE;
+			response.Send(sysAddr);
 			return;
 		}
 
@@ -531,28 +513,38 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				Database::Get()->SetCharacterName(objectID, newName);
 				DashboardNotify::Changed("characters", objectID);
 				LOG("Character %s auto-renamed to preapproved name %s due to mute", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
+				ClientPackets::CharacterRenameResponse response;
+				response.response = eRenameResponse::SUCCESS;
+				response.Send(sysAddr);
 				UserManager::RequestCharacterList(sysAddr);
 			} else if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(objectID, newName);
 				DashboardNotify::Changed("characters", objectID);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
+				ClientPackets::CharacterRenameResponse response;
+				response.response = eRenameResponse::SUCCESS;
+				response.Send(sysAddr);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
 				Database::Get()->SetPendingCharacterName(objectID, newName);
 				DashboardNotify::Changed("characters", objectID);
 				DashboardNotify::Changed("pending_names", objectID);
 				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
+				ClientPackets::CharacterRenameResponse response;
+				response.response = eRenameResponse::SUCCESS;
+				response.Send(sysAddr);
 				UserManager::RequestCharacterList(sysAddr);
 			}
 		} else {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_IN_USE);
+			ClientPackets::CharacterRenameResponse response;
+			response.response = eRenameResponse::NAME_IN_USE;
+			response.Send(sysAddr);
 		}
 	} else {
 		LOG("Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
-		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
+		ClientPackets::CharacterRenameResponse response;
+		response.response = eRenameResponse::UNKNOWN_ERROR;
+		response.Send(sysAddr);
 	}
 }
 
@@ -591,7 +583,11 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID
 				character->SetZoneInstance(zoneInstance);
 				character->SetZoneClone(zoneClone);
 			}
-			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+			ClientPackets::TransferToWorld transfer;
+			transfer.serverIP = LUString(serverIP);
+			transfer.serverPort = serverPort;
+			transfer.mythranShift = mythranShift;
+			transfer.Send(sysAddr);
 			return;
 			});
 	} else {

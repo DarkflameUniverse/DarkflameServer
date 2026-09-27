@@ -21,7 +21,7 @@
 #include "PlayerManager.h"
 #include "ServiceType.h"
 #include "TradingManager.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "dServer.h"
 #include "eServerDisconnectIdentifiers.h"
 
@@ -158,7 +158,11 @@ namespace {
 		// player is adopted by it. Same ordered channel as the transfer, so these arrive before it.
 		if (order.seamless) Game::entityManager->DestructAllEntities(sysAddr);
 
-		WorldPackets::SendTransferToWorld(sysAddr, order.targetIp, order.targetPort, order.mythranShift);
+		ClientPackets::TransferToWorld transfer;
+		transfer.serverIP = LUString(order.targetIp);
+		transfer.serverPort = order.targetPort;
+		transfer.mythranShift = order.mythranShift;
+		transfer.Send(sysAddr);
 		LOG("Migration %u: sent %s (%llu) to instance %u", order.migrationId, character->GetName().c_str(), playerId, order.targetInstance);
 		return true;
 	}

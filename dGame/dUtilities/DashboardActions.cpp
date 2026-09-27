@@ -14,7 +14,7 @@
 #include "PlayerManager.h"
 #include "User.h"
 #include "UserManager.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "ZoneInstanceManager.h"
 #include "eGameMasterLevel.h"
 #include "eServerDisconnectIdentifiers.h"
@@ -58,7 +58,12 @@ namespace {
 			auto* entity = PlayerManager::GetPlayer(user->GetSystemAddress());
 			if (!entity || entity->GetGMLevel() <= info->maxGmLevel) continue;
 
-			WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), true, info->maxGmLevel, entity->GetGMLevel(), info->maxGmLevel);
+			ClientPackets::MakeGMResponse response;
+			response.success = true;
+			response.highestLevel = info->maxGmLevel;
+			response.previousLevel = entity->GetGMLevel();
+			response.newLevel = info->maxGmLevel;
+			response.Send(entity->GetSystemAddress());
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), info->maxGmLevel);
 			entity->SetGMLevel(info->maxGmLevel);
 			if (info->maxGmLevel == eGameMasterLevel::CIVILIAN) {
@@ -138,7 +143,11 @@ namespace {
 				character->SaveXMLToDatabase();
 
 				LOG("Dashboard rescue: transferring %llu to zone %u", objectId, zoneID);
-				WorldPackets::SendTransferToWorld(entity->GetSystemAddress(), serverIP, serverPort, mythranShift);
+				ClientPackets::TransferToWorld transfer;
+				transfer.serverIP = LUString(serverIP);
+				transfer.serverPort = serverPort;
+				transfer.mythranShift = mythranShift;
+				transfer.Send(entity->GetSystemAddress());
 			});
 		return 1;
 	}

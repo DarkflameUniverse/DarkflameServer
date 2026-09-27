@@ -9,6 +9,12 @@
 
 class User;
 
+namespace WorldPackets {
+	struct CharacterCreateRequest;
+	struct CharacterDeleteRequest;
+	struct CharacterRenameRequest;
+}
+
 class UserManager {
 public:
 	static UserManager* Instance() {
@@ -33,9 +39,9 @@ public:
 	bool IsNamePreapproved(const std::string& requestedName);
 
 	void RequestCharacterList(const SystemAddress& sysAddr);
-	void CreateCharacter(const SystemAddress& sysAddr, Packet* packet);
-	void DeleteCharacter(const SystemAddress& sysAddr, Packet* packet);
-	void RenameCharacter(const SystemAddress& sysAddr, Packet* packet);
+	void CreateCharacter(const SystemAddress& sysAddr, const WorldPackets::CharacterCreateRequest& request);
+	void DeleteCharacter(const SystemAddress& sysAddr, const WorldPackets::CharacterDeleteRequest& request);
+	void RenameCharacter(const SystemAddress& sysAddr, const WorldPackets::CharacterRenameRequest& request);
 	void LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID);
 
 	void SaveAllActiveCharacters();

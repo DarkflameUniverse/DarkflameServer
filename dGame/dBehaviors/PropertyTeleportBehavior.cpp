@@ -5,7 +5,7 @@
 #include "Character.h"
 #include "CharacterComponent.h"
 #include "ChatPackets.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "EntityManager.h"
 #include "Game.h"
 #include "ZoneInstanceManager.h"
@@ -55,7 +55,11 @@ void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 		entity->GetCharacter()->SaveXMLToDatabase();
 
-		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+		ClientPackets::TransferToWorld transfer;
+		transfer.serverIP = LUString(serverIP);
+		transfer.serverPort = serverPort;
+		transfer.mythranShift = mythranShift;
+		transfer.Send(sysAddr);
 		return;
 		});
 }

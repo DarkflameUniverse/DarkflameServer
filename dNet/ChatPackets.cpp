@@ -150,3 +150,15 @@ void ChatPackets::SendRoutedMsg(const LUBitStream& msg, const LWOOBJID targetID,
 	msg.WritePacket(bitStream);
 	Game::server->Send(bitStream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 }
+
+void ChatPackets::RoutedFromClient::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(senderID);
+	for (const auto byte : data) bitStream.Write(byte);
+}
+
+bool ChatPackets::RoutedFromClient::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(senderID));
+	data.resize(BITS_TO_BYTES(bitStream.GetNumberOfUnreadBits()));
+	if (!data.empty()) VALIDATE_READ(bitStream.ReadBits(data.data(), BYTES_TO_BITS(data.size()), true));
+	return true;
+}
