@@ -613,7 +613,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 			if (autoRejectNames && owner && owner->GetCharacter() && owner->GetCharacter()->GetParentUser()->GetIsMuted()) {
 				m_ModerationStatus = 2; // Approved
 				std::string forcedName = "Pet";
-				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Owner });
+				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Owner, m_Parent->GetLOT() });
 				DashboardNotify::Changed("pet_names", m_DatabaseId);
 				{
 					GameMessages::SetPetName msg;
@@ -678,7 +678,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Name = "";
 		std::string forcedName = "Pet";
 
-		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Tamer });
+		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus), m_Tamer, m_Parent->GetLOT() });
 		DashboardNotify::Changed("pet_names", m_DatabaseId);
 		LOG("AccountID: %i is muted, forcing use of predefined pet name", tamer->GetCharacter()->GetParentUser()->GetAccountID());
 	} else {
@@ -1235,7 +1235,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName, const LWO
 	}
 
 	//Save to db:
-	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ petName, approved, owner });
+	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ petName, approved, owner, m_Parent->GetLOT() });
 	DashboardNotify::Changed("pet_names", m_DatabaseId);
 }
 

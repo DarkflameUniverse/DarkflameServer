@@ -16,6 +16,8 @@ public:
 		int32_t approvalStatus{};
 		// The character that owns the pet (0 when not known). Saving with 0 keeps the owner already stored.
 		LWOOBJID ownerId{};
+		// The pet's LOT (0 when not known). Saving with 0 keeps the LOT already stored.
+		LOT petLot{};
 	};
 
 	// Set the pet name moderation status for the given pet id.
@@ -36,6 +38,9 @@ public:
 	// Pets whose owner was never recorded (named before owners were saved), and recording one (0: nobody has it)
 	virtual std::vector<LWOOBJID> GetPetsWithUnknownOwner() = 0;
 	virtual void SetPetOwner(const LWOOBJID petId, const LWOOBJID ownerId) = 0;
+
+	// Record the pet's LOT on its pet_names row, only when the row has none yet (NULL or 0). Does nothing without a row.
+	virtual void SetPetLotIfMissing(const LWOOBJID petId, const LOT petLot) = 0;
 };
 
 #endif  //!__IPETNAMES__H__

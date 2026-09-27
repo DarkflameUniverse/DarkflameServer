@@ -4,20 +4,23 @@
 
 void MySQLDatabase::SetPetNameModerationStatus(const LWOOBJID& petId, const IPetNames::Info& info) {
 	const auto owner = info.ownerId == 0 ? std::optional<LWOOBJID>{} : std::optional<LWOOBJID>{ info.ownerId };
+	const auto lot = info.petLot <= 0 ? std::optional<uint32_t>{} : std::optional<uint32_t>{ static_cast<uint32_t>(info.petLot) };
 	ExecuteInsert(
-		"INSERT INTO `pet_names` (`id`, `pet_name`, `approved`, `owner_id`) VALUES (?, ?, ?, ?) "
-		"ON DUPLICATE KEY UPDATE pet_name = ?, approved = ?, owner_id = COALESCE(?, owner_id);",
+		"INSERT INTO `pet_names` (`id`, `pet_name`, `approved`, `owner_id`, `pet_lot`) VALUES (?, ?, ?, ?, ?) "
+		"ON DUPLICATE KEY UPDATE pet_name = ?, approved = ?, owner_id = COALESCE(?, owner_id), pet_lot = COALESCE(?, pet_lot);",
 		petId,
 		info.petName,
 		info.approvalStatus,
 		owner,
+		lot,
 		info.petName,
 		info.approvalStatus,
-		owner);
+		owner,
+		lot);
 }
 
 std::optional<IPetNames::Info> MySQLDatabase::GetPetNameInfo(const LWOOBJID& petId) {
-	auto result = ExecuteSelect("SELECT pet_name, approved, owner_id FROM pet_names WHERE id = ? LIMIT 1;", petId);
+	auto result = ExecuteSelect("SELECT pet_name, approved, owner_id, pet_lot FROM pet_names WHERE id = ? LIMIT 1;", petId);
 
 	if (!result->next()) {
 		return std::nullopt;
@@ -27,6 +30,7 @@ std::optional<IPetNames::Info> MySQLDatabase::GetPetNameInfo(const LWOOBJID& pet
 	toReturn.petName = result->getString("pet_name").c_str();
 	toReturn.approvalStatus = result->getInt("approved");
 	toReturn.ownerId = result->isNull("owner_id") ? 0 : result->getInt64("owner_id");
+	toReturn.petLot = result->isNull("pet_lot") ? 0 : result->getInt("pet_lot");
 
 	return toReturn;
 }
@@ -51,7 +55,7 @@ std::string MySQLDatabase::GetPetNamesTable(uint32_t start, uint32_t length, con
 		case 3: orderColumnName = "c.name"; break;
 	}
 	std::string orderClause = " ORDER BY " + orderColumnName + (orderAsc ? " ASC" : " DESC");
-	std::string mainQuery = "SELECT p.id, p.pet_name, p.approved, p.owner_id, c.name AS owner_name" + from + whereClause + orderClause + " LIMIT ?, ?;";
+	std::string mainQuery = "SELECT p.id, p.pet_name, p.approved, p.owner_id, p.pet_lot, c.name AS owner_name" + from + whereClause + orderClause + " LIMIT ?, ?;";
 
 	auto totalCountResult = ExecuteSelect("SELECT COUNT(*) as count FROM pet_names p" + (pendingOnly ? " WHERE " + pendingFilter : std::string{}) + ";");
 	uint32_t totalRecords = totalCountResult->next() ? totalCountResult->getUInt("count") : 0;
@@ -74,6 +78,7 @@ std::string MySQLDatabase::GetPetNamesTable(uint32_t start, uint32_t length, con
 			{"pet_name", result->getString("pet_name")},
 			{"approved", result->getInt("approved")},
 			{"owner_id", hasOwner ? std::to_string(result->getInt64("owner_id")) : ""},
+			{"lot", result->isNull("pet_lot") ? 0 : result->getInt("pet_lot")},
 			{"owner_name", std::string(result->isNull("owner_name") ? "" : result->getString("owner_name").c_str())}
 		});
 	}
@@ -97,4 +102,9 @@ std::vector<LWOOBJID> MySQLDatabase::GetPetsWithUnknownOwner() {
 
 void MySQLDatabase::SetPetOwner(const LWOOBJID petId, const LWOOBJID ownerId) {
 	ExecuteUpdate("UPDATE pet_names SET owner_id = ? WHERE id = ?;", ownerId, petId);
+}
+
+void MySQLDatabase::SetPetLotIfMissing(const LWOOBJID petId, const LOT petLot) {
+	if (petLot <= 0) return;
+	ExecuteUpdate("UPDATE pet_names SET pet_lot = ? WHERE id = ? AND (pet_lot IS NULL OR pet_lot = 0);", petLot, petId);
 }

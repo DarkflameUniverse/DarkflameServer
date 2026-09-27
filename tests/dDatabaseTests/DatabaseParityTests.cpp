@@ -89,7 +89,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ICharInfo::Info, name, pendingName, id, accou
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IProperty::Info, name, description, rejectionReason, id, ownerId, cloneId, privacyOption, modApproved, lastUpdatedTime, claimedTime, reputation, performanceCost, zoneId);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IProperty::ShowcaseEntry, info, ownerName, modelCount);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IProperty::ShowcaseResult, total, entries);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPetNames::Info, petName, approvalStatus, ownerId);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPetNames::Info, petName, approvalStatus, ownerId, petLot);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILeaderboard::Entry, charId, lastPlayedTimestamp, primaryScore, secondaryScore, tertiaryScore, numWins, numTimesPlayed, ranking, name);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILeaderboard::Score, primaryScore, secondaryScore, tertiaryScore);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::LiveEvent, id, type, title, message, zones, instanceId, config, startsAt, endsAt, state, endedAt, endReason, createdBy, endedBy);
@@ -604,11 +604,17 @@ TEST_F(ParitySeeded, BugReports) {
 
 TEST_F(ParitySeeded, PetNames) {
 	Both("SetPetNameModerationStatus", [](GameDatabase& db) {
-		db.SetPetNameModerationStatus(PET1, { "Sparky", 1, CHAR_BOB });
-		db.SetPetNameModerationStatus(PET2, { "Sparky", 2, CHAR_ALICE });
+		db.SetPetNameModerationStatus(PET1, { "Sparky", 1, CHAR_BOB, 3520 });
+		db.SetPetNameModerationStatus(PET2, { "Sparky", 2, CHAR_ALICE, 12432 });
 		db.SetPetNameModerationStatus(PET3, { "Rex", 1, 0 });
 	});
-	Both("SetPetNameModerationStatus keeps owner", [](GameDatabase& db) { db.SetPetNameModerationStatus(PET1, { "Sparky", 1, 0 }); return db.GetPetNameInfo(PET1); });
+	Both("SetPetNameModerationStatus keeps owner and lot", [](GameDatabase& db) { db.SetPetNameModerationStatus(PET1, { "Sparky", 1, 0 }); return db.GetPetNameInfo(PET1); });
+	Both("SetPetLotIfMissing", [](GameDatabase& db) {
+		db.SetPetLotIfMissing(PET2, 3520); // PET2 already has its LOT: kept
+		db.SetPetLotIfMissing(PET3, 12434); // PET3 has none yet: written
+		db.SetPetLotIfMissing(5, 3520); // no row: nothing
+		return json{ db.GetPetNameInfo(PET2), db.GetPetNameInfo(PET3), db.GetPetNameInfo(5) };
+	});
 	Both("GetPetNameInfo", [](GameDatabase& db) { return json{ db.GetPetNameInfo(PET2), db.GetPetNameInfo(PET3), db.GetPetNameInfo(5) }; });
 	Both("GetPetNamesTable", [](GameDatabase& db) { return db.GetPetNamesTable(0, 10); });
 	Both("GetPetNamesTable pending", [](GameDatabase& db) { return db.GetPetNamesTable(0, 10, "", 0, true, true); });

@@ -1731,9 +1731,9 @@ void InventoryComponent::LoadPetXml(const tinyxml2::XMLDocument& document) {
 	auto* petElement = petInventoryElement->FirstChildElement();
 
 	while (petElement != nullptr) {
-		LWOOBJID id;
-		LOT lot;
-		int32_t moderationStatus;
+		LWOOBJID id{};
+		LOT lot{};
+		int32_t moderationStatus{};
 
 		petElement->QueryAttribute("id", &id);
 		petElement->QueryAttribute("l", &lot);
@@ -1746,6 +1746,9 @@ void InventoryComponent::LoadPetXml(const tinyxml2::XMLDocument& document) {
 		databasePet.name = name ? name : "";
 
 		SetDatabasePet(id, databasePet);
+
+		// Pets named before pet_names recorded their LOT get it now that their owner is loaded
+		if (id != LWOOBJID_EMPTY && lot > 0) Database::Get()->SetPetLotIfMissing(id, lot);
 
 		petElement = petElement->NextSiblingElement();
 	}

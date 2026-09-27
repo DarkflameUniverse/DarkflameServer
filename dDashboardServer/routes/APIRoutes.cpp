@@ -90,24 +90,13 @@ namespace {
 	}
 
 	/**
-	 * Adds each pet's LOT and kind (its CDClient name) to pet_names rows. pet_names doesn't hold the LOT; the owner's
-	 * save does (<pet><p id l/>), so each owner on the page is read once. Pets whose owner is unknown, or who have
-	 * left the owner's save, get lot 0.
+	 * Adds each pet's kind (its CDClient name) to pet_names rows, from the pet_lot the game writes (lot 0: not known yet).
 	 */
 	std::string WithPetKinds(const std::string& raw) {
 		auto json = nlohmann::json::parse(raw, nullptr, false);
 		if (json.is_discarded() || !json.contains("data") || !json["data"].is_array()) return raw;
-		std::map<LWOOBJID, std::map<LWOOBJID, LOT>> owners;
 		for (auto& row : json["data"]) {
-			const auto owner = GeneralUtils::TryParse<LWOOBJID>(row.value("owner_id", std::string{})).value_or(0);
-			const auto pet = GeneralUtils::TryParse<LWOOBJID>(row.value("id", std::string{})).value_or(0);
-			LOT lot = 0;
-			if (owner && pet) {
-				auto [it, added] = owners.try_emplace(owner);
-				if (added) for (const auto& held : CharacterXml::Pets(Database::Get()->GetCharacterXml(owner))) it->second[held.id] = held.lot;
-				if (const auto found = it->second.find(pet); found != it->second.end()) lot = found->second;
-			}
-			row["lot"] = lot;
+			const LOT lot = row.value("lot", 0);
 			row["kind"] = lot > 0 ? ClientAssets::ItemName(lot) : "";
 		}
 		return json.dump();

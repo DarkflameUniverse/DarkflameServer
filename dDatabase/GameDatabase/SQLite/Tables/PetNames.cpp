@@ -4,20 +4,23 @@
 
 void SQLiteDatabase::SetPetNameModerationStatus(const LWOOBJID& petId, const IPetNames::Info& info) {
 	const auto owner = info.ownerId == 0 ? std::optional<LWOOBJID>{} : std::optional<LWOOBJID>{ info.ownerId };
+	const auto lot = info.petLot <= 0 ? std::optional<uint32_t>{} : std::optional<uint32_t>{ static_cast<uint32_t>(info.petLot) };
 	ExecuteInsert(
-		"INSERT INTO `pet_names` (`id`, `pet_name`, `approved`, `owner_id`) VALUES (?, ?, ?, ?) "
-		"ON CONFLICT(id) DO UPDATE SET pet_name = ?, approved = ?, owner_id = COALESCE(?, owner_id);",
+		"INSERT INTO `pet_names` (`id`, `pet_name`, `approved`, `owner_id`, `pet_lot`) VALUES (?, ?, ?, ?, ?) "
+		"ON CONFLICT(id) DO UPDATE SET pet_name = ?, approved = ?, owner_id = COALESCE(?, owner_id), pet_lot = COALESCE(?, pet_lot);",
 		petId,
 		info.petName,
 		info.approvalStatus,
 		owner,
+		lot,
 		info.petName,
 		info.approvalStatus,
-		owner);
+		owner,
+		lot);
 }
 
 std::optional<IPetNames::Info> SQLiteDatabase::GetPetNameInfo(const LWOOBJID& petId) {
-	auto [_, result] = ExecuteSelect("SELECT pet_name, approved, owner_id FROM pet_names WHERE id = ? LIMIT 1;", petId);
+	auto [_, result] = ExecuteSelect("SELECT pet_name, approved, owner_id, pet_lot FROM pet_names WHERE id = ? LIMIT 1;", petId);
 
 	if (result.eof()) {
 		return std::nullopt;
@@ -27,6 +30,7 @@ std::optional<IPetNames::Info> SQLiteDatabase::GetPetNameInfo(const LWOOBJID& pe
 	toReturn.petName = result.getStringField("pet_name");
 	toReturn.approvalStatus = result.getIntField("approved");
 	toReturn.ownerId = result.fieldIsNull("owner_id") ? 0 : result.getInt64Field("owner_id");
+	toReturn.petLot = result.fieldIsNull("pet_lot") ? 0 : result.getIntField("pet_lot");
 
 	return toReturn;
 }
@@ -51,7 +55,7 @@ std::string SQLiteDatabase::GetPetNamesTable(uint32_t start, uint32_t length, co
 		case 3: orderColumnName = "c.name"; break;
 	}
 	std::string orderClause = " ORDER BY " + orderColumnName + (orderAsc ? " ASC" : " DESC");
-	std::string mainQuery = "SELECT p.id, p.pet_name, p.approved, p.owner_id, c.name AS owner_name" + from + whereClause + orderClause + " LIMIT ? OFFSET ?;";
+	std::string mainQuery = "SELECT p.id, p.pet_name, p.approved, p.owner_id, p.pet_lot, c.name AS owner_name" + from + whereClause + orderClause + " LIMIT ? OFFSET ?;";
 
 	auto [__, totalCountResult] = ExecuteSelect("SELECT COUNT(*) as count FROM pet_names p" + (pendingOnly ? " WHERE " + pendingFilter : std::string{}) + ";");
 	uint32_t totalRecords = totalCountResult.eof() ? 0 : totalCountResult.getIntField("count");
@@ -74,6 +78,7 @@ std::string SQLiteDatabase::GetPetNamesTable(uint32_t start, uint32_t length, co
 			{"pet_name", result.getStringField("pet_name")},
 			{"approved", result.getIntField("approved")},
 			{"owner_id", hasOwner ? std::to_string(result.getInt64Field("owner_id")) : ""},
+			{"lot", result.fieldIsNull("pet_lot") ? 0 : result.getIntField("pet_lot")},
 			{"owner_name", std::string(result.fieldIsNull("owner_name") ? "" : result.getStringField("owner_name"))}
 		});
 		result.nextRow();
@@ -98,4 +103,9 @@ std::vector<LWOOBJID> SQLiteDatabase::GetPetsWithUnknownOwner() {
 
 void SQLiteDatabase::SetPetOwner(const LWOOBJID petId, const LWOOBJID ownerId) {
 	ExecuteUpdate("UPDATE pet_names SET owner_id = ? WHERE id = ?;", ownerId, petId);
+}
+
+void SQLiteDatabase::SetPetLotIfMissing(const LWOOBJID petId, const LOT petLot) {
+	if (petLot <= 0) return;
+	ExecuteUpdate("UPDATE pet_names SET pet_lot = ? WHERE id = ? AND (pet_lot IS NULL OR pet_lot = 0);", petLot, petId);
 }

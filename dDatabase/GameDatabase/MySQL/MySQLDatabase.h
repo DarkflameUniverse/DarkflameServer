@@ -406,6 +406,7 @@ public:
 	void RejectPetName(const int64_t id) override;
 	std::vector<LWOOBJID> GetPetsWithUnknownOwner() override;
 	void SetPetOwner(const LWOOBJID petId, const LWOOBJID ownerId) override;
+	void SetPetLotIfMissing(const LWOOBJID petId, const LOT petLot) override;
 	nlohmann::json GetAccountCharacters(uint32_t accountId) override;
 	void DeleteAccount(const uint32_t accountId) override;
 	void InsertAuditLog(uint32_t accountId, const std::string_view accountName, const std::string_view action, const std::string_view description, uint32_t targetAccountId, LWOOBJID targetCharacterId) override;

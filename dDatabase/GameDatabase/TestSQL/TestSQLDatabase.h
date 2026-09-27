@@ -364,6 +364,7 @@ class TestSQLDatabase : public GameDatabase {
 	void RejectPetName(const int64_t id) override {};
 	std::vector<LWOOBJID> GetPetsWithUnknownOwner() override { return {}; }
 	void SetPetOwner(const LWOOBJID petId, const LWOOBJID ownerId) override {}
+	void SetPetLotIfMissing(const LWOOBJID petId, const LOT petLot) override {}
 	nlohmann::json GetAccountCharacters(uint32_t accountId) override { return nlohmann::json::array(); };
 	void ApproveProperty(const LWOOBJID propertyId) override {};
 	bool IsNameInUse(const std::string_view name) override { return false; };

@@ -137,7 +137,7 @@
 		},
 		// A pet's kind: its icon and CDClient name (rows from the pet name tables carry lot and kind)
 		pet: function (lot, kind) {
-			if (!lot) return '<span class="text-body-secondary small" title="The owner\'s save doesn\'t hold this pet">Unknown</span>';
+			if (!lot) return '<span class="text-body-secondary small" title="Not recorded yet: filled in when the owner next loads into a world">Unknown</span>';
 			return '<span class="text-nowrap"><img src="/api/icon/' + esc(lot) + '" width="28" height="28" class="me-1 align-middle" alt="" loading="lazy">' +
 				esc(kind || ('LOT ' + lot)) + ' <span class="small text-body-secondary">(' + esc(lot) + ')</span></span>';
 		},
