@@ -3,6 +3,7 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
 #include "Logger.h"
@@ -132,7 +133,12 @@ void QuickBuildComponent::Update(float deltaTime) {
 				if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 					m_Builder = LWOOBJID_EMPTY;
 
-					GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+					GameMessages::Die die;
+					die.target = m_Parent->GetObjectID();
+					die.bClientDeath = false;
+					die.bSpawnLoot = true;
+					die.killerID = LWOOBJID_EMPTY;
+					die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 					ResetQuickBuild(false);
 				}
@@ -154,7 +160,13 @@ void QuickBuildComponent::Update(float deltaTime) {
 
 			if (m_Timer >= m_ResetTime) {
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 7.0f, false, true);
+				GameMessages::Die die;
+				die.target = m_Parent->GetObjectID();
+				die.bClientDeath = false;
+				die.bSpawnLoot = true;
+				die.directionRelative_Force = 7.0f;
+				die.killerID = LWOOBJID_EMPTY;
+				die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 				ResetQuickBuild(false);
 			}
@@ -215,7 +227,12 @@ void QuickBuildComponent::Update(float deltaTime) {
 			if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 				m_Builder = LWOOBJID_EMPTY;
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+				GameMessages::Die die;
+				die.target = m_Parent->GetObjectID();
+				die.bClientDeath = false;
+				die.bSpawnLoot = true;
+				die.killerID = LWOOBJID_EMPTY;
+				die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 				ResetQuickBuild(false);
 			}

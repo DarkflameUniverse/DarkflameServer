@@ -405,6 +405,12 @@ public:
 	void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"", uint32_t skillID = 0);
 
 	/**
+	 * Brings entity back to life: tells every client (Resurrect), then, once the respawn animation is done,
+	 * finishes the resurrection and restores a player's health and imagination.
+	 */
+	static void Resurrect(Entity& entity);
+
+	/**
 	 * Push or Pop a layer of status immunity to this entity
 	 */
 	void SetStatusImmunity(

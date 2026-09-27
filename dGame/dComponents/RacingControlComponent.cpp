@@ -8,6 +8,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "CombatMessages.h"
 #include "ActivityMessages.h"
 #include "RacingMessages.h"
 #include "InventoryComponent.h"
@@ -83,7 +84,18 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 	m_LoadedPlayers++;
 
 	// not live accurate to stun the player but prevents them from using skills during the race that are not meant to be used.
-	GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY, true, true, true, true, true, true, true, true, true);
+	GameMessages::SetStunned stun;
+	stun.target = player->GetObjectID();
+	stun.StateChangeType = eStateChangeType::PUSH;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.bDontTerminateInteract = true;
+	stun.Send(player->GetSystemAddress());
 
 	LOG("Loading player %i",
 		m_LoadedPlayers);
@@ -316,8 +328,14 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 		if (!racingPlayer.noSmashOnReload) {
 			racingPlayer.smashedTimes++;
 			LOG("Death type %s", GeneralUtils::UTF16ToWTF8(deathType).c_str());
-			GameMessages::SendDie(vehicle, vehicle->GetObjectID(), LWOOBJID_EMPTY, true,
-				eKillType::VIOLENT, deathType, 0, 0, 90.0f, false, true, 0);
+			GameMessages::Die die;
+			die.target = vehicle->GetObjectID();
+			die.bClientDeath = false;
+			die.bSpawnLoot = true;
+			die.deathType = deathType;
+			die.directionRelative_Force = 90.0f;
+			die.killerID = vehicle->GetObjectID();
+			die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 			int32_t respawnImagination = 0;
@@ -325,7 +343,10 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 			// Do not actually change the value yet.  Do that on respawn.
 			if (destroyableComponent) {
 				respawnImagination = static_cast<int32_t>(ceil(destroyableComponent->GetImagination() / 2.0f / 10.0f)) * 10.0f;
-				GameMessages::SendSetResurrectRestoreValues(vehicle, -1, -1, respawnImagination);
+				GameMessages::SetResurrectRestoreValues restoreValues;
+				restoreValues.target = vehicle->GetObjectID();
+				restoreValues.iImaginationRestore = respawnImagination;
+				restoreValues.Send(UNASSIGNED_SYSTEM_ADDRESS);
 			}
 
 			// Respawn the player in 2 seconds, as was done in live.  Not sure if this value is in a setting somewhere else...
@@ -350,7 +371,7 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 				resetInfo.upcomingPlane = racingPlayer.respawnIndex + 1;
 				resetInfo.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
-				GameMessages::SendResurrect(vehicle);
+				DestroyableComponent::Resurrect(*vehicle);
 				auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 				// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
 				if (destroyableComponent) destroyableComponent->SetImagination(respawnImagination);
@@ -771,9 +792,12 @@ void RacingControlComponent::Update(float deltaTime) {
 		// If the player is this far below the map, safe to assume they should
 		// be smashed by death plane
 		if (vehiclePosition.y < -500) {
-			GameMessages::SendDie(vehicle, m_Parent->GetObjectID(),
-				LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0, 0, 0,
-				true, false, 0);
+			GameMessages::Die die;
+			die.target = vehicle->GetObjectID();
+			die.bClientDeath = true;
+			die.bSpawnLoot = false;
+			die.killerID = m_Parent->GetObjectID();
+			die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 			OnRequestDie(playerEntity);
 

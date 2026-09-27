@@ -1,4 +1,5 @@
 #include "GameMessages.h"
+#include "CombatMessages.h"
 #include "GameDependencies.h"
 #include "PacketTestUtils.h"
 

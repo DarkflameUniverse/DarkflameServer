@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "Preconditions.h"
 #include "eEndBehavior.h"
 #include "DestroyableComponent.h"
@@ -21,9 +22,17 @@ void MastTeleport::OnQuickBuildComplete(Entity* self, Entity* target) {
 	if (Preconditions::Check(target, 154) && Preconditions::Check(target, 44)) {
 		self->SetVar<LWOOBJID>(u"userID", target->GetObjectID());
 
-		GameMessages::SendSetStunned(target->GetObjectID(), eStateChangeType::PUSH, target->GetSystemAddress(),
-			LWOOBJID_EMPTY, true, true, true, true, true, true, true
-		);
+		GameMessages::SetStunned stun;
+		stun.target = target->GetObjectID();
+		stun.StateChangeType = eStateChangeType::PUSH;
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.Send(target->GetSystemAddress());
 		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, true, true, true, true, false, false, true, true);
 
@@ -92,9 +101,17 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendTeleport(playerId, position, QuatUtils::IDENTITY, player->GetSystemAddress());
 
-		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
-			LWOOBJID_EMPTY, true, true, true, true, true, true, true
-		);
+		GameMessages::SetStunned stun;
+		stun.target = playerId;
+		stun.StateChangeType = eStateChangeType::POP;
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.Send(player->GetSystemAddress());
 		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, false, false, true, true);
 		Game::entityManager->SerializeEntity(player);

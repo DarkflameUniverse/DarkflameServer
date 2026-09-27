@@ -2082,7 +2082,7 @@ std::string Entity::GetVarAsString(const std::u16string& name) const {
 
 void Entity::Resurrect() {
 	if (IsPlayer()) {
-		GameMessages::SendResurrect(this);
+		DestroyableComponent::Resurrect(*this);
 	}
 }
 

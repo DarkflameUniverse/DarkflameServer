@@ -5,6 +5,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "QuickBuildComponent.h"
 #include "Game.h"
 #include "Logger.h"
@@ -83,9 +84,17 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 	// Stun the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = originator->GetObjectID();
+	stun.StateChangeType = eStateChangeType::PUSH;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(originator->GetSystemAddress());
 
 	if (std::find(m_EntitiesOnRail.begin(), m_EntitiesOnRail.end(), originator->GetObjectID()) != m_EntitiesOnRail.end()) {
 		// Stop the initial effects
@@ -110,9 +119,17 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 	// Remove the stun from the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = originator->GetObjectID();
+	stun.StateChangeType = eStateChangeType::POP;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(originator->GetSystemAddress());
 
 	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
 

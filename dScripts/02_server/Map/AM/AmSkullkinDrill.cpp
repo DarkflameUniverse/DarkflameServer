@@ -1,6 +1,7 @@
 #include "AmSkullkinDrill.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "MovingPlatformComponent.h"
 #include "DestroyableComponent.h"
 #include "ProximityMonitorComponent.h"
@@ -165,9 +166,15 @@ void AmSkullkinDrill::FreezePlayer(Entity* self, Entity* player, bool bFreeze) {
 		}
 	}
 
-	GameMessages::SendSetStunned(player->GetObjectID(), StateChangeType, player->GetSystemAddress(), self->GetObjectID(),
-		true, false, true, false, true, false, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = player->GetObjectID();
+	stun.StateChangeType = StateChangeType;
+	stun.Originator = self->GetObjectID();
+	stun.bCantAttack = true;
+	stun.bCantInteract = true;
+	stun.bCantMove = true;
+	stun.bCantUseItem = true;
+	stun.Send(player->GetSystemAddress());
 }
 
 void AmSkullkinDrill::OnArrived(Entity* self, uint32_t waypointIndex) {

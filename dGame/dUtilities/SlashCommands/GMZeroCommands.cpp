@@ -251,7 +251,7 @@ namespace GMZeroCommands {
 			return;
 		}
 
-		GameMessages::SendResurrect(entity);
+		DestroyableComponent::Resurrect(*entity);
 	}
 
 	void RequestMailCount(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

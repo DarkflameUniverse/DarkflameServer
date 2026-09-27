@@ -1,4 +1,5 @@
 #include "Strip.h"
+#include "CombatMessages.h"
 
 #include "Amf3.h"
 #include "ControlBehaviorMsgs.h"

@@ -7,6 +7,7 @@
 #include "Logger.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
@@ -157,9 +158,22 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 		addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent->GetObjectID()) > 0;
 	}
 
-	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, static_cast<uint32_t>(id),
-		static_cast<uint32_t>(duration) * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
-		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone, addedByTeammate, applyOnTeammates);
+	GameMessages::AddBuff addBuff;
+	addBuff.target = m_Parent->GetObjectID();
+	addBuff.bAddedByTeammate = addedByTeammate;
+	addBuff.bApplyOnTeammates = applyOnTeammates;
+	addBuff.bCancelOnDamaged = cancelOnDamaged;
+	addBuff.bCancelOnDeath = cancelOnDeath;
+	addBuff.bCancelOnLogOut = cancelOnLogout;
+	addBuff.bCancelOnRemoveBuff = cancelOnRemoveBuff;
+	addBuff.bCancelOnUI = cancelOnUi;
+	addBuff.bCancelOnUnEquip = cancelOnUnequip;
+	addBuff.bCancelOnZone = cancelOnZone;
+	addBuff.bIsImmunity = addImmunity;
+	addBuff.i64AddedBy = source;
+	addBuff.uiBuffID = static_cast<uint32_t>(id);
+	addBuff.uiDurationMS = static_cast<uint32_t>(duration) * 1000;
+	addBuff.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	float tick = 0;
 	float stacks = 0;
@@ -223,7 +237,12 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 		}
 	}
 
-	GameMessages::SendRemoveBuff(m_Parent, fromUnEquip, removeImmunity, id);
+	GameMessages::RemoveBuff removeBuff;
+	removeBuff.target = m_Parent->GetObjectID();
+	removeBuff.bFromUnEquip = fromUnEquip;
+	removeBuff.bRemoveImmunity = removeImmunity;
+	removeBuff.uiBuffID = static_cast<uint32_t>(id);
+	removeBuff.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	m_BuffsToRemove.insert(id);
 

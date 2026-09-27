@@ -1,4 +1,6 @@
 #include "DestroyableComponent.h"
+#include "CombatMessages.h"
+#include "LevelProgressionComponent.h"
 #include "EconomyLedger.h"
 #include "BitStream.h"
 #include "Logger.h"
@@ -779,7 +781,15 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, true, 1);
+	GameMessages::Die die;
+	die.target = m_Parent->GetObjectID();
+	die.bClientDeath = isPlayer;
+	die.bSpawnLoot = true;
+	die.deathType = deathType;
+	die.killType = killType;
+	die.killerID = source;
+	die.lootOwnerID = source;
+	die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	//NANI?!
 	if (!isPlayer) {
@@ -870,18 +880,19 @@ void DestroyableComponent::SetStatusImmunity(
 		if (bImmuneToPullToPoint) 			m_ImmuneToPullToPointCount += 1;
 	}
 
-	GameMessages::SendSetStatusImmunity(
-		m_Parent->GetObjectID(), state, m_Parent->GetSystemAddress(),
-		bImmuneToBasicAttack,
-		bImmuneToDamageOverTime,
-		bImmuneToKnockback,
-		bImmuneToInterrupt,
-		bImmuneToSpeed,
-		bImmuneToImaginationGain,
-		bImmuneToImaginationLoss,
-		bImmuneToQuickbuildInterrupt,
-		bImmuneToPullToPoint
-	);
+	GameMessages::SetStatusImmunity statusImmunity;
+	statusImmunity.target = m_Parent->GetObjectID();
+	statusImmunity.StateChangeType = state;
+	statusImmunity.bImmuneToBasicAttack = bImmuneToBasicAttack;
+	statusImmunity.bImmuneToDOT = bImmuneToDamageOverTime;
+	statusImmunity.bImmuneToKnockback = bImmuneToKnockback;
+	statusImmunity.bImmuneToInterrupt = bImmuneToInterrupt;
+	statusImmunity.bImmuneToSpeed = bImmuneToSpeed;
+	statusImmunity.bImmuneToImaginationGain = bImmuneToImaginationGain;
+	statusImmunity.bImmuneToImaginationLoss = bImmuneToImaginationLoss;
+	statusImmunity.bImmuneToQuickbuildInterrupt = bImmuneToQuickbuildInterrupt;
+	statusImmunity.bImmuneToPullToPoint = bImmuneToPullToPoint;
+	statusImmunity.Send(m_Parent->GetSystemAddress());
 }
 
 void DestroyableComponent::FixStats() {
@@ -1221,4 +1232,37 @@ bool DestroyableComponent::OnSetFaction(GameMessages::SetFaction& setFaction) {
 bool DestroyableComponent::OnIsDead(GameMessages::IsDead& isDead) {
 	isDead.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
 	return true;
+}
+
+void DestroyableComponent::Resurrect(Entity& entityRef) {
+	Entity* entity = &entityRef;
+	// Restore the players health after the animation for respawning has finished.
+	// This is when the health appered back in live, not immediately upon requesting respawn
+	// Add a half second in case someone decides to cheat and move during the death animation
+	// and just make sure the client has time to be ready.
+	constexpr float respawnTime = 3.66700005531311f + 0.5f;
+	entity->AddCallbackTimer(respawnTime, [=]() {
+		GameMessages::PlayerResurrectionFinished msg;
+		entity->NotifyPlayerResurrectionFinished(msg);
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+
+		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
+			destroyableComponent->SetIsDead(false);
+			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
+			if (levelComponent) {
+				int32_t healthToRestore = levelComponent->GetLevel() >= 45 ? 8 : 4;
+				if (healthToRestore > destroyableComponent->GetMaxHealth()) healthToRestore = destroyableComponent->GetMaxHealth();
+				destroyableComponent->SetHealth(healthToRestore);
+
+				int32_t imaginationToRestore = levelComponent->GetLevel() >= 45 ? 20 : 6;
+				if (imaginationToRestore > destroyableComponent->GetMaxImagination()) imaginationToRestore = destroyableComponent->GetMaxImagination();
+				destroyableComponent->SetImagination(imaginationToRestore);
+			}
+		}
+		});
+
+	GameMessages::Resurrect resurrect;
+	resurrect.target = entity->GetObjectID();
+	resurrect.bRezImmediately = false;
+	resurrect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

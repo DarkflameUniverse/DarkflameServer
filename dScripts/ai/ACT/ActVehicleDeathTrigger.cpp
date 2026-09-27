@@ -1,6 +1,7 @@
 #include "ActVehicleDeathTrigger.h"
 #include "PossessableComponent.h"
 #include "GameMessages.h"
+#include "CombatMessages.h"
 #include "RacingControlComponent.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
@@ -40,7 +41,12 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 	}
 
 
-	GameMessages::SendDie(vehicle, self->GetObjectID(), LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0, 0, 0, true, false, 0);
+	GameMessages::Die die;
+	die.target = vehicle->GetObjectID();
+	die.bClientDeath = true;
+	die.bSpawnLoot = false;
+	die.killerID = self->GetObjectID();
+	die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto* zoneController = Game::zoneManager->GetZoneControlObject();
 

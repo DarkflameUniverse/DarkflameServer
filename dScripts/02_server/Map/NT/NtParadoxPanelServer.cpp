@@ -1,6 +1,7 @@
 #include "NtParadoxPanelServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -40,11 +41,23 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 			RenderComponent::PlayAnimation(player, u"rebuild-celebrate");
 
 			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SparkStop", 0, 0, player->GetObjectID(), "", player->GetSystemAddress());
-			GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, true, true, false, false, true);
+			GameMessages::SetStunned stun;
+			stun.target = player->GetObjectID();
+			stun.StateChangeType = eStateChangeType::POP;
+			stun.bCantInteract = true;
+			stun.bCantMove = true;
+			stun.bCantTurn = true;
+			stun.Send(player->GetSystemAddress());
 			self->SetVar(u"bActive", false);
 			});
 		RenderComponent::PlayAnimation(user, u"nexus-powerpanel", 6.0f);
-		GameMessages::SendSetStunned(user->GetObjectID(), eStateChangeType::PUSH, user->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, true, true, false, false, true);
+		GameMessages::SetStunned stun;
+		stun.target = user->GetObjectID();
+		stun.StateChangeType = eStateChangeType::PUSH;
+		stun.bCantInteract = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.Send(user->GetSystemAddress());
 		return;
 	}
 
@@ -52,7 +65,12 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 	const auto dir = QuatUtils::Right(self->GetRotation());
 
-	GameMessages::SendKnockback(user->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 0, { dir.x * 15, 5, dir.z * 15 });
+	GameMessages::Knockback knockback;
+	knockback.target = user->GetObjectID();
+	knockback.Caster = self->GetObjectID();
+	knockback.Originator = self->GetObjectID();
+	knockback.vector = NiPoint3{ dir.x * 15, 5, dir.z * 15 };
+	knockback.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	GameMessages::PlayFXEffect(self->GetObjectID(), 6432, u"create", "console_sparks").Send(UNASSIGNED_SYSTEM_ADDRESS);
 

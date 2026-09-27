@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 
 #include "RenderComponent.h"
 
@@ -44,7 +45,10 @@ void AgSpiderBossMessage::OnCollisionPhantom(Entity* self, Entity* target) {
 	forward.y += 15;
 	forward.x *= 100;
 	forward.z *= 100;
-	GameMessages::SendKnockback(target->GetObjectID(), LWOOBJID_EMPTY, LWOOBJID_EMPTY, 0, forward);
+	GameMessages::Knockback knockback;
+	knockback.target = target->GetObjectID();
+	knockback.vector = forward;
+	knockback.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (box.isTouch || box.isDisplayed) return;
 	box.boxSelf = self->GetObjectID();

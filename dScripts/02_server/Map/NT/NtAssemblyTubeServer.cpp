@@ -1,6 +1,7 @@
 #include "NtAssemblyTubeServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -42,9 +43,17 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 	if (player->IsPlayer() && !bPlayerBeingTeleported) {
 		auto teleCinematic = self->GetVar<std::u16string>(u"Cinematic");
 
-		GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
-			true, true, true, true, true, true, true
-		);
+		GameMessages::SetStunned stun;
+		stun.target = playerID;
+		stun.StateChangeType = eStateChangeType::PUSH;
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.Send(player->GetSystemAddress());
 
 		if (!teleCinematic.empty()) {
 			const auto teleCinematicUname = teleCinematic;
@@ -124,7 +133,15 @@ void NtAssemblyTubeServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	m_TeleportingPlayerTable[playerID] = false;
 
-	GameMessages::SendSetStunned(playerID, eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = playerID;
+	stun.StateChangeType = eStateChangeType::POP;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(player->GetSystemAddress());
 }

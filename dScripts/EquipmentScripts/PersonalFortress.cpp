@@ -1,5 +1,6 @@
 #include "PersonalFortress.h"
 #include "GameMessages.h"
+#include "CombatMessages.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
@@ -22,9 +23,18 @@ void PersonalFortress::OnStartup(Entity* self) {
 			true, true, true, true, true, true
 		);
 
-	GameMessages::SendSetStunned(owner->GetObjectID(), eStateChangeType::PUSH, owner->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = owner->GetObjectID();
+	stun.StateChangeType = eStateChangeType::PUSH;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.bDontTerminateInteract = true;
+	stun.Send(owner->GetSystemAddress());
 
 	Game::entityManager->SerializeEntity(owner);
 }
@@ -43,9 +53,18 @@ void PersonalFortress::OnDie(Entity* self, Entity* killer) {
 			true, true, true, true, true, true
 		);
 
-	GameMessages::SendSetStunned(owner->GetObjectID(), eStateChangeType::POP, owner->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = owner->GetObjectID();
+	stun.StateChangeType = eStateChangeType::POP;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.bDontTerminateInteract = true;
+	stun.Send(owner->GetSystemAddress());
 
 	Game::entityManager->SerializeEntity(owner);
 }

@@ -1,4 +1,5 @@
 #include "ModelComponent.h"
+#include "CombatMessages.h"
 #include "Entity.h"
 
 #include "Game.h"

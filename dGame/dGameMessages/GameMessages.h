@@ -132,9 +132,7 @@ namespace GameMessages {
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
 	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
 	void SendPlayerReady(Entity* entity, const SystemAddress& sysAddr);
-	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
-	void SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector);
 
 	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr, bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = eCyclingMode::ALLOW_CYCLE_TEAMMATES);
 
@@ -161,13 +159,9 @@ namespace GameMessages {
 	void AddActivityOwner(Entity* entity, LWOOBJID& ownerID);
 	void SendTerminateInteraction(const LWOOBJID& objectID, eTerminateType type, const LWOOBJID& terminator);
 
-	void SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot);
-	void SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot, float coinSpawnTime);
-
 	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
 
 	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
-	void SendResurrect(Entity* entity);
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
@@ -175,28 +169,6 @@ namespace GameMessages {
 
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
-
-	void SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore);
-
-	/**
-	 * Sends a message to an Entity to smash itself, but not delete or destroy itself from the world
-	 *
-	 * @param entity The Entity that will smash itself into bricks
-	 * @param force The force the Entity will be smashed with
-	 * @param ghostOpacity The ghosting opacity of the smashed Entity
-	 * @param killerID The Entity that invoked the smash, if none exists, this should be LWOOBJID_EMPTY
-	 * @param ignoreObjectVisibility Whether or not to ignore the objects visibility
-	 */
-	void SendSmash(Entity* entity, float force, float ghostOpacity, LWOOBJID killerID, bool ignoreObjectVisibility = false);
-
-	/**
-	 * Sends a message to an Entity to UnSmash itself (aka rebuild itself over a duration)
-	 *
-	 * @param entity The Entity that will UnSmash itself
-	 * @param builderID The Entity that invoked the build (LWOOBJID_EMPTY if none exists or invoked the rebuild)
-	 * @param duration The duration for the Entity to rebuild over.  3 seconds by default
-	 */
-	void SendUnSmash(Entity* entity, LWOOBJID builderID = LWOOBJID_EMPTY, float duration = 3.0f);
 
 	// Rails stuff
 	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
@@ -219,58 +191,11 @@ namespace GameMessages {
 
 	void SendNotifyClientFailedPrecondition(LWOOBJID objectId, const SystemAddress& sysAddr, const std::u16string& failedReason, int preconditionID);
 
-	void SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
-		bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
-		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
-		bool cancelOnUnequip = false, bool cancelOnZone = false, bool addedByTeammate = false, bool applyOnTeammates = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-
 	void SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr);
 
 	void SendLockNodeRotation(Entity* entity, std::string nodeName);
 
-	void SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
-		LWOOBJID originator = LWOOBJID_EMPTY, bool bCantAttack = false, bool bCantEquip = false,
-		bool bCantInteract = false, bool bCantJump = false, bool bCantMove = false, bool bCantTurn = false,
-		bool bCantUseItem = false, bool bDontTerminateInteract = false, bool bIgnoreImmunity = true,
-		bool bCantAttackOutChangeWasApplied = false, bool bCantEquipOutChangeWasApplied = false,
-		bool bCantInteractOutChangeWasApplied = false, bool bCantJumpOutChangeWasApplied = false,
-		bool bCantMoveOutChangeWasApplied = false, bool bCantTurnOutChangeWasApplied = false,
-		bool bCantUseItemOutChangeWasApplied = false);
-
-	void SendSetStunImmunity(
-		LWOOBJID target,
-		eStateChangeType state,
-		const SystemAddress& sysAddr,
-		LWOOBJID originator = LWOOBJID_EMPTY,
-		bool bImmuneToStunAttack = false,
-		bool bImmuneToStunEquip = false,
-		bool bImmuneToStunInteract = false,
-		bool bImmuneToStunJump = false,
-		bool bImmuneToStunMove = false,
-		bool bImmuneToStunTurn = false,
-		bool bImmuneToStunUseItem = false
-	);
-
-	void SendSetStatusImmunity(
-		LWOOBJID objectId,
-		eStateChangeType state,
-		const SystemAddress& sysAddr,
-		bool bImmuneToBasicAttack = false,
-		bool bImmuneToDamageOverTime = false,
-		bool bImmuneToKnockback = false,
-		bool bImmuneToInterrupt = false,
-		bool bImmuneToSpeed = false,
-		bool bImmuneToImaginationGain = false,
-		bool bImmuneToImaginationLoss = false,
-		bool bImmuneToQuickbuildInterrupt = false,
-		bool bImmuneToPullToPoint = false
-	);
-
 	void SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr);
-
-	void SendAddRunSpeedModifier(LWOOBJID objectId, LWOOBJID caster, uint32_t modifier, const SystemAddress& sysAddr);
-
-	void SendRemoveRunSpeedModifier(LWOOBJID objectId, uint32_t modifier, const SystemAddress& sysAddr);
 
 	void SendNotifyObject(LWOOBJID objectId, LWOOBJID objIDSender, std::u16string name, const SystemAddress& sysAddr, int param1 = 0, int param2 = 0);
 
@@ -311,7 +236,6 @@ namespace GameMessages {
 	void HandleAcknowledgePossession(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Racing:
-	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	// SG:
 
@@ -363,9 +287,7 @@ namespace GameMessages {
 	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
-	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePickupItem(RakNet::BitStream& inStream, Entity* entity);
-	void HandleResurrect(RakNet::BitStream& inStream, Entity* entity);
 	void HandleModifyPlayerZoneStatistic(RakNet::BitStream& inStream, Entity* entity);
 	void HandleUpdatePlayerStatistic(RakNet::BitStream& inStream, Entity* entity);
 
@@ -373,16 +295,7 @@ namespace GameMessages {
 
 	void HandleReportBug(RakNet::BitStream& inStream, Entity* entity);
 
-	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
-
 	// bubble
-	void HandleDeactivateBubbleBuff(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandleActivateBubbleBuff(RakNet::BitStream& inStream, Entity* entity);
-
-	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream& inStream, Entity* entity);
 
@@ -504,27 +417,6 @@ namespace GameMessages {
 		int multiInteractType{};
 	};
 	using RequestUseEvent = NetGameMsgEvent<RequestUse>;
-
-	struct Smash : public NetGameMsg {
-		Smash() : NetGameMsg(MessageType::Game::SMASH) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-
-		bool bIgnoreObjectVisibility{};
-		bool force{};
-		float ghostCapacity{};
-		LWOOBJID killerID{};
-	};
-
-	struct UnSmash : public NetGameMsg {
-		UnSmash() : NetGameMsg(MessageType::Game::UN_SMASH) {}
-
-		void Serialize(RakNet::BitStream& stream) const override;
-		bool Deserialize(RakNet::BitStream& stream) override;
-
-		LWOOBJID builderID{ LWOOBJID_EMPTY };
-		float duration{ 3.0f };
-	};
 
 	struct PlayBehaviorSound : public NetGameMsg {
 		PlayBehaviorSound() : NetGameMsg(MessageType::Game::PLAY_BEHAVIOR_SOUND) {}

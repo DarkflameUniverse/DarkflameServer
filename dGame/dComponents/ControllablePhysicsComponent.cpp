@@ -1,4 +1,5 @@
 #include "ControllablePhysicsComponent.h"
+#include "CombatMessages.h"
 #include "Entity.h"
 #include "BitStream.h"
 #include "Logger.h"
@@ -347,16 +348,18 @@ void ControllablePhysicsComponent::SetStunImmunity(
 		if (bImmuneToStunUseItem)	m_ImmuneToStunUseItemCount += 1;
 	}
 
-	GameMessages::SendSetStunImmunity(
-		m_Parent->GetObjectID(), state, m_Parent->GetSystemAddress(), originator,
-		bImmuneToStunAttack,
-		bImmuneToStunEquip,
-		bImmuneToStunInteract,
-		bImmuneToStunJump,
-		bImmuneToStunMove,
-		bImmuneToStunTurn,
-		bImmuneToStunUseItem
-	);
+	GameMessages::SetStunImmunity stunImmunity;
+	stunImmunity.target = m_Parent->GetObjectID();
+	stunImmunity.Caster = originator;
+	stunImmunity.StateChangeType = state;
+	stunImmunity.bImmuneToStunAttack = bImmuneToStunAttack;
+	stunImmunity.bImmuneToStunEquip = bImmuneToStunEquip;
+	stunImmunity.bImmuneToStunInteract = bImmuneToStunInteract;
+	stunImmunity.bImmuneToStunJump = bImmuneToStunJump;
+	stunImmunity.bImmuneToStunMove = bImmuneToStunMove;
+	stunImmunity.bImmuneToStunTurn = bImmuneToStunTurn;
+	stunImmunity.bImmuneToStunUseItem = bImmuneToStunUseItem;
+	stunImmunity.Send(m_Parent->GetSystemAddress());
 }
 
 bool ControllablePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {

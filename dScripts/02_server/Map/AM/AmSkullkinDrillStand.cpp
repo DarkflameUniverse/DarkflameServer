@@ -1,6 +1,7 @@
 #include "AmSkullkinDrillStand.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "dpEntity.h"
 #include "Entity.h"
 #include "RenderComponent.h"
@@ -30,7 +31,12 @@ void AmSkullkinDrillStand::OnProximityUpdate(Entity* self, Entity* entering, std
 
 	NiPoint3 newVec = { (objPos.x - myPos.x) * 4.5f, 15, (objPos.z - myPos.z) * 4.5f };
 
-	GameMessages::SendKnockback(entering->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 0, newVec);
+	GameMessages::Knockback knockback;
+	knockback.target = entering->GetObjectID();
+	knockback.Caster = self->GetObjectID();
+	knockback.Originator = self->GetObjectID();
+	knockback.vector = newVec;
+	knockback.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	GameMessages::PlayFXEffect(entering->GetObjectID(), 1378, u"create", "pushBack").Send(UNASSIGNED_SYSTEM_ADDRESS);
 

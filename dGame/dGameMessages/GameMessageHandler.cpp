@@ -30,6 +30,7 @@
 #include "BuildingMessages.h"
 #include "RacingMessages.h"
 #include "MissionMessages.h"
+#include "CombatMessages.h"
 #include "SkillMessages.h"
 #include "TradeMessages.h"
 #include "VendorMessages.h"
@@ -159,6 +160,14 @@ namespace {
 		{ START_SKILL, []() { return std::make_unique<StartSkill>(); } },
 		{ SYNC_SKILL, []() { return std::make_unique<SyncSkill>(); } },
 		{ REQUEST_SERVER_PROJECTILE_IMPACT, []() { return std::make_unique<RequestServerProjectileImpact>(); } },
+
+		// Combat
+		{ REQUEST_DIE, []() { return std::make_unique<RequestDie>(); } },
+		{ REQUEST_SMASH_PLAYER, []() { return std::make_unique<RequestSmashPlayer>(); } },
+		{ REQUEST_RESURRECT, []() { return std::make_unique<RequestResurrect>(); } },
+		{ RESURRECT, []() { return std::make_unique<Resurrect>(); } },
+		{ ACTIVATE_BUBBLE_BUFF, []() { return std::make_unique<ActivateBubbleBuff>(); } },
+		{ DECTIVATE_BUBBLE_BUFF, []() { return std::make_unique<DeactivateBubbleBuff>(); } },
 	};
 };
 
@@ -352,19 +361,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 	}
 
-	case MessageType::Game::RESURRECT: {
-		GameMessages::HandleResurrect(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::REQUEST_RESURRECT: {
-		GameMessages::SendResurrect(entity);
-		break;
-	}
-	case MessageType::Game::REQUEST_SMASH_PLAYER:
-		entity->Smash(entity->GetObjectID());
-		break;
-
 	case MessageType::Game::REBUILD_CANCEL:
 		GameMessages::HandleQuickBuildCancel(inStream, entity);
 		break;
@@ -382,10 +378,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::HandleAcknowledgePossession(inStream, entity, sysAddr);
 		break;
 
-	case MessageType::Game::REQUEST_DIE:
-		GameMessages::HandleRequestDie(inStream, entity, sysAddr);
-		break;
-		// SG
 	case MessageType::Game::UPDATE_SHOOTING_GALLERY_ROTATION:
 		GameMessages::HandleUpdateShootingGalleryRotation(inStream, entity, sysAddr);
 		break;
@@ -430,12 +422,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::DISMOUNT_COMPLETE:
 		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::DECTIVATE_BUBBLE_BUFF:
-		GameMessages::HandleDeactivateBubbleBuff(inStream, entity);
-		break;
-	case MessageType::Game::ACTIVATE_BUBBLE_BUFF:
-		GameMessages::HandleActivateBubbleBuff(inStream, entity);
 		break;
 	case MessageType::Game::ZONE_SUMMARY_DISMISSED:
 		GameMessages::HandleZoneSummaryDismissed(inStream, entity);

@@ -1,6 +1,7 @@
 #include "GfCaptainsCannon.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
@@ -17,9 +18,18 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 	self->SetVar<bool>(u"bIsInUse", true);
 	self->SetNetworkVar<bool>(u"bIsInUse", true);
 
-	GameMessages::SendSetStunned(user->GetObjectID(), eStateChangeType::PUSH, user->GetSystemAddress(),
-		LWOOBJID_EMPTY, true, true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = user->GetObjectID();
+	stun.StateChangeType = eStateChangeType::PUSH;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.bDontTerminateInteract = true;
+	stun.Send(user->GetSystemAddress());
 
 	auto position = self->GetPosition();
 	auto forward = QuatUtils::Forward(self->GetRotation());
@@ -73,9 +83,18 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 		ambientSound.audioGUID = "{7457d85c-4537-4317-ac9d-2f549219ea87}";
 		ambientSound.SendToClient(player->GetSystemAddress());
 	} else if (timerName == "cinematicTimer") {
-		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
-			LWOOBJID_EMPTY, true, true, true, true, true, true, true, true
-		);
+		GameMessages::SetStunned stun;
+		stun.target = playerId;
+		stun.StateChangeType = eStateChangeType::POP;
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.bDontTerminateInteract = true;
+		stun.Send(player->GetSystemAddress());
 
 		self->SetVar<bool>(u"bIsInUse", false);
 		self->SetNetworkVar<bool>(u"bIsInUse", false);

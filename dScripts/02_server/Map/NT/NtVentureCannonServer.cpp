@@ -1,6 +1,7 @@
 #include "NtVentureCannonServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "EntityManager.h"
 #include "Entity.h"
 #include "GeneralUtils.h"
@@ -21,9 +22,17 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 
 	self->SetNetworkVar(u"bIsInUse", true);
 
-	GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = playerID;
+	stun.StateChangeType = eStateChangeType::PUSH;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(player->GetSystemAddress());
 
 	auto destPosition = self->GetPosition();
 
@@ -117,9 +126,17 @@ void NtVentureCannonServer::ExitCannonEnded(Entity* self, Entity* player) {
 }
 
 void NtVentureCannonServer::UnlockCannonPlayer(Entity* self, Entity* player) {
-	GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = player->GetObjectID();
+	stun.StateChangeType = eStateChangeType::POP;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(player->GetSystemAddress());
 
 	self->SetNetworkVar(u"bIsInUse", false);
 

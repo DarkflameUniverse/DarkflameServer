@@ -1,6 +1,7 @@
 #include "FlameJetServer.h"
 #include "SkillComponent.h"
 #include "GameMessages.h"
+#include "CombatMessages.h"
 
 void FlameJetServer::OnStartup(Entity* self) {
 	if (self->GetVar<bool>(u"NotActive")) {
@@ -33,7 +34,13 @@ void FlameJetServer::OnCollisionPhantom(Entity* self, Entity* target) {
 	dir.x = -dir.x * 15;
 	dir.z = -dir.z * 15;
 
-	GameMessages::SendKnockback(target->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 1000, dir);
+	GameMessages::Knockback knockback;
+	knockback.target = target->GetObjectID();
+	knockback.Caster = self->GetObjectID();
+	knockback.Originator = self->GetObjectID();
+	knockback.iKnockBackTimeMS = 1000;
+	knockback.vector = dir;
+	knockback.Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void FlameJetServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {

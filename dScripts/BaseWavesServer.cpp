@@ -1,6 +1,7 @@
 #include "BaseWavesServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "ActivityMessages.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
@@ -22,7 +23,10 @@ void BaseWavesServer::SetGameVariables(Entity* self) {
 // Done
 void BaseWavesServer::BasePlayerLoaded(Entity* self, Entity* player) {
 	GameMessages::SendPlayerSetCameraCyclingMode(player->GetObjectID(), player->GetSystemAddress());
-	GameMessages::SendPlayerAllowedRespawn(player->GetObjectID(), true, player->GetSystemAddress());
+	GameMessages::SetPlayerAllowedRespawn allowedRespawn;
+	allowedRespawn.target = player->GetObjectID();
+	allowedRespawn.dontPromptForRespawn = true;
+	allowedRespawn.SendToClient(player->GetSystemAddress());
 
 	state.waitingPlayers.push_back(player->GetObjectID());
 	state.players.push_back(player->GetObjectID());

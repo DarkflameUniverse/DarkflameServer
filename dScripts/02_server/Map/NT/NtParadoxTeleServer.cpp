@@ -1,6 +1,7 @@
 #include "NtParadoxTeleServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -26,9 +27,17 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 	const auto bPlayerBeingTeleported = m_TeleportingPlayerTable[playerID];
 
 	if (player->IsPlayer() && !bPlayerBeingTeleported) {
-		GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
-			true, true, true, true, true, true, true
-		);
+		GameMessages::SetStunned stun;
+		stun.target = playerID;
+		stun.StateChangeType = eStateChangeType::PUSH;
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.Send(player->GetSystemAddress());
 
 		auto animTime = RenderComponent::PlayAnimation(player, u"teledeath", 4.0f);
 		if (animTime == 0.0f) animTime = 2.0f;
@@ -106,9 +115,17 @@ void NtParadoxTeleServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	m_TeleportingPlayerTable[playerID] = false;
 
-	GameMessages::SendSetStunned(playerID, eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = playerID;
+	stun.StateChangeType = eStateChangeType::POP;
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(player->GetSystemAddress());
 
 	auto teleCinematic = self->GetVar<std::u16string>(u"Cinematic");
 

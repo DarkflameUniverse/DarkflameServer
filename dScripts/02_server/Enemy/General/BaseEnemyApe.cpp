@@ -3,6 +3,7 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "SkillComponent.h"
@@ -139,9 +140,19 @@ void BaseEnemyApe::StunApe(Entity* self, bool stunState) {
 			skillComponent->Interrupt();
 		}
 
-		GameMessages::SendSetStunned(self->GetObjectID(), stunState ? eStateChangeType::PUSH : eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, self->GetObjectID(),
-			true, true, true, true, true,
-			true, true, true, true);
+		GameMessages::SetStunned stun;
+		stun.target = self->GetObjectID();
+		stun.StateChangeType = stunState ? eStateChangeType::PUSH : eStateChangeType::POP;
+		stun.Originator = self->GetObjectID();
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.bDontTerminateInteract = true;
+		stun.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->SetBoolean(u"knockedOut", stunState);
 	}

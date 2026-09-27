@@ -1,6 +1,7 @@
 #include "RaceMaelstromGeiser.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "EntityManager.h"
@@ -56,7 +57,12 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 	}
 
 
-	GameMessages::SendDie(vehicle, self->GetObjectID(), LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0, 0, 0, true, false, 0);
+	GameMessages::Die die;
+	die.target = vehicle->GetObjectID();
+	die.bClientDeath = true;
+	die.bSpawnLoot = false;
+	die.killerID = self->GetObjectID();
+	die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto* zoneController = Game::zoneManager->GetZoneControlObject();
 

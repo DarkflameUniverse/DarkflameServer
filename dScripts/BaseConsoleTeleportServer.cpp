@@ -1,6 +1,7 @@
 #include "BaseConsoleTeleportServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "CombatMessages.h"
 #include "CharacterComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
@@ -28,10 +29,18 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 
 	if (button == 1) {
 
-		GameMessages::SendSetStunned(
-			player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), player->GetObjectID(),
-			true, true, true, true, true, true, true
-		);
+		GameMessages::SetStunned stun;
+		stun.target = player->GetObjectID();
+		stun.StateChangeType = eStateChangeType::PUSH;
+		stun.Originator = player->GetObjectID();
+		stun.bCantAttack = true;
+		stun.bCantEquip = true;
+		stun.bCantInteract = true;
+		stun.bCantJump = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.bCantUseItem = true;
+		stun.Send(player->GetSystemAddress());
 
 		const auto teleportFXID = self->GetVar<int32_t>(u"teleportEffectID");
 
@@ -94,10 +103,18 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 		return;
 	}
 
-	GameMessages::SendSetStunned(
-		player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), player->GetObjectID(),
-		true, true, true, true, true, true, true
-	);
+	GameMessages::SetStunned stun;
+	stun.target = player->GetObjectID();
+	stun.StateChangeType = eStateChangeType::POP;
+	stun.Originator = player->GetObjectID();
+	stun.bCantAttack = true;
+	stun.bCantEquip = true;
+	stun.bCantInteract = true;
+	stun.bCantJump = true;
+	stun.bCantMove = true;
+	stun.bCantTurn = true;
+	stun.bCantUseItem = true;
+	stun.Send(player->GetSystemAddress());
 
 	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID());
 
