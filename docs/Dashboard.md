@@ -322,6 +322,11 @@ Accounts without `players_view` (players, by default) see no clone IDs: running 
 row per zone with how many properties are open and their players, so nobody can tell who is on which property. The
 same goes for `/api/status`.
 
+The **Server Status** card shows auth, chat and, while master starts it (`enable_ugc_server`), the UGC server. Staff
+with `health_view` also get a **UGC Server** card: whether it is up and for how long, the models and cars and rockets
+waiting, made and failed (from the database, the UGC server's work list), its busy workers and the space its files take
+(from its last traffic report), with a link to the UGC page. `/api/servers/ugc` returns the same.
+
 ### Announcements and restarts
 
 From the home page:
@@ -560,18 +565,26 @@ Restoring an older backup is fine: migrations bring it up to date when the serve
 On the **Webhooks** page (GM 9) add Discord, Slack or generic JSON webhooks and choose which events they get:
 `bug_report`, `pending_name` (names waiting for approval), `moderation` (bans, locks, mutes, kicks and restrictions,
 from the dashboard or in game), `security` (GM level and two-factor changes, API keys, recovery code use),
-`economy_flag` and `server` (auth or chat going down or coming back, restarts, events). JSON deliveries can be signed:
+`economy_flag` and `server` (auth, chat or, while it is enabled, the UGC server going down or coming back, restarts,
+events). JSON deliveries can be signed:
 with a secret set, each request has `X-DLU-Signature: sha256=<hex HMAC-SHA256 of the body>`.
 
 ### Server health and instance load
 
 **Server Health** (GM 8+, `health_view`) charts players online, running worlds, memory used by all server
-processes, and whether auth and chat were up, over the last day, week or month (sampled once a minute, kept for
-`health_days`, 30).
+processes, and whether auth, chat and the UGC server were up (the UGC server only while master starts it; grey where it
+was off), over the last day, week or month (sampled once a minute, kept for `health_days`, 30). The **Servers** table
+lists every server master knows (master, auth, chat, the dashboard, the UGC server, each world) with its state, how
+long it has been up, and on Linux, when it runs on the dashboard's machine, its process ID, memory and CPU (of one
+core, since the table last refreshed), plus what its last traffic report said: connections, ping, worker threads, and
+for the UGC server its queue and storage. Server processes of this build that master doesn't list show as "Not listed".
+`/api/servers` returns the table's data.
 
 **Prometheus metrics** are off until `metrics_enabled` is switched on (Settings > Dashboard > Metrics). `/metrics` then
 serves the Prometheus text format: players online (total, per zone and per instance), running worlds per zone, whether
-master, auth and chat are up, memory and process count per kind of server, dashboard uptime and WebSocket clients, chat
+master, auth, chat and the UGC server are up (`darkflame_ugc_enabled`, `darkflame_ugc_up`), memory and process count
+per kind of server, the UGC server's work list (`darkflame_ugc_items`, labels `kind` model or modular and `state`
+pending, done or failed), dashboard uptime and WebSocket clients, chat
 messages by channel (and how many the filter blocked), today's coins, items and map events, moderation queues (names,
 pet names, properties, bug reports, economy flags, player reports), active strikes, each scheduled task's last run, and
 how long the database reads behind them took. Labels never contain account or character names or addresses. A scraper
@@ -624,7 +637,8 @@ How it is counted:
 - Every 5 seconds a server sends `SERVER_TRAFFIC` (`dNet/master/ServerTraffic.h`, about 600 bytes) to master with its
   seconds, its 24 busiest message types each way, its routes, RakNet's statistics for its connections (datagrams,
   resends, ping) and a few gauges (`http_deferred_pending`, `websocket_clients`, `workers_busy`, `workers_queued`,
-  `workers_threads`). Master passes them to the dashboard and sends its own there; the dashboard keeps its own.
+  `workers_threads`; the UGC server adds `ugc_made_total`, `ugc_failed_total` and `ugc_evicted_total` since it started,
+  `ugc_stored_bytes` and `ugc_max_storage_bytes`). Master passes them to the dashboard and sends its own there; the dashboard keeps its own.
 - The dashboard keeps the last hour at one second in memory, the busiest message types per minute for an hour and per
   hour for a day, and writes one row per server and minute to `server_traffic` once a minute (in one batch, on the
   background thread), kept for `traffic_days` (30; Settings > Data retention, pruned by the Log pruning task). Latency
@@ -645,8 +659,11 @@ How it is counted:
 from the list), says which file you're looking at and when it was last written, and can download it. It also searches
 the newest log files of one or all servers.
 
-Crash dumps: set `dump_folder` (for example `crash_dumps`, relative to the server binaries) and world servers write a
-backtrace file there when they crash (`generate_dump=1` also writes a memory dump on Windows). Server Health lists them
+The UGC server's logs are `UgcServer_<time>.log`, listed with the others.
+
+Crash dumps: set `dump_folder` (for example `crash_dumps`, relative to the server binaries) and world servers and the
+UGC server write a backtrace file there when they crash (the UGC server's is `crash_Ugc_<pid>.log`; `generate_dump=1` also
+writes a memory dump on Windows). Server Health lists them
 to read or download for staff who also have `logs_system`.
 
 The **Activity Log**, **Command Log** and **Audit Log** pages show zone changes, slash commands used and what staff did

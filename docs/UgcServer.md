@@ -142,6 +142,15 @@ make one item's files into a folder without a database, for trying settings.
 
 ## Dashboard
 
+The UGC server is a server like auth and chat: master starts it when `enable_ugc_server=1`, starts it again when its
+link drops, passes settings reloads to it and waits for it on shutdown, and tells the dashboard about it in the server
+list (enabled, connected, process ID). On the dashboard it shows on the home page (Server Status, and a UGC Server card
+for `health_view`: up time, waiting/made/failed, busy workers and storage), on Server Health (uptime history and the
+Servers table with its process memory and CPU), on Diagnostics (its packets and HTTP requests, from the traffic report
+it sends every 5 seconds with its workers, totals and storage), in the `server` webhook alerts when it goes down or
+comes back, in the System Log (`UgcServer_*.log`) and crash dumps (`crash_Ugc_<pid>.log` in `dump_folder`), and in
+Prometheus (`darkflame_ugc_up`, `darkflame_ugc_items`, `darkflame_server_ugc_*{server="ugc"}`). See docs/Dashboard.md.
+
 The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the new `ugc_manage` permission to make
 things again) reads the database: counts per state for models and for cars and rockets, a paged list with owner,
 state, attempts, last attempt and failure reason, and buttons to make one item, the failed ones or everything again
