@@ -168,9 +168,51 @@
 		}).catch(function (e) { stats.textContent = 'Could not load the mesh: ' + e.message; });
 	}
 
-	function preview(id) {
-		var item = items.find(function (i) { return i.id === id; }) || { id: id, state: 'done' };
+	// ---- the open item in the address bar (?item=<id>&kind=model|modular), so it can be shared and Back closes it ----
+
+	var pushedItem = false;
+
+	function urlItem() {
+		var params = new URLSearchParams(location.search), id = params.get('item');
+		if (!id || !/^\d{1,20}$/.test(id)) return null;
+		return { id: id, kind: params.get('kind') === 'modular' ? 'modular' : 'model' };
+	}
+
+	function setKind(value) {
+		if (value === kind) return;
+		kind = value;
+		page = 0;
+		$('kindButtons').querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === kind); });
+		load();
+	}
+
+	// Opens the item the address names, or closes the open one when it names none
+	function openFromUrl() {
+		var wanted = urlItem();
+		if (!wanted) {
+			if (current) bootstrap.Modal.getOrCreateInstance($('previewModal')).hide();
+			return;
+		}
+		setKind(wanted.kind);
+		if (current && current.id === wanted.id && current.kind === wanted.kind) return;
+		var known = items.find(function (i) { return i.id === wanted.id; });
+		if (known) return preview(wanted.id, known);
+		// Not on the page of the list that is showing: look it up by its id
+		api.get('/api/ugc?kind=' + wanted.kind + '&search=' + wanted.id + '&size=10').then(function (d) {
+			canManage = d.canManage;
+			publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
+			preview(wanted.id, (d.items || []).find(function (i) { return i.id === wanted.id; }));
+		}).catch(function () { preview(wanted.id); });
+	}
+
+	function preview(id, found) {
+		var item = found || items.find(function (i) { return i.id === id; }) || { id: id, state: 'done' };
 		current = { id: id, kind: kind, stats: null };
+		var shown = urlItem();
+		if (!shown || shown.id !== id || shown.kind !== kind) {
+			history.pushState(null, '', location.pathname + '?item=' + encodeURIComponent(id) + '&kind=' + kind);
+			pushedItem = true;
+		}
 		$('previewTitle').textContent = (kind === 'model' ? 'Model ' : 'Car or rocket ') + id + (item.characterName ? ' by ' + item.characterName : '');
 		$('previewIcon').src = fileUrl(kind, id, 'icon.png');
 		$('previousIconBox').classList.add('d-none');
@@ -232,11 +274,7 @@
 
 	$('kindButtons').addEventListener('click', function (e) {
 		var button = e.target.closest('[data-kind]');
-		if (!button) return;
-		kind = button.dataset.kind;
-		page = 0;
-		this.querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b === button); });
-		load();
+		if (button) setKind(button.dataset.kind);
 	});
 	$('viewButtons').addEventListener('click', function (e) {
 		var button = e.target.closest('[data-view]');
@@ -283,6 +321,16 @@
 		current = null;
 		if (lxfmlViewer && lxfmlViewer.dispose) lxfmlViewer.dispose();
 		lxfmlViewer = null;
+		// Closed here rather than with Back: take the item out of the address too
+		if (urlItem()) {
+			if (pushedItem) history.back();
+			else history.replaceState(null, '', location.pathname);
+		}
+		pushedItem = false;
+	});
+	window.addEventListener('popstate', function () {
+		pushedItem = false;
+		openFromUrl();
 	});
 	// ---- deleting and purging stored files ----
 
@@ -422,7 +470,11 @@
 
 	if (window.Live) Live.on('ugc', load);
 
+	var linked = urlItem();
+	if (linked) kind = linked.kind;
+	$('kindButtons').querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === kind); });
 	load();
+	if (linked) openFromUrl();
 	loadStatus();
 	setInterval(loadStatus, 10000);
 })();
