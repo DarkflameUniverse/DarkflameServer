@@ -15,6 +15,7 @@
 #include "UgcJobs.h"
 #include "IUgc.h"
 #include "UgcIconParams.h"
+#include "UgcIconPose.h"
 #include "UgcKeys.h"
 #include "UgcModular.h"
 #include "UgcPalette.h"
@@ -734,4 +735,164 @@ TEST(UgcStates, NamesComeFromTheEnum) {
 	EXPECT_EQ(IUgc::ParseProcessState("pending"), IUgc::eProcessState::PENDING);
 	EXPECT_FALSE(IUgc::ParseProcessState("nonsense").has_value());
 	EXPECT_EQ(magic_enum::enum_count<IUgc::eProcessState>(), 4u);
+}
+
+TEST(UgcIconPose, AnglesRoundTrip) {
+	// The camera's direction and back
+	for (const float yaw : { -170.0f, -53.0f, 0.0f, 21.0f, 90.0f, 179.0f }) {
+		for (const float pitch : { -80.0f, -10.0f, 0.0f, 19.54f, 60.0f }) {
+			const auto direction = UgcIconPose::CameraDirection(yaw, pitch);
+			EXPECT_NEAR(glm::length(direction), 1.0f, 1e-5f);
+			const auto angles = UgcIconPose::DirectionAngles(direction * 3.0f);
+			EXPECT_NEAR(angles.x, yaw, 1e-3f);
+			EXPECT_NEAR(angles.y, pitch, 1e-3f);
+		}
+	}
+	// Yaw 0 looks from +Z, yaw 90 from +X, pitch 90 from above
+	EXPECT_NEAR(UgcIconPose::CameraDirection(0, 0).z, 1.0f, 1e-6f);
+	EXPECT_NEAR(UgcIconPose::CameraDirection(90, 0).x, 1.0f, 1e-6f);
+	EXPECT_NEAR(UgcIconPose::CameraDirection(0, 90).y, 1.0f, 1e-6f);
+
+	// The model's rotation and back (Ry * Rx * Rz)
+	for (const auto& angles : { glm::vec3(0), glm::vec3(30, 20, 10), glm::vec3(-120, -45, 170), glm::vec3(90, 89, -90), glm::vec3(179, 0, -179) }) {
+		const auto rotation = UgcIconPose::ModelRotation(angles.x, angles.y, angles.z);
+		const auto back = UgcIconPose::RotationAngles(rotation);
+		EXPECT_NEAR(back.x, angles.x, 1e-2f);
+		EXPECT_NEAR(back.y, angles.y, 1e-2f);
+		EXPECT_NEAR(back.z, angles.z, 1e-2f);
+		// Same matrix from the angles found
+		const auto again = UgcIconPose::ModelRotation(back.x, back.y, back.z);
+		for (int c = 0; c < 4; c++) for (int r = 0; r < 4; r++) EXPECT_NEAR(again[c][r], rotation[c][r], 1e-4f);
+	}
+	// The order: yaw turns +X towards -Z, pitch turns +Y towards +Z, roll turns +X towards +Y, applied roll first
+	const auto yawed = UgcIconPose::ModelRotation(90, 0, 0) * glm::vec4(1, 0, 0, 0);
+	EXPECT_NEAR(yawed.z, -1.0f, 1e-5f);
+	const auto pitched = UgcIconPose::ModelRotation(0, 90, 0) * glm::vec4(0, 1, 0, 0);
+	EXPECT_NEAR(pitched.z, 1.0f, 1e-5f);
+	const auto rolled = UgcIconPose::ModelRotation(0, 0, 90) * glm::vec4(1, 0, 0, 0);
+	EXPECT_NEAR(rolled.y, 1.0f, 1e-5f);
+	const auto both = UgcIconPose::ModelRotation(90, 0, 90) * glm::vec4(1, 0, 0, 0); // rolled to +Y, which the yaw leaves
+	EXPECT_NEAR(both.y, 1.0f, 1e-5f);
+	// Glm's own YXZ Euler matrix agrees
+	const auto glmYxz = glm::rotate(glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1, 0)), glm::radians(20.0f), glm::vec3(1, 0, 0)), glm::radians(10.0f), glm::vec3(0, 0, 1));
+	const auto ours = UgcIconPose::ModelRotation(30, 20, 10);
+	for (int c = 0; c < 4; c++) for (int r = 0; r < 4; r++) EXPECT_NEAR(ours[c][r], glmYxz[c][r], 1e-6f);
+}
+
+TEST(UgcIconPose, FramingFillsTheIcon) {
+	const std::vector<glm::vec3> box = { { -1, 0, -2 }, { 3, 0, -2 }, { -1, 2, -2 }, { 3, 2, -2 }, { -1, 0, 1 }, { 3, 0, 1 }, { -1, 2, 1 }, { 3, 2, 1 } };
+	UgcIconPose::Camera camera{ 53.36f, 19.54f, 39.6f, 1.0f, 0.0f, 0.0f };
+	auto frame = UgcIconPose::Compute({ &box }, camera);
+	ASSERT_TRUE(frame.ok);
+	EXPECT_NEAR(frame.distance, frame.radius / std::sin(glm::radians(39.6f) * 0.5f), 1e-4f);
+	float minX = 2, maxX = -2, minY = 2, maxY = -2;
+	for (const auto& p : box) {
+		const auto point = frame.IconPoint(p);
+		minX = std::min(minX, point.x), maxX = std::max(maxX, point.x), minY = std::min(minY, point.y), maxY = std::max(maxY, point.y);
+	}
+	// Margin 1: the larger side spans the icon exactly, both centred
+	EXPECT_NEAR(std::max(maxX - minX, maxY - minY), 1.0f, 1e-4f);
+	EXPECT_NEAR((minX + maxX) * 0.5f, 0.5f, 1e-4f);
+	EXPECT_NEAR((minY + maxY) * 0.5f, 0.5f, 1e-4f);
+
+	// The icon's rectangle in NDC maps back onto the icon's corners, also shifted and with a border
+	camera.margin = 1.5f;
+	camera.offsetX = 0.2f;
+	camera.offsetY = -0.1f;
+	frame = UgcIconPose::Compute({ &box }, camera);
+	const auto rect = frame.IconRect();
+	const auto corner = [&](float ndcX, float ndcY) {
+		// A point at that NDC place: through the inverse view-projection
+		const auto world = glm::inverse(frame.viewProjection) * glm::vec4(ndcX, ndcY, 0.5f, 1.0f);
+		return frame.IconPoint(glm::vec3(world) / world.w);
+	};
+	const auto topLeft = corner(rect.x, rect.w), bottomRight = corner(rect.z, rect.y);
+	EXPECT_NEAR(topLeft.x, 0.0f, 1e-3f);
+	EXPECT_NEAR(topLeft.y, 0.0f, 1e-3f);
+	EXPECT_NEAR(bottomRight.x, 1.0f, 1e-3f);
+	EXPECT_NEAR(bottomRight.y, 1.0f, 1e-3f);
+	// The model's projected size is the icon's over the margin
+	minX = 2, maxX = -2;
+	for (const auto& p : box) minX = std::min(minX, frame.IconPoint(p).x), maxX = std::max(maxX, frame.IconPoint(p).x);
+	float minY2 = 2, maxY2 = -2;
+	for (const auto& p : box) minY2 = std::min(minY2, frame.IconPoint(p).y), maxY2 = std::max(maxY2, frame.IconPoint(p).y);
+	EXPECT_NEAR(std::max(maxX - minX, maxY2 - minY2), 1.0f / 1.5f, 1e-4f);
+	EXPECT_NEAR((minX + maxX) * 0.5f, 0.7f, 1e-4f);
+	EXPECT_NEAR((minY2 + maxY2) * 0.5f, 0.6f, 1e-4f);
+}
+
+TEST(UgcIconPose, RendererHonoursTheModelRotation) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	library.SetMaterials({ { 21, { 222, 0, 13, 255 } } });
+	std::string error;
+	// A long bar along X: seen from the front (yaw 0) it is wide; turned 90 degrees it is narrow
+	auto model = UgcModel::Build(UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,1,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,2,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,3,0,0"/></Part></Brick>
+		</Bricks></LXFML>)", error), library);
+	const auto coverage = [](const UgcRender::Image& image, bool columns) {
+		int count = 0;
+		for (int i = 0; i < image.width; i++) {
+			bool any = false;
+			for (int j = 0; j < image.height && !any; j++) any = image.rgba[((columns ? j : i) * image.width + (columns ? i : j)) * 4 + 3] > 0;
+			count += any;
+		}
+		return count;
+	};
+	UgcRender::IconOptions options{ 64, 1 };
+	options.yawDegrees = 0.0f;
+	options.pitchDegrees = 0.0f;
+	options.margin = 1.0f;
+	const auto front = UgcRender::RenderIcon(model, options);
+	EXPECT_GT(coverage(front, true), coverage(front, false) * 2); // wider than tall
+	options.modelYawDegrees = 90.0f;
+	const auto turned = UgcRender::RenderIcon(model, options);
+	EXPECT_NEAR(coverage(turned, true), coverage(turned, false), 12); // end on: its square end, the rest behind it
+	// Turning the model is the same as turning the camera the other way (the light turns with the camera here: none)
+	UgcIconParams::Apply(options, { { "modelYaw", 0.0f }, { "modelRoll", 90.0f } });
+	EXPECT_FLOAT_EQ(options.modelRollDegrees, 90.0f);
+	const auto rolled = UgcRender::RenderIcon(model, options);
+	EXPECT_GT(coverage(rolled, false), coverage(rolled, true) * 2); // standing up: taller than wide
+}
+
+TEST(UgcJobs, AssemblyNifIsTheIconsModel) {
+	// Two modules, each a triangle; the second stands on the first's CP_A1 node
+	const auto res = TempFolder("assembly");
+	std::filesystem::create_directories(res / "mesh");
+	UgcModel::Mesh triangle;
+	triangle.positions = { { 0, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 } };
+	triangle.normals = { { 0, 0, 1 }, { 0, 0, 1 }, { 0, 0, 1 } };
+	triangle.colors = { { 1, 0, 0, 1 }, { 1, 0, 0, 1 }, { 1, 0, 0, 1 } };
+	triangle.indices = { 0, 1, 2 };
+	std::ofstream(res / "mesh" / "a.nif", std::ios::binary) << UgcFormats::WriteNif("A", { { "A", &triangle, false } });
+	std::ofstream(res / "mesh" / "b.nif", std::ios::binary) << UgcFormats::WriteNif("B", { { "B", &triangle, false } });
+	UgcJobs::ModularInput input;
+	input.buildXml = R"(<ModularBuild><topology><numberOfParts value="2" /><rootPart value="0" /><connection myPartid="0" myLocation="CP_A1" connectingPart="1" /></topology>
+		<Placement><AdditionalModelRotation><Rotation w="0.70710678" x="0" y="0.70710678" z="0" /></AdditionalModelRotation></Placement></ModularBuild>)";
+	input.modules = { { 1, 0, "mesh/a.nif", "" }, { 2, 1, "mesh/b.nif", R"(<ModuleInfo><connection name="CP_A1"><translation x="0" y="0" z="0" /></connection></ModuleInfo>)" } };
+	input.key = "1-2";
+	std::string error, note;
+	glm::mat4 additional{ 1.0f };
+	const auto model = UgcJobs::AssembleModular(input, res, additional, error, note);
+	ASSERT_TRUE(model) << error;
+	EXPECT_EQ(model->opaque.TriangleCount(), 2u);
+	const auto nif = UgcJobs::AssemblyNif(input, res, error);
+	ASSERT_TRUE(nif) << error;
+	const auto read = NifFile::Parse(*nif, 0, error);
+	ASSERT_TRUE(read) << error;
+	// The .nif holds the model already turned by the build type's AdditionalModelRotation (90 degrees around Y: +X -> -Z)
+	const auto fromNif = UgcModel::FromNif(*read);
+	ASSERT_EQ(fromNif.opaque.positions.size(), 6u);
+	EXPECT_NEAR(fromNif.opaque.positions[1].z, -1.0f, 1e-4f);
+	EXPECT_NEAR(fromNif.opaque.positions[1].x, 0.0f, 1e-4f);
+	// And drawing it with no further turn gives the same icon as the renderer's own path
+	UgcRender::IconOptions options{ 32, 1 };
+	auto turned = options;
+	turned.modelRotation = additional;
+	EXPECT_EQ(UgcRender::RenderIcon(fromNif, options).rgba, UgcRender::RenderIcon(*model, turned).rgba);
+	// Nothing to draw
+	input.modules.clear();
+	EXPECT_FALSE(UgcJobs::AssemblyNif(input, res, error));
 }

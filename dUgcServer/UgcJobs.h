@@ -84,6 +84,14 @@ namespace UgcJobs {
 	// The icon options for a car or rocket: the settings, then its build type's preset and the combination's override
 	UgcRender::IconOptions ModularIconOptions(const ModularInput& input, const Settings& settings);
 
+	// A modular build's modules' meshes put together (UgcModular::Assemble), not yet turned by the build type's
+	// AdditionalModelRotation (given back in `additionalRotation`); nullopt with `error` when there's nothing to draw
+	std::optional<UgcModel::Model> AssembleModular(const ModularInput& input, const std::filesystem::path& res, glm::mat4& additionalRotation, std::string& error, std::string& note);
+
 	// A modular build's icon (icon.png, icon.dds download, combo.json), from its modules' meshes put together
 	Outcome ProcessModular(const ModularInput& input, const std::filesystem::path& res, const Settings& settings);
+
+	// The assembled mesh as the icon renderer turns it (AdditionalModelRotation applied), as a .nif for the dashboard's
+	// pose editor; nullopt with `error` when there's nothing to draw
+	std::optional<std::string> AssemblyNif(const ModularInput& input, const std::filesystem::path& res, std::string& error);
 }

@@ -202,45 +202,68 @@ namespace UgcJobs {
 		return outcome;
 	}
 
-	Outcome ProcessModular(const ModularInput& input, const std::filesystem::path& res, const Settings& settings) {
-		Outcome outcome;
+	std::optional<UgcModel::Model> AssembleModular(const ModularInput& input, const std::filesystem::path& res, glm::mat4& additionalRotation, std::string& error, std::string& note) {
 		const auto build = UgcModular::ParseBuild(input.buildXml);
 		if (!build) {
-			outcome.error = "the build type has no topology in ModularBuildComponent";
-			return outcome;
+			error = "the build type has no topology in ModularBuildComponent";
+			return std::nullopt;
 		}
+		additionalRotation = build->additionalRotation;
 		std::vector<UgcModular::Module> modules;
 		for (const auto& moduleInput : input.modules) {
 			const auto path = UgcBricks::ResolvePath(res, moduleInput.renderAsset);
 			const auto data = path ? UgcBricks::ReadFile(*path) : std::nullopt;
 			if (!data) {
-				outcome.note += "module " + std::to_string(moduleInput.lot) + " has no mesh (" + moduleInput.renderAsset + "); ";
+				note += "module " + std::to_string(moduleInput.lot) + " has no mesh (" + moduleInput.renderAsset + "); ";
 				continue;
 			}
-			std::string error;
-			auto nif = NifFile::Parse(*data, 0, error);
+			std::string nifError;
+			auto nif = NifFile::Parse(*data, 0, nifError);
 			if (!nif) {
-				outcome.note += "module " + std::to_string(moduleInput.lot) + ": " + error + "; ";
+				note += "module " + std::to_string(moduleInput.lot) + ": " + nifError + "; ";
 				continue;
 			}
 			modules.push_back({ moduleInput.partCode, std::move(*nif), UgcModular::ParseModuleConnections(moduleInput.moduleXml) });
 		}
 		if (modules.empty()) {
-			outcome.error = "none of the modules have a mesh";
-			if (!outcome.note.empty()) outcome.error += " (" + outcome.note + ")";
-			return outcome;
+			error = "none of the modules have a mesh";
+			if (!note.empty()) error += " (" + note + ")";
+			return std::nullopt;
 		}
-		const auto model = UgcModular::Assemble(*build, modules, outcome.note);
+		auto model = UgcModular::Assemble(*build, modules, note);
 		if (model.Empty()) {
-			outcome.error = "the modules have no triangles";
-			return outcome;
+			error = "the modules have no triangles";
+			return std::nullopt;
 		}
+		return model;
+	}
+
+	Outcome ProcessModular(const ModularInput& input, const std::filesystem::path& res, const Settings& settings) {
+		Outcome outcome;
+		glm::mat4 additionalRotation{ 1.0f };
+		const auto model = AssembleModular(input, res, additionalRotation, outcome.error, outcome.note);
+		if (!model) return outcome;
 		auto options = ModularIconOptions(input, settings);
-		options.modelRotation = build->additionalRotation * options.modelRotation;
-		AddIcon(outcome.files, model, options);
+		options.modelRotation = additionalRotation;
+		AddIcon(outcome.files, *model, options);
 		outcome.files["combo.json"] = nlohmann::json{ { "key", input.key }, { "buildType", input.buildType } }.dump();
 		outcome.ok = true;
 		return outcome;
+	}
+
+	std::optional<std::string> AssemblyNif(const ModularInput& input, const std::filesystem::path& res, std::string& error) {
+		glm::mat4 additionalRotation{ 1.0f };
+		std::string note;
+		auto model = AssembleModular(input, res, additionalRotation, error, note);
+		if (!model) return std::nullopt;
+		// Turned as the icon renderer turns it before the pose's own rotation, so the editor's model rotation starts from here
+		model->opaque.Transform(additionalRotation);
+		model->transparent.Transform(additionalRotation);
+		const auto opaque = UgcModel::Split(model->opaque), transparent = UgcModel::Split(model->transparent);
+		std::vector<UgcFormats::NifShape> shapes;
+		for (const auto& piece : opaque) shapes.push_back({ "S01_Opaque_Model", &piece, false });
+		for (const auto& piece : transparent) shapes.push_back({ "S01_Alpha_Model", &piece, true });
+		return UgcFormats::WriteNif("SceneNode_Assembly", shapes);
 	}
 
 	UgcRender::IconOptions ModularIconOptions(const ModularInput& input, const Settings& settings) {

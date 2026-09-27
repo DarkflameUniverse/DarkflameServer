@@ -157,7 +157,17 @@ void UgcProcessor::Worker() {
 			HTTPReply reply;
 			try {
 				UgcJobs::Outcome outcome{ false, "cancelled" };
-				if (!job.preview.Cancelled() && job.kind == Kind::MODULAR) {
+				if (job.assembly) {
+					if (!job.preview.Cancelled()) {
+						auto nif = UgcJobs::AssemblyNif(job.modular, m_Library.GetResPath(), outcome.error);
+						if (nif) {
+							auto shared = std::make_shared<const std::string>(std::move(*nif));
+							CacheAssembly(job.modular.key, shared);
+							outcome.ok = true;
+							outcome.files["assembly.nif"] = *shared;
+						}
+					}
+				} else if (!job.preview.Cancelled() && job.kind == Kind::MODULAR) {
 					outcome = UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
 				} else if (!job.preview.Cancelled()) {
 					// A player model's icon from its stored .nif
@@ -167,7 +177,12 @@ void UgcProcessor::Worker() {
 					outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, outcome.files, outcome.error);
 					if (!nif) outcome.error = "the model has no stored .nif yet";
 				}
-				if (outcome.ok && outcome.files.contains("icon.png")) {
+				if (outcome.ok && outcome.files.contains("assembly.nif")) {
+					reply.status = eHTTPStatusCode::OK;
+					reply.contentType = eContentType::APPLICATION_OCTET_STREAM;
+					reply.message = std::move(outcome.files["assembly.nif"]);
+					reply.headers.push_back("Cache-Control: no-store");
+				} else if (outcome.ok && outcome.files.contains("icon.png")) {
 					reply.status = eHTTPStatusCode::OK;
 					reply.contentType = eContentType::IMAGE_PNG;
 					reply.message = std::move(outcome.files["icon.png"]);
@@ -519,6 +534,59 @@ bool UgcProcessor::QueuePreview(Kind kind, LWOOBJID id, const std::string& modul
 		}
 		job.iconValues = values;
 	}
+	job.preview = std::move(reply);
+	{
+		std::lock_guard lock(m_Mutex);
+		job.memory = UgcJobs::EstimateMemory(64, m_Settings);
+		m_Jobs.push_front(std::move(job));
+	}
+	m_Wake.notify_all();
+	return true;
+}
+
+std::shared_ptr<const std::string> UgcProcessor::CachedAssembly(const std::string& key) {
+	std::lock_guard lock(m_AssemblyMutex);
+	const auto it = std::find_if(m_Assemblies.begin(), m_Assemblies.end(), [&key](const auto& entry) { return entry.first == key; });
+	if (it == m_Assemblies.end()) return nullptr;
+	m_Assemblies.splice(m_Assemblies.begin(), m_Assemblies, it);
+	return m_Assemblies.front().second;
+}
+
+void UgcProcessor::CacheAssembly(const std::string& key, std::shared_ptr<const std::string> nif) {
+	constexpr size_t MAX_ENTRIES = 32;
+	constexpr size_t MAX_BYTES = 64ull * 1024 * 1024;
+	std::lock_guard lock(m_AssemblyMutex);
+	std::erase_if(m_Assemblies, [&key](const auto& entry) { return entry.first == key; });
+	m_Assemblies.emplace_front(key, std::move(nif));
+	size_t bytes = 0, kept = 0;
+	for (auto it = m_Assemblies.begin(); it != m_Assemblies.end(); ++it, kept++) {
+		bytes += it->second->size();
+		if (kept >= MAX_ENTRIES || (kept > 0 && bytes > MAX_BYTES)) {
+			m_Assemblies.erase(it, m_Assemblies.end());
+			break;
+		}
+	}
+}
+
+bool UgcProcessor::QueueAssembly(const std::string& modules, DeferredReply reply, std::string& error) {
+	const auto key = UgcModularKey::Normalize(modules);
+	if (key.empty()) {
+		error = "no modules";
+		return false;
+	}
+	if (const auto cached = CachedAssembly(key)) {
+		HTTPReply out;
+		out.status = eHTTPStatusCode::OK;
+		out.contentType = eContentType::APPLICATION_OCTET_STREAM;
+		out.message = *cached;
+		out.headers.push_back("Cache-Control: no-store");
+		reply.Send(std::move(out));
+		return true;
+	}
+	Job job{ Kind::MODULAR, 0, 0 };
+	if (!UgcCdClient::GatherModular(modules, job.modular, error)) return false;
+	job.modular.key = key;
+	job.assembly = true;
 	job.preview = std::move(reply);
 	{
 		std::lock_guard lock(m_Mutex);

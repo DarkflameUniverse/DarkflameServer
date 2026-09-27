@@ -5,7 +5,9 @@
 #include <cstdint>
 #include <deque>
 #include <filesystem>
+#include <list>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -82,6 +84,13 @@ public:
 	 */
 	bool QueuePreview(Kind kind, LWOOBJID id, const std::string& modules, const UgcIconParams::Values& values, DeferredReply reply, std::string& error);
 
+	/**
+	 * Main thread: the assembled mesh of a module combination as a .nif (UgcJobs::AssemblyNif), for the dashboard's
+	 * pose editor: from a small cache of the last ones asked for, else made on a worker (within the budgets, ahead of
+	 * the queue) and cached. `reply` gets the .nif. False (and `error`) when the modules can't be told.
+	 */
+	bool QueueAssembly(const std::string& modules, DeferredReply reply, std::string& error);
+
 	// Main thread: queues every stored icon of a kind ("model", or "build<type>" for cars and rockets) to be drawn again
 	// with the current settings, presets and overrides; only icons (models' from their stored .nif). How many.
 	size_t RegenerateIcons(const std::string& kind);
@@ -142,6 +151,7 @@ private:
 		size_t parts{};
 		DeferredReply preview;          // an icon preview: answered with the PNG, nothing stored
 		bool iconOnly{};                // a model's icon drawn again from its stored .nif
+		bool assembly{};                // with `preview`: answered with the assembled .nif instead of an icon
 		UgcIconParams::Values iconValues; // models: the preset and override (UgcIconParams)
 	};
 
@@ -207,4 +217,10 @@ private:
 		int64_t time{};
 	};
 	std::deque<LogEntry> m_Log; // the last results
+
+	// Assembled meshes (QueueAssembly) by combination, newest first; workers add to it
+	std::mutex m_AssemblyMutex;
+	std::list<std::pair<std::string, std::shared_ptr<const std::string>>> m_Assemblies;
+	std::shared_ptr<const std::string> CachedAssembly(const std::string& key);
+	void CacheAssembly(const std::string& key, std::shared_ptr<const std::string> nif);
 };

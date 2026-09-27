@@ -327,6 +327,21 @@ namespace {
 				}
 			} });
 
+		Game::web.RegisterHTTPRoute({ .path = "/admin/assembly", .method = eHTTPMethod::POST, .middleware = {},
+			.handle = [admin](HTTPReply& reply, const HTTPContext& context) {
+				std::optional<nlohmann::json> body;
+				if (!admin(reply, context, body)) return;
+				auto deferred = Web::Defer(reply, context);
+				std::string error;
+				if (!g_Processor->QueueAssembly(body->value("modules", std::string()), deferred, error)) {
+					HTTPReply out;
+					out.status = eHTTPStatusCode::BAD_REQUEST;
+					out.contentType = eContentType::APPLICATION_JSON;
+					out.message = nlohmann::json{ { "success", false }, { "error", error } }.dump();
+					deferred.Send(std::move(out));
+				}
+			} });
+
 		Game::web.RegisterHTTPRoute({ .path = "/admin/regenerate-icons", .method = eHTTPMethod::POST, .middleware = {},
 			.handle = [admin](HTTPReply& reply, const HTTPContext& context) {
 				std::optional<nlohmann::json> body;

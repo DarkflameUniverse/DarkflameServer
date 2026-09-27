@@ -8,6 +8,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "UgcIconPose.h"
 #include "UgcPalette.h"
 #include "UgcThrottle.h"
 
@@ -398,39 +399,21 @@ namespace UgcRender {
 		if (source.Empty()) return image;
 
 		UgcModel::Model model = source;
-		model.opaque.Transform(options.modelRotation);
-		model.transparent.Transform(options.modelRotation);
-		glm::vec3 center{};
-		float radius{};
-		Bounds(model, center, radius);
+		const auto rotation = UgcIconPose::ModelRotation(options.modelYawDegrees, options.modelPitchDegrees, options.modelRollDegrees) * options.modelRotation;
+		model.opaque.Transform(rotation);
+		model.transparent.Transform(rotation);
 
-		const float yaw = glm::radians(options.yawDegrees), pitch = glm::radians(options.pitchDegrees);
-		const glm::vec3 dir(std::sin(yaw) * std::cos(pitch), std::sin(pitch), std::cos(yaw) * std::cos(pitch));
-		const float fov = glm::radians(std::clamp(options.fovDegrees, 1.0f, 120.0f));
-		const float distance = radius / std::sin(fov * 0.5f);
-		const glm::vec3 eye = center + dir * distance;
-		const glm::mat4 viewProjection = glm::perspective(fov, 1.0f, std::max(distance - radius * 1.5f, distance * 0.01f), distance + radius * 1.5f) *
-			glm::lookAt(eye, center, glm::vec3(0.0f, 1.0f, 0.0f));
-
-		// Frame the model: its projected bounds, scaled to fill the icon less the margin
-		float minX = INF, minY = INF, maxX = -INF, maxY = -INF;
-		for (const auto* mesh : { &model.opaque, &model.transparent }) {
-			for (const auto& position : mesh->positions) {
-				const auto clip = viewProjection * glm::vec4(position, 1.0f);
-				if (clip.w <= 0.0f) continue;
-				minX = std::min(minX, clip.x / clip.w);
-				maxX = std::max(maxX, clip.x / clip.w);
-				minY = std::min(minY, clip.y / clip.w);
-				maxY = std::max(maxY, clip.y / clip.w);
-			}
-		}
-		if (minX > maxX) return image;
-		const float centerX = (minX + maxX) * 0.5f, centerY = (minY + maxY) * 0.5f;
-		const float scale = 2.0f / (std::max({ maxX - minX, maxY - minY, 1e-6f }) * std::max(options.margin, 0.1f));
+		// The camera and the crop to the model's projected bounds (shared with the dashboard's pose editor)
+		const auto frame = UgcIconPose::Compute({ &model.opaque.positions, &model.transparent.positions },
+			{ options.yawDegrees, options.pitchDegrees, options.fovDegrees, options.margin, options.offsetX, options.offsetY });
+		if (!frame.ok) return image;
+		const glm::vec3 center = frame.center;
+		const float radius = frame.radius;
+		const glm::vec3 eye = frame.eye;
+		const glm::vec3 dir = glm::normalize(eye - center);
 		const auto project = [&](const glm::vec3& position) {
-			const auto clip = viewProjection * glm::vec4(position, 1.0f);
-			const float w = clip.w > 1e-6f ? clip.w : 1e-6f;
-			return glm::vec3((0.5f + options.offsetX + (clip.x / w - centerX) * scale * 0.5f) * n, (0.5f - options.offsetY - (clip.y / w - centerY) * scale * 0.5f) * n, clip.z / w);
+			const auto point = frame.IconPoint(position);
+			return glm::vec3(point.x * n, point.y * n, point.z);
 		};
 
 		// Linear, premultiplied

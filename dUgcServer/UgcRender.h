@@ -40,7 +40,10 @@ namespace UgcRender {
 		float margin{ 1.03f };       // 1 fills the icon, more leaves a border
 		float offsetX{};             // the model moved right by this share of the icon's width (after framing)
 		float offsetY{};             // and up by this share of its height
-		glm::mat4 modelRotation{ 1.0f }; // applied to the model before the camera looks at it
+		float modelYawDegrees{};     // the model turned (UgcIconPose::ModelRotation), after modelRotation
+		float modelPitchDegrees{};
+		float modelRollDegrees{};
+		glm::mat4 modelRotation{ 1.0f }; // the model's own turn before that (a build type's AdditionalModelRotation)
 		float sunYawDegrees{ 21.0f };
 		float sunPitchDegrees{ 50.3f };
 		float sunStrength{ 2.5f };
