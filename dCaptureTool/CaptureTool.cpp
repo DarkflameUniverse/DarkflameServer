@@ -254,6 +254,9 @@ namespace {
 			entry["sandbox"] = stack->Dir().string();
 			report.push_back(entry);
 			PrintResult(fs::path(path).filename().string(), result);
+			// Written after every bundle, so a long run's results survive it being stopped
+			if (!Arg(args, "--report").empty()) std::ofstream(Arg(args, "--report")) << report.dump(1);
+			std::cout.flush();
 			const bool failed = !result.stoppedAt.empty();
 			if (failed) failures++;
 			if (options.keep || (failed && Flag(args, "--keep-on-failure"))) {

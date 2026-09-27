@@ -28,6 +28,15 @@ namespace fs = std::filesystem;
 using json = nlohmann::json;
 
 namespace {
+	// The running stack's process group: stopped too if the tool is interrupted or crashes
+	volatile sig_atomic_t g_Running = 0;
+
+	void StopOnSignal(int signal) {
+		if (g_Running > 0) kill(-g_Running, SIGKILL);
+		std::signal(signal, SIG_DFL);
+		std::raise(signal);
+	}
+
 	/**
 	 * Settings every sandbox gets over the server's own files. The first value of a key counts, so each key's line
 	 * is replaced where it is, and the ones the file doesn't have are added.
@@ -181,7 +190,9 @@ namespace Sandbox {
 	}
 
 	bool Stack::Start(std::string& error) {
+		for (const int signal : { SIGINT, SIGTERM, SIGSEGV, SIGABRT }) std::signal(signal, StopOnSignal);
 		m_Master = Launch(m_Dir, m_Dir / "MasterServer", m_Dir / "logs" / "master.out");
+		g_Running = m_Master;
 		// Auth answering is the sign the stack is up (master starts it after chat and the character select world)
 		const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(120);
 		while (std::chrono::steady_clock::now() < until) {
@@ -213,6 +224,7 @@ namespace Sandbox {
 		kill(-m_Master, SIGKILL);
 		waitpid(m_Master, &status, 0);
 		m_Master = 0;
+		g_Running = 0;
 	}
 
 	int SetupCommand(const fs::path& bundlePath, const std::string& username, const std::string& password, bool characters, const fs::path& out) {

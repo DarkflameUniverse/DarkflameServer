@@ -65,6 +65,8 @@ namespace {
 		for (const auto& record : records) {
 			const auto source = static_cast<eCaptureSource>(record.header.source);
 			if ((source != eCaptureSource::AUTH && source != eCaptureSource::WORLD) || (record.header.flags & (PacketRecordFlags::MASTER_LINK | PacketRecordFlags::GAP))) continue;
+			// RakNet's own connection messages (connected, disconnected) aren't sent: the fake client's RakNet makes its own
+			if (CaptureTools::FromClient(record.header) && (record.bytes.empty() || static_cast<uint8_t>(record.bytes[0]) != ID_USER_PACKET_ENUM)) continue;
 			const bool handshake = CaptureTools::FromClient(record.header) && NameOf(record) == "VERSION_CONFIRM";
 			if (segments.empty() || handshake || segments.back().source != source) segments.push_back({ source, {}, false });
 			segments.back().records.push_back(&record);
@@ -79,9 +81,10 @@ namespace {
 		Run(const CaptureBundle::Bundle& bundle, const Replayer::Options& options, Replayer::Result& result) : m_Bundle(bundle), m_Options(options), m_Result(result) {}
 
 		void Go() {
-			auto records = m_Bundle.records;
-			CaptureTools::SortTimeline(records);
-			const auto segments = Split(records);
+			// Kept for the whole run: the segments and the expected answers point into it
+			m_Records = m_Bundle.records;
+			CaptureTools::SortTimeline(m_Records);
+			const auto segments = Split(m_Records);
 			m_Result.connections = segments.size();
 			if (segments.empty()) return Stop("The bundle has no client connections");
 
@@ -112,6 +115,7 @@ namespace {
 
 	private:
 		const CaptureBundle::Bundle& m_Bundle;
+		std::vector<Record> m_Records;
 		const Replayer::Options& m_Options;
 		Replayer::Result& m_Result;
 		std::vector<const Record*> m_Expected;
@@ -132,6 +136,7 @@ namespace {
 
 		void Handshake(FakeClient& client) {
 			CommonPackets::ClientVersionConfirm version;
+			version.netVersion = CommonPackets::ServerVersionConfirm::DEFAULT_NET_VERSION;
 			version.serviceType = ServiceType::CLIENT;
 			version.processID = 1;
 			version.port = client.GetLocalPort();
@@ -345,7 +350,9 @@ namespace {
 						if (client.GetReceived().size() == count && rounds >= 3) break;
 						count = client.GetReceived().size();
 					}
-					const auto at = client.WaitFor([](const auto& r) { return NameOf(r.bytes) == "TRANSFER_TO_WORLD"; }, 0, 1s);
+					// A recorded move to another world is waited for as long as a zone takes to start
+					const auto at = client.WaitFor([](const auto& r) { return NameOf(r.bytes) == "TRANSFER_TO_WORLD"; }, 0,
+						recordedCounts.contains("TRANSFER_TO_WORLD") ? std::chrono::seconds(180) : std::chrono::seconds(1));
 					if (at >= 0) {
 						ClientPackets::TransferToWorld transfer;
 						if (Read(client.GetReceived()[at].bytes, transfer)) {
