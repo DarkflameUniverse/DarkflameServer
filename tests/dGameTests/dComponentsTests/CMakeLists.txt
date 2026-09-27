@@ -3,6 +3,7 @@ set(DCOMPONENTS_TESTS
 	"PetComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
 	"SavingTests.cpp"
+	"ReplicaComponentOrderTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

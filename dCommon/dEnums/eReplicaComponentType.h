@@ -11,7 +11,7 @@ enum class eReplicaComponentType : uint32_t {
 	CHARACTER,
 	SCRIPT,
 	BOUNCER,
-	BUFF, // buff is really 98, this is DESTROYABLE
+	DESTROYABLE,
 	GHOST,
 	SKILL,
 	SPAWNER,
@@ -102,7 +102,7 @@ enum class eReplicaComponentType : uint32_t {
 	USER_CONTROL,
 	IGNORE_LIST,
 	MULTI_ZONE_ENTRANCE,
-	BUFF_REAL, // the real buff component, should just be name BUFF
+	BUFF,
 	INTERACTION_MANAGER,
 	DONATION_VENDOR,
 	COMBAT_MEDIATOR,
@@ -121,7 +121,6 @@ enum class eReplicaComponentType : uint32_t {
 	BUILD_BORDER,
 	UNKNOWN_115,
 	CULLING_PLANE,
-	DESTROYABLE = 1000 // Actually 7
 };
 
 #endif  //!__EREPLICACOMPONENTTYPE__H__

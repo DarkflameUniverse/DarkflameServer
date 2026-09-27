@@ -10,6 +10,7 @@
 #include "CDDestructibleComponentTable.h"
 #include "CDClientDatabase.h"
 #include <sstream>
+#include <array>
 #include "dServer.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
@@ -383,11 +384,6 @@ void Entity::Initialize() {
 		AddComponent<RacingSoundTriggerComponent>(racingSoundTriggerID);
 	}
 
-	const auto buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
-	if (buffComponentID > 0) {
-		AddComponent<BuffComponent>(buffComponentID);
-	}
-
 	const auto collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
 
 	if (collectibleComponentID > 0) {
@@ -395,18 +391,18 @@ void Entity::Initialize() {
 	}
 
 	/**
-	 * Multiple components require the destructible component.
+	 * The destroyable component. The client makes one (with a buff component in front of it) for a DESTROYABLE
+	 * registry entry, whose id is the DestructibleComponent row. Collectibles and smashable (is_smashable) objects
+	 * without that entry get one too, with no row.
 	 */
-	const auto quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
-
-	int32_t componentID = -1;
-	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
-	if (buffComponentID > 0) componentID = buffComponentID;
-
+	const auto destroyableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DESTROYABLE);
+	if (destroyableComponentID > 0) {
+		AddComponent<BuffComponent>(destroyableComponentID);
+	}
 
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
-	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
+	if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
+		const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
 		DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
 		auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
 		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
@@ -451,7 +447,8 @@ void Entity::Initialize() {
 						comp->SetMaxCoins(currencyValues[0].maxvalue);
 					}
 				}
-			} else {
+			} else if (isSmashable) {
+				// A smashable object without a DestructibleComponent row
 				comp->SetHealth(1);
 				comp->SetArmor(0);
 
@@ -599,6 +596,7 @@ void Entity::Initialize() {
 		AddComponent<BaseCombatAIComponent>(combatAiID);
 	}
 
+	const auto quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 	if (quickBuildComponentID > 0) {
 		auto* const quickBuildComponent = AddComponent<QuickBuildComponent>(quickBuildComponentID);
 
@@ -1064,222 +1062,56 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 	}
 }
 
-void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) const {
-
+namespace {
 	/**
-	 * This has to be done in a specific order.
+	 * The order the client reads components in (it builds an object's component list in this order in
+	 * ObjectLoader2::DoObjectComponentLoad). CHARACTER is preceded by POSSESSOR, LEVEL_PROGRESSION and
+	 * PLAYER_FORCED_MOVEMENT, which WriteComponents writes with it.
 	 */
+	constexpr auto SERIALIZATION_ORDER = [] {
+		using enum eReplicaComponentType;
+		return std::array{
+			POSSESSABLE, MODULE_ASSEMBLY, CONTROLLABLE_PHYSICS, SIMPLE_PHYSICS, RIGID_BODY_PHANTOM_PHYSICS, HAVOK_VEHICLE_PHYSICS,
+			PHANTOM_PHYSICS, SOUND_TRIGGER, RACING_SOUND_TRIGGER, BUFF, DESTROYABLE, COLLECTIBLE, PET, CHARACTER, ITEM, INVENTORY,
+			SCRIPT, SKILL, BASE_COMBAT_AI, QUICK_BUILD, MOVING_PLATFORM, SWITCH, VENDOR, DONATION_VENDOR, ACHIEVEMENT_VENDOR,
+			BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, LUP_EXHIBIT, MODEL, RENDER, MINI_GAME_CONTROL,
+		};
+	}();
 
-	bool destroyableSerialized = false;
-	bool bIsInitialUpdate = packetType == eReplicaPacketType::CONSTRUCTION;
-
-	PossessableComponent* possessableComponent;
-	if (TryGetComponent(eReplicaComponentType::POSSESSABLE, possessableComponent)) {
-		possessableComponent->Serialize(outBitStream, bIsInitialUpdate);
+	// The component in SERIALIZATION_ORDER the destroyable is written in front of (DESTROYABLE: at its own place)
+	eReplicaComponentType DestroyableSerializationSlot(const Entity& entity) {
+		using enum eReplicaComponentType;
+		// A DESTROYABLE registry entry puts the destroyable (with the buff in front of it) at its own place. Collectibles
+		// and quick builds without one get theirs right before themselves, which for a collectible is the same place.
+		if (entity.HasComponent(BUFF) || entity.HasComponent(COLLECTIBLE)) return DESTROYABLE;
+		if (entity.HasComponent(QUICK_BUILD)) return QUICK_BUILD;
+		// Anything else that has one (is_smashable objects, models) writes it after the others
+		return MINI_GAME_CONTROL;
 	}
+}
 
-	ModuleAssemblyComponent* moduleAssemblyComponent;
-	if (TryGetComponent(eReplicaComponentType::MODULE_ASSEMBLY, moduleAssemblyComponent)) {
-		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
+void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) const {
+	const bool bIsInitialUpdate = packetType == eReplicaPacketType::CONSTRUCTION;
+	auto* const destroyableComponent = GetComponent<DestroyableComponent>();
+	const auto destroyableSlot = DestroyableSerializationSlot(*this);
 
-	ControllablePhysicsComponent* controllablePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS, controllablePhysicsComponent)) {
-		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
+	using enum eReplicaComponentType;
+	for (const auto type : SERIALIZATION_ORDER) {
+		if (type == destroyableSlot && destroyableComponent) destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
+		if (type == DESTROYABLE) continue;
 
-	SimplePhysicsComponent* simplePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::SIMPLE_PHYSICS, simplePhysicsComponent)) {
-		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
+		auto* const component = GetComponent(type);
+		if (!component) continue;
 
-	RigidbodyPhantomPhysicsComponent* rigidbodyPhantomPhysics;
-	if (TryGetComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS, rigidbodyPhantomPhysics)) {
-		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	HavokVehiclePhysicsComponent* havokVehiclePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS, havokVehiclePhysicsComponent)) {
-		havokVehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	PhantomPhysicsComponent* phantomPhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::PHANTOM_PHYSICS, phantomPhysicsComponent)) {
-		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	SoundTriggerComponent* soundTriggerComponent;
-	if (TryGetComponent(eReplicaComponentType::SOUND_TRIGGER, soundTriggerComponent)) {
-		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	RacingSoundTriggerComponent* racingSoundTriggerComponent;
-	if (TryGetComponent(eReplicaComponentType::RACING_SOUND_TRIGGER, racingSoundTriggerComponent)) {
-		racingSoundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	BuffComponent* buffComponent;
-	if (TryGetComponent(eReplicaComponentType::BUFF, buffComponent)) {
-		buffComponent->Serialize(outBitStream, bIsInitialUpdate);
-
-		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
+		if (type == CHARACTER) {
+			// Written with the character component; every character has them, a 0 bit stands in should one be missing
+			for (const auto characterPart : { POSSESSOR, LEVEL_PROGRESSION, PLAYER_FORCED_MOVEMENT }) {
+				auto* const part = GetComponent(characterPart);
+				if (part) part->Serialize(outBitStream, bIsInitialUpdate);
+				else outBitStream.Write0();
+			}
 		}
-		destroyableSerialized = true;
-	}
-
-	CollectibleComponent* collectibleComponent;
-	if (TryGetComponent(eReplicaComponentType::COLLECTIBLE, collectibleComponent)) {
-		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
-		}
-		destroyableSerialized = true;
-		collectibleComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	PetComponent* petComponent;
-	if (TryGetComponent(eReplicaComponentType::PET, petComponent)) {
-		petComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	CharacterComponent* characterComponent;
-	if (TryGetComponent(eReplicaComponentType::CHARACTER, characterComponent)) {
-
-		PossessorComponent* possessorComponent;
-		if (TryGetComponent(eReplicaComponentType::POSSESSOR, possessorComponent)) {
-			possessorComponent->Serialize(outBitStream, bIsInitialUpdate);
-		} else {
-			// Should never happen, but just to be safe
-			outBitStream.Write0();
-		}
-
-		LevelProgressionComponent* levelProgressionComponent;
-		if (TryGetComponent(eReplicaComponentType::LEVEL_PROGRESSION, levelProgressionComponent)) {
-			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate);
-		} else {
-			// Should never happen, but just to be safe
-			outBitStream.Write0();
-		}
-
-		PlayerForcedMovementComponent* playerForcedMovementComponent;
-		if (TryGetComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT, playerForcedMovementComponent)) {
-			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate);
-		} else {
-			// Should never happen, but just to be safe
-			outBitStream.Write0();
-		}
-
-		characterComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	ItemComponent* itemComponent;
-	if (TryGetComponent(eReplicaComponentType::ITEM, itemComponent)) {
-		itemComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	InventoryComponent* inventoryComponent;
-	if (TryGetComponent(eReplicaComponentType::INVENTORY, inventoryComponent)) {
-		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	ScriptComponent* scriptComponent;
-	if (TryGetComponent(eReplicaComponentType::SCRIPT, scriptComponent)) {
-		scriptComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	SkillComponent* skillComponent;
-	if (TryGetComponent(eReplicaComponentType::SKILL, skillComponent)) {
-		skillComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	BaseCombatAIComponent* baseCombatAiComponent;
-	if (TryGetComponent(eReplicaComponentType::BASE_COMBAT_AI, baseCombatAiComponent)) {
-		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	QuickBuildComponent* quickBuildComponent;
-	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, quickBuildComponent)) {
-		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
-		}
-		destroyableSerialized = true;
-		quickBuildComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	MovingPlatformComponent* movingPlatformComponent;
-	if (TryGetComponent(eReplicaComponentType::MOVING_PLATFORM, movingPlatformComponent)) {
-		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	SwitchComponent* switchComponent;
-	if (TryGetComponent(eReplicaComponentType::SWITCH, switchComponent)) {
-		switchComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	VendorComponent* vendorComponent;
-	if (TryGetComponent(eReplicaComponentType::VENDOR, vendorComponent)) {
-		vendorComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	DonationVendorComponent* donationVendorComponent;
-	if (TryGetComponent(eReplicaComponentType::DONATION_VENDOR, donationVendorComponent)) {
-		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	AchievementVendorComponent* achievementVendorComponent;
-	if (TryGetComponent(eReplicaComponentType::ACHIEVEMENT_VENDOR, achievementVendorComponent)) {
-		achievementVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	BouncerComponent* bouncerComponent;
-	if (TryGetComponent(eReplicaComponentType::BOUNCER, bouncerComponent)) {
-		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	ScriptedActivityComponent* scriptedActivityComponent;
-	if (TryGetComponent(eReplicaComponentType::SCRIPTED_ACTIVITY, scriptedActivityComponent)) {
-		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	ShootingGalleryComponent* shootingGalleryComponent;
-	if (TryGetComponent(eReplicaComponentType::SHOOTING_GALLERY, shootingGalleryComponent)) {
-		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	RacingControlComponent* racingControlComponent;
-	if (TryGetComponent(eReplicaComponentType::RACING_CONTROL, racingControlComponent)) {
-		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	LUPExhibitComponent* lupExhibitComponent;
-	if (TryGetComponent(eReplicaComponentType::LUP_EXHIBIT, lupExhibitComponent)) {
-		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	ModelComponent* modelComponent;
-	if (TryGetComponent(eReplicaComponentType::MODEL, modelComponent)) {
-		modelComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	RenderComponent* renderComponent;
-	if (TryGetComponent(eReplicaComponentType::RENDER, renderComponent)) {
-		renderComponent->Serialize(outBitStream, bIsInitialUpdate);
-	}
-
-	if (modelComponent || !destroyableSerialized) {
-		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
-			destroyableSerialized = true;
-		}
-	}
-
-	MiniGameControlComponent* miniGameControlComponent;
-	if (TryGetComponent(eReplicaComponentType::MINI_GAME_CONTROL, miniGameControlComponent)) {
-		miniGameControlComponent->Serialize(outBitStream, bIsInitialUpdate);
+		component->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	// BBB Component, unused currently

@@ -199,7 +199,7 @@ namespace CDClientSchema {
 	inline const Table* ComponentTable(const Schema& schema, eReplicaComponentType type) {
 		using enum eReplicaComponentType;
 		static const std::map<eReplicaComponentType, std::string_view> DIFFERENT{
-			{ BUFF, "DestructibleComponent" }, // the enum's BUFF (7) is the destroyable component
+			{ DESTROYABLE, "DestructibleComponent" },
 			{ CONTROLLABLE_PHYSICS, "PhysicsComponent" }, { SIMPLE_PHYSICS, "PhysicsComponent" }, { PHANTOM_PHYSICS, "PhysicsComponent" },
 			{ RIGID_BODY_PHANTOM_PHYSICS, "PhysicsComponent" }, { HAVOK_VEHICLE_PHYSICS, "VehiclePhysics" },
 			{ QUICK_BUILD, "RebuildComponent" }, { MISSION_OFFER, "MissionNPCComponent" }, { ROCKET_LAUNCH, "RocketLaunchpadControlComponent" },

@@ -97,48 +97,6 @@ DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t compone
 DestroyableComponent::~DestroyableComponent() {
 }
 
-void DestroyableComponent::Reinitialize(LOT templateID) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-
-	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
-	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
-	int32_t quickBuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
-
-	int32_t componentID = 0;
-	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
-	if (buffComponentID > 0) componentID = buffComponentID;
-
-	CDDestructibleComponentTable* destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
-	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-
-	if (componentID > 0) {
-		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-
-		if (destCompData.size() > 0) {
-			SetHealth(destCompData[0].life);
-			SetImagination(destCompData[0].imagination);
-			SetArmor(destCompData[0].armor);
-
-			SetMaxHealth(destCompData[0].life);
-			SetMaxImagination(destCompData[0].imagination);
-			SetMaxArmor(destCompData[0].armor);
-
-			SetIsSmashable(destCompData[0].isSmashable);
-		}
-	} else {
-		SetHealth(1);
-		SetImagination(0);
-		SetArmor(0);
-
-		SetMaxHealth(1);
-		SetMaxImagination(0);
-		SetMaxArmor(0);
-
-		SetIsSmashable(true);
-	}
-}
-
 void DestroyableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		outBitStream.Write1(); // always write these on construction

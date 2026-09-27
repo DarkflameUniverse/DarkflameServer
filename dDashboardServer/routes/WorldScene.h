@@ -131,16 +131,11 @@ namespace WorldScene {
 		eReplicaComponentType::SCRIPTED_ACTIVITY, eReplicaComponentType::DESTROYABLE
 	};
 
-	// ComponentsRegistry stores the destroyable component as 7 (the enum's BUFF; see eReplicaComponentType)
-	inline eReplicaComponentType FromRegistry(uint32_t componentType) {
-		return componentType == 7 ? eReplicaComponentType::DESTROYABLE : static_cast<eReplicaComponentType>(componentType);
-	}
-
 	// Index into KINDS of an object with these ComponentsRegistry component types, or KINDS.size() for "other"
 	inline size_t Classify(const std::vector<uint32_t>& registryComponents) {
 		size_t best = KINDS.size();
 		for (const auto component : registryComponents) {
-			const auto type = FromRegistry(component);
+			const auto type = static_cast<eReplicaComponentType>(component);
 			for (size_t i = 0; i < best; i++) {
 				if (KINDS[i] == type) { best = i; break; }
 			}

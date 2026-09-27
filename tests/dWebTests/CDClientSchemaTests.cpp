@@ -74,7 +74,7 @@ TEST(CDClientSchemaTest, ComponentTables) {
 	};
 	EXPECT_EQ(name(eReplicaComponentType::VENDOR), "VendorComponent");
 	EXPECT_EQ(name(eReplicaComponentType::RENDER), "RenderComponent");
-	EXPECT_EQ(name(eReplicaComponentType::BUFF), "DestructibleComponent");
+	EXPECT_EQ(name(eReplicaComponentType::DESTROYABLE), "DestructibleComponent");
 	EXPECT_EQ(name(eReplicaComponentType::SIMPLE_PHYSICS), "PhysicsComponent");
 	EXPECT_EQ(name(eReplicaComponentType::PET), "-");
 }

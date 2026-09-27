@@ -37,12 +37,6 @@ public:
 	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	/**
-	 * Initializes the component using a different LOT
-	 * @param templateID the ID to use for initialization
-	 */
-	void Reinitialize(LOT templateID);
-
-	/**
 	 * Sets the health of this entity. Makes sure this is serialized on the next tick and if this is a character its
 	 * stats will also update.
 	 * @param value the new health value
