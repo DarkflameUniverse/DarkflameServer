@@ -214,7 +214,7 @@ namespace OpenApi {
 					"`Authorization: Bearer <token>` with a token from your account page. Requests signed in with the session cookie must also "
 					"send `X-Requested-With` (this page does)."} }},
 			{"components", { {"securitySchemes", {
-				{"bearer", { {"type", "http"}, {"scheme", "bearer"}, {"description", "An API token from your account page"} }},
+				{"bearer", { {"type", "http"}, {"scheme", "bearer"}, {"description", "An API key from your account page"} }},
 				{"session", { {"type", "apiKey"}, {"in", "cookie"}, {"name", "dashboardToken"}, {"description", "Your dashboard sign-in"} }} }} }},
 			{"security", { { {"session", nlohmann::json::array()} }, { {"bearer", nlohmann::json::array()} } }},
 			{"paths", paths}

@@ -253,7 +253,7 @@ With [email](#email) set up, **Forgot your password?** (`/forgot_password`) send
 Players with two-factor login can also choose a new password there without email: their username, a current code from
 their authenticator app, and one of their recovery codes. Both codes are needed, so someone who found the printed
 recovery codes, or has the phone, can't take the account alone. The recovery code is used up, every dashboard session
-and API token of the account is signed out, and an emailed reset link that's still open stops working. The game
+and API key of the account is signed out, and an emailed reset link that's still open stops working. The game
 password changes too.
 
 It's limited like signing in: 10 tries per address every 15 minutes, and wrong codes count as
@@ -559,7 +559,7 @@ Restoring an older backup is fine: migrations bring it up to date when the serve
 
 On the **Webhooks** page (GM 9) add Discord, Slack or generic JSON webhooks and choose which events they get:
 `bug_report`, `pending_name` (names waiting for approval), `moderation` (bans, locks, mutes, kicks and restrictions,
-from the dashboard or in game), `security` (GM level and two-factor changes, API tokens, recovery code use),
+from the dashboard or in game), `security` (GM level and two-factor changes, API keys, recovery code use),
 `economy_flag` and `server` (auth or chat going down or coming back, restarts, events). JSON deliveries can be signed:
 with a secret set, each request has `X-DLU-Signature: sha256=<hex HMAC-SHA256 of the body>`.
 
@@ -575,10 +575,10 @@ master, auth and chat are up, memory and process count per kind of server, dashb
 messages by channel (and how many the filter blocked), today's coins, items and map events, moderation queues (names,
 pet names, properties, bug reports, economy flags, player reports), active strikes, each scheduled task's last run, and
 how long the database reads behind them took. Labels never contain account or character names or addresses. A scraper
-sends `Authorization: Bearer` with either an API token of an account with the `metrics_view` permission (GM 8 by
+sends `Authorization: Bearer` with either an API key of an account with the `metrics_view` permission (GM 8 by
 default), or the shared `metrics_token` (at least 16 characters). `metrics_allowed_ips` can limit where requests come
 from (addresses or IPv4 ranges like `10.0.0.0/8`), and the numbers are worked out at most every `metrics_cache_seconds`
-(10), however often they are fetched. `/api/metrics` returns the same text for API tokens. An example scrape config and
+(10), however often they are fetched. `/api/metrics` returns the same text for API keys (the key needs `metrics_view` in its scope). An example scrape config and
 Grafana dashboard are in `docs/grafana/`.
 
 **Instance Load** (`health_view`) records the players in each world instance at the same time and keeps them as long:
@@ -897,9 +897,10 @@ Settings: `log_chat` (on), `log_private_chat` (on), `log_chat_days` (90), and `c
 into the game go through the chat filter like players' do).
 
 **Bridging chat to Discord or another service.** Make an account for the bot with a GM level that has `chat_view`,
-`chat_send` and `api_access`, create an API token on its account page, and:
+`chat_send` and `api_access`, make an API key on its account page with just `chat_view` and `chat_send` (and,
+for the WebSocket, no address limit), and:
 
-- Read: `GET /api/chat?after=<last id>` with `Authorization: Bearer <token>` returns the messages newer than that id,
+- Read: `GET /api/chat?after=<last id>` with `Authorization: Bearer <key>` returns the messages newer than that id,
   oldest first, and `last_id` for the next call (`zone` and `instance` narrow it to one zone or one world). Or connect
   to the `/ws` WebSocket with the same header and subscribe to the `chat_message` topic to get each message as it's
   said (`{"event":"subscribe","subscription":"chat_message"}`).
@@ -1251,13 +1252,48 @@ with just that event.
 
 ## API
 
-Everything the dashboard does is available as a JSON API. Create a token on your account page and send it as
-`Authorization: Bearer <token>`. The **API** page lists every endpoint your GM level can use, and each can be tried
-out there. A token acts as its account with the account's current GM level, so every request needs the same
-permission as the page it matches (for example `/api/zones` needs `characters_rescue`). Using the API at all needs the
-`api_access` permission (every account by default); raise it on the Permissions page to turn the API off for players or
-lower staff levels. Tokens can only be made from a signed-in browser session, not with another token, so a leaked token
-can't make itself a new one.
+Everything the dashboard does is available as a JSON API. Make an **API key** on your account page and send it as
+`Authorization: Bearer <key>`. The **API** page lists every endpoint your GM level can use, and each can be tried
+out there. Using the API at all needs the `api_access` permission (every account by default); raise it on the
+Permissions page to turn the API off for players or lower staff levels.
+
+### API keys
+
+Each key has a name and note, an optional expiry, and a scope: either **all of your permissions** or only the ones you
+pick (grouped by category like the Permissions page; you can only pick permissions you have). A key never does more
+than its owner can do *right now*: every request is checked against the owner's current account and GM level and
+against the key's scope, so demoting, banning or locking the owner narrows or stops their keys at once.
+
+- Routes guarded by a permission need it in the key's scope. The self and rank rules apply twice: the key also needs
+  `self_tools` / `self_items` / `self_moderation` in its scope to act on its owner's own account or characters, and
+  `manage_equal_rank` to act on accounts of the owner's level (even when the owner is GM 9, who needs neither).
+  The few routes guarded only by a GM level above 0 need a key with all of its owner's permissions.
+- **Read-only** keys only make GET requests (and the DataTables queries under `/api/tables/`, which are POSTs that
+  only read).
+- **Only from addresses**: exact addresses or prefixes ending in `.` or `:` (`10.0.0.`). With `behind_proxy=1` the
+  proxy's `X-Forwarded-For` is used. Keys limited to some addresses can't open the WebSocket (its address isn't
+  checked there).
+- **Only these paths**: path prefixes such as `/api/chat`; include `/ws` to allow the WebSocket.
+- **Limits**: requests a minute (default `api_key_rate_limit`, 120; up to 6000) and optionally requests a UTC day.
+  Every answer carries `X-RateLimit-Limit` and `X-RateLimit-Remaining` (and `X-Quota-Limit` / `X-Quota-Remaining`
+  with a quota); going over answers `429` with `Retry-After`. Requests, last use and last address are shown in the
+  key list; they are written to the database once a minute, not on every request.
+- WebSocket subscriptions follow the scope too (`chat_message` needs `chat_view`, and so on).
+- Keys can never be used to sign in, change the account's password, email or two-factor login, sign out sessions,
+  or make, rotate or revoke keys. Those need a signed-in browser session, so a leaked key can't make itself new keys
+  or lock its owner out.
+- Only a hash of each key is stored; the key is shown once when it is made. **Rotate** gives a key a new secret and
+  keeps its settings; **Revoke** stops it for good. **Sign out everywhere**, a password change or a password reset
+  stops every key made before it (rotate a key to use it again).
+- Staff with `api_keys_manage` (GM 8 by default) see other accounts' keys on their account pages and can revoke
+  them, following the rank rules. Nobody can make keys for someone else.
+- Making, rotating and revoking keys is audited (and sent to `security` webhooks). What is done with a key is audited
+  as `user (key name)`, and requests a key was refused (scope, read-only, address, path, limits) are audited as
+  `api_key_denied`, at most once a minute per key and reason.
+
+`POST /api/auth/token` (for scripts written for the old API tokens) now makes a key named "API token" with all of the
+caller's permissions, valid for the given `days`. API tokens made before API keys existed keep working, with the
+account's full permissions, until they expire (at most a year) or the account signs out everywhere.
 
 ## Developer tools
 

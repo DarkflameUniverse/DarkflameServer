@@ -20,10 +20,13 @@
 <div class="card mb-3">
 	<div class="card-header"><h5 class="mb-0">Signing in from scripts and bots</h5></div>
 	<div class="card-body small">
-		<p>Make an API token on <a href="/account">your account page</a> and send it with every request:</p>
-		<pre class="bg-body-tertiary p-2 rounded mb-2"><code>curl -H "Authorization: Bearer $TOKEN" http://localhost:2006/api/status</code></pre>
-		<p class="mb-2">A token acts as your account with its <em>current</em> GM level, so each request needs the same permission as the page it matches,
-			and changing the account's level or banning it takes effect straight away. Using the API at all needs the <code>api_access</code> permission.</p>
+		<p>Make an API key on <a href="/account">your account page</a> and send it with every request:</p>
+		<pre class="bg-body-tertiary p-2 rounded mb-2"><code>curl -H "Authorization: Bearer $KEY" http://localhost:2006/api/status</code></pre>
+		<p class="mb-2">A key can do what you picked for it (some of your permissions, or all of them), and never more than your account can do right
+			now: each request needs the permission for the page it matches, both on your account's <em>current</em> GM level and in the key.
+			Changing the account's level or banning it takes effect straight away. Keys can be read-only, limited to some addresses or paths, and
+			have a rate limit (answered with <code>429</code> and <code>Retry-After</code>; <code>X-RateLimit-Remaining</code> says what is left)
+			and a daily quota. Using the API at all needs the <code>api_access</code> permission.</p>
 		<p class="mb-2">Live updates: open a WebSocket to <code>/ws</code> (with the same <code>Authorization</code> header, or your sign-in cookie) and send
 			<code>{"event": "subscribe", "subscription": "chat_message"}</code> (or <code>table_changed</code>, <code>dashboard_update</code>, ...).</p>
 		<p class="mb-0 text-body-secondary">Tables take DataTables-style bodies: <code>{"start": 0, "length": 25, "search": "text"}</code>. Calls that act on

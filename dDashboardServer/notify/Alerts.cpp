@@ -266,7 +266,7 @@ namespace Alerts {
 			"warn_account", "action_player_report", "chat_filter_allow", "chat_filter_block", "chat_filter_remove"
 		};
 		static const std::set<std::string> security{
-			"set_gm_level", "create_api_token", "reset_password", "create_account", "enable_2fa", "disable_2fa",
+			"set_gm_level", "create_api_token", "create_api_key", "rotate_api_key", "revoke_api_key", "reset_password", "create_account", "enable_2fa", "disable_2fa",
 			"reset_2fa", "regenerate_recovery_codes", "manage_webhook", "change_setting"
 		};
 		std::string event;
