@@ -135,7 +135,7 @@ void RegisterServerRoutes() {
 
 	Route(eHTTPMethod::GET, "/api/crash_dumps/:name", Perm("logs_system"), "Download a crash dump",
 		[](HTTPReply& reply, const HTTPContext& context) {
-			const std::string name(PathSegment(context.originalPath, 2)); // crash_World_123.log: case matters
+			const std::string name(PathSegment(context.originalPath, 2)); // Crash_WorldServer_..._123.log: case matters
 			const auto folder = DumpFolder();
 			if (folder.empty() || !PlainFileName(name)) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Not found");
 			std::error_code ec;
@@ -159,10 +159,12 @@ void RegisterServerRoutes() {
 			const auto folder = LogFolder();
 			const auto requestId = PlayerActions::Begin(context.accountId, std::chrono::minutes(5));
 			Background::Run("log_search:" + std::to_string(requestId), [folder, query, server, perServer](GameDatabase&) -> nlohmann::json {
-				// Newest files of each server (file names: <Server>_<time>.log)
+				// Newest files of each server (file names: <Server>_..._<time>.log, in the server's own folder under logs/)
 				std::map<std::string, std::vector<fs::path>> byServer;
 				std::error_code ec;
-				for (const auto& entry : fs::directory_iterator(folder, ec)) {
+				for (auto it = fs::recursive_directory_iterator(folder, ec); !ec && it != fs::recursive_directory_iterator(); it.increment(ec)) {
+					const auto& entry = *it;
+					if (!entry.is_regular_file(ec)) continue;
 					const auto name = entry.path().filename().string();
 					if (!name.ends_with(".log")) continue;
 					const auto serverName = name.substr(0, name.find('_'));

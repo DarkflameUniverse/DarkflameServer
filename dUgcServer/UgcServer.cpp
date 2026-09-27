@@ -259,7 +259,8 @@ int main(int argc, char** argv) {
 		return MakeFromCommandLine(argv[1], argv[2], argv[3]);
 	}
 
-	Server::SetupLogger("UgcServer");
+	// Like the other servers: logs/UgcServer/UgcServer_<start time>.log
+	Server::SetupLogger("UgcServer_" + std::to_string(time(nullptr)), "UgcServer");
 	if (!Game::logger) return EXIT_FAILURE;
 	Game::config->LogSettings();
 	LOG("Starting UGC Server");

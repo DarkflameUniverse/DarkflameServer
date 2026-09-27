@@ -350,7 +350,8 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig("dashboardconfig.ini");
 
 	// Setup logger
-	Server::SetupLogger("DashboardServer");
+	// Like the other servers: logs/DashboardServer/DashboardServer_<start time>.log
+	Server::SetupLogger("DashboardServer_" + std::to_string(time(nullptr)), "DashboardServer");
 	if (!Game::logger) return EXIT_FAILURE;
 	Game::config->LogSettings();
 

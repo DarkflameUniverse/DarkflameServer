@@ -228,12 +228,14 @@ namespace {
 		uintmax_t size{};
 	};
 
-	// Every log file, by server (the name before the start time, e.g. "WorldServer_1200_3"), newest first
+	// Every log file, by server (the name before the start time, e.g. "WorldServer_1200_0_3"), newest first. Servers
+	// write into their own folders (logs/WorldServer/<zone>/<clone>/, logs/AuthServer/, ...), so the whole tree is read.
 	std::map<std::string, std::vector<LogFile>> LogFilesByServer() {
 		std::map<std::string, std::vector<LogFile>> byServer;
 		const auto logDir = BinaryPathFinder::GetBinaryDir() / "logs";
 		std::error_code ec;
-		for (const auto& entry : std::filesystem::directory_iterator(logDir, ec)) {
+		for (auto it = std::filesystem::recursive_directory_iterator(logDir, ec); !ec && it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+			const auto& entry = *it;
 			if (!entry.is_regular_file(ec) || entry.path().extension() != ".log") continue;
 			const auto stem = entry.path().stem().string();
 			const auto written = std::chrono::duration_cast<std::chrono::seconds>(
