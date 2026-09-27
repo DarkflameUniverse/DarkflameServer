@@ -228,23 +228,29 @@ namespace {
 	}
 
 	void RegisterRoutes() {
-		const auto prefix = Segments(Lower(Game::config->GetValue("client_path").empty() ? "/ugc" : Game::config->GetValue("client_path")));
-		std::string base;
-		for (const auto& segment : prefix) base += "/" + segment;
-
-		const auto clientRoute = [prefixSize = prefix.size()](HTTPReply& reply, const HTTPContext& context) {
-			auto segments = Segments(context.originalPath);
-			if (segments.size() <= prefixSize) {
-				NotFound(reply);
-				return;
-			}
-			segments.erase(segments.begin(), segments.begin() + static_cast<std::ptrdiff_t>(prefixSize));
-			ServeClientDownload(reply, segments);
-			// What the client asked for and what it got, to see how it loads models
-			LOG("Client download %s -> %i%s", context.originalPath.c_str(), static_cast<int>(reply.status), reply.file.empty() ? "" : " (file)");
-		};
-		Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
-		Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:type/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
+		// The configured path, and the one the 1.10.64 client uses whatever its boot.cfg says (its built-in patch server
+		// folder, lwoclient/UserBrickModels; see docs/UgcServer.md)
+		std::set<std::string> bases;
+		for (const auto& path : { Game::config->GetValue("client_path").empty() ? std::string("/ugc") : Game::config->GetValue("client_path"), std::string("/lwoclient/UserBrickModels") }) {
+			const auto prefix = Segments(Lower(path));
+			std::string base;
+			for (const auto& segment : prefix) base += "/" + segment;
+			if (!bases.insert(base).second) continue;
+			const auto clientRoute = [prefixSize = prefix.size()](HTTPReply& reply, const HTTPContext& context) {
+				auto segments = Segments(context.originalPath);
+				if (segments.size() <= prefixSize) {
+					NotFound(reply);
+					return;
+				}
+				segments.erase(segments.begin(), segments.begin() + static_cast<std::ptrdiff_t>(prefixSize));
+				ServeClientDownload(reply, segments);
+				// What the client asked for and what it got, to see how it loads models
+				LOG("Client download %s -> %i%s", context.originalPath.c_str(), static_cast<int>(reply.status), reply.file.empty() ? "" : " (file)");
+			};
+			Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
+			Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:type/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
+			LOG("Serving the client's downloads under %s/UGCC<datacenter>/", base.c_str());
+		}
 
 		// Previews for the dashboard
 		Game::web.RegisterHTTPRoute({ .path = "/files/:kind/:id/:file", .method = eHTTPMethod::GET, .middleware = {},
@@ -361,7 +367,6 @@ namespace {
 				reply.headers.push_back("Access-Control-Allow-Origin: *");
 				reply.headers.push_back("Cache-Control: no-store");
 			} });
-		LOG("Serving the client's downloads under %s/UGCC<datacenter>/", base.c_str());
 	}
 
 	std::filesystem::path ResPath() {
