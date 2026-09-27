@@ -136,7 +136,8 @@ defaults. The table below goes through it step by step.
    light, a fill from the camera, the sun with soft shadows, a highlight, exposure and contrast) is set so the icons are
    as bright as the game's own model icons (`res/textures/ui/inventory/models`: mean luminance 120 of 255 over 150 of
    them; ours 118 on a set of player models). Drawn by a software rasterizer (no GPU, no display), 4x4 supersampled,
-   on a transparent background: `icon.png` for the dashboard and a 32-bit `icon.dds` for the client.
+   on a transparent background: `icon.png` for the dashboard and an `icon.dds` for the client, written like
+   the client's own 128x128 icons (DXT5, no mipmaps, header flags 0x81007 with the linear size, caps 0x1000).
 
    The light settings are `icon_world_light`, `icon_sun_light`, `icon_fill`, `icon_specular`, `icon_shininess`,
    `icon_exposure`, `icon_contrast`, `icon_shadow_strength` and `icon_ao_strength` (new names: the older

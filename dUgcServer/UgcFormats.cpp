@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <limits>
 
@@ -335,29 +336,169 @@ namespace UgcFormats {
 		return out;
 	}
 
+	std::array<uint8_t, 16> EncodeDxt5Block(const std::array<uint8_t, 64>& rgba) {
+		std::array<uint8_t, 16> out{};
+
+		// Alpha: the block's lowest and highest, eight levels between (a0 > a1), 3 bits per pixel
+		uint8_t aMin = 255, aMax = 0;
+		for (int i = 0; i < 16; i++) {
+			aMin = std::min(aMin, rgba[i * 4 + 3]);
+			aMax = std::max(aMax, rgba[i * 4 + 3]);
+		}
+		out[0] = aMax;
+		out[1] = aMin;
+		if (aMax != aMin) {
+			std::array<int, 8> levels{ aMax, aMin };
+			for (int i = 1; i < 7; i++) levels[i + 1] = ((7 - i) * aMax + i * aMin) / 7;
+			uint64_t bits = 0;
+			for (int i = 0; i < 16; i++) {
+				int best = 0, bestError = std::numeric_limits<int>::max();
+				for (int l = 0; l < 8; l++) {
+					const int error = std::abs(levels[l] - rgba[i * 4 + 3]);
+					if (error < bestError) { bestError = error; best = l; }
+				}
+				bits |= static_cast<uint64_t>(best) << (3 * i);
+			}
+			for (int i = 0; i < 6; i++) out[2 + i] = static_cast<uint8_t>(bits >> (8 * i));
+		}
+
+		// Color: fit along the principal axis of the pixels that show (transparent ones don't count, their color is
+		// never seen), then refine the two endpoints by least squares once
+		std::array<std::array<float, 3>, 16> px{};
+		std::array<bool, 16> used{};
+		int count = 0;
+		for (int i = 0; i < 16; i++) {
+			for (int c = 0; c < 3; c++) px[i][c] = rgba[i * 4 + c];
+			used[i] = rgba[i * 4 + 3] > 0;
+			count += used[i];
+		}
+		if (count == 0) used.fill(true), count = 16;
+		std::array<float, 3> mean{};
+		for (int i = 0; i < 16; i++) if (used[i]) for (int c = 0; c < 3; c++) mean[c] += px[i][c] / count;
+		float cov[6]{};
+		for (int i = 0; i < 16; i++) {
+			if (!used[i]) continue;
+			const float r = px[i][0] - mean[0], g = px[i][1] - mean[1], b = px[i][2] - mean[2];
+			cov[0] += r * r; cov[1] += r * g; cov[2] += r * b; cov[3] += g * g; cov[4] += g * b; cov[5] += b * b;
+		}
+		std::array<float, 3> axis{ 1.0f, 1.0f, 1.0f };
+		for (int iteration = 0; iteration < 8; iteration++) {
+			const std::array<float, 3> next{ cov[0] * axis[0] + cov[1] * axis[1] + cov[2] * axis[2],
+				cov[1] * axis[0] + cov[3] * axis[1] + cov[4] * axis[2], cov[2] * axis[0] + cov[4] * axis[1] + cov[5] * axis[2] };
+			const float length = std::max({ std::abs(next[0]), std::abs(next[1]), std::abs(next[2]) });
+			if (length < 1e-6f) break;
+			for (int c = 0; c < 3; c++) axis[c] = next[c] / length;
+		}
+		float lo = std::numeric_limits<float>::max(), hi = std::numeric_limits<float>::lowest();
+		for (int i = 0; i < 16; i++) {
+			if (!used[i]) continue;
+			const float t = (px[i][0] - mean[0]) * axis[0] + (px[i][1] - mean[1]) * axis[1] + (px[i][2] - mean[2]) * axis[2];
+			lo = std::min(lo, t);
+			hi = std::max(hi, t);
+		}
+		const float axisLength2 = axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2];
+		std::array<float, 3> e0{}, e1{};
+		for (int c = 0; c < 3; c++) {
+			e0[c] = mean[c] + axis[c] * hi / std::max(axisLength2, 1e-6f);
+			e1[c] = mean[c] + axis[c] * lo / std::max(axisLength2, 1e-6f);
+		}
+		const auto to565 = [](const std::array<float, 3>& c) {
+			const auto q = [](float v, int max) { return static_cast<uint16_t>(std::clamp(static_cast<int>(v / 255.0f * max + 0.5f), 0, max)); };
+			return static_cast<uint16_t>((q(c[0], 31) << 11) | (q(c[1], 63) << 5) | q(c[2], 31));
+		};
+		const auto from565 = [](uint16_t v) {
+			return std::array<float, 3>{ ((v >> 11) & 31) * 255.0f / 31.0f, ((v >> 5) & 63) * 255.0f / 63.0f, (v & 31) * 255.0f / 31.0f };
+		};
+		const auto indicesFor = [&](uint16_t c0, uint16_t c1, uint32_t& bits) {
+			const auto a = from565(c0), b = from565(c1);
+			std::array<std::array<float, 3>, 4> palette{ a, b };
+			for (int c = 0; c < 3; c++) {
+				palette[2][c] = (2 * a[c] + b[c]) / 3.0f;
+				palette[3][c] = (a[c] + 2 * b[c]) / 3.0f;
+			}
+			float total = 0.0f;
+			bits = 0;
+			for (int i = 0; i < 16; i++) {
+				int best = 0;
+				float bestError = std::numeric_limits<float>::max();
+				for (int p = 0; p < 4; p++) {
+					float error = 0.0f;
+					for (int c = 0; c < 3; c++) error += (palette[p][c] - px[i][c]) * (palette[p][c] - px[i][c]);
+					if (error < bestError) { bestError = error; best = p; }
+				}
+				if (used[i]) total += bestError;
+				bits |= static_cast<uint32_t>(best) << (2 * i);
+			}
+			return total;
+		};
+		uint16_t c0 = to565(e0), c1 = to565(e1);
+		uint32_t bits = 0;
+		float error = indicesFor(c0 < c1 ? c1 : c0, c0 < c1 ? c0 : c1, bits);
+		if (c0 < c1) std::swap(c0, c1);
+		// Least squares on the chosen indices (weights 1, 0, 2/3, 1/3 for the first endpoint)
+		{
+			static constexpr float W[4] = { 1.0f, 0.0f, 2.0f / 3.0f, 1.0f / 3.0f };
+			float aa = 0, bb = 0, ab = 0;
+			std::array<float, 3> ax{}, bx{};
+			for (int i = 0; i < 16; i++) {
+				if (!used[i]) continue;
+				const float w = W[(bits >> (2 * i)) & 3], v = 1.0f - w;
+				aa += w * w; bb += v * v; ab += w * v;
+				for (int c = 0; c < 3; c++) { ax[c] += w * px[i][c]; bx[c] += v * px[i][c]; }
+			}
+			const float det = aa * bb - ab * ab;
+			if (std::abs(det) > 1e-6f) {
+				std::array<float, 3> r0{}, r1{};
+				for (int c = 0; c < 3; c++) {
+					r0[c] = (ax[c] * bb - bx[c] * ab) / det;
+					r1[c] = (bx[c] * aa - ax[c] * ab) / det;
+				}
+				uint16_t n0 = to565(r0), n1 = to565(r1);
+				if (n0 < n1) std::swap(n0, n1);
+				uint32_t nbits = 0;
+				const float nerror = indicesFor(n0, n1, nbits);
+				if (nerror < error) { c0 = n0; c1 = n1; bits = nbits; error = nerror; }
+			}
+		}
+		if (c0 == c1) bits = 0; // one color: four-color mode needs c0 > c1, and every index then means c0
+		out[8] = static_cast<uint8_t>(c0);
+		out[9] = static_cast<uint8_t>(c0 >> 8);
+		out[10] = static_cast<uint8_t>(c1);
+		out[11] = static_cast<uint8_t>(c1 >> 8);
+		for (int i = 0; i < 4; i++) out[12 + i] = static_cast<uint8_t>(bits >> (8 * i));
+		return out;
+	}
+
 	std::string EncodeDds(const UgcRender::Image& image) {
+		const auto width = static_cast<uint32_t>(image.width), height = static_cast<uint32_t>(image.height);
+		const uint32_t blocksX = std::max(1u, (width + 3) / 4), blocksY = std::max(1u, (height + 3) / 4);
 		std::array<uint32_t, 31> header{};
 		header[0] = 124;
-		header[1] = 0x1 | 0x2 | 0x4 | 0x8 | 0x1000; // caps, height, width, pitch, pixel format
-		header[2] = static_cast<uint32_t>(image.height);
-		header[3] = static_cast<uint32_t>(image.width);
-		header[4] = static_cast<uint32_t>(image.width) * 4; // pitch
-		header[18] = 32;   // pixel format size
-		header[19] = 0x41; // RGB with alpha
-		header[21] = 32;
-		header[22] = 0x00FF0000;
-		header[23] = 0x0000FF00;
-		header[24] = 0x000000FF;
-		header[25] = 0xFF000000;
+		header[1] = 0x1 | 0x2 | 0x4 | 0x1000 | 0x80000; // caps, height, width, pixel format, linear size
+		header[2] = height;
+		header[3] = width;
+		header[4] = blocksX * blocksY * 16; // linear size
+		header[18] = 32;     // pixel format size
+		header[19] = 0x4;    // four CC
+		header[20] = 0x35545844; // "DXT5"
 		header[26] = 0x1000; // texture
 		std::string out = "DDS ";
 		out.append(reinterpret_cast<const char*>(header.data()), header.size() * 4);
-		out.reserve(out.size() + image.rgba.size());
-		for (size_t i = 0; i + 3 < image.rgba.size(); i += 4) {
-			out += static_cast<char>(image.rgba[i + 2]);
-			out += static_cast<char>(image.rgba[i + 1]);
-			out += static_cast<char>(image.rgba[i]);
-			out += static_cast<char>(image.rgba[i + 3]);
+		out.reserve(out.size() + header[4]);
+		for (uint32_t by = 0; by < blocksY; by++) {
+			for (uint32_t bx = 0; bx < blocksX; bx++) {
+				std::array<uint8_t, 64> block{};
+				for (uint32_t y = 0; y < 4; y++) {
+					for (uint32_t x = 0; x < 4; x++) {
+						// Edge blocks of sizes that aren't a multiple of 4 repeat the last row and column
+						const uint32_t sx = std::min(bx * 4 + x, width - 1), sy = std::min(by * 4 + y, height - 1);
+						const size_t from = (static_cast<size_t>(sy) * width + sx) * 4;
+						if (from + 3 < image.rgba.size()) std::memcpy(&block[(y * 4 + x) * 4], &image.rgba[from], 4);
+					}
+				}
+				const auto encoded = EncodeDxt5Block(block);
+				out.append(reinterpret_cast<const char*>(encoded.data()), encoded.size());
+			}
 		}
 		return out;
 	}

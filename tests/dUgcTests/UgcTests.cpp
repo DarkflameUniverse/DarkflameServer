@@ -266,9 +266,8 @@ TEST(UgcFormats, ImagesAndChecksums) {
 	const auto png = UgcFormats::EncodePng(image);
 	EXPECT_TRUE(png.starts_with("\x89PNG\r\n\x1a\n"));
 	const auto dds = UgcFormats::EncodeDds(image);
-	ASSERT_EQ(dds.size(), 128u + 16u);
+	ASSERT_EQ(dds.size(), 128u + 16u); // one DXT5 block
 	EXPECT_TRUE(dds.starts_with("DDS "));
-	EXPECT_EQ(dds[128 + 2], 10); // stored BGRA
 	EXPECT_EQ(UgcFormats::Md5Hex("abc"), "900150983cd24fb0d6963f7d28e17f72");
 	EXPECT_NE(UgcFormats::ChecksumXml("abc").find("<Checksum><MD5>900150983cd24fb0d6963f7d28e17f72</MD5><Filesize>3</Filesize></Checksum>"), std::string::npos);
 	std::string md5;
@@ -278,6 +277,89 @@ TEST(UgcFormats, ImagesAndChecksums) {
 	EXPECT_EQ(size, 3u);
 	EXPECT_FALSE(UgcFormats::ReadChecksumXml("<Checksum><MD5>abc</MD5><Filesize>3</Filesize></Checksum>", md5, size));
 	EXPECT_FALSE(UgcFormats::ReadChecksumXml("<Checksum><MD5>900150983cd24fb0d6963f7d28e17f72</MD5><Filesize>x</Filesize></Checksum>", md5, size));
+}
+
+namespace {
+	uint32_t U32(const std::string& data, size_t at) {
+		uint32_t v{};
+		std::memcpy(&v, data.data() + at, 4);
+		return v;
+	}
+
+	// A DXT5 block back to RGBA (the reference decoding, for the tests)
+	std::array<uint8_t, 64> DecodeDxt5Block(const uint8_t* b) {
+		std::array<uint8_t, 64> out{};
+		std::array<int, 8> alpha{ b[0], b[1] };
+		for (int i = 2; i < 8; i++) alpha[i] = b[0] > b[1] ? ((8 - i) * b[0] + (i - 1) * b[1]) / 7 : (i < 6 ? ((6 - i) * b[0] + (i - 1) * b[1]) / 5 : (i == 6 ? 0 : 255));
+		uint64_t abits = 0;
+		for (int i = 0; i < 6; i++) abits |= static_cast<uint64_t>(b[2 + i]) << (8 * i);
+		const uint16_t c0 = b[8] | (b[9] << 8), c1 = b[10] | (b[11] << 8);
+		const auto rgb = [](uint16_t v) { return std::array<int, 3>{ ((v >> 11) & 31) * 255 / 31, ((v >> 5) & 63) * 255 / 63, (v & 31) * 255 / 31 }; };
+		const auto a = rgb(c0), z = rgb(c1);
+		std::array<std::array<int, 3>, 4> pal{ a, z };
+		for (int c = 0; c < 3; c++) {
+			pal[2][c] = c0 > c1 ? (2 * a[c] + z[c]) / 3 : (a[c] + z[c]) / 2;
+			pal[3][c] = c0 > c1 ? (a[c] + 2 * z[c]) / 3 : 0;
+		}
+		const uint32_t bits = b[12] | (b[13] << 8) | (b[14] << 16) | (static_cast<uint32_t>(b[15]) << 24);
+		for (int i = 0; i < 16; i++) {
+			for (int c = 0; c < 3; c++) out[i * 4 + c] = static_cast<uint8_t>(pal[(bits >> (2 * i)) & 3][c]);
+			out[i * 4 + 3] = static_cast<uint8_t>(alpha[(abits >> (3 * i)) & 7]);
+		}
+		return out;
+	}
+}
+
+// Icons are written like the client's own 128x128 ones: DXT5, no mipmaps, flags 0x81007, the linear size, caps 0x1000
+TEST(UgcFormats, DdsIsDxt5LikeTheClientsIcons) {
+	UgcRender::Image image{ 128, 128, std::vector<uint8_t>(128 * 128 * 4, 0) };
+	for (int y = 0; y < 128; y++) {
+		for (int x = 0; x < 128; x++) {
+			auto* p = &image.rgba[(y * 128 + x) * 4];
+			const bool inside = x >= 32 && x < 96 && y >= 32 && y < 96;
+			p[0] = static_cast<uint8_t>(x * 2);
+			p[1] = static_cast<uint8_t>(y * 2);
+			p[2] = 90;
+			p[3] = inside ? 255 : 0;
+		}
+	}
+	const auto dds = UgcFormats::EncodeDds(image);
+	ASSERT_EQ(dds.size(), 128u + 32u * 32u * 16u);
+	EXPECT_EQ(U32(dds, 4), 124u);
+	EXPECT_EQ(U32(dds, 8), 0x81007u);
+	EXPECT_EQ(U32(dds, 12), 128u);
+	EXPECT_EQ(U32(dds, 16), 128u);
+	EXPECT_EQ(U32(dds, 20), 16384u); // linear size
+	EXPECT_EQ(U32(dds, 28), 0u);     // no mipmaps
+	EXPECT_EQ(U32(dds, 80), 0x4u);   // four CC
+	EXPECT_EQ(dds.substr(84, 4), "DXT5");
+	EXPECT_EQ(U32(dds, 108), 0x1000u);
+
+	// Decoded, the visible pixels are close to the source and the background stays transparent
+	int worst = 0;
+	for (int by = 0; by < 32; by++) {
+		for (int bx = 0; bx < 32; bx++) {
+			const auto block = DecodeDxt5Block(reinterpret_cast<const uint8_t*>(dds.data()) + 128 + (by * 32 + bx) * 16);
+			for (int i = 0; i < 16; i++) {
+				const auto* src = &image.rgba[((by * 4 + i / 4) * 128 + bx * 4 + i % 4) * 4];
+				EXPECT_EQ(block[i * 4 + 3], src[3]);
+				if (src[3] == 0) continue;
+				for (int c = 0; c < 3; c++) worst = std::max(worst, std::abs(block[i * 4 + c] - src[c]));
+			}
+		}
+	}
+	EXPECT_LE(worst, 12);
+
+	// A flat block is one color, however it's stored
+	std::array<uint8_t, 64> flat{};
+	for (int i = 0; i < 16; i++) flat[i * 4] = 200, flat[i * 4 + 1] = 40, flat[i * 4 + 2] = 10, flat[i * 4 + 3] = 128;
+	const auto encoded = UgcFormats::EncodeDxt5Block(flat);
+	const auto decoded = DecodeDxt5Block(encoded.data());
+	for (int i = 0; i < 16; i++) {
+		EXPECT_NEAR(decoded[i * 4], 200, 5);
+		EXPECT_NEAR(decoded[i * 4 + 1], 40, 5);
+		EXPECT_EQ(decoded[i * 4 + 3], 128);
+	}
 }
 
 // A download is written for both of the client's modes: .gz and .checksum (3D services) and .sd0 (without), all

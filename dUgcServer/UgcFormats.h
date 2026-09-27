@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -50,8 +52,13 @@ namespace UgcFormats {
 	// PNG (8-bit RGBA)
 	std::string EncodePng(const UgcRender::Image& image);
 
-	// DDS, uncompressed 32-bit BGRA without mipmaps
+	// DDS as the client's own icons are: DXT5 (BC3), without mipmaps, header flags caps|height|width|pixel format|linear
+	// size (0x81007), caps texture (0x1000)
 	std::string EncodeDds(const UgcRender::Image& image);
+
+	// One 4x4 block (RGBA, 64 bytes, row by row) as DXT5's 16 bytes: alpha endpoints and 3-bit indices, then the
+	// color's two RGB565 endpoints and 2-bit indices
+	std::array<uint8_t, 16> EncodeDxt5Block(const std::array<uint8_t, 64>& rgba);
 
 	// Lowercase hex MD5 of `data`
 	std::string Md5Hex(std::string_view data);
