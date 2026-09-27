@@ -100,6 +100,14 @@ public:
 	dpEntity* GetdpEntity() const { return m_dpEntity; }
 
 	/**
+	 * Switches the volume on or off (the ActivatePhysics trigger command; the client activates or deactivates
+	 * the physics component the same way). Whatever was inside leaves when it is switched off.
+	 */
+	void SetPhysicsActive(bool active);
+
+	bool GetPhysicsActive() const { return m_PhysicsActive; }
+
+	/**
 	 * Spawns an object at each of the vertices for debugging purposes
 	 */
 	void SpawnVertices() const;
@@ -160,6 +168,9 @@ private:
 	 * The parent entity of this component
 	 */
 	dpEntity* m_dpEntity;
+
+	// Whether m_dpEntity is in the physics world
+	bool m_PhysicsActive = true;
 
 	/**
 	 * Whether or not this physics object represents an object that updates the respawn pos of an entity that crosses it

@@ -87,9 +87,31 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t c
 	}
 }
 
+void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effectType, const float effectScale);
+
 PhantomPhysicsComponent::~PhantomPhysicsComponent() {
-	if (m_dpEntity) {
-		dpWorld::RemoveEntity(m_dpEntity);
+	if (!m_dpEntity) return;
+
+	if (m_PhysicsActive) dpWorld::RemoveEntity(m_dpEntity);
+	else delete m_dpEntity;
+}
+
+void PhantomPhysicsComponent::SetPhysicsActive(const bool active) {
+	if (!m_dpEntity || m_PhysicsActive == active) return;
+	m_PhysicsActive = active;
+
+	if (active) {
+		// Anything already inside enters on the next physics step
+		dpWorld::AddEntity(m_dpEntity);
+		return;
+	}
+
+	dpWorld::DetachEntity(m_dpEntity);
+	const std::vector<LWOOBJID> inside(m_dpEntity->GetCurrentlyCollidingObjects().begin(), m_dpEntity->GetCurrentlyCollidingObjects().end());
+	m_dpEntity->ClearCollisions();
+	for (const auto id : inside) {
+		ApplyCollisionEffect(id, m_EffectType, 1.0f);
+		m_Parent->OnCollisionLeavePhantom(id);
 	}
 }
 
@@ -151,7 +173,7 @@ void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effec
 }
 
 void PhantomPhysicsComponent::Update(float deltaTime) {
-	if (!m_dpEntity) return;
+	if (!m_dpEntity || !m_PhysicsActive) return;
 
 	//Process enter events
 	for (const auto id : m_dpEntity->GetNewObjects()) {

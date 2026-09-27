@@ -74,6 +74,12 @@ void dpGrid::Move(dpEntity* entity, float x, float z) {
 
 void dpGrid::Delete(dpEntity* entity) {
 	if (!entity) return;
+	Remove(entity);
+	delete entity;
+}
+
+void dpGrid::Remove(dpEntity* entity) {
+	if (!entity) return;
 	int oldCellX = static_cast<int>(std::round(entity->m_Position.x)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 	int oldCellZ = static_cast<int>(std::round(entity->m_Position.z)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
@@ -88,10 +94,11 @@ void dpGrid::Delete(dpEntity* entity) {
 		cell.pop_back();
 	}
 
-	m_GargantuanObjects.erase(entity->m_ObjectID);
+	const auto gargantuan = m_GargantuanObjects.find(entity->m_ObjectID);
+	if (gargantuan != m_GargantuanObjects.end() && gargantuan->second == entity) m_GargantuanObjects.erase(gargantuan);
 
-	if (entity) delete entity;
-	entity = nullptr;
+	// Out of the grid: moving it mustn't put it back into a cell
+	entity->m_Grid = nullptr;
 }
 
 void dpGrid::Update(float deltaTime) {

@@ -128,6 +128,20 @@ void dpWorld::AddEntity(dpEntity* entity) {
 	}
 }
 
+void dpWorld::DetachEntity(dpEntity* entity) {
+	if (!entity) return;
+
+	if (m_Grid) {
+		m_Grid->Remove(entity);
+		return;
+	}
+
+	auto& entities = entity->GetIsStatic() ? m_StaticEntities : m_DynamicEntites;
+	for (auto& other : entities) {
+		if (other == entity) other = nullptr;
+	}
+}
+
 void dpWorld::RemoveEntity(dpEntity* entity) {
 	if (!entity) return;
 

@@ -57,6 +57,9 @@ public:
 
 	void PreUpdate() { m_NewObjects.clear();  m_RemovedObjects.clear(); }
 
+	// Forgets everything it touches (it was taken out of the world)
+	void ClearCollisions() { m_NewObjects.clear(); m_RemovedObjects.clear(); m_CurrentlyCollidingObjects.clear(); }
+
 	const LWOOBJID& GetObjectID() const { return m_ObjectID; }
 
 	void SetGrid(dpGrid* grid);

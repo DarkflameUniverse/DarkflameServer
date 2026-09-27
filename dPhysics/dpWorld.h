@@ -18,5 +18,10 @@ namespace dpWorld {
 	void AddEntity(dpEntity* entity);
 	void RemoveEntity(dpEntity* entity);
 
+	/**
+	 * Takes an entity out of the world without deleting it, so it can be added back later (a volume switched off)
+	 */
+	void DetachEntity(dpEntity* entity);
+
 	dNavMesh* GetNavMesh();
 };

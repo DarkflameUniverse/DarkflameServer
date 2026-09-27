@@ -467,13 +467,18 @@ void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args) {
 }
 
 void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string args) {
-	if (args == "true") {
-		// TODO add physics entity if there isn't one
-	} else if (args == "false") {
-		// TODO remove Phsyics entity if there is one
-	} else {
+	if (args != "true" && args != "false") {
 		LOG_DEBUG("Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
+		return;
 	}
+
+	auto* const phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
+	if (!phantomPhysicsComponent) {
+		LOG_DEBUG("ActivatePhysics on %llu:%i which has no phantom physics", targetEntity->GetObjectID(), targetEntity->GetLOT());
+		return;
+	}
+
+	phantomPhysicsComponent->SetPhysicsActive(args == "true");
 }
 
 void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray) {

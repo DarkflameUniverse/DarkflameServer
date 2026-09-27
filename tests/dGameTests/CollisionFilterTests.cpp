@@ -77,3 +77,34 @@ TEST(CollisionFilterTests, RotatedBoxesKeepTheirShape) {
 	EXPECT_NEAR(box->SquaredDistanceTo(NiPoint3(100.0f, 12.0f, 100.0f)), 4.0f, 1e-3f);
 	EXPECT_NEAR(box->SquaredDistanceTo(NiPoint3(100.0f, -3.0f, 100.0f)), 9.0f, 1e-3f);
 }
+
+#include "dpWorld.h"
+#include "dpGrid.h"
+
+TEST(CollisionFilterTests, DetachedVolumesStopColliding) {
+	dpGrid grid(8, 100);
+	auto* volume = new dpEntity(1, 5.0f);
+	auto* player = new dpEntity(2, 1.0f, false);
+	volume->SetPosition(NiPoint3Constant::ZERO);
+	player->SetPosition(NiPoint3(1.0f, 0.0f, 0.0f));
+	volume->SetGrid(&grid);
+	player->SetGrid(&grid);
+
+	grid.Update(0.1f);
+	ASSERT_EQ(volume->GetNewObjects().size(), 1u);
+
+	// Switched off: out of the grid, moving it doesn't sneak it back in, and it stops seeing anything
+	grid.Remove(volume);
+	volume->ClearCollisions();
+	volume->SetPosition(NiPoint3(0.5f, 0.0f, 0.0f));
+	grid.Update(0.1f);
+	EXPECT_TRUE(volume->GetCurrentlyCollidingObjects().empty());
+
+	// Switched back on: sees the player again
+	volume->SetGrid(&grid);
+	grid.Update(0.1f);
+	EXPECT_EQ(volume->GetNewObjects().size(), 1u);
+
+	grid.Delete(volume);
+	grid.Delete(player);
+}

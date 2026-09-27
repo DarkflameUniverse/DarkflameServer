@@ -20,6 +20,11 @@ public:
 	void Move(dpEntity* entity, float x, float z);
 	void Delete(dpEntity* entity);
 
+	/**
+	 * Takes an entity out of the grid without deleting it
+	 */
+	void Remove(dpEntity* entity);
+
 	void Update(float deltaTime);
 
 	/**
