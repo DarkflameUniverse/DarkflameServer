@@ -386,3 +386,52 @@ TEST_F(BuildingMessagesTests, GoldenBytes) {
 	load.WritePacket(bitStream);
 	EXPECT_PACKET_EQ(FromHex("53 05 00 17 00 00 00 00 01 03 02 00 00 00 00 00 00 de 03 00 00 00 00 00 00"), FromBitStream(bitStream));
 }
+
+// Messages added for the brick by brick workflow (docs/BuildWorkflow.md), laid out as the 1.10.64 client reads them.
+TEST_F(BuildingMessagesTests, BrickModeMessagesRoundTrip) {
+	GameMessages::ActivateBrickMode enter;
+	enter.buildObjectID = 0x1122334455667788;
+	enter.enterBuildFromWorld = false;
+	enter.enterFlag = true;
+	// flag 1 + the build area, flag 0 (build type 2, on a property), 0, 1 (0x00d8ecb0)
+	EXPECT_PACKET_EQ(FromHex("c4 3b b3 2a a2 19 91 08 90", 68), Payload(enter));
+	const auto enterCopy = RoundTrip(enter);
+	EXPECT_EQ(enterCopy.buildObjectID, enter.buildObjectID);
+	EXPECT_EQ(enterCopy.buildType, 2);
+	EXPECT_FALSE(enterCopy.enterBuildFromWorld);
+	EXPECT_TRUE(enterCopy.enterFlag);
+	ExpectTruncatedFails(enter);
+
+	GameMessages::ActivateBrickMode leave;
+	leave.buildType = 1;
+	leave.enterBuildFromWorld = true;
+	leave.enterFlag = false;
+	const auto leaveCopy = RoundTrip(leave);
+	EXPECT_EQ(leaveCopy.buildObjectID, LWOOBJID_EMPTY);
+	EXPECT_EQ(leaveCopy.buildType, 1);
+	EXPECT_FALSE(leaveCopy.enterFlag);
+
+	// The client clears its autosave with the bare sd0 header: u32 size, then the bytes (0x00f2af60)
+	GameMessages::SetBBBAutosave clear;
+	clear.lxfmlDataCompressed = std::string("sd0\x01\xff", 5);
+	EXPECT_PACKET_EQ(FromHex("05 00 00 00 73 64 30 01 ff"), Payload(clear));
+	EXPECT_EQ(RoundTrip(clear).lxfmlDataCompressed, clear.lxfmlDataCompressed);
+	ExpectTruncatedFails(clear);
+
+	GameMessages::SetBBBAutosave empty;
+	EXPECT_PACKET_EQ(FromHex("00 00 00 00"), Payload(empty));
+	EXPECT_TRUE(RoundTrip(empty).lxfmlDataCompressed.empty());
+
+	// A size larger than what is left is dropped rather than read past the end
+	RakNet::BitStream tooLong;
+	tooLong.Write<uint32_t>(100);
+	tooLong.Write<uint8_t>(1);
+	GameMessages::SetBBBAutosave read;
+	EXPECT_FALSE(read.Deserialize(tooLong));
+
+	GameMessages::RebuildBBBAutosaveMsg rebuilt;
+	rebuilt.count = 2;
+	EXPECT_PACKET_EQ(FromHex("02 00 00 00"), Payload(rebuilt));
+	EXPECT_EQ(RoundTrip(rebuilt).count, 2);
+	ExpectTruncatedFails(rebuilt);
+}

@@ -9,6 +9,7 @@
 #include "Inventory.h"
 #include "InventoryComponent.h"
 #include "Item.h"
+#include "BrickByBrick.h"
 
 #include <ranges>
 
@@ -304,6 +305,10 @@ namespace GameMessages {
 		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, srcBag, eInventoryType::ITEMS));
 		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, startObjectID, LWOOBJID_EMPTY));
 		return true;
+	}
+
+	void MoveInventoryBatch::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		BrickByBrick::MoveBricks(entity, *this);
 	}
 
 	void NotifyNotEnoughInvSpace::Serialize(RakNet::BitStream& bitStream) const {

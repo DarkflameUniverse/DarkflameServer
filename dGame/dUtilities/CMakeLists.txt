@@ -1,4 +1,5 @@
 set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
+	"BrickByBrick.cpp"
 	"ChatServerLink.cpp"
 	"CheatDetection.cpp"
 	"DashboardActions.cpp"

@@ -143,6 +143,9 @@ namespace {
 		{ UN_USE_BBB_MODEL, []() { return std::make_unique<UnUseBBBModel>(); } },
 		{ BBB_LOAD_ITEM_REQUEST, []() { return std::make_unique<BBBLoadItemRequest>(); } },
 		{ BBB_SAVE_REQUEST, []() { return std::make_unique<BBBSaveRequest>(); } },
+		{ SET_BBB_AUTOSAVE, []() { return std::make_unique<SetBBBAutosave>(); } },
+		{ ACTIVATE_BRICK_MODE, []() { return std::make_unique<ActivateBrickMode>(); } },
+		{ MOVE_INVENTORY_BATCH, []() { return std::make_unique<MoveInventoryBatch>(); } },
 
 		// Vendors and donation vendors
 		{ REQUEST_VENDOR_STATUS_UPDATE, []() { return std::make_unique<RequestVendorStatusUpdate>(); } },

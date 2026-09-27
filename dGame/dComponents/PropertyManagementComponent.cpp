@@ -32,6 +32,9 @@
 #include "CppScripts.h"
 #include <ranges>
 #include "dConfig.h"
+#include "BrickByBrick.h"
+#include "eLootSourceType.h"
+#include "eKillType.h"
 
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
@@ -327,129 +330,132 @@ void PropertyManagementComponent::OnFinishBuilding() {
 	}
 }
 
-void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
-	LOG("Placing model <%f, %f, %f>", position.x, position.y, position.z);
-
-	auto* entity = GetOwner();
-
-	if (entity == nullptr) {
-		return;
-	}
-
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-	if (inventoryComponent == nullptr) {
-		return;
-	}
-
-	auto* item = inventoryComponent->FindItemById(id);
-
-	if (item == nullptr) {
-		LOG("Failed to find item with id %d", id);
-
-		return;
-	}
-
-	NiQuaternion originalRotation = rotation;
-
-	const auto modelLOT = item->GetLot();
-
-	if (rotation != QuatUtils::IDENTITY) {
-		rotation = { rotation.w, rotation.z, rotation.y, rotation.x };
-	}
-
-	if (item->GetLot() == 6662) {
-		LWOOBJID spawnerID = item->GetSubKey();
-
-		EntityInfo info;
-		info.lot = 14;
-		info.pos = {};
-		info.rot = {};
-		info.spawner = nullptr;
-		info.spawnerID = spawnerID;
-		info.spawnerNodeID = 0;
-		info.settings = item->GetConfig();
-
-		Entity* newEntity = Game::entityManager->CreateEntity(info);
-		if (newEntity != nullptr) {
-			Game::entityManager->ConstructEntity(newEntity);
-			auto* modelComponent = newEntity->GetComponent<ModelComponent>();
-			if (modelComponent) modelComponent->Pause();
-
-			// Make sure the propMgmt doesn't delete our model after the server dies
-			// Trying to do this after the entity is constructed. Shouldn't really change anything but
-			// There was an issue with builds not appearing since it was placed above ConstructEntity.
-			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), spawnerID);
-		}
-
-		item->SetCount(item->GetCount() - 1);
-		return;
-	}
-
-	item->SetCount(item->GetCount() - 1);
-
+Entity* PropertyManagementComponent::SpawnModel(const LOT lot, const LWOOBJID modelId, const NiPoint3& position, const NiQuaternion& rotation, const LwoNameValue& config) {
 	auto* node = new SpawnerNode();
-
 	node->position = position;
 	node->rotation = rotation;
+	node->config = config;
+	// Every placed model: a model object whose UGID is its property model id (GetModelsOnProperty pairs the two)
+	node->config.Insert<LWOOBJID>(u"userModelID", modelId);
+	node->config.Insert<int>(u"modelType", 2);
+	node->config.Insert<bool>(u"propertyObjectID", true);
+	node->config.Insert<int>(u"componentWhitelist", 1);
+	if (lot != BrickByBrick::MODEL_OBJECT_LOT) node->config.Insert<LWOOBJID>(u"modelBehaviors", 0);
 
 	SpawnerInfo info{};
-
-	info.templateID = modelLOT;
+	info.templateID = lot;
 	info.nodes = { node };
 	info.templateScale = 1.0f;
 	info.activeOnLoad = true;
 	info.amountMaintained = 1;
 	info.respawnTime = 10;
-
 	info.emulated = true;
 	info.emulator = Game::entityManager->GetZoneControlEntity()->GetObjectID();
-
-	info.spawnerID = ObjectIDManager::GetPersistentID();
-	GeneralUtils::SetBit(info.spawnerID, eObjectBits::CLIENT);
+	// The spawner's id is the model's id in properties_contents
+	info.spawnerID = modelId;
 
 	const auto spawnerId = Game::zoneManager->MakeSpawner(info);
-
 	auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
-
-	info.nodes[0]->config.Insert<LWOOBJID>(u"modelBehaviors", 0);
-	info.nodes[0]->config.Insert<LWOOBJID>(u"userModelID", info.spawnerID);
-	info.nodes[0]->config.Insert<int>(u"modelType", 2);
-	info.nodes[0]->config.Insert<bool>(u"propertyObjectID", true);
-	info.nodes[0]->config.Insert<int>(u"componentWhitelist", 1);
+	if (!spawner) return nullptr;
 
 	auto* model = spawner->Spawn();
+	if (!model) return nullptr;
+
+	// Placed while the owner is editing: stays still until they finish (OnFinishBuilding resumes every model)
 	auto* modelComponent = model->GetComponent<ModelComponent>();
 	if (modelComponent) modelComponent->Pause();
 
 	models.insert_or_assign(model->GetObjectID(), spawnerId);
+	return model;
+}
+
+LWOOBJID PropertyManagementComponent::PlaceModelFromItem(Item& item, const NiPoint3& position, const NiQuaternion& rotation) {
+	LWOOBJID modelId = LWOOBJID_EMPTY;
+	Entity* model = nullptr;
+
+	if (item.GetLot() == BrickByBrick::MODEL_ITEM_LOT) {
+		// A brick built model keeps its UGID (the item's subkey and userModelID) and blueprint wherever it goes
+		const auto& config = item.GetConfig();
+		modelId = item.GetSubKey();
+		if (modelId == LWOOBJID_EMPTY) modelId = BrickByBrick::ConfigObjectId(config, u"userModelID");
+		if (modelId == LWOOBJID_EMPTY) modelId = ObjectIDManager::GetNewModelIDs().modelID;
+		const auto blueprintId = BrickByBrick::ConfigObjectId(config, u"blueprintid");
+		if (blueprintId == LWOOBJID_EMPTY) {
+			LOG("Model item %llu has no blueprint, not placing it", item.GetId());
+			return LWOOBJID_EMPTY;
+		}
+
+		LwoNameValue modelConfig;
+		modelConfig.Insert<LWOOBJID>(u"blueprintid", blueprintId);
+		const auto behaviors = config.find(u"userModelBehaviors");
+		if (behaviors != config.end() && behaviors->second) modelConfig.Insert<std::string>(u"userModelBehaviors", behaviors->second->GetValueAsString());
+		model = SpawnModel(BrickByBrick::MODEL_OBJECT_LOT, modelId, position, rotation, modelConfig);
+	} else {
+		// A premade model gets a new UGID each time it is placed (live: the placed model's id, then a new item id
+		// when it is picked up)
+		modelId = ObjectIDManager::GetPersistentID();
+		GeneralUtils::SetBit(modelId, eObjectBits::CLIENT);
+		model = SpawnModel(item.GetLot(), modelId, position, rotation, {});
+	}
+
+	if (!model) return LWOOBJID_EMPTY;
+
+	item.SetCount(item.GetCount() - 1, false, false, false, eLootSourceType::PROPERTY);
+	// Straight to the database: the model must not be lost if the server stops before the owner finishes editing
+	Save();
+	return modelId;
+}
+
+void PropertyManagementComponent::SendModelsOnProperty() const {
+	GameMessages::GetModelsOnProperty msg;
+	msg.target = owner;
+	msg.models = { models.begin(), models.end() };
+	msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+}
+
+void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
+	LOG("Placing model <%f, %f, %f>", position.x, position.y, position.z);
+
+	auto* entity = GetOwner();
+	if (entity == nullptr) return;
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent == nullptr) return;
+
+	auto* item = inventoryComponent->FindItemById(id);
+	if (item == nullptr) {
+		LOG("Failed to find item with id %llu", id);
+		return;
+	}
+
+	const NiQuaternion originalRotation = rotation;
+	if (rotation != QuatUtils::IDENTITY) {
+		rotation = { rotation.w, rotation.z, rotation.y, rotation.x };
+	}
+
+	const auto modelId = PlaceModelFromItem(*item, position, rotation);
+	if (modelId == LWOOBJID_EMPTY) return;
+
+	// As a live server answered a placed model
+	{
+		GameMessages::HandleUGCEquipPreCreateBasedOnEditMode msg;
+		msg.target = entity->GetObjectID();
+		msg.modelCount = 0;
+		msg.modelID = modelId;
+		msg.Send(entity->GetSystemAddress());
+	}
 
 	{
 		GameMessages::PlaceModelResponse msg;
 		msg.target = entity->GetObjectID();
 		msg.position = position;
 		msg.propertyPlaqueID = m_Parent->GetObjectID();
-		msg.response = 14;
+		msg.response = BrickByBrick::PLACE_MODEL_PLACED;
 		msg.rotation = originalRotation;
 		msg.Send(entity->GetSystemAddress());
 	}
 
-	{
-		GameMessages::HandleUGCEquipPreCreateBasedOnEditMode msg;
-		msg.target = entity->GetObjectID();
-		msg.modelCount = 0;
-		msg.modelID = spawnerId;
-		msg.Send(entity->GetSystemAddress());
-	}
-
-	{
-		const auto& propertyModels = GetModels();
-		GameMessages::GetModelsOnProperty msg;
-		msg.target = entity->GetObjectID();
-		msg.models = { propertyModels.begin(), propertyModels.end() };
-		LOG("Sending property models to (%llu) (%d)", msg.target, true);
-		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
-	}
+	SendModelsOnProperty();
 
 	Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 
@@ -462,204 +468,82 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	LOG("Delete model: (%llu) (%i)", id, deleteReason);
 
 	auto* entity = GetOwner();
-
-	if (entity == nullptr) {
-		return;
-	}
+	if (entity == nullptr) return;
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-	if (inventoryComponent == nullptr) {
-		return;
-	}
+	if (inventoryComponent == nullptr) return;
 
 	auto* model = Game::entityManager->GetEntity(id);
-
 	if (model == nullptr) {
 		LOG("Failed to find model entity");
-
-		return;
-	}
-
-	if (model->GetLOT() == 14 && deleteReason == 0) {
-		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
-
-		{
-			GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
-			msg.target = entity->GetObjectID();
-			msg.invItem = LWOOBJID_EMPTY;
-			msg.itemsTotal = 0;
-			msg.Send(entity->GetSystemAddress());
-		}
-
-		// Need this to pop the user out of their current state
-		{
-			GameMessages::PlaceModelResponse msg;
-			msg.target = entity->GetObjectID();
-			msg.position = entity->GetPosition();
-			msg.propertyPlaqueID = m_Parent->GetObjectID();
-			msg.response = 14;
-			msg.rotation = entity->GetRotation();
-			msg.Send(entity->GetSystemAddress());
-		}
-
 		return;
 	}
 
 	const auto index = models.find(id);
-
 	if (index == models.end()) {
 		LOG("Failed to find model");
-
 		return;
 	}
 
-	const auto spawnerId = index->second;
+	const auto modelId = index->second;
+	const auto removal = BrickByBrick::PlanModelRemoval(deleteReason);
 
-	auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
-
-	models.erase(id);
-
-	if (spawner == nullptr) {
-		LOG("Failed to find spawner");
+	// Every way off the property puts the model in MODELS; taking it apart then opens it in brick by brick building
+	LOT itemLot = model->GetLOT();
+	LwoNameValue config;
+	LWOOBJID subKey = LWOOBJID_EMPTY;
+	if (model->GetLOT() == BrickByBrick::MODEL_OBJECT_LOT) {
+		itemLot = BrickByBrick::MODEL_ITEM_LOT;
+		config = BrickByBrick::ModelItemConfig(model->GetVar<LWOOBJID>(u"blueprintid"), modelId, model->GetVar<std::string>(u"userModelBehaviors"));
+		subKey = modelId;
 	}
 
+	const auto received = inventoryComponent->ReceiveItem(LWOOBJID_EMPTY, itemLot, 1, eLootSourceType::PROPERTY, config, subKey, false,
+		{ .inventory = eInventoryType::MODELS, .showFlyingLoot = false, .equip = removal.equip });
+	if (received.id == LWOOBJID_EMPTY) {
+		LOG("Could not give model %llu back to %llu, leaving it on the property", modelId, entity->GetObjectID());
+		return;
+	}
+
+	models.erase(index);
 	Game::entityManager->DestructEntity(model);
-
-	LOG("Deleting model LOT %i", model->GetLOT());
-
-	if (model->GetLOT() == 14) {
-		//add it to the inv
-		LwoNameValue actualConfig;
-	
-		//fill our settings with BBB gurbage
-		actualConfig.Insert(u"blueprintid", model->GetVar<LWOOBJID>(u"blueprintid"));
-		actualConfig.Insert(u"userModelDesc", u"A cool model you made!");
-		actualConfig.Insert(u"userModelHasBhvr", false);
-		actualConfig.Insert(u"userModelID", model->GetVar<LWOOBJID>(u"userModelID"));
-		actualConfig.Insert(u"userModelMod", false);
-		actualConfig.Insert(u"userModelName", u"My Cool Model");
-		actualConfig.Insert(u"userModelOpt", true);
-		actualConfig.Insert(u"userModelPhysicsType", 2);
-
-		inventoryComponent->AddItem(6662, 1, eLootSourceType::DELETION, eInventoryType::MODELS_IN_BBB, actualConfig, LWOOBJID_EMPTY, false, false, spawnerId);
-		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
-
-		if (item == nullptr) {
-			return;
-		}
-
-		if (deleteReason == 0) {
-			//item->Equip();
-		}
-
-		if (deleteReason == 0 || deleteReason == 2) {
-			{
-				GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
-				msg.target = entity->GetObjectID();
-				msg.invItem = item->GetId();
-				msg.itemsTotal = item->GetCount();
-				msg.Send(entity->GetSystemAddress());
-			}
-		}
-
-		{
-			const auto& propertyModels = GetModels();
-			GameMessages::GetModelsOnProperty msg;
-			msg.target = entity->GetObjectID();
-			msg.models = { propertyModels.begin(), propertyModels.end() };
-			LOG("Sending property models to (%llu) (%d)", msg.target, true);
-			msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
-		}
-
-		{
-			GameMessages::PlaceModelResponse msg;
-			msg.target = entity->GetObjectID();
-			msg.position = NiPoint3Constant::ZERO;
-			msg.propertyPlaqueID = LWOOBJID_EMPTY;
-			msg.response = 16;
-			msg.rotation = QuatUtils::IDENTITY;
-			msg.Send(entity->GetSystemAddress());
-		}
-
-		if (spawner != nullptr) {
-			Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
-		} else {
-			model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
-		}
-
-		item->SetCount(0, true, false, false);
-
-		return;
-	}
-
-	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
-
-	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
-
-	if (item == nullptr) {
-		return;
-	}
-
-	switch (deleteReason) {
-	case 0: // Pickup
-	{
-		item->Equip();
-
-		{
-			GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
-			msg.target = entity->GetObjectID();
-			msg.invItem = item->GetId();
-			msg.itemsTotal = item->GetCount();
-			msg.Send(entity->GetSystemAddress());
-		}
-		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
-
-		break;
-	}
-	case 1: // Return to inv
-	{
-		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRemoved(entity);
-
-		break;
-	}
-	case 2: // Break apart
-	{
-		item->SetCount(item->GetCount() - 1);
-
-		LOG("DLU currently does not support breaking apart brick by brick models.");
-
-		break;
-	}
-	default:
-	{
-		LOG("Invalid delete reason");
-	}
-	}
-
-	{
-		const auto& propertyModels = GetModels();
-		GameMessages::GetModelsOnProperty msg;
-		msg.target = entity->GetObjectID();
-		msg.models = { propertyModels.begin(), propertyModels.end() };
-		LOG("Sending property models to (%llu) (%d)", msg.target, true);
-		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
-	}
-
-	{
-		GameMessages::PlaceModelResponse msg;
-		msg.target = entity->GetObjectID();
-		msg.position = NiPoint3Constant::ZERO;
-		msg.propertyPlaqueID = LWOOBJID_EMPTY;
-		msg.response = 16;
-		msg.rotation = QuatUtils::IDENTITY;
-		msg.Send(entity->GetSystemAddress());
-	}
-
+	auto* spawner = Game::zoneManager->GetSpawner(modelId);
 	if (spawner != nullptr) {
 		Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
 	} else {
 		model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
+	}
+
+	// Straight to the database, as for placing
+	Save();
+
+	if (removal.notifyPostDelete) {
+		auto* item = inventoryComponent->FindItemById(received.id);
+		GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
+		msg.target = entity->GetObjectID();
+		msg.invItem = received.id;
+		msg.itemsTotal = item ? item->GetCount() : 1;
+		msg.Send(entity->GetSystemAddress());
+	}
+
+	SendModelsOnProperty();
+
+	{
+		GameMessages::PlaceModelResponse msg;
+		msg.target = entity->GetObjectID();
+		msg.response = BrickByBrick::PLACE_MODEL_REMOVED;
+		msg.Send(entity->GetSystemAddress());
+	}
+
+	switch (static_cast<BrickByBrick::eDeleteReason>(deleteReason)) {
+	case BrickByBrick::eDeleteReason::PICKING_MODEL_UP:
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
+		break;
+	case BrickByBrick::eDeleteReason::RETURNING_MODEL_TO_INVENTORY:
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRemoved(entity);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -796,7 +680,8 @@ void PropertyManagementComponent::Save() {
 			model.lot = entity->GetLOT();
 			model.position = position;
 			model.rotation = rotation;
-			model.ugcId = 0;
+			// A brick built model keeps its blueprint (it used to be saved as 0, losing the model on the next load)
+			model.ugcId = model.lot == BrickByBrick::MODEL_OBJECT_LOT ? entity->GetVar<LWOOBJID>(u"blueprintid") : 0;
 			for (auto i = 0; i < model.behaviors.size(); i++) {
 				model.behaviors[i] = modelBehaviors[i].first;
 			}

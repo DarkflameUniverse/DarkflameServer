@@ -206,6 +206,42 @@ namespace GameMessages {
 		uint32_t timeTakenInMs{};
 	};
 
+	// Client -> server. The player went into (enterFlag) or came out of brick by brick building.
+	// Layout as GameMessage::ActivateBrickMode::Deserialize (0x00d8ecb0) reads it.
+	struct ActivateBrickMode : public NetGameMsg {
+		ActivateBrickMode() : NetGameMsg(MessageType::Game::ACTIVATE_BRICK_MODE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		LWOOBJID buildObjectID{ LWOOBJID_EMPTY }; // optional; the property's build area when entering
+		int32_t buildType{ 2 }; // optional; 0 nowhere, 1 in the world, 2 on a property
+		bool enterBuildFromWorld{ true };
+		bool enterFlag{ true };
+	};
+
+	// Client -> server. The client's quick save of the model being built: sd0 compressed LXFML, or just the sd0 header
+	// when there is nothing to keep. Sent every five minutes, when told the player is AFK (msgInformAFK) and before the
+	// client shuts down. Layout as GameMessage::SetBBBAutosave::Deserialize (0x00f2af60) reads it.
+	struct SetBBBAutosave : public NetGameMsg {
+		SetBBBAutosave() : NetGameMsg(MessageType::Game::SET_BBB_AUTOSAVE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		std::string lxfmlDataCompressed{}; // u32 byte count, then the bytes
+	};
+
+	// Server -> client. How many unfinished (autosaved) models the server rebuilt into models; the client shows
+	// BBB_AUTOSAVE_REBUILDING_SINGLE or _MULTIPLE (LWOBBBComponent_Client::msgRebuildBBBAutosaveMsg, 0x00cfabd0).
+	struct RebuildBBBAutosaveMsg : public NetGameMsg {
+		RebuildBBBAutosaveMsg() : NetGameMsg(MessageType::Game::REBUILD_BBB_AUTOSAVE_MSG) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		int32_t count{};
+	};
+
 	struct SetModelToBuild : public NetGameMsg {
 		SetModelToBuild() : NetGameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

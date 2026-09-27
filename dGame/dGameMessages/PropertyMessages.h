@@ -148,6 +148,12 @@ namespace GameMessages {
 		NiQuaternion rotation{ QuatUtils::IDENTITY }; // optional
 	};
 
+	// Server -> client. No payload. Makes the client ask for the property's models again (PropertyContentsFromClient);
+	// a live server sent it after a brick by brick save and after placing a model.
+	struct RequeryPropertyModels : public NetGameMsg {
+		RequeryPropertyModels() : NetGameMsg(MessageType::Game::REQUERY_PROPERTY_MODELS) {}
+	};
+
 	// Server -> client. Sent with id HANDLE_UGC_POST_CREATE_BASED_ON_EDIT_MODE (1301), which the client names
 	// HandleUGCEquipPreCreateBasedOnEditMode.
 	struct HandleUGCEquipPreCreateBasedOnEditMode : public NetGameMsg {

@@ -171,6 +171,10 @@ namespace GameMessages {
 		MoveInventoryBatch() : NetGameMsg(MessageType::Game::MOVE_INVENTORY_BATCH) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
+		// Client -> server: brick by brick moving bricks between BRICKS and BRICKS_IN_BBB. The client has already taken
+		// them out of srcBag (LWOInventoryComponent_Common::msgMoveInventoryBatch, 0x00ce1310) and waits for
+		// AddItemToInventoryClientSync for dstBag.
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 
 		bool bAllowPartial{};
 		bool bOutSuccess{};

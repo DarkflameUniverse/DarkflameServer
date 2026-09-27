@@ -29,6 +29,7 @@
 #include "PropertyManagementComponent.h"
 #include "Sd0.h"
 #include "ScriptComponent.h"
+#include "BrickByBrick.h"
 #include "User.h"
 #include "UserManager.h"
 
@@ -217,31 +218,14 @@ namespace GameMessages {
 		InventoryComponent* inv = static_cast<InventoryComponent*>(character->GetComponent(eReplicaComponentType::INVENTORY));
 		if (!inv) return;
 
-		if (PropertyManagementComponent::Instance() != nullptr) {
-			const auto& buildAreas = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::BUILD_BORDER);
-
-			const auto& entities = Game::entityManager->GetEntitiesInGroup("PropertyPlaque");
-
-			Entity* buildArea;
-
-			if (!buildAreas.empty()) {
-				buildArea = buildAreas[0];
-			} else if (!entities.empty()) {
-				buildArea = entities[0];
-
-				LOG("Using PropertyPlaque");
-			} else {
-				LOG("No build area found");
-
-				return;
-			}
-
-			LOG("Build area found: %llu", buildArea->GetObjectID());
-
+		// Picking something new to build or arrange (a brick for a new model, a placed model to take apart) starts
+		// arranging again; the build area is the subject, as for StartBuildingWithItem. Leaving (newSourceType 0) gets
+		// no answer, as on live.
+		if (PropertyManagementComponent::Instance() != nullptr && newSourceType != 0) {
 			StartArrangingWithItem arranging;
 			arranging.target = character->GetObjectID();
 			arranging.firstTime = false;
-			arranging.buildAreaID = buildArea->GetObjectID();
+			arranging.buildAreaID = entity.GetObjectID();
 			arranging.buildStartPos = character->GetPosition();
 			arranging.sourceBag = newSourceBag;
 			arranging.sourceID = newSourceID;
@@ -462,7 +446,7 @@ namespace GameMessages {
 		SetBuildModeConfirmed confirmed;
 		confirmed.target = entity.GetObjectID();
 		confirmed.start = start;
-		confirmed.warnVisitors = false;
+		confirmed.warnVisitors = !start; // as a live server answered: false going in, true coming out
 		confirmed.modePaused = modePaused;
 		confirmed.modeValue = modeValue;
 		confirmed.playerId = playerId;
@@ -523,23 +507,7 @@ namespace GameMessages {
 	}
 
 	void UnUseBBBModel::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		auto* inventoryComponent = entity.GetComponent<InventoryComponent>();
-		if (inventoryComponent) {
-			auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
-			auto* item = inventory->FindItemById(modelID);
-			if (item) {
-				inventoryComponent->MoveItemToInventory(item, eInventoryType::MODELS, 1);
-			} else {
-				LOG("item id %llu not found in MODELS_IN_BBB inventory, likely because it does not exist", modelID);
-			}
-		}
-
-		if (bHasWorldTransform) {
-			ClientPackets::BlueprintSaveResponse response;
-			response.localId = LWOOBJID_EMPTY; //always zero so that a check on the client passes
-			response.reasonCode = eBlueprintSaveResponseType::PlacementFailed; // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
-			response.Send(sysAddr);
-		}
+		BrickByBrick::ReturnModel(entity, modelID, bHasWorldTransform, worldPos, worldRot);
 	}
 
 	void BBBLoadItemRequest::Serialize(RakNet::BitStream& bitStream) const {
@@ -552,34 +520,14 @@ namespace GameMessages {
 	}
 
 	void BBBLoadItemRequest::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		const LWOOBJID previousItemID = itemID;
+		const auto movedId = BrickByBrick::LoadModel(entity, itemID);
 
-		LOG("Load item request for: %lld", previousItemID);
-		LWOOBJID newId = previousItemID;
-		auto* inventoryComponent = entity.GetComponent<InventoryComponent>();
-		if (inventoryComponent) {
-			auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS);
-			auto* itemToMove = inventory->FindItemById(previousItemID);
-
-			if (itemToMove) {
-				LOT previousLot = itemToMove->GetLot();
-				inventoryComponent->MoveItemToInventory(itemToMove, eInventoryType::MODELS_IN_BBB, 1, false);
-
-				auto* destinationInventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
-				if (destinationInventory) {
-					auto* movedItem = destinationInventory->FindItemByLot(previousLot);
-					if (movedItem) newId = movedItem->GetId();
-				}
-			} else {
-				LOG("item id %llu not found in MODELS inventory, likely because it does not exist", previousItemID);
-			}
-		}
-
-		// Second argument always true (successful) for now
+		// A live server answered with the same id: the item keeps it in MODELS_IN_BBB. Without the model the client
+		// shows BBB_ERROR_LOADING_BLUEPRINT and drops the load (0x00b75bb0).
 		ClientPackets::BlueprintLoadItemResponse response;
-		response.success = true;
-		response.itemId = previousItemID;
-		response.destItemId = newId;
+		response.success = movedId != LWOOBJID_EMPTY;
+		response.itemId = itemID;
+		response.destItemId = movedId != LWOOBJID_EMPTY ? movedId : itemID;
 		response.Send(sysAddr);
 	}
 
@@ -604,129 +552,53 @@ namespace GameMessages {
 	}
 
 	void BBBSaveRequest::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		/*
-			On DLU we had agreed that bricks wouldn't be taken anyway, but if your server decides otherwise, feel free to
-			comment this back out and add the needed code to get the bricks used from lxfml and take them from the inventory.
+		BrickByBrick::Save(entity, localID, lxfmlDataCompressed);
+	}
 
-			Note, in the live client it'll still display the bricks going out as they're being used, but on relog/world change,
-			they reappear as we didn't take them.
+	void ActivateBrickMode::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteOptional(bitStream, buildObjectID, LWOOBJID_EMPTY);
+		BitStreamUtils::WriteOptional(bitStream, buildType, 2);
+		bitStream.Write(enterBuildFromWorld);
+		bitStream.Write(enterFlag);
+	}
 
-			TODO Apparently the bricks are supposed to be taken via MoveInventoryBatch?
-		*/
+	bool ActivateBrickMode::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, buildObjectID, LWOOBJID_EMPTY));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, buildType, 2));
+		VALIDATE_READ(bitStream.Read(enterBuildFromWorld));
+		VALIDATE_READ(bitStream.Read(enterFlag));
+		return true;
+	}
 
-		//Now, the cave of dragons:
+	void ActivateBrickMode::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		if (!enterFlag) BrickByBrick::EndSession(entity);
+	}
 
-		//We need to get a new ID for our model first:
-		if (!entity.GetCharacter() || !entity.GetCharacter()->GetParentUser()) return;
+	void SetBBBAutosave::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint32_t>(lxfmlDataCompressed.size());
+		if (!lxfmlDataCompressed.empty()) bitStream.Write(lxfmlDataCompressed.data(), lxfmlDataCompressed.size());
+	}
 
-		//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
-		const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
+	bool SetBBBAutosave::Deserialize(RakNet::BitStream& bitStream) {
+		uint32_t size{};
+		VALIDATE_READ(bitStream.Read(size));
+		if (static_cast<uint64_t>(size) * 8 > bitStream.GetNumberOfUnreadBits()) return false;
+		lxfmlDataCompressed.resize(size);
+		if (size != 0) VALIDATE_READ(bitStream.Read(lxfmlDataCompressed.data(), size));
+		return true;
+	}
 
-		const auto zoneId = worldId.GetMapID();
-		const auto cloneId = worldId.GetCloneID();
+	void SetBBBAutosave::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		BrickByBrick::Autosave(entity, lxfmlDataCompressed);
+	}
 
-		auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
-		LWOOBJID propertyId = LWOOBJID_EMPTY;
-		if (propertyInfo) propertyId = propertyInfo->id;
+	void RebuildBBBAutosaveMsg::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(count);
+	}
 
-		// Save the binary data to the Sd0 buffer
-		std::istringstream sd0DataStream(lxfmlDataCompressed);
-		Sd0 sd0(sd0DataStream);
-
-		// Uncompress the data, split, and nornmalize the model
-		const auto asStr = sd0.GetAsStringUncompressed();
-
-		if (Game::config->GetValue("save_lxfmls") == "1") {
-			// save using localId to avoid conflicts
-			std::ofstream outFile("debug_lxfml_uncompressed_" + std::to_string(localID) + ".lxfml");
-			outFile << asStr;
-			outFile.close();
-		}
-
-		auto splitLxfmls = Lxfml::Split(asStr);
-		LOG_DEBUG("Split into %zu models", splitLxfmls.size());
-
-		ClientPackets::BlueprintSaveResponse response;
-		response.localId = localID;
-		response.reasonCode = eBlueprintSaveResponseType::EverythingWorked;
-
-		std::vector<LWOOBJID> blueprintIDs;
-		std::vector<LWOOBJID> modelIDs;
-
-		for (size_t i = 0; i < splitLxfmls.size(); ++i) {
-			const auto [newID, blueprintID] = ObjectIDManager::GetNewModelIDs();
-
-			blueprintIDs.push_back(blueprintID);
-			modelIDs.push_back(newID);
-
-			// Save each model to the database
-			sd0.FromData(reinterpret_cast<const uint8_t*>(splitLxfmls[i].lxfml.data()), splitLxfmls[i].lxfml.size());
-			auto sd0AsStream = sd0.GetAsStream();
-			Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintID, entity.GetCharacter()->GetParentUser()->GetAccountID(), entity.GetCharacter()->GetID());
-
-			// Insert the new property model
-			IPropertyContents::Model model;
-			model.id = newID;
-			model.ugcId = blueprintID;
-			model.position = splitLxfmls[i].center;
-			model.rotation = QuatUtils::IDENTITY;
-			model.lot = 14;
-			Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
-			DashboardNotify::Changed("properties", propertyId);
-
-			/*
-				Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
-				(or you uncomment the lxfml decomp stuff above)
-			*/
-
-			// Send off to UGC for processing, if enabled:
-			// if (Game::config->GetValue("ugc_remote") == "1") {
-			// 	std::string ugcIP = Game::config->GetValue("ugc_ip");
-			// 	int ugcPort = std::stoi(Game::config->GetValue("ugc_port"));
-
-			// 	httplib::Client cli(ugcIP, ugcPort); //connect to UGC HTTP server using our config above ^
-
-			// 	//Send out a request:
-			// 	std::string request = "/3dservices/UGCC150/150" + std::to_string(blueprintID) + ".lxfml";
-			// 	cli.Put(request.c_str(), lxfml.c_str(), "text/lxfml");
-
-			// 	//When the "put" above returns, it means that the UGC HTTP server is done processing our model &
-			// 	//the nif, hkx and checksum files are ready to be downloaded from cache.
-			// }
-
-			// Write the ID and data to the response packet
-			auto& responseModel = response.models.emplace_back();
-			responseModel.blueprintId = blueprintID;
-			for (const auto& chunk : sd0.GetAsVector()) responseModel.data.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
-		}
-
-		response.Send(sysAddr);
-
-		// Create entities for each model
-		for (size_t i = 0; i < splitLxfmls.size(); ++i) {
-			EntityInfo info;
-			info.lot = 14;
-			info.pos = splitLxfmls[i].center;
-			info.rot = QuatUtils::IDENTITY;
-			info.spawner = nullptr;
-			info.spawnerID = entity.GetObjectID();
-			info.spawnerNodeID = 0;
-
-			info.settings.Insert<LWOOBJID>(u"blueprintid", blueprintIDs[i]);
-			info.settings.Insert<int>(u"componentWhitelist", 1);
-			info.settings.Insert<int>(u"modelType", 2);
-			info.settings.Insert<bool>(u"propertyObjectID", true);
-			info.settings.Insert<LWOOBJID>(u"userModelID", modelIDs[i]);
-			Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-			if (newEntity) {
-				Game::entityManager->ConstructEntity(newEntity);
-
-				//Make sure the propMgmt doesn't delete our model after the server dies
-				//Trying to do this after the entity is constructed. Shouldn't really change anything but
-				//there was an issue with builds not appearing since it was placed above ConstructEntity.
-				PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), modelIDs[i]);
-			}
-		}
+	bool RebuildBBBAutosaveMsg::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(count));
+		return true;
 	}
 
 	void SetModelToBuild::Serialize(RakNet::BitStream& bitStream) const {

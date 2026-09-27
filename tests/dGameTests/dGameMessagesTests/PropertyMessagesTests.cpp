@@ -619,3 +619,9 @@ TEST_F(PropertyMessagesTests, GoldenBytes) {
 	enter.index = -1;
 	EXPECT_PACKET_EQ(FromHex("ff ff ff ff 80", 33), Payload(enter));
 }
+
+// A live server's RequeryPropertyModels (after a brick by brick save) had no payload
+TEST_F(PropertyMessagesTests, RequeryPropertyModelsHasNoPayload) {
+	GameMessages::RequeryPropertyModels requery;
+	EXPECT_EQ(Payload(requery).bits, 0u);
+}

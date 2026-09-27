@@ -1,4 +1,5 @@
 #include "InventoryComponent.h"
+#include "BrickByBrick.h"
 #include "Contraband.h"
 #include "EconomyLedger.h"
 
@@ -663,6 +664,9 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 
 		bag->QueryAttribute("t", &type);
 
+		// A build in progress does not survive a reload: what was in the BBB inventories is back in MODELS and BRICKS
+		const auto savedType = type;
+		type = BrickByBrick::InventoryToLoadInto(type);
 		auto* inventory = GetInventory(static_cast<eInventoryType>(type));
 
 		if (inventory == nullptr) {
@@ -695,6 +699,12 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
+
+			if (savedType != type && !inventory->IsSlotEmpty(slot)) {
+				const auto freeSlot = inventory->FindEmptySlot();
+				if (freeSlot == -1) inventory->SetSize(inventory->GetSize() + 1);
+				slot = freeSlot != -1 ? freeSlot : inventory->FindEmptySlot();
+			}
 
 			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
@@ -740,7 +750,9 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 	for (const auto& pair : this->m_Inventories) {
 		auto* inventory = pair.second;
 
-		static const auto EXCLUDED_INVENTORIES = { VENDOR_BUYBACK, MODELS_IN_BBB, ITEM_SETS };
+		// MODELS_IN_BBB is saved so a model open in brick by brick building survives a disconnect or a crash; it loads
+		// back into MODELS (BrickByBrick::InventoryToLoadInto)
+		static const auto EXCLUDED_INVENTORIES = { VENDOR_BUYBACK, ITEM_SETS };
 		if (std::ranges::find(EXCLUDED_INVENTORIES, inventory->GetType()) != EXCLUDED_INVENTORIES.end()) {
 			continue;
 		}
@@ -1438,7 +1450,7 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocati
 
 
 bool InventoryComponent::IsTransferInventory(eInventoryType type, bool includeVault) {
-	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
+	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB || type == BRICKS_IN_BBB;
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {

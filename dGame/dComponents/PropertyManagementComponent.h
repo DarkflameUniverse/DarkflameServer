@@ -5,6 +5,9 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "LDFFormat.h"
+
+class Item;
 
 /**
  * Main component that handles interactions with a property, generally the plaques you see on properties.
@@ -111,6 +114,23 @@ public:
 	 * @param deleteReason the reason of the deletion, e.g. picked up or destroyed (in case of UGC)
 	 */
 	void DeleteModel(LWOOBJID id, int deleteReason);
+
+	/**
+	 * Spawns a model on the property and records it in the property's models (not yet saved)
+	 * @param lot the model object's LOT (14 for a brick built model)
+	 * @param modelId the model's id in properties_contents (its UGID)
+	 * @param config extra config for the model object
+	 */
+	Entity* SpawnModel(LOT lot, LWOOBJID modelId, const NiPoint3& position, const NiQuaternion& rotation, const LwoNameValue& config);
+
+	/**
+	 * Places a model item on the property, uses the item up and saves the property
+	 * @return the placed model's id, or LWOOBJID_EMPTY if it could not be placed
+	 */
+	LWOOBJID PlaceModelFromItem(Item& item, const NiPoint3& position, const NiQuaternion& rotation);
+
+	// GetModelsOnProperty with every model on the property
+	void SendModelsOnProperty() const;
 
 	/**
 	 * Updates whether or not this property is approved by a moderator

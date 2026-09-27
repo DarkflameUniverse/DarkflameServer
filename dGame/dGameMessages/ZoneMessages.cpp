@@ -16,6 +16,7 @@
 #include "LevelProgressionComponent.h"
 #include "RacingControlComponent.h"
 #include "WorldMigration.h"
+#include "BrickByBrick.h"
 #include "dConfig.h"
 #include "dZoneManager.h"
 #include "eReplicaComponentType.h"
@@ -117,6 +118,10 @@ namespace GameMessages {
 
 		// Moved here from another instance: put back what their save doesn't keep (the pet that was out)
 		WorldMigration::OnPlayerLoaded(entity);
+
+		// A brick by brick build that ended without a save (disconnect, crash): rebuild the autosave or give back the
+		// models that were open
+		BrickByBrick::OnPlayerLoaded(*entity);
 
 		LOG("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 

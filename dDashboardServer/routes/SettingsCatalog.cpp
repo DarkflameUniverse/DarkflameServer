@@ -144,6 +144,7 @@ namespace {
 		c.Add(Format(Text(SHARED, "dump_folder", "Crash dump folder", "Where crash logs go. Empty turns them off.", "", true), eFormat::PATH));
 		c.Add(Bool(WORLD, "generate_dump", "Crash dumps from world servers", "Write a dump when a world server crashes (needs the crash dump folder).", false, true));
 		c.Add(Bool(WORLD, "save_lxfmls", "Save model files", "Save players' models (LXFML) to disk before they are split, for debugging.", false));
+		c.Add(Bool(WORLD, "bbb_consume_bricks", "Brick building uses bricks", "Saving a brick by brick model uses up the bricks in it, as live did. Off: the bricks go back to the backpack.", false));
 		c.Add(Bool(SHARED, "dont_generate_dcf", "Don't build the chat filter file", "Skip compiling the chat word list to a file.", false, true));
 
 		c.AddSection("Chat web API", "A small HTTP API on the chat server, on localhost only.");

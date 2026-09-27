@@ -11,6 +11,7 @@ set(DGAMETEST_SOURCES
 	"CollisionFilterTests.cpp"
 	"ItemSetPassiveAbilityTests.cpp"
 	"PowerUpStatisticTests.cpp"
+	"BrickByBrickTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)
