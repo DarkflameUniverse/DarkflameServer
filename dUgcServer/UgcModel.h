@@ -46,6 +46,7 @@ namespace UgcModel {
 		Mesh opaque;
 		Mesh transparent;
 		std::vector<uint32_t> missingDesigns; // designs without geometry in the client, skipped
+		std::vector<size_t> transparentBricks; // where each transparent brick's triangles start in transparent.indices
 		size_t bricks{};
 
 		bool Empty() const { return opaque.Empty() && transparent.Empty(); }
@@ -98,6 +99,9 @@ namespace UgcModel {
 
 	// A client .nif's meshes as one model (vertex colors times material color; transparent when blended)
 	Model FromNif(const NifFile::Model& nif);
+
+	// The mesh cut into pieces at these index offsets (each piece's triangles start at one), e.g. one per brick
+	std::vector<Mesh> SplitAt(const Mesh& mesh, const std::vector<size_t>& starts);
 
 	// Keeps the triangles whose flag is set (and the vertices they use)
 	void KeepTriangles(Mesh& mesh, const std::vector<bool>& keep);

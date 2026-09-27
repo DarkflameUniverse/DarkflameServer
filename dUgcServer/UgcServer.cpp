@@ -80,6 +80,7 @@ namespace {
 		settings.lodDistances.lod3 = Setting<float>("lod_distance_3", 280.0f);
 		settings.lodDistances.cull = Setting<float>("lod_cull", 10000.0f);
 		if (!Game::config->GetValue("shader_opaque").empty()) settings.shaderOpaque = Game::config->GetValue("shader_opaque");
+		settings.combineTransparent = Setting<int32_t>("combine_transparent", 0) != 0;
 		settings.optimize.removeHidden = Setting<int32_t>("remove_hidden_faces", 1) != 0;
 		settings.optimize.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
 		settings.optimize.resolution = Setting<int32_t>("optimize_resolution", 1024);

@@ -204,6 +204,7 @@ namespace UgcModel {
 				transparent = transparent && (luToolbox ? UgcPalette::IsTransparent(materialOf(index)) : library.GetMaterial(id).Transparent());
 			}
 			auto& mesh = transparent ? model.transparent : model.opaque;
+			if (transparent) model.transparentBricks.push_back(mesh.indices.size());
 			const glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(part.transform)));
 			for (size_t index = 0; index < design->size(); index++) {
 				const auto& geometry = (*design)[index];
@@ -315,6 +316,30 @@ namespace UgcModel {
 			(source.material.alphaBlend ? model.transparent : model.opaque).Append(mesh);
 		}
 		return model;
+	}
+
+	std::vector<Mesh> SplitAt(const Mesh& mesh, const std::vector<size_t>& starts) {
+		std::vector<Mesh> pieces;
+		std::unordered_map<uint32_t, uint32_t> remap;
+		for (size_t i = 0; i < starts.size(); i++) {
+			const size_t first = starts[i], last = std::min(i + 1 < starts.size() ? starts[i + 1] : mesh.indices.size(), mesh.indices.size());
+			if (first >= last) continue;
+			Mesh piece;
+			remap.clear();
+			for (size_t k = first; k < last; k++) {
+				const auto source = mesh.indices[k];
+				auto [it, added] = remap.try_emplace(source, static_cast<uint32_t>(piece.positions.size()));
+				if (added) {
+					piece.positions.push_back(mesh.positions[source]);
+					if (source < mesh.normals.size()) piece.normals.push_back(mesh.normals[source]);
+					if (source < mesh.colors.size()) piece.colors.push_back(mesh.colors[source]);
+					if (source < mesh.glow.size()) piece.glow.push_back(mesh.glow[source]);
+				}
+				piece.indices.push_back(it->second);
+			}
+			pieces.push_back(std::move(piece));
+		}
+		return pieces;
 	}
 
 	void KeepTriangles(Mesh& mesh, const std::vector<bool>& keep) {

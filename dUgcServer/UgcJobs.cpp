@@ -154,7 +154,7 @@ namespace UgcJobs {
 			entry["opaqueAfter"] = model.opaque.TriangleCount();
 			entry["vertices"] = model.opaque.positions.size() + model.transparent.positions.size();
 			opaquePieces.push_back(UgcModel::Divide(model.opaque));
-			transparentPieces.push_back(UgcModel::Divide(model.transparent));
+			transparentPieces.push_back(settings.combineTransparent ? UgcModel::Divide(model.transparent) : UgcModel::SplitAt(model.transparent, model.transparentBricks));
 			entry["shapes"] = opaquePieces.back().size() + transparentPieces.back().size();
 			lodStats.push_back(entry);
 		}
@@ -181,7 +181,7 @@ namespace UgcJobs {
 		AddDownload(outcome.files, "model.nif", nif);
 		AddDownload(outcome.files, "model.lxfml", lxfml);
 		{
-			const std::vector<std::vector<UgcModel::Mesh>> opaque{ UgcModel::Divide(preview.opaque) }, transparent{ UgcModel::Divide(preview.transparent) };
+			const std::vector<std::vector<UgcModel::Mesh>> opaque{ UgcModel::Divide(preview.opaque) }, transparent{ transparentPieces[0] };
 			outcome.files["model.noao.nif"] = UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent));
 		}
 

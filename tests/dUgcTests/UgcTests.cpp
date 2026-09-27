@@ -375,6 +375,7 @@ TEST(UgcModel, ColorsLikeLuToolbox) {
 	plain.colorVariation = 0.0f;
 	const auto flat = UgcModel::Build(parts, library, plain);
 	EXPECT_EQ(flat.transparent.TriangleCount(), 12u); // only the all-transparent brick
+	EXPECT_EQ(flat.transparentBricks, std::vector<size_t>{ 0 });
 	EXPECT_EQ(flat.opaque.TriangleCount(), 60u);
 	EXPECT_NEAR(flat.opaque.colors[0].r * 255.0f, 222.0f, 0.5f);
 	EXPECT_FLOAT_EQ(flat.opaque.colors[0].a, 1.0f);
@@ -445,6 +446,22 @@ TEST(UgcModel, DividesAlongTheLongestSide) {
 		EXPECT_EQ(piece.TriangleCount(), 38u);
 	}
 	EXPECT_EQ(UgcModel::Divide(mesh, 100, 1000).size(), 1u);
+}
+
+TEST(UgcModel, SplitsTransparentBricksApart) {
+	// Two boxes in one mesh, one shape each (LU Toolbox leaves transparent bricks uncombined)
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	std::string error;
+	const auto model = UgcModel::Build(UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3001" materials="40"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="43"><Bone transformation="1,0,0,0,1,0,0,0,1,5,0,0"/></Part></Brick>
+		</Bricks></LXFML>)", error), library);
+	ASSERT_EQ(model.transparentBricks.size(), 2u);
+	const auto pieces = UgcModel::SplitAt(model.transparent, model.transparentBricks);
+	ASSERT_EQ(pieces.size(), 2u);
+	EXPECT_EQ(pieces[0].positions.size(), 8u);
+	EXPECT_EQ(pieces[1].TriangleCount(), 12u);
+	EXPECT_NEAR(pieces[1].positions[0].x, 5.0f, 1e-5f);
 }
 
 TEST(UgcFormats, LodNifReadsBack) {

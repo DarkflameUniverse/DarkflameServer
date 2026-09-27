@@ -24,6 +24,7 @@ namespace UgcJobs {
 		std::vector<uint32_t> lods{ 0, 2 };    // brickprimitives levels made (LU Toolbox imports LOD 0 and 2; the client has no 3)
 		UgcModel::LodDistances lodDistances;
 		std::string shaderOpaque{ "01" };      // S<shader>_Opaque_...; transparent shapes are always S01
+		bool combineTransparent{ false };      // one shape for all transparent bricks, else one per brick (Combine Transparent)
 		UgcRender::OptimizeOptions optimize;   // hidden surface removal
 		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
 		UgcRender::IconOptions icon;
