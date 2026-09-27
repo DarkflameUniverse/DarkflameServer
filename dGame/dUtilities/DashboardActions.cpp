@@ -29,6 +29,7 @@
 #include "dChatFilter.h"
 #include "MissionComponent.h"
 #include "Mission.h"
+#include "Contraband.h"
 #include "LiveEvents.h"
 
 namespace {
@@ -293,6 +294,8 @@ uint32_t DashboardActions::Apply(const PlayerActionRequest& request) {
 		return ChangeMission(request.action, request.characterId, static_cast<uint32_t>(request.targetId), request.approved, request.text);
 	case ePlayerAction::RELOAD_LIVE_OPS:
 		return LiveEvents::Reload();
+	case ePlayerAction::RELOAD_CONTRABAND:
+		return Contraband::Reload();
 	}
 	return 0;
 }

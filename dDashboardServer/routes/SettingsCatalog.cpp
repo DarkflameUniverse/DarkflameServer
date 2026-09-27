@@ -342,6 +342,10 @@ namespace {
 		c.Add(Unit(Int(DASHBOARD, "anomaly_item_minimum", "Item spike: at least", "...and more than this many.", "200", 0, std::nullopt), "items"));
 		c.Add(Bool(DASHBOARD, "economy_duplicate_scan", "Nightly duplicate scan", "Reads every character's inventory.", true));
 
+		c.AddSection("Contraband", "Items on the Contraband page are flagged, or removed, when a character loads or receives one. The list itself is edited on that page.");
+		c.Add(Bool(WORLD, "contraband_ignore_staff", "Don't check staff", "Accounts with a GM level keep listed items and aren't flagged.", true));
+		c.Add(Bool(WORLD, "contraband_notify_players", "Tell players", "A mail (at login) or a chat message (when received) says which item was removed and why.", true));
+
 		c.AddSection("Backups");
 		c.Add(Format(Text(DASHBOARD, "backup_folder", "Backup folder", "Relative to the server binaries unless absolute.", "backups"), eFormat::PATH));
 		c.Add(Unit(Int(DASHBOARD, "backup_keep", "Backups to keep", "Older backups are deleted after each new one. 0 keeps them all.", "7", 0, 1000), "backups"));

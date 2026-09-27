@@ -99,6 +99,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::Challenge, id, title, description, 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::ChallengeTotal, total, contributors);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::Reward, challengeId, characterId, amount, coins, rewardedAt, claimedAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IFeaturedProperties::FeaturedSlot, templateId, mode, propertyId, updatedAt, updatedBy, zoneId);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IContraband::ContrabandItem, lot, reason, action, addedBy, addedAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IFeaturedProperties::FeaturedSettings, fullAuto, updatedAt, updatedBy);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IMessageCaptures::MessageCaptureSession, id, characterId, characterName, accountId, accountName, startedById, startedBy, startedAt, endsAt, endedAt, endReason, toServer, toClient, onlyMessages, skipMessages, zoneId, instanceId, cloneId, zones, messageCount, byteCount, dropped);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IMessageCaptures::MessageCaptureRecord, sessionId, seq, timeMs, direction, messageId, objectId, bits, droppedBefore, zoneId, instanceId, cloneId, payload, decoded);
@@ -1392,6 +1393,22 @@ TEST_F(ParitySeeded, FeaturedProperties) {
 	Both("SetFeaturedPropertiesSettings replaces", [](GameDatabase& db) {
 		db.SetFeaturedPropertiesSettings({ false, 1700000600, "admin" });
 		return db.GetFeaturedPropertiesSettings();
+	});
+}
+
+TEST_F(ParitySeeded, Contraband) {
+	Both("GetContrabandItems empty", [](GameDatabase& db) { return db.GetContrabandItems(); });
+	Both("SetContrabandItem", [](GameDatabase& db) {
+		db.SetContrabandItem({ 14128, "Atlantis Squid Helm", IContraband::eContrabandAction::REMOVE, "admin", 1700000000 });
+		db.SetContrabandItem({ 6655, "Stig's Helmet", IContraband::eContrabandAction::FLAG, "admin", 1700000001 });
+		db.SetContrabandItem({ 6655, "changed", IContraband::eContrabandAction::REMOVE, "mod", 1700000002 });
+		return db.GetContrabandItems();
+	});
+	Both("DeleteContrabandItem", [](GameDatabase& db) { return json{ db.DeleteContrabandItem(14128), db.DeleteContrabandItem(14128), db.GetContrabandItems() }; });
+	Both("Contraband economy flag", [](GameDatabase& db) {
+		const bool first = db.InsertEconomyFlag({ 0, IDashboardAdmin::eFlagKind::CONTRABAND, CHAR_BOB, 6655, 1152921510000300001LL, 1, 1, "Removed at login" });
+		const bool again = db.InsertEconomyFlag({ 0, IDashboardAdmin::eFlagKind::CONTRABAND, CHAR_BOB, 6655, 1152921510000300001LL, 1, 1, "Removed at login" });
+		return json{ first, again, db.GetEconomyFlagsFor(CHAR_BOB, 5).size() };
 	});
 }
 

@@ -35,6 +35,7 @@ enum class ePlayerAction : uint8_t {
 	MISSION_RESET,      // as /resetmission
 	MISSION_ACCEPT,     // as /addmission (prerequisites are skipped)
 	RELOAD_LIVE_OPS,    // load the running live events and open challenges again (every world, answering 1 each; see LiveEvents.h)
+	RELOAD_CONTRABAND,  // load the contraband list again (every world, answering 1 each; see Contraband.h)
 };
 
 struct PlayerActionRequest : public LUBitStream {

@@ -1588,7 +1588,7 @@
 
 	// ---- Flags ----
 
-	var FLAG_KIND_COLOURS = { 1: 'warning', 2: 'info', 3: 'danger', 4: 'warning' };
+	var FLAG_KIND_COLOURS = { 1: 'warning', 2: 'info', 3: 'danger', 4: 'warning', 5: 'danger' };
 	var FLAG_STATUS_COLOURS = { 0: 'danger', 1: 'secondary', 2: 'success' };
 	function flagKindBadge(value) { return fmt.badge(Labels.name('flagKinds', value) || '?', FLAG_KIND_COLOURS[value] || 'secondary'); }
 	function flagStatusBadge(value) { return fmt.badge(Labels.name('flagStatus', value) || '?', FLAG_STATUS_COLOURS[value] || 'secondary'); }

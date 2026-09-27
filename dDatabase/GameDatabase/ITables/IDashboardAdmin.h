@@ -58,7 +58,10 @@ public:
 		DUPLICATE = 3,     // an object id exists in more than one place (day 0, so each item is flagged once)
 		// different items share an object id and the login migration will not separate them: the characters holding
 		// them already migrated, or a copy is in mail (day 0)
-		ID_COLLISION = 4
+		ID_COLLISION = 4,
+		// a character has an item on the contraband list (value: how many, baseline: 1 when it was removed). Found when
+		// the character loaded (day 0, one flag per item) or when the item was added (that day, item id 0)
+		CONTRABAND = 5
 	};
 
 	enum class eFlagStatus : uint8_t { OPEN = 0, DISMISSED = 1, ACTIONED = 2 };

@@ -1,4 +1,5 @@
 #include "InventoryComponent.h"
+#include "Contraband.h"
 #include "EconomyLedger.h"
 
 #include <sstream>
@@ -204,6 +205,8 @@ void InventoryComponent::AddItem(
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	}
 
+	Contraband::OnItemAdded(m_Parent, lot, count, lootSourceType, inventorySourceType);
+
 	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(eReplicaComponentType::MISSION));
 
 	auto* inventory = GetInventory(inventoryType);
@@ -336,6 +339,7 @@ ReceivedItem InventoryComponent::ReceiveItem(const LWOOBJID id, const LOT lot, c
 		addItem.showFlyingLoot = options.showFlyingLoot && !options.equip;
 		addItem.SendToClient(m_Parent->GetSystemAddress());
 		EconomyLedger::RecordItems(m_Parent, lot, count, static_cast<uint32_t>(lootSourceType));
+		Contraband::OnItemAdded(m_Parent, lot, count, lootSourceType, options.sourceInventory);
 		if (options.equip) {
 			item->Equip();
 			Game::entityManager->SerializeEntity(m_Parent);

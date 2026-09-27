@@ -1015,6 +1015,25 @@ only for collisions that logging in will not fix (both characters already migrat
 duplicate (the same item twice) is still flagged even when one copy is on an old save: the login gives it a new ID but
 keeps both copies, so check it before then.
 
+### Contraband
+
+The **Contraband** page (World & Economy; viewing needs `reports_view`, changing the list `contraband_manage`, GM 8)
+lists items players shouldn't have. Pick an item with the item search (or type its LOT), give a reason and choose
+what happens when a character has one:
+
+- **Flag**: an economy flag of kind *Contraband* is added (Economy & Map, Flags; and the character's related data),
+  to review like any other flag.
+- **Flag and remove**: the same flag, and the item is taken away.
+
+World servers check every inventory, the vault included, when a character loads (one flag per item), and every
+item a player receives from loot, trades, mail, vendors and so on (one flag per character, item and day). Moving an
+item between a player's own inventories doesn't count. Before removing items at login the world keeps a snapshot of
+the character (reason "before contraband removal"), so **Give back lost items** on the character page can return
+them if an item was listed by mistake; every removal is in the audit log as `contraband_removed`. Players get a mail
+(at login) or a chat message (when received) saying what was removed and why, unless `contraband_notify_players` is
+off. Staff accounts (GM level above 0) aren't checked unless `contraband_ignore_staff` is off. Every change to the
+list is audited and running worlds load it again straight away.
+
 ### Saved views and report emails
 
 On the Economy page, **Views** saves the current tab, range, staff toggle and item filter under a name, so you can go

@@ -215,6 +215,11 @@ public:
 	std::vector<ZoneLimit> GetZoneLimits() override;
 	void SetZoneLimit(const ZoneLimit& limit) override;
 	void DeleteZoneLimit(uint32_t zoneId) override;
+	// IContraband
+	std::vector<ContrabandItem> GetContrabandItems() override;
+	void SetContrabandItem(const ContrabandItem& item) override;
+	bool DeleteContrabandItem(LOT lot) override;
+
 	// IFeaturedProperties
 	std::vector<FeaturedSlot> GetFeaturedPropertySlots() override;
 	void SetFeaturedPropertySlot(const FeaturedSlot& slot) override;

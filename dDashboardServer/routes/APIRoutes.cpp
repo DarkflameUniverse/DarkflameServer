@@ -1425,25 +1425,27 @@ namespace {
 				}
 				char decoded[256]{};
 				mg_url_decode(query.c_str(), query.size(), decoded, sizeof(decoded), 1);
-				query = decoded;
-
-				auto stmt = CDClientDatabase::CreatePreppedStmt(
-					"SELECT id, name, displayName FROM Objects WHERE type = 'Loot' AND (name LIKE '%' || ? || '%' OR displayName LIKE '%' || ? || '%' OR id = ?) "
-					"ORDER BY name LIMIT 50;");
-				stmt.bind(1, query.c_str());
-				stmt.bind(2, query.c_str());
-				stmt.bind(3, GeneralUtils::TryParse<int>(query).value_or(-1));
-				auto result = stmt.execQuery();
-
-				nlohmann::json items = nlohmann::json::array();
-				while (!result.eof()) {
-					const std::string displayName = result.getStringField("displayName", "");
-					items.push_back({ {"lot", result.getIntField("id")}, {"name", displayName.empty() ? result.getStringField("name") : displayName} });
-					result.nextRow();
-				}
-				JsonReply(reply, eHTTPStatusCode::OK, items);
+				JsonReply(reply, eHTTPStatusCode::OK, SearchItems(decoded));
 			});
 	}
+}
+
+nlohmann::json SearchItems(const std::string& query) {
+	auto stmt = CDClientDatabase::CreatePreppedStmt(
+		"SELECT id, name, displayName FROM Objects WHERE type = 'Loot' AND (name LIKE '%' || ? || '%' OR displayName LIKE '%' || ? || '%' OR id = ?) "
+		"ORDER BY name LIMIT 50;");
+	stmt.bind(1, query.c_str());
+	stmt.bind(2, query.c_str());
+	stmt.bind(3, GeneralUtils::TryParse<int>(query).value_or(-1));
+	auto result = stmt.execQuery();
+
+	nlohmann::json items = nlohmann::json::array();
+	while (!result.eof()) {
+		const std::string displayName = result.getStringField("displayName", "");
+		items.push_back({ {"lot", result.getIntField("id")}, {"name", displayName.empty() ? result.getStringField("name") : displayName} });
+		result.nextRow();
+	}
+	return items;
 }
 
 // For the property showcase (Showcase.cpp), which serves the same model data to people who aren't the owner

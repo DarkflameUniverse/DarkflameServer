@@ -1,0 +1,42 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Contraband - DarkflameServer{% endblock %}
+
+{% block content %}
+<div id="contrabandPage">
+	<div class="mb-3">
+		<h2 class="mb-1">Contraband</h2>
+		<p class="text-body-secondary mb-0">Items players shouldn't have. World servers check every inventory (vault included) when a character loads,
+			and every item a player receives. <strong>Flag</strong> adds an economy flag for staff to review; <strong>Remove</strong> flags it and takes the
+			item away (a snapshot of the character is kept first, so it can be given back from the character page). Staff accounts aren't checked unless
+			<code>contraband_ignore_staff</code> is off. Running worlds pick up changes straight away.
+			Flags found: <a href="/reports#flags">Economy &amp; Map, Flags</a>.</p>
+	</div>
+
+	<div class="card mb-3 d-none" id="addCard">
+		<div class="card-body">
+			<form class="row g-2 align-items-end" id="addForm">
+				<div class="col-md-4"><label class="form-label small mb-1" for="lotInput">Item</label>
+					<input class="form-control form-control-sm" id="lotInput" list="lotSuggestions" required autocomplete="off" placeholder="Name or LOT">
+					<datalist id="lotSuggestions"></datalist></div>
+				<div class="col-md-4"><label class="form-label small mb-1" for="reasonInput">Reason</label>
+					<input class="form-control form-control-sm" id="reasonInput" maxlength="300" placeholder="Shown to staff, and to the player if it's removed"></div>
+				<div class="col-md-2"><label class="form-label small mb-1" for="actionInput">When found</label>
+					<select class="form-select form-select-sm" id="actionInput"><option value="flag">Flag</option><option value="remove">Flag and remove</option></select></div>
+				<div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100">Save</button></div>
+			</form>
+		</div>
+	</div>
+
+	<div class="card">
+		<table class="table table-sm align-middle mb-0 table-stack">
+			<thead><tr><th>Item</th><th>Reason</th><th>When found</th><th>Added</th><th></th></tr></thead>
+			<tbody id="rows"></tbody>
+		</table>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/contraband.js"></script>
+{% endblock %}

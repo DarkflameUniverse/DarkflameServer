@@ -18,6 +18,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"ServerOperations.cpp"
 	"LiveOps.cpp"
 	"FeaturedProperties.cpp"
+	"Contraband.cpp"
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"RelatedData.cpp"
