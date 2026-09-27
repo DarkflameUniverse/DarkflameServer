@@ -161,7 +161,10 @@ namespace {
 		// The recording has no login: log in on the target with the replay's account (not compared)
 		bool Login() {
 			FakeClient client;
-			if (!client.Connect(m_Options.host, m_Options.authPort, 10s)) {
+			// Auth can take a moment to take connections after it first answers
+			bool connected = false;
+			for (int attempt = 0; attempt < 3 && !connected; attempt++) connected = client.Connect(m_Options.host, m_Options.authPort, 10s);
+			if (!connected) {
 				Stop("Can't connect to auth at " + m_Options.host + ":" + std::to_string(m_Options.authPort));
 				return false;
 			}
