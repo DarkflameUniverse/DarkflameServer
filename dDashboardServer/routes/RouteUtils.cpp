@@ -35,8 +35,12 @@ namespace RouteUtils {
 		std::vector<RouteDoc> g_RouteDocs;
 		int g_ReadRoutes = 0;
 
-		std::shared_ptr<RequireAuthMiddleware> MakeRequireAuth(std::shared_ptr<RequireAuthMiddleware> middleware) {
-			if (g_ReadRoutes > 0) middleware->SetReadsOnly();
+		bool Reads(eHTTPMethod method, const std::string& path) {
+			return method == eHTTPMethod::GET || g_ReadRoutes > 0 || (method == eHTTPMethod::POST && path.starts_with("/api/tables/"));
+		}
+
+		std::shared_ptr<RequireAuthMiddleware> MakeRequireAuth(std::shared_ptr<RequireAuthMiddleware> middleware, eHTTPMethod method, const std::string& path) {
+			if (Reads(method, path)) middleware->SetReadsOnly();
 			return middleware;
 		}
 	}
@@ -63,16 +67,16 @@ namespace RouteUtils {
 
 	void Route(eHTTPMethod method, const std::string& path, int16_t minGmLevel, const std::string& description, Handler handler) {
 		std::vector<MiddlewarePtr> middleware;
-		if (minGmLevel >= 0) middleware.push_back(MakeRequireAuth(std::make_shared<RequireAuthMiddleware>(static_cast<uint8_t>(minGmLevel))));
-		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, minGmLevel, description, "" });
+		if (minGmLevel >= 0) middleware.push_back(MakeRequireAuth(std::make_shared<RequireAuthMiddleware>(static_cast<uint8_t>(minGmLevel)), method, path));
+		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, minGmLevel, description, "", Reads(method, path) });
 		Register(method, path, std::move(middleware), std::move(handler));
 	}
 
 	void Route(eHTTPMethod method, const std::string& path, const Perm& permission, const std::string& description, Handler handler) {
 		if (!Permissions::Find(permission.key)) LOG("Route %s uses unknown permission %s; nobody can use it", path.c_str(), permission.key.c_str());
 		std::vector<MiddlewarePtr> middleware;
-		middleware.push_back(MakeRequireAuth(std::make_shared<RequireAuthMiddleware>(std::function<uint8_t()>([key = permission.key] { return Permissions::Level(key); }), permission.key)));
-		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, Permissions::Level(permission.key), description, permission.key });
+		middleware.push_back(MakeRequireAuth(std::make_shared<RequireAuthMiddleware>(std::function<uint8_t()>([key = permission.key] { return Permissions::Level(key); }), permission.key), method, path));
+		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, Permissions::Level(permission.key), description, permission.key, Reads(method, path) });
 		Register(method, path, std::move(middleware), std::move(handler));
 	}
 

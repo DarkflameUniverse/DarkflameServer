@@ -109,14 +109,13 @@ namespace {
 		if (!context.apiKey) return true;
 		const auto& key = *context.apiKey;
 		if (ApiKeyService::SessionOnlyPath(doc.path)) return false;
-		if (key.readOnly && doc.method != "GET") return false;
+		if (key.readOnly && !doc.reads) return false;
 		return doc.permission.empty() ? (doc.minGmLevel <= 0 || key.allPermissions) : key.Has(doc.permission);
 	}
 
 	// Register a DataTables endpoint. The fetcher returns the DB layer's JSON string. Access: a GM level or a Perm.
 	template<typename Access>
 	void TableRoute(const std::string& path, const Access& access, const std::string& description, TableFetcher fetcher) {
-		ReadRoutes reads; // the query is a POST body, but it only reads
 		Route(eHTTPMethod::POST, path, access, description, [fetcher = std::move(fetcher)](HTTPReply& reply, const HTTPContext& context) {
 			const auto request = ParseDataTablesRequest(context.body);
 			const auto body = ParseBody(context);

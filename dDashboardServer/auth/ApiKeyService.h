@@ -44,7 +44,8 @@ namespace ApiKeyService {
 	};
 	eResult Authenticate(const std::string& token, HTTPContext& context, HTTPReply& reply);
 
-	// For WebSocket connections: the owner and scope, without counting against the limits
+	// For WebSocket connections: the owner and scope, without counting against the limits. Keys limited to some
+	// addresses can't be used there (the address isn't known), nor keys whose allowed paths leave out /ws.
 	struct Verified {
 		uint32_t accountId{};
 		std::string username;

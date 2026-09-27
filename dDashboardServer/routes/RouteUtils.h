@@ -243,6 +243,7 @@ namespace RouteUtils {
 		int16_t minGmLevel;
 		std::string description;
 		std::string permission; // set for routes guarded by a permission; minGmLevel is then its level at the time
+		bool reads{};           // makes no changes (a GET, or a POST that only reads): read-only API keys may use it
 	};
 
 	// A named permission (Permissions.h) guarding a route; its GM level can be changed while the server runs
@@ -259,8 +260,8 @@ namespace RouteUtils {
 	void Route(eHTTPMethod method, const std::string& path, int16_t minGmLevel, const std::string& description, Handler handler);
 	void Route(eHTTPMethod method, const std::string& path, const Perm& permission, const std::string& description, Handler handler);
 
-	// Routes registered while one of these lives only read, even POSTs (DataTables and lookups send their query as a
-	// body), so read-only API keys may use them
+	// Routes registered while one of these lives only read, even POSTs (lookups that send their query as a body), so
+	// read-only API keys may use them. POST /api/tables/... (DataTables) always counts as a read.
 	struct ReadRoutes {
 		ReadRoutes();
 		~ReadRoutes();

@@ -279,7 +279,7 @@ namespace ApiKeyRoutes {
 
 		// Refusals of keys (their scope, read-only, addresses, paths, limits) go to the audit log, a minute apart at most
 		ApiKeyService::SetDeniedHook([](const HTTPContext& context, const std::string& reason) {
-			Audit(context, "api_key_denied", reason, AuditTarget::Account(context.accountId));
+			Audit(context, "api_key_denied", reason);
 		});
 		RequireAuthMiddleware::SetApiKeyDeniedHook([](const HTTPContext& context, const std::string& reason) { ApiKeyService::NoteDenied(context, reason); });
 		ApiKeyService::SetClientAddress([](const HTTPContext& context) { return ClientAddress(context); });

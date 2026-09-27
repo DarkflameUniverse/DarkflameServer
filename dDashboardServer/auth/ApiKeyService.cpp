@@ -206,6 +206,9 @@ namespace ApiKeyService {
 		std::lock_guard lock(state.mutex);
 		const auto& cached = Lookup(state, DashboardAuthService::Sha256Hex(token));
 		if (!cached.key) return std::nullopt;
+		// The WebSocket doesn't tell us the address, so a key limited to some addresses can't use it; one limited to
+		// some paths only if /ws is one of them
+		if (!cached.allowedIps.empty() || !ApiKeys::PathAllowed(cached.allowedPaths, "/ws")) return std::nullopt;
 		const auto owner = CheckKeyAndOwner(*cached.key);
 		if (!owner) return std::nullopt;
 		return Verified{ cached.key->accountId, owner->username, owner->gmLevel,
