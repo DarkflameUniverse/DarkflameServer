@@ -91,13 +91,12 @@ void Inventory::SetSize(const uint32_t value) {
 int32_t Inventory::FindEmptySlot() {
 	if (free <= 6) // Up from 1
 	{
-		if (type != ITEMS && type != VAULT_ITEMS && type != eInventoryType::VAULT_MODELS) {
+		// The buyback inventory keeps its size: selling to a full one drops the oldest item (VendorComponent::SellToVendor)
+		if (type != ITEMS && type != VAULT_ITEMS && type != eInventoryType::VAULT_MODELS && type != eInventoryType::VENDOR_BUYBACK) {
 			uint32_t newSize = size;
 
 			if (type == MODELS) {
 				newSize = 240;
-			} else if (type == eInventoryType::VENDOR_BUYBACK) {
-				newSize += 9u;
 			} else {
 				newSize += 10u;
 			}

@@ -15,6 +15,10 @@
 #include "CheatDetection.h"
 #include "VendorMessages.h"
 #include "Item.h"
+#include "EconomyLedger.h"
+
+#include <algorithm>
+#include <ranges>
 
 VendorComponent::VendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_HasStandardCostItems = false;
@@ -272,6 +276,7 @@ void VendorComponent::SellToVendor(Entity& player, const SystemAddress& sysAddr,
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
 	}
 
+	MakeRoomInBuyback(*inv, *item, static_cast<uint32_t>(std::max(count, 0)));
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
 	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::SELL_SUCCESS);
@@ -314,4 +319,33 @@ void VendorComponent::BuybackFromVendor(Entity& player, const SystemAddress& sys
 	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR);
 	//Game::entityManager->SerializeEntity(player); // so inventory updates
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_SUCCESS);
+}
+
+void VendorComponent::MakeRoomInBuyback(InventoryComponent& inventory, const Item& sold, const uint32_t count) {
+	auto* const buyback = inventory.GetInventory(eInventoryType::VENDOR_BUYBACK);
+	if (!buyback) return;
+
+	// No new slot is needed when all of it fits on buyback stacks of the same item
+	const auto lot = sold.GetLot();
+	const auto stackSize = sold.GetInfo().stackSize;
+	const bool mergeable = sold.GetSubKey() == LWOOBJID_EMPTY && sold.GetConfig().values.empty() && !InventoryComponent::IsUniqueLot(lot);
+	if (mergeable) {
+		uint64_t room = 0;
+		for (const auto* const item : buyback->GetItems() | std::views::values) {
+			if (item->GetLot() == lot && item->GetCount() < stackSize) room += stackSize - item->GetCount();
+		}
+		if (room >= count) return;
+	}
+
+	// Live kept 27 items (the buyback window's size) and dropped the oldest when a 28th was sold: a 2014 capture shows
+	// RemoveItemFromInventory for the first item sold, in the buyback inventory, just before the 28th sale's item was
+	// added. Each item gets a new, higher object ID when it is sold, so the oldest is the one with the lowest ID.
+	// The ledger counted these items as gone when they were sold
+	EconomyLedger::ScopedItemTransfer alreadyCounted;
+	while (buyback->GetItems().size() >= BUYBACK_SIZE) {
+		const auto items = buyback->GetItems().size();
+		const auto oldest = std::ranges::min_element(buyback->GetItems(), {}, [](const auto& entry) { return entry.first; });
+		oldest->second->SetCount(0, false, false, false, eLootSourceType::VENDOR);
+		if (buyback->GetItems().size() >= items) break; // not removed (an empty stack)
+	}
 }

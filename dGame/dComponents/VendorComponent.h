@@ -10,6 +10,8 @@
 #include "eReplicaComponentType.h"
 
 enum class eVendorTransactionResult : uint32_t;
+class InventoryComponent;
+class Item;
 
 struct SoldItem {
 	SoldItem(const LOT lot, const int32_t sortPriority) {
@@ -60,6 +62,13 @@ public:
 
 	// Sends a VendorTransactionResult targeting target to sysAddr only.
 	static void SendTransactionResult(LWOOBJID target, const SystemAddress& sysAddr, eVendorTransactionResult result);
+
+	// How many items the buyback inventory keeps (the vendor window's buyback page)
+	static constexpr size_t BUYBACK_SIZE = 27;
+
+	// Before count of sold go to the buyback inventory: drops the oldest buyback items while it is full and they need
+	// a slot of their own.
+	static void MakeRoomInBuyback(InventoryComponent& inventory, const Item& sold, uint32_t count);
 
 private:
 	void HandleMrReeCameras();
