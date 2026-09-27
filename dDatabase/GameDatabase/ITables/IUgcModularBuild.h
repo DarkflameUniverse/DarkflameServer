@@ -28,6 +28,15 @@ public:
 	virtual uint64_t ResetModularBuildProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) = 0;
 	virtual std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) = 0;
 	virtual std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetModularBuildProcessCounts() = 0;
+
+	// How many builds there are of each ldf_config as stored (the same modules may be written differently)
+	virtual std::vector<std::pair<std::string, uint64_t>> GetModularBuildConfigCounts() = 0;
+
+	// Icon settings (UgcIconParams JSON) set on the dashboard for a target: "kind:<kind>" (a preset for player models or
+	// a car or rocket build type), "model:<id>" or "combo:<modules key>" (one item's or combination's own)
+	virtual std::optional<std::string> GetUgcIconSettings(const std::string_view target) = 0;
+	virtual void SetUgcIconSettings(const std::string_view target, const std::string_view params) = 0;
+	virtual void DeleteUgcIconSettings(const std::string_view target) = 0;
 };
 
 #endif  //!IUGCMODULARBUILD_H

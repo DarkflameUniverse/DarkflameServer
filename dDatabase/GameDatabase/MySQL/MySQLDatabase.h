@@ -63,7 +63,7 @@ public:
 	void RemoveFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) override;
 	void UpdateActivityLog(const LWOOBJID characterId, const eActivityType activityType, const LWOMAPID mapId) override;
 	void DeleteUgcModelData(const LWOOBJID& modelId) override;
-	void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) override;
+	void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml, const int64_t processAfter) override;
 	std::vector<IUgc::Model> GetAllUgcModels() override;
 	void CreateMigrationHistoryTable() override;
 	bool IsMigrationRun(const std::string_view str) override;
@@ -356,7 +356,8 @@ public:
 		std::stringstream& sd0Data,
 		const uint64_t blueprintId,
 		const uint32_t accountId,
-		const LWOOBJID characterId) override;
+		const LWOOBJID characterId,
+		const int64_t processAfter) override;
 	std::vector<MailInfo> GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) override;
 	std::optional<MailInfo> GetMail(const uint64_t mailId) override;
 	uint32_t GetUnreadMailCount(const LWOOBJID characterId) override;
@@ -419,6 +420,12 @@ public:
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override;
 	std::vector<IUgc::PendingModel> GetUgcModelsToProcess(const uint32_t limit) override;
+	void ExpediteUgcModel(const LWOOBJID id) override;
+	void ExpediteUgcModels(const LWOOBJID characterId) override;
+	std::vector<std::pair<std::string, uint64_t>> GetModularBuildConfigCounts() override;
+	std::optional<std::string> GetUgcIconSettings(const std::string_view target) override;
+	void SetUgcIconSettings(const std::string_view target, const std::string_view params) override;
+	void DeleteUgcIconSettings(const std::string_view target) override;
 	void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) override;
 	std::optional<IUgc::ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) override;
 	uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override;

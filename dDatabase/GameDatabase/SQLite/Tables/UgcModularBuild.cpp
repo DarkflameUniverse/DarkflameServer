@@ -87,3 +87,28 @@ std::vector<std::pair<IUgc::eProcessState, uint64_t>> SQLiteDatabase::GetModular
 	}
 	return counts;
 }
+
+std::vector<std::pair<std::string, uint64_t>> SQLiteDatabase::GetModularBuildConfigCounts() {
+	auto [_, result] = ExecuteSelect("SELECT ldf_config, COUNT(*) AS count FROM ugc_modular_build GROUP BY ldf_config;");
+	std::vector<std::pair<std::string, uint64_t>> counts;
+	while (!result.eof()) {
+		counts.emplace_back(result.getStringField("ldf_config", ""), static_cast<uint64_t>(result.getInt64Field("count")));
+		result.nextRow();
+	}
+	return counts;
+}
+
+std::optional<std::string> SQLiteDatabase::GetUgcIconSettings(const std::string_view target) {
+	auto [_, result] = ExecuteSelect("SELECT params FROM ugc_icon_settings WHERE target = ? LIMIT 1;", target);
+	if (result.eof()) return std::nullopt;
+	return std::string(result.getStringField("params", ""));
+}
+
+void SQLiteDatabase::SetUgcIconSettings(const std::string_view target, const std::string_view params) {
+	ExecuteInsert("INSERT INTO ugc_icon_settings (target, params, updated_at) VALUES (?, ?, ?) "
+		"ON CONFLICT(target) DO UPDATE SET params = excluded.params, updated_at = excluded.updated_at;", target, params, UnixNow());
+}
+
+void SQLiteDatabase::DeleteUgcIconSettings(const std::string_view target) {
+	ExecuteDelete("DELETE FROM ugc_icon_settings WHERE target = ?;", target);
+}

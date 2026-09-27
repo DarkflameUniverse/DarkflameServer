@@ -1146,6 +1146,9 @@ void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
 		PropertyManagementComponent::Instance()->Save();
 	}
 
+	// They left: the models they saved needn't wait out their quiet period (docs/UgcServer.md)
+	Database::Get()->ExpediteUgcModels(c->GetObjectID());
+
 	MasterPackets::PlayerRemoved removed;
 	removed.zoneID = static_cast<LWOMAPID>(Game::server->GetZoneID());
 	removed.instanceID = static_cast<LWOINSTANCEID>(g_InstanceID);

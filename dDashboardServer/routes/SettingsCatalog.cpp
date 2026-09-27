@@ -1,5 +1,7 @@
 #include "SettingsCatalog.h"
 
+#include "UgcIconParams.h"
+
 #include <charconv>
 #include <cmath>
 #include <map>
@@ -418,6 +420,7 @@ namespace {
 		c.Add(Text(UGC, "client_path", "Download path", "The game client's UGCSERVERDIR.", "/ugc", true));
 		c.Add(Format(Text(UGC, "ugc_output_dir", "Files folder", "Relative to the server binaries.", "ugc", true), eFormat::PATH));
 		c.Add(Unit(Int(UGC, "ugc_max_storage_mb", "Most space for files", "The files used longest ago are deleted past this and made again when asked for. 0: no limit.", "2048", 0, std::nullopt, true), "MB"));
+		c.Add(Unit(Int(SHARED, "ugc_debounce_seconds", "Wait after a save", "A saved model is made this long after the owner's last save (their other waiting models wait too), or as soon as a game client asks for it or the owner leaves. 0: right away.", "120", 0, 86400), "seconds"));
 		c.Add(Int(UGC, "worker_threads", "Worker threads", "0: half the CPU cores.", "0", 0, 64, true));
 		c.Add(Unit(Float(UGC, "max_cpu_percent", "Most CPU", "The workers together average at most this share of all CPU cores; they pause between bits of work to stay under it. 0: no limit.", "0", 0, 100), "%"));
 		c.Add(Int(UGC, "worker_nice", "Worker priority", "Linux nice value of the workers: 0 normal, 19 only when nothing else wants the CPU.", "0", 0, 19));
@@ -447,18 +450,15 @@ namespace {
 		c.Add(Float(UGC, "ao_strength", "Darkening strength", "0 to 1.", "1", 0, 1));
 		c.Add(Float(UGC, "glow_strength", "Glow strength", "What glowing colors add to the baked light.", "6", 0, 100));
 		c.Add(Unit(Int(UGC, "icon_size", "Icon size", "", "128", 16, 1024), "pixels"));
-		c.Add(Unit(Float(UGC, "icon_yaw", "Icon angle around", "", "53.36", -360, 360), "degrees"));
-		c.Add(Unit(Float(UGC, "icon_pitch", "Icon angle above", "", "19.54", -90, 90), "degrees"));
-		c.Add(Unit(Float(UGC, "icon_fov", "Icon field of view", "", "39.6", 1, 120), "degrees"));
-		c.Add(Float(UGC, "icon_margin", "Icon border", "1 fills the icon.", "1.03", 0.1, 10));
-		c.Add(Unit(Float(UGC, "icon_sun_yaw", "Icon sun angle around", "", "21", -360, 360), "degrees"));
-		c.Add(Unit(Float(UGC, "icon_sun_pitch", "Icon sun angle above", "", "50.3", -90, 90), "degrees"));
-		c.Add(Float(UGC, "icon_sun_strength", "Icon sun strength", "", "2.5", 0, 100));
-		c.Add(Float(UGC, "icon_ambient", "Icon world light", "", "0.192", 0, 10));
-		c.Add(Bool(UGC, "icon_shadows", "Icon shadows", "", true));
-		c.Add(Bool(UGC, "icon_ao", "Car and rocket icon ambient occlusion", "Player models' icons show the lighting baked into their mesh instead.", true));
-		c.Add(Unit(Float(UGC, "modular_icon_yaw", "Car and rocket icon angle around", "", "53.36", -360, 360), "degrees"));
-		c.Add(Unit(Float(UGC, "modular_icon_pitch", "Car and rocket icon angle above", "", "19.54", -90, 90), "degrees"));
+		// The icon's framing and light, from the one list of them (UgcIconParams); presets and overrides are set on the
+		// UGC page's icon editor
+		for (const auto& param : UgcIconParams::List()) {
+			char number[32];
+			const auto written = std::to_chars(number, number + sizeof(number), param.defaultValue);
+			auto setting = Float(UGC, param.setting, "Icon: " + param.label, param.description, std::string(number, written.ptr), param.min, param.max);
+			if (!param.unit.empty()) setting = Unit(setting, param.unit);
+			c.Add(setting);
+		}
 
 		return c;
 	}

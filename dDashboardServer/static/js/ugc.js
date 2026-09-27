@@ -41,12 +41,20 @@
 		var s = STATES[i.state] || [i.state, 'secondary'];
 		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(i.error || '') + '">' + iconImg(i, 128) +
 			'<div class="small text-truncate mt-1">' + (i.characterName ? esc(i.characterName) : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>') + '</div>' +
-			'<div class="small text-body-secondary text-truncate">' + esc(i.id) + '</div><div>' + fmt.badge(s[0], s[1]) + '</div></div>';
+			'<div class="small text-body-secondary text-truncate">' + esc(i.id) + '</div><div>' + fmt.badge(s[0], s[1]) + extraBadges(i) + '</div></div>';
+	}
+
+	// Cars and rockets: how many builds share this icon; waiting models: when their quiet period after a save ends
+	function extraBadges(i) {
+		var out = '';
+		if (i.sharedBy > 1) out += ' ' + fmt.badge('shared by ' + i.sharedBy, 'info');
+		if (i.state === 'pending' && i.processAfter > Date.now() / 1000) out += ' <span class="small text-body-secondary" title="Waits for the owner to stop saving">after ' + esc(fmt.unix(i.processAfter)) + '</span>';
+		return out;
 	}
 
 	function row(i) {
 		var s = STATES[i.state] || [i.state, 'secondary'];
-		var details = kind === 'modular' ? '<code class="small">' + esc(i.modules) + '</code>' : '';
+		var details = (kind === 'modular' ? '<code class="small">' + esc(i.modules) + '</code>' : '') + extraBadges(i);
 		if (i.error) details += '<div class="small text-danger">' + esc(i.error) + '</div>';
 		var buttons = '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>' +
 			(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.id) + '">Make again</button>' : '');
@@ -64,6 +72,7 @@
 			canManage = d.canManage;
 			publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
 			$('manageButtons').classList.toggle('d-none', !canManage);
+			$('cacheCard').classList.toggle('d-none', !canManage);
 			$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets', d.counts.modular);
 			$('gallery').classList.toggle('d-none', view !== 'gallery');
 			$('listCard').classList.toggle('d-none', view !== 'list');
@@ -174,12 +183,20 @@
 				'<a href="/api/ugc/' + esc(id) + '/lxfml" download="ugc_' + esc(id) + '.lxfml">Download the LXFML</a><br>';
 		}
 		if (publicUrl) links += '<a href="' + esc(publicUrl + '/files/' + kind + '/' + id + '/icon.png') + '" target="_blank" rel="noopener">Open on the UGC server</a>';
-		if (canManage) links += '<div class="mt-2"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(id) + '">Make again</button></div>';
+		if (canManage) {
+			links += '<div class="mt-2 d-flex flex-wrap gap-1"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(id) + '">Make again</button>' +
+				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="now">Delete files, make again</button>' +
+				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="gone">Delete files, leave deleted</button></div>';
+			if (item.sharedBy > 1) links += '<div class="text-body-secondary mt-1">This icon is shared by ' + esc(item.sharedBy) + ' builds of the same modules.</div>';
+		}
 		if (item.error) links += '<div class="text-danger mt-2">' + esc(item.error) + '</div>';
 		$('previewLinks').innerHTML = links;
 		var model = kind === 'model';
 		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', !model); });
-		$('statsBox').innerHTML = model ? '' : '<div class="small">Modules: <code>' + esc(item.modules || '') + '</code>. The game client puts cars and rockets together itself; only the icon is made.</div>';
+		$('statsBox').innerHTML = model ? '' : '<div class="small">Modules: <code>' + esc(item.modules || '') + '</code> (combination <code>' + esc(item.combination || '') +
+			'</code>). The game client puts cars and rockets together itself; only the icon is made, once per combination of modules.</div>';
+		$('framingCard').classList.toggle('d-none', model || !canManage);
+		if (!model && canManage) openFraming(item);
 		bootstrap.Modal.getOrCreateInstance($('previewModal')).show();
 		if (!model) return;
 
@@ -267,6 +284,135 @@
 		if (lxfmlViewer && lxfmlViewer.dispose) lxfmlViewer.dispose();
 		lxfmlViewer = null;
 	});
+	// ---- deleting and purging stored files ----
+
+	function showDeleteResult(box, d) {
+		if (!d.success) { toast(d.error || 'Failed', 'danger'); return; }
+		var text = d.deleted + ' deleted (' + mb(d.bytes || 0) + ' freed). ' + (d.notes || []).join(' ');
+		if (box) box.textContent = text;
+		toast(text, 'success');
+		load();
+	}
+
+	$('previewLinks').addEventListener('click', function (e) {
+		var button = e.target.closest('[data-delete-open]');
+		if (!button || !current) return;
+		var after = button.dataset.deleteOpen;
+		if (!confirm('Delete the files made for ' + current.id + (after === 'gone' ? ' and leave them deleted?' : ' and make them again?'))) return;
+		api.post('/api/ugc/cache/delete', { kind: current.kind, id: current.id, after: after }).then(function (d) { showDeleteResult(null, d); });
+	});
+	function purge(all) {
+		var body = { kind: kind, state: $('purgeState').value, owner: $('purgeOwner').value.trim(), olderThanDays: +$('purgeOlder').value || 0,
+			unusedDays: +$('purgeUnused').value || 0, after: $('purgeAfter').value };
+		if (all) {
+			var typed = prompt('This deletes every stored ' + (kind === 'model' ? 'model' : 'car and rocket') + ' file. Type PURGE ALL to go ahead.');
+			if (typed !== 'PURGE ALL') return;
+			body = { kind: kind, all: true, confirm: typed, after: $('purgeAfter').value };
+		} else if (!body.state && !body.owner && !body.olderThanDays && !body.unusedDays) {
+			toast('Pick a filter first, or purge all', 'warning');
+			return;
+		} else if (!confirm('Delete the stored files of every ' + (kind === 'model' ? 'model' : 'car and rocket') + ' matching the filter?')) {
+			return;
+		}
+		$('purgeResult').textContent = 'Deleting…';
+		api.post('/api/ugc/cache/purge', body).then(function (d) { showDeleteResult($('purgeResult'), d); });
+	}
+	$('purgeButton').addEventListener('click', function () { purge(false); });
+	$('purgeAllButton').addEventListener('click', function () { purge(true); });
+
+	// ---- car and rocket icon framing ----
+
+	var FRAMING = [
+		['yaw', 'Angle around', -180, 180, 1], ['pitch', 'Angle above', -89, 89, 1], ['fov', 'Field of view', 5, 90, 0.5], ['margin', 'Border (zoom)', 0.5, 3, 0.01],
+		['offsetX', 'Shift right', -0.5, 0.5, 0.01], ['offsetY', 'Shift up', -0.5, 0.5, 0.01], ['sunYaw', 'Sun around', -180, 180, 1], ['sunPitch', 'Sun above', -10, 90, 1]
+	];
+	var framingItem = null, typeFraming = {}, previewTimer = null, previewUrl = null;
+	$('framingControls').innerHTML = FRAMING.map(function (f) {
+		return '<div class="col-sm-6"><label class="d-flex justify-content-between" for="framing_' + f[0] + '"><span>' + esc(f[1]) + '</span><span id="framing_' + f[0] + '_value"></span></label>' +
+			'<input type="range" class="form-range" id="framing_' + f[0] + '" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] + '"></div>';
+	}).join('');
+	function framingValues() {
+		var out = {};
+		FRAMING.forEach(function (f) { out[f[0]] = parseFloat($('framing_' + f[0]).value); });
+		return out;
+	}
+	function setFraming(values) {
+		FRAMING.forEach(function (f) {
+			if (values[f[0]] === undefined || values[f[0]] === null) return;
+			$('framing_' + f[0]).value = values[f[0]];
+			$('framing_' + f[0] + '_value').textContent = (+values[f[0]]).toFixed(f[4] < 1 ? 2 : 0);
+		});
+	}
+	function loadFramingType(useCombination) {
+		if (!framingItem) return;
+		var type = $('framingType').value;
+		return api.get('/api/ugc/framing?buildType=' + type + '&modules=' + encodeURIComponent(framingItem.modules || '')).then(function (d) {
+			if (!d.success) return;
+			typeFraming = d.type;
+			setFraming(d.type);
+			if (useCombination && d.combination) setFraming(d.combination);
+			$('framingState').textContent = d.combination && useCombination ? 'This combination has its own framing.' : 'The ' + d.name + ' framing.';
+			renderPreview();
+		});
+	}
+	function openFraming(item) {
+		framingItem = item;
+		// The build type from what the UGC server stored with the icon, when it has
+		fetchJson(fileUrl('modular', item.id, 'combo.json')).then(function (combo) {
+			if (combo && (combo.buildType === 3 || combo.buildType === 6)) $('framingType').value = String(combo.buildType);
+			loadFramingType(true);
+		});
+	}
+	function renderPreview() {
+		if (!framingItem) return;
+		var img = $('framingPreview');
+		img.style.opacity = 0.5;
+		fetch('/api/ugc/framing/preview', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+			body: JSON.stringify({ modules: framingItem.modules, framing: framingValues() }) }).then(function (r) {
+			if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'HTTP ' + r.status); });
+			return r.blob();
+		}).then(function (blob) {
+			if (previewUrl) URL.revokeObjectURL(previewUrl);
+			previewUrl = URL.createObjectURL(blob);
+			img.src = previewUrl;
+			img.style.opacity = 1;
+		}).catch(function (e) { img.style.opacity = 1; $('framingState').textContent = 'No preview: ' + e.message; });
+	}
+	$('framingControls').addEventListener('input', function (e) {
+		var f = FRAMING.find(function (x) { return 'framing_' + x[0] === e.target.id; });
+		if (f) $('framing_' + f[0] + '_value').textContent = (+e.target.value).toFixed(f[4] < 1 ? 2 : 0);
+		clearTimeout(previewTimer);
+		previewTimer = setTimeout(renderPreview, 350);
+	});
+	$('framingType').addEventListener('change', function () { loadFramingType(false); });
+	$('framingPreviewButton').addEventListener('click', renderPreview);
+	$('framingReset').addEventListener('click', function () {
+		if (!framingItem) return;
+		if (!confirm('Go back to the type\'s framing? This combination\'s own framing, if it has one, is removed.')) return;
+		api.post('/api/ugc/framing/save', { scope: 'combination', modules: framingItem.modules, framing: null }).then(function () { loadFramingType(false); });
+	});
+	$('framingSaveType').addEventListener('click', function () {
+		var name = $('framingType').selectedOptions[0].textContent.toLowerCase();
+		if (!confirm('Use this framing for every ' + name + ' icon? Icons already made keep theirs until they are drawn again.')) return;
+		api.post('/api/ugc/framing/save', { scope: 'type', buildType: +$('framingType').value, framing: framingValues() }).then(function (d) {
+			toast(d.success ? d.message : (d.error || 'Failed'), d.success ? 'success' : 'danger');
+		});
+	});
+	$('framingSaveCombo').addEventListener('click', function () {
+		if (!framingItem) return;
+		api.post('/api/ugc/framing/save', { scope: 'combination', modules: framingItem.modules, framing: framingValues() }).then(function (d) {
+			toast(d.success ? d.message : (d.error || 'Failed'), d.success ? 'success' : 'danger');
+			if (d.success) $('framingState').textContent = 'This combination has its own framing.';
+		});
+	});
+	$('framingRegenerate').addEventListener('click', function () {
+		var name = $('framingType').selectedOptions[0].textContent.toLowerCase();
+		if (!confirm('Draw every stored ' + name + ' icon again with the saved framings?')) return;
+		api.post('/api/ugc/framing/regenerate', { buildType: +$('framingType').value }).then(function (d) {
+			toast(d.success ? d.queued + ' icon' + (d.queued === 1 ? '' : 's') + ' queued' : (d.error || 'Failed'), d.success ? 'success' : 'danger');
+		});
+	});
+
 	if (window.Live) Live.on('ugc', load);
 
 	load();

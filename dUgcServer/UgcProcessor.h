@@ -12,9 +12,11 @@
 #include <thread>
 #include <vector>
 
+#include "DeferredReply.h"
 #include "dCommonVars.h"
 #include "json_fwd.hpp"
 #include "UgcBricks.h"
+#include "UgcIconParams.h"
 #include "UgcJobs.h"
 #include "UgcStorage.h"
 
@@ -69,6 +71,46 @@ public:
 	// Main thread: whether an item's files can be served, queuing it to be made when it exists but they're missing
 	Availability Request(Kind kind, LWOOBJID id);
 
+	// Main thread: the id an item's files are stored under. A car or rocket's are its combination's (every build of
+	// the same modules shares one icon); 0 when a build's modules can't be told.
+	LWOOBJID StorageId(Kind kind, LWOOBJID id);
+
+	/**
+	 * Main thread: renders an icon with `values` (UgcIconParams, over the settings) without storing it, on a worker
+	 * (within the budgets, ahead of the queue); `reply` gets the PNG. A player model's is drawn from its stored .nif, a
+	 * car or rocket's from `modules`. False (and `error`) when there's nothing to draw from.
+	 */
+	bool QueuePreview(Kind kind, LWOOBJID id, const std::string& modules, const UgcIconParams::Values& values, DeferredReply reply, std::string& error);
+
+	// Main thread: queues every stored icon of a kind ("model", or "build<type>" for cars and rockets) to be drawn again
+	// with the current settings, presets and overrides; only icons (models' from their stored .nif). How many.
+	size_t RegenerateIcons(const std::string& kind);
+
+	enum class eAfterDelete {
+		ON_DEMAND, // rows stay made; the files are made again when something asks for them
+		NOW,       // rows go back to waiting, so they're made again soon
+		GONE,      // rows are marked failed ("deleted"), so they aren't made again until someone asks for that
+	};
+
+	struct DeleteRequest {
+		Kind kind{};
+		std::vector<LWOOBJID> ids;   // models, or builds (their combinations are deleted); empty with `all`
+		bool all{};
+		int64_t olderThanDays{};     // only files made longer ago than this (0: any)
+		int64_t unusedDays{};        // only files not asked for in this long (0: any)
+		eAfterDelete after{ eAfterDelete::ON_DEMAND };
+	};
+
+	struct DeleteResult {
+		size_t deleted{};
+		uint64_t bytes{};
+		size_t busy{}; // being made right now, left alone
+		std::vector<std::string> notes;
+	};
+
+	// Main thread: deletes stored files. Items being made are skipped, so a worker never writes what is being deleted.
+	DeleteResult Delete(const DeleteRequest& request);
+
 	// Main thread: what the server is doing, for /status
 	nlohmann::json Status() const;
 
@@ -98,6 +140,9 @@ private:
 		UgcJobs::ModularInput modular;  // modular builds
 		uint64_t memory{};              // estimated bytes it needs
 		size_t parts{};
+		DeferredReply preview;          // an icon preview: answered with the PNG, nothing stored
+		bool iconOnly{};                // a model's icon drawn again from its stored .nif
+		UgcIconParams::Values iconValues; // models: the preset and override (UgcIconParams)
 	};
 
 	struct Done {
@@ -107,9 +152,12 @@ private:
 		UgcJobs::Outcome outcome;
 		uint64_t bytes{};
 		double milliseconds{};
+		bool iconOnly{};
 	};
 
 	void Poll();
+	// Main thread: the icon values for a kind and an item (the kind's preset, then the item's override)
+	UgcIconParams::Values IconValues(const std::string& kind, const std::string& itemTarget);
 	void Collect();
 	void Record(const Done& done);
 	void Worker();
@@ -137,7 +185,11 @@ private:
 	std::vector<std::thread> m_Threads;
 
 	// Main thread only
-	std::set<std::pair<Kind, LWOOBJID>> m_InFlight;
+	std::set<std::pair<Kind, LWOOBJID>> m_InFlight;        // models, and builds waiting for their combination
+	std::set<LWOOBJID> m_ComboJobs;                         // combinations being made
+	std::map<LWOOBJID, std::vector<std::pair<LWOOBJID, uint32_t>>> m_ComboRows; // combination -> builds (id, attempts) waiting for it
+	std::map<LWOOBJID, LWOOBJID> m_ComboOf;                 // build -> combination (StorageId)
+	uint64_t m_Reused{};                                    // builds whose combination was made already
 	std::chrono::steady_clock::time_point m_NextPoll{};
 	std::chrono::steady_clock::time_point m_NextEviction{};
 	std::map<std::pair<Kind, LWOOBJID>, std::pair<std::chrono::steady_clock::time_point, Availability>> m_Recent; // answers for missing files

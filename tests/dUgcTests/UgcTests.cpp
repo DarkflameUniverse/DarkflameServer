@@ -3,6 +3,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <unistd.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -12,6 +13,8 @@
 #include "UgcFormats.h"
 #include "UgcModel.h"
 #include "UgcJobs.h"
+#include "UgcIconParams.h"
+#include "UgcKeys.h"
 #include "UgcModular.h"
 #include "UgcPalette.h"
 #include "UgcRender.h"
@@ -47,7 +50,9 @@ namespace {
 	}
 
 	std::filesystem::path TempFolder(const std::string& name) {
-		auto path = std::filesystem::temp_directory_path() / ("dlu_ugc_test_" + name + "_" + std::to_string(::testing::UnitTest::GetInstance()->random_seed()));
+		// One folder per test and process: ctest runs the tests in parallel processes
+		const auto* test = ::testing::UnitTest::GetInstance()->current_test_info();
+		auto path = std::filesystem::temp_directory_path() / ("dlu_ugc_test_" + name + "_" + (test ? std::string(test->name()) : std::string()) + "_" + std::to_string(::getpid()));
 		std::filesystem::remove_all(path);
 		std::filesystem::create_directories(path);
 		return path;
@@ -580,4 +585,120 @@ TEST(UgcJobs, MakesLodsStatsAndIcons) {
 
 	EXPECT_EQ(UgcJobs::CountParts(LXFML5), 3u);
 	EXPECT_GT(UgcJobs::EstimateMemory(1000, settings), UgcJobs::EstimateMemory(10, settings));
+}
+
+TEST(UgcModularKey, SameModulesSameKey) {
+	// However the modules are written or ordered, the combination is the same; its files are stored once
+	EXPECT_EQ(UgcModularKey::Normalize("1:4715+1:4713+1:4714"), "4713-4714-4715");
+	EXPECT_EQ(UgcModularKey::Normalize("1:4713;1:4714,1:4715"), "4713-4714-4715");
+	EXPECT_EQ(UgcModularKey::Normalize("4714+4715+4713+1:4713"), "4713-4714-4715");
+	EXPECT_EQ(UgcModularKey::Normalize(""), "");
+	EXPECT_EQ(UgcModularKey::Normalize("1:abc+"), "");
+	EXPECT_NE(UgcModularKey::Normalize("1:4713+1:4714+1:4716"), UgcModularKey::Normalize("1:4713+1:4714+1:4715"));
+	const auto id = UgcModularKey::StorageId("4713-4714-4715");
+	EXPECT_GT(id, 0);
+	EXPECT_EQ(id, UgcModularKey::StorageId(UgcModularKey::Normalize("1:4715+1:4714+1:4713")));
+	EXPECT_NE(id, UgcModularKey::StorageId("4713-4714-4716"));
+
+	// Two builds of the same modules find the one set of files
+	UgcStorage storage(TempFolder("combo"));
+	std::string error;
+	ASSERT_TRUE(storage.Write(UgcStorage::Kind::MODULAR, id, { { "icon.png", "png" } }, error)) << error;
+	EXPECT_TRUE(storage.File(UgcStorage::Kind::MODULAR, UgcModularKey::StorageId(UgcModularKey::Normalize("1:4713+1:4714+1:4715")), "icon.png"));
+	EXPECT_TRUE(storage.File(UgcStorage::Kind::MODULAR, UgcModularKey::StorageId(UgcModularKey::Normalize("1:4714+1:4715+1:4713")), "icon.png"));
+	std::filesystem::remove_all(storage.GetRoot());
+}
+
+TEST(UgcDebounce, WaitsForTheQuietPeriod) {
+	EXPECT_EQ(UgcDebounce::ProcessAfter(1000, 120), 1120);
+	EXPECT_EQ(UgcDebounce::ProcessAfter(1000, 0), 0);
+	EXPECT_EQ(UgcDebounce::ProcessAfter(1000, -5), 0);
+	EXPECT_FALSE(UgcDebounce::Due(1120, 1100, false)); // saved 100 s ago: still quiet
+	EXPECT_TRUE(UgcDebounce::Due(1120, 1120, false));
+	EXPECT_TRUE(UgcDebounce::Due(1120, 1100, true));   // a client asked for it
+	EXPECT_TRUE(UgcDebounce::Due(0, 5, false));        // expedited or saved without a wait
+	// A new save starts the wait again
+	const auto first = UgcDebounce::ProcessAfter(1000, 120), second = UgcDebounce::ProcessAfter(1100, 120);
+	EXPECT_FALSE(UgcDebounce::Due(std::max(first, second), 1150, false));
+}
+
+TEST(UgcIconParams, OneListDrivesEverything) {
+	// Every parameter has a setting, a range holding its default, and something it changes
+	for (const auto& param : UgcIconParams::List()) {
+		EXPECT_TRUE(param.setting.starts_with("icon_")) << param.key;
+		EXPECT_LE(param.min, param.defaultValue) << param.key;
+		EXPECT_GE(param.max, param.defaultValue) << param.key;
+		EXPECT_TRUE(param.apply) << param.key;
+		EXPECT_EQ(UgcIconParams::Find(param.key), &param);
+	}
+	const auto values = UgcIconParams::Parse(R"({"yaw":10,"pitch":200,"margin":0,"offsetX":0.1,"unknown":1,"fov":"wide","exposure":1.5})");
+	EXPECT_FLOAT_EQ(values.at("yaw"), 10.0f);
+	EXPECT_FLOAT_EQ(values.at("pitch"), 89.0f); // clamped
+	EXPECT_FLOAT_EQ(values.at("margin"), 0.5f);
+	EXPECT_FALSE(values.contains("fov"));      // not a number
+	EXPECT_FALSE(values.contains("unknown"));
+	EXPECT_TRUE(UgcIconParams::Parse("not json").empty());
+	EXPECT_EQ(UgcIconParams::Parse(UgcIconParams::ToJson(values)), values);
+
+	// Settings, then values over them
+	auto options = UgcIconParams::FromSettings([](const std::string& key) -> std::optional<std::string> {
+		if (key == "icon_fov") return "33";
+		if (key == "icon_ambient") return "nonsense";
+		return std::nullopt;
+	});
+	EXPECT_FLOAT_EQ(options.fovDegrees, 33.0f);
+	EXPECT_FLOAT_EQ(options.ambient, UgcIconParams::Find("ambient")->defaultValue);
+	UgcIconParams::Apply(options, values);
+	EXPECT_FLOAT_EQ(options.yawDegrees, 10.0f);
+	EXPECT_FLOAT_EQ(options.fovDegrees, 33.0f); // not in the values: the setting stays
+	EXPECT_FLOAT_EQ(options.exposure, 1.5f);
+	EXPECT_FLOAT_EQ(options.offsetX, 0.1f);
+	UgcIconParams::Apply(options, { { "aoStrength", 0.5f } });
+	EXPECT_TRUE(options.ao.enabled);
+
+	// A car or rocket: the settings with its preset and combination values
+	UgcJobs::Settings settings;
+	UgcJobs::ModularInput input;
+	input.iconValues = { { "yaw", 5.0f } };
+	EXPECT_FLOAT_EQ(UgcJobs::ModularIconOptions(input, settings).yawDegrees, 5.0f);
+	EXPECT_EQ(UgcIconParams::KindTarget(UgcIconParams::BuildKind(6)), "kind:build6");
+	EXPECT_EQ(UgcIconParams::ModelTarget(12), "model:12");
+	EXPECT_EQ(UgcIconParams::CombinationTarget("1-2"), "combo:1-2");
+
+	// Exposure brightens, contrast spreads
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	std::string error;
+	const auto box = UgcModel::Build(UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks><Brick><Part designID="3001" materials="194">
+		<Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick></Bricks></LXFML>)", error), library);
+	const auto mean = [](const UgcRender::Image& image) {
+		double sum = 0, count = 0;
+		for (size_t i = 0; i < image.rgba.size(); i += 4) {
+			if (image.rgba[i + 3] < 128) continue;
+			sum += image.rgba[i];
+			count++;
+		}
+		return sum / std::max(count, 1.0);
+	};
+	UgcRender::IconOptions dim{ 32, 1 }, bright{ 32, 1 };
+	bright.exposure = 2.0f;
+	EXPECT_GT(mean(UgcRender::RenderIcon(box, bright)), mean(UgcRender::RenderIcon(box, dim)) + 10.0);
+
+	// An offset moves the drawn model by that share of the icon
+	UgcModel::Model model;
+	model = UgcModel::Build(UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks><Brick><Part designID="3001" materials="21">
+		<Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick></Bricks></LXFML>)", error), library);
+	const auto centroid = [](const UgcRender::Image& image) {
+		double sum = 0, count = 0;
+		for (int y = 0; y < image.height; y++) for (int x = 0; x < image.width; x++) {
+			const auto a = image.rgba[(static_cast<size_t>(y) * image.width + x) * 4 + 3];
+			sum += x * a;
+			count += a;
+		}
+		return count > 0 ? sum / count : -1.0;
+	};
+	UgcRender::IconOptions plain{ 64, 1 };
+	plain.margin = 2.0f;
+	auto shifted = plain;
+	shifted.offsetX = 0.25f;
+	EXPECT_NEAR(centroid(UgcRender::RenderIcon(model, shifted)) - centroid(UgcRender::RenderIcon(model, plain)), 16.0, 1.0);
 }

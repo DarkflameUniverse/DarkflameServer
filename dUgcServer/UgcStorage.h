@@ -33,6 +33,11 @@ public:
 	// Replaces an item's files with `files`; the bytes written, nullopt (and `error`) on failure
 	std::optional<uint64_t> Write(Kind kind, LWOOBJID id, const Files& files, std::string& error) const;
 
+	// Replaces some of an item's files in place (each written aside and renamed over the old one), keeping the others;
+	// the ones kept for comparing (icon.png...) are copied to previous.* first. The bytes written, nullopt when the item
+	// has no folder or a write fails.
+	std::optional<uint64_t> Update(Kind kind, LWOOBJID id, const Files& files, std::string& error) const;
+
 	// Deletes an item's files
 	void Remove(Kind kind, LWOOBJID id) const;
 

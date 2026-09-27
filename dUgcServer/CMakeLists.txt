@@ -2,6 +2,7 @@
 set(DUGC_SOURCES
 	"UgcBricks.cpp"
 	"UgcFormats.cpp"
+	"UgcIconParams.cpp"
 	"UgcJobs.cpp"
 	"UgcModel.cpp"
 	"UgcModular.cpp"

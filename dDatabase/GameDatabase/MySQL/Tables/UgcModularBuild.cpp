@@ -84,3 +84,25 @@ std::vector<std::pair<IUgc::eProcessState, uint64_t>> MySQLDatabase::GetModularB
 	}
 	return counts;
 }
+
+std::vector<std::pair<std::string, uint64_t>> MySQLDatabase::GetModularBuildConfigCounts() {
+	auto result = ExecuteSelect("SELECT ldf_config, COUNT(*) AS count FROM ugc_modular_build GROUP BY ldf_config;");
+	std::vector<std::pair<std::string, uint64_t>> counts;
+	while (result->next()) counts.emplace_back(result->getString("ldf_config").c_str(), static_cast<uint64_t>(result->getInt64("count")));
+	return counts;
+}
+
+std::optional<std::string> MySQLDatabase::GetUgcIconSettings(const std::string_view target) {
+	auto result = ExecuteSelect("SELECT params FROM ugc_icon_settings WHERE target = ? LIMIT 1;", target);
+	if (!result->next()) return std::nullopt;
+	return std::string(result->getString("params").c_str());
+}
+
+void MySQLDatabase::SetUgcIconSettings(const std::string_view target, const std::string_view params) {
+	ExecuteInsert("INSERT INTO ugc_icon_settings (target, params, updated_at) VALUES (?, ?, ?) "
+		"ON DUPLICATE KEY UPDATE params = VALUES(params), updated_at = VALUES(updated_at);", target, params, UnixNow());
+}
+
+void MySQLDatabase::DeleteUgcIconSettings(const std::string_view target) {
+	ExecuteDelete("DELETE FROM ugc_icon_settings WHERE target = ?;", target);
+}

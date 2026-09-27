@@ -31,6 +31,7 @@
 
 #include "UgcBricks.h"
 #include "UgcCdClient.h"
+#include "UgcIconParams.h"
 #include "UgcJobs.h"
 #include "UgcModel.h"
 #include "UgcProcessor.h"
@@ -47,6 +48,7 @@ namespace Game {
 
 namespace {
 	dServer* g_Server = nullptr;
+	std::string g_AdminKey; // the master password: the dashboard's admin requests carry it (X-Ugc-Admin-Key)
 	UgcProcessor* g_Processor = nullptr;
 	UgcStorage* g_Storage = nullptr;
 
@@ -89,21 +91,13 @@ namespace {
 		settings.ao.samples = std::clamp(Setting<int32_t>("ao_samples", 64), 1, 1024);
 		settings.ao.strength = Setting<float>("ao_strength", 1.0f);
 		settings.ao.glowStrength = Setting<float>("glow_strength", 6.0f);
+		// The icon's framing and light: the icon_* settings, listed with their defaults in UgcIconParams
+		settings.icon = UgcIconParams::FromSettings([](const std::string& key) -> std::optional<std::string> {
+			const auto value = Game::config->GetValue(key);
+			return value.empty() ? std::nullopt : std::optional(value);
+		});
 		settings.icon.size = Setting<int32_t>("icon_size", 128);
-		settings.icon.yawDegrees = Setting<float>("icon_yaw", 53.36f);
-		settings.icon.pitchDegrees = Setting<float>("icon_pitch", 19.54f);
-		settings.icon.fovDegrees = Setting<float>("icon_fov", 39.6f);
-		settings.icon.margin = Setting<float>("icon_margin", 1.03f);
-		settings.icon.sunYawDegrees = Setting<float>("icon_sun_yaw", 21.0f);
-		settings.icon.sunPitchDegrees = Setting<float>("icon_sun_pitch", 50.3f);
-		settings.icon.sunStrength = Setting<float>("icon_sun_strength", 2.5f);
-		settings.icon.ambient = Setting<float>("icon_ambient", 0.192f);
-		settings.icon.shadows = Setting<int32_t>("icon_shadows", 1) != 0;
-		settings.icon.ao.enabled = Setting<int32_t>("icon_ao", 1) != 0;
 		settings.icon.ao.distance = settings.ao.distance;
-		settings.modularIcon = settings.icon;
-		settings.modularIcon.yawDegrees = Setting<float>("modular_icon_yaw", 53.36f);
-		settings.modularIcon.pitchDegrees = Setting<float>("modular_icon_pitch", 19.54f);
 		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
 		return settings;
 	}
@@ -156,7 +150,8 @@ namespace {
 			NotFound(reply);
 			return;
 		}
-		const auto path = g_Storage->File(kind, id, name);
+		// A car or rocket's files are its combination's (shared by every build of the same modules)
+		const auto path = g_Storage->File(kind, g_Processor->StorageId(kind, id), name);
 		if (!path) {
 			NotFound(reply);
 			return;
@@ -237,7 +232,7 @@ namespace {
 				const auto id = GeneralUtils::TryParse<uint64_t>(segments[2]);
 				const auto kind = segments[1] == "model" ? std::optional(UgcStorage::Kind::MODEL) : segments[1] == "modular" ? std::optional(UgcStorage::Kind::MODULAR) : std::nullopt;
 				const auto& name = segments[3];
-				static const std::set<std::string> PREVIEWS = { "icon.png", "model.nif", "model.noao.nif", "stats.json",
+				static const std::set<std::string> PREVIEWS = { "icon.png", "model.nif", "model.noao.nif", "stats.json", "combo.json",
 					"previous.icon.png", "previous.model.nif", "previous.model.noao.nif", "previous.stats.json" };
 				if (!id || !kind || !PREVIEWS.contains(name)) return;
 				reply.headers.clear();
@@ -248,6 +243,78 @@ namespace {
 					std::erase_if(reply.headers, [](const std::string& header) { return header.starts_with("Cache-Control"); });
 					reply.headers.push_back("Cache-Control: no-cache");
 				}
+			} });
+
+		// For the dashboard only (it sends the master password): icon previews, drawing icons again, deleting files
+		const auto admin = [](HTTPReply& reply, const HTTPContext& context, std::optional<nlohmann::json>& body) {
+			const auto& key = context.GetHeader("X-Ugc-Admin-Key");
+			bool same = !g_AdminKey.empty() && key.size() == g_AdminKey.size();
+			unsigned char diff = 0;
+			for (size_t i = 0; same && i < key.size(); i++) diff |= static_cast<unsigned char>(key[i] ^ g_AdminKey[i]);
+			reply.contentType = eContentType::APPLICATION_JSON;
+			reply.headers.push_back("Cache-Control: no-store");
+			if (!same || diff != 0) {
+				reply.status = eHTTPStatusCode::FORBIDDEN;
+				reply.message = R"({"success":false,"error":"forbidden"})";
+				return false;
+			}
+			body = nlohmann::json::parse(context.body.empty() ? std::string("{}") : context.body, nullptr, false);
+			if (!body->is_object()) {
+				reply.status = eHTTPStatusCode::BAD_REQUEST;
+				reply.message = R"({"success":false,"error":"the body isn't a JSON object"})";
+				return false;
+			}
+			return true;
+		};
+
+		Game::web.RegisterHTTPRoute({ .path = "/admin/preview", .method = eHTTPMethod::POST, .middleware = {},
+			.handle = [admin](HTTPReply& reply, const HTTPContext& context) {
+				std::optional<nlohmann::json> body;
+				if (!admin(reply, context, body)) return;
+				const auto values = UgcIconParams::Parse(body->value("values", nlohmann::json::object()).dump());
+				const auto kind = body->value("kind", std::string("modular")) == "model" ? UgcStorage::Kind::MODEL : UgcStorage::Kind::MODULAR;
+				const auto id = GeneralUtils::TryParse<LWOOBJID>(body->value("id", std::string("0"))).value_or(0);
+				auto deferred = Web::Defer(reply, context);
+				std::string error;
+				if (!g_Processor->QueuePreview(kind, id, body->value("modules", std::string()), values, deferred, error)) {
+					HTTPReply out;
+					out.status = eHTTPStatusCode::BAD_REQUEST;
+					out.contentType = eContentType::APPLICATION_JSON;
+					out.message = nlohmann::json{ { "success", false }, { "error", error } }.dump();
+					deferred.Send(std::move(out));
+				}
+			} });
+
+		Game::web.RegisterHTTPRoute({ .path = "/admin/regenerate-icons", .method = eHTTPMethod::POST, .middleware = {},
+			.handle = [admin](HTTPReply& reply, const HTTPContext& context) {
+				std::optional<nlohmann::json> body;
+				if (!admin(reply, context, body)) return;
+				const auto queued = g_Processor->RegenerateIcons(body->value("kind", std::string()));
+				reply.status = eHTTPStatusCode::OK;
+				reply.message = nlohmann::json{ { "success", true }, { "queued", queued } }.dump();
+			} });
+
+		Game::web.RegisterHTTPRoute({ .path = "/admin/delete", .method = eHTTPMethod::POST, .middleware = {},
+			.handle = [admin](HTTPReply& reply, const HTTPContext& context) {
+				std::optional<nlohmann::json> body;
+				if (!admin(reply, context, body)) return;
+				UgcProcessor::DeleteRequest request;
+				request.kind = body->value("kind", std::string("model")) == "modular" ? UgcStorage::Kind::MODULAR : UgcStorage::Kind::MODEL;
+				if (const auto ids = body->find("ids"); ids != body->end() && ids->is_array()) {
+					for (const auto& id : *ids) {
+						const auto parsed = GeneralUtils::TryParse<LWOOBJID>(id.is_string() ? id.get<std::string>() : id.dump());
+						if (parsed) request.ids.push_back(*parsed);
+					}
+				}
+				request.all = body->value("all", false);
+				request.olderThanDays = body->value("olderThanDays", int64_t{ 0 });
+				request.unusedDays = body->value("unusedDays", int64_t{ 0 });
+				const auto after = body->value("after", std::string("on_demand"));
+				request.after = after == "now" ? UgcProcessor::eAfterDelete::NOW : after == "gone" ? UgcProcessor::eAfterDelete::GONE : UgcProcessor::eAfterDelete::ON_DEMAND;
+				const auto result = g_Processor->Delete(request);
+				LOG("Deleted the files of %zu item(s) (%llu bytes) for the dashboard", result.deleted, static_cast<unsigned long long>(result.bytes));
+				reply.status = eHTTPStatusCode::OK;
+				reply.message = nlohmann::json{ { "success", true }, { "deleted", result.deleted }, { "bytes", result.bytes }, { "busy", result.busy }, { "notes", result.notes } }.dump();
 			} });
 
 		Game::web.RegisterHTTPRoute({ .path = "/status", .method = eHTTPMethod::GET, .middleware = {},
@@ -361,6 +428,7 @@ int main(int argc, char** argv) {
 		masterPort = masterInfo->port;
 		masterPassword = masterInfo->password;
 	}
+	g_AdminKey = masterPassword;
 
 	// The master starts it again when this link drops
 	g_Server = new dServer(masterIP, Setting<uint32_t>("net_port", 2012), 0, 16, false, false, Game::logger, masterIP, masterPort,

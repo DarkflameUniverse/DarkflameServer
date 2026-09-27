@@ -34,6 +34,7 @@ namespace UgcCdClient {
 			module.partCode = static_cast<uint32_t>(moduleRow.getIntField("partCode", 0));
 			module.moduleXml = moduleRow.getStringField("xml", "");
 			if (!buildType) buildType = moduleRow.getIntField("buildType", 0);
+			input.buildType = *buildType;
 	
 			auto renderQuery = CDClientDatabase::CreatePreppedStmt(
 				"SELECT rc.render_asset FROM ComponentsRegistry cr JOIN RenderComponent rc ON rc.id = cr.component_id "

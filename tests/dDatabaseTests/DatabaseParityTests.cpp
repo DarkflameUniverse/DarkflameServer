@@ -699,7 +699,7 @@ TEST_F(ParitySeeded, Properties) {
 TEST_F(ParitySeeded, UgcModel) {
 	Both("InsertNewUgcModel", [](GameDatabase& db) {
 		std::stringstream data("sd0\x01\x02 compressed model");
-		db.InsertNewUgcModel(data, 1152921510000500001LL, 1, CHAR_ALICE);
+		db.InsertNewUgcModel(data, 1152921510000500001LL, 1, CHAR_ALICE, 0);
 	});
 	Both("GetUgcModel unplaced", [](GameDatabase& db) {
 		auto model = db.GetUgcModel(1152921510000500001LL);
@@ -719,6 +719,21 @@ TEST_F(ParitySeeded, UgcModel) {
 	Both("GetUgcModelsToProcess", [](GameDatabase& db) {
 		json out = json::array();
 		for (const auto& model : db.GetUgcModelsToProcess(10)) out.push_back({ model.id, model.lxfml, model.attempts });
+		return out;
+	});
+	Both("Quiet period after a save", [&](GameDatabase& db) {
+		// A second save far in the future: it waits, and so does the owner's first model; leaving ends both waits
+		std::stringstream data("sd0\x01\x02 second model");
+		db.InsertNewUgcModel(data, 1152921510000500003LL, 1, CHAR_ALICE, 4000000000LL);
+		json out = json{ db.GetUgcModelsToProcess(10).size(), db.GetUgcProcessInfo(1152921510000500003LL)->processAfter };
+		db.ExpediteUgcModel(1152921510000500003LL);
+		out.push_back(db.GetUgcModelsToProcess(10).size());
+		db.InsertNewUgcModel(data, 1152921510000500004LL, 1, CHAR_ALICE, 4000000001LL);
+		out.push_back(db.GetUgcModelsToProcess(10).size());
+		db.ExpediteUgcModels(CHAR_ALICE);
+		out.push_back(db.GetUgcModelsToProcess(10).size());
+		db.DeleteUgcModelData(1152921510000500003LL);
+		db.DeleteUgcModelData(1152921510000500004LL);
 		return out;
 	});
 	Both("SetUgcModelProcessed failed", [&](GameDatabase& db) {
@@ -751,6 +766,14 @@ TEST_F(ParitySeeded, UgcModel) {
 		out.push_back(db.GetModularBuildProcessList(std::nullopt, "", 0, 10).size());
 		out.push_back(db.ResetModularBuildProcessing(1152921510000500002LL, false));
 		out.push_back(infoJson(db.GetModularBuildProcessInfo(1152921510000500002LL)));
+		for (const auto& [ldf, count] : db.GetModularBuildConfigCounts()) out.push_back({ ldf, count });
+		// A combination's own icon framing
+		out.push_back(db.GetUgcIconSettings("combo:4713-4714-4715").has_value());
+		db.SetUgcIconSettings("combo:4713-4714-4715", R"({"yaw":10})");
+		db.SetUgcIconSettings("combo:4713-4714-4715", R"({"yaw":20})");
+		out.push_back(db.GetUgcIconSettings("combo:4713-4714-4715").value_or(""));
+		db.DeleteUgcIconSettings("combo:4713-4714-4715");
+		out.push_back(db.GetUgcIconSettings("combo:4713-4714-4715").has_value());
 		return out;
 	});
 }

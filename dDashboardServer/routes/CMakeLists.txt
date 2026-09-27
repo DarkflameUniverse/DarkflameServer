@@ -98,4 +98,4 @@ target_include_directories(DashboardRoutes PRIVATE
 )
 
 target_compile_definitions(DashboardRoutes PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
-target_link_libraries(DashboardRoutes PRIVATE ${COMMON_LIBRARIES} dWeb dServer sqlite3 OpenSSL::Crypto CURL::libcurl)
+target_link_libraries(DashboardRoutes PRIVATE ${COMMON_LIBRARIES} dWeb dServer dUgc sqlite3 OpenSSL::Crypto CURL::libcurl)

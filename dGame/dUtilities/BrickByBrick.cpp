@@ -23,11 +23,13 @@
 #include "PropertyManagementComponent.h"
 #include "PropertyMessages.h"
 #include "Sd0.h"
+#include "UgcKeys.h"
 #include "User.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <ctime>
 #include <fstream>
 #include <ranges>
 #include <sstream>
@@ -107,12 +109,16 @@ namespace {
 			outFile << lxfml;
 		}
 
+		// A quiet period before the UGC server makes the models (ugc_debounce_seconds, sharedconfig.ini): a model
+		// the owner keeps editing isn't made for every save (docs/UgcServer.md)
+		const auto debounce = Game::config ? GeneralUtils::TryParse<int64_t>(Game::config->GetValue("ugc_debounce_seconds")).value_or(120) : 120;
+		const auto processAfter = UgcDebounce::ProcessAfter(std::time(nullptr), debounce);
 		for (const auto& part : Lxfml::Split(lxfml)) {
 			const auto [modelId, blueprintId] = ObjectIDManager::GetNewModelIDs();
 			Sd0 model = sd0;
 			model.FromData(reinterpret_cast<const uint8_t*>(part.lxfml.data()), part.lxfml.size());
 			auto stream = model.GetAsStream();
-			Database::Get()->InsertNewUgcModel(stream, blueprintId, character->GetParentUser()->GetAccountID(), character->GetID());
+			Database::Get()->InsertNewUgcModel(stream, blueprintId, character->GetParentUser()->GetAccountID(), character->GetID(), processAfter);
 
 			auto& entry = saved.emplace_back();
 			entry.modelId = modelId;

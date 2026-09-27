@@ -1,6 +1,7 @@
 #include "UgcJobs.h"
 
 #include <chrono>
+#include <cmath>
 #include <sstream>
 
 #include "json.hpp"
@@ -66,7 +67,14 @@ namespace UgcJobs {
 		}
 	}
 
-	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed) {
+	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error) {
+		const auto readBack = NifFile::Parse(nif, 0, error);
+		if (!readBack) return false;
+		AddIcon(files, UgcModel::FromNif(*readBack), options);
+		return true;
+	}
+
+	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed, const UgcIconParams::Values& iconValues) {
 		Outcome outcome;
 		const auto started = std::chrono::steady_clock::now();
 		const auto lxfml = LxfmlFromBlob(blob);
@@ -169,18 +177,15 @@ namespace UgcJobs {
 		}
 
 		// The icon is drawn from the .nif just made (its most detailed LOD, read back like any client .nif), so it
-		// shows what the game shows: the colors with their variation, hidden faces removed, the baked lighting. The
-		// lighting is in its vertex colors already, so the icon adds no occlusion of its own.
+		// shows what the game shows: the colors with their variation, hidden faces removed, the baked lighting.
 		const auto iconStart = std::chrono::steady_clock::now();
+		auto iconOptions = settings.icon;
+		UgcIconParams::Apply(iconOptions, iconValues);
 		std::string nifError;
-		const auto readBack = NifFile::Parse(nif, 0, nifError);
-		if (!readBack) {
+		if (!IconFromNif(nif, iconOptions, outcome.files, nifError)) {
 			outcome.error = "the .nif made can't be read back for the icon: " + nifError;
 			return outcome;
 		}
-		auto iconOptions = settings.icon;
-		iconOptions.ao.enabled = false;
-		AddIcon(outcome.files, UgcModel::FromNif(*readBack), iconOptions);
 		const double iconMs = Since(iconStart);
 
 		stats["ms"] = { { "build", std::lround(buildMs) }, { "hiddenSurfaces", std::lround(hsrMs) }, { "ambientOcclusion", std::lround(aoMs) },
@@ -228,10 +233,19 @@ namespace UgcJobs {
 			outcome.error = "the modules have no triangles";
 			return outcome;
 		}
-		auto options = settings.modularIcon;
+		auto options = ModularIconOptions(input, settings);
 		options.modelRotation = build->additionalRotation * options.modelRotation;
 		AddIcon(outcome.files, model, options);
+		outcome.files["combo.json"] = nlohmann::json{ { "key", input.key }, { "buildType", input.buildType } }.dump();
 		outcome.ok = true;
 		return outcome;
 	}
+
+	UgcRender::IconOptions ModularIconOptions(const ModularInput& input, const Settings& settings) {
+		auto options = settings.icon;
+		UgcIconParams::Apply(options, input.iconValues);
+		return options;
+	}
+
+
 }

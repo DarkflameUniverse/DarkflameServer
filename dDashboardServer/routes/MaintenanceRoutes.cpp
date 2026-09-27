@@ -266,7 +266,7 @@ void RegisterMaintenanceRoutes() {
 				Sd0 sd0(header);
 				sd0.FromData(reinterpret_cast<const uint8_t*>(split.lxfml.data()), split.lxfml.size());
 				auto stream = sd0.GetAsStream();
-				Database::Get()->InsertNewUgcModel(stream, blueprintId, owner->accountId, owner->id);
+				Database::Get()->InsertNewUgcModel(stream, blueprintId, owner->accountId, owner->id, 0);
 
 				IPropertyContents::Model model;
 				model.id = modelId;

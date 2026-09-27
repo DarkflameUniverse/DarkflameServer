@@ -120,7 +120,7 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			std::stringstream outputStringStream(outputString);
 
 			try {
-				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);
+				Database::Get()->UpdateUgcModelData(model.id, outputStringStream, 0);
 				LOG("Updated model %i to sd0", model.id);
 				updatedModels++;
 			} catch (std::exception& exception) {

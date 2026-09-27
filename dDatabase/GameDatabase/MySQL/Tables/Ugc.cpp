@@ -13,7 +13,8 @@ namespace {
 		info.processedAt = result->getInt64("processed_at");
 		info.error = std::string(result->getString("process_error").c_str());
 		if (modular) info.details = std::string(result->getString("ldf_config").c_str());
-		else info.bakeAo = result->getInt("bake_ao") != 0;
+		else info.processAfter = result->getInt64("process_after");
+		if (!modular) info.bakeAo = result->getInt("bake_ao") != 0;
 		return info;
 	}
 
@@ -68,18 +69,22 @@ void MySQLDatabase::InsertNewUgcModel(
 	std::stringstream& sd0Data, // cant be const sad
 	const uint64_t blueprintId,
 	const uint32_t accountId,
-	const LWOOBJID characterId) {
+	const LWOOBJID characterId,
+	const int64_t processAfter) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
-		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)",
+		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`, `process_after`) VALUES (?,?,?,?,?,?,?,?)",
 		blueprintId,
 		accountId,
 		characterId,
 		0,
 		&stream,
 		false,
-		"weedeater.lxfml"
+		"weedeater.lxfml",
+		processAfter
 	);
+	// The owner is still building: their other models waiting for their quiet period wait longer
+	if (processAfter > 0) ExecuteUpdate("UPDATE ugc SET process_after = ? WHERE character_id = ? AND is_optimized = 0 AND process_after > 0 AND process_after < ?;", processAfter, characterId, processAfter);
 }
 
 void MySQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
@@ -87,10 +92,10 @@ void MySQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM properties_contents WHERE ugc_id = ?;", modelId);
 }
 
-void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
+void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml, const int64_t processAfter) {
 	const std::istream stream(lxfml.rdbuf());
 	// The UGC server makes the model's files again
-	ExecuteUpdate("UPDATE ugc SET lxfml = ?, is_optimized = 0, process_attempts = 0, process_error = '' WHERE id = ?;", &stream, modelId);
+	ExecuteUpdate("UPDATE ugc SET lxfml = ?, is_optimized = 0, process_attempts = 0, process_error = '', process_after = ? WHERE id = ?;", &stream, processAfter, modelId);
 }
 
 std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
@@ -106,7 +111,7 @@ std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
 }
 
 std::vector<IUgc::PendingModel> MySQLDatabase::GetUgcModelsToProcess(const uint32_t limit) {
-	auto result = ExecuteSelect("SELECT id, lxfml, process_attempts FROM ugc WHERE is_optimized = 0 ORDER BY process_attempts ASC, id DESC LIMIT ?;", limit);
+	auto result = ExecuteSelect("SELECT id, lxfml, process_attempts FROM ugc WHERE is_optimized = 0 AND process_after <= ? ORDER BY process_attempts ASC, id DESC LIMIT ?;", UnixNow(), limit);
 	std::vector<IUgc::PendingModel> models;
 	while (result->next()) {
 		auto& model = models.emplace_back();
@@ -127,21 +132,21 @@ void MySQLDatabase::SetUgcModelProcessed(const LWOOBJID id, const eProcessState 
 
 std::optional<IUgc::ProcessInfo> MySQLDatabase::GetUgcProcessInfo(const LWOOBJID id) {
 	auto result = ExecuteSelect(
-		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao "
+		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao, u.process_after "
 		"FROM ugc AS u LEFT JOIN charinfo AS c ON c.id = u.character_id WHERE u.id = ? LIMIT 1;", id);
 	if (!result->next()) return std::nullopt;
 	return ReadUgcProcessInfo(result, false);
 }
 
 uint64_t MySQLDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) {
-	if (id) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '' WHERE id = ?;", *id);
-	if (failedOnly) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '' WHERE is_optimized = 2;");
-	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '';");
+	if (id) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0 WHERE id = ?;", *id);
+	if (failedOnly) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0 WHERE is_optimized = 2;");
+	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0;");
 }
 
 std::vector<IUgc::ProcessInfo> MySQLDatabase::GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) {
 	const std::string select =
-		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao "
+		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao, u.process_after "
 		"FROM ugc AS u LEFT JOIN charinfo AS c ON c.id = u.character_id ";
 	std::vector<IUgc::ProcessInfo> list;
 	// Every filter always bound, off when its first value says so
@@ -163,4 +168,12 @@ std::vector<std::pair<IUgc::eProcessState, uint64_t>> MySQLDatabase::GetUgcProce
 		counts.emplace_back(static_cast<eProcessState>(result->getInt("is_optimized")), static_cast<uint64_t>(result->getInt64("count")));
 	}
 	return counts;
+}
+
+void MySQLDatabase::ExpediteUgcModel(const LWOOBJID id) {
+	ExecuteUpdate("UPDATE ugc SET process_after = 0 WHERE id = ? AND is_optimized = 0 AND process_after > 0;", id);
+}
+
+void MySQLDatabase::ExpediteUgcModels(const LWOOBJID characterId) {
+	ExecuteUpdate("UPDATE ugc SET process_after = 0 WHERE character_id = ? AND is_optimized = 0 AND process_after > 0;", characterId);
 }

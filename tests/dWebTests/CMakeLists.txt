@@ -77,7 +77,7 @@ target_include_directories(dWebTests PRIVATE
 	"${PROJECT_SOURCE_DIR}/thirdparty/nlohmann"
 )
 
-target_link_libraries(dWebTests ${COMMON_LIBRARIES} dWeb sqlite3 OpenSSL::Crypto CURL::libcurl GTest::gtest_main)
+target_link_libraries(dWebTests ${COMMON_LIBRARIES} dWeb dUgc sqlite3 OpenSSL::Crypto CURL::libcurl GTest::gtest_main)
 
 gtest_discover_tests(dWebTests)
 

@@ -29,7 +29,7 @@ public:
 	virtual void DeleteUgcModelData(const LWOOBJID& modelId) = 0;
 
 	// Inserts a new UGC model into the database.
-	virtual void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) = 0;
+	virtual void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml, const int64_t processAfter) = 0;
 
 	virtual std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) = 0;
 
@@ -53,6 +53,7 @@ public:
 		std::string error;
 		bool bakeAo{};
 		std::string details; // modular builds: the modules (ldf_config)
+		int64_t processAfter{}; // models: Unix seconds before which it isn't made (the quiet period after a save)
 	};
 
 	// A model waiting to be made: its id, stored LXFML (sd0) and the attempts so far
@@ -62,8 +63,13 @@ public:
 		uint32_t attempts{};
 	};
 
-	// Up to `limit` pending models, the least tried and then the newest first
+	// Up to `limit` pending models whose quiet period is over (process_after), the least tried and then the newest first
 	virtual std::vector<PendingModel> GetUgcModelsToProcess(const uint32_t limit) = 0;
+
+	// Ends the quiet period of a waiting model (a client asked for it), or of all a character's waiting models (they
+	// left the property)
+	virtual void ExpediteUgcModel(const LWOOBJID id) = 0;
+	virtual void ExpediteUgcModels(const LWOOBJID characterId) = 0;
 
 	// Records an attempt: the new state, how many attempts there have been, why it failed (empty when it didn't) and
 	// whether lighting was baked in; processed_at becomes now

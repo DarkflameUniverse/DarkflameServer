@@ -24,7 +24,7 @@ void ModelNormalizeMigration::Run() {
 		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
 		auto asStream = sd0.GetAsStream();
 		Database::Get()->UpdateModel(model->id, newCenter, model->rotation, model->behaviors);
-		Database::Get()->UpdateUgcModelData(id, asStream);
+		Database::Get()->UpdateUgcModelData(id, asStream, 0);
 	}
 	Database::Get()->SetAutoCommit(oldCommit);
 }
@@ -44,7 +44,7 @@ void ModelNormalizeMigration::RunAfterFirstPart() {
 		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
 		auto asStream = sd0.GetAsStream();
 		Database::Get()->UpdateModel(model->id, newCenter, model->rotation, model->behaviors);
-		Database::Get()->UpdateUgcModelData(id, asStream);
+		Database::Get()->UpdateUgcModelData(id, asStream, 0);
 	}
 	Database::Get()->SetAutoCommit(oldCommit);
 }
@@ -65,7 +65,7 @@ void ModelNormalizeMigration::RunBrickBuildGrid() {
 		LOG("Updated model %llu to have a center of %f %f %f", modelID, newCenter.x, newCenter.y, newCenter.z);
 		auto asStream = sd0.GetAsStream();
 		Database::Get()->UpdateModel(model->id, newCenter, model->rotation, model->behaviors);
-		Database::Get()->UpdateUgcModelData(id, asStream);
+		Database::Get()->UpdateUgcModelData(id, asStream, 0);
 	}
 	Database::Get()->SetAutoCommit(oldCommit);
 }

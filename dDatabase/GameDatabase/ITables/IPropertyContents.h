@@ -25,7 +25,10 @@ public:
 		std::stringstream& sd0Data,
 		const uint64_t blueprintId,
 		const uint32_t accountId,
-		const LWOOBJID characterId) = 0;
+		const LWOOBJID characterId,
+		// Unix seconds before which the UGC server doesn't make it (0: right away). The owner's other models waiting
+		// to be made wait until then too (they may be edited again).
+		const int64_t processAfter) = 0;
 
 	// Get the property models for the given property id.
 	virtual std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) = 0;

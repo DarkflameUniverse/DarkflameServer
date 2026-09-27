@@ -28,9 +28,8 @@ namespace UgcRender {
 	};
 
 	/**
-	 * The icon, set up like LU Toolbox's icon renderer (the BrickBuild scene of its UGC render add-on): a 50 mm lens
-	 * (39.6 degree field of view) looking from 53.4 degrees around and 19.5 above, framed at 1.03, a sun of strength
-	 * 2.5 from 21 around and 50.3 above with soft shadows, and a grey (0.192) world light, darkened by ambient occlusion.
+	 * How an icon is drawn. The values that can be set (settings icon_*, presets and overrides) are listed once, with
+	 * their ranges and shipped defaults, in UgcIconParams; the ones here are only what the struct starts with.
 	 */
 	struct IconOptions {
 		int size{ 128 };
@@ -39,13 +38,20 @@ namespace UgcRender {
 		float pitchDegrees{ 19.54f }; // camera above the model
 		float fovDegrees{ 39.6f };
 		float margin{ 1.03f };       // 1 fills the icon, more leaves a border
+		float offsetX{};             // the model moved right by this share of the icon's width (after framing)
+		float offsetY{};             // and up by this share of its height
 		glm::mat4 modelRotation{ 1.0f }; // applied to the model before the camera looks at it
 		float sunYawDegrees{ 21.0f };
 		float sunPitchDegrees{ 50.3f };
 		float sunStrength{ 2.5f };
-		float ambient{ 0.192f };
-		bool shadows{ true };
-		AoOptions ao{ true, 5.0f, 32, 1.0f, 0.0f };
+		float ambient{ 0.192f };     // the world light (radiance) every face gets
+		float fill{ 0.0f };          // a light from the camera (irradiance), what lifts the sides facing the viewer
+		float specular{ 0.0f };      // the sun's highlight on the plastic
+		float shininess{ 60.0f };    // how tight the highlight is
+		float exposure{ 1.0f };      // everything times this before it's written as sRGB
+		float contrast{ 1.0f };      // around the middle grey of the sRGB result
+		float shadows{ 1.0f };       // how much the sun's shadows darken, 0 to 1
+		AoOptions ao{ false, 5.0f, 32, 1.0f, 0.0f };
 	};
 
 	// The model drawn from the icon's camera, framed to fit, on a transparent background. `opaqueAo`: the opaque mesh's

@@ -10,7 +10,7 @@ namespace {
 		"model.nif", "model.nif.gz", "model.nif.checksum",
 		"model.lxfml.gz", "model.lxfml.checksum",
 		"icon.dds.gz", "icon.dds.checksum", "icon.png",
-		"model.noao.nif", "stats.json",
+		"model.noao.nif", "stats.json", "combo.json",
 		"previous.icon.png", "previous.model.nif", "previous.model.noao.nif", "previous.stats.json",
 	};
 
@@ -85,6 +85,43 @@ std::optional<uint64_t> UgcStorage::Write(Kind kind, LWOOBJID id, const Files& f
 		return std::nullopt;
 	}
 	if (hadOld) std::filesystem::remove_all(old, code);
+	return bytes;
+}
+
+std::optional<uint64_t> UgcStorage::Update(Kind kind, LWOOBJID id, const Files& files, std::string& error) const {
+	const auto folder = Folder(kind, id);
+	std::error_code code;
+	if (!std::filesystem::is_directory(folder, code)) {
+		error = "no files to update in " + folder.string();
+		return std::nullopt;
+	}
+	uint64_t bytes = 0;
+	for (const auto* name : KEPT_FILES) {
+		if (files.contains(name) && std::filesystem::exists(folder / name, code)) {
+			std::filesystem::copy_file(folder / name, folder / (std::string("previous.") + name), std::filesystem::copy_options::overwrite_existing, code);
+			code.clear();
+		}
+	}
+	for (const auto& [name, data] : files) {
+		if (!IsKnownFile(name)) continue;
+		const auto aside = folder / (".tmp-" + name + "-" + RandomSuffix());
+		{
+			std::ofstream out(aside, std::ios::binary | std::ios::trunc);
+			out.write(data.data(), static_cast<std::streamsize>(data.size()));
+			if (!out) {
+				error = "could not write " + aside.string();
+				std::filesystem::remove(aside, code);
+				return std::nullopt;
+			}
+		}
+		std::filesystem::rename(aside, folder / name, code);
+		if (code) {
+			error = "could not replace " + (folder / name).string() + ": " + code.message();
+			std::filesystem::remove(aside, code);
+			return std::nullopt;
+		}
+		bytes += data.size();
+	}
 	return bytes;
 }
 

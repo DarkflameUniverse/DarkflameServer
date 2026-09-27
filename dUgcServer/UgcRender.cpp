@@ -430,7 +430,7 @@ namespace UgcRender {
 		const auto project = [&](const glm::vec3& position) {
 			const auto clip = viewProjection * glm::vec4(position, 1.0f);
 			const float w = clip.w > 1e-6f ? clip.w : 1e-6f;
-			return glm::vec3((0.5f + (clip.x / w - centerX) * scale * 0.5f) * n, (0.5f - (clip.y / w - centerY) * scale * 0.5f) * n, clip.z / w);
+			return glm::vec3((0.5f + options.offsetX + (clip.x / w - centerX) * scale * 0.5f) * n, (0.5f - options.offsetY - (clip.y / w - centerY) * scale * 0.5f) * n, clip.z / w);
 		};
 
 		// Linear, premultiplied
@@ -449,7 +449,7 @@ namespace UgcRender {
 		const int shadowSize = 1024;
 		const OrthoView sunView(center, radius * 1.05f, light, shadowSize);
 		std::vector<float> shadowDepth;
-		if (options.shadows) {
+		if (options.shadows > 0.0f) {
 			shadowDepth.assign(static_cast<size_t>(shadowSize) * shadowSize, INF);
 			const auto& mesh = model.opaque;
 			std::vector<glm::vec3> screen(mesh.positions.size());
@@ -473,8 +473,11 @@ namespace UgcRender {
 					if (x < 0 || y < 0 || x >= shadowSize || y >= shadowSize || p.z <= shadowDepth[static_cast<size_t>(y) * shadowSize + x] + shadowBias) lit += 1.0f;
 				}
 			}
-			return lit / 9.0f;
+			const float shadowed = 1.0f - lit / 9.0f;
+			return 1.0f - std::clamp(options.shadows, 0.0f, 1.0f) * shadowed;
 		};
+		const glm::vec3 toCamera = glm::normalize(dir);
+		const glm::vec3 halfway = glm::normalize(light + toCamera);
 
 		const auto shade = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
 			glm::vec3 normal(0.0f, 1.0f, 0.0f);
@@ -490,10 +493,15 @@ namespace UgcRender {
 			const float strength = std::clamp(options.ao.strength, 0.0f, 1.0f);
 			const auto position = mesh.positions[i0] * w0 + mesh.positions[i1] * w1 + mesh.positions[i2] * w2;
 			const float direct = std::max(0.0f, glm::dot(normal, light));
-			// Diffuse: the world's light (radiance `ambient`) and the sun's (irradiance `sunStrength`, over pi)
+			const float sun = direct > 0.0f ? sunlit(position + normal * shadowBias) : 0.0f;
+			// Diffuse: the world's light (radiance `ambient`), a fill from the camera and the sun's (irradiances, over pi)
 			const float lighting = options.ambient * (1.0f - strength * (1.0f - occlusion)) +
-				options.sunStrength / 3.14159265f * direct * (direct > 0.0f ? sunlit(position + normal * shadowBias) : 0.0f);
-			return glm::vec4(ToLinear(base.r) * lighting, ToLinear(base.g) * lighting, ToLinear(base.b) * lighting, std::clamp(base.a, 0.0f, 1.0f));
+				(options.fill * std::max(0.0f, glm::dot(normal, toCamera)) + options.sunStrength * direct * sun) / 3.14159265f;
+			// The sun's highlight (Blinn-Phong), white, on top of the color
+			const float highlight = direct > 0.0f ? options.specular * options.sunStrength / 3.14159265f * sun * std::pow(std::max(0.0f, glm::dot(normal, halfway)), std::max(options.shininess, 1.0f)) : 0.0f;
+			const float exposure = std::max(options.exposure, 0.0f);
+			return glm::vec4((ToLinear(base.r) * lighting + highlight) * exposure, (ToLinear(base.g) * lighting + highlight) * exposure,
+				(ToLinear(base.b) * lighting + highlight) * exposure, std::clamp(base.a, 0.0f, 1.0f));
 		};
 
 		// Opaque first, with the depth buffer
@@ -546,9 +554,11 @@ namespace UgcRender {
 				sum /= samples;
 				uint8_t* out = &image.rgba[(static_cast<size_t>(y) * size + x) * 4];
 				if (sum.a <= 0.0f) continue;
-				out[0] = static_cast<uint8_t>(std::lround(ToSrgb(sum.r / sum.a) * 255.0f));
-				out[1] = static_cast<uint8_t>(std::lround(ToSrgb(sum.g / sum.a) * 255.0f));
-				out[2] = static_cast<uint8_t>(std::lround(ToSrgb(sum.b / sum.a) * 255.0f));
+				// sRGB, then the contrast around its middle grey
+				const auto tone = [&options](float linear) { return std::clamp(0.5f + (ToSrgb(linear) - 0.5f) * options.contrast, 0.0f, 1.0f); };
+				out[0] = static_cast<uint8_t>(std::lround(tone(sum.r / sum.a) * 255.0f));
+				out[1] = static_cast<uint8_t>(std::lround(tone(sum.g / sum.a) * 255.0f));
+				out[2] = static_cast<uint8_t>(std::lround(tone(sum.b / sum.a) * 255.0f));
 				out[3] = static_cast<uint8_t>(std::lround(std::clamp(sum.a, 0.0f, 1.0f) * 255.0f));
 			}
 		}
