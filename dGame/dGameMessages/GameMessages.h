@@ -22,7 +22,6 @@ class Entity;
 class Item;
 class User;
 class Leaderboard;
-class PropertySelectQueryProperty;
 class TradeItem;
 class LDFBaseData;
 
@@ -126,7 +125,6 @@ namespace GameMessages {
 		return event.Send();
 	}
 
-	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
 	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
 	void SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority = 0.0f, float fScale = 1.0f);
@@ -249,19 +247,6 @@ namespace GameMessages {
 	 */
 	void SendUnSmash(Entity* entity, LWOOBJID builderID = LWOOBJID_EMPTY, float duration = 3.0f);
 
-	/**
-	 * @brief This GameMessage is the one that handles all of the property behavior incoming messages from the client.
-	 *
-	 * The GameMessage struct can be located here https://lcdruniverse.org/lu_packets/lu_packets/world/gm/server/struct.ControlBehaviors.html
-	 * For information on the AMF3 format can be found here https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
-	 * For any questions regarding AMF3 you can contact EmosewaMC on GitHub
-	 *
-	 * @param inStream The incoming data sent from the client
-	 * @param entity The Entity that sent the message
-	 * @param sysAddr The SystemAddress that sent the message
-	 */
-	void HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
 	// Rails stuff
 	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
 		const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
@@ -295,12 +280,6 @@ namespace GameMessages {
 
 	// Property messages
 
-	void SendOpenPropertyVendor(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendOpenPropertyManagment(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendDownloadPropertyData(LWOOBJID objectId, const PropertyDataMessage& data, const SystemAddress& sysAddr);
-
 	/**
 	 * @brief Send an updated item id to the client when they load a blueprint in brick build mode
 	 *
@@ -311,53 +290,17 @@ namespace GameMessages {
 	 */
 	void SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId);
 
-	void SendPropertyRentalResponse(LWOOBJID objectId, LWOCLONEID cloneId, uint32_t code, LWOOBJID propertyId, int64_t rentDue, const SystemAddress& sysAddr);
-
 	void SendLockNodeRotation(Entity* entity, std::string nodeName);
 
 	void SendSetBuildModeConfirmed(LWOOBJID objectId, const SystemAddress& sysAddr, bool start, bool warnVisitors, bool modePaused, int32_t modeValue, LWOOBJID playerId, NiPoint3 startPos = NiPoint3Constant::ZERO);
-
-	void SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID, LWOOBJID> models, const SystemAddress& sysAddr);
-
-	void SendZonePropertyModelEquipped(LWOOBJID objectId, LWOOBJID playerId, LWOOBJID propertyId, const SystemAddress& sysAddr);
-
-	void SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress& sysAddr, NiPoint3 position, LWOOBJID plaque, int32_t response, NiQuaternion rotation);
-
-	void SendUGCEquipPreCreateBasedOnEditMode(LWOOBJID objectId, const SystemAddress& sysAddr, int modelCount, LWOOBJID model);
-
-	void SendUGCEquipPostDeleteBasedOnEditMode(LWOOBJID objectId, const SystemAddress& sysAddr, LWOOBJID inventoryItem, int itemTotal);
-
-	void HandleSetPropertyAccess(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleQueryPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleSetBuildMode(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleStartBuildingWithItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePropertyEditorBegin(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandlePropertyEditorEnd(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandlePropertyContentsFromClient(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandlePropertyModelEquipped(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandlePlacePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleUpdatePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleDeletePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
 	void HandleBBBLoadItemRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandlePropertyEntranceSync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleEnterProperty(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleSetConsumableItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
@@ -413,10 +356,6 @@ namespace GameMessages {
 	void SendAddRunSpeedModifier(LWOOBJID objectId, LWOOBJID caster, uint32_t modifier, const SystemAddress& sysAddr);
 
 	void SendRemoveRunSpeedModifier(LWOOBJID objectId, uint32_t modifier, const SystemAddress& sysAddr);
-
-	void SendPropertyEntranceBegin(LWOOBJID objectId, const SystemAddress& sysAddr);
-
-	void SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset, bool thereAreMore, int32_t cloneId, bool hasFeaturedProperty, bool wasFriends, const std::vector<PropertySelectQueryProperty>& entries, const SystemAddress& sysAddr);
 
 	void SendNotifyObject(LWOOBJID objectId, LWOOBJID objIDSender, std::u16string name, const SystemAddress& sysAddr, int param1 = 0, int param2 = 0);
 
@@ -500,38 +439,6 @@ namespace GameMessages {
 	 */
 	void HandleAcknowledgePossession(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	/**
-	 * @brief A request from a client to get the hot properties that would appear on the news feed
-	 * This incoming message has NO DATA and is simply a request that expects to send a reply to the sender.
-	 *
-	 * @param inStream packet of data
-	 * @param entity The Entity that sent the request
-	 * @param sysAddr The SystemAddress of the Entity that sent the request
-	 */
-	void HandleGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	/**
-	 * @brief A request from a client to get the hot properties that would appear on the news feed
-	 * The struct of data to send is as follows
-	 *
-	 * [u32] - Number of properties
-	 *     [objid] - property id
-	 *     [objid] - property owner id
-	 *     [wstring] - property owner name
-	 *     [u64] - total reputation
-	 *     [i32] - property template id
-	 *     [wstring] - property name
-	 *     [wstring] - property description
-	 *     [float] - performance cost
-	 *     [timestamp] - time last published
-	 *     [cloneid] - clone id
-	 *
-	 * @param inStream packet of data
-	 * @param entity The Entity that sent the request
-	 * @param sysAddr The SystemAddress of the Entity that sent the request
-	 */
-	void SendGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
 	//Racing:
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
@@ -549,8 +456,6 @@ namespace GameMessages {
 		float timeLimit,
 		bool bUseLeaderboards
 	);
-
-	void HandleUpdatePropertyPerformanceCost(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float addTime,
@@ -928,31 +833,6 @@ namespace GameMessages {
 		bool bRemove{};
 		LWOOBJID possessedId{ LWOOBJID_EMPTY };
 		int32_t setId{ -1 };
-	};
-
-	/**
-	 * The news screen's "Today's Top Properties" (GM 1510), the answer to GetHotPropertyData (GM 1511).
-	 * Client: GameMessage::NewsSendHotPropertiesInfoToClient, entries read by NewsHotPropertyInfo::Deserialize
-	 * (0x00c0cc20 in 1.10.64) and shown by LWOCharacterComponent::HotPropertyData (0x00cf83f0). See HotPropertySlots.h.
-	 */
-	struct NewsSendHotPropertiesInfoToClient : public NetGameMsg {
-		NewsSendHotPropertiesInfoToClient() : NetGameMsg(MessageType::Game::SEND_HOT_PROPERTY_DATA) {}
-		void Serialize(RakNet::BitStream& bitStream) const override;
-
-		struct HotPropertyInfo {
-			LWOOBJID propertyId{};
-			LWOOBJID ownerId{};
-			std::u16string ownerName;
-			uint64_t reputation{};
-			int32_t templateId{};        // PropertyTemplate id: picks the news screen slot
-			std::u16string name;
-			std::u16string description;
-			float performanceCost{};
-			uint64_t lastPublished{};    // unix time
-			uint32_t cloneId{};
-		};
-
-		std::vector<HotPropertyInfo> properties;
 	};
 
 	struct ObjectLoaded : public GameMsg {

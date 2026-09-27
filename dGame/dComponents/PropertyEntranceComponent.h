@@ -6,6 +6,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "PropertyMessages.h"
 #include "eReplicaComponentType.h"
 
 /**
@@ -63,7 +64,7 @@ private:
 	/**
 	 * Cache of property information that was queried for property launched, indexed by property ID
 	 */
-	std::map<LWOOBJID, std::vector<PropertySelectQueryProperty>> propertyQueries;
+	std::map<LWOOBJID, std::vector<GameMessages::PropertySelectQuery::PropertyInfo>> propertyQueries;
 
 	/**
 	 * The custom name for this property

@@ -35,6 +35,7 @@
 #include "RacingMessages.h"
 #include "MissionMessages.h"
 #include "PetMessages.h"
+#include "PropertyMessages.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "ServiceType.h"
@@ -45,7 +46,6 @@
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
 #include "MessageInspector.h"
-#include "PlayerReports.h"
 
 namespace {
 	using enum MessageType::Game;
@@ -83,6 +83,26 @@ namespace {
 		{ CLIENT_EXIT_TAMING_MINIGAME, []() { return std::make_unique<ClientExitTamingMinigame>(); } },
 		{ COMMAND_PET, []() { return std::make_unique<CommandPet>(); } },
 		{ DESPAWN_PET, []() { return std::make_unique<DespawnPet>(); } },
+
+		// Property
+		{ SET_PROPERTY_ACCESS, []() { return std::make_unique<SetPropertyAccess>(); } },
+		{ UPDATE_PROPERTY_OR_MODEL_FOR_FILTER_CHECK, []() { return std::make_unique<UpdatePropertyOrModelForFilterCheck>(); } },
+		{ QUERY_PROPERTY_DATA, []() { return std::make_unique<QueryPropertyData>(); } },
+		{ PROPERTY_EDITOR_BEGIN, []() { return std::make_unique<PropertyEditorBegin>(); } },
+		{ PROPERTY_EDITOR_END, []() { return std::make_unique<PropertyEditorEnd>(); } },
+		{ PROPERTY_CONTENTS_FROM_CLIENT, []() { return std::make_unique<PropertyContentsFromClient>(); } },
+		{ ZONE_PROPERTY_MODEL_EQUIPPED, []() { return std::make_unique<ZonePropertyModelEquipped>(); } },
+		{ ZONE_PROPERTY_MODEL_ROTATED, []() { return std::make_unique<ZonePropertyModelRotated>(); } },
+		{ PLACE_PROPERTY_MODEL, []() { return std::make_unique<PlacePropertyModel>(); } },
+		{ UPDATE_MODEL_FROM_CLIENT, []() { return std::make_unique<UpdateModelFromClient>(); } },
+		{ DELETE_MODEL_FROM_CLIENT, []() { return std::make_unique<DeleteModelFromClient>(); } },
+		{ CONTROL_BEHAVIORS, []() { return std::make_unique<GameMessages::ControlBehaviors>(); } },
+		{ PROPERTY_ENTRANCE_SYNC, []() { return std::make_unique<PropertyEntranceSync>(); } },
+		{ ENTER_PROPERTY1, []() { return std::make_unique<EnterProperty1>(); } },
+		{ UPDATE_PROPERTY_PERFORMANCE_COST, []() { return std::make_unique<UpdatePropertyPerformanceCost>(); } },
+		{ REPORT_OFFENSIVE_MODEL, []() { return std::make_unique<ReportOffensiveModel>(); } },
+		{ REPORT_OFFENSIVE_PROPERTY, []() { return std::make_unique<ReportOffensiveProperty>(); } },
+		{ GET_HOT_PROPERTY_DATA, []() { return std::make_unique<GetHotPropertyData>(); } },
 	};
 };
 
@@ -318,11 +338,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::SendResurrect(entity);
 		break;
 	}
-	case MessageType::Game::GET_HOT_PROPERTY_DATA: {
-		GameMessages::HandleGetHotPropertyData(inStream, entity, sysAddr);
-		break;
-	}
-
 	case MessageType::Game::REQUEST_SERVER_PROJECTILE_IMPACT:
 	{
 		auto message = RequestServerProjectileImpact();
@@ -524,45 +539,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::HandleChoiceBoxRespond(inStream, entity, sysAddr);
 		break;
 
-		// Property
-	case MessageType::Game::QUERY_PROPERTY_DATA:
-		GameMessages::HandleQueryPropertyData(inStream, entity, sysAddr);
-		break;
-
 	case MessageType::Game::START_BUILDING_WITH_ITEM:
 		GameMessages::HandleStartBuildingWithItem(inStream, entity, sysAddr);
 		break;
 
 	case MessageType::Game::SET_BUILD_MODE:
 		GameMessages::HandleSetBuildMode(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PROPERTY_EDITOR_BEGIN:
-		GameMessages::HandlePropertyEditorBegin(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PROPERTY_EDITOR_END:
-		GameMessages::HandlePropertyEditorEnd(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PROPERTY_CONTENTS_FROM_CLIENT:
-		GameMessages::HandlePropertyContentsFromClient(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::ZONE_PROPERTY_MODEL_EQUIPPED:
-		GameMessages::HandlePropertyModelEquipped(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PLACE_PROPERTY_MODEL:
-		GameMessages::HandlePlacePropertyModel(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::UPDATE_MODEL_FROM_CLIENT:
-		GameMessages::HandleUpdatePropertyModel(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::DELETE_MODEL_FROM_CLIENT:
-		GameMessages::HandleDeletePropertyModel(inStream, entity, sysAddr);
 		break;
 
 	case MessageType::Game::BBB_LOAD_ITEM_REQUEST:
@@ -573,30 +555,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 		break;
 
-	case MessageType::Game::CONTROL_BEHAVIORS:
-		GameMessages::HandleControlBehaviors(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PROPERTY_ENTRANCE_SYNC:
-		GameMessages::HandlePropertyEntranceSync(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::ENTER_PROPERTY1:
-		GameMessages::HandleEnterProperty(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::ZONE_PROPERTY_MODEL_ROTATED:
-		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRotated(usr->GetLastUsedChar()->GetEntity());
-		break;
-
-	case MessageType::Game::UPDATE_PROPERTY_OR_MODEL_FOR_FILTER_CHECK:
-		GameMessages::HandleUpdatePropertyOrModelForFilterCheck(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::SET_PROPERTY_ACCESS:
-		GameMessages::HandleSetPropertyAccess(inStream, entity, sysAddr);
-		break;
-
 		// Racing: most racing messages are registered in g_MessageHandlers
 	case MessageType::Game::ACKNOWLEDGE_POSSESSION:
 		GameMessages::HandleAcknowledgePossession(inStream, entity, sysAddr);
@@ -604,9 +562,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::REQUEST_DIE:
 		GameMessages::HandleRequestDie(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::UPDATE_PROPERTY_PERFORMANCE_COST:
-		GameMessages::HandleUpdatePropertyPerformanceCost(inStream, entity, sysAddr);
 		break;
 		// SG
 	case MessageType::Game::UPDATE_SHOOTING_GALLERY_ROTATION:
@@ -633,14 +588,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::REPORT_BUG:
 		GameMessages::HandleReportBug(inStream, entity);
-		break;
-
-	case MessageType::Game::REPORT_OFFENSIVE_MODEL:
-		PlayerReports::HandleReportOffensiveModel(inStream, entity);
-		break;
-
-	case MessageType::Game::REPORT_OFFENSIVE_PROPERTY:
-		PlayerReports::HandleReportOffensiveProperty(inStream, entity);
 		break;
 
 	case MessageType::Game::CLIENT_RAIL_MOVEMENT_READY:

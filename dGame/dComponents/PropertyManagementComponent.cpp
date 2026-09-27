@@ -5,7 +5,9 @@
 
 #include "MissionComponent.h"
 #include "EntityManager.h"
-#include "PropertyDataMessage.h"
+#include "PropertyMessages.h"
+#include "CDClientManager.h"
+#include "CDPropertyTemplateTable.h"
 #include "UserManager.h"
 #include "GameMessages.h"
 #include "Character.h"
@@ -406,11 +408,32 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 	models.insert_or_assign(model->GetObjectID(), spawnerId);
 
-	GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_Parent->GetObjectID(), 14, originalRotation);
+	{
+		GameMessages::PlaceModelResponse msg;
+		msg.target = entity->GetObjectID();
+		msg.position = position;
+		msg.propertyPlaqueID = m_Parent->GetObjectID();
+		msg.response = 14;
+		msg.rotation = originalRotation;
+		msg.Send(entity->GetSystemAddress());
+	}
 
-	GameMessages::SendUGCEquipPreCreateBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), 0, spawnerId);
+	{
+		GameMessages::HandleUGCEquipPreCreateBasedOnEditMode msg;
+		msg.target = entity->GetObjectID();
+		msg.modelCount = 0;
+		msg.modelID = spawnerId;
+		msg.Send(entity->GetSystemAddress());
+	}
 
-	GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
+	{
+		const auto& propertyModels = GetModels();
+		GameMessages::GetModelsOnProperty msg;
+		msg.target = entity->GetObjectID();
+		msg.models = { propertyModels.begin(), propertyModels.end() };
+		LOG("Sending property models to (%llu) (%d)", msg.target, true);
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
 	Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 
@@ -445,10 +468,24 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	if (model->GetLOT() == 14 && deleteReason == 0) {
 		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
 
-		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
+		{
+			GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
+			msg.target = entity->GetObjectID();
+			msg.invItem = LWOOBJID_EMPTY;
+			msg.itemsTotal = 0;
+			msg.Send(entity->GetSystemAddress());
+		}
 
 		// Need this to pop the user out of their current state
-		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), entity->GetPosition(), m_Parent->GetObjectID(), 14, entity->GetRotation());
+		{
+			GameMessages::PlaceModelResponse msg;
+			msg.target = entity->GetObjectID();
+			msg.position = entity->GetPosition();
+			msg.propertyPlaqueID = m_Parent->GetObjectID();
+			msg.response = 14;
+			msg.rotation = entity->GetRotation();
+			msg.Send(entity->GetSystemAddress());
+		}
 
 		return;
 	}
@@ -501,12 +538,33 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		}
 
 		if (deleteReason == 0 || deleteReason == 2) {
-			GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), item->GetId(), item->GetCount());
+			{
+				GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
+				msg.target = entity->GetObjectID();
+				msg.invItem = item->GetId();
+				msg.itemsTotal = item->GetCount();
+				msg.Send(entity->GetSystemAddress());
+			}
 		}
 
-		GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
+		{
+			const auto& propertyModels = GetModels();
+			GameMessages::GetModelsOnProperty msg;
+			msg.target = entity->GetObjectID();
+			msg.models = { propertyModels.begin(), propertyModels.end() };
+			LOG("Sending property models to (%llu) (%d)", msg.target, true);
+			msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		}
 
-		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 16, QuatUtils::IDENTITY);
+		{
+			GameMessages::PlaceModelResponse msg;
+			msg.target = entity->GetObjectID();
+			msg.position = NiPoint3Constant::ZERO;
+			msg.propertyPlaqueID = LWOOBJID_EMPTY;
+			msg.response = 16;
+			msg.rotation = QuatUtils::IDENTITY;
+			msg.Send(entity->GetSystemAddress());
+		}
 
 		if (spawner != nullptr) {
 			Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
@@ -532,7 +590,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	{
 		item->Equip();
 
-		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), item->GetId(), item->GetCount());
+		{
+			GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
+			msg.target = entity->GetObjectID();
+			msg.invItem = item->GetId();
+			msg.itemsTotal = item->GetCount();
+			msg.Send(entity->GetSystemAddress());
+		}
 		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
 
 		break;
@@ -557,9 +621,24 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	}
 	}
 
-	GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
+	{
+		const auto& propertyModels = GetModels();
+		GameMessages::GetModelsOnProperty msg;
+		msg.target = entity->GetObjectID();
+		msg.models = { propertyModels.begin(), propertyModels.end() };
+		LOG("Sending property models to (%llu) (%d)", msg.target, true);
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 
-	GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 16, QuatUtils::IDENTITY);
+	{
+		GameMessages::PlaceModelResponse msg;
+		msg.target = entity->GetObjectID();
+		msg.position = NiPoint3Constant::ZERO;
+		msg.propertyPlaqueID = LWOOBJID_EMPTY;
+		msg.response = 16;
+		msg.rotation = QuatUtils::IDENTITY;
+		msg.Send(entity->GetSystemAddress());
+	}
 
 	if (spawner != nullptr) {
 		Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
@@ -744,7 +823,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	const auto cloneId = worldId.GetCloneID();
 
 	LOG("Getting property info for %d", zoneId);
-	GameMessages::PropertyDataMessage message = GameMessages::PropertyDataMessage(zoneId);
+	const auto propertyTemplate = CDClientManager::GetTable<CDPropertyTemplateTable>()->GetByMapID(zoneId);
 
 	const auto isClaimed = GetOwnerId() != LWOOBJID_EMPTY;
 
@@ -778,26 +857,52 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 			}
 		}
 	}
-	message.moderatorRequested = moderatorRequested;
-	message.reputation = reputation;
-	message.LastUpdatedTime = LastUpdatedTime;
-	message.OwnerId = ownerId;
-	message.OwnerName = ownerName;
-	message.Name = name;
-	message.Description = description;
-	message.ClaimedTime = claimed;
-	message.PrivacyOption = privacy;
+	GameMessages::DownloadPropertyData message;
+	message.target = author;
+	message.propertyId = 0;
+	message.templateId = static_cast<int32_t>(propertyTemplate.id);
+	message.mapId = static_cast<uint16_t>(propertyTemplate.mapID);
+	message.vendorMapId = static_cast<uint16_t>(propertyTemplate.vendorMapID);
 	message.cloneId = clone_Id;
-	message.rejectionReason = rejectionReason;
-	message.Paths = GetPaths();
+	message.name = GeneralUtils::UTF8ToUTF16(name);
+	message.description = GeneralUtils::UTF8ToUTF16(description);
+	message.ownerName = GeneralUtils::UTF8ToUTF16(ownerName);
+	message.ownerId = ownerId;
+	message.propertyType = 0;
+	message.zoneCode = 0;
+	message.rent = 0;
+	message.rentalPeriod = 1;
+	message.expirationDate = LastUpdatedTime;
+	message.rentAmount = 1;
+	message.reputation = reputation;
+	message.spawnName = GeneralUtils::ASCIIToUTF16(propertyTemplate.spawnName);
+	message.rentDuration = 0;
+	message.votes = 1;
+	message.durationType = 1;
+	message.renew = static_cast<uint8_t>(privacy);
+	message.ownerAccountID = 0;
+	if (rejectionReason != "") message.moderationStatus = GameMessages::DownloadPropertyData::REJECTION_STATUS_REJECTED;
+	else if (moderatorRequested == true && rejectionReason == "") message.moderationStatus = GameMessages::DownloadPropertyData::REJECTION_STATUS_APPROVED;
+	else message.moderationStatus = GameMessages::DownloadPropertyData::REJECTION_STATUS_PENDING;
+	message.lastLogoutTime = 0;
+	message.dayOfMonthPlaqueWasBought = 1;
+	message.repAchievementReq = 1;
+	message.zonePosition = { 548.0f, 406.0f, 178.0f };
+	message.maxBuildHeight = 128.0f;
+	message.rentalDate = claimed;
+	message.accessType = static_cast<uint8_t>(privacy);
+	message.pathPositions = GetPaths();
 
-	SendDownloadPropertyData(author, message, UNASSIGNED_SYSTEM_ADDRESS);
+	LOG("(%llu) sending property data (%d)", author, true);
+	message.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	// send rejection here?
 }
 
 void PropertyManagementComponent::OnUse(Entity* originator) {
 	OnQueryPropertyData(originator, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendOpenPropertyManagment(m_Parent->GetObjectID(), originator->GetSystemAddress());
+	GameMessages::OpenPropertyManagement msg;
+	msg.target = PropertyManagementComponent::Instance()->GetParent()->GetObjectID();
+	msg.Send(originator->GetSystemAddress());
 }
 
 void PropertyManagementComponent::SetOwnerId(const LWOOBJID value) {

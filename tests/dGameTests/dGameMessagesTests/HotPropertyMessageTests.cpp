@@ -1,4 +1,4 @@
-#include "GameMessages.h"
+#include "PropertyMessages.h"
 #include "BitStream.h"
 
 #include <gtest/gtest.h>

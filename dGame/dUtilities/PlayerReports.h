@@ -10,7 +10,6 @@
 #include "dCommonVars.h"
 
 class Entity;
-namespace RakNet { class BitStream; }
 
 /**
  * Reports players send from the game's Report Abuse window (the help menu, or "Report" on another player's name), kept
@@ -45,11 +44,11 @@ namespace PlayerReports {
 	// ReportBug with nOtherPlayerID set; body is what the player wrote
 	void ReportPlayer(Entity* reporter, LWOOBJID reportedId, const std::string& body);
 
-	// ReportOffensiveModel: description, then the object the player picked
-	void HandleReportOffensiveModel(RakNet::BitStream& inStream, Entity* reporter);
+	// ReportOffensiveModel: what the player wrote, and the object they picked. Dropped if the text is too long.
+	void ReportOffensiveModel(Entity* reporter, const std::u16string& description, LWOOBJID objectId);
 
-	// ReportOffensiveProperty: description, then the property's plaque
-	void HandleReportOffensiveProperty(RakNet::BitStream& inStream, Entity* reporter);
+	// ReportOffensiveProperty: what the player wrote, and the property's plaque. Dropped if the text is too long.
+	void ReportOffensiveProperty(Entity* reporter, const std::u16string& description, LWOOBJID plaqueId);
 }
 
 #endif  //!__PLAYERREPORTS__H__

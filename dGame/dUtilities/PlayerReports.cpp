@@ -2,7 +2,6 @@
 
 #include <ctime>
 
-#include "BitStream.h"
 #include "Database.h"
 #include "DashboardNotify.h"
 #include "Entity.h"
@@ -59,21 +58,6 @@ namespace {
 		LOG("Player report %llu (%s) from %llu about %llu", id, report.kind.c_str(), report.reporterId, report.targetCharacterId);
 		DashboardNotify::Changed("player_reports");
 	}
-
-	// Description (u32 length + UTF-16) followed by an object ID
-	bool ReadDescriptionAndObject(RakNet::BitStream& inStream, std::string& description, LWOOBJID& objectId) {
-		uint32_t length{};
-		if (!inStream.Read(length) || length > MAX_BODY) return false;
-		std::u16string text;
-		text.reserve(length);
-		for (uint32_t i = 0; i < length; i++) {
-			char16_t character{};
-			if (!inStream.Read(character)) return false;
-			text.push_back(character);
-		}
-		description = GeneralUtils::UTF16ToWTF8(text);
-		return inStream.Read(objectId);
-	}
 }
 
 namespace PlayerReports {
@@ -87,10 +71,9 @@ namespace PlayerReports {
 		Save(report);
 	}
 
-	void HandleReportOffensiveModel(RakNet::BitStream& inStream, Entity* reporter) {
-		std::string description;
-		LWOOBJID objectId{};
-		if (!ReadDescriptionAndObject(inStream, description, objectId)) return;
+	void ReportOffensiveModel(Entity* reporter, const std::u16string& text, LWOOBJID objectId) {
+		if (text.size() > MAX_BODY) return;
+		const auto description = GeneralUtils::UTF16ToWTF8(text);
 		auto report = NewReport(reporter, ePlayerReportKind::MODEL, description);
 		report.objectId = objectId;
 		auto* object = Game::entityManager->GetEntity(objectId);
@@ -106,10 +89,9 @@ namespace PlayerReports {
 		Save(report);
 	}
 
-	void HandleReportOffensiveProperty(RakNet::BitStream& inStream, Entity* reporter) {
-		std::string description;
-		LWOOBJID plaqueId{};
-		if (!ReadDescriptionAndObject(inStream, description, plaqueId)) return;
+	void ReportOffensiveProperty(Entity* reporter, const std::u16string& text, LWOOBJID plaqueId) {
+		if (text.size() > MAX_BODY) return;
+		const auto description = GeneralUtils::UTF16ToWTF8(text);
 		auto report = NewReport(reporter, ePlayerReportKind::PROPERTY, description);
 		report.objectId = plaqueId;
 		if (auto* plaque = Game::entityManager->GetEntity(plaqueId)) report.objectLot = plaque->GetLOT();

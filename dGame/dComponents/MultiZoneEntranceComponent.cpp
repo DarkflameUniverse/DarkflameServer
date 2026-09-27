@@ -1,4 +1,5 @@
 #include "MultiZoneEntranceComponent.h"
+#include "PropertyMessages.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "InventoryComponent.h"
 #include "CharacterComponent.h"
@@ -24,7 +25,9 @@ void MultiZoneEntranceComponent::OnUse(Entity* originator) {
 	if (!rocket) return;
 
 	// the LUP world menu is just the property menu, the client knows how to handle it
-	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), originator->GetSystemAddress());
+	GameMessages::PropertyEntranceBegin msg;
+	msg.target = m_Parent->GetObjectID();
+	msg.Send(originator->GetSystemAddress());
 }
 
 void MultiZoneEntranceComponent::OnSelectWorld(Entity* originator, uint32_t index) {

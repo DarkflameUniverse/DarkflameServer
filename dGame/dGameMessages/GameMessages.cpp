@@ -84,13 +84,8 @@
 
 // Message includes:
 #include "dZoneManager.h"
-#include "PropertyDataMessage.h"
-#include "HotPropertySlots.h"
-#include "CDPropertyTemplateTable.h"
-#include "CDPropertyEntranceComponentTable.h"
 #include "PropertyManagementComponent.h"
 #include "PropertyVendorComponent.h"
-#include "PropertySelectQueryProperty.h"
 #include "TradingManager.h"
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
@@ -1757,59 +1752,6 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 
 // Property
 
-void GameMessages::SendOpenPropertyVendor(const LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::OPEN_PROPERTY_VENDOR);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendOpenPropertyManagment(const LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(PropertyManagementComponent::Instance()->GetParent()->GetObjectID());
-	bitStream.Write(MessageType::Game::OPEN_PROPERTY_MANAGEMENT);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendDownloadPropertyData(const LWOOBJID objectId, const PropertyDataMessage& data, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::DOWNLOAD_PROPERTY_DATA);
-
-	data.Serialize(bitStream);
-
-	LOG("(%llu) sending property data (%d)", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendPropertyRentalResponse(const LWOOBJID objectId, const LWOCLONEID cloneId, const uint32_t code, const LWOOBJID propertyId, const int64_t rentDue, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::PROPERTY_RENTAL_RESPONSE);
-
-	bitStream.Write(cloneId);
-	bitStream.Write(code);
-	bitStream.Write(propertyId);
-	bitStream.Write(rentDue);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
 void GameMessages::SendLockNodeRotation(Entity* entity, std::string nodeName) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -1845,124 +1787,6 @@ void GameMessages::SendSetBuildModeConfirmed(LWOOBJID objectId, const SystemAddr
 	SEND_PACKET;
 }
 
-void GameMessages::SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID, LWOOBJID> models, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::GET_MODELS_ON_PROPERTY);
-
-	bitStream.Write<uint32_t>(models.size());
-
-	for (const auto& pair : models) {
-		bitStream.Write(pair.first);
-		bitStream.Write(pair.second);
-	}
-
-	LOG("Sending property models to (%llu) (%d)", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendZonePropertyModelEquipped(LWOOBJID objectId, LWOOBJID playerId, LWOOBJID propertyId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::ZONE_PROPERTY_MODEL_EQUIPPED);
-
-	bitStream.Write(playerId);
-	bitStream.Write(propertyId);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress& sysAddr, NiPoint3 position,
-	LWOOBJID plaque, int32_t response, NiQuaternion rotation) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::PLACE_MODEL_RESPONSE);
-
-	bitStream.Write(position != NiPoint3Constant::ZERO);
-	if (position != NiPoint3Constant::ZERO) {
-		bitStream.Write(position);
-	}
-
-	bitStream.Write(plaque != LWOOBJID_EMPTY);
-	if (plaque != LWOOBJID_EMPTY) {
-		bitStream.Write(plaque);
-	}
-
-	bitStream.Write(response != 0);
-	if (response != 0) {
-		bitStream.Write(response);
-	}
-
-	bitStream.Write(rotation != QuatUtils::IDENTITY);
-	if (rotation != QuatUtils::IDENTITY) {
-		bitStream.Write(response);
-	}
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-
-}
-
-void GameMessages::SendUGCEquipPreCreateBasedOnEditMode(LWOOBJID objectId, const SystemAddress& sysAddr, int modelCount, LWOOBJID model) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::HANDLE_UGC_POST_CREATE_BASED_ON_EDIT_MODE);
-
-	bitStream.Write(modelCount);
-	bitStream.Write(model);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(LWOOBJID objectId, const SystemAddress& sysAddr, LWOOBJID inventoryItem, int itemTotal) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::HANDLE_UGC_POST_DELETE_BASED_ON_EDIT_MODE);
-
-	bitStream.Write(inventoryItem);
-
-	bitStream.Write(itemTotal != 0);
-	if (itemTotal != 0) {
-		bitStream.Write(itemTotal);
-	}
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::HandleSetPropertyAccess(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	uint8_t accessType{};
-	int32_t renew{};
-
-	bool accessTypeIsDefault{};
-	inStream.Read(accessTypeIsDefault);
-	if (accessTypeIsDefault != 0) inStream.Read(accessType);
-
-	bool renewIsDefault{};
-	inStream.Read(renewIsDefault);
-	if (renewIsDefault != 0) inStream.Read(renew);
-
-	LOG("Set privacy option to: %i", accessType);
-
-	if (PropertyManagementComponent::Instance() == nullptr) return;
-
-	PropertyManagementComponent::Instance()->SetPrivacyOption(static_cast<PropertyPrivacyOption>(accessType));
-}
-
 void GameMessages::HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	bool unknown{};
 	LWOOBJID objIdToAddToInventory{};
@@ -1986,68 +1810,6 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity,
 		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
 		bitStream.Write<uint32_t>(0);
 		SEND_PACKET;
-	}
-}
-
-void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool isProperty{};
-	LWOOBJID objectId{};
-	LWOOBJID playerId{};
-	LWOOBJID worldId{};
-	uint32_t nameLength{};
-	std::u16string name{};
-	uint32_t descriptionLength{};
-	std::u16string description{};
-
-	inStream.Read(isProperty);
-	inStream.Read(objectId);
-	inStream.Read(playerId);
-	inStream.Read(worldId);
-
-	inStream.Read(descriptionLength);
-	if (descriptionLength > MAX_MESSAGE_LENGTH) return;
-	for (uint32_t i = 0; i < descriptionLength; ++i) {
-		uint16_t character;
-		inStream.Read(character);
-		description.push_back(character);
-	}
-
-	inStream.Read(nameLength);
-	if (nameLength > MAX_MESSAGE_LENGTH) return;
-	for (uint32_t i = 0; i < nameLength; ++i) {
-		uint16_t character;
-		inStream.Read(character);
-		name.push_back(character);
-	}
-
-	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(name), GeneralUtils::UTF16ToWTF8(description));
-}
-
-void GameMessages::HandleQueryPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LOG("Entity (%i) requesting data", entity->GetLOT());
-
-	/*
-	auto entites = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROPERTY_VENDOR);
-
-	entity = entites[0];
-	*/
-
-	auto* propertyVendorComponent = static_cast<PropertyVendorComponent*>(entity->GetComponent(eReplicaComponentType::PROPERTY_VENDOR));
-
-	if (propertyVendorComponent != nullptr) {
-		propertyVendorComponent->OnQueryPropertyData(entity, sysAddr);
-	}
-
-	/*
-	entites = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROPERTY_MANAGEMENT);
-
-	entity = entites[0];
-	*/
-
-	auto* propertyManagerComponent = static_cast<PropertyManagementComponent*>(entity->GetComponent(eReplicaComponentType::PROPERTY_MANAGEMENT));
-
-	if (propertyManagerComponent != nullptr) {
-		propertyManagerComponent->OnQueryPropertyData(entity, sysAddr);
 	}
 }
 
@@ -2141,69 +1903,6 @@ void GameMessages::HandleStartBuildingWithItem(RakNet::BitStream& inStream, Enti
 	);
 }
 
-void GameMessages::HandlePropertyEditorBegin(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	PropertyManagementComponent::Instance()->OnStartBuilding();
-
-	Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditBegin();
-}
-
-void GameMessages::HandlePropertyEditorEnd(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	PropertyManagementComponent::Instance()->OnFinishBuilding();
-
-	Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditEnd();
-}
-
-void GameMessages::HandlePropertyContentsFromClient(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	User* user = UserManager::Instance()->GetUser(sysAddr);
-
-	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
-
-	SendGetModelsOnProperty(player->GetObjectID(), PropertyManagementComponent::Instance()->GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
-}
-
-void GameMessages::HandlePropertyModelEquipped(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelEquipped();
-}
-
-void GameMessages::HandlePlacePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID model;
-
-	inStream.Read(model);
-
-	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, QuatUtils::IDENTITY);
-}
-
-void GameMessages::HandleUpdatePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID model;
-	NiPoint3 position;
-	NiQuaternion rotation = QuatUtils::IDENTITY;
-
-	inStream.Read(model);
-	inStream.Read(position);
-
-	if (inStream.ReadBit()) {
-		inStream.Read(rotation);
-	}
-
-	PropertyManagementComponent::Instance()->UpdateModelPosition(model, position, rotation);
-}
-
-void GameMessages::HandleDeletePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID model = LWOOBJID_EMPTY;
-	int deleteReason = 0;
-
-	if (inStream.ReadBit()) {
-		inStream.Read(model);
-	}
-
-	if (inStream.ReadBit()) {
-		inStream.Read(deleteReason);
-
-	}
-
-	PropertyManagementComponent::Instance()->DeleteModel(model, deleteReason);
-}
-
 void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	LWOOBJID previousItemID = LWOOBJID_EMPTY;
 	inStream.Read(previousItemID);
@@ -2271,42 +1970,6 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 	if (duration != 3.0f) bitStream.Write(duration);
 
 	SEND_PACKET_BROADCAST;
-}
-
-void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	AMFDeserialize reader;
-	std::unique_ptr<AMFArrayValue> amfArguments;
-	try {
-		auto deserializedData = reader.Read(inStream);
-		if (!deserializedData || deserializedData->GetValueType() != eAmf::Array) {
-			LOG("Failed to deserialize AMF data for control behaviors command: not an array");
-			return;
-		}
-
-		amfArguments.reset(static_cast<AMFArrayValue*>(deserializedData.release()));
-	} catch (...) {
-		LOG("Failed to deserialize AMF data for control behaviors command");
-		return;
-	}
-	if (amfArguments->GetValueType() != eAmf::Array) return;
-
-	uint32_t commandLength{};
-	inStream.Read(commandLength);
-
-	if (commandLength > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded command buffer
-
-	std::string command;
-	command.reserve(commandLength);
-	for (uint32_t i = 0; i < commandLength; ++i) {
-		unsigned char character;
-		inStream.Read(character);
-		command.push_back(character);
-	}
-
-	auto* const owner = PropertyManagementComponent::Instance()->GetOwner();
-	if (!owner) return;
-
-	ControlBehaviors::Instance().ProcessCommand(entity, *amfArguments, command, owner);
 }
 
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -2488,76 +2151,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 			//there was an issue with builds not appearing since it was placed above ConstructEntity.
 			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), modelIDs[i]);
 		}
-	}
-}
-
-void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool includeNullAddress{};
-	bool includeNullDescription{};
-	bool playerOwn{};
-	bool updateUi{};
-	int32_t numResults{};
-	int32_t reputation{};
-	int32_t sortMethod{};
-	int32_t startIndex{};
-	uint32_t filterTextLength{};
-	std::string filterText{};
-
-	inStream.Read(includeNullAddress);
-	inStream.Read(includeNullDescription);
-	inStream.Read(playerOwn);
-	inStream.Read(updateUi);
-	inStream.Read(numResults);
-	inStream.Read(reputation);
-	inStream.Read(sortMethod);
-	inStream.Read(startIndex);
-	inStream.Read(filterTextLength);
-
-	if (filterTextLength > MAX_MESSAGE_LENGTH) return;
-	for (auto i = 0u; i < filterTextLength; i++) {
-		char c;
-		inStream.Read(c);
-		filterText.push_back(c);
-	}
-
-	auto* player = PlayerManager::GetPlayer(sysAddr);
-
-	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
-
-	if (entranceComponent == nullptr) return;
-
-	entranceComponent->OnPropertyEntranceSync(player,
-		includeNullAddress,
-		includeNullDescription,
-		playerOwn,
-		updateUi,
-		numResults,
-		reputation,
-		sortMethod,
-		startIndex,
-		filterText,
-		sysAddr
-	);
-}
-
-void GameMessages::HandleEnterProperty(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	uint32_t index{};
-	bool returnToZone{};
-
-	inStream.Read(index);
-	inStream.Read(returnToZone);
-
-	auto* player = PlayerManager::GetPlayer(sysAddr);
-
-	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
-	if (entranceComponent != nullptr) {
-		entranceComponent->OnEnterProperty(player, index, returnToZone, sysAddr);
-		return;
-	}
-
-	auto multiZoneEntranceComponent = entity->GetComponent<MultiZoneEntranceComponent>();
-	if (multiZoneEntranceComponent != nullptr) {
-		multiZoneEntranceComponent->OnSelectWorld(player, index);
 	}
 }
 
@@ -2834,40 +2427,6 @@ void GameMessages::SendRemoveRunSpeedModifier(LWOOBJID objectId, uint32_t modifi
 
 	bitStream.Write(modifier != 500);
 	if (modifier != 500) bitStream.Write(modifier);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendPropertyEntranceBegin(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::PROPERTY_ENTRANCE_BEGIN);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
-void GameMessages::SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset, bool thereAreMore, int32_t cloneId, bool hasFeaturedProperty, bool wasFriends, const std::vector<PropertySelectQueryProperty>& entries, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::PROPERTY_SELECT_QUERY);
-
-	bitStream.Write(navOffset);
-	bitStream.Write(thereAreMore);
-	bitStream.Write(cloneId);
-	bitStream.Write(hasFeaturedProperty);
-	bitStream.Write(wasFriends);
-
-	bitStream.Write<uint32_t>(entries.size());
-
-	for (auto& entry : entries) {
-		entry.Serialize(bitStream);
-	}
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
@@ -3588,35 +3147,6 @@ void GameMessages::SendUpdateReputation(const LWOOBJID objectId, const int64_t r
 
 	SEND_PACKET;
 }
-
-void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	float performanceCost = 0.0f;
-
-	if (inStream.ReadBit()) inStream.Read(performanceCost);
-
-	if (performanceCost == 0.0f) return;
-
-	auto zone = Game::zoneManager->GetZone();
-	if (!zone) {
-		LOG("If you see this message, something is very wrong.");
-		return;
-	}
-
-	const auto* const propertyManagementComponent = entity->GetComponent<PropertyManagementComponent>();
-	const auto* const ownerEntity = propertyManagementComponent ? propertyManagementComponent->GetOwner() : nullptr;
-	const auto* const character = ownerEntity ? ownerEntity->GetCharacter() : nullptr;
-	const auto& zoneID = zone->GetZoneID();
-	if (character && character->GetPropertyCloneID() == zoneID.GetCloneID()) {
-		Database::Get()->UpdatePerformanceCost(zoneID, performanceCost);
-	}
-}
-
-
-
-
-
-
-
 
 void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore) {
 	CBITSTREAM;
@@ -4829,120 +4359,6 @@ void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entit
 	}
 }
 
-void GameMessages::HandleGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	SendGetHotPropertyData(inStream, entity, sysAddr);
-}
-
-namespace {
-	using HotPropertyInfo = GameMessages::NewsSendHotPropertiesInfoToClient::HotPropertyInfo;
-
-	// The news screen's slots and the property worlds they can show properties of, from the CDClient (see HotPropertySlots.h)
-	struct NewsWorlds {
-		std::vector<HotPropertySlots::Slot> slots;
-		std::vector<uint32_t> worlds;
-	};
-
-	const NewsWorlds& GetNewsWorlds() {
-		static const auto news = [] {
-			std::vector<HotPropertySlots::TemplateRow> templates;
-			for (const auto& row : CDClientManager::GetTable<CDPropertyTemplateTable>()->GetEntries()) templates.push_back({ row.id, row.mapID, row.spawnName });
-			std::vector<HotPropertySlots::EntranceRow> entrances;
-			for (const auto& row : CDClientManager::GetTable<CDPropertyEntranceComponentTable>()->GetEntries()) entrances.push_back({ row.mapID, row.propertyName });
-			return NewsWorlds{ HotPropertySlots::ResolveSlots(templates, entrances), HotPropertySlots::PropertyWorlds(templates, entrances) };
-		}();
-		return news;
-	}
-
-	HotPropertyInfo ToHotProperty(const IProperty::Info& info, const std::string& ownerName, uint32_t templateId) {
-		HotPropertyInfo hot;
-		hot.propertyId = info.id;
-		hot.ownerId = info.ownerId;
-		hot.ownerName = GeneralUtils::UTF8ToUTF16(ownerName);
-		hot.reputation = info.reputation;
-		hot.templateId = static_cast<int32_t>(templateId);
-		hot.name = GeneralUtils::UTF8ToUTF16(info.name); // empty: the client shows the template's name
-		hot.description = GeneralUtils::UTF8ToUTF16(info.description);
-		hot.performanceCost = info.performanceCost;
-		hot.lastPublished = info.lastUpdatedTime;
-		hot.cloneId = info.cloneId;
-		return hot;
-	}
-
-	// What each slot shows, as chosen on the dashboard (featured_properties, featured_properties_settings), resolved by
-	// HotPropertySlots::Resolve so no property is shown twice. Every entry carries its slot's template id, whatever
-	// world the property is on: that is what puts it in the slot. Empty slots are left out.
-	std::vector<HotPropertyInfo> LoadHotProperties() {
-		const auto& news = GetNewsWorlds();
-		const bool fullAuto = Database::Get()->GetFeaturedPropertiesSettings().fullAuto;
-		std::map<uint32_t, IFeaturedProperties::FeaturedSlot> chosen;
-		for (const auto& row : Database::Get()->GetFeaturedPropertySlots()) chosen[row.templateId] = row;
-
-		std::vector<HotPropertySlots::Choice> choices;
-		for (const auto& slot : news.slots) {
-			const auto it = chosen.find(slot.templateId);
-			HotPropertySlots::Choice choice{ HotPropertySlots::eMode::AUTO, slot.mapId };
-			if (it != chosen.end()) choice = { HotPropertySlots::ModeFromInt(it->second.mode), HotPropertySlots::Location(it->second.zoneId, slot, news.worlds), it->second.propertyId };
-			choices.push_back(choice);
-		}
-
-		// The candidates, with what to send for each
-		std::vector<HotPropertySlots::Candidate> candidates;
-		std::map<LWOOBJID, std::pair<IProperty::Info, std::string>> properties;
-		for (const auto world : HotPropertySlots::CandidateWorlds(choices, fullAuto)) {
-			IProperty::ShowcaseQuery query;
-			query.zoneId = world;
-			query.sort = IProperty::ShowcaseSort::REPUTATION;
-			query.length = HotPropertySlots::CANDIDATES_PER_WORLD;
-			for (const auto& entry : Database::Get()->GetShowcaseProperties(query).entries) {
-				candidates.push_back({ entry.info.id, entry.info.zoneId, entry.info.reputation });
-				properties.emplace(entry.info.id, std::make_pair(entry.info, entry.ownerName));
-			}
-		}
-		for (const auto& choice : choices) {
-			if (fullAuto || choice.mode != HotPropertySlots::eMode::PICKED || properties.contains(choice.propertyId)) continue;
-			const auto info = Database::Get()->GetPropertyInfo(choice.propertyId);
-			const auto owner = info ? Database::Get()->GetCharacterInfo(info->ownerId) : std::nullopt;
-			if (!info || !owner || !HotPropertySlots::Featurable(info->modApproved, info->privacyOption, info->zoneId, choice.mapId)) continue;
-			candidates.push_back({ info->id, info->zoneId, info->reputation });
-			properties.emplace(info->id, std::make_pair(*info, owner->name));
-		}
-
-		std::vector<HotPropertyInfo> hot;
-		const auto showing = HotPropertySlots::Resolve(choices, fullAuto, candidates);
-		for (size_t i = 0; i < showing.size(); i++) {
-			if (!showing[i].propertyId) continue;
-			const auto& [info, ownerName] = properties.at(*showing[i].propertyId);
-			hot.push_back(ToHotProperty(info, ownerName, news.slots[i].templateId));
-		}
-		return hot;
-	}
-}
-
-void GameMessages::SendGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	if (!entity) return;
-
-	// The screen asks every time it opens; the answer is the same for everyone, so it is kept for a little while
-	static std::vector<HotPropertyInfo> cached;
-	static std::chrono::steady_clock::time_point loadedAt{};
-	static bool loaded = false;
-	const auto now = std::chrono::steady_clock::now();
-	if (!loaded || now - loadedAt > std::chrono::seconds(30)) {
-		try {
-			cached = LoadHotProperties();
-		} catch (const std::exception& ex) {
-			LOG("Failed to load the news screen's top properties: %s", ex.what());
-			cached.clear();
-		}
-		loadedAt = now;
-		loaded = true;
-	}
-
-	NewsSendHotPropertiesInfoToClient message;
-	message.target = entity->GetObjectID();
-	for (const auto index : HotPropertySlots::NewsOrder(cached.size())) message.properties.push_back(cached[index]);
-	message.Send(sysAddr);
-}
-
 void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) {
 	//Definitely not stolen from autogenerated code, no sir:
 	IBugReports::Info reportInfo;
@@ -5608,25 +5024,5 @@ namespace GameMessages {
 
 	void ToggleGMInvis::Serialize(RakNet::BitStream& stream) const {
 		stream.Write(bStateOut);
-	}
-
-	void NewsSendHotPropertiesInfoToClient::Serialize(RakNet::BitStream& stream) const {
-		const auto writeWString = [&stream](const std::u16string& text) {
-			stream.Write<uint32_t>(text.size());
-			for (const auto character : text) stream.Write<uint16_t>(character);
-		};
-		stream.Write<uint32_t>(properties.size());
-		for (const auto& info : properties) {
-			stream.Write(info.propertyId);
-			stream.Write(info.ownerId);
-			writeWString(info.ownerName);
-			stream.Write(info.reputation);
-			stream.Write(info.templateId);
-			writeWString(info.name);
-			writeWString(info.description);
-			stream.Write(info.performanceCost);
-			stream.Write(info.lastPublished);
-			stream.Write(info.cloneId);
-		}
 	}
 }

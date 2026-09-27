@@ -5,9 +5,8 @@ set(DGAME_DGAMEMESSAGES_SOURCES
 	"GameMessages.cpp"
 	"MissionMessages.cpp"
 	"PetMessages.cpp"
-	"RacingMessages.cpp"
-	"PropertyDataMessage.cpp"
-	"PropertySelectQueryProperty.cpp")
+	"PropertyMessages.cpp"
+	"RacingMessages.cpp")
 
 add_library(dGameMessages OBJECT ${DGAME_DGAMEMESSAGES_SOURCES})
 target_link_libraries(dGameMessages

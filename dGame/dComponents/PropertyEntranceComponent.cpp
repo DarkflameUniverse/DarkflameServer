@@ -6,7 +6,7 @@
 #include "Database.h"
 #include "GameMessages.h"
 #include "PropertyManagementComponent.h"
-#include "PropertySelectQueryProperty.h"
+#include "PropertyMessages.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "CharacterComponent.h"
 #include "UserManager.h"
@@ -34,7 +34,9 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 	auto* rocket = entity->GetComponent<CharacterComponent>()->RocketEquip(entity);
 	if (!rocket) return;
 
-	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), entity->GetSystemAddress());
+	GameMessages::PropertyEntranceBegin msg;
+	msg.target = m_Parent->GetObjectID();
+	msg.Send(entity->GetSystemAddress());
 
 	AMFArrayValue args;
 
@@ -62,7 +64,7 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 
 		if (index >= query.size()) return;
 
-		cloneId = query[index].CloneId;
+		cloneId = query[index].cloneId;
 	}
 
 	auto* launcher = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
@@ -90,34 +92,34 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 	// If the player has a property this query will have a single result.
 	auto& playerEntry = entries.emplace_back();
 	if (playerProperty.has_value()) {
-		playerEntry.OwnerName = character->GetName();
-		playerEntry.IsBestFriend = true;
-		playerEntry.IsFriend = true;
-		playerEntry.IsAlt = true;
-		playerEntry.IsOwned = true;
-		playerEntry.CloneId = playerProperty->cloneId;
-		playerEntry.Name = playerProperty->name;
-		playerEntry.Description = playerProperty->description;
-		playerEntry.AccessType = playerProperty->privacyOption;
-		playerEntry.IsModeratorApproved = playerProperty->modApproved;
-		playerEntry.DateLastPublished = playerProperty->lastUpdatedTime;
-		playerEntry.Reputation = playerProperty->reputation;
-		playerEntry.PerformanceCost = playerProperty->performanceCost;
+		playerEntry.ownerName = GeneralUtils::UTF8ToUTF16(character->GetName());
+		playerEntry.isBff = true;
+		playerEntry.isFriend = true;
+		playerEntry.isAlt = true;
+		playerEntry.isOwned = true;
+		playerEntry.cloneId = playerProperty->cloneId;
+		playerEntry.name = GeneralUtils::UTF8ToUTF16(playerProperty->name);
+		playerEntry.description = GeneralUtils::UTF8ToUTF16(playerProperty->description);
+		playerEntry.accessType = playerProperty->privacyOption;
+		playerEntry.isModApproved = playerProperty->modApproved;
+		playerEntry.dateLastPublished = playerProperty->lastUpdatedTime;
+		playerEntry.reputation = playerProperty->reputation;
+		playerEntry.performanceCost = playerProperty->performanceCost;
 		auto& entry = playerEntry;
 	} else {
-		playerEntry.OwnerName = character->GetName();
-		playerEntry.IsBestFriend = true;
-		playerEntry.IsFriend = true;
-		playerEntry.IsAlt = false;
-		playerEntry.IsOwned = false;
-		playerEntry.CloneId = character->GetPropertyCloneID();
-		playerEntry.Name = "";
-		playerEntry.Description = "";
-		playerEntry.AccessType = 0;
-		playerEntry.IsModeratorApproved = false;
-		playerEntry.DateLastPublished = 0;
-		playerEntry.Reputation = 0;
-		playerEntry.PerformanceCost = 0.0f;
+		playerEntry.ownerName = GeneralUtils::UTF8ToUTF16(character->GetName());
+		playerEntry.isBff = true;
+		playerEntry.isFriend = true;
+		playerEntry.isAlt = false;
+		playerEntry.isOwned = false;
+		playerEntry.cloneId = character->GetPropertyCloneID();
+		playerEntry.name = u"";
+		playerEntry.description = u"";
+		playerEntry.accessType = 0;
+		playerEntry.isModApproved = false;
+		playerEntry.dateLastPublished = 0;
+		playerEntry.reputation = 0;
+		playerEntry.performanceCost = 0.0f;
 	}
 
 	IProperty::PropertyLookup propertyLookup;
@@ -140,39 +142,47 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		}
 		auto& entry = entries.emplace_back();
 
-		entry.IsOwned = entry.CloneId == otherCharacter->cloneId;
-		entry.OwnerName = otherCharacter->name;
-		entry.CloneId = propertyEntry.cloneId;
-		entry.Name = propertyEntry.name;
-		entry.Description = propertyEntry.description;
-		entry.AccessType = propertyEntry.privacyOption;
-		entry.IsModeratorApproved = propertyEntry.modApproved;
-		entry.DateLastPublished = propertyEntry.lastUpdatedTime;
-		entry.Reputation = propertyEntry.reputation;
-		entry.PerformanceCost = propertyEntry.performanceCost;
-		entry.IsBestFriend = false;
-		entry.IsFriend = false;
+		entry.isOwned = entry.cloneId == otherCharacter->cloneId;
+		entry.ownerName = GeneralUtils::UTF8ToUTF16(otherCharacter->name);
+		entry.cloneId = propertyEntry.cloneId;
+		entry.name = GeneralUtils::UTF8ToUTF16(propertyEntry.name);
+		entry.description = GeneralUtils::UTF8ToUTF16(propertyEntry.description);
+		entry.accessType = propertyEntry.privacyOption;
+		entry.isModApproved = propertyEntry.modApproved;
+		entry.dateLastPublished = propertyEntry.lastUpdatedTime;
+		entry.reputation = propertyEntry.reputation;
+		entry.performanceCost = propertyEntry.performanceCost;
+		entry.isBff = false;
+		entry.isFriend = false;
 		// Query to get friend and best friend fields
 		const auto friendCheck = Database::Get()->GetBestFriendStatus(character->GetID(), owner);
 		// If we got a result than the two players are friends.
 		if (friendCheck.has_value()) {
-			entry.IsFriend = true;
-			entry.IsBestFriend = friendCheck->bestFriendStatus == 3;
+			entry.isFriend = true;
+			entry.isBff = friendCheck->bestFriendStatus == 3;
 		}
 
-		if (!entry.IsModeratorApproved && entity->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR) {
-			entry.Name = "[AWAITING APPROVAL]";
-			entry.Description = "[AWAITING APPROVAL]";
-			entry.IsModeratorApproved = true;
+		if (!entry.isModApproved && entity->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR) {
+			entry.name = u"[AWAITING APPROVAL]";
+			entry.description = u"[AWAITING APPROVAL]";
+			entry.isModApproved = true;
 		}
 
 		// Query to determine whether this property is an alt character of the entity.
 		for (const auto charid : Database::Get()->GetAccountCharacterIds(user->GetAccountID())) {
-			entry.IsAlt = charid == owner;
-			if (entry.IsAlt) break;
+			entry.isAlt = charid == owner;
+			if (entry.isAlt) break;
 		}
 	}
 
 	// Query here is to figure out whether or not to display the button to go to the next page or not.
-	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, lookupResult.totalEntriesMatchingQuery - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+	GameMessages::PropertySelectQuery query;
+	query.target = m_Parent->GetObjectID();
+	query.navOffset = startIndex;
+	query.thereAreMore = lookupResult.totalEntriesMatchingQuery - (startIndex + numResults) > 0;
+	query.cloneId = character->GetPropertyCloneID();
+	query.hasFeaturedProperty = false;
+	query.wasFriends = true;
+	query.properties = entries;
+	query.Send(sysAddr);
 }

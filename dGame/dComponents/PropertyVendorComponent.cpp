@@ -1,6 +1,6 @@
 #include "PropertyVendorComponent.h"
 
-#include "PropertyDataMessage.h"
+#include "PropertyMessages.h"
 #include "GameMessages.h"
 #include "Character.h"
 #include "EntityManager.h"
@@ -21,7 +21,9 @@ void PropertyVendorComponent::OnUse(Entity* originator) {
 	if (PropertyManagementComponent::Instance()->GetOwnerId() == LWOOBJID_EMPTY) {
 		LOG("Property vendor opening!");
 
-		GameMessages::SendOpenPropertyVendor(m_Parent->GetObjectID(), originator->GetSystemAddress());
+		GameMessages::OpenPropertyVendor msg;
+		msg.target = m_Parent->GetObjectID();
+		msg.Send(originator->GetSystemAddress());
 
 		return;
 	}
@@ -41,7 +43,13 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 		return;
 	}
 
-	GameMessages::SendPropertyRentalResponse(m_Parent->GetObjectID(), 0, 0, 0, 0, originator->GetSystemAddress());
+	GameMessages::PropertyRentalResponse msg;
+	msg.target = m_Parent->GetObjectID();
+	msg.cloneid = 0;
+	msg.code = 0;
+	msg.propertyID = 0;
+	msg.rentdue = 0;
+	msg.Send(originator->GetSystemAddress());
 
 	auto* controller = Game::zoneManager->GetZoneControlObject();
 
