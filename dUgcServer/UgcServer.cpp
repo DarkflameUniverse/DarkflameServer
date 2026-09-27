@@ -33,6 +33,8 @@
 #include "UgcCdClient.h"
 #include "UgcIconParams.h"
 #include "UgcJobs.h"
+#include "UgcFormats.h"
+#include "ZCompression.h"
 #include "UgcModel.h"
 #include "UgcProcessor.h"
 #include "UgcStorage.h"
@@ -164,6 +166,26 @@ namespace {
 	}
 
 	/**
+	 * A model's LXFML straight from its ugc row (it needs no making, so it's never waited for or evicted): gzip
+	 * compressed, or its .checksum. The last few are kept in memory.
+	 */
+	void ServeLxfml(HTTPReply& reply, LWOOBJID id, bool gz) {
+		static std::map<LWOOBJID, std::pair<std::string, std::string>> cache; // id -> (gz, checksum); main thread only
+		auto it = cache.find(id);
+		if (it == cache.end()) {
+			const auto model = Database::Get()->GetUgcModel(id);
+			const auto lxfml = model ? UgcJobs::LxfmlFromBlob(model->lxfmlData.str()) : std::string();
+			if (lxfml.empty()) return NotFound(reply);
+			if (cache.size() >= 64) cache.erase(cache.begin());
+			it = cache.emplace(id, std::pair{ ZCompression::Gzip(lxfml), UgcFormats::ChecksumXml(lxfml) }).first;
+		}
+		reply.status = eHTTPStatusCode::OK;
+		reply.contentType = gz ? eContentType::APPLICATION_OCTET_STREAM : eContentType::TEXT_PLAIN;
+		reply.message = gz ? it->second.first : it->second.second;
+		reply.headers.push_back("Cache-Control: public, max-age=60");
+	}
+
+	/**
 	 * A game client download (3D services): <client_path>/UGCC<dc>/[3DOPTIMIZED/|IMAGE128DDS/]<dc><id><.ext>(.gz|.checksum).
 	 * `segments` are the path's parts after client_path.
 	 */
@@ -194,7 +216,7 @@ namespace {
 
 		const auto type = suffix == ".gz" ? eContentType::APPLICATION_OCTET_STREAM : eContentType::TEXT_PLAIN;
 		if (extension == ".lxfml" && typeFolder.empty()) {
-			ServeFile(reply, UgcStorage::Kind::MODEL, blueprint, "model.lxfml" + suffix, type, false);
+			ServeLxfml(reply, blueprint, suffix == ".gz");
 		} else if (extension == ".nif" && typeFolder == "3doptimized") {
 			ServeFile(reply, UgcStorage::Kind::MODEL, blueprint, "model.nif" + suffix, type, false);
 		} else if (extension == ".dds" && typeFolder == "image128dds") {
@@ -218,6 +240,8 @@ namespace {
 			}
 			segments.erase(segments.begin(), segments.begin() + static_cast<std::ptrdiff_t>(prefixSize));
 			ServeClientDownload(reply, segments);
+			// What the client asked for and what it got, to see how it loads models
+			LOG("Client download %s -> %i%s", context.originalPath.c_str(), static_cast<int>(reply.status), reply.file.empty() ? "" : " (file)");
 		};
 		Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
 		Game::web.RegisterHTTPRoute({ .path = base + "/:folder/:type/:file", .method = eHTTPMethod::GET, .middleware = {}, .handle = clientRoute });
@@ -237,6 +261,18 @@ namespace {
 				if (!id || !kind || !PREVIEWS.contains(name)) return;
 				reply.headers.clear();
 				const auto type = name.ends_with(".png") ? eContentType::IMAGE_PNG : name.ends_with(".json") ? eContentType::APPLICATION_JSON : eContentType::APPLICATION_OCTET_STREAM;
+				if (name.ends_with(".nif")) {
+					// Stored compressed: inflated for the dashboard
+					if (g_Processor->Request(*kind, static_cast<LWOOBJID>(*id)) != UgcProcessor::Availability::READY) return;
+					auto nif = g_Storage->ReadNif(*kind, static_cast<LWOOBJID>(*id), name);
+					if (!nif) return;
+					reply.status = eHTTPStatusCode::OK;
+					reply.contentType = type;
+					reply.message = std::move(*nif);
+					reply.headers.push_back("Access-Control-Allow-Origin: *");
+					reply.headers.push_back("Cache-Control: no-cache");
+					return;
+				}
 				ServeFile(reply, *kind, static_cast<LWOOBJID>(*id), name, type, true);
 				// Made again since: the newest files differ, so they mustn't be cached as long as the client's
 				if (reply.status == eHTTPStatusCode::OK) {

@@ -161,8 +161,7 @@ void UgcProcessor::Worker() {
 					outcome = UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
 				} else if (!job.preview.Cancelled()) {
 					// A player model's icon from its stored .nif
-					const auto path = m_Storage.File(Kind::MODEL, job.id, "model.nif");
-					const auto nif = path ? UgcBricks::ReadFile(*path) : std::nullopt;
+					const auto nif = m_Storage.ReadNif(Kind::MODEL, job.id, "model.nif");
 					auto options = settings.icon;
 					UgcIconParams::Apply(options, job.iconValues);
 					outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, outcome.files, outcome.error);
@@ -198,8 +197,7 @@ void UgcProcessor::Worker() {
 		try {
 			if (job.iconOnly) {
 				// Only the icon, from the .nif made before
-				const auto path = m_Storage.File(Kind::MODEL, job.id, "model.nif");
-				const auto nif = path ? UgcBricks::ReadFile(*path) : std::nullopt;
+				const auto nif = m_Storage.ReadNif(Kind::MODEL, job.id, "model.nif");
 				auto options = settings.icon;
 				UgcIconParams::Apply(options, job.iconValues);
 				done.outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, done.outcome.files, done.outcome.error);
@@ -509,7 +507,7 @@ bool UgcProcessor::QueuePreview(Kind kind, LWOOBJID id, const std::string& modul
 		job.modular.key = UgcModularKey::Normalize(modules);
 		job.modular.iconValues = values;
 	} else {
-		if (!m_Storage.File(Kind::MODEL, id, "model.nif")) {
+		if (!m_Storage.File(Kind::MODEL, id, "model.nif.gz") && !m_Storage.File(Kind::MODEL, id, "model.nif")) {
 			error = "the model has no stored .nif yet";
 			return false;
 		}
@@ -535,7 +533,7 @@ size_t UgcProcessor::RegenerateIcons(const std::string& kind) {
 	const bool models = kind == UgcIconParams::ModelKind();
 	for (const auto& entry : m_Storage.List()) {
 		if (models) {
-			if (entry.kind != Kind::MODEL || m_InFlight.contains({ Kind::MODEL, entry.id }) || !m_Storage.File(Kind::MODEL, entry.id, "model.nif")) continue;
+			if (entry.kind != Kind::MODEL || m_InFlight.contains({ Kind::MODEL, entry.id }) || (!m_Storage.File(Kind::MODEL, entry.id, "model.nif.gz") && !m_Storage.File(Kind::MODEL, entry.id, "model.nif"))) continue;
 			Job job{ Kind::MODEL, entry.id, 0 };
 			job.iconOnly = true;
 			job.iconValues = IconValues(kind, UgcIconParams::ModelTarget(entry.id));

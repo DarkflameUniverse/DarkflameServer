@@ -57,6 +57,10 @@ public:
 	// Removes the least recently used items until the total is at most `maxBytes`; what was removed
 	std::vector<Entry> Evict(uint64_t maxBytes) const;
 
+	// An item's .nif (`name` model.nif, model.noao.nif or previous.model.nif): stored compressed (<name>.gz), or as it is
+	// (made by older versions); nullopt when there's neither
+	std::optional<std::string> ReadNif(Kind kind, LWOOBJID id, const std::string& name) const;
+
 	// Names the server writes (and serves); anything else is refused
 	static bool IsKnownFile(const std::string& name);
 

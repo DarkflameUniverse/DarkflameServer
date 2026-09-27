@@ -168,12 +168,12 @@ namespace UgcJobs {
 			return out;
 		};
 		const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", groups(lods.size(), opaquePieces, transparentPieces));
-		outcome.files["model.nif"] = nif;
+		// Stored compressed only (the client downloads .gz; the dashboard's copies are inflated when asked for). The
+		// LXFML is served from the database.
 		AddDownload(outcome.files, "model.nif", nif);
-		AddDownload(outcome.files, "model.lxfml", lxfml);
 		{
 			const std::vector<std::vector<UgcModel::Mesh>> opaque{ UgcModel::Divide(preview.opaque) }, transparent{ transparentPieces[0] };
-			outcome.files["model.noao.nif"] = UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent));
+			outcome.files["model.noao.nif.gz"] = ZCompression::Gzip(UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent)));
 		}
 
 		// The icon is drawn from the .nif just made (its most detailed LOD, read back like any client .nif), so it

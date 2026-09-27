@@ -5,17 +5,19 @@
 #include <fstream>
 #include <random>
 
+#include "ZCompression.h"
+
 namespace {
 	constexpr std::array KNOWN_FILES = {
 		"model.nif", "model.nif.gz", "model.nif.checksum",
 		"model.lxfml.gz", "model.lxfml.checksum",
 		"icon.dds.gz", "icon.dds.checksum", "icon.png",
-		"model.noao.nif", "stats.json", "combo.json",
-		"previous.icon.png", "previous.model.nif", "previous.model.noao.nif", "previous.stats.json",
+		"model.noao.nif", "model.noao.nif.gz", "stats.json", "combo.json",
+		"previous.icon.png", "previous.model.nif.gz", "previous.stats.json",
 	};
 
 	// What of the files made before is kept when an item is made again, for comparing (as previous.<name>)
-	constexpr std::array KEPT_FILES = { "icon.png", "model.nif", "model.noao.nif", "stats.json" };
+	constexpr std::array KEPT_FILES = { "icon.png", "model.nif.gz", "stats.json" };
 
 	const char* KindFolder(UgcStorage::Kind kind) {
 		return kind == UgcStorage::Kind::MODEL ? "models" : "modular";
@@ -179,4 +181,18 @@ std::vector<UgcStorage::Entry> UgcStorage::Evict(uint64_t maxBytes) const {
 		removed.push_back(entry);
 	}
 	return removed;
+}
+
+std::optional<std::string> UgcStorage::ReadNif(Kind kind, LWOOBJID id, const std::string& name) const {
+	const auto read = [](const std::filesystem::path& path) -> std::optional<std::string> {
+		std::ifstream in(path, std::ios::binary);
+		if (!in) return std::nullopt;
+		return std::string(std::istreambuf_iterator<char>(in), {});
+	};
+	if (const auto packed = File(kind, id, name + ".gz")) {
+		const auto data = read(*packed);
+		return data ? ZCompression::Gunzip(*data) : std::nullopt;
+	}
+	if (const auto plain = File(kind, id, name)) return read(*plain);
+	return std::nullopt;
 }

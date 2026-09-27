@@ -557,18 +557,22 @@ TEST(UgcJobs, MakesLodsStatsAndIcons) {
 	settings.icon.ao.samples = 4;
 	const auto outcome = UgcJobs::ProcessModel(LXFML5, library, settings, 99);
 	ASSERT_TRUE(outcome.ok) << outcome.error;
-	for (const auto* name : { "model.nif", "model.nif.gz", "model.nif.checksum", "model.noao.nif", "icon.png", "icon.dds.gz", "stats.json", "model.lxfml.gz" }) {
+	for (const auto* name : { "model.nif.gz", "model.nif.checksum", "model.noao.nif.gz", "icon.png", "icon.dds.gz", "stats.json" }) {
 		EXPECT_TRUE(outcome.files.contains(name)) << name;
 	}
 	EXPECT_NE(outcome.stats.find("\"lods\""), std::string::npos);
 	EXPECT_NE(outcome.stats.find("\"opaqueAfter\""), std::string::npos);
+	// Stored compressed only; the LXFML is served from the database
+	EXPECT_FALSE(outcome.files.contains("model.nif"));
+	EXPECT_FALSE(outcome.files.contains("model.lxfml.gz"));
+	const auto nifBytes = *ZCompression::Gunzip(outcome.files.at("model.nif.gz"));
 	std::string error;
-	const auto nif = NifFile::Parse(outcome.files.at("model.nif"), 0, error);
+	const auto nif = NifFile::Parse(nifBytes, 0, error);
 	ASSERT_TRUE(nif) << error;
 	EXPECT_TRUE(nif->nodes.contains("S01_Opaque_Model"));
 	EXPECT_TRUE(nif->nodes.contains("S01_Alpha_Model"));
 	EXPECT_TRUE(nif->nodes.contains("LOD_0"));
-	const auto far = NifFile::Parse(outcome.files.at("model.nif"), 1, error);
+	const auto far = NifFile::Parse(nifBytes, 1, error);
 	ASSERT_TRUE(far) << error;
 	EXPECT_TRUE(far->nodes.contains("LOD_2"));
 	// The icon is the .nif's LOD 0, drawn with the icon camera and no occlusion of its own
@@ -576,7 +580,7 @@ TEST(UgcJobs, MakesLodsStatsAndIcons) {
 	iconOptions.ao.enabled = false;
 	EXPECT_EQ(outcome.files.at("icon.png"), UgcFormats::EncodePng(UgcRender::RenderIcon(UgcModel::FromNif(*nif), iconOptions)));
 	// The same colors when made again
-	EXPECT_EQ(UgcJobs::ProcessModel(LXFML5, library, settings, 99).files.at("model.nif"), outcome.files.at("model.nif"));
+	EXPECT_EQ(UgcJobs::ProcessModel(LXFML5, library, settings, 99).files.at("model.nif.checksum"), outcome.files.at("model.nif.checksum"));
 
 	settings.maxBricks = 2;
 	const auto tooBig = UgcJobs::ProcessModel(LXFML5, library, settings, 99);
