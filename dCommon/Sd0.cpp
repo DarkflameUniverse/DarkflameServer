@@ -98,17 +98,20 @@ void Sd0::FromData(const uint8_t* data, size_t bufferSize) {
 	if (bufferSize == 0) return;
 
 	m_Chunks.clear();
+	// Room for a chunk that doesn't compress (zlib makes it slightly bigger), on the heap: this runs on worker threads
+	std::vector<uint8_t> compressedChunk(ZCompression::GetMaxCompressedLength(MAX_UNCOMPRESSED_CHUNK_SIZE));
 	while (bufferSize > 0) {
 		const auto numToCopy = std::min(MAX_UNCOMPRESSED_CHUNK_SIZE, bufferSize);
 		const auto* startOffset = data + originalBufferSize - bufferSize;
 		bufferSize -= numToCopy;
-		std::array<uint8_t, MAX_UNCOMPRESSED_CHUNK_SIZE> compressedChunk;
 		const auto compressedSize = ZCompression::Compress(
 			startOffset, numToCopy,
 			compressedChunk.data(), compressedChunk.size());
 
 		if (compressedSize == -1) {
 			LOG("Failed to compress chunk, aborting");
+			// Part of the data isn't a usable buffer
+			m_Chunks.clear();
 			break;
 		}
 
@@ -126,6 +129,15 @@ void Sd0::FromData(const uint8_t* data, size_t bufferSize) {
 		memcpy(chunk.data() + dataOffset, compressedChunk.data(), compressedSize);
 	}
 
+}
+
+std::string Sd0::Compress(std::string_view data) {
+	Sd0 sd0;
+	if (data.empty()) return std::string(SD0_HEADER, 5);
+	sd0.FromData(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+	std::string out;
+	for (const auto& chunk : sd0.GetAsVector()) out.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
+	return out;
 }
 
 std::string Sd0::GetAsStringUncompressed() const {

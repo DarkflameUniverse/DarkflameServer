@@ -5,6 +5,8 @@
 #define SD0_H
 
 #include <fstream>
+#include <string>
+#include <string_view>
 #include <vector>
 
 // Sd0 is comprised of multiple zlib compressed buffers stored in a row.
@@ -21,8 +23,15 @@ public:
 	 */
 	static constexpr inline size_t MAX_UNCOMPRESSED_CHUNK_SIZE = 1024 * 256;
 
+	// Empty, for FromData
+	Sd0() = default;
+
 	// Read the input buffer into an internal chunk stream to be used later
 	Sd0(std::istream& buffer);
+
+	// `data` compressed into an sd0 buffer, returned in its raw compressed form (what the client reads, e.g. the UGC
+	// files it downloads without 3D services); only the header when `data` is empty, empty when it can't be compressed
+	[[nodiscard]] static std::string Compress(std::string_view data);
 
 	// Uncompresses the entire Sd0 buffer and returns it as a string
 	[[nodiscard]] std::string GetAsStringUncompressed() const;
