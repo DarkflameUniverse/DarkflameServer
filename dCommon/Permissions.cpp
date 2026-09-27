@@ -90,6 +90,7 @@ namespace {
 		{ "contraband_manage", "Economy and map", "Contraband list", "Add, change and remove contraband items (flagged, or removed from players, when a character has one)", 8 },
 
 		{ "play_keys_manage", "Server", "Play keys", "Create, edit and delete play keys, and see the key an account used", 8 },
+		{ "ugc_manage", "Server", "UGC processing", "Have the UGC server make player models' meshes and icons again", 8 },
 		{ "client_files", "Server", "Client files", "Browse and download the game client's files", 8 },
 		{ "vanity_manage", "Server", "Vanity NPCs", "Edit the vanity files, NPCs and plaque texts, add vanity changes to scheduled events, and respawn them in game", 8 },
 		{ "tasks_view", "Server", "View scheduled tasks", "See scheduled tasks, their runs and logs", 8 },

@@ -90,7 +90,7 @@ wanted.
 
 ## Database state
 
-Migrations `dlu/mysql/80_ugc_processing.sql` and `dlu/sqlite/63_ugc_processing.sql` (the MySQL one only adds columns
+Migrations `dlu/mysql/81_ugc_processing.sql` and `dlu/sqlite/64_ugc_processing.sql` (the MySQL one only adds columns
 that aren't there yet).
 
 `ugc`: `is_optimized` (existing) is 0 until the model has been processed, 1 once its files are made, 2 when processing
@@ -142,10 +142,12 @@ make one item's files into a folder without a database, for trying settings.
 
 ## Dashboard
 
-The UGC page (`/ugc`) reads everything from the database: counts per state, a paged list of models and modular builds
-with their state, attempts, last error and owner, and buttons to reprocess one model, all failed ones, or everything
-(these only change the database columns). Previews (icon, mesh, LXFML) load from the UGC server's `/files/` URLs;
-`ugc_public_url` in `dashboardconfig.ini` says where it is (default `http://<dashboard host>:2008`).
+The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the new `ugc_manage` permission to make
+things again) reads the database: counts per state for models and for cars and rockets, a paged list with owner,
+state, attempts, last attempt and failure reason, and buttons to make one item, the failed ones or everything again
+(these only reset the columns; the UGC server picks the rows up). Icons, the live status (`/status`) and the mesh
+download come from the UGC server at `ugc_public_url` (`dashboardconfig.ini`; empty: the dashboard's host name on
+port 2008). "View" shows the model's LXFML in the dashboard's 3D viewer (`/api/ugc/<id>/lxfml`).
 
 ## Not done yet
 

@@ -1,0 +1,77 @@
+{% extends "base.jinja2" %}
+
+{% block title %}UGC Server - DarkflameServer{% endblock %}
+
+{% block content %}
+<div id="ugcPage">
+	<div class="mb-3">
+		<h2 class="mb-1">UGC Server</h2>
+		<p class="text-body-secondary mb-0">The UGC server makes a mesh and an icon for every model players build, and icons for their cars and rockets,
+			and serves them to the game client. New and changed models are picked up by themselves; a model that fails is tried a few times, then left
+			as failed until it's made again from here. See <code>docs/UgcServer.md</code>.</p>
+	</div>
+
+	<div class="row g-2 mb-3" id="counts"></div>
+
+	<div class="card mb-3">
+		<div class="card-body py-2 small" id="serverStatus">Asking the UGC server…</div>
+	</div>
+
+	<div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+		<div class="btn-group btn-group-sm" role="group" id="kindButtons">
+			<button type="button" class="btn btn-outline-primary active" data-kind="model">Models</button>
+			<button type="button" class="btn btn-outline-primary" data-kind="modular">Cars and rockets</button>
+		</div>
+		<select class="form-select form-select-sm w-auto" id="stateFilter">
+			<option value="">Every state</option><option value="pending">Waiting</option><option value="done">Made</option><option value="failed">Failed</option>
+		</select>
+		<div class="ms-auto d-none" id="manageButtons">
+			<button type="button" class="btn btn-sm btn-outline-warning" id="retryFailed">Try the failed ones again</button>
+			<button type="button" class="btn btn-sm btn-outline-danger" id="remakeAll">Make everything again</button>
+		</div>
+	</div>
+
+	<div class="card">
+		<table class="table table-sm align-middle mb-0 table-stack">
+			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Last attempt</th><th>Details</th><th></th></tr></thead>
+			<tbody id="rows"></tbody>
+		</table>
+	</div>
+	<div class="d-flex gap-2 mt-2">
+		<button type="button" class="btn btn-sm btn-outline-secondary" id="prevPage">Newer</button>
+		<button type="button" class="btn btn-sm btn-outline-secondary" id="nextPage">Older</button>
+	</div>
+
+	<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-xl"><div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="previewTitle">Model</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<div class="row g-3">
+					<div class="col-md-3 text-center"><img id="previewIcon" alt="Icon" class="border rounded bg-body-tertiary" width="128" height="128">
+						<div class="small mt-2" id="previewLinks"></div></div>
+					<div class="col-md-9"><div id="previewViewer" style="height: 420px"></div>
+						<div class="small text-body-secondary">The model as built (its LXFML).</div></div>
+				</div>
+			</div>
+		</div></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="importmap">
+{
+	"imports": {
+		"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+		"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+	},
+	"integrity": {
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js": "sha384-IDC7sAMAIMB/TZ6dgKKPPAKZ2bXXXP8+FBMBC8cU319eBhKITx+PaalhfDkDNH28",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js": "sha384-aJoe4qqS/DgF2jh9njAuvA6QIveJYoCuYOfYjdFY8P3eawzmc9bEQ40jq2TvOyuP",
+		"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/environments/RoomEnvironment.js": "sha384-9ItPPH2vgKbkvgrqTKq7ptGYe+WuAnqlZtlqleJW4/CJjnM5R7C+efD6iS7ADPJ9"
+	}
+}
+</script>
+<script src="/js/ldd-materials.js"></script>
+<script src="/js/ugc.js"></script>
+{% endblock %}

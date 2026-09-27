@@ -295,6 +295,7 @@ namespace {
 		c.Add(Port(DASHBOARD, "port", "Web port", "Where the dashboard listens for browsers.", "2006"));
 		c.Add(Format(Text(DASHBOARD, "listen_ip", "Listen address", "127.0.0.1 for this machine only (put a reverse proxy in front); 0.0.0.0 for everyone.", "127.0.0.1", true), eFormat::HOST));
 		c.Add(Port(DASHBOARD, "net_port", "Server link port", "UDP port for the connection to master (the next one is used too). Keep clear of other servers' ports.", "2010"));
+		c.Add(Format(Text(DASHBOARD, "ugc_public_url", "UGC server address", "Where the browser loads previews from the UGC server, e.g. https://ugc.example.com. Empty: this host, port 2008.", ""), eFormat::URL));
 		c.Add(Format(Text(DASHBOARD, "dashboard_url", "Public address", "For links in emails and alerts, e.g. https://dashboard.example.com.", ""), eFormat::URL));
 		c.Add(Bool(DASHBOARD, "secure_cookies", "HTTPS only cookies", "Turn on when the dashboard is served over HTTPS.", false));
 		c.Add(Bool(DASHBOARD, "behind_proxy", "Behind a reverse proxy", "Use the proxy's X-Forwarded-For for rate limits. Only when the dashboard can't be reached directly.", false));
