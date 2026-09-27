@@ -47,6 +47,7 @@ set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
 	"Servers.cpp"
 	"Ugc.cpp"
 	"UgcModularBuild.cpp"
+	"UgcLookup.cpp"
 	PARENT_SCOPE
 )
 

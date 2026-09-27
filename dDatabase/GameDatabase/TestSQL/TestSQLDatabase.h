@@ -267,6 +267,12 @@ class TestSQLDatabase : public GameDatabase {
 	void DeleteBbbAutosave(const LWOOBJID characterId) override { m_BbbAutosaves.erase(characterId); }
 	std::map<LWOOBJID, IBbbAutosave::Info> m_BbbAutosaves;
 
+	// IUgcLookup
+	std::vector<UgcEntry> SearchUgc(const UgcSearch& search, const uint32_t limit) override { return {}; }
+	std::vector<UgcEntry> GetUgcEntries(const std::vector<LWOOBJID>& ids) override { return {}; }
+	std::vector<UgcPlacement> GetUgcPlacements(const std::vector<LWOOBJID>& ugcIds) override { return {}; }
+	std::vector<UgcMail> GetUgcMail(const std::vector<LWOOBJID>& subkeys, const LOT modelItemLot) override { return {}; }
+
 	// IPropertyReputation
 	VisitorHistory GetPropertyVisitorHistory(LWOOBJID propertyId, uint32_t accountId, uint32_t day, uint32_t days) override { return {}; }
 	int64_t GetPropertyReputationOnDay(LWOOBJID propertyId, uint32_t day) override { return 0; }

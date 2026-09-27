@@ -220,6 +220,12 @@ public:
 	std::vector<TrafficMinute> GetTrafficMinutes(int64_t from, int64_t to, int64_t bucketSeconds) override;
 	uint32_t PruneTrafficMinutes(int64_t beforeTime) override;
 
+	// IUgcLookup
+	std::vector<UgcEntry> SearchUgc(const UgcSearch& search, const uint32_t limit) override;
+	std::vector<UgcEntry> GetUgcEntries(const std::vector<LWOOBJID>& ids) override;
+	std::vector<UgcPlacement> GetUgcPlacements(const std::vector<LWOOBJID>& ugcIds) override;
+	std::vector<UgcMail> GetUgcMail(const std::vector<LWOOBJID>& subkeys, const LOT modelItemLot) override;
+
 	// IApiKeys
 	uint64_t InsertApiKey(const ApiKey& key) override;
 	std::optional<ApiKey> GetApiKey(uint64_t id) override;
