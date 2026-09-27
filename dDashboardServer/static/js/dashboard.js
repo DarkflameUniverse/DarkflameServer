@@ -210,7 +210,7 @@
 		function tick() {
 			var left = Math.max(0, Math.round(restart.at - Date.now() / 1000));
 			var text = left >= 60 ? Math.floor(left / 60) + ' min ' + (left % 60) + ' s' : left + ' s';
-			banner.textContent = 'Server restart in ' + text + (restart.reason ? ': ' + restart.reason : '') + ' (scheduled by ' + restart.by + ')';
+			banner.textContent = 'Server restart in ' + text + (restart.reason ? ': ' + restart.reason : '') + (restart.by ? ' (scheduled by ' + restart.by + ')' : '');
 		}
 		tick();
 		restartTimer = setInterval(tick, 1000);
@@ -304,6 +304,8 @@
 		if (initial) initial.textContent = (document.body.dataset.username || '?').charAt(0).toUpperCase();
 		connect();
 		if (DASH.can('moderate_names')) api.get('/api/moderation/counts').then(updateBadges).catch(function () {});
-		api.get('/api/status').then(function (s) { showRestart(s.restart); }).catch(function () {});
+		// Staff who manage restarts also see who scheduled it; everyone else gets when and why from the status
+		if (DASH.can('server_restart')) api.get('/api/server/restart').then(function (r) { showRestart(r && r.at ? r : null); }).catch(function () {});
+		else api.get('/api/status').then(function (s) { showRestart(s.restart); }).catch(function () {});
 	});
 })();

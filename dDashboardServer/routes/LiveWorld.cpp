@@ -31,6 +31,9 @@ namespace {
 	constexpr const char* RESTART_STATE = "scheduled_restart";
 	// Warnings before a scheduled restart, in seconds; only those shorter than the notice given are sent
 	constexpr int64_t WARNINGS[] = { 3600, 1800, 900, 600, 300, 120, 60, 30, 10 };
+	// How soon a scheduled restart may be (short ones are for quick restarts while nobody is on), and how late
+	constexpr int64_t MIN_RESTART_SECONDS = 30;
+	constexpr int64_t MAX_RESTART_SECONDS = 24 * 3600;
 
 	struct WorldPlayers {
 		PlayerPositions positions;
@@ -149,17 +152,17 @@ namespace {
 }
 
 namespace LiveWorld {
-	std::optional<std::string> ScheduleRestart(int64_t minutes, const std::string& reason, const HTTPContext& actor, bool replace) {
-		if (minutes < 1 || minutes > 1440) return "Pick between 1 minute and 24 hours";
+	std::optional<std::string> ScheduleRestart(int64_t seconds, const std::string& reason, const HTTPContext& actor, bool replace) {
+		if (seconds < MIN_RESTART_SECONDS || seconds > MAX_RESTART_SECONDS) return "Pick between 30 seconds and 24 hours";
 		if (reason.size() > 300) return "The reason can be at most 300 characters";
 		if (!g_RestartLoaded) LoadRestart();
 		if (g_Restart && !replace) return "A restart is already scheduled (by " + g_Restart->by + ")";
 
-		g_Restart = Restart{ static_cast<int64_t>(std::time(nullptr)) + minutes * 60, reason, actor.authenticatedUser, 0 };
+		g_Restart = Restart{ static_cast<int64_t>(std::time(nullptr)) + seconds, reason, actor.authenticatedUser, 0 };
 		SaveRestart();
 		g_NextPush = {}; // send the first warning right away
-		Audit(actor, "schedule_restart", "In " + Duration(minutes * 60) + (reason.empty() ? "" : ": " + reason));
-		Alerts::Emit("server", "Restart scheduled", "The server restarts in " + Duration(minutes * 60) + ".",
+		Audit(actor, "schedule_restart", "In " + Duration(seconds) + (reason.empty() ? "" : ": " + reason));
+		Alerts::Emit("server", "Restart scheduled", "The server restarts in " + Duration(seconds) + ".",
 			{ { "By", actor.authenticatedUser }, { "Reason", reason } }, "/");
 		return std::nullopt;
 	}
@@ -292,13 +295,13 @@ namespace LiveWorld {
 				JsonReply(reply, eHTTPStatusCode::OK, RestartStatus(true));
 			});
 
-		Route(eHTTPMethod::POST, "/api/server/restart", Perm("server_restart"), "Schedule a restart with in-game warnings. Body: {minutes (1-1440), reason}. Needs a process supervisor to start the server again",
+		Route(eHTTPMethod::POST, "/api/server/restart", Perm("server_restart"), "Schedule a restart with in-game warnings. Body: {seconds (30-86400) or minutes (1-1440), reason}. Needs a process supervisor to start the server again",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
-				const auto minutes = body->value("minutes", 0);
+				const int64_t seconds = body->contains("seconds") ? body->value("seconds", int64_t{ 0 }) : body->value("minutes", int64_t{ 0 }) * 60;
 				const std::string reason = body->value("reason", "");
-				if (const auto error = LiveWorld::ScheduleRestart(minutes, reason, context, true)) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, *error);
+				if (const auto error = LiveWorld::ScheduleRestart(seconds, reason, context, true)) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, *error);
 				JsonSuccess(reply, { {"message", "Restart scheduled"}, {"restart", RestartStatus(true)} });
 			});
 

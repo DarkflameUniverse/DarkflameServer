@@ -463,7 +463,7 @@ namespace {
 			if (when == "start") part.status = "Restarts when the event ends";
 			return true;
 		}
-		const auto error = LiveWorld::ScheduleRestart(part.config.value("minutes", 15), Text(part.config, "reason"), run.actor, false);
+		const auto error = LiveWorld::ScheduleRestart(part.config.value("minutes", int64_t{ 15 }) * 60, Text(part.config, "reason"), run.actor, false);
 		part.status = error ? "Not scheduled: " + *error : "Restart scheduled when it " + std::string(when == "start" ? "started" : "ended");
 		return true;
 	}

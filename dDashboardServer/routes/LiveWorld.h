@@ -33,7 +33,7 @@ namespace LiveWorld {
 	 * Schedule a restart in `minutes` (1 to 1440) with in-game warnings, audited as `actor`. One already scheduled is
 	 * replaced when `replace`, or kept with an error. The error, if it wasn't scheduled
 	 */
-	std::optional<std::string> ScheduleRestart(int64_t minutes, const std::string& reason, const HTTPContext& actor, bool replace);
+	std::optional<std::string> ScheduleRestart(int64_t seconds, const std::string& reason, const HTTPContext& actor, bool replace);
 
 	// Scheduled restart for the status sent to every dashboard ({} when none)
 	// The scheduled restart ({} when none); the staff member's name only with withStaffName

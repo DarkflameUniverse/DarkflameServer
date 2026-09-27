@@ -77,9 +77,9 @@
 						The server shuts down cleanly; your process supervisor (systemd, Docker restart policy...) starts it again.</p>
 					<div class="input-group input-group-sm mb-2">
 						<span class="input-group-text">In</span>
-						<select class="form-select" id="restartMinutes">
-							<option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15" selected>15 minutes</option>
-							<option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option>
+						<select class="form-select" id="restartSeconds">
+							<option value="30">30 seconds</option><option value="60">1 minute</option><option value="300">5 minutes</option><option value="600">10 minutes</option><option value="900" selected>15 minutes</option>
+							<option value="1800">30 minutes</option><option value="3600">1 hour</option><option value="7200">2 hours</option>
 						</select>
 					</div>
 					<div class="mb-2"><input class="form-control form-control-sm" id="restartReason" maxlength="300" placeholder="Reason shown to players (optional)"></div>
@@ -112,7 +112,7 @@ $(function () {
 		};
 		schedule.addEventListener('click', function () {
 			if (!confirm('Schedule a restart? Everyone online will be warned and then disconnected.')) return;
-			api.action('/api/server/restart', { minutes: parseInt(document.getElementById('restartMinutes').value, 10), reason: document.getElementById('restartReason').value.trim() }, 'Restart scheduled')
+			api.action('/api/server/restart', { seconds: parseInt(document.getElementById('restartSeconds').value, 10), reason: document.getElementById('restartReason').value.trim() }, 'Restart scheduled')
 				.then(function (r) { showRestart(r.restart); }).catch(function () {});
 		});
 		document.getElementById('restartCancel').addEventListener('click', function () {
