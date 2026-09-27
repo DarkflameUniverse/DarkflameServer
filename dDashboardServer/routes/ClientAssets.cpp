@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "OnceCache.h"
+#include "UgcBricks.h"
 #include "RouteUtils.h"
 #include "CDClientDatabase.h"
 #include "Game.h"
@@ -451,6 +452,28 @@ namespace {
 }
 
 void RegisterClientAssetRoutes() {
+	Route(eHTTPMethod::GET, "/api/bricks/materials.js", 0,
+		"The brick colours (MatID -> [r, g, b, a]) from Materials.xml in the client's res/brickdb.zip, as a script setting "
+		"window.LDD_MATERIALS for the 3D viewers. Read once; an empty table when the client's brick database can't be read",
+		[](HTTPReply& reply, const HTTPContext&) {
+			// Read on first use (thread-safe static init); the client only changes with a restart
+			static const std::string script = [] {
+				nlohmann::json colours = nlohmann::json::object();
+				const auto zip = ClientAssets::ReadResFile("brickdb.zip");
+				const auto xml = zip ? UgcBricks::ReadZipEntry(*zip, "Materials.xml") : std::nullopt;
+				if (xml) {
+					for (const auto& [id, m] : UgcBricks::ParseMaterials(*xml)) colours[std::to_string(id)] = { m.r, m.g, m.b, m.a };
+				} else {
+					LOG("Couldn't read Materials.xml from the client's brickdb.zip; the 3D viewers' bricks will be grey");
+				}
+				return "window.LDD_MATERIALS = " + colours.dump() + ";\n";
+			}();
+			reply.status = eHTTPStatusCode::OK;
+			reply.message = script;
+			reply.contentType = eContentType::TEXT_JAVASCRIPT;
+			reply.headers.push_back("Cache-Control: private, max-age=3600");
+		});
+
 	Route(eHTTPMethod::GET, "/api/icon/:lot", 0, "PNG icon for an item LOT (requires client_location and ImageMagick)",
 		[](HTTPReply& reply, const HTTPContext& context) {
 			const auto lot = PathId<LOT>(context.path, 2);

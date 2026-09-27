@@ -161,11 +161,19 @@ namespace UgcBricks {
 		return contents.str();
 	}
 
-	BrickLibrary::BrickLibrary(std::filesystem::path res, uint32_t lod) : m_Res(std::move(res)), m_Lod(std::min<uint32_t>(lod, 2)) {}
+	BrickLibrary::BrickLibrary(std::filesystem::path res, uint32_t lod, FileReader reader)
+		: m_Res(std::move(res)), m_Lod(std::min<uint32_t>(lod, 2)), m_Reader(std::move(reader)) {}
+
+	std::optional<std::string> BrickLibrary::Read(const std::string& relative) const {
+		if (m_Reader) {
+			if (auto data = m_Reader(relative)) return data;
+		}
+		const auto path = ResolvePath(m_Res, relative);
+		return path ? ReadFile(*path) : std::nullopt;
+	}
 
 	bool BrickLibrary::LoadMaterials() {
-		const auto zipPath = ResolvePath(m_Res, "brickdb.zip");
-		const auto zip = zipPath ? ReadFile(*zipPath) : std::nullopt;
+		const auto zip = Read("brickdb.zip");
 		const auto xml = zip ? ReadZipEntry(*zip, "Materials.xml") : std::nullopt;
 		if (!xml) return false;
 		auto materials = ParseMaterials(*xml);
@@ -185,6 +193,11 @@ namespace UgcBricks {
 		return it != m_Materials.end() ? it->second : Material{};
 	}
 
+	bool BrickLibrary::HasMaterial(uint32_t id) const {
+		// Written once before the workers start, only read after
+		return m_Materials.contains(id);
+	}
+
 	std::shared_ptr<const std::vector<Geometry>> BrickLibrary::GetDesign(uint32_t design, std::optional<uint32_t> lodLevel) {
 		const uint32_t lod = std::min<uint32_t>(lodLevel.value_or(m_Lod), 2);
 		const uint64_t key = (static_cast<uint64_t>(lod) << 32) | design;
@@ -197,8 +210,7 @@ namespace UgcBricks {
 		const auto folder = "brickprimitives/lod" + std::to_string(lod) + "/";
 		for (uint32_t index = 0; index < MAX_GEOMETRY_PARTS; index++) {
 			const auto name = std::to_string(design) + ".g" + (index == 0 ? "" : std::to_string(index));
-			const auto path = ResolvePath(m_Res, folder + name);
-			const auto data = path ? ReadFile(*path) : std::nullopt;
+			const auto data = Read(folder + name);
 			if (!data) break;
 			auto geometry = ParseGeometry(*data);
 			if (!geometry) break;

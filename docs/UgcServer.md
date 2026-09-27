@@ -67,9 +67,11 @@ defaults. The table below goes through it step by step.
 1. The LXFML is read from `ugc.lxfml` (an sd0 stream). Parts come from `Bricks/Brick/Part` (LXFML 5: row-major
    rotation and translation per bone) or `Scene/Model/Group/Part` (LXFML 4: axis angle).
 2. Each level of detail in `lods` (default `0,2`, as LU Toolbox imports) is built from the client's LDD primitives,
-   `res/brickprimitives/lod<n>/<design>.g`, `.g1`, ... (sub-part `i` uses the part's `i`-th material, material 0 meaning
+   `res/brickprimitives/lod<n>/<design>.g`, `.g1`, ... (read like the game does: loose files first, then the client's
+   packs, so packed clients and bricks added to them work) (sub-part `i` uses the part's `i`-th material, material 0 meaning
    the part's first). Colors come from LU Toolbox's palette (`color_palette=lu_toolbox`; `brickdb` uses the client's
-   `Materials.xml`): LU's colors, the LDD colors LU doesn't have mapped onto the nearest LU one, unknown ones black. A
+   `Materials.xml`): LU's colors, the LDD colors LU doesn't have mapped onto the nearest LU one, colors LU Toolbox doesn't know but the
+   client's `Materials.xml` has (colors added to the brick database) from `Materials.xml`, unknown ones black. A
    brick is transparent only when all of its materials are; transparent bricks get `transparent_opacity` (58.82%).
 3. Color variation: each material of each brick has its brightness shifted like LU Toolbox's "Apply Color Variation":
    the color's HSV value is taken to a 1/2.224 gamma, moved by a random amount of up to `color_variation`/200 (5%:

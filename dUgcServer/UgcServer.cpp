@@ -12,6 +12,7 @@
 #include <set>
 #include <thread>
 
+#include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "CDClientDatabase.h"
 #include "ConfigSync.h"
@@ -389,11 +390,37 @@ namespace {
 		return client.empty() ? std::filesystem::path{} : std::filesystem::path(client) / "res";
 	}
 
+	// Brick files through the client's assets, packed or unpacked (loose files first, as the game reads them). Made on
+	// the main thread; the AssetManager is only read after that, so the workers may call it at once.
+	UgcBricks::FileReader ClientReader() {
+		const auto client = Game::config->GetValue("client_location");
+		if (client.empty()) return {};
+		std::shared_ptr<AssetManager> assets;
+		try {
+			assets = std::make_shared<AssetManager>(client);
+		} catch (const std::exception& e) {
+			LOG("Couldn't open the client's assets at %s (%s); reading loose files only", client.c_str(), e.what());
+			return {};
+		}
+		return [assets](const std::string& relative) -> std::optional<std::string> {
+			char* data = nullptr;
+			uint32_t length = 0;
+			try {
+				if (!assets->GetFile(relative, &data, &length)) return std::nullopt;
+			} catch (const std::exception&) {
+				return std::nullopt; // a pack the index names but that isn't there
+			}
+			std::string out(data, length);
+			free(data);
+			return out;
+		};
+	}
+
 	// Command line tools: make one model's or modular build's files into a folder, without a database
 	int MakeFromCommandLine(const std::string& mode, const std::string& input, const std::filesystem::path& output) {
 		const auto res = ResPath();
 		const auto settings = ReadSettings();
-		UgcBricks::BrickLibrary library(res, 0);
+		UgcBricks::BrickLibrary library(res, 0, ClientReader());
 		if (!library.LoadMaterials()) std::cerr << "Couldn't read Materials.xml from " << (res / "brickdb.zip") << "; bricks will be grey\n";
 		UgcJobs::Outcome outcome;
 		const auto start = std::chrono::steady_clock::now();
@@ -491,7 +518,7 @@ int main(int argc, char** argv) {
 		ServiceType::UGC, Game::config, &Game::lastSignal, masterPassword);
 	Game::server = g_Server;
 
-	UgcBricks::BrickLibrary library(res, 0);
+	UgcBricks::BrickLibrary library(res, 0, ClientReader());
 	if (!library.LoadMaterials()) LOG("Couldn't read Materials.xml from %s; bricks will be grey", (res / "brickdb.zip").string().c_str());
 
 	auto outputDir = std::filesystem::path(Game::config->GetValue("ugc_output_dir").empty() ? "ugc" : Game::config->GetValue("ugc_output_dir"));

@@ -198,17 +198,22 @@ namespace UgcModel {
 				continue;
 			}
 			model.bricks++;
-			const auto materialOf = [&part](size_t index) {
+			const auto materialOf = [&part, &library](size_t index) {
 				auto id = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
-				// Unknown colors are black in LU Toolbox (its name included, so black's variation too)
-				if (id == 0 || !UgcPalette::Linear(id)) id = UgcPalette::FALLBACK_ID;
+				// Unknown colors are black in LU Toolbox (its name included, so black's variation too). A color LU
+				// Toolbox doesn't know but the client's Materials.xml has (one added to the brick database) keeps its id
+				// and takes its color from there.
+				if (id == 0 || (!UgcPalette::Linear(id) && !library.HasMaterial(id))) id = UgcPalette::FALLBACK_ID;
 				return id;
 			};
+			// Whether LU Toolbox's own palette colors a material (else it's one only the client's Materials.xml has)
+			const auto inToolbox = [](uint32_t id) { return UgcPalette::Linear(id).has_value(); };
 			// A brick is transparent only when all of its materials are (LU Toolbox's IS_TRANSPARENT)
 			bool transparent = true;
 			for (size_t index = 0; index < design->size(); index++) {
 				const auto id = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
-				transparent = transparent && (luToolbox ? UgcPalette::IsTransparent(materialOf(index)) : library.GetMaterial(id).Transparent());
+				const auto toolboxId = materialOf(index);
+				transparent = transparent && (luToolbox && inToolbox(toolboxId) ? UgcPalette::IsTransparent(toolboxId) : library.GetMaterial(luToolbox ? toolboxId : id).Transparent());
 			}
 			auto& mesh = transparent ? model.transparent : model.opaque;
 			if (transparent) model.transparentBricks.push_back(mesh.indices.size());
@@ -219,7 +224,13 @@ namespace UgcModel {
 				float alpha = 1.0f;
 				glm::vec3 glow(0.0f);
 				uint32_t colorId{};
-				if (luToolbox) {
+				if (luToolbox && !inToolbox(materialOf(index))) {
+					// A color only the client's Materials.xml has
+					colorId = materialOf(index);
+					const auto material = library.GetMaterial(colorId);
+					linear = UgcPalette::SrgbToLinear(glm::vec3(material.r, material.g, material.b) / 255.0f);
+					if (transparent) alpha = material.a / 255.0f;
+				} else if (luToolbox) {
 					colorId = materialOf(index);
 					linear = *UgcPalette::Linear(colorId, options.icon);
 					if (transparent) alpha = std::clamp(options.transparentOpacity / 100.0f, 0.0f, 1.0f);

@@ -161,6 +161,33 @@ TEST(UgcModel, BuildsOpaqueAndTransparentMeshes) {
 	EXPECT_NEAR(model.opaque.positions[0].x, 10.0f, 1e-5f);
 }
 
+// A color LU Toolbox's palette doesn't have but the client's Materials.xml does (one added to the brick database) is
+// drawn in its Materials.xml color; one neither knows is LU Toolbox's black
+TEST(UgcModel, ColorsOnlyInMaterialsXmlAreNotBlack) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	constexpr uint32_t ADDED = 50001;
+	ASSERT_FALSE(UgcPalette::Linear(ADDED));
+	library.SetMaterials({ { ADDED, { 0, 200, 100, 255 } } });
+	std::string error;
+	UgcModel::BuildOptions options;
+	options.palette = UgcModel::ePalette::LU_TOOLBOX;
+	options.colorVariation = 0.0f;
+	const auto brick = [&error](uint32_t material) {
+		return UgcModel::ParseLxfml("<LXFML versionMajor=\"5\"><Bricks><Brick><Part designID=\"3001\" materials=\"" + std::to_string(material) +
+			"\"><Bone transformation=\"1,0,0,0,1,0,0,0,1,0,0,0\"/></Part></Brick></Bricks></LXFML>", error);
+	};
+	const auto added = UgcModel::Build(brick(ADDED), library, options);
+	ASSERT_FALSE(added.opaque.colors.empty());
+	EXPECT_NEAR(added.opaque.colors[0].g, 200.0f / 255.0f, 1e-3f);
+	EXPECT_NEAR(added.opaque.colors[0].r, 0.0f, 1e-3f);
+	ASSERT_FALSE(UgcPalette::Linear(50002));
+	const auto unknown = UgcModel::Build(brick(50002), library, options);
+	ASSERT_FALSE(unknown.opaque.colors.empty());
+	const auto black = UgcModel::Build(brick(UgcPalette::FALLBACK_ID), library, options);
+	ASSERT_FALSE(black.opaque.colors.empty());
+	EXPECT_EQ(unknown.opaque.colors[0], black.opaque.colors[0]);
+}
+
 TEST(UgcModel, SplitsBigMeshes) {
 	UgcModel::Mesh mesh;
 	for (uint32_t i = 0; i < 30; i++) {
