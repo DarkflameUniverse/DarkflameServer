@@ -42,23 +42,77 @@ DATACENTERID=1:150,
 
 ## Processing
 
-Player models (`ugc` rows):
+Player models (`ugc` rows) are made the way LU Toolbox (the Blender add-on the community makes LU models with) makes
+them: its importer, Process Model, Bake Lighting (AO only) and its icon renderer, with its defaults as the settings'
+defaults. The table below goes through it step by step.
 
 1. The LXFML is read from `ugc.lxfml` (an sd0 stream). Parts come from `Bricks/Brick/Part` (LXFML 5: row-major
    rotation and translation per bone) or `Scene/Model/Group/Part` (LXFML 4: axis angle).
-2. Brick geometry is the client's LDD primitives, `res/brickprimitives/lod<n>/<design>.g`, `.g1`, ... (sub-part `i` uses
-   the part's `i`-th material, material 0 meaning the part's first). Colors and opacity come from `Materials.xml` in
-   `res/brickdb.zip`.
-3. The mesh is built like LU Toolbox's "Process Model": every brick merged into opaque and transparent meshes with
-   the material colors as sRGB vertex colors, faces nobody can see removed (the opaque mesh is rendered from 42
-   directions and triangles that never show are dropped; transparent bricks don't hide anything) and lighting baked
-   into the vertex colors as ambient occlusion computed from the same renders.
-4. The meshes are written as a Gamebryo 20.3.0.9 NIF (user version 0, the client's own version): a root node with
-   one `NiTriShape` per piece, named `S01_Opaque_...` / `S01_Alpha_...` like LU Toolbox names them, each with vertex
-   colors, a material and, for transparent pieces, alpha blending. Pieces are split at 65535 vertices/triangles.
-5. The icon is rendered by a software rasterizer (no GPU, no display), 4x4 supersampled, 3/4 view from the front
-   left, framed to fit, on a transparent background: `icon.png` for the dashboard and a 32-bit `icon.dds` for the
-   client.
+2. Each level of detail in `lods` (default `0,2`, as LU Toolbox imports) is built from the client's LDD primitives,
+   `res/brickprimitives/lod<n>/<design>.g`, `.g1`, ... (sub-part `i` uses the part's `i`-th material, material 0 meaning
+   the part's first). Colors come from LU Toolbox's palette (`color_palette=lu_toolbox`; `brickdb` uses the client's
+   `Materials.xml`): LU's colors, the LDD colors LU doesn't have mapped onto the nearest LU one, unknown ones black. A
+   brick is transparent only when all of its materials are; transparent bricks get `transparent_opacity` (58.82%).
+3. Color variation: each material of each brick has its brightness shifted like LU Toolbox's "Apply Color Variation":
+   the color's HSV value is taken to a 1/2.224 gamma, moved by a random amount of up to `color_variation`/200 (5%:
+   0.025) either way, times the color's own amount (black 0.4, orange 1.5, ...), clamped and taken back; hue and
+   saturation stay. The random number comes from the model's id, the brick's index and the material, so making a
+   model again gives the same colors, and every LOD the same (LU Toolbox restarts its random sequence per LOD).
+4. Faces nobody can see are removed from the opaque bricks (they're rendered from 42 directions and triangles that
+   never show are dropped; transparent bricks hide nothing and aren't touched). `hsr_ground_plane=1` also drops what
+   can only be seen from below.
+5. Ambient occlusion is baked like LU Toolbox's Bake Lighting with AO Only: 64 rays per vertex (`ao_samples`) that count
+   as blocked when they hit an opaque triangle within 5 (`ao_distance`); transparent bricks are neither baked nor
+   occlude; glowing colors add their glow times 6 (Glow Strength 3 x Glow Multiplier 2). The light is multiplied into
+   the vertex colors (the NIF has one color set; LU Toolbox keeps it in a "Lit" layer beside "Col").
+6. The meshes are written as a Gamebryo 20.3.0.9 NIF (user version 0, the client's own version) laid out like LU
+   Toolbox's exports and the game's own brick models (`res/BrickModels/ndmade`): the root `SceneNode_Model`, an
+   `NiLODNode` `S01_Opaque_Model` (and `S01_Alpha_Model` for transparent bricks) with `NiRangeLODData` holding each
+   level's distances (LU Toolbox's: with LODs 0 and 2, 0-100 and 100-10000), a node `LOD_<n>` per level and its
+   shapes under it, named like the group. Shapes have vertex colors, a white material and, when transparent, alpha
+   blending. Opaque shapes are divided at 65535 vertices along their longest side (LU Toolbox's divide_mesh);
+   transparent bricks are one shape each unless `combine_transparent=1`. Vertices are in LDD's Y-up space with
+   identity transforms, like the game's own brick models.
+7. The icon is rendered like LU Toolbox's icon renderer (its UGC render add-on's BrickBuild scene) by a software
+   rasterizer (no GPU, no display), 4x4 supersampled: LOD 0 with the icon's color corrections (white and black toned
+   down) and no color variation, a 50 mm lens (39.6 degrees) from 53.4 degrees around and 19.5 above, framed at 1.03,
+   a sun of strength 2.5 from 21 degrees around and 50.3 above with soft shadows, and a grey (0.192) world light
+   darkened by the ambient occlusion, on a transparent background: `icon.png` for the dashboard and a 32-bit
+   `icon.dds` for the client.
+8. `stats.json` records the bricks, each LOD's triangles before and after hidden faces were removed, vertices,
+   shapes, how long each step took and the settings used; `model.noao.nif` is LOD 0 before the lighting bake. Both,
+   and the icon and mesh of the version before (`previous.*`), are for the dashboard's viewer.
+
+### Matching LU Toolbox
+
+| LU Toolbox step (default) | UGC server |
+| --- | --- |
+| Import LXFML: LXFML 4/5, `brickprimitives/lod<n>`, sub-part materials, 0 = the part's first, missing bricks skipped | Same |
+| Import LODs 0, 2 (LOD 1 off, LOD 3 doesn't exist in the client) | Same (`lods=0,2`); a design missing from a level uses the next more detailed one |
+| Import: flex parts (several bones) bent per bone | Not done: flex parts are placed by their first bone |
+| Import: custom normals from the `.g` files | Same |
+| Import: LU palette colors, LDD colors mapped to LU ones, unknown ones black (26) | Same (`color_palette=lu_toolbox`) |
+| Import: random scale for seams (its factor is 0, so none) | Same (none) |
+| Keep UVs off (no UVs; decorations aren't imported) | Same: no UVs, no decorations |
+| Combine Objects on (opaque bricks joined per LOD), Combine Transparent off | Same (`combine_transparent=0`) |
+| Reset Orientation / Correct Orientation (Blender's Z-up) | Equivalent: LDD's Y-up with identity transforms, as the game's own brick models |
+| Correct Colors off (the importer's colors are the palette already) | Same |
+| Apply Color Variation on, 5%, per color amounts (CUSTOM_VARIATION) | Same (`color_variation=5`), stable per model, brick and material |
+| Transparent Opacity 58.82% | Same (`transparent_opacity`) |
+| Vertex color layers Col, Lit, Alpha (1), Glow | One color set: Col times Lit (glow added to Lit); alpha is the opacity |
+| Setup Bake Material (VertexColor / VertexColorTransparent) | Equivalent: white NiMaterialProperty, vertex colors as ambient and diffuse, NiAlphaProperty on transparent shapes |
+| Remove Hidden Faces: Cycles bakes with an overexposed world (VC pre-pass 32 samples, tris to quads, 5 pixels between vertices, 8 samples, threshold 0.01), autoremove, transparent bricks hidden | Same result by other means: depth renders from 42 directions (`optimize_resolution`), transparent bricks hidden and untouched; the pre-pass, quads and samples are details of Blender's baking |
+| Use Ground Plane off | Same (`hsr_ground_plane=0`) |
+| Split objects over 65536 vertices (divide_mesh, along the longest side, linked parts together) | Same, also keeping each shape under 65535 triangles (the format's limit) |
+| Setup LOD data: SceneNode, NiLODNode per shape name, LOD nodes, near/far by the levels there are, `S01_Opaque_`/`S01_Alpha_` names cut at 60 | Same (`lod_distance_0..3`, `lod_cull`, `shader_opaque`); the glow, metal and superemissive shader settings aren't used by LU Toolbox either |
+| Bake Lighting, AO Only: 64 AO samples, distance 5, transparent skipped, glow strength 3 x 2, smooth vertex colors | Same (`ao_samples`, `ao_distance`, `glow_strength`); smoothing averages a vertex's corners, and the occlusion is per vertex already |
+| NifTools export for LU: 20.3.0.9, user version 0 | Same |
+| Physics (`.hkx`) | Intentionally not done: `.hkx` requests answer 404, so the client makes its own |
+| Icon: LOD 0, no hidden face removal, its own color corrections, no color variation | Same (`icon_correct_colors`, `icon_color_variation=0`); LOD 0's hidden face removal is reused (it doesn't change what the camera sees) |
+| Icon: Bevel Edges and Subdivide | Not done (the rasterizer draws the bricks as they are) |
+| Icon: principled materials (roughness 0.16), hashed transparency, Cycles | Approximated: diffuse sun with soft shadow-mapped shadows plus world light with ambient occlusion; no highlights or bounced light; transparent bricks sorted and blended |
+| Icon scene BrickBuild / Car: 50 mm lens, camera 53.4 / 19.5 degrees, sun 2.5 at 21 / 50.3, world 0.192, 128 px, framing 1.03, transparent film | Same (`icon_*`, `modular_icon_*`) |
+| Icon scene Rocket: 35 mm lens, other angles, two suns | Not done: rockets use the car camera |
 
 Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:4715`):
 
@@ -78,11 +132,13 @@ Files live under `ugc_output_dir` (default `ugc` next to the server binaries):
 
 ```
 ugc/models/<id % 1000>/<id>/model.nif, model.nif.gz, model.nif.checksum, model.lxfml.gz, model.lxfml.checksum,
-                              icon.dds.gz, icon.dds.checksum, icon.png
+                              icon.dds.gz, icon.dds.checksum, icon.png, model.noao.nif, stats.json,
+                              previous.icon.png, previous.model.nif, previous.model.noao.nif, previous.stats.json
 ugc/modular/<id % 1000>/<id>/icon.dds.gz, icon.dds.checksum, icon.png
 ```
 
 A model's files are written to a temporary folder and renamed into place, so a half written model is never served.
+When an item is made again, the icon, mesh and stats of the version before are kept as `previous.*` to compare.
 `ugc_max_storage_mb` (default 2048, 0 for no limit) caps the folder: when it is over, the models whose files were used
 longest ago are deleted. Their rows stay `is_optimized = 1`; when something asks for their files the server sets
 them back to 0 and makes them again (the request answers 408 meanwhile), so deleted files are only made again when
@@ -122,6 +178,35 @@ CPUs) workers do only pure work: parse LXFML, build and write meshes and icons, 
 then updates the database. Brick geometry and materials are loaded once and shared read-only (the cache has its own
 lock).
 
+## CPU and memory
+
+Settings in `ugcconfig.ini` (and the dashboard's settings page), picked up while running when the config is reloaded:
+
+* `worker_threads` (restart): how many models are made at once.
+* `max_cpu_percent`: the workers together average at most this share of all CPU cores. The long loops (the renders
+  for hidden faces, the occlusion rays, icons) account each thread's CPU time every few milliseconds against a budget
+  that fills at that rate and sleep while it's overdrawn (UgcThrottle), so it holds for long jobs too and whatever
+  `worker_threads` is. Short bursts (a quarter second) aren't slowed. 0: no limit.
+* `worker_nice`: the workers' Linux scheduling priority (0 normal to 19), so the game servers go first.
+* `max_memory_mb`: each job's memory is estimated from its brick count before it starts (the renders' buffers plus
+  about 40 KB per brick per LOD); a job waits while the running ones and it together would be over the limit, and one
+  bigger than the limit alone runs when nothing else does. 0: no limit. After each job the workers give freed memory
+  back to the system.
+* `max_model_bricks`: models with more bricks fail with "the model has N bricks, more than max_model_bricks (M)". 0: no
+  limit.
+* `pause_hours`: local hours in which no new jobs start, e.g. `18-23` or `22-6` (running ones finish).
+
+`/status` reports the process's CPU use (percent of one core, and the core count), resident memory, the running jobs'
+estimated memory and how often a job waited for memory, whether the workers were throttled in the last 5 seconds and
+for how long in all, whether it is paused, and the limits. The traffic report (Diagnostics page) carries the gauges
+`cpu_percent`, `memory_mb`, `job_memory_mb` and `throttled` besides the workers' ones.
+
+Measured on a 16 core machine with 4 workers working through 15 items (models of 100 to 1500 bricks and cars): with
+no limit the process used about 400% of one core (all 4 workers) and finished in about 27 seconds; with
+`max_cpu_percent=12` (1.92 cores) it stayed at 190-195% in every 3 second sample through the backlog (one sample at
+227% while a job finished) and finished in about 45 seconds. With `max_memory_mb=400` the running jobs' estimates
+stayed under 375 MB (two jobs waited for memory) and the process peaked at 283 MB resident, back to 55 MB when idle.
+
 ## HTTP
 
 `port` (default 2008) on `listen_ip` (default 0.0.0.0, the client has to reach it). All GET, no authentication (the
@@ -131,8 +216,9 @@ files are what every player on a property sees anyway):
   `<client_path>/UGCC<dc>/IMAGE128DDS/<dc><id>.dds.gz|.checksum` for the client (`client_path`, default `/ugc`, is
   the client's `UGCSERVERDIR`). HKX answers 404. A model that exists but isn't made yet (or was evicted) is moved to
   the front of the queue and answers 408 so the client asks again.
-* `/files/model/<id>/icon.png|model.nif` and `/files/modular/<id>/icon.png` for the dashboard's previews
-  (with `Access-Control-Allow-Origin: *`).
+* `/files/model/<id>/<file>` and `/files/modular/<id>/icon.png` for the dashboard (`icon.png`, `model.nif`,
+  `model.noao.nif`, `stats.json` and their `previous.` versions), not cached by browsers since they change when an
+  item is made again.
 * `/status`: JSON with the queue length, what the workers are doing and totals since start.
 
 Files are sent from disk (mongoose streams them, with its own ETag) with `Cache-Control: public, max-age=3600`.
@@ -152,11 +238,23 @@ comes back, in the System Log (`UgcServer_*.log`) and crash dumps (`Crash_UgcSer
 Prometheus (`darkflame_ugc_up`, `darkflame_ugc_items`, `darkflame_server_ugc_*{server="ugc"}`). See docs/Dashboard.md.
 
 The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the new `ugc_manage` permission to make
-things again) reads the database: counts per state for models and for cars and rockets, a paged list with owner,
-state, attempts, last attempt and failure reason, and buttons to make one item, the failed ones or everything again
-(these only reset the columns; the UGC server picks the rows up). Icons, the live status (`/status`) and the mesh
-download come from the UGC server at `ugc_public_url` (`dashboardconfig.ini`; empty: the dashboard's host name on
-port 2008). "View" shows the model's LXFML in the dashboard's 3D viewer (`/api/ugc/<id>/lxfml`).
+things again) reads the database: counts per state for models and for cars and rockets, and the items as a gallery of
+their icons or a list (owner, state, attempts, last attempt, failure reason), filtered by kind, state and a search by
+id or owner name, with buttons to make one item, the failed ones or everything again (these only reset the columns;
+the UGC server picks the rows up).
+
+Everything from the UGC server goes through the dashboard, which reaches it at `ugc_internal_url`
+(`dashboardconfig.ini`; empty: `http://127.0.0.1:2008`, the same machine), so the page works from wherever the browser
+is: `/api/ugc/server/status` (its `/status`, kept 2 seconds), `/api/ugc/files/<kind>/<id>/<file>` (kept 15 seconds)
+and `/api/ugc/mesh/<id>?lod=&version=current|previous&ao=0|1` (its NIF converted by the dashboard's worker threads
+with the scenery viewer's NifFile conversion). The fetches run on the dashboard's worker threads. `ugc_public_url` is
+only used for an "open on the UGC server" link.
+
+The status box shows the queue, workers, CPU (with its limit), memory, the jobs' estimated memory (with its limit) and
+whether the workers are throttled or paused. Clicking an item opens the viewer: the generated NIF in 3D (any LOD, now
+or before it was made again, with wireframe, vertex colors and baked lighting switches), the LXFML as built beside
+it, the icon now and before, and the stats (triangles per LOD before and after hidden faces were removed, how many
+were removed, vertices, shapes, timings, with the change since the version before).
 
 ## Not done yet
 
