@@ -372,6 +372,18 @@ class TestSQLDatabase : public GameDatabase {
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override { return {}; }
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override { return {}; }
+	std::vector<IUgc::PendingModel> GetUgcModelsToProcess(const uint32_t limit) override { return {}; }
+	void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) override {}
+	std::optional<IUgc::ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) override { return {}; }
+	uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override { return 0; }
+	std::vector<IUgc::ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const uint32_t offset, const uint32_t limit) override { return {}; }
+	std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetUgcProcessCounts() override { return {}; }
+	std::vector<IUgcModularBuild::PendingBuild> GetModularBuildsToProcess(const uint32_t limit) override { return {}; }
+	void SetModularBuildProcessed(const LWOOBJID id, const IUgc::eProcessState state, const uint32_t attempts, const std::string_view error) override {}
+	std::optional<IUgc::ProcessInfo> GetModularBuildProcessInfo(const LWOOBJID id) override { return {}; }
+	uint64_t ResetModularBuildProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override { return 0; }
+	std::vector<IUgc::ProcessInfo> GetModularBuildProcessList(const std::optional<IUgc::eProcessState> state, const uint32_t offset, const uint32_t limit) override { return {}; }
+	std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetModularBuildProcessCounts() override { return {}; }
 	void DeleteAccount(const uint32_t accountId) override {};
 	void InsertAuditLog(uint32_t accountId, const std::string_view accountName, const std::string_view action, const std::string_view description, uint32_t targetAccountId, LWOOBJID targetCharacterId) override {};
 	std::string GetAuditLogTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return "{}"; };

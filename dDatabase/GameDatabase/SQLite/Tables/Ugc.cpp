@@ -1,5 +1,27 @@
 #include "SQLiteDatabase.h"
 
+#include <chrono>
+
+namespace {
+	IUgc::ProcessInfo ReadUgcProcessInfo(CppSQLite3Query& result, bool modular) {
+		IUgc::ProcessInfo info;
+		info.id = result.getInt64Field("id");
+		info.characterId = result.getInt64Field("character_id");
+		info.characterName = result.getStringField("character_name", "");
+		info.state = static_cast<IUgc::eProcessState>(result.getIntField("is_optimized"));
+		info.attempts = static_cast<uint32_t>(result.getIntField("process_attempts"));
+		info.processedAt = result.getInt64Field("processed_at");
+		info.error = result.getStringField("process_error", "");
+		if (modular) info.details = result.getStringField("ldf_config", "");
+		else info.bakeAo = result.getIntField("bake_ao") != 0;
+		return info;
+	}
+
+	int64_t UnixNow() {
+		return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	}
+}
+
 IUgc::Model ReadModel(CppSQLite3Query& result) {
 	IUgc::Model model;
 
@@ -68,7 +90,8 @@ void SQLiteDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 
 void SQLiteDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
 	const std::istream stream(lxfml.rdbuf());
-	ExecuteUpdate("UPDATE ugc SET lxfml = ? WHERE id = ?;", &stream, modelId);
+	// The UGC server makes the model's files again
+	ExecuteUpdate("UPDATE ugc SET lxfml = ?, is_optimized = 0, process_attempts = 0, process_error = '' WHERE id = ?;", &stream, modelId);
 }
 
 std::optional<IUgc::Model> SQLiteDatabase::GetUgcModel(const LWOOBJID ugcId) {
@@ -81,4 +104,69 @@ std::optional<IUgc::Model> SQLiteDatabase::GetUgcModel(const LWOOBJID ugcId) {
 	}
 
 	return toReturn;
+}
+
+std::vector<IUgc::PendingModel> SQLiteDatabase::GetUgcModelsToProcess(const uint32_t limit) {
+	auto [_, result] = ExecuteSelect("SELECT id, lxfml, process_attempts FROM ugc WHERE is_optimized = 0 ORDER BY process_attempts ASC, id DESC LIMIT ?;", limit);
+	std::vector<IUgc::PendingModel> models;
+	while (!result.eof()) {
+		auto& model = models.emplace_back();
+		model.id = result.getInt64Field("id");
+		int blobSize{};
+		const auto* blob = result.getBlobField("lxfml", blobSize);
+		model.lxfml.assign(reinterpret_cast<const char*>(blob), blobSize);
+		model.attempts = static_cast<uint32_t>(result.getIntField("process_attempts"));
+		result.nextRow();
+	}
+	return models;
+}
+
+void SQLiteDatabase::SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) {
+	ExecuteUpdate("UPDATE ugc SET is_optimized = ?, process_attempts = ?, process_error = ?, bake_ao = ?, processed_at = ? WHERE id = ?;",
+		static_cast<int32_t>(state), attempts, error, bakeAo, UnixNow(), id);
+}
+
+std::optional<IUgc::ProcessInfo> SQLiteDatabase::GetUgcProcessInfo(const LWOOBJID id) {
+	auto [_, result] = ExecuteSelect(
+		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao "
+		"FROM ugc AS u LEFT JOIN charinfo AS c ON c.id = u.character_id WHERE u.id = ? LIMIT 1;", id);
+	if (result.eof()) return std::nullopt;
+	return ReadUgcProcessInfo(result, false);
+}
+
+uint64_t SQLiteDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) {
+	if (id) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '' WHERE id = ?;", *id);
+	if (failedOnly) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '' WHERE is_optimized = 2;");
+	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '';");
+}
+
+std::vector<IUgc::ProcessInfo> SQLiteDatabase::GetUgcProcessList(const std::optional<eProcessState> state, const uint32_t offset, const uint32_t limit) {
+	const std::string select =
+		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao "
+		"FROM ugc AS u LEFT JOIN charinfo AS c ON c.id = u.character_id ";
+	std::vector<IUgc::ProcessInfo> list;
+	auto read = [&list](CppSQLite3Query& result) {
+		while (!result.eof()) {
+			list.push_back(ReadUgcProcessInfo(result, false));
+			result.nextRow();
+		}
+	};
+	if (state) {
+		auto [_, result] = ExecuteSelect(select + "WHERE u.is_optimized = ? ORDER BY u.id DESC LIMIT ? OFFSET ?;", static_cast<int32_t>(*state), limit, offset);
+		read(result);
+	} else {
+		auto [_, result] = ExecuteSelect(select + "ORDER BY u.id DESC LIMIT ? OFFSET ?;", limit, offset);
+		read(result);
+	}
+	return list;
+}
+
+std::vector<std::pair<IUgc::eProcessState, uint64_t>> SQLiteDatabase::GetUgcProcessCounts() {
+	auto [_, result] = ExecuteSelect("SELECT is_optimized, COUNT(*) AS count FROM ugc GROUP BY is_optimized;");
+	std::vector<std::pair<eProcessState, uint64_t>> counts;
+	while (!result.eof()) {
+		counts.emplace_back(static_cast<eProcessState>(result.getIntField("is_optimized")), static_cast<uint64_t>(result.getInt64Field("count")));
+		result.nextRow();
+	}
+	return counts;
 }

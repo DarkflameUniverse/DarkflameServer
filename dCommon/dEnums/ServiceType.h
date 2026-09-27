@@ -9,7 +9,8 @@ enum class ServiceType : uint16_t {
 	WORLD,
 	CLIENT,
 	MASTER,
-	UNKNOWN
+	UNKNOWN,
+	UGC // the UGC server (dUgcServer): appended, the values above are on the wire
 };
 
 #endif //!__SERVICETYPE__H__

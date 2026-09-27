@@ -40,7 +40,6 @@ set(DASHBOARDROUTES_SOURCES
 	"ChallengeRoutes.cpp"
 	"InstanceLoad.cpp"
 	"WorldView.cpp"
-	"NifFile.cpp"
 	"Scenery.cpp"
 	"WorkerPool.cpp"
 	"Workers.cpp"

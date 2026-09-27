@@ -16,6 +16,7 @@ namespace {
 	const std::string CHAT = "chatconfig.ini";
 	const std::string WORLD = "worldconfig.ini";
 	const std::string DASHBOARD = "dashboardconfig.ini";
+	const std::string UGC = "ugcconfig.ini";
 
 	constexpr double PORT_MIN = 1;
 	constexpr double PORT_MAX = 65535;
@@ -127,6 +128,7 @@ namespace {
 		c.AddSection("Startup");
 		c.Add(Bool(MASTER, "prestart_servers", "Start auth, chat and char servers", "Master starts the other servers itself.", true, true));
 		c.Add(Bool(MASTER, "enable_dashboard", "Start the web dashboard", "", false, true));
+		c.Add(Bool(MASTER, "enable_ugc_server", "Start the UGC server", "Makes and serves the meshes and icons of what players build (docs/UgcServer.md).", false, true));
 		c.Add(Bool(SHARED, "skip_account_creation", "Skip the first-account prompt", "For non-interactive setups: master doesn't ask for an account when there are none.", false, true));
 
 		c.AddSection("Game client");
@@ -400,6 +402,30 @@ namespace {
 		c.AddSection("Character history");
 		c.Add(Days("snapshot_days", "Snapshots", "Older snapshots are deleted, but each character keeps its newest few (below).", "90", 1));
 		c.Add(Unit(Int(DASHBOARD, "snapshot_keep", "Always keep per character", "", "10", 1, 1000), "snapshots"));
+		c.AddSection("UGC server", "Makes the meshes and icons of what players build and serves them to the game client. See docs/UgcServer.md.",
+			eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
+		c.Add(Port(UGC, "port", "Download port", "The game client's UGCSERVERPORT.", "2008"));
+		c.Add(Format(Text(UGC, "listen_ip", "Listen address", "The game client has to reach it.", "0.0.0.0", true), eFormat::HOST));
+		c.Add(Port(UGC, "net_port", "Master connection port", "UDP; the next port is used too.", "2012"));
+		c.Add(Text(UGC, "client_path", "Download path", "The game client's UGCSERVERDIR.", "/ugc", true));
+		c.Add(Format(Text(UGC, "ugc_output_dir", "Files folder", "Relative to the server binaries.", "ugc", true), eFormat::PATH));
+		c.Add(Unit(Int(UGC, "ugc_max_storage_mb", "Most space for files", "The files used longest ago are deleted past this and made again when asked for. 0: no limit.", "2048", 0, std::nullopt, true), "MB"));
+		c.Add(Int(UGC, "worker_threads", "Worker threads", "0: half the CPU cores.", "0", 0, 64, true));
+		c.Add(Unit(Int(UGC, "poll_interval_ms", "Look for new models every", "", "2000", 100, 600000, true), "ms"));
+		c.Add(Int(UGC, "poll_batch", "Models taken at once", "", "32", 1, 1000, true));
+		c.Add(Int(UGC, "max_attempts", "Attempts before giving up", "", "3", 1, 100, true));
+		c.Add(Int(UGC, "brick_lod", "Brick detail", "0 is the most detailed, 2 the least.", "0", 0, 2, true));
+		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "", true, true));
+		c.Add(Bool(UGC, "bake_ao", "Darken hidden corners", "Ambient occlusion baked into the vertex colors.", true, true));
+		c.Add(Float(UGC, "ao_strength", "Darkening strength", "0 to 1.", "0.6", 0, 1));
+		c.Add(Unit(Int(UGC, "optimize_resolution", "Detail of the visibility renders", "", "1024", 64, 4096, true), "pixels"));
+		c.Add(Unit(Int(UGC, "icon_size", "Icon size", "", "128", 16, 1024, true), "pixels"));
+		c.Add(Unit(Float(UGC, "icon_yaw", "Icon angle around", "", "35", -360, 360), "degrees"));
+		c.Add(Unit(Float(UGC, "icon_pitch", "Icon angle above", "", "25", -90, 90), "degrees"));
+		c.Add(Float(UGC, "icon_margin", "Icon border", "1 fills the icon.", "1.03", 0.1, 10));
+		c.Add(Unit(Float(UGC, "modular_icon_yaw", "Car and rocket icon angle around", "", "35", -360, 360), "degrees"));
+		c.Add(Unit(Float(UGC, "modular_icon_pitch", "Car and rocket icon angle above", "", "20", -90, 90), "degrees"));
+
 		return c;
 	}
 
@@ -456,7 +482,7 @@ namespace SettingsCatalog {
 
 	const std::vector<std::pair<std::string, std::string>>& Files() {
 		static const std::vector<std::pair<std::string, std::string>> files{
-			{ SHARED, "Shared" }, { WORLD, "World" }, { AUTH, "Auth" }, { CHAT, "Chat" }, { MASTER, "Master" }, { DASHBOARD, "Dashboard" }
+			{ SHARED, "Shared" }, { WORLD, "World" }, { AUTH, "Auth" }, { CHAT, "Chat" }, { MASTER, "Master" }, { DASHBOARD, "Dashboard" }, { UGC, "UGC" }
 		};
 		return files;
 	}

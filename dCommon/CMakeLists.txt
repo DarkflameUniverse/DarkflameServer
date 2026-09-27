@@ -31,6 +31,7 @@ set(DCOMMON_SOURCES
 		"Raw.cpp"
 		"Process.cpp"
 		"Permissions.cpp"
+		"NifFile.cpp"
 )
 
 # Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.

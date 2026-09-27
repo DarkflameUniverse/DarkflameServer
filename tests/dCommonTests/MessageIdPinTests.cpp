@@ -1833,6 +1833,7 @@ static_assert(static_cast<int64_t>(ServiceType::WORLD) == 4);
 static_assert(static_cast<int64_t>(ServiceType::CLIENT) == 5);
 static_assert(static_cast<int64_t>(ServiceType::MASTER) == 6);
 static_assert(static_cast<int64_t>(ServiceType::UNKNOWN) == 7);
+static_assert(static_cast<int64_t>(ServiceType::UGC) == 8);
 
 // The asserts above are compile time; this test only makes the file show up in test runs.
 TEST(MessageIdPinTests, MessageTypeValuesArePinned) { SUCCEED(); }

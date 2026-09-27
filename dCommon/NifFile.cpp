@@ -383,9 +383,17 @@ namespace {
 			const auto children = reader.Array<int32_t>(childCount);
 			const auto effectCount = reader.U32();
 			reader.Skip(static_cast<uint64_t>(effectCount) * 4);
-			if (!reader.Ok() || (av.flags & APP_CULLED)) return;
+			if (!reader.Ok()) return;
 
 			const auto world = parent.Then(av.transform);
+			// Recorded even when hidden: attach points often are
+			if (!av.name.empty() && !m_Model.nodes.contains(av.name)) {
+				NifFile::NodeTransform node;
+				for (int i = 0; i < 9; i++) node.rotation[i] = world.r[i] * world.s;
+				node.translation = world.t;
+				m_Model.nodes.emplace(av.name, node);
+			}
+			if (av.flags & APP_CULLED) return;
 			properties = Inherit(properties, av.properties);
 			if (const auto tag = NifFile::ShaderTag(av.name); tag >= 0) properties.shaderTag = tag;
 

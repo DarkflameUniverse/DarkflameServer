@@ -82,6 +82,7 @@ std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 SystemAddress dashboardServerMasterPeerSysAddr;
+SystemAddress ugcServerMasterPeerSysAddr;
 
 namespace {
 	// Dashboard player actions waiting for world servers to answer
@@ -444,6 +445,11 @@ int main(int argc, char** argv) {
 		StartDashboardServer();
 	}
 
+	// The UGC server makes and serves player models' meshes and icons (docs/UgcServer.md)
+	if (Game::config->GetValue("enable_ugc_server") == "1") {
+		StartUgcServer();
+	}
+
 	auto t = std::chrono::high_resolution_clock::now();
 	Packet* packet = nullptr;
 	constexpr uint32_t logFlushTime = 15 * masterFramerate;
@@ -623,6 +629,9 @@ namespace {
 			break;
 		case ServiceType::DASHBOARD:
 			dashboardServerMasterPeerSysAddr = sysAddr;
+			break;
+		case ServiceType::UGC:
+			ugcServerMasterPeerSysAddr = sysAddr;
 			break;
 		default:
 			break;
@@ -1024,6 +1033,19 @@ void HandlePacket(Packet* packet) {
 		if (packet->systemAddress == dashboardServerMasterPeerSysAddr) {
 			dashboardServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartDashboardServer();
+		}
+
+		if (packet->systemAddress == ugcServerMasterPeerSysAddr) {
+			ugcServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+
+			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+				MasterPackets::ServerInfo offline;
+				offline.serverType = ServiceType::UGC;
+				offline.ip = LUString("offline");
+				MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, offline);
+			}
+
+			StartUgcServer();
 		}
 	}
 

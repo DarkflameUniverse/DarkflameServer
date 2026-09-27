@@ -1,0 +1,132 @@
+#include "UgcStorage.h"
+
+#include <algorithm>
+#include <array>
+#include <fstream>
+#include <random>
+
+namespace {
+	constexpr std::array KNOWN_FILES = {
+		"model.nif", "model.nif.gz", "model.nif.checksum",
+		"model.lxfml.gz", "model.lxfml.checksum",
+		"icon.dds.gz", "icon.dds.checksum", "icon.png",
+	};
+
+	const char* KindFolder(UgcStorage::Kind kind) {
+		return kind == UgcStorage::Kind::MODEL ? "models" : "modular";
+	}
+
+	std::string RandomSuffix() {
+		static thread_local std::mt19937_64 random{ std::random_device{}() };
+		return std::to_string(random());
+	}
+}
+
+UgcStorage::UgcStorage(std::filesystem::path root) : m_Root(std::move(root)) {}
+
+bool UgcStorage::IsKnownFile(const std::string& name) {
+	return std::find(KNOWN_FILES.begin(), KNOWN_FILES.end(), name) != KNOWN_FILES.end();
+}
+
+std::filesystem::path UgcStorage::Folder(Kind kind, LWOOBJID id) const {
+	const auto id64 = static_cast<uint64_t>(id);
+	return m_Root / KindFolder(kind) / std::to_string(id64 % 1000) / std::to_string(id64);
+}
+
+std::optional<std::filesystem::path> UgcStorage::File(Kind kind, LWOOBJID id, const std::string& name) const {
+	if (!IsKnownFile(name)) return std::nullopt;
+	auto path = Folder(kind, id) / name;
+	std::error_code error;
+	if (!std::filesystem::is_regular_file(path, error)) return std::nullopt;
+	return path;
+}
+
+std::optional<uint64_t> UgcStorage::Write(Kind kind, LWOOBJID id, const Files& files, std::string& error) const {
+	const auto folder = Folder(kind, id);
+	const auto temporary = folder.parent_path() / (".tmp-" + folder.filename().string() + "-" + RandomSuffix());
+	std::error_code code;
+	std::filesystem::create_directories(temporary, code);
+	if (code) {
+		error = "could not create " + temporary.string() + ": " + code.message();
+		return std::nullopt;
+	}
+	uint64_t bytes = 0;
+	for (const auto& [name, data] : files) {
+		std::ofstream out(temporary / name, std::ios::binary | std::ios::trunc);
+		out.write(data.data(), static_cast<std::streamsize>(data.size()));
+		if (!out) {
+			error = "could not write " + (temporary / name).string();
+			std::filesystem::remove_all(temporary, code);
+			return std::nullopt;
+		}
+		bytes += data.size();
+	}
+	// Swap the old folder out and the new one in; the old one is deleted after
+	const auto old = folder.parent_path() / (".old-" + folder.filename().string() + "-" + RandomSuffix());
+	const bool hadOld = std::filesystem::exists(folder, code);
+	if (hadOld) std::filesystem::rename(folder, old, code);
+	std::filesystem::rename(temporary, folder, code);
+	if (code) {
+		error = "could not move the files into " + folder.string() + ": " + code.message();
+		std::filesystem::remove_all(temporary, code);
+		return std::nullopt;
+	}
+	if (hadOld) std::filesystem::remove_all(old, code);
+	return bytes;
+}
+
+void UgcStorage::Remove(Kind kind, LWOOBJID id) const {
+	std::error_code error;
+	std::filesystem::remove_all(Folder(kind, id), error);
+}
+
+void UgcStorage::Touch(Kind kind, LWOOBJID id) const {
+	std::error_code error;
+	std::filesystem::last_write_time(Folder(kind, id), std::filesystem::file_time_type::clock::now(), error);
+}
+
+std::vector<UgcStorage::Entry> UgcStorage::List() const {
+	std::vector<Entry> entries;
+	std::error_code error;
+	for (const auto kind : { Kind::MODEL, Kind::MODULAR }) {
+		const auto base = m_Root / KindFolder(kind);
+		for (std::filesystem::directory_iterator bucket(base, error), end; !error && bucket != end; bucket.increment(error)) {
+			if (!bucket->is_directory(error)) continue;
+			for (std::filesystem::directory_iterator item(bucket->path(), error), itemEnd; !error && item != itemEnd; item.increment(error)) {
+				const auto name = item->path().filename().string();
+				if (name.empty() || name[0] == '.' || !item->is_directory(error)) continue;
+				Entry entry;
+				entry.kind = kind;
+				try {
+					entry.id = static_cast<LWOOBJID>(std::stoull(name));
+				} catch (...) {
+					continue;
+				}
+				entry.used = std::filesystem::last_write_time(item->path(), error);
+				for (std::filesystem::directory_iterator file(item->path(), error), fileEnd; !error && file != fileEnd; file.increment(error)) {
+					if (file->is_regular_file(error)) entry.bytes += file->file_size(error);
+				}
+				entries.push_back(entry);
+			}
+			error.clear();
+		}
+		error.clear();
+	}
+	return entries;
+}
+
+std::vector<UgcStorage::Entry> UgcStorage::Evict(uint64_t maxBytes) const {
+	auto entries = List();
+	uint64_t total = 0;
+	for (const auto& entry : entries) total += entry.bytes;
+	std::vector<Entry> removed;
+	if (total <= maxBytes) return removed;
+	std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) { return a.used < b.used; });
+	for (const auto& entry : entries) {
+		if (total <= maxBytes) break;
+		Remove(entry.kind, entry.id);
+		total -= std::min(total, entry.bytes);
+		removed.push_back(entry);
+	}
+	return removed;
+}

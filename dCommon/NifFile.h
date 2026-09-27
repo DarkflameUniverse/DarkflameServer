@@ -72,9 +72,16 @@ namespace NifFile {
 	// What a texture's alpha does under a shader (mapShaders.gameValue); -1 is fixed function (opacity)
 	eTextureAlpha TextureAlphaFor(int32_t shader);
 
+	// Where a node is in the model's space: p' = rotation * p + translation (row-major, scale folded in)
+	struct NodeTransform {
+		std::array<float, 9> rotation{ 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+		std::array<float, 3> translation{};
+	};
+
 	struct Model {
 		uint32_t version{};
 		std::vector<Mesh> meshes;
+		std::map<std::string, NodeTransform> nodes; // named nodes that are drawn (the first of each name), e.g. attach points
 		std::array<float, 3> min{};
 		std::array<float, 3> max{};
 		std::map<std::string, uint32_t> skipped; // block types in the file that aren't drawn, with how many

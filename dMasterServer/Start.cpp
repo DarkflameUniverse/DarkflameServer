@@ -143,6 +143,42 @@ uint32_t StartDashboardServer() {
 	return web_pid;
 }
 
+uint32_t StartUgcServer() {
+	if (Game::ShouldShutdown()) {
+		LOG("Currently shutting down.  UgcServer will not be restarted.");
+		return 0;
+	}
+	auto ugc_path = BinaryPathFinder::GetBinaryDir() / "UgcServer";
+#ifdef _WIN32
+	ugc_path.replace_extension(".exe");
+	auto ugc_startup = startup;
+	auto ugc_info = PROCESS_INFORMATION{};
+	if (!CreateProcessW(ugc_path.wstring().data(), ugc_path.wstring().data(),
+						nullptr, nullptr, false, 0, nullptr, nullptr,
+						&ugc_startup, &ugc_info))
+	{
+		LOG("Failed to launch UgcServer");
+		return 0;
+	}
+
+	// get pid and close unused handles
+	auto ugc_pid = ugc_info.dwProcessId;
+	CloseHandle(ugc_info.hProcess);
+	CloseHandle(ugc_info.hThread);
+#else // *nix systems
+	const auto ugc_pid = fork();
+	if (ugc_pid < 0) {
+		LOG("Failed to launch UgcServer");
+		return 0;
+	} else if (ugc_pid == 0) {
+		// We are the child process
+		execl(ugc_path.string().c_str(), ugc_path.string().c_str(), nullptr);
+	}
+#endif
+	LOG("UgcServer PID is %d", ugc_pid);
+	return ugc_pid;
+}
+
 uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 	auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
 #ifdef _WIN32

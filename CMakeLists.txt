@@ -133,7 +133,7 @@ endif()
 message(STATUS "Variable: DLU_CONFIG_DIR = ${DLU_CONFIG_DIR}")
 
 # Copy resource files on first build
-set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "dashboardconfig.ini" "blocklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "dashboardconfig.ini" "ugcconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
@@ -330,6 +330,7 @@ add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
 add_subdirectory(dChatServer)
 add_subdirectory(dDashboardServer)
+add_subdirectory(dUgcServer)
 add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
 
 target_precompile_headers(

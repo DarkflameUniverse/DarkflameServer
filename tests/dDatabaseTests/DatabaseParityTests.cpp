@@ -704,6 +704,50 @@ TEST_F(ParitySeeded, UgcModel) {
 		auto model = db.GetUgcModel(1152921510000500001LL);
 		return model ? json{ model->id, model->modelID, model->lxfmlData.str() } : json();
 	});
+
+	// The UGC server's processing state (processed_at is the time of the call, so only whether it's set is compared)
+	const auto infoJson = [](const std::optional<IUgc::ProcessInfo>& info) {
+		return info ? json{ info->id, info->characterId, info->characterName, static_cast<int32_t>(info->state), info->attempts,
+			info->processedAt > 0, info->error, info->bakeAo, info->details } : json();
+	};
+	const auto countsJson = [](const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& counts) {
+		json out = json::array();
+		for (const auto& [state, count] : counts) out.push_back({ static_cast<int32_t>(state), count });
+		return out;
+	};
+	Both("GetUgcModelsToProcess", [](GameDatabase& db) {
+		json out = json::array();
+		for (const auto& model : db.GetUgcModelsToProcess(10)) out.push_back({ model.id, model.lxfml, model.attempts });
+		return out;
+	});
+	Both("SetUgcModelProcessed failed", [&](GameDatabase& db) {
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::FAILED, 3, "no bricks", false);
+		return json{ infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), countsJson(db.GetUgcProcessCounts()), db.GetUgcModelsToProcess(10).size() };
+	});
+	Both("GetUgcProcessList", [&](GameDatabase& db) {
+		json out = json::array();
+		for (const auto& info : db.GetUgcProcessList(IUgc::eProcessState::FAILED, 0, 10)) out.push_back(infoJson(info));
+		out.push_back(db.GetUgcProcessList(std::nullopt, 0, 10).size());
+		out.push_back(db.GetUgcProcessList(IUgc::eProcessState::DONE, 0, 10).size());
+		return out;
+	});
+	Both("ResetUgcModelProcessing", [&](GameDatabase& db) {
+		const auto changed = db.ResetUgcModelProcessing(std::nullopt, true);
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
+		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), infoJson(db.GetUgcProcessInfo(1)) };
+	});
+	Both("Modular build processing", [&](GameDatabase& db) {
+		db.InsertUgcBuild("1:4713+1:4714+1:4715", 1152921510000500002LL, CHAR_ALICE);
+		json out = json::array();
+		for (const auto& build : db.GetModularBuildsToProcess(10)) out.push_back({ build.id, build.modules, build.attempts });
+		db.SetModularBuildProcessed(1152921510000500002LL, IUgc::eProcessState::PENDING, 1, "no mesh");
+		out.push_back(infoJson(db.GetModularBuildProcessInfo(1152921510000500002LL)));
+		out.push_back(countsJson(db.GetModularBuildProcessCounts()));
+		out.push_back(db.GetModularBuildProcessList(std::nullopt, 0, 10).size());
+		out.push_back(db.ResetModularBuildProcessing(1152921510000500002LL, false));
+		out.push_back(infoJson(db.GetModularBuildProcessInfo(1152921510000500002LL)));
+		return out;
+	});
 }
 
 TEST_F(ParitySeeded, LogsAndAudit) {

@@ -77,13 +77,16 @@ Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:471
 Files live under `ugc_output_dir` (default `ugc` next to the server binaries):
 
 ```
-ugc/models/<id % 1000>/<id>/model.nif(.gz, .checksum), model.lxfml(.gz, .checksum), icon.dds(.gz, .checksum), icon.png
-ugc/modular/<id % 1000>/<id>/icon.dds(.gz, .checksum), icon.png
+ugc/models/<id % 1000>/<id>/model.nif, model.nif.gz, model.nif.checksum, model.lxfml.gz, model.lxfml.checksum,
+                              icon.dds.gz, icon.dds.checksum, icon.png
+ugc/modular/<id % 1000>/<id>/icon.dds.gz, icon.dds.checksum, icon.png
 ```
 
 A model's files are written to a temporary folder and renamed into place, so a half written model is never served.
 `ugc_max_storage_mb` (default 2048, 0 for no limit) caps the folder: when it is over, the models whose files were used
-longest ago are deleted and marked unprocessed, and are made again the next time they are asked for.
+longest ago are deleted. Their rows stay `is_optimized = 1`; when something asks for their files the server sets
+them back to 0 and makes them again (the request answers 408 meanwhile), so deleted files are only made again when
+wanted.
 
 ## Database state
 
@@ -102,6 +105,15 @@ The database is the queue: the UGC server looks for rows with `is_optimized = 0`
 `max_attempts` (default 3) times. Reprocessing (dashboard) sets rows back to `is_optimized = 0, process_attempts = 0`.
 No master messages are needed for any of it.
 
+### Marking models for processing (for code that writes `ugc` rows)
+
+* A new row needs nothing: `is_optimized` defaults to 0 (`InsertNewUgcModel` writes 0).
+* When a model's LXFML changes, `UpdateUgcModelData` sets `is_optimized = 0, process_attempts = 0, process_error = ''`
+  in the same statement. Anything that writes `ugc.lxfml` another way must do the same, or call
+  `ResetUgcModelProcessing(id, false)`.
+* Deleting the row is enough when a model is deleted; its files are left until the storage cap removes them.
+* The same holds for `ugc_modular_build` (`InsertUgcBuild` rows start at 0; `ResetModularBuildProcessing`).
+
 ## Threads
 
 The main thread owns RakNet (the master link), mongoose (HTTP) and the database. `worker_threads` (default: half the
@@ -119,11 +131,14 @@ files are what every player on a property sees anyway):
   `<client_path>/UGCC<dc>/IMAGE128DDS/<dc><id>.dds.gz|.checksum` for the client (`client_path`, default `/ugc`, is
   the client's `UGCSERVERDIR`). HKX answers 404. A model that exists but isn't made yet (or was evicted) is moved to
   the front of the queue and answers 408 so the client asks again.
-* `/files/model/<id>/icon.png|model.nif|model.lxfml` and `/files/modular/<id>/icon.png` for the dashboard's previews
+* `/files/model/<id>/icon.png|model.nif` and `/files/modular/<id>/icon.png` for the dashboard's previews
   (with `Access-Control-Allow-Origin: *`).
 * `/status`: JSON with the queue length, what the workers are doing and totals since start.
 
-Files are sent from disk (mongoose streams them) with `Cache-Control: public, max-age=86400` and an ETag of the MD5.
+Files are sent from disk (mongoose streams them, with its own ETag) with `Cache-Control: public, max-age=3600`.
+
+`UgcServer --make-model <file.lxfml or sd0> <folder>` and `UgcServer --make-modular "1:4713+1:4714+1:4715" <folder>`
+make one item's files into a folder without a database, for trying settings.
 
 ## Dashboard
 
