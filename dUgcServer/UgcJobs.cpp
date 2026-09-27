@@ -5,6 +5,7 @@
 
 #include "json.hpp"
 
+#include "NifFile.h"
 #include "Sd0.h"
 #include "UgcFormats.h"
 #include "UgcModel.h"
@@ -101,12 +102,6 @@ namespace UgcJobs {
 		std::vector<UgcModel::Model> models;
 		std::vector<std::vector<UgcModel::Mesh>> opaquePieces, transparentPieces;
 		UgcModel::Model preview; // LOD 0 before the lighting bake, for the dashboard
-		// The icon: LU Toolbox's icon renderer imports LOD 0 again, with its own color corrections and no variation.
-		// The same bricks in the same order, so LOD 0's hidden surface removal and occlusion apply to it too (neither
-		// changes what the icon's camera sees).
-		UgcModel::Model iconModel;
-		std::vector<float> iconAo;
-		double iconMs = 0;
 		for (size_t i = 0; i < lods.size(); i++) {
 			auto options = settings.build;
 			options.seed = seed;
@@ -135,22 +130,10 @@ namespace UgcJobs {
 				if (!outcome.note.empty()) outcome.note += "; ";
 				outcome.note += "removed " + std::to_string(optimized.trianglesRemoved) + " of " + std::to_string(optimized.trianglesBefore) + " triangles";
 			}
-			if (i == 0) {
-				preview = model;
-				step = std::chrono::steady_clock::now();
-				auto iconOptions = settings.build;
-				iconOptions.seed = seed;
-				iconOptions.lod = 0;
-				iconOptions.icon = settings.iconCorrectColors;
-				iconOptions.colorVariation = settings.iconColorVariation;
-				iconModel = UgcModel::Build(parts, library, iconOptions);
-				if (!optimized.kept.empty() && iconModel.opaque.TriangleCount() == optimized.kept.size()) UgcModel::KeepTriangles(iconModel.opaque, optimized.kept);
-				iconMs += Since(step);
-			}
+			if (i == 0) preview = model;
 			step = std::chrono::steady_clock::now();
-			auto ao = UgcRender::BakeAo(model, settings.ao);
+			UgcRender::BakeAo(model, settings.ao);
 			aoMs += Since(step);
-			if (i == 0) iconAo = std::move(ao);
 			entry["opaqueAfter"] = model.opaque.TriangleCount();
 			entry["vertices"] = model.opaque.positions.size() + model.transparent.positions.size();
 			opaquePieces.push_back(UgcModel::Divide(model.opaque));
@@ -185,9 +168,20 @@ namespace UgcJobs {
 			outcome.files["model.noao.nif"] = UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent));
 		}
 
+		// The icon is drawn from the .nif just made (its most detailed LOD, read back like any client .nif), so it
+		// shows what the game shows: the colors with their variation, hidden faces removed, the baked lighting. The
+		// lighting is in its vertex colors already, so the icon adds no occlusion of its own.
 		const auto iconStart = std::chrono::steady_clock::now();
-		AddIcon(outcome.files, iconModel, settings.icon, iconAo.empty() ? nullptr : &iconAo);
-		iconMs += Since(iconStart);
+		std::string nifError;
+		const auto readBack = NifFile::Parse(nif, 0, nifError);
+		if (!readBack) {
+			outcome.error = "the .nif made can't be read back for the icon: " + nifError;
+			return outcome;
+		}
+		auto iconOptions = settings.icon;
+		iconOptions.ao.enabled = false;
+		AddIcon(outcome.files, UgcModel::FromNif(*readBack), iconOptions);
+		const double iconMs = Since(iconStart);
 
 		stats["ms"] = { { "build", std::lround(buildMs) }, { "hiddenSurfaces", std::lround(hsrMs) }, { "ambientOcclusion", std::lround(aoMs) },
 			{ "icon", std::lround(iconMs) }, { "total", std::lround(Since(started)) } };

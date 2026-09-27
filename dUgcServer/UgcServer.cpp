@@ -101,8 +101,6 @@ namespace {
 		settings.icon.shadows = Setting<int32_t>("icon_shadows", 1) != 0;
 		settings.icon.ao.enabled = Setting<int32_t>("icon_ao", 1) != 0;
 		settings.icon.ao.distance = settings.ao.distance;
-		settings.iconCorrectColors = Setting<int32_t>("icon_correct_colors", 1) != 0;
-		settings.iconColorVariation = std::clamp(Setting<float>("icon_color_variation", 0.0f), 0.0f, 100.0f);
 		settings.modularIcon = settings.icon;
 		settings.modularIcon.yawDegrees = Setting<float>("modular_icon_yaw", 53.36f);
 		settings.modularIcon.pitchDegrees = Setting<float>("modular_icon_pitch", 19.54f);

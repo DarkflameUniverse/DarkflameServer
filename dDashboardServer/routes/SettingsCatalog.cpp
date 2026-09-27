@@ -456,9 +456,7 @@ namespace {
 		c.Add(Float(UGC, "icon_sun_strength", "Icon sun strength", "", "2.5", 0, 100));
 		c.Add(Float(UGC, "icon_ambient", "Icon world light", "", "0.192", 0, 10));
 		c.Add(Bool(UGC, "icon_shadows", "Icon shadows", "", true));
-		c.Add(Bool(UGC, "icon_ao", "Icon ambient occlusion", "", true));
-		c.Add(Bool(UGC, "icon_correct_colors", "Icon color corrections", "White and black toned down, as LU Toolbox's icon renderer does.", true));
-		c.Add(Unit(Float(UGC, "icon_color_variation", "Icon color variation", "", "0", 0, 100), "%"));
+		c.Add(Bool(UGC, "icon_ao", "Car and rocket icon ambient occlusion", "Player models' icons show the lighting baked into their mesh instead.", true));
 		c.Add(Unit(Float(UGC, "modular_icon_yaw", "Car and rocket icon angle around", "", "53.36", -360, 360), "degrees"));
 		c.Add(Unit(Float(UGC, "modular_icon_pitch", "Car and rocket icon angle above", "", "19.54", -90, 90), "degrees"));
 

@@ -27,9 +27,7 @@ namespace UgcJobs {
 		bool combineTransparent{ false };      // one shape for all transparent bricks, else one per brick (Combine Transparent)
 		UgcRender::OptimizeOptions optimize;   // hidden surface removal
 		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
-		UgcRender::IconOptions icon;
-		bool iconCorrectColors{ true };        // the icon renderer's Correct Colors
-		float iconColorVariation{ 0.0f };      // percent; its Apply Color Variation is off
+		UgcRender::IconOptions icon;           // player models: drawn from their .nif (LOD 0); its ao is not used
 		UgcRender::IconOptions modularIcon;
 		uint32_t maxBricks{};                  // a model with more fails; 0: no limit
 	};

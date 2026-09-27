@@ -73,12 +73,13 @@ defaults. The table below goes through it step by step.
    blending. Opaque shapes are divided at 65535 vertices along their longest side (LU Toolbox's divide_mesh);
    transparent bricks are one shape each unless `combine_transparent=1`. Vertices are in LDD's Y-up space with
    identity transforms, like the game's own brick models.
-7. The icon is rendered like LU Toolbox's icon renderer (its UGC render add-on's BrickBuild scene) by a software
-   rasterizer (no GPU, no display), 4x4 supersampled: LOD 0 with the icon's color corrections (white and black toned
-   down) and no color variation, a 50 mm lens (39.6 degrees) from 53.4 degrees around and 19.5 above, framed at 1.03,
-   a sun of strength 2.5 from 21 degrees around and 50.3 above with soft shadows, and a grey (0.192) world light
-   darkened by the ambient occlusion, on a transparent background: `icon.png` for the dashboard and a 32-bit
-   `icon.dds` for the client.
+7. The icon is drawn from the finished `.nif`: it is read back with the same reader as the client's files (NifFile,
+   LOD 0) and rasterized, so it shows exactly what the game shows, with the color variation, the faces that were
+   removed and the lighting baked into the vertex colors (so the icon adds no occlusion of its own). The camera and
+   lights are LU Toolbox's icon renderer's (its UGC render add-on's BrickBuild scene), drawn by a software rasterizer
+   (no GPU, no display), 4x4 supersampled: a 50 mm lens (39.6 degrees) from 53.4 degrees around and 19.5 above,
+   framed at 1.03, a sun of strength 2.5 from 21 degrees around and 50.3 above with soft shadows, and a grey (0.192)
+   world light, on a transparent background: `icon.png` for the dashboard and a 32-bit `icon.dds` for the client.
 8. `stats.json` records the bricks, each LOD's triangles before and after hidden faces were removed, vertices,
    shapes, how long each step took and the settings used; `model.noao.nif` is LOD 0 before the lighting bake. Both,
    and the icon and mesh of the version before (`previous.*`), are for the dashboard's viewer.
@@ -108,9 +109,9 @@ defaults. The table below goes through it step by step.
 | Bake Lighting, AO Only: 64 AO samples, distance 5, transparent skipped, glow strength 3 x 2, smooth vertex colors | Same (`ao_samples`, `ao_distance`, `glow_strength`); smoothing averages a vertex's corners, and the occlusion is per vertex already |
 | NifTools export for LU: 20.3.0.9, user version 0 | Same |
 | Physics (`.hkx`) | Intentionally not done: `.hkx` requests answer 404, so the client makes its own |
-| Icon: LOD 0, no hidden face removal, its own color corrections, no color variation | Same (`icon_correct_colors`, `icon_color_variation=0`); LOD 0's hidden face removal is reused (it doesn't change what the camera sees) |
+| Icon: LOD 0 imported again with its own color corrections (white and black toned down) and no color variation | Different on purpose: the icon is drawn from the generated `.nif` (LOD 0), so it matches the game, variation and baked lighting included; no icon-only color corrections |
 | Icon: Bevel Edges and Subdivide | Not done (the rasterizer draws the bricks as they are) |
-| Icon: principled materials (roughness 0.16), hashed transparency, Cycles | Approximated: diffuse sun with soft shadow-mapped shadows plus world light with ambient occlusion; no highlights or bounced light; transparent bricks sorted and blended |
+| Icon: principled materials (roughness 0.16), hashed transparency, Cycles | Approximated: diffuse sun with soft shadow-mapped shadows plus world light (player models: their baked lighting; cars and rockets: ambient occlusion, `icon_ao`); no highlights or bounced light; transparent bricks sorted and blended |
 | Icon scene BrickBuild / Car: 50 mm lens, camera 53.4 / 19.5 degrees, sun 2.5 at 21 / 50.3, world 0.192, 128 px, framing 1.03, transparent film | Same (`icon_*`, `modular_icon_*`) |
 | Icon scene Rocket: 35 mm lens, other angles, two suns | Not done: rockets use the car camera |
 

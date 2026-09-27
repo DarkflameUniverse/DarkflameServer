@@ -566,6 +566,10 @@ TEST(UgcJobs, MakesLodsStatsAndIcons) {
 	const auto far = NifFile::Parse(outcome.files.at("model.nif"), 1, error);
 	ASSERT_TRUE(far) << error;
 	EXPECT_TRUE(far->nodes.contains("LOD_2"));
+	// The icon is the .nif's LOD 0, drawn with the icon camera and no occlusion of its own
+	auto iconOptions = settings.icon;
+	iconOptions.ao.enabled = false;
+	EXPECT_EQ(outcome.files.at("icon.png"), UgcFormats::EncodePng(UgcRender::RenderIcon(UgcModel::FromNif(*nif), iconOptions)));
 	// The same colors when made again
 	EXPECT_EQ(UgcJobs::ProcessModel(LXFML5, library, settings, 99).files.at("model.nif"), outcome.files.at("model.nif"));
 
