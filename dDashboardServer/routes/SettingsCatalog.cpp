@@ -435,6 +435,8 @@ namespace {
 		c.Add(Unit(Int(SHARED, "capture_flush_bytes", "Or when a batch reaches", "A server sends a batch as soon as it is this large.", "262144", 4096, 4194304), "bytes"));
 		c.Add(Unit(Int(SHARED, "capture_buffer_max_mb", "Keep at most", "Batches a server keeps while master can't take them; past this the oldest are dropped and the capture shows a gap.", "16", 1, 1024), "MB"));
 		c.Add(Format(Text(DASHBOARD, "capture_dir", "Capture files", "Folder for packet capture files, relative to the server binaries. Captures are player data: keep it out of any repository.", "captures"), eFormat::PATH));
+		c.Add(Bool(SHARED, "replay_sandbox", "Replay sandbox", "Set by the capture tool in the sandboxes it makes for replays: the servers then refuse any database but a SQLite file in their own folder. Leave it off on a real server.", false, true));
+		c.Add(Format(Text(SHARED, "replay_live_sqlite_path", "Live database (sandbox)", "Set by the capture tool in replay sandboxes: the real server's SQLite file, which a sandbox refuses to open.", "", true), eFormat::PATH));
 
 		c.AddSection("Economy history");
 		c.Add(Days("economy_detail_days", "Daily detail", "Older daily rows are merged into months.", "180", 31));
