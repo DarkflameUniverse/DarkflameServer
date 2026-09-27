@@ -390,6 +390,9 @@ namespace {
 		c.Add(Days("health_days", "Server health history", "Minute-by-minute player counts and uptime.", "30"));
 		c.Add(Days("traffic_days", "Server traffic history", "Minute-by-minute packets, bytes and HTTP requests of every server (Diagnostics). The last hour at one second is only kept in memory.", "30"));
 
+		c.AddSection("Log bundles", "Server log files downloaded together from the System Log page (Download logs).");
+		c.Add(Unit(Int(DASHBOARD, "log_bundle_max_mb", "At most", "How much log text (before compression) one download may hold. Bundles are built in the system's temporary folder and deleted once sent.", "512", 1, 4000), "MB"));
+
 		c.AddSection("Player movement", "Where players went, for replays on the 3D world view (staff with players_history only).");
 		c.Add(Bool(DASHBOARD, "position_history", "Record player movement", "Keeps a player's position every few seconds while they move, and every 30 seconds while they stand still.", true));
 		c.Add(Unit(Int(DASHBOARD, "position_history_seconds", "Record every", "While a player moves. Less often keeps the table smaller; replays then move in straighter lines.", "5", 1, 600), "seconds"));

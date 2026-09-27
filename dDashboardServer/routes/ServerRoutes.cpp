@@ -24,6 +24,9 @@
 #include "dConfig.h"
 #include "GeneralUtils.h"
 #include "eHTTPMethod.h"
+#include "DashboardRoutes.h"
+#include "LogBundle.h"
+#include "Workers.h"
 
 #ifdef __linux__
 #include <unistd.h>
@@ -123,6 +126,34 @@ namespace {
 		fs::path folder = Game::config->GetValue("dump_folder");
 		if (folder.empty()) return {};
 		return folder.is_absolute() ? folder : BinaryPathFinder::GetBinaryDir() / folder;
+	}
+
+	// Log bundles are built here and deleted once sent (or, where that fails, an hour later)
+	fs::path BundleFolder() {
+		std::error_code ec;
+		auto folder = fs::temp_directory_path(ec);
+		if (ec) folder = BinaryPathFinder::GetBinaryDir();
+		return folder / "darkflame-log-bundles";
+	}
+
+	void ClearOldBundles(const fs::path& folder) {
+		std::error_code ec;
+		const auto cutoff = fs::file_time_type::clock::now() - std::chrono::hours(1);
+		for (const auto& entry : fs::directory_iterator(folder, ec)) {
+			if (entry.is_regular_file(ec) && entry.last_write_time(ec) < cutoff) fs::remove(entry.path(), ec);
+		}
+	}
+
+	std::optional<LogBundle::Filter> BundleFilter(HTTPReply& reply, const HTTPContext& context) {
+		std::string error;
+		auto filter = LogBundle::Filter::FromQuery([&](const std::string& key) { return QueryValue(context.queryString, key); }, error);
+		if (!filter) JsonError(reply, eHTTPStatusCode::BAD_REQUEST, error);
+		return filter;
+	}
+
+	uint64_t BundleMaxBytes() {
+		const auto mb = GeneralUtils::TryParse<uint64_t>(Game::config->GetValue("log_bundle_max_mb")).value_or(512);
+		return std::clamp<uint64_t>(mb, 1, 4000) * 1024 * 1024;
 	}
 
 	bool PlainFileName(const std::string& name) {
@@ -319,6 +350,94 @@ void RegisterServerRoutes() {
 			reply.status = eHTTPStatusCode::OK;
 			reply.contentType = eContentType::APPLICATION_OCTET_STREAM;
 			reply.headers.push_back("Content-Disposition: attachment; filename=\"" + name + "\"");
+		});
+
+	static const std::string bundleQuery = "Query: from, to (Unix seconds; a file matches when the time from its start to its last write overlaps them), "
+		"servers (comma separated: master, auth, chat, dashboard, ugc, world; default all), zones (world zone IDs, comma separated), clone, instance, "
+		"crash=1 (crash dumps too), trim=1 (only lines written between from and to), text= (only lines with it, any case), redact=1 (IP addresses become [ip])";
+
+	Route(eHTTPMethod::GET, "/api/logs/bundle/preview", Perm("logs_system"),
+		"The log files a bundle would hold. " + bundleQuery + ". Returns {files: [{name, server, zone, zone_name, clone, instance, size, started, written, "
+		"crash_dump}] (the first 2000), count, total_size, max_bytes, over_limit (whole files over log_bundle_max_mb), filters_lines}",
+		[](HTTPReply& reply, const HTTPContext& context) {
+			const auto filter = BundleFilter(reply, context);
+			if (!filter) return;
+			const auto files = LogBundle::Select(LogFolder(), DumpFolder(), *filter);
+			const auto& zoneNames = ZoneNames();
+			nlohmann::json list = nlohmann::json::array();
+			uint64_t total = 0;
+			for (const auto& file : files) {
+				total += file.size;
+				if (list.size() >= 2000) continue;
+				nlohmann::json item{ {"name", file.archiveName}, {"server", file.name.server}, {"size", file.size}, {"started", file.started},
+					{"written", file.written}, {"crash_dump", file.crashDump}, {"zone", nullptr}, {"zone_name", nullptr}, {"clone", nullptr}, {"instance", nullptr} };
+				if (file.name.zone) {
+					item["zone"] = *file.name.zone;
+					item["zone_name"] = zoneNames.value(std::to_string(*file.name.zone), "");
+					item["clone"] = *file.name.clone;
+					item["instance"] = *file.name.instance;
+				}
+				list.push_back(std::move(item));
+			}
+			const auto maxBytes = BundleMaxBytes();
+			JsonSuccess(reply, { {"files", list}, {"count", files.size()}, {"total_size", total}, {"max_bytes", maxBytes},
+				{"over_limit", !filter->FiltersLines() && total > maxBytes}, {"filters_lines", filter->FiltersLines()} });
+		});
+
+	Route(eHTTPMethod::GET, "/api/logs/bundle", Perm("logs_system"),
+		"Download log files as one zip file, with a manifest.txt of the filters and files. " + bundleQuery + ". Built in the background and "
+		"streamed; 413 when it would hold more than log_bundle_max_mb (before compression)",
+		[](HTTPReply& reply, const HTTPContext& context) {
+			const auto filter = BundleFilter(reply, context);
+			if (!filter) return;
+			// Everything the worker needs is read here: it must not touch the settings or the database
+			auto files = LogBundle::Select(LogFolder(), DumpFolder(), *filter);
+			const auto maxBytes = BundleMaxBytes();
+			uint64_t total = 0;
+			for (const auto& file : files) total += file.size;
+			if (files.empty()) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No log files match");
+			if (!filter->FiltersLines() && total > maxBytes) {
+				return JsonError(reply, eHTTPStatusCode::PAYLOAD_TOO_LARGE, "These files hold " + LogBundle::SizeText(total) + ", more than the " +
+					LogBundle::SizeText(maxBytes) + " a bundle may (log_bundle_max_mb); pick a shorter date range or fewer servers");
+			}
+			const auto folder = BundleFolder();
+			std::error_code ec;
+			fs::create_directories(folder, ec);
+			ClearOldBundles(folder);
+			static uint64_t counter = 0;
+			const auto now = std::time(nullptr);
+			char stamp[32], made[32];
+			const auto local = *std::localtime(&now);
+			std::strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", &local);
+			std::strftime(made, sizeof(made), "%Y-%m-%d %H:%M:%S", &local);
+			const std::string downloadName = std::string("logs_") + stamp + ".zip";
+			const auto out = folder / ("bundle_" + std::to_string(context.accountId) + "_" + std::to_string(now) + "_" + std::to_string(++counter) + ".zip");
+
+			std::string header = "DarkflameServer log bundle\nServer version: " PROJECT_VERSION "\nMade: " + std::string(made) + " (server time) by " +
+				context.authenticatedUser + "\nFilters: " + filter->ToJson().dump() + "\nSize limit: " + LogBundle::SizeText(maxBytes) + " before compression\n";
+			Audit(context, "download_logs", "Downloaded a log bundle: " + std::to_string(files.size()) + " file(s), " + LogBundle::SizeText(total) +
+				" of logs; filters " + filter->ToJson().dump());
+
+			Workers::Reply(reply, context, false, [out, downloadName, files = std::move(files), filter = *filter, header, maxBytes](HTTPReply& reply) {
+				const auto result = LogBundle::WriteZip(out, files, filter, header, maxBytes);
+				if (!result.ok) {
+					LOG("Log bundle failed: %s", result.error.c_str());
+					return JsonError(reply, result.overLimit ? eHTTPStatusCode::PAYLOAD_TOO_LARGE : eHTTPStatusCode::INTERNAL_SERVER_ERROR, result.error);
+				}
+				if (result.files == 0) {
+					std::error_code ec;
+					fs::remove(out, ec);
+					return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No lines match these filters");
+				}
+				LOG("Log bundle %s: %zu file(s), %s of logs, %s zipped", downloadName.c_str(), result.files, LogBundle::SizeText(result.bytesIn).c_str(),
+					LogBundle::SizeText(result.archiveSize).c_str());
+				reply.file = out.string();
+				reply.removeFile = true;
+				reply.message.clear();
+				reply.status = eHTTPStatusCode::OK;
+				reply.contentType = eContentType::APPLICATION_OCTET_STREAM;
+				reply.headers.push_back("Content-Disposition: attachment; filename=\"" + downloadName + "\"");
+			}, WorkerPool::ePriority::LARGE);
 		});
 
 	Route(eHTTPMethod::GET, "/api/logs/search", Perm("logs_system"),

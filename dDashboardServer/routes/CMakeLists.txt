@@ -28,6 +28,7 @@ set(DASHBOARDROUTES_SOURCES
 	"MissionTools.cpp"
 	"CharacterProgress.cpp"
 	"ServerRoutes.cpp"
+	"LogBundle.cpp"
 	"Traffic.cpp"
 	"TrafficHistory.cpp"
 	"LeaderboardRoutes.cpp"

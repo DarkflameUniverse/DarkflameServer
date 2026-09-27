@@ -41,6 +41,8 @@ set(DWEBTESTS_SOURCES
 	"OnceCacheTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/WorkerPool.cpp"
 	"BackupFilesTests.cpp"
+	"LogBundleTests.cpp"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/LogBundle.cpp"
 	"SecurityFixesTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/BackupFiles.cpp"
 	"MetricsFormatTests.cpp"
