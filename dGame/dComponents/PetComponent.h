@@ -232,7 +232,7 @@ public:
 private:
 
 	/**
-	 * Sets the object the pet goes to use its ability on (a dig), or none. The pet first goes to it; once it is there
+	 * Sets the object the pet goes to use its ability on (a pet switch or a dig), or none. The pet first goes to it; once it is there
 	 * its owner gets the pet's action button, which uses the ability.
 	 * @param object the object, nullptr for none
 	 * @param ability the ability the object is for
@@ -399,7 +399,7 @@ private:
 	bool m_Despawning{ false };
 
 	/**
-	 * The object the pet goes to use its ability on (a dig), if any. Live did not serialize it as the interaction.
+	 * The object the pet goes to use its ability on (a pet switch or a dig), if any. Live did not serialize it as the interaction.
 	 */
 	LWOOBJID m_AbilityObject{ LWOOBJID_EMPTY };
 

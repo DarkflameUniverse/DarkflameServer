@@ -80,7 +80,8 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 
 		if (m_PetBouncer != nullptr) {
 			GameMessages::PlayFXEffect(m_Parent->GetObjectID(), 2602, u"pettriggeractive", "BounceEffect").Send(UNASSIGNED_SYSTEM_ADDRESS);
-			RenderComponent::PlayAnimation(m_Parent, u"engaged");
+			// Live played "launch" here; "engaged" is played when a pet arrives on the switch
+			RenderComponent::PlayAnimation(m_Parent, u"launch");
 			m_PetBouncer->SetPetBouncerEnabled(true);
 		} else {
 			Game::entityManager->SerializeEntity(m_Parent);

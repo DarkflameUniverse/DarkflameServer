@@ -367,18 +367,21 @@ void PetComponent::Update(float deltaTime) {
 
 	float haltDistance = 5;
 
-	if (closestSwitch != nullptr) {
-		if (!closestSwitch->GetActive()) {
-			NiPoint3 switchPosition = closestSwitch->GetParentEntity()->GetPosition();
-			float distance = Vector3::DistanceSquared(position, switchPosition);
-			if (distance < 3 * 3) {
-				m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
-				closestSwitch->OnUse(m_Parent);
-			} else if (distance < 20 * 20) {
-				haltDistance = 1;
+	Entity* abilityObject = nullptr;
+	auto objectAbility = ePetAbilityType::Invalid;
+	bool atAbilityObject = false;
 
-				destination = switchPosition;
-			}
+	if (closestSwitch != nullptr && !closestSwitch->GetActive()) {
+		NiPoint3 switchPosition = closestSwitch->GetParentEntity()->GetPosition();
+		float distance = Vector3::DistanceSquared(position, switchPosition);
+		if (distance < 20 * 20) {
+			abilityObject = closestSwitch->GetParentEntity();
+			objectAbility = ePetAbilityType::JumpOnObject;
+			atAbilityObject = distance < 3 * 3;
+
+			haltDistance = 1;
+
+			destination = switchPosition;
 		}
 	}
 
@@ -389,10 +392,6 @@ void PetComponent::Update(float deltaTime) {
 	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
 
 	Entity* closestTreasure = PetDigServer::GetClosestTreasure(position);
-
-	Entity* abilityObject = nullptr;
-	auto objectAbility = ePetAbilityType::Invalid;
-	bool atAbilityObject = false;
 
 	// Skeleton Dragon Pat special case for bone digging
 	if (closestTreasure != nullptr && digUnlocked && (closestTreasure->GetLOT() != 12192 || m_Parent->GetLOT() == 13067)) {
@@ -1190,6 +1189,7 @@ void PetComponent::SetAbilityObject(Entity* object, const ePetAbilityType abilit
 		Game::entityManager->SerializeEntity(m_Parent);
 
 		if (ability == ePetAbilityType::DigAtPosition) SendHelp(eHelpType::PR_DIG_TUTORIAL_01);
+		else if (ability == ePetAbilityType::JumpOnObject) SendHelp(eHelpType::PR_BOUNCER_TUTORIAL_01);
 	}
 
 	if (!atObject || m_AbilityButtonShown) return;
@@ -1197,6 +1197,13 @@ void PetComponent::SetAbilityObject(Entity* object, const ePetAbilityType abilit
 	m_Ability = ability;
 	SetStatus(status | PET_STATE_USING_ABILITY | PET_STATE_AT_ABILITY_OBJECT);
 	Game::entityManager->SerializeEntity(m_Parent);
+
+	if (ability == ePetAbilityType::JumpOnObject) {
+		// On the pet switch, as live did: the pet gets excited and the switch engages
+		RenderComponent::PlayAnimation(m_Parent, u"excited");
+		RenderComponent::PlayAnimation(object, u"engaged");
+		SendHelp(eHelpType::PR_BOUNCER_TUTORIAL_03);
+	}
 
 	auto* const owner = GetOwner();
 	if (!owner) return;
@@ -1238,6 +1245,18 @@ void PetComponent::UseAbility() {
 		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
 
 		m_TreasureTime = 2;
+	} else if (ability == ePetAbilityType::JumpOnObject) {
+		// The pet jumps on the switch, which turns its bouncer on; the pet is done with the switch then
+		m_Ability = ePetAbilityType::Invalid;
+		m_AbilityObject = LWOOBJID_EMPTY;
+		SetStatus(m_Status & ~(PET_STATE_AT_ABILITY_OBJECT | PET_STATE_USING_ABILITY | PET_STATE_GOING_TO_ABILITY_OBJECT));
+		Game::entityManager->SerializeEntity(m_Parent);
+
+		RenderComponent::PlayAnimation(m_Parent, u"jump");
+		SendHelp(eHelpType::PR_TOOLTIP_1ST_PET_JUMPED_ON_SWITCH);
+
+		auto* const switchComponent = object->GetComponent<SwitchComponent>();
+		if (switchComponent) switchComponent->OnUse(m_Parent);
 	}
 }
 
