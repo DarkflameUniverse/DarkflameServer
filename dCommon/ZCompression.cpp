@@ -1,5 +1,7 @@
 #include "ZCompression.h"
 
+#include <algorithm>
+
 #include "zlib.h"
 
 namespace ZCompression {
@@ -96,5 +98,61 @@ namespace ZCompression {
 		auto out = Inflate(data, -15, size);
 		if (!out || out->size() != size) return std::nullopt;
 		return out;
+	}
+
+	uint32_t Crc32(uint32_t crc, std::string_view data) {
+		while (!data.empty()) {
+			const auto piece = static_cast<uInt>(std::min<size_t>(data.size(), 1u << 30));
+			crc = static_cast<uint32_t>(crc32(crc, reinterpret_cast<const Bytef*>(data.data()), piece));
+			data.remove_prefix(piece);
+		}
+		return crc;
+	}
+
+	struct RawDeflater::State {
+		z_stream stream{};
+		bool ok{};
+	};
+
+	RawDeflater::RawDeflater(Sink sink, int level) : m_State(std::make_unique<State>()), m_Sink(std::move(sink)) {
+		m_State->ok = deflateInit2(&m_State->stream, level, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) == Z_OK;
+	}
+
+	RawDeflater::~RawDeflater() {
+		deflateEnd(&m_State->stream);
+	}
+
+	bool RawDeflater::Run(std::string_view data, int flush) {
+		if (!m_State->ok) return false;
+		auto& stream = m_State->stream;
+		stream.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
+		stream.avail_in = static_cast<uInt>(data.size());
+		char buffer[64 * 1024];
+		int result = Z_OK;
+		do {
+			stream.next_out = reinterpret_cast<Bytef*>(buffer);
+			stream.avail_out = sizeof(buffer);
+			result = deflate(&stream, flush);
+			if (result == Z_STREAM_ERROR) return m_State->ok = false;
+			const size_t made = sizeof(buffer) - stream.avail_out;
+			m_Out += made;
+			if (made && !m_Sink(std::string_view(buffer, made))) return m_State->ok = false;
+		} while (stream.avail_out == 0 || (flush == Z_FINISH && result != Z_STREAM_END));
+		return true;
+	}
+
+	bool RawDeflater::Write(std::string_view data) {
+		m_In += data.size();
+		while (data.size() > (1u << 30)) {
+			if (!Run(data.substr(0, 1u << 30), Z_NO_FLUSH)) return false;
+			data.remove_prefix(1u << 30);
+		}
+		return Run(data, Z_NO_FLUSH);
+	}
+
+	bool RawDeflater::Finish() {
+		const bool ok = Run({}, Z_FINISH);
+		m_State->ok = false;
+		return ok;
 	}
 }
