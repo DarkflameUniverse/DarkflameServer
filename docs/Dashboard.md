@@ -659,6 +659,15 @@ Everything that changes a character (the editor, restoring an old version, uploa
 player if they're online, saves a snapshot of the character as it was, then writes the change and notes it in the
 audit log. Nothing is ever changed under a player who is still in game.
 
+Every character also has a save generation (`charxml.save_generation`), so an older copy of it can never be saved over
+a newer one. It goes up when a world loads the character for play, on every save from that world and on every change
+made here. A world only saves over the generation it loaded or last saved itself; anything else means someone newer
+(another world, or the dashboard) saved the character since, so the save is refused and the newer data kept. That
+covers a world that noticed a disconnect late after the player moved on, and a world still holding a character that
+was edited here. A refused save is logged by the world and written to the audit log as `stale_save_refused` (so it
+shows under the account's related data); that world saves nothing more for the character, and a player still
+connected to it is disconnected (the client's save failure message) so they load the newer data.
+
 - **Edit** (GM 8+, `characters_edit`): coins, U-score, level, and adding or removing items.
 - **History** (GM 3+, `characters_history`): earlier versions of the character. Each one shows what differs from
   now, can be downloaded as XML, and (with `characters_edit`) restored. The `character_snapshots` task saves every

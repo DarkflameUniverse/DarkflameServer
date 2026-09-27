@@ -11,7 +11,25 @@ std::string SQLiteDatabase::GetCharacterXml(const LWOOBJID charId) {
 }
 
 void SQLiteDatabase::UpdateCharacterXml(const LWOOBJID charId, const std::string_view lxfml) {
-	ExecuteUpdate("UPDATE charxml SET xml_data = ? WHERE id = ?;", lxfml, charId);
+	ExecuteUpdate("UPDATE charxml SET xml_data = ?, save_generation = save_generation + 1 WHERE id = ?;", lxfml, charId);
+}
+
+std::optional<ICharXml::CharacterXml> SQLiteDatabase::ClaimCharacterXml(const LWOOBJID charId) {
+	ExecuteUpdate("UPDATE charxml SET save_generation = save_generation + 1 WHERE id = ?;", charId);
+	// Read both from one row, so a write in between still leaves a matching pair
+	auto [_, result] = ExecuteSelect("SELECT xml_data, save_generation FROM charxml WHERE id = ? LIMIT 1;", charId);
+	if (result.eof()) return std::nullopt;
+	return CharacterXml{ result.getStringField("xml_data"), static_cast<uint64_t>(result.getInt64Field("save_generation")) };
+}
+
+bool SQLiteDatabase::SaveCharacterXml(const LWOOBJID charId, const std::string_view lxfml, const uint64_t generation) {
+	return ExecuteUpdate("UPDATE charxml SET xml_data = ?, save_generation = ? WHERE id = ? AND save_generation = ?;",
+		lxfml, static_cast<int64_t>(generation + 1), charId, static_cast<int64_t>(generation)) > 0;
+}
+
+uint64_t SQLiteDatabase::GetCharacterSaveGeneration(const LWOOBJID charId) {
+	auto [_, result] = ExecuteSelect("SELECT save_generation FROM charxml WHERE id = ? LIMIT 1;", charId);
+	return result.eof() ? 0 : static_cast<uint64_t>(result.getInt64Field("save_generation"));
 }
 
 void SQLiteDatabase::InsertCharacterXml(const LWOOBJID characterId, const std::string_view lxfml) {

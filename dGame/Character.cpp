@@ -26,6 +26,7 @@
 #include "ePlayerFlag.h"
 #include "CDPlayerFlagsTable.h"
 #include "EconomyLedger.h"
+#include "eServerDisconnectIdentifiers.h"
 
 Character::Character(LWOOBJID id, User* parentUser) {
 	//First load the name, etc:
@@ -52,8 +53,11 @@ void Character::UpdateInfoFromDatabase() {
 		m_PermissionMap = charInfo->permissionMap;
 	}
 
-	//Load the xmlData now:
-	m_XMLData = Database::Get()->GetCharacterXml(m_ID);
+	// Load the xmlData now. Loading takes the character over: saves from any server that loaded it before are refused.
+	auto saved = Database::Get()->ClaimCharacterXml(m_ID);
+	m_XMLData = saved ? std::move(saved->xml) : "";
+	m_SaveGeneration = saved ? saved->generation : 0;
+	m_SaveRefused = false;
 	if (m_XMLData.empty()) {
 		LOG("Character %s (%llu) has no xml data!", m_Name.c_str(), m_ID);
 		return;
@@ -365,8 +369,34 @@ void Character::WriteToDatabase() {
 	m_XMLData = printer.CStr();
 
 	//Finally, save to db:
-	Database::Get()->UpdateCharacterXml(m_ID, m_XMLData);
+	if (m_SaveRefused) {
+		LOG("Not saving character %llu:%s: newer data was saved elsewhere since it was loaded here", m_ID, m_Name.c_str());
+		return;
+	}
+	if (!Database::Get()->SaveCharacterXml(m_ID, m_XMLData, m_SaveGeneration)) {
+		OnStaleSave();
+		return;
+	}
+	m_SaveGeneration++;
 	DashboardNotify::Changed("characters", m_ID);
+}
+
+void Character::OnStaleSave() {
+	m_SaveRefused = true;
+	const auto stored = Database::Get()->GetCharacterSaveGeneration(m_ID);
+	LOG("Refused a stale save of character %llu:%s: this server has save generation %llu, the database %llu (another world "
+		"or the dashboard saved it since). The newer data is kept.", m_ID, m_Name.c_str(), m_SaveGeneration, stored);
+	const auto accountId = m_ParentUser ? m_ParentUser->GetAccountID() : 0;
+	const auto zone = Game::server ? Game::server->GetZoneID() : 0;
+	const auto instance = Game::server ? Game::server->GetInstanceID() : 0;
+	Database::Get()->InsertAuditLog(0, "World server", "stale_save_refused",
+		m_Name + ": a save from zone " + std::to_string(zone) + " instance " + std::to_string(instance) + " (generation " + std::to_string(m_SaveGeneration) +
+		") was refused because a newer one (generation " + std::to_string(stored) + ") is stored; the newer data was kept", accountId, m_ID);
+	// If the player is still connected here, what they do next would be lost too: send them out so they load the
+	// newer data. The disconnect is handled later, like any other.
+	if (m_ParentUser && Game::server && Game::server->IsConnected(m_ParentUser->GetSystemAddress())) {
+		Game::server->Disconnect(m_ParentUser->GetSystemAddress(), eServerDisconnectIdentifiers::SAVE_FAILURE);
+	}
 }
 
 void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {

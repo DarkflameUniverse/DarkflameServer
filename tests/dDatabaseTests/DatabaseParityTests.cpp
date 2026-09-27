@@ -548,6 +548,29 @@ TEST_F(ParitySeeded, Characters) {
 	}
 	Both("GetCharacterXml", [](GameDatabase& db) { return db.GetCharacterXml(CHAR_BOB); });
 	Both("UpdateCharacterXml", [](GameDatabase& db) { db.UpdateCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"1\"/></obj>"); return db.GetCharacterXml(CHAR_GM); });
+	// Stale save guard: a world loads (claims), saves, then loses the character to another world or the dashboard
+	const auto claim = Both("ClaimCharacterXml", [](GameDatabase& db) {
+		const auto before = db.GetCharacterSaveGeneration(CHAR_GM);
+		const auto claimed = db.ClaimCharacterXml(CHAR_GM);
+		return json{ claimed.has_value(), claimed ? claimed->xml : "", claimed ? claimed->generation - before : 0, db.ClaimCharacterXml(42).has_value() };
+	});
+	EXPECT_EQ(claim, json({ true, "<obj v=\"1\"><char cc=\"1\"/></obj>", 1, false }));
+	const auto saves = Both("SaveCharacterXml", [](GameDatabase& db) {
+		const auto first = db.ClaimCharacterXml(CHAR_GM)->generation;
+		const bool saved = db.SaveCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"2\"/></obj>", first);
+		// Same content again from the new generation: still counted as saved (the generation always changes)
+		const bool savedAgain = db.SaveCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"2\"/></obj>", first + 1);
+		// Another world takes the character over; the first world's next save is stale
+		const auto second = db.ClaimCharacterXml(CHAR_GM)->generation;
+		const bool stale = db.SaveCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"999\"/></obj>", first + 2);
+		const bool fresh = db.SaveCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"3\"/></obj>", second);
+		// A dashboard edit bumps it too
+		db.UpdateCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"4\"/></obj>");
+		const bool afterEdit = db.SaveCharacterXml(CHAR_GM, "<obj v=\"1\"><char cc=\"998\"/></obj>", second + 1);
+		return json{ saved, savedAgain, stale, fresh, afterEdit, second - first, db.GetCharacterSaveGeneration(CHAR_GM) - first, db.GetCharacterXml(CHAR_GM),
+			db.SaveCharacterXml(42, "<obj/>", 0), db.GetCharacterSaveGeneration(42) };
+	});
+	EXPECT_EQ(saves, json({ true, true, false, true, false, 3, 5, "<obj v=\"1\"><char cc=\"4\"/></obj>", false, 0 }));
 	Both("GetDashboardSnapshot", [](GameDatabase& db) { return db.GetDashboardSnapshot(); });
 }
 

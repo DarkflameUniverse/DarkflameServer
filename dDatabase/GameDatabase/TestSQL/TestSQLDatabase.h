@@ -38,6 +38,9 @@ class TestSQLDatabase : public GameDatabase {
 	std::optional<IAccounts::Info> GetAccountInfo(const std::string_view username) override;
 	void InsertNewCharacter(const ICharInfo::Info info) override;
 	void InsertCharacterXml(const LWOOBJID accountId, const std::string_view lxfml) override;
+	std::optional<ICharXml::CharacterXml> ClaimCharacterXml(const LWOOBJID charId) override { return std::nullopt; };
+	bool SaveCharacterXml(const LWOOBJID charId, const std::string_view lxfml, const uint64_t generation) override { return true; };
+	uint64_t GetCharacterSaveGeneration(const LWOOBJID charId) override { return 0; };
 	std::vector<LWOOBJID> GetAccountCharacterIds(LWOOBJID accountId) override;
 	void DeleteCharacter(const LWOOBJID characterId) override;
 	void SetCharacterName(const LWOOBJID characterId, const std::string_view name) override;

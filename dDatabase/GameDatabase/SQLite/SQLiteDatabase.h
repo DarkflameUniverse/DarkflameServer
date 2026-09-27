@@ -59,6 +59,9 @@ public:
 	std::optional<IAccounts::Info> GetAccountInfo(const std::string_view username) override;
 	void InsertNewCharacter(const ICharInfo::Info info) override;
 	void InsertCharacterXml(const LWOOBJID accountId, const std::string_view lxfml) override;
+	std::optional<ICharXml::CharacterXml> ClaimCharacterXml(const LWOOBJID charId) override;
+	bool SaveCharacterXml(const LWOOBJID charId, const std::string_view lxfml, const uint64_t generation) override;
+	uint64_t GetCharacterSaveGeneration(const LWOOBJID charId) override;
 	std::string GetCharactersTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override;
 	std::vector<LWOOBJID> GetAccountCharacterIds(LWOOBJID accountId) override;
 	void DeleteCharacter(const LWOOBJID characterId) override;

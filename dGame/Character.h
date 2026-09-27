@@ -31,12 +31,23 @@ public:
 	 */
 	void WriteToDatabase();
 	void SaveXMLToDatabase();
+
+	/**
+	 * A save was refused by the stale save guard: log and audit it, save nothing more from here and send the player
+	 * out if they are still connected here, so they load the newer data.
+	 */
+	void OnStaleSave();
 	void UpdateFromDatabase();
 
 	void SaveXmlRespawnCheckpoints();
 	void LoadXmlRespawnCheckpoints();
 
 	const std::string& GetXMLData() const { return m_XMLData; }
+
+	// The stale save guard's generation (see ICharXml::CharacterXml) and whether a save was refused because of it
+	uint64_t GetSaveGeneration() const { return m_SaveGeneration; }
+	void SetSaveGeneration(uint64_t generation) { m_SaveGeneration = generation; m_SaveRefused = false; }
+	bool IsSaveRefused() const { return m_SaveRefused; }
 	const tinyxml2::XMLDocument& GetXMLDoc() const { return m_Doc; }
 	void _setXmlDoc(tinyxml2::XMLDocument& doc) { doc.DeepCopy(&m_Doc); }
 
@@ -614,6 +625,18 @@ private:
 	 * The XML data for this character, stored as string
 	 */
 	std::string m_XMLData;
+
+	/**
+	 * The save generation this server loaded or last saved (see ICharXml::CharacterXml). Saves only go through while
+	 * the database still has it.
+	 */
+	uint64_t m_SaveGeneration{};
+
+	/**
+	 * A save was refused because someone newer (another world or the dashboard) saved this character since it was
+	 * loaded here: no more saves from this server.
+	 */
+	bool m_SaveRefused{};
 
 	/**
 	 * The last zone visited by the character that was not an instance zone
