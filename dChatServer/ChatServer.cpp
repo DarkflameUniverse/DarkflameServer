@@ -7,6 +7,7 @@
 #include "Profiler.h"
 #include <optional>
 #include "dCommonVars.h"
+#include "PacketCapture.h"
 #include "ConfigSync.h"
 #include "dServer.h"
 #include "Logger.h"
@@ -181,6 +182,7 @@ int main(int argc, char** argv) {
 			Game::server->DeallocateMasterPacket(masterPacket);
 		}
 		masterScope.reset();
+		PacketCapture::Update();
 		packet = Game::server->Receive();
 		if (packet) {
 			Profiler::PacketScope scope(packet->data, packet->length);

@@ -1,5 +1,6 @@
 #include "Profiler.h"
 #include "master/PlayerAction.h"
+#include "PacketCapture.h"
 #include "master/DashboardMessages.h"
 #include <chrono>
 #include <cstdlib>
@@ -559,10 +560,18 @@ int main(int argc, char** argv) {
 	constexpr uint32_t spareCheckTime = 10 * masterFramerate;
 	uint32_t framesSinceSpareCheck = 0;
 
+	// Master's own packet captures go straight to the dashboard
+	PacketCapture::SetSink([](MessageCaptureData& data) {
+		if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) return false;
+		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, data);
+		return true;
+	});
+
 	Game::logger->Flush();
 	while (!Game::ShouldShutdown()) {
 		Profiler::BeginFrame();
 		//In world we'd update our other systems here.
+		PacketCapture::Update();
 
 		//Check for packets here:
 		packet = Game::server->Receive();
@@ -747,6 +756,8 @@ namespace {
 		case ServiceType::DASHBOARD:
 			dashboardServerMasterPeerSysAddr = sysAddr;
 			g_DashboardConnects++;
+			// Its traffic isn't a player's; packet captures leave it out
+			PacketCapture::IgnorePeer(sysAddr);
 			break;
 		case ServiceType::UGC:
 			ugcServerMasterPeerSysAddr = sysAddr;
@@ -1129,6 +1140,20 @@ namespace {
 		for (const auto& instance : Game::im->GetInstances()) {
 			if (instance && instance->GetIsReady() && !instance->GetIsShuttingDown()) MasterPackets::SendTo(instance->GetSysAddr(), control);
 		}
+		// Packet captures (ARM, DISARM) run on every server, master included
+		if (control.action == eMessageCaptureControl::ARM || control.action == eMessageCaptureControl::DISARM) {
+			for (const auto& peer : { authServerMasterPeerSysAddr, chatServerMasterPeerSysAddr }) {
+				if (peer != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(peer, control);
+			}
+			PacketCapture::Control(control);
+		}
+	}
+
+	// Captured messages and packets: from worlds, and (packet captures) from auth and chat
+	void OnMessageCaptureData(const MessageCaptureData& data, const SystemAddress& sysAddr) {
+		if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) return;
+		const bool known = Game::im->GetInstanceBySysAddr(sysAddr) || sysAddr == authServerMasterPeerSysAddr || sysAddr == chatServerMasterPeerSysAddr;
+		if (known) MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, data);
 	}
 
 	void OnRequestServerList(const RequestServerList& request, const SystemAddress& sysAddr) {
@@ -1168,7 +1193,7 @@ namespace {
 			// Only world servers report game writes; pass them on unchanged
 			handlers.On<DataChanged>(Master::DATA_CHANGED, ForwardWorldToDashboard<DataChanged>);
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);
-			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, ForwardWorldToDashboard<MessageCaptureData>);
+			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, OnMessageCaptureData);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
 			handlers.On<ProfileRequest>(Master::PROFILE_REQUEST, OnProfileRequest);

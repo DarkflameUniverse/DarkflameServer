@@ -15,6 +15,8 @@
 #include "CommonPackets.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
+#include "PacketCapture.h"
+#include "master/MessageCapture.h"
 #include "StringifiedEnum.h"
 #include "GeneralUtils.h"
 #include "TrafficStats.h"
@@ -134,6 +136,9 @@ dServer::dServer(
 		mPeer->AttachPlugin(mReplicaManager);
 		mPeer->SetNetworkIDManager(mNetIDManager);
 	}
+
+	// The dashboard's packet capture records what goes through the listening peer and, for a captured player, the master link
+	PacketCapture::Attach(serverType, mPeer, mMasterPeer, zoneID, static_cast<uint32_t>(instanceID));
 }
 
 dServer::~dServer() {
@@ -148,6 +153,7 @@ Packet* dServer::ReceiveFromMaster() {
 	CountTraffic(packet, TrafficStats::Peer::MASTER);
 	if (packet) {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
+		PacketCapture::OnReceiveFromMaster(packet);
 
 		switch (packet->data[0]) {
 		case ID_DISCONNECTION_NOTIFICATION:
@@ -201,6 +207,15 @@ Packet* dServer::ReceiveFromMaster() {
 					break;
 				}
 
+				case MessageType::Master::MESSAGE_CAPTURE_CONTROL: {
+					// Packet captures run on every server; the game message inspector's start and stop go to the world's own handler
+					MessageCaptureControl control;
+					if (!control.Deserialize(inStream)) break;
+					if (control.action != eMessageCaptureControl::ARM && control.action != eMessageCaptureControl::DISARM) return packet;
+					PacketCapture::Control(control);
+					break;
+				}
+
 				// When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
 					return packet;
@@ -219,6 +234,7 @@ Packet* dServer::ReceiveFromMaster() {
 Packet* dServer::Receive() {
 	Packet* packet = mPeer->Receive();
 	CountTraffic(packet, PeerOfConnections());
+	PacketCapture::OnReceive(packet);
 	return packet;
 }
 
@@ -297,6 +313,7 @@ void dServer::UpdateBandwidthLimit() {
 }
 
 void dServer::Shutdown() {
+	PacketCapture::Detach();
 	if (mPeer) {
 		mPeer->Shutdown(1000);
 		RakNetworkFactory::DestroyRakPeerInterface(mPeer);

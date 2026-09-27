@@ -8,6 +8,7 @@
 //DLU Includes:
 #include "Profiler.h"
 #include "dCommonVars.h"
+#include "PacketCapture.h"
 #include "ConfigSync.h"
 #include "dServer.h"
 #include "Logger.h"
@@ -136,6 +137,7 @@ int main(int argc, char** argv) {
 			Profiler::Scope scope("Master packets", Profiler::Phase::PACKETS);
 			Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
 		}
+		PacketCapture::Update();
 		packet = Game::server->Receive();
 		if (packet) {
 			Profiler::PacketScope scope(packet->data, packet->length);

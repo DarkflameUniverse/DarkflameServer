@@ -1,6 +1,7 @@
 #include "DashboardActions.h"
 #include "Profiler.h"
 #include <optional>
+#include "PacketCapture.h"
 #include "ConfigSync.h"
 #include "EconomyLedger.h"
 #include "DashboardNotify.h"
@@ -391,6 +392,7 @@ int main(int argc, char** argv) {
 			dpWorld::Initialize(zoneID);
 		}
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, g_InstanceID, cloneID));
+		PacketCapture::SetClone(cloneID);
 		g_CloneID = cloneID;
 	} else {
 		Game::entityManager->Initialize();
@@ -560,6 +562,8 @@ int main(int argc, char** argv) {
 		if (zoneID == 0 && deltaTime > 0.0f) WorldMigration::Update(deltaTime);
 
 		Metrics::StartMeasurement(MetricVariable::PacketHandling);
+
+		PacketCapture::Update();
 
 		//Check for packets here:
 		std::optional<Profiler::Scope> packetScope;

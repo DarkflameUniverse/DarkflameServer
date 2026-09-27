@@ -165,6 +165,7 @@ namespace MessageInspector {
 	bool g_Capturing = false;
 
 	void Control(const MessageCaptureControl& control) {
+		if (control.action != eMessageCaptureControl::START && control.action != eMessageCaptureControl::STOP) return;
 		const auto existing = std::ranges::find_if(g_Captures, [&](const Capture& c) { return c.control.captureId == control.captureId; });
 		if (control.action == eMessageCaptureControl::STOP) {
 			if (existing != g_Captures.end()) End(existing - g_Captures.begin(), eMessageCaptureEnd::STOPPED);

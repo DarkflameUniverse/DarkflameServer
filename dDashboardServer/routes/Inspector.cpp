@@ -12,6 +12,8 @@
 #include "DashboardRoutes.h"
 #include "Game.h"
 #include "InspectorFormat.h"
+#include "CaptureReplay.h"
+#include <filesystem>
 #include "Logger.h"
 #include "master/MessageCapture.h"
 #include "MessageType/Master.h"
@@ -152,7 +154,9 @@ namespace {
 			{"toClient", session.toClient},
 			{"only", InspectorFormat::MessageNames(InspectorFormat::ParseIds(session.onlyMessages))},
 			{"skip", InspectorFormat::MessageNames(InspectorFormat::ParseIds(session.skipMessages))},
-			{"lastSeq", session.messageCount}
+			{"lastSeq", session.messageCount},
+			{"kind", session.kind},
+			{"target", session.target}
 		};
 	}
 
@@ -263,6 +267,7 @@ namespace {
 	}
 
 	const char* StateOf(const Session& session) {
+		if (session.kind == 1) return CaptureReplay::IsRunning(session.id) ? "capturing" : "ended";
 		const auto* capture = Live(session.id);
 		return capture ? StateName(capture->state) : "ended";
 	}
@@ -278,7 +283,8 @@ namespace {
 		const auto maxMb = Setting("inspector_max_mb", DEFAULT_MAX_MB);
 		run->Log("inspector_session_days = " + (days > 0 ? std::to_string(days) : "0 (no age limit)"));
 		run->Log("inspector_max_mb = " + (maxMb > 0 ? std::to_string(maxMb) : "0 (no size limit)"));
-		const bool queued = Background::Run("message_capture_pruning", [days, maxMb](GameDatabase& db) -> nlohmann::json {
+		const auto folder = CaptureReplay::Folder();
+		const bool queued = Background::Run("message_capture_pruning", [days, maxMb, folder](GameDatabase& db) -> nlohmann::json {
 			std::vector<InspectorFormat::StoredSession> stored;
 			uint64_t total = 0;
 			for (uint32_t offset = 0;; offset += 1000) {
@@ -295,6 +301,9 @@ namespace {
 				const auto it = std::ranges::find(stored, id, &InspectorFormat::StoredSession::id);
 				if (it != stored.end()) freed += it->bytes;
 				db.DeleteMessageCaptureSession(id);
+				// A packet capture's packets are in its file (nothing there for a game message capture)
+				std::error_code ec;
+				std::filesystem::remove(folder / (std::to_string(id) + ".bundle"), ec);
 			}
 			return { {"sessions", stored.size()}, {"deleted", expired.size()}, {"total", total}, {"freed", freed} };
 		}, [run](nlohmann::json result, const std::string& error) {
@@ -360,6 +369,7 @@ namespace Inspector {
 			LOG("Couldn't read unfinished message captures: %s", e.what());
 		}
 		for (auto& session : unfinished) {
+			if (session.kind != 0) continue; // packet captures: CaptureReplay
 			const bool taken = std::ranges::any_of(g_Captures, [&](const auto& entry) { return entry.second.session.characterId == session.characterId; });
 			if (session.endsAt > now && session.id <= UINT32_MAX && g_Captures.size() < MAX_RUNNING && !taken) {
 				Capture capture;
@@ -659,7 +669,12 @@ namespace Inspector {
 				if (const auto* capture = Live(session->id); capture && capture->state != eState::ENDED) {
 					return JsonError(reply, eHTTPStatusCode::CONFLICT, "Stop the capture before deleting it");
 				}
+				if (session->kind == 1 && CaptureReplay::IsRunning(session->id)) return JsonError(reply, eHTTPStatusCode::CONFLICT, "Stop the capture before deleting it");
 				Database::Get()->DeleteMessageCaptureSession(session->id);
+				if (session->kind == 1) {
+					std::error_code ec;
+					std::filesystem::remove(CaptureReplay::FileOf(session->id), ec);
+				}
 				g_Captures.erase(static_cast<uint32_t>(session->id));
 				const auto reason = body->value("reason", std::string{});
 				Audit(context, "delete_message_capture", "Deleted the saved game messages of " + Describe(*session) + (reason.empty() ? "" : ": " + reason),

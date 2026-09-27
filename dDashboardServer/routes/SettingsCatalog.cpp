@@ -429,6 +429,13 @@ namespace {
 		c.Add(Days("inspector_session_days", "Keep captures for", "0: no age limit.", "30"));
 		c.Add(Unit(Int(DASHBOARD, "inspector_max_mb", "At most", "When all saved captures together take more, the oldest are deleted. A busy 15 minute capture can take 50 MB. 0: no size limit.", "1024", 0, 1000000), "MB"));
 
+		c.AddSection("Packet capture", "How servers record packets for the dashboard's packet captures (docs/CaptureReplay.md). Nothing is written to disk per packet: "
+			"each server buffers records in memory and sends a batch when either limit below is reached; the dashboard writes one batch at a time to the capture's file.");
+		c.Add(Unit(Int(SHARED, "capture_flush_interval_ms", "Send at least every", "A server sends what it recorded this often, even when the batch is small.", "1000", 50, 60000), "ms"));
+		c.Add(Unit(Int(SHARED, "capture_flush_bytes", "Or when a batch reaches", "A server sends a batch as soon as it is this large.", "262144", 4096, 4194304), "bytes"));
+		c.Add(Unit(Int(SHARED, "capture_buffer_max_mb", "Keep at most", "Batches a server keeps while master can't take them; past this the oldest are dropped and the capture shows a gap.", "16", 1, 1024), "MB"));
+		c.Add(Format(Text(DASHBOARD, "capture_dir", "Capture files", "Folder for packet capture files, relative to the server binaries. Captures are player data: keep it out of any repository.", "captures"), eFormat::PATH));
+
 		c.AddSection("Economy history");
 		c.Add(Days("economy_detail_days", "Daily detail", "Older daily rows are merged into months.", "180", 31));
 		c.Add(Days("economy_map_days", "Map detail", "", "90", 31));

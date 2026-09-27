@@ -76,6 +76,7 @@
 #include "Inspector.h"
 #include "CDClientBrowser.h"
 #include "master/MessageCapture.h"
+#include "CaptureReplay.h"
 #include "PublicRoutes.h"
 #include "Showcase.h"
 #include "ContrabandRoutes.h"
@@ -341,7 +342,10 @@ namespace {
 			handlers.On<MasterPackets::PlayerAdded>(Master::PLAYER_ADDED, OnPlayerAdded);
 			handlers.On<MasterPackets::PlayerRemoved>(Master::PLAYER_REMOVED, OnPlayerRemoved);
 			handlers.On<PlayerPositions>(Master::PLAYER_POSITIONS, [](const PlayerPositions& positions, const SystemAddress&) { LiveWorld::HandlePlayerPositions(positions); });
-			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, [](const MessageCaptureData& data, const SystemAddress&) { Inspector::HandleData(data); });
+			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, [](const MessageCaptureData& data, const SystemAddress&) {
+				if (data.status == eMessageCaptureStatus::PACKETS) CaptureReplay::HandleData(data);
+				else Inspector::HandleData(data);
+			});
 			handlers.On<DataChanged>(Master::DATA_CHANGED, [](const DataChanged& changed, const SystemAddress&) { BroadcastDataChanged(changed); });
 			handlers.On<PlayerActionResult>(Master::PLAYER_ACTION_RESULT, [](const PlayerActionResult& result, const SystemAddress&) { PlayerActions::HandleResult(result); });
 			handlers.On<MasterPackets::WorldShutDown>(Master::SHUTDOWN_RESPONSE, OnWorldShutDown);
@@ -512,6 +516,7 @@ int main(int argc, char** argv) {
 	RegisterReportViewTask();
 	RegisterCharacterTasks();
 	Inspector::Initialize();
+	CaptureReplay::Initialize();
 	Scheduler::Initialize();
 
 	// Register global middleware
@@ -555,6 +560,7 @@ int main(int argc, char** argv) {
 	LiveWorld::RegisterRoutes();
 	LiveUpdateRoutes::RegisterRoutes();
 	Inspector::RegisterRoutes();
+	CaptureReplay::RegisterRoutes();
 	RegisterCDClientBrowserRoutes();
 	RegisterSettingsRoutes();
 	SettingsHistory::RegisterRoutes();
@@ -630,6 +636,7 @@ int main(int argc, char** argv) {
 			{ Profiler::Scope scope("LiveWorld::Update"); LiveWorld::Update(); }
 			{ Profiler::Scope scope("LiveUpdateRoutes::Update"); LiveUpdateRoutes::Update(); }
 			{ Profiler::Scope scope("Inspector::Update"); Inspector::Update(); }
+			{ Profiler::Scope scope("CaptureReplay::Update"); CaptureReplay::Update(); }
 			{ Profiler::Scope scope("Announcements::Update"); Announcements::Update(); }
 			{ Profiler::Scope scope("EventsCalendar::Update"); EventsCalendar::Update(); }
 			{ Profiler::Scope scope("LiveEventRoutes::Update"); LiveEventRoutes::Update(); }
@@ -655,6 +662,7 @@ int main(int argc, char** argv) {
 	Game::web.Shutdown();
 	ApiKeyService::Flush();
 	Inspector::Shutdown();
+	CaptureReplay::Shutdown();
 	EmailService::Shutdown();
 	ModeratorHelper::Shutdown();
 	Background::Shutdown();

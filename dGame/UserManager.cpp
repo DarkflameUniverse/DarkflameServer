@@ -1,4 +1,5 @@
 #include "UserManager.h"
+#include "PacketCapture.h"
 #include "ChatServerLink.h"
 #include "ChatPackets.h"
 #include "DashboardNotify.h"
@@ -123,8 +124,13 @@ UserManager::~UserManager() {
 
 User* UserManager::CreateUser(const SystemAddress& sysAddr, const std::string& username, const std::string& sessionKey) {
 	User* user = new User(sysAddr, username, sessionKey);
-	if (user && Game::server->IsConnected(sysAddr))
+	if (user && Game::server->IsConnected(sysAddr)) {
 		m_Users.insert(std::make_pair(sysAddr, user));
+		PacketCapture::Bind(sysAddr, user->GetAccountID(), username);
+		// In a zone the user comes with the character they play
+		const auto* character = Game::server->GetZoneID() != 0 ? user->GetLastUsedChar() : nullptr;
+		if (character) PacketCapture::BindCharacter(sysAddr, character->GetID());
+	}
 	else {
 		if (user) {
 			delete user;
@@ -576,6 +582,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID
 
 	if (hasCharacter && character) {
 		Database::Get()->UpdateLastLoggedInCharacter(playerID);
+		PacketCapture::BindCharacter(sysAddr, playerID);
 
 		uint32_t zoneID = character->GetZoneID();
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE

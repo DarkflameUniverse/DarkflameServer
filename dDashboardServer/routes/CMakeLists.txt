@@ -47,6 +47,7 @@ set(DASHBOARDROUTES_SOURCES
 	"ClientSysInfoView.cpp"
 	"Strikes.cpp"
 	"Inspector.cpp"
+	"CaptureReplay.cpp"
 	"CDClientBrowser.cpp"
 	"SettingsHistory.cpp"
 	"Announcements.cpp"
@@ -109,5 +110,9 @@ target_include_directories(DashboardRoutes PRIVATE
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # ObjectIDManager.h
 )
 
-target_compile_definitions(DashboardRoutes PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
+execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE DLU_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(NOT DLU_GIT_COMMIT)
+	set(DLU_GIT_COMMIT "unknown")
+endif()
+target_compile_definitions(DashboardRoutes PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"" DLU_GIT_COMMIT="${DLU_GIT_COMMIT}")
 target_link_libraries(DashboardRoutes PRIVATE ${COMMON_LIBRARIES} dWeb dServer dUgc sqlite3 OpenSSL::Crypto CURL::libcurl)

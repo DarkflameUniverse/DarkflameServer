@@ -2,6 +2,7 @@
 #define __MESSAGECAPTURE__H__
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <deque>
@@ -30,12 +31,22 @@ enum class eMessageDirection : uint8_t {
 enum class eMessageCaptureControl : uint8_t {
 	START,
 	STOP,
+	ARM,    // packet capture (PacketCapture.h): every server records the target's packets into `slot`
+	DISARM, // packet capture: stop recording into `slot`
+};
+
+// What a packet capture (ARM) records
+enum class eCaptureTarget : uint8_t {
+	CHARACTER,  // one character, from the moment it is picked in a world
+	ACCOUNT,    // everything of one account, from its login (every character)
+	EVERYTHING, // all traffic on all servers
 };
 
 enum class eMessageCaptureStatus : uint8_t {
 	STARTED,  // the world holding the character started capturing
 	ENTRIES,  // captured messages (also sent empty every few seconds while capturing)
 	ENDED,    // the world stopped capturing; `reason` says why
+	PACKETS,  // a batch of recorded packets (PacketCapture.h) from any server: `packets`, `slots`, `source`
 };
 
 enum class eMessageCaptureEnd : uint8_t {
@@ -53,6 +64,12 @@ namespace MessageCapture {
 	constexpr uint16_t MAX_DECODED = 8192;
 	// Message IDs in a filter list
 	constexpr uint16_t MAX_FILTER = 256;
+	// Packet captures armed at once (one bit each in a packet record's mask)
+	constexpr uint8_t MAX_SLOTS = 8;
+	// Characters of an account a packet capture follows
+	constexpr uint16_t MAX_CHARACTERS = 64;
+	// One batch of packet records
+	constexpr uint32_t MAX_PACKET_BATCH = 8 * 1024 * 1024;
 
 	// Lowercase hex, two digits per byte
 	inline std::string ToHex(std::string_view bytes) {
@@ -106,6 +123,12 @@ struct MessageCaptureControl : public LUBitStream {
 	bool toClient{ true };        // START: capture what the client receives
 	std::vector<uint16_t> only;   // START: capture only these message IDs (empty: all)
 	std::vector<uint16_t> skip;   // START: never capture these message IDs
+	// ARM / DISARM (packet capture); `seconds` is its time limit and captureId its id
+	uint8_t slot{};                       // 0 to MAX_SLOTS - 1: the bit this capture has in packet records
+	eCaptureTarget target{};
+	uint32_t accountId{};                 // ACCOUNT, CHARACTER: the account
+	std::string accountName;              // its name, for packets that name the account instead (logins, session keys)
+	std::vector<LWOOBJID> characterIds;   // ACCOUNT: its characters; CHARACTER: the one
 
 	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(captureId);
@@ -116,6 +139,13 @@ struct MessageCaptureControl : public LUBitStream {
 		stream.Write<uint8_t>(toClient);
 		MessageCapture::WriteIds(stream, only);
 		MessageCapture::WriteIds(stream, skip);
+		stream.Write(slot);
+		stream.Write(target);
+		stream.Write(accountId);
+		MessageCapture::WriteString(stream, accountName, 64);
+		const auto count = static_cast<uint16_t>(std::min<size_t>(characterIds.size(), MessageCapture::MAX_CHARACTERS));
+		stream.Write(count);
+		for (uint16_t i = 0; i < count; i++) stream.Write(characterIds[i]);
 	}
 
 	bool Deserialize(RakNet::BitStream& stream) override {
@@ -125,7 +155,13 @@ struct MessageCaptureControl : public LUBitStream {
 		seconds = std::min(seconds, MessageCapture::MAX_SECONDS);
 		toServer = server != 0;
 		toClient = client != 0;
-		return MessageCapture::ReadIds(stream, only) && MessageCapture::ReadIds(stream, skip);
+		if (!MessageCapture::ReadIds(stream, only) || !MessageCapture::ReadIds(stream, skip)) return false;
+		uint16_t count{};
+		if (!stream.Read(slot) || slot >= MessageCapture::MAX_SLOTS || !stream.Read(target) || target > eCaptureTarget::EVERYTHING ||
+			!stream.Read(accountId) || !MessageCapture::ReadString(stream, accountName, 64) || !stream.Read(count) || count > MessageCapture::MAX_CHARACTERS) return false;
+		characterIds.resize(count);
+		for (auto& id : characterIds) if (!stream.Read(id)) return false;
+		return true;
 	}
 
 	// Whether a message passes this capture's filters
@@ -184,6 +220,13 @@ struct MessageCaptureData : public LUBitStream {
 	uint32_t dropped{};          // messages left out since the last batch (over the rate or buffer limit)
 	std::vector<MessageCaptureEntry> entries;
 	uint32_t cloneId{};          // the world's clone (a property's owner), 0 elsewhere
+	// PACKETS: records (PacketRecord.h) packed one after another, the capture id of each mask bit when they were
+	// recorded, which server recorded them, how many there are and how many that server left out since its last batch
+	uint8_t source{};            // eCaptureSource
+	std::array<uint32_t, MessageCapture::MAX_SLOTS> slots{};
+	uint32_t packetCount{};
+	uint32_t packetsDropped{};
+	std::string packets;
 
 	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(captureId);
@@ -197,6 +240,13 @@ struct MessageCaptureData : public LUBitStream {
 		stream.Write(count);
 		for (uint16_t i = 0; i < count; i++) entries[i].Serialize(stream);
 		stream.Write(cloneId);
+		stream.Write(source);
+		for (const auto id : slots) stream.Write(id);
+		stream.Write(packetCount);
+		stream.Write(packetsDropped);
+		const auto length = static_cast<uint32_t>(std::min<size_t>(packets.size(), MessageCapture::MAX_PACKET_BATCH));
+		stream.Write(length);
+		if (length) stream.Write(packets.data(), length);
 	}
 
 	bool Deserialize(RakNet::BitStream& stream) override {
@@ -205,7 +255,12 @@ struct MessageCaptureData : public LUBitStream {
 			!stream.Read(instanceId) || !stream.Read(reason) || !stream.Read(dropped) || !stream.Read(count) || count > MAX_ENTRIES) return false;
 		entries.resize(count);
 		for (auto& entry : entries) if (!entry.Deserialize(stream)) return false;
-		return stream.Read(cloneId);
+		uint32_t length{};
+		if (!stream.Read(cloneId) || !stream.Read(source)) return false;
+		for (auto& id : slots) if (!stream.Read(id)) return false;
+		if (!stream.Read(packetCount) || !stream.Read(packetsDropped) || !stream.Read(length) || length > MessageCapture::MAX_PACKET_BATCH) return false;
+		packets.resize(length);
+		return length == 0 || stream.Read(packets.data(), length);
 	}
 };
 

@@ -38,6 +38,8 @@ public:
 		uint64_t messageCount{};
 		uint64_t byteCount{};      // stored bytes (raw bytes plus decoded fields)
 		uint64_t dropped{};        // messages the worlds left out (too many at once)
+		uint8_t kind{};            // 0: game messages (message_capture_entries); 1: packets (a capture file, docs/CaptureReplay.md)
+		std::string target;        // packets: "character", "account" or "everything"
 	};
 
 	// One captured message

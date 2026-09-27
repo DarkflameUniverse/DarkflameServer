@@ -56,7 +56,9 @@ if(APPLE)
 	add_dependencies(dGameTests dGameTestsLink)
 endif()
 
-target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
+# Local capture fixtures (tests/fixtures-local, never committed) are found from the source folder
+target_compile_definitions(dGameTests PRIVATE DLU_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(dGameTests ${COMMON_LIBRARIES} sqlite3 GTest::gtest_main
 	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dChatServer dNavigation bcrypt MD5)
 
 # Discover the tests

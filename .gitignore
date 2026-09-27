@@ -138,3 +138,8 @@ dashboard_oauth2_token.json
 CGC_REPORT.md
 __pycache__/
 *.pyc
+
+# Packet captures, bundles and fixtures are player data: never committed (docs/CaptureReplay.md)
+captures/
+*.bundle
+tests/fixtures-local/

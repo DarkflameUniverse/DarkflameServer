@@ -1,4 +1,5 @@
 #include "AuthPackets.h"
+#include "PacketCapture.h"
 #include "MasterPackets.h"
 
 #include <ctime>
@@ -144,6 +145,8 @@ void AuthPackets::LoginRequest::Handle() {
 	stamps.Add(eStamps::PASSPORT_AUTH_DB_SELECT_START);
 	auto accountInfo = Database::Get()->GetAccountInfo(username);
 	stamps.Add(eStamps::PASSPORT_AUTH_DB_SELECT_FINISH, accountInfo ? 1 : 0);
+	// The dashboard's packet capture: this connection is this account's (failed logins included)
+	PacketCapture::Bind(sysAddr, accountInfo ? accountInfo->id : 0, username);
 
 	if (!accountInfo) {
 		LOG("No user by name %s found!", username.c_str());

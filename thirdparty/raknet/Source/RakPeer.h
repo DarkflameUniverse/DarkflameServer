@@ -42,6 +42,11 @@ int RAK_DLL_EXPORT SystemAddressAndIndexComp( const SystemAddress &key, const Sy
 /// The primary interface for RakNet, RakPeer contains all major functions for the library.
 /// See the individual functions for what the class can do.
 /// \brief The main interface for network communications
+/// DLU addition: called on the caller's thread for every packet the application sends with Send (not RakNet's own
+/// connection messages), before it is queued. The server's packet capture sets it only while a capture is armed.
+typedef void (*RakPeerSendHook)(RakPeerInterface* peer, const unsigned char* data, BitSize_t bits, SystemAddress systemAddress, bool broadcast);
+extern RakPeerSendHook g_RakPeerSendHook;
+
 class RAK_DLL_EXPORT RakPeer : public RakPeerInterface
 {
 public:

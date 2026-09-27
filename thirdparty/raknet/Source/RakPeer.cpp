@@ -975,6 +975,8 @@ bool RakPeer::GetConnectionList( SystemAddress *remoteSystems, unsigned short *n
 // Returns:
 // False if we are not connected to the specified recipient.  True otherwise
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+RakPeerSendHook g_RakPeerSendHook = 0;
+
 bool RakPeer::Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, SystemAddress systemAddress, bool broadcast )
 {
 #ifdef _DEBUG
@@ -989,6 +991,9 @@ bool RakPeer::Send( const char *data, const int length, PacketPriority priority,
 
 	if ( broadcast == false && systemAddress == UNASSIGNED_SYSTEM_ADDRESS )
 		return false;
+
+	if (g_RakPeerSendHook)
+		g_RakPeerSendHook(this, (const unsigned char*)data, BYTES_TO_BITS(length), systemAddress, broadcast);
 
 	if (broadcast==false && router && IsConnected(systemAddress)==false)
 	{
@@ -1016,6 +1021,9 @@ bool RakPeer::Send( const RakNet::BitStream * bitStream, PacketPriority priority
 
 	if ( broadcast == false && systemAddress == UNASSIGNED_SYSTEM_ADDRESS )
 		return false;
+
+	if (g_RakPeerSendHook)
+		g_RakPeerSendHook(this, bitStream->GetData(), bitStream->GetNumberOfBitsUsed(), systemAddress, broadcast);
 
 	if (broadcast==false && router && IsConnected(systemAddress)==false)
 	{

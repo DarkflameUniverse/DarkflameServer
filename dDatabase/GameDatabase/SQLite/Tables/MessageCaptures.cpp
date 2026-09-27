@@ -56,16 +56,18 @@ namespace {
 		s.messageCount = static_cast<uint64_t>(r.getInt64Field("message_count"));
 		s.byteCount = static_cast<uint64_t>(r.getInt64Field("byte_count"));
 		s.dropped = static_cast<uint64_t>(r.getInt64Field("dropped"));
+		s.kind = static_cast<uint8_t>(r.getIntField("capture_kind"));
+		s.target = r.getStringField("capture_target");
 		return s;
 	}
 }
 
 uint64_t SQLiteDatabase::InsertMessageCaptureSession(const MessageCaptureSession& s) {
 	ExecuteInsert("INSERT INTO message_capture_sessions (character_id, character_name, account_id, account_name, started_by_id, started_by, started_at, ends_at, "
-		"ended_at, end_reason, to_server, to_client, only_messages, skip_messages, zone_id, instance_id, clone_id, zones, message_count, byte_count, dropped) "
-		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+		"ended_at, end_reason, to_server, to_client, only_messages, skip_messages, zone_id, instance_id, clone_id, zones, message_count, byte_count, dropped, capture_kind, capture_target) "
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
 		s.characterId, s.characterName, s.accountId, s.accountName, s.startedById, s.startedBy, s.startedAt, s.endsAt, s.endedAt, s.endReason,
-		s.toServer, s.toClient, s.onlyMessages, s.skipMessages, s.zoneId, s.instanceId, s.cloneId, s.zones, s.messageCount, s.byteCount, s.dropped);
+		s.toServer, s.toClient, s.onlyMessages, s.skipMessages, s.zoneId, s.instanceId, s.cloneId, s.zones, s.messageCount, s.byteCount, s.dropped, static_cast<uint32_t>(s.kind), s.target);
 	auto [_, last] = ExecuteSelect("SELECT last_insert_rowid() AS id;"); // this connection's insert
 	return last.eof() ? 0 : static_cast<uint64_t>(last.getInt64Field("id"));
 }
