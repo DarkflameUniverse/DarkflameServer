@@ -32,6 +32,10 @@ Every table remembers how you last sorted it and how many rows it shows per page
 (per dashboard user), so it doesn't follow you to another browser; clearing site data resets it. Searches and the page
 you were on aren't kept.
 
+Detail pages (accounts, characters, properties and their 3D view, bug reports, play keys) show breadcrumbs for the way
+you actually got there in this tab, for example Accounts > an account > a character > a property, so you can step
+back to where you came from. Opened directly, a page shows its usual parent (Properties > a property).
+
 ## Files to back up
 
 Next to the server binaries, the dashboard creates:

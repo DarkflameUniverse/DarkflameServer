@@ -23,9 +23,10 @@
 
 {% block content %}
 {# Also the showcase's read-only view of approved public properties (Showcase.cpp passes showcase) #}
+{% if not exists("showcase") %}<nav data-crumbs data-crumb-label="3D view" aria-label="Breadcrumb"><ol class="breadcrumb mb-2">{% if can.properties_view %}<li class="breadcrumb-item"><a href="/properties">Properties</a></li>{% endif %}<li class="breadcrumb-item"><a href="/properties/{{ property_id }}">Property {{ property_id }}</a></li><li class="breadcrumb-item active" aria-current="page">3D view</li></ol></nav>{% endif %}
 <div id="property" data-property-id="{{ property_id }}" data-behavior-rules="{{ behavior_rules }}" data-showcase="{% if exists("showcase") %}1{% endif %}">
 	<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-		{% if exists("showcase") %}<a href="/showcase" class="btn btn-sm btn-outline-secondary">&larr; Showcase</a>{% else %}<a href="/properties/{{ property_id }}" class="btn btn-sm btn-outline-secondary">&larr; Property</a>{% endif %}
+		{% if exists("showcase") %}<a href="/showcase" class="btn btn-sm btn-outline-secondary">&larr; Showcase</a>{% else %}<a href="/properties/{{ property_id }}" class="btn btn-sm btn-outline-secondary" data-crumb-back>&larr; Property</a>{% endif %}
 		<div class="me-auto">
 			<h5 class="mb-0 d-inline" id="propName">Loading&hellip;</h5>
 			<span class="small text-body-secondary ms-2" id="propMeta"></span>

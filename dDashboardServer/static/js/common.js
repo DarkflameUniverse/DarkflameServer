@@ -353,6 +353,83 @@
 	document.addEventListener('shown.bs.collapse', function (e) { if (e.target.dataset.prefOpen) Prefs.set(e.target.dataset.prefOpen, true); });
 	document.addEventListener('hidden.bs.collapse', function (e) { if (e.target.dataset.prefOpen) Prefs.set(e.target.dataset.prefOpen, false); });
 
+	/**
+	 * Breadcrumbs that follow how you actually got to a page, kept per browser tab (sessionStorage).
+	 * A detail page has <nav data-crumbs data-crumb-label="..."> holding its natural parents as links (what shows when
+	 * the page is opened directly); every other page starts a new trail. Arriving from a page on the trail (by link
+	 * or script, seen through the same-origin referrer) continues it from there; returning to a page on the trail
+	 * (back, a crumb, reload) cuts it back to that page. Crumbs.label(text) renames the current page once its name
+	 * has loaded. A link marked data-crumb-back points at the previous page on the trail.
+	 */
+	window.Crumbs = (function () {
+		var KEY = 'dash.trail', MAX = 7;
+		var here = window.location.pathname + window.location.search;
+		var nav = document.querySelector('[data-crumbs]');
+		function load() {
+			try { var t = JSON.parse(sessionStorage.getItem(KEY) || '[]'); return Array.isArray(t) ? t : []; } catch (e) { return []; }
+		}
+		function save(t) { try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch (e) { /* storage unavailable */ } }
+		function indexOf(t, href) { for (var i = 0; i < t.length; i++) if (t[i] && t[i].href === href) return i; return -1; }
+		function titleLabel() {
+			var title = document.title.replace(/\s*-\s*DarkflameServer\s*$/, '').trim();
+			return !title || title === 'DarkflameServer' ? 'Home' : title;
+		}
+		var from = '';
+		try {
+			var ref = document.referrer ? new URL(document.referrer) : null;
+			if (ref && ref.origin === window.location.origin) from = ref.pathname + ref.search;
+		} catch (e) {}
+
+		var trail = load(), label = nav ? (nav.dataset.crumbLabel || titleLabel()) : titleLabel();
+		if (!nav) {
+			// Lists and other top-level pages start the trail
+			trail = [{ href: here, label: label }];
+		} else {
+			var at = indexOf(trail, here), came = from && from !== here ? indexOf(trail, from) : -1;
+			if (at >= 0) trail = trail.slice(0, at + 1);
+			else if (came >= 0) trail = trail.slice(0, came + 1).concat([{ href: here, label: label }]);
+			else {
+				// Opened directly or from outside the trail: the page's natural parents
+				trail = Array.prototype.map.call(nav.querySelectorAll('a[href]'), function (a) {
+					return { href: a.getAttribute('href'), label: a.textContent.trim() };
+				}).concat([{ href: here, label: label }]);
+			}
+			if (trail.length > MAX) trail = [trail[0]].concat(trail.slice(trail.length - MAX + 1));
+		}
+		save(trail);
+
+		function render() {
+			if (!nav) return;
+			nav.hidden = trail.length < 2;
+			var ol = document.createElement('ol');
+			ol.className = 'breadcrumb mb-3';
+			trail.forEach(function (c, i) {
+				var li = document.createElement('li');
+				li.className = 'breadcrumb-item' + (i === trail.length - 1 ? ' active' : '');
+				if (i === trail.length - 1) { li.setAttribute('aria-current', 'page'); li.textContent = c.label; }
+				else { var a = document.createElement('a'); a.href = c.href; a.textContent = c.label; li.appendChild(a); }
+				ol.appendChild(li);
+			});
+			nav.replaceChildren(ol);
+			var prev = trail.length > 1 ? trail[trail.length - 2] : null;
+			document.querySelectorAll('a[data-crumb-back]').forEach(function (a) {
+				if (!prev) return;
+				a.href = prev.href;
+				a.textContent = '← ' + prev.label;
+			});
+		}
+		render();
+		return {
+			label: function (text) {
+				if (!nav || !text) return;
+				trail[trail.length - 1].label = String(text);
+				save(trail);
+				render();
+			},
+			previous: function () { return trail.length > 1 ? trail[trail.length - 2] : null; }
+		};
+	})();
+
 	if (window.jQuery && $.fn.dataTable) {
 		// Columns without a custom renderer are inserted as HTML by default; render them as text instead
 		$.extend(true, $.fn.dataTable.defaults, {

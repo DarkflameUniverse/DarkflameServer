@@ -3,7 +3,7 @@
 {% block title %}Play Key #{{ key.id }} - DarkflameServer{% endblock %}
 
 {% block content %}
-<a href="/play_keys" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Play Keys</a>
+<nav data-crumbs data-crumb-label="Play Key #{{ key.id }}" aria-label="Breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a href="/play_keys">Play Keys</a></li><li class="breadcrumb-item active" aria-current="page">Play Key #{{ key.id }}</li></ol></nav>
 
 <div class="row g-4">
 	<div class="col-lg-5">

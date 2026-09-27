@@ -42,11 +42,7 @@
 {% endblock %}
 
 {% block content %}
-{% if can.characters_view %}
-<a href="/characters" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Characters</a>
-{% else %}
-<a href="/" class="text-decoration-none mb-3 d-inline-block">&larr; Back to your characters</a>
-{% endif %}
+<nav data-crumbs data-crumb-label="{{ character.name }}" aria-label="Breadcrumb"><ol class="breadcrumb mb-3">{% if can.characters_view %}<li class="breadcrumb-item"><a href="/characters">Characters</a></li>{% else %}<li class="breadcrumb-item"><a href="/">Your characters</a></li>{% endif %}<li class="breadcrumb-item active" aria-current="page">{{ character.name }}</li></ol></nav>
 
 <div class="row g-4">
 	<div class="col-lg-4">

@@ -3,9 +3,7 @@
 {% block title %}Property - DarkflameServer{% endblock %}
 
 {% block content %}
-{% if can.properties_view %}
-<a href="/properties" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Properties</a>
-{% endif %}
+<nav data-crumbs data-crumb-label="Property {{ property_id }}" aria-label="Breadcrumb"><ol class="breadcrumb mb-3">{% if can.properties_view %}<li class="breadcrumb-item"><a href="/properties">Properties</a></li>{% endif %}<li class="breadcrumb-item active" aria-current="page">Property {{ property_id }}</li></ol></nav>
 
 <div id="property" data-property-id="{{ property_id }}">
 	<div class="card mb-4">
@@ -189,6 +187,7 @@ function load() {
 		if (p.success === false) { setText('propName', p.error); return; }
 		loaded = p;
 		setText('propName', p.name || 'Unnamed property');
+		Crumbs.label(p.name || 'Unnamed property');
 		// This property's own events and statistics (each property is its own instance of the zone, told apart by the clone)
 		const economy = document.getElementById('propEconomy');
 		if (economy && p.clone_id) {

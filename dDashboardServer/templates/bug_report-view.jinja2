@@ -3,7 +3,7 @@
 {% block title %}Bug Report #{{ report.id }} - DarkflameServer{% endblock %}
 
 {% block content %}
-<a href="/bug_reports" class="text-decoration-none mb-3 d-inline-block">&larr; Back to Bug Reports</a>
+<nav data-crumbs data-crumb-label="Bug Report #{{ report.id }}" aria-label="Breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a href="/bug_reports">Bug Reports</a></li><li class="breadcrumb-item active" aria-current="page">Bug Report #{{ report.id }}</li></ol></nav>
 
 <div class="card mb-4" id="report" data-report-id="{{ report.id }}">
 	<div class="card-header d-flex justify-content-between align-items-center">
