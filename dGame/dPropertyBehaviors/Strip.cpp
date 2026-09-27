@@ -174,30 +174,23 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 	// TODO replace with switch case and nextActionType with enum
 	/* BEGIN Move */
 	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
-		// X axis
-		bool isMoveLeft = nextActionType == "MoveLeft";
-		int negative = isMoveLeft ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_X * negative)) {
+		// Local right axis
+		const bool isMoveLeft = nextActionType == "MoveLeft";
+		if (modelComponent.TryStartMove(0, isMoveLeft ? -1.0f : 1.0f)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionTranslation.x = isMoveLeft ? -number : number;
 		}
 	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
-		// Y axis
-		bool isFlyDown = nextActionType == "FlyDown";
-		int negative = isFlyDown ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Y * negative)) {
+		// Local up axis
+		const bool isFlyDown = nextActionType == "FlyDown";
+		if (modelComponent.TryStartMove(1, isFlyDown ? -1.0f : 1.0f)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionTranslation.y = isFlyDown ? -number : number;
 		}
-
 	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
-		// Z axis
-		bool isMoveBackward = nextActionType == "MoveBackward";
-		int negative = isMoveBackward ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Z * negative)) {
+		// Local forward axis
+		const bool isMoveBackward = nextActionType == "MoveBackward";
+		if (modelComponent.TryStartMove(2, isMoveBackward ? -1.0f : 1.0f)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionTranslation.z = isMoveBackward ? -number : number;
 		}
@@ -332,45 +325,26 @@ bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
 	auto& entity = *modelComponent.GetParent();
 	const auto& currentPos = entity.GetPosition();
 	const auto diff = currentPos - m_PreviousFramePosition;
-	const auto [moveX, moveY, moveZ] = m_InActionTranslation;
 	m_PreviousFramePosition = currentPos;
-	// Only want to subtract from the move if one is being performed.
-	// Starts at true because we may not be doing a move at all.
-	// If one is being done, then one of the move_ variables will be non-zero
-	bool moveFinished = true;
-	NiPoint3 finalPositionAdjustment = NiPoint3Constant::ZERO;
-	if (moveX != 0.0f) {
-		m_InActionTranslation.x -= diff.x;
-		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionTranslation.x) != std::signbit(moveX);
-		finalPositionAdjustment.x = m_InActionTranslation.x;
-	} else if (moveY != 0.0f) {
-		m_InActionTranslation.y -= diff.y;
-		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionTranslation.y) != std::signbit(moveY);
-		finalPositionAdjustment.y = m_InActionTranslation.y;
-	} else if (moveZ != 0.0f) {
-		m_InActionTranslation.z -= diff.z;
-		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionTranslation.z) != std::signbit(moveZ);
-		finalPositionAdjustment.z = m_InActionTranslation.z;
-	}
 
-	// Once done, set the in action move & velocity to zero
-	if (moveFinished && m_InActionTranslation != NiPoint3Constant::ZERO) {
-		auto entityVelocity = entity.GetVelocity();
-		// Zero out only the velocity that was acted on
-		if (moveX != 0.0f) entityVelocity.x = 0.0f;
-		else if (moveY != 0.0f) entityVelocity.y = 0.0f;
-		else if (moveZ != 0.0f) entityVelocity.z = 0.0f;
-		modelComponent.SetVelocity(entityVelocity);
+	for (int axis = 0; axis < 3; axis++) {
+		const float target = m_InActionTranslation[axis];
+		if (target == 0.0f) continue;
+
+		// The local axes are orthonormal so this isolates our axis from any other active moves
+		const auto& axisVector = modelComponent.GetMoveAxis(axis);
+		m_InActionTranslation[axis] -= diff.DotProduct(axisVector);
+
+		// If the sign bit is different between the two numbers, then we have finished our move.
+		if (std::signbit(m_InActionTranslation[axis]) == std::signbit(target)) return false;
 
 		// Do the final adjustment so we will have moved exactly the requested units
-		entity.SetPosition(entity.GetPosition() + finalPositionAdjustment);
+		entity.SetPosition(entity.GetPosition() + axisVector * m_InActionTranslation[axis]);
+		modelComponent.StopMove(axis);
 		m_InActionTranslation = NiPoint3Constant::ZERO;
 	}
 
-	return moveFinished;
+	return true;
 }
 
 bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {

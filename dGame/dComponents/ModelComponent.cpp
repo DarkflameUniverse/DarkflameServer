@@ -46,6 +46,9 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& 
 	if (reset.bResetPos) m_Parent->SetPosition(m_OriginalPosition);
 	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
+	m_MoveDirection = NiPoint3Constant::ZERO;
+	m_WasMoving = false;
+	SyncLinearVelocity();
 	ResetRotationState(m_Parent->GetRotation());
 
 	m_Speed = 3.0f;
@@ -80,6 +83,9 @@ void ModelComponent::Update(float deltaTime) {
 	for (auto& behavior : m_Behaviors) {
 		behavior.Update(deltaTime, *this);
 	}
+
+	// Done after all behaviors so the heading reflects any rotation applied this frame
+	SyncLinearVelocity();
 
 	if (!m_RestartAtEndOfFrame) return;
 
@@ -289,32 +295,33 @@ void ModelComponent::RemoveUnSmash() {
 	m_NumActiveUnSmash--;
 }
 
-bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
-	auto currentVelocity = m_Parent->GetVelocity();
+bool ModelComponent::TryStartMove(const int axis, const float direction) {
+	if (axis < 0 || axis > 2 || direction == 0.0f) return false;
+	if (m_MoveDirection[axis] != 0.0f) return false;
 
-	// If we're currently moving on an axis, prevent the move so only 1 behavior can have control over an axis
-	if (velocity != NiPoint3Constant::ZERO) {
-		const auto [x, y, z] = velocity * m_Speed;
-		if (x != 0.0f) {
-			if (currentVelocity.x != 0.0f) return false;
-			currentVelocity.x = x;
-		} else if (y != 0.0f) {
-			if (currentVelocity.y != 0.0f) return false;
-			currentVelocity.y = y;
-		} else if (z != 0.0f) {
-			if (currentVelocity.z != 0.0f) return false;
-			currentVelocity.z = z;
-		}
-	} else {
-		currentVelocity = velocity;
-	}
-
-	m_Parent->SetVelocity(currentVelocity);
+	m_MoveDirection[axis] = direction > 0.0f ? 1.0f : -1.0f;
 	return true;
 }
 
-void ModelComponent::SetVelocity(const NiPoint3& velocity) const {
-	m_Parent->SetVelocity(velocity);
+void ModelComponent::StopMove(const int axis) {
+	if (axis < 0 || axis > 2) return;
+	m_MoveDirection[axis] = 0.0f;
+}
+
+void ModelComponent::SyncLinearVelocity() {
+	const auto& rotation = m_Parent->GetRotation();
+	m_MoveBasis = { QuatUtils::Right(rotation), QuatUtils::Up(rotation), QuatUtils::Forward(rotation) };
+
+	NiPoint3 velocity = NiPoint3Constant::ZERO;
+	for (int axis = 0; axis < 3; axis++) velocity += m_MoveBasis[axis] * (m_MoveDirection[axis] * m_Speed);
+
+	// Leave velocity alone unless a move owns it, e.g. pets are driven elsewhere
+	const bool isMoving = velocity != NiPoint3Constant::ZERO;
+	if (!isMoving && !m_WasMoving) return;
+	m_WasMoving = isMoving;
+
+	// Setting velocity always marks it dirty for serialization
+	if (velocity != m_Parent->GetVelocity()) m_Parent->SetVelocity(velocity);
 }
 
 bool ModelComponent::TryStartRotation(const int axis, const float direction) {

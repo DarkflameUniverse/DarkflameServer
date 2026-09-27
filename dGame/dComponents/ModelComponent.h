@@ -139,13 +139,15 @@ public:
 
 	void Resume();
 
-	// Attempts to set the velocity of an axis for movement.
-	// If the axis currently has a velocity of zero, returns true.
-	// If the axis is currently controlled by a behavior, returns false.
-	bool TrySetVelocity(const NiPoint3& velocity) const;
+	// Attempts to claim a local axis (0 = right, 1 = up, 2 = forward) for movement in direction (+1 or -1).
+	// Returns false if the axis is already controlled by a behavior.
+	bool TryStartMove(const int axis, const float direction);
 
-	// Force sets the velocity to a value.
-	void SetVelocity(const NiPoint3& velocity) const;
+	// Releases the local axis so another behavior can move along it.
+	void StopMove(const int axis);
+
+	// World space direction of the local axis used for the most recently applied velocity.
+	const NiPoint3& GetMoveAxis(const int axis) const { return m_MoveBasis[axis]; }
 
 	// Attempts to claim a world axis (0 = x, 1 = y, 2 = z) for rotation in direction (+1 or -1).
 	// Returns false if the axis is already controlled by a behavior.
@@ -185,6 +187,9 @@ private:
 
 	// Sends the client-side angular velocity for the currently active rotation axes.
 	void SyncAngularVelocity() const;
+
+	// Recomputes the linear velocity from the active move axes and the current rotation.
+	void SyncLinearVelocity();
 
 	// Clears all rotation state and makes rotation relative to newBase.
 	void ResetRotationState(const NiQuaternion& newBase);
@@ -248,4 +253,13 @@ private:
 
 	// Per axis -1, 0 or 1. Non-zero means a behavior currently owns rotation on that axis.
 	NiPoint3 m_RotationDirection{};
+
+	// Per local axis (right, up, forward) -1, 0 or 1. Non-zero means a behavior currently owns movement on that axis.
+	NiPoint3 m_MoveDirection{};
+
+	// Right, up and forward in world space as of the last velocity update
+	std::array<NiPoint3, 3> m_MoveBasis{ NiPoint3Constant::UNIT_X, NiPoint3Constant::UNIT_Y, NiPoint3Constant::UNIT_Z };
+
+	// Whether the last velocity update came from an active move
+	bool m_WasMoving{ false };
 };

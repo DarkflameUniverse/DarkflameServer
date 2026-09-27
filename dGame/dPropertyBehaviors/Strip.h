@@ -65,7 +65,7 @@ private:
 	// The location of this strip on the UGBehaviorEditor UI
 	StripUiPosition m_Position;
 
-	// The current actions remaining translation to the target
+	// The current actions remaining translation to the target along the model's local right (x), up (y) and forward (z) axes.
 	// Only 1 of these vertexs' will be active at once for any given strip.
 	NiPoint3 m_InActionTranslation{};
 
