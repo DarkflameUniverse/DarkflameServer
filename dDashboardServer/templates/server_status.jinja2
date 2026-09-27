@@ -18,6 +18,15 @@
 				<span class="badge text-bg-danger" id="chat-status">Offline</span>
 				{% endif %}
 			</div>
+			{# Only while master starts it (enable_ugc_server); the page shows it when that changes #}
+			<div class="d-flex justify-content-between align-items-center mb-3{% if not ugc.enabled %} d-none{% endif %}" id="ugc-status-row">
+				<span>UGC Server</span>
+				{% if ugc.online %}
+				<span class="badge text-bg-success" id="ugc-status">Online</span>
+				{% else %}
+				<span class="badge text-bg-danger" id="ugc-status">Offline</span>
+				{% endif %}
+			</div>
 			<div class="d-flex justify-content-between align-items-center">
 				<span>Active Worlds</span>
 				<span class="badge text-bg-primary" id="world-count">{{ stats.worlds }}</span>

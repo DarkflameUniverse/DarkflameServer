@@ -81,6 +81,12 @@ namespace {
 			pid = ServerState::g_UgcPid;
 		}
 		out["pid"] = pid;
+		// Up since its process started when this machine runs it (the dashboard may have started after it)
+		if (pid && out.value("online", false)) {
+			for (const auto& process : ServerRoutes::Processes()) {
+				if (process.pid == pid && process.startedAt) out["since"] = process.startedAt;
+			}
+		}
 		// Its traffic report (every few seconds, via master) carries its workers, totals and storage
 		const auto traffic = Traffic::Server("ugc");
 		out["gauges"] = traffic.value("gauges", nlohmann::json::object());

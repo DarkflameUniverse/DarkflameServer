@@ -123,6 +123,21 @@
 	// Formatting helpers used by table renderers
 	window.fmt = {
 		unix: function (ts) { return ts ? new Date(ts * 1000).toLocaleString() : '-'; },
+		// 1536 -> "1.5 KB"
+		bytes: function (n) {
+			n = Number(n) || 0;
+			var units = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0;
+			while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+			return (i === 0 ? n : n.toFixed(n < 10 ? 1 : 0)) + ' ' + units[i];
+		},
+		// Seconds -> "3d 4h", "2h 5m", "7m", "12s"
+		duration: function (s) {
+			s = Math.max(0, Math.floor(Number(s) || 0));
+			var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+			if (d) return d + 'd ' + h + 'h';
+			if (h) return h + 'h ' + m + 'm';
+			return m ? m + 'm' : s + 's';
+		},
 		date: function (s) {
 			if (!s) return '-';
 			var d = new Date(String(s).replace(' ', 'T') + (String(s).indexOf('Z') === -1 && String(s).indexOf('T') === -1 ? 'Z' : ''));

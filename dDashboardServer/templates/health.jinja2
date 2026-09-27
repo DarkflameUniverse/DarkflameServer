@@ -31,7 +31,12 @@
 	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Players online (highest)</h5></div><div class="card-body"><svg class="health-chart" id="chartPlayers" role="img" aria-label="Players online over time"></svg></div></div></div>
 	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Worlds running</h5></div><div class="card-body"><svg class="health-chart" id="chartWorlds" role="img" aria-label="Worlds running over time"></svg></div></div></div>
 	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Memory (all servers)</h5></div><div class="card-body"><svg class="health-chart" id="chartMemory" role="img" aria-label="Memory over time"></svg></div></div></div>
-	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Auth and chat servers</h5></div><div class="card-body" id="uptime"></div></div></div>
+	<div class="col-lg-6"><div class="card"><div class="card-header"><h5 class="mb-0 fs-6">Auth, chat and UGC servers</h5></div><div class="card-body" id="uptime"></div></div></div>
+</div>
+
+<div class="card mt-3">
+	<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Servers</h5><span class="small text-body-secondary">Memory and CPU from this machine (Linux); CPU is of one core since the last refresh</span></div>
+	<div class="card-body table-responsive" id="servers"><p class="text-body-secondary mb-0">Loading&hellip;</p></div>
 </div>
 
 {% if can.logs_system %}
@@ -91,13 +96,18 @@
 	}
 
 	function uptime(samples, from, to) {
-		var rows = [['auth', 'Auth server'], ['chat', 'Chat server']].map(function (s) {
-			var up = samples.filter(function (p) { return p[s[0]]; }).length;
-			var percent = samples.length ? (up / samples.length * 100) : 0;
+		var servers = [['auth', 'Auth server'], ['chat', 'Chat server']];
+		// The UGC server only counts while master was set to start it
+		if (samples.some(function (p) { return p.ugc_enabled; })) servers.push(['ugc', 'UGC server', 'ugc_enabled']);
+		var rows = servers.map(function (s) {
+			var counted = s[2] ? samples.filter(function (p) { return p[s[2]]; }) : samples;
+			var up = counted.filter(function (p) { return p[s[0]]; }).length;
+			var percent = counted.length ? (up / counted.length * 100) : 0;
 			var bars = samples.map(function (p) {
-				return '<span title="' + esc(new Date(p.time * 1000).toLocaleString()) + '" style="flex: 1; min-width: 1px; background: var(--bs-' + (p[s[0]] ? 'success' : 'danger') + ')"></span>';
+				var color = s[2] && !p[s[2]] ? 'secondary-bg' : p[s[0]] ? 'success' : 'danger';
+				return '<span title="' + esc(new Date(p.time * 1000).toLocaleString()) + '" style="flex: 1; min-width: 1px; background: var(--bs-' + color + ')"></span>';
 			}).join('');
-			return '<div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span>' + s[1] + '</span><span>' + (samples.length ? percent.toFixed(1) + '% up' : 'no samples') + '</span></div>' +
+			return '<div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span>' + s[1] + '</span><span>' + (counted.length ? percent.toFixed(1) + '% up' : 'no samples') + '</span></div>' +
 				'<div class="d-flex rounded overflow-hidden" style="height: 18px">' + bars + '</div></div>';
 		});
 		document.getElementById('uptime').innerHTML = rows.join('') + '<p class="small text-body-secondary mb-0">Red means the server was not connected when the sample was taken.</p>';
@@ -109,7 +119,8 @@
 			var c = d.current;
 			document.getElementById('healthNow').innerHTML = [
 				['Players online', nf.format(c.players)], ['Worlds running', nf.format(c.worlds)],
-				['Auth / chat', (c.auth ? 'up' : 'DOWN') + ' / ' + (c.chat ? 'up' : 'DOWN')], ['Memory', c.memory_kb ? size(c.memory_kb) : 'n/a']
+				[c.ugc_enabled ? 'Auth / chat / UGC' : 'Auth / chat', [c.auth, c.chat].concat(c.ugc_enabled ? [c.ugc] : []).map(function (up) { return up ? 'up' : 'DOWN'; }).join(' / ')],
+				['Memory', c.memory_kb ? size(c.memory_kb) : 'n/a']
 			].map(function (s) {
 				return '<div class="col-6 col-md-3"><div class="card text-center"><div class="card-body py-3"><div class="text-body-secondary small text-uppercase mb-1">' + s[0] + '</div><div class="fs-4 fw-bold">' + esc(s[1]) + '</div></div></div></div>';
 			}).join('');
@@ -118,6 +129,38 @@
 			chart(document.getElementById('chartMemory'), d.samples.map(function (s) { return [s.time, s.memory_kb]; }), d.from, d.to, 'var(--bs-warning)', size);
 			uptime(d.samples, d.from, d.to);
 		});
+	}
+
+	// Every server with its process and what its last traffic report said (UGC: workers, storage and the database queue)
+	function loadServers() {
+		api.get('/api/servers').then(function (d) {
+			var box = document.getElementById('servers');
+			if (!d.success) { box.innerHTML = '<p class="text-danger mb-0">' + esc(d.error) + '</p>'; return; }
+			var now = Date.now() / 1000;
+			var details = function (s) {
+				var g = (s.traffic && s.traffic.gauges) || {}, parts = [];
+				if (s.players !== undefined) parts.push(nf.format(s.players) + ' player' + (s.players === 1 ? '' : 's'));
+				if (s.traffic && s.traffic.connections) parts.push(nf.format(s.traffic.connections) + ' connection' + (s.traffic.connections === 1 ? '' : 's') + (s.traffic.ping_ms ? ', ' + s.traffic.ping_ms + ' ms' : ''));
+				if (g.workers_threads !== undefined) parts.push('workers ' + g.workers_busy + '/' + g.workers_threads + (g.workers_queued ? ', ' + g.workers_queued + ' queued' : ''));
+				if (s.key === 'ugc') {
+					var c = d.ugc.counts || { model: {}, modular: {} };
+					var sum = function (state) { return (c.model[state] || 0) + (c.modular[state] || 0); };
+					parts.push(nf.format(sum('pending')) + ' waiting, ' + nf.format(sum('done')) + ' made, ' + nf.format(sum('failed')) + ' failed');
+					if (g.ugc_stored_bytes !== undefined) parts.push(fmt.bytes(g.ugc_stored_bytes) + (g.ugc_max_storage_bytes ? ' of ' + fmt.bytes(g.ugc_max_storage_bytes) : '') + ' stored');
+				}
+				return esc(parts.join(' · '));
+			};
+			box.innerHTML = '<table class="table table-sm align-middle mb-0"><thead><tr><th>Server</th><th>Status</th><th>Up for</th><th class="text-end">PID</th><th class="text-end">Memory</th><th class="text-end">CPU</th><th>Details</th></tr></thead><tbody>' +
+				d.servers.map(function (s) {
+					var p = s.process;
+					var started = (p && p.started_at) || s.since;
+					var label = s.key === 'ugc' && DASH.can('properties_view') ? fmt.link('/ugc', s.label) : esc(s.label);
+					return '<tr><td>' + label + '</td><td>' + (s.kind === 'OTHER' ? fmt.badge('Not listed', 'secondary') : fmt.badge(s.online ? 'Online' : 'Offline', s.online ? 'success' : 'danger')) + '</td>' +
+						'<td>' + ((s.online || s.kind === 'OTHER') && started ? esc(fmt.duration(now - started)) : '-') + '</td>' +
+						'<td class="text-end">' + (p ? esc(p.pid) : '-') + '</td><td class="text-end">' + (p ? esc(size(p.memory_kb)) : '-') + '</td>' +
+						'<td class="text-end">' + (p ? esc(p.cpu_percent.toFixed(1) + '%') : '-') + '</td><td class="small">' + details(s) + '</td></tr>';
+				}).join('') + '</tbody></table>';
+		}).catch(function () {});
 	}
 
 	function loadDumps() {
@@ -153,7 +196,9 @@
 	});
 	window.addEventListener('resize', Live.throttle(load, 500));
 	setInterval(load, 60000);
+	setInterval(loadServers, 10000);
 	load();
+	loadServers();
 	loadDumps();
 })();
 </script>

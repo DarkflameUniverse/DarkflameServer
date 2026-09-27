@@ -33,6 +33,17 @@
 <div class="row g-3 mb-4">
 	{% include "server_status.jinja2" %}
 	{% include "statistics.jinja2" %}
+	{% if can.health_view %}
+	<div class="col-md-6 col-lg-4{% if not ugc.enabled %} d-none{% endif %}" id="ugcCard">
+		<div class="card h-100">
+			<div class="card-header d-flex justify-content-between align-items-center">
+				<h5 class="mb-0">UGC Server</h5>
+				{% if can.properties_view %}<a class="btn btn-sm btn-outline-secondary" href="/ugc">Models</a>{% endif %}
+			</div>
+			<div class="card-body" id="ugcCardBody"><p class="text-body-secondary mb-0">Loading&hellip;</p></div>
+		</div>
+	</div>
+	{% endif %}
 </div>
 
 {% include "world_instances.jinja2" %}
@@ -160,9 +171,43 @@ $(function () {
 		if (el && value !== undefined) el.textContent = value;
 	}
 
+	// The UGC server's card (staff with health_view): its state, the database queue and what its last report said
+	var ugcLoadedAt = 0;
+	function loadUgc(force) {
+		var card = document.getElementById('ugcCard');
+		if (!card || (!force && Date.now() - ugcLoadedAt < 15000)) return;
+		ugcLoadedAt = Date.now();
+		api.get('/api/servers/ugc').then(function (d) {
+			if (!d.success) return;
+			card.classList.toggle('d-none', !d.enabled && !d.online);
+			var g = d.gauges || {}, c = d.counts || { model: {}, modular: {} };
+			var sum = function (state) { return (c.model[state] || 0) + (c.modular[state] || 0); };
+			var line = function (label, value, id) {
+				return '<div class="d-flex justify-content-between align-items-center mb-2"><span>' + label + '</span><span' + (id ? ' id="' + id + '"' : '') + '>' + value + '</span></div>';
+			};
+			var status = fmt.badge(d.online ? 'Online' : 'Offline', d.online ? 'success' : 'danger') +
+				(d.online && d.since ? ' <span class="small text-body-secondary">up ' + esc(fmt.duration(Date.now() / 1000 - d.since)) + '</span>' : '');
+			var storage = g.ugc_stored_bytes !== undefined ? esc(fmt.bytes(g.ugc_stored_bytes)) + (g.ugc_max_storage_bytes ? ' <span class="text-body-secondary">of ' + esc(fmt.bytes(g.ugc_max_storage_bytes)) + '</span>' : '') : '<span class="text-body-secondary">-</span>';
+			var workers = g.workers_threads !== undefined ? esc(g.workers_busy + ' / ' + g.workers_threads) + (g.workers_queued ? ' <span class="text-body-secondary">(' + esc(g.workers_queued) + ' queued)</span>' : '') : '<span class="text-body-secondary">-</span>';
+			document.getElementById('ugcCardBody').innerHTML =
+				line('Status', status) +
+				line('Waiting', fmt.badge(sum('pending'), sum('pending') ? 'warning' : 'secondary')) +
+				line('Made', fmt.badge(sum('done'), 'primary')) +
+				line('Failed', fmt.badge(sum('failed'), sum('failed') ? 'danger' : 'secondary')) +
+				line('Workers busy', workers) +
+				line('Storage used', storage).replace('mb-2"', 'mb-0"');
+		}).catch(function () {});
+	}
+
 	function update(data) {
 		if (data.auth) setStatus('auth-status', data.auth.online);
 		if (data.chat) setStatus('chat-status', data.chat.online);
+		if (data.ugc) {
+			setStatus('ugc-status', data.ugc.online);
+			var ugcRow = document.getElementById('ugc-status-row');
+			if (ugcRow) ugcRow.classList.toggle('d-none', !data.ugc.enabled);
+			loadUgc();
+		}
 		if (data.worlds) {
 			setText('world-count', data.stats && data.stats.worlds !== undefined ? data.stats.worlds : data.worlds.length);
 			if (detailedWorlds) loadDetailedWorlds();
@@ -181,6 +226,7 @@ $(function () {
 	});
 
 	api.get('/api/status').then(update).catch(function () {});
+	loadUgc(true);
 	Live.onStatus(update);
 });
 </script>
