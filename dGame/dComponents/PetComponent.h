@@ -8,6 +8,7 @@
 #include "ePetAbilityType.h"
 #include "eReplicaComponentType.h"
 #include "CDPetComponentTable.h"
+#include "eHelpType.h"
 
 /**
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
@@ -24,6 +25,16 @@ public:
 	// State 8: a pet constructed with it plays its spawnAnim (LWOPetComponent::Deserialize, 0x00cd1270). Live
 	// constructed summoned pets with 0x84 and cleared this bit once the spawn animation was over.
 	static constexpr uint32_t PET_STATE_SPAWNING = 1 << 7;
+
+	// State 6: the pet is at the object of its ability (a pet switch or a dig) and waits for its owner to use it.
+	static constexpr uint32_t PET_STATE_AT_ABILITY_OBJECT = 1 << 5;
+
+	// State 9: the pet is on its way to, or waiting at, the object of its ability (the client's IsPetUsingAbility
+	// checks it).
+	static constexpr uint32_t PET_STATE_USING_ABILITY = 1 << 8;
+
+	// State 11: the pet is on its way to the object of its ability.
+	static constexpr uint32_t PET_STATE_GOING_TO_ABILITY_OBJECT = 1 << 10;
 
 	explicit PetComponent(Entity* parentEntity, const int32_t componentID);
 	~PetComponent() override;
@@ -221,6 +232,36 @@ public:
 private:
 
 	/**
+	 * Sets the object the pet goes to use its ability on (a dig), or none. The pet first goes to it; once it is there
+	 * its owner gets the pet's action button, which uses the ability.
+	 * @param object the object, nullptr for none
+	 * @param ability the ability the object is for
+	 * @param atObject whether the pet has reached the object
+	 */
+	void SetAbilityObject(Entity* object, ePetAbilityType ability, bool atObject);
+
+	/**
+	 * Uses the ability the owner's action button shows (the owner used the pet: SHIFT or the pet menu)
+	 */
+	void UseAbility();
+
+	/**
+	 * Takes the action button away from the owner, if they have it
+	 */
+	void HideAbilityButton();
+
+	/**
+	 * Shows the owner a one-time tutorial tooltip
+	 * @param helpId the tooltip
+	 */
+	void SendHelp(eHelpType helpId) const;
+
+	/**
+	 * Returns the imagination using an ability costs (PetAbilities.ImaginationCost)
+	 */
+	static int32_t GetAbilityImaginationCost(ePetAbilityType ability);
+
+	/**
 	 * Information for the minigame to be completed
 	 */
 	struct PetPuzzleData
@@ -356,6 +397,16 @@ private:
 	 * Set once the pet has been sent back to the backpack; it is removed after its despawn effect has played
 	 */
 	bool m_Despawning{ false };
+
+	/**
+	 * The object the pet goes to use its ability on (a dig), if any. Live did not serialize it as the interaction.
+	 */
+	LWOOBJID m_AbilityObject{ LWOOBJID_EMPTY };
+
+	/**
+	 * Whether the owner has the pet's action button
+	 */
+	bool m_AbilityButtonShown{ false };
 };
 
 #endif // !PETCOMPONENT_H

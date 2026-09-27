@@ -2,6 +2,7 @@
 #include "DashboardNotify.h"
 #include "GameMessages.h"
 #include "PetMessages.h"
+#include "PlayerMessages.h"
 #include "InventoryMessages.h"
 #include "EffectsMessages.h"
 #include "ObjectMessages.h"
@@ -118,6 +119,9 @@ void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpd
 
 void PetComponent::OnUse(Entity* originator) {
 	if (m_Owner != LWOOBJID_EMPTY) {
+		// The owner uses their pet with SHIFT or the pet menu's action button: the client sends RequestUse on the pet
+		// (LWOPetControlComponent::msgPetCommand, "contextAction")
+		if (originator->GetObjectID() == m_Owner) UseAbility();
 		return;
 	}
 
@@ -308,7 +312,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	if (m_TreasureTime > 0) {
-		auto* treasure = Game::entityManager->GetEntity(m_Interaction);
+		auto* treasure = Game::entityManager->GetEntity(m_AbilityObject);
 
 		if (treasure == nullptr) {
 			m_TreasureTime = 0;
@@ -325,7 +329,7 @@ void PetComponent::Update(float deltaTime) {
 
 			treasure->Smash(m_Parent->GetObjectID());
 
-			m_Interaction = LWOOBJID_EMPTY;
+			m_AbilityObject = LWOOBJID_EMPTY;
 
 			m_TreasureTime = 0;
 		}
@@ -386,28 +390,26 @@ void PetComponent::Update(float deltaTime) {
 
 	Entity* closestTreasure = PetDigServer::GetClosestTreasure(position);
 
-	if (closestTreasure != nullptr && digUnlocked) {
-		// Skeleton Dragon Pat special case for bone digging
-		if (closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
-			goto skipTreasure;
-		}
+	Entity* abilityObject = nullptr;
+	auto objectAbility = ePetAbilityType::Invalid;
+	bool atAbilityObject = false;
 
+	// Skeleton Dragon Pat special case for bone digging
+	if (closestTreasure != nullptr && digUnlocked && (closestTreasure->GetLOT() != 12192 || m_Parent->GetLOT() == 13067)) {
 		NiPoint3 treasurePosition = closestTreasure->GetPosition();
 		float distance = Vector3::DistanceSquared(position, treasurePosition);
-		if (distance < 5 * 5) {
-			m_Interaction = closestTreasure->GetObjectID();
+		if (distance < 10 * 10) {
+			abilityObject = closestTreasure;
+			objectAbility = ePetAbilityType::DigAtPosition;
+			atAbilityObject = distance < 5 * 5;
 
-			Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
-
-			m_TreasureTime = 2;
-		} else if (distance < 10 * 10) {
 			haltDistance = 1;
 
 			destination = treasurePosition;
 		}
 	}
 
-skipTreasure:
+	SetAbilityObject(abilityObject, objectAbility, atAbilityObject);
 
 	m_MovementAI->SetHaltDistance(haltDistance);
 
@@ -1164,6 +1166,114 @@ void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, cons
 	if (owner->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(owner->GetSystemAddress(), u"Commmand Type: " + (GeneralUtils::to_u16string(commandType)) + u" - Type Id: " + (GeneralUtils::to_u16string(typeId)));
 	}
+}
+
+void PetComponent::SetAbilityObject(Entity* object, const ePetAbilityType ability, const bool atObject) {
+	const auto objectId = object ? object->GetObjectID() : LWOOBJID_EMPTY;
+	const auto status = m_Status & ~(PET_STATE_AT_ABILITY_OBJECT | PET_STATE_USING_ABILITY | PET_STATE_GOING_TO_ABILITY_OBJECT);
+
+	// What live did (2014 captures): on the way the pet has state 0x500 and the Go To Object ability, the tutorial
+	// for the object is shown; at the object it has 0x120 and the object's ability, and the owner gets the button.
+	if (objectId != m_AbilityObject) {
+		HideAbilityButton();
+		m_AbilityObject = objectId;
+
+		if (!object) {
+			m_Ability = ePetAbilityType::Invalid;
+			SetStatus(status);
+			Game::entityManager->SerializeEntity(m_Parent);
+			return;
+		}
+
+		m_Ability = ePetAbilityType::GoToObject;
+		SetStatus(status | PET_STATE_USING_ABILITY | PET_STATE_GOING_TO_ABILITY_OBJECT);
+		Game::entityManager->SerializeEntity(m_Parent);
+
+		if (ability == ePetAbilityType::DigAtPosition) SendHelp(eHelpType::PR_DIG_TUTORIAL_01);
+	}
+
+	if (!atObject || m_AbilityButtonShown) return;
+
+	m_Ability = ability;
+	SetStatus(status | PET_STATE_USING_ABILITY | PET_STATE_AT_ABILITY_OBJECT);
+	Game::entityManager->SerializeEntity(m_Parent);
+
+	auto* const owner = GetOwner();
+	if (!owner) return;
+
+	GameMessages::ShowPetActionButton msg;
+	msg.target = m_Owner;
+	msg.ButtonLabel = ability;
+	msg.bShow = true;
+	msg.Send(owner->GetSystemAddress());
+	m_AbilityButtonShown = true;
+}
+
+void PetComponent::UseAbility() {
+	if (!m_AbilityButtonShown || m_Despawning) return;
+
+	auto* const object = Game::entityManager->GetEntity(m_AbilityObject);
+	auto* const owner = GetOwner();
+	if (!object || !owner) return;
+
+	auto* const destroyableComponent = owner->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) return;
+
+	// Using the ability costs imagination (PetAbilities: 2 to jump on a pet switch, 1 to dig)
+	const auto cost = GetAbilityImaginationCost(m_Ability);
+	if (destroyableComponent->GetImagination() < cost) return;
+	destroyableComponent->Imagine(-cost);
+
+	const auto ability = m_Ability;
+	HideAbilityButton();
+
+	if (ability == ePetAbilityType::DigAtPosition) {
+		SendHelp(eHelpType::PR_DIG_TUTORIAL_03);
+
+		// Live dropped the ability states as soon as the owner had the pet dig
+		m_Ability = ePetAbilityType::Invalid;
+		SetStatus(m_Status & ~(PET_STATE_AT_ABILITY_OBJECT | PET_STATE_USING_ABILITY | PET_STATE_GOING_TO_ABILITY_OBJECT));
+		Game::entityManager->SerializeEntity(m_Parent);
+
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
+
+		m_TreasureTime = 2;
+	}
+}
+
+void PetComponent::HideAbilityButton() {
+	if (!m_AbilityButtonShown) return;
+	m_AbilityButtonShown = false;
+
+	auto* const owner = GetOwner();
+	if (!owner) return;
+
+	GameMessages::ShowPetActionButton msg;
+	msg.target = m_Owner;
+	msg.ButtonLabel = m_Ability;
+	msg.bShow = false;
+	msg.Send(owner->GetSystemAddress());
+}
+
+void PetComponent::SendHelp(const eHelpType helpId) const {
+	// Sent every time, as live did; the client shows each tooltip only once
+	auto* const owner = GetOwner();
+	if (!owner) return;
+
+	GameMessages::Help msg;
+	msg.target = m_Owner;
+	msg.helpId = helpId;
+	msg.Send(owner->GetSystemAddress());
+}
+
+int32_t PetComponent::GetAbilityImaginationCost(const ePetAbilityType ability) {
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT ImaginationCost FROM PetAbilities WHERE id = ?;");
+	query.bind(1, static_cast<int32_t>(ability));
+
+	auto result = query.execQuery();
+	if (result.eof() || result.fieldIsNull("ImaginationCost")) return 0;
+
+	return result.getIntField("ImaginationCost");
 }
 
 LWOOBJID PetComponent::GetOwnerId() const {
