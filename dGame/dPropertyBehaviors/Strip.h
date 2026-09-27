@@ -55,6 +55,7 @@ private:
 	// The amount of time this strip is paused for. Any interactions with this strip should be bounced if this is greater than 0.
 	// Actions that do not use time do not use this (ex. positions).
 	float m_PausedTime{ 0.0f };
+	bool m_PausedFromOnTimer{ false };
 
 	// The index of the next action to be played. This should always be within range of [0, m_Actions.size()).
 	size_t m_NextActionIndex{ 0 };

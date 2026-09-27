@@ -110,6 +110,7 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_InActionRotation = NiPoint3Constant::ZERO;
 	m_RotationProgress = 0.0f;
 	m_Speed = DEFAULT_SPEED;
+	m_PausedFromOnTimer = false;
 }
 
 void Strip::OnChatMessageReceived(const std::string& sMessage) {
@@ -399,13 +400,25 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 		m_Speed = DEFAULT_SPEED;
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
+			m_WaitingForAction = true;
 		} else if (nextAction.GetType() == "OnChat") {
-			// logic here if needed
+			m_WaitingForAction = true;
 		} else if (nextAction.GetType() == "OnAttack") {
 			modelComponent.AddAttack();
+			m_WaitingForAction = true;
+		} else if (nextAction.GetType() == "OnStartup") {
+			IncrementAction();
+		} else if (nextAction.GetType() == "OnTimer") {
+			if (!m_PausedFromOnTimer) {
+				m_PausedTime = nextAction.GetValueParameterDouble();
+				m_PausedFromOnTimer = true;
+			} else {
+				IncrementAction();
+				m_PausedFromOnTimer = false;
+			}
 		}
+
 		Game::entityManager->SerializeEntity(entity);
-		m_WaitingForAction = true;
 	} else { // should be a normal block
 		ProcNormalAction(deltaTime, modelComponent, updateResult);
 	}
