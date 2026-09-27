@@ -20,6 +20,7 @@
 namespace UgcIconParams {
 	struct Param {
 		std::string key;     // in presets and overrides, e.g. "sunStrength"
+		std::string group;   // what it is part of, for the editor: camera, framing, model, sun, light, look
 		std::string setting; // ugcconfig.ini, e.g. "icon_sun_strength"
 		std::string label;
 		std::string unit;

@@ -23,6 +23,7 @@
 #include "UgcStorage.h"
 #include "UgcThrottle.h"
 #include "ZCompression.h"
+#include "json.hpp"
 
 class Logger;
 class dConfig;
@@ -895,4 +896,31 @@ TEST(UgcJobs, AssemblyNifIsTheIconsModel) {
 	// Nothing to draw
 	input.modules.clear();
 	EXPECT_FALSE(UgcJobs::AssemblyNif(input, res, error));
+}
+
+TEST(UgcIconPose, MatchesTheEditorsFixture) {
+	// The same numbers the dashboard's editor math (ugc-pose-math.js) is checked against
+	std::ifstream file(UGC_POSE_FIXTURE);
+	const auto fixture = nlohmann::json::parse(file, nullptr, false);
+	ASSERT_TRUE(fixture.is_object());
+	std::vector<glm::vec3> positions;
+	const auto& flat = fixture["positions"];
+	for (size_t i = 0; i + 2 < flat.size(); i += 3) positions.emplace_back(flat[i].get<float>(), flat[i + 1].get<float>(), flat[i + 2].get<float>());
+	for (const auto& c : fixture["cases"]) {
+		const auto& pose = c["pose"];
+		const auto rotation = UgcIconPose::ModelRotation(pose["modelYaw"].get<float>(), pose["modelPitch"].get<float>(), pose["modelRoll"].get<float>());
+		std::vector<glm::vec3> turned;
+		for (const auto& p : positions) turned.emplace_back(rotation * glm::vec4(p, 1.0f));
+		const auto frame = UgcIconPose::Compute({ &turned }, { pose["yaw"].get<float>(), pose["pitch"].get<float>(), pose["fov"].get<float>(),
+			pose["margin"].get<float>(), pose["offsetX"].get<float>(), pose["offsetY"].get<float>() });
+		ASSERT_TRUE(frame.ok);
+		for (int k = 0; k < 3; k++) EXPECT_NEAR(frame.center[k], c["center"][k].get<float>(), 1e-4f);
+		for (int k = 0; k < 3; k++) EXPECT_NEAR(frame.eye[k], c["eye"][k].get<float>(), 1e-3f);
+		EXPECT_NEAR(frame.scale, c["scale"].get<float>(), 1e-4f);
+		for (size_t v = 0; v < turned.size(); v++) {
+			const auto point = frame.IconPoint(turned[v]);
+			EXPECT_NEAR(point.x, c["iconPoints"][v][0].get<float>(), 1e-4f) << v;
+			EXPECT_NEAR(point.y, c["iconPoints"][v][1].get<float>(), 1e-4f) << v;
+		}
+	}
 }

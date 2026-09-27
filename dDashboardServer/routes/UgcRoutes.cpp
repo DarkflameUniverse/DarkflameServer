@@ -1,5 +1,6 @@
 #include "UgcRoutes.h"
 
+#include <algorithm>
 #include <memory>
 #include <set>
 
@@ -89,7 +90,8 @@ namespace {
 	}
 
 	// Web thread: a car or rocket's kind, from its first module's build type (ModuleComponent)
-	std::optional<std::string> ModularKind(const std::string& modules) {
+	std::optional<std::string> ModularKind(std::string modules) {
+		std::replace(modules.begin(), modules.end(), '-', '+'); // a combination's key too
 		const auto lots = UgcModularKey::Lots(modules);
 		if (lots.empty()) return std::nullopt;
 		auto query = CDClientDatabase::CreatePreppedStmt("SELECT m.buildType FROM ComponentsRegistry cr JOIN ModuleComponent m ON m.id = cr.component_id "
@@ -98,6 +100,33 @@ namespace {
 		auto row = query.execQuery();
 		if (row.eof()) return std::nullopt;
 		return UgcIconParams::BuildKind(row.getIntField("buildType", 0));
+	}
+
+	// Web thread: each kind with something to edit its preset on: the newest made player model, the most used combination of each build type
+	nlohmann::json WithSamples(nlohmann::json kinds) {
+		std::map<std::string, std::pair<std::string, uint64_t>> best; // kind -> (combination, builds)
+		std::map<std::string, uint64_t> uses;
+		for (const auto& [ldf, count] : Database::Get()->GetModularBuildConfigCounts()) uses[UgcModularKey::Normalize(ldf)] += count;
+		for (const auto& [key, count] : uses) {
+			if (key.empty()) continue;
+			std::string modules = key;
+			std::replace(modules.begin(), modules.end(), '-', '+');
+			const auto kind = ModularKind(modules);
+			if (kind && count > best[*kind].second) best[*kind] = { key, count };
+		}
+		for (auto& entry : kinds) {
+			const auto kind = entry.value("kind", std::string());
+			if (kind == UgcIconParams::ModelKind()) {
+				const auto models = Database::Get()->GetUgcProcessList(IUgc::eProcessState::DONE, "", 0, 1);
+				entry["sample"] = models.empty() ? nlohmann::json(nullptr) : nlohmann::json(std::to_string(models.front().id));
+			} else if (const auto it = best.find(kind); it != best.end()) {
+				entry["sample"] = it->second.first;
+				entry["sampleBuilds"] = it->second.second;
+			} else {
+				entry["sample"] = nullptr;
+			}
+		}
+		return kinds;
 	}
 
 	// Web thread: the values stored for a target, or null
@@ -293,15 +322,16 @@ namespace UgcRoutes {
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/icon/params", Perm("properties_view"),
-			"What an icon's framing and light can be set to: {params: [{key, setting, label, unit, min, max, step, default, description}], kinds: [{kind, label}]} "
-			"(player models, and each car or rocket build type in the client's data)",
+			"What an icon's framing and light can be set to: {params: [{key, group, setting, label, unit, min, max, step, default, description}], kinds: [{kind, "
+			"label, buildType, sample}]} (player models, and each car or rocket build type in the client's data; sample: a model id or the most used module "
+			"combination of that kind, to edit its preset on)",
 			[](HTTPReply& reply, const HTTPContext&) {
 				nlohmann::json params = nlohmann::json::array();
 				for (const auto& param : UgcIconParams::List()) {
-					params.push_back({ { "key", param.key }, { "setting", param.setting }, { "label", param.label }, { "unit", param.unit }, { "min", param.min },
+					params.push_back({ { "key", param.key }, { "group", param.group }, { "setting", param.setting }, { "label", param.label }, { "unit", param.unit }, { "min", param.min },
 						{ "max", param.max }, { "step", param.step }, { "default", param.defaultValue }, { "description", param.description } });
 				}
-				JsonSuccess(reply, { { "params", params }, { "kinds", IconKinds() } });
+				JsonSuccess(reply, { { "params", params }, { "kinds", WithSamples(IconKinds()) } });
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/icon/settings", Perm("properties_view"),
@@ -332,7 +362,35 @@ namespace UgcRoutes {
 					{ "own", target.empty() ? nlohmann::json(nullptr) : StoredValues(target) } });
 			});
 
-		Route(eHTTPMethod::POST, "/api/ugc/icon/preview", Perm("ugc_manage"),
+		Route(eHTTPMethod::GET, "/api/ugc/assembly", Perm("properties_view"),
+			"A car or rocket's modules put together as the icon renderer does (turned by its build type's AdditionalModelRotation), converted for the 3D "
+			"view (NifFile::Encode). Made by the UGC server on a worker and cached per combination. Query: ?modules=4713-4714-4715 (or an ldf_config)",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				auto asked = QueryValue(context.queryString, "modules");
+				std::replace(asked.begin(), asked.end(), '-', '+');
+				const auto key = UgcModularKey::Normalize(asked);
+				if (key.empty()) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "No modules");
+				const auto url = InternalUrl() + "/admin/assembly";
+				Workers::Reply(reply, context, false, [url, key, admin = AdminKey()](HTTPReply& out) {
+					std::string modules = key;
+					std::replace(modules.begin(), modules.end(), '-', '+');
+					const auto fetched = AdminPost(url, admin, nlohmann::json{ { "modules", modules } }.dump());
+					if (fetched->status == 0) return JsonError(out, eHTTPStatusCode::BAD_GATEWAY, "The UGC server doesn't answer at " + url + " (" + fetched->error + ")");
+					if (fetched->status != 200) {
+						const auto error = nlohmann::json::parse(fetched->body, nullptr, false);
+						return JsonError(out, eHTTPStatusCode::UNPROCESSABLE_ENTITY, error.is_object() ? error.value("error", fetched->body) : fetched->body);
+					}
+					std::string error;
+					const auto model = NifFile::Parse(fetched->body, 0, error);
+					if (!model) return JsonError(out, eHTTPStatusCode::UNPROCESSABLE_ENTITY, "The .nif can't be read: " + error);
+					out.status = eHTTPStatusCode::OK;
+					out.contentType = eContentType::APPLICATION_OCTET_STREAM;
+					out.message = NifFile::Encode(*model, std::vector<std::string>(model->meshes.size()));
+					out.headers.push_back("Cache-Control: private, max-age=60");
+				});
+			});
+
+		Route(eHTTPMethod::POST, "/api/ugc/icon/preview", Perm("properties_view"),
 			"An icon drawn by the UGC server with the given values, not stored (PNG). Body: {kind: model, id, values} or {kind: modular, modules, values}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
