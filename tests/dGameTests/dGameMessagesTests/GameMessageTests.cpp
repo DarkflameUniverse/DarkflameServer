@@ -1,6 +1,7 @@
 #include "Action.h"
 #include "Amf3.h"
 #include "AMFDeserialize.h"
+#include "ClientPackets.h"
 #include "GameMessages.h"
 #include "GameDependencies.h"
 
@@ -51,7 +52,11 @@ protected:
  *
  */
 TEST_F(GameMessageTests, SendBlueprintLoadItemResponse) {
-	GameMessages::SendBlueprintLoadItemResponse(UNASSIGNED_SYSTEM_ADDRESS, true, 515, 990);
+	ClientPackets::BlueprintLoadItemResponse response;
+	response.success = true;
+	response.itemId = 515;
+	response.destItemId = 990;
+	response.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	auto* bitStream = static_cast<dServerMock*>(Game::server)->GetMostRecentBitStream();
 	ASSERT_NE(bitStream, nullptr);
 	ASSERT_EQ(bitStream->GetNumberOfUnreadBits(), 200);

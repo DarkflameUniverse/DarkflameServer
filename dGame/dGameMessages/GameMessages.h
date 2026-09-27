@@ -132,21 +132,6 @@ namespace GameMessages {
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
 	void SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector);
-	void SendStartArrangingWithItem(
-		Entity* entity,
-		const SystemAddress& sysAddr,
-		bool bFirstTime = true,
-		const LWOOBJID& buildAreaID = LWOOBJID_EMPTY,
-		NiPoint3 buildStartPOS = NiPoint3Constant::ZERO,
-		int sourceBAG = 0,
-		const LWOOBJID& sourceID = LWOOBJID_EMPTY,
-		LOT sourceLOT = 0,
-		int sourceTYPE = 8,
-		const LWOOBJID& targetID = 0,
-		LOT targetLOT = 0,
-		NiPoint3 targetPOS = NiPoint3Constant::ZERO,
-		int targetTYPE = 0
-	);
 
 	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr, bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = eCyclingMode::ALLOW_CYCLE_TEAMMATES);
 
@@ -206,9 +191,6 @@ namespace GameMessages {
 	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
-	void SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildAreaID);
-	void SendModularBuildEnd(Entity* entity);
-
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
 	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
 	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr, eVendorTransactionResult result);
@@ -221,7 +203,6 @@ namespace GameMessages {
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
 
-	void HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
 	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
@@ -268,9 +249,6 @@ namespace GameMessages {
 
 	void SendNotifyClientFailedPrecondition(LWOOBJID objectId, const SystemAddress& sysAddr, const std::u16string& failedReason, int preconditionID);
 
-	// The success or failure response sent back to the client will preserve the same value for localID.
-	void SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID& localID, unsigned char* buffer, uint32_t bufferSize, const SystemAddress& sysAddr);
-
 	void SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 		bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
 		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
@@ -278,29 +256,7 @@ namespace GameMessages {
 
 	void SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr);
 
-	// Property messages
-
-	/**
-	 * @brief Send an updated item id to the client when they load a blueprint in brick build mode
-	 *
-	 * @param sysAddr SystemAddress to respond to
-	 * @param oldItemId The item ID that was requested to be loaded
-	 * @param newItemId The new item ID of the loaded item
-	 *
-	 */
-	void SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId);
-
 	void SendLockNodeRotation(Entity* entity, std::string nodeName);
-
-	void SendSetBuildModeConfirmed(LWOOBJID objectId, const SystemAddress& sysAddr, bool start, bool warnVisitors, bool modePaused, int32_t modeValue, LWOOBJID playerId, NiPoint3 startPos = NiPoint3Constant::ZERO);
-
-	void HandleSetBuildMode(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleStartBuildingWithItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleBBBLoadItemRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleSetConsumableItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
@@ -501,7 +457,6 @@ namespace GameMessages {
 	void HandleRequestPlatformResync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity);
-	void HandleModularBuildConvertModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity);
@@ -510,10 +465,6 @@ namespace GameMessages {
 	void HandleRemoveItemFromInventory(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleMoveItemInInventory(RakNet::BitStream& inStream, Entity* entity);
 	void HandleMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleBuildModeSet(RakNet::BitStream& inStream, Entity* entity);
-	void HandleModularBuildFinish(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleDoneArrangingWithItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleModularBuildMoveAndEquip(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandlePickupItem(RakNet::BitStream& inStream, Entity* entity);
 	void HandleResurrect(RakNet::BitStream& inStream, Entity* entity);
 	void HandleModifyPlayerZoneStatistic(RakNet::BitStream& inStream, Entity* entity);

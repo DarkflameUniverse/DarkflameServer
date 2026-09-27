@@ -440,3 +440,46 @@ namespace ClientPackets {
 		return true;
 	}
 }
+
+void ClientPackets::BlueprintSaveResponse::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(localId);
+	bitStream.Write(reasonCode);
+	bitStream.Write<uint32_t>(models.size());
+	for (const auto& model : models) {
+		bitStream.Write(model.blueprintId);
+		bitStream.Write<uint32_t>(model.data.size());
+		bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(model.data.data()), model.data.size());
+	}
+}
+
+bool ClientPackets::BlueprintSaveResponse::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(localId));
+	VALIDATE_READ(bitStream.Read(reasonCode));
+	uint32_t count{};
+	VALIDATE_READ(bitStream.Read(count));
+	models.clear();
+	for (uint32_t i = 0; i < count; i++) {
+		auto& model = models.emplace_back();
+		VALIDATE_READ(bitStream.Read(model.blueprintId));
+		uint32_t size{};
+		VALIDATE_READ(bitStream.Read(size));
+		bitStream.AlignReadToByteBoundary();
+		if (static_cast<uint64_t>(size) * 8 > bitStream.GetNumberOfUnreadBits()) return false;
+		model.data.resize(size);
+		if (size != 0) VALIDATE_READ(bitStream.ReadAlignedBytes(reinterpret_cast<unsigned char*>(model.data.data()), size));
+	}
+	return true;
+}
+
+void ClientPackets::BlueprintLoadItemResponse::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(success);
+	bitStream.Write(itemId);
+	bitStream.Write(destItemId);
+}
+
+bool ClientPackets::BlueprintLoadItemResponse::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(success));
+	VALIDATE_READ(bitStream.Read(itemId));
+	VALIDATE_READ(bitStream.Read(destItemId));
+	return true;
+}

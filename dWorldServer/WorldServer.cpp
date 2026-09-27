@@ -1091,11 +1091,9 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 					goto noBBB;
 				}
 
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
-				bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
-				bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
-				bitStream.Write<uint32_t>(bbbModels.size());
+				ClientPackets::BlueprintSaveResponse response;
+				response.localId = LWOOBJID_EMPTY; //always zero so that a check on the client passes
+				response.reasonCode = eBlueprintSaveResponseType::EverythingWorked;
 				for (auto& bbbModel : bbbModels) {
 					LOG("Getting lxfml ugcID: %llu", bbbModel.id);
 
@@ -1104,12 +1102,11 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 					bbbModel.lxfmlData.seekg(0);
 
 					// write data
-					LWOOBJID blueprintID = bbbModel.id;
-					bitStream.Write(blueprintID);
-					bitStream.Write<uint32_t>(lxfmlSize);
-					bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(bbbModel.lxfmlData.str().c_str()), lxfmlSize);
+					auto& model = response.models.emplace_back();
+					model.blueprintId = bbbModel.id;
+					model.data = bbbModel.lxfmlData.str().substr(0, lxfmlSize);
 				}
-				SEND_PACKET;
+				response.Send(sysAddr);
 			}
 
 		noBBB:

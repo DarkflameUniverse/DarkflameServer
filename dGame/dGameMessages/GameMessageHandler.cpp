@@ -32,6 +32,7 @@
 #include "EchoStartSkill.h"
 #include "EchoSyncSkill.h"
 #include "ActivityMessages.h"
+#include "BuildingMessages.h"
 #include "RacingMessages.h"
 #include "MissionMessages.h"
 #include "PetMessages.h"
@@ -103,6 +104,18 @@ namespace {
 		{ REPORT_OFFENSIVE_MODEL, []() { return std::make_unique<ReportOffensiveModel>(); } },
 		{ REPORT_OFFENSIVE_PROPERTY, []() { return std::make_unique<ReportOffensiveProperty>(); } },
 		{ GET_HOT_PROPERTY_DATA, []() { return std::make_unique<GetHotPropertyData>(); } },
+
+		// Building
+		{ START_BUILDING_WITH_ITEM, []() { return std::make_unique<StartBuildingWithItem>(); } },
+		{ DONE_ARRANGING_WITH_ITEM, []() { return std::make_unique<DoneArrangingWithItem>(); } },
+		{ MODULAR_BUILD_FINISH, []() { return std::make_unique<ModularBuildFinish>(); } },
+		{ MODULAR_BUILD_MOVE_AND_EQUIP, []() { return std::make_unique<ModularBuildMoveAndEquip>(); } },
+		{ MODULAR_BUILD_CONVERT_MODEL, []() { return std::make_unique<ModularBuildConvertModel>(); } },
+		{ SET_BUILD_MODE, []() { return std::make_unique<SetBuildMode>(); } },
+		{ BUILD_MODE_SET, []() { return std::make_unique<BuildModeSet>(); } },
+		{ UN_USE_BBB_MODEL, []() { return std::make_unique<UnUseBBBModel>(); } },
+		{ BBB_LOAD_ITEM_REQUEST, []() { return std::make_unique<BBBLoadItemRequest>(); } },
+		{ BBB_SAVE_REQUEST, []() { return std::make_unique<BBBSaveRequest>(); } },
 	};
 };
 
@@ -153,10 +166,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	switch (messageID) {
 
-	case MessageType::Game::UN_USE_BBB_MODEL: {
-		GameMessages::HandleUnUseModel(inStream, entity, sysAddr);
-		break;
-	}
 	case MessageType::Game::PLAY_EMOTE: {
 		GameMessages::HandlePlayEmote(inStream, entity);
 		break;
@@ -453,10 +462,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::HandleMoveItemBetweenInventoryTypes(inStream, entity, sysAddr);
 		break;
 
-	case MessageType::Game::MODULAR_BUILD_FINISH:
-		GameMessages::HandleModularBuildFinish(inStream, entity, sysAddr);
-		break;
-
 	case MessageType::Game::PUSH_EQUIPPED_ITEMS_STATE:
 		GameMessages::HandlePushEquippedItemsState(inStream, entity);
 		break;
@@ -475,22 +480,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::BUYBACK_FROM_VENDOR:
 		GameMessages::HandleBuybackFromVendor(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::MODULAR_BUILD_MOVE_AND_EQUIP:
-		GameMessages::HandleModularBuildMoveAndEquip(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::DONE_ARRANGING_WITH_ITEM:
-		GameMessages::HandleDoneArrangingWithItem(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::MODULAR_BUILD_CONVERT_MODEL:
-		GameMessages::HandleModularBuildConvertModel(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::BUILD_MODE_SET:
-		GameMessages::HandleBuildModeSet(inStream, entity);
 		break;
 
 	case MessageType::Game::REBUILD_CANCEL:
@@ -537,22 +526,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::CHOICE_BOX_RESPOND:
 		GameMessages::HandleChoiceBoxRespond(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::START_BUILDING_WITH_ITEM:
-		GameMessages::HandleStartBuildingWithItem(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::SET_BUILD_MODE:
-		GameMessages::HandleSetBuildMode(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::BBB_LOAD_ITEM_REQUEST:
-		GameMessages::HandleBBBLoadItemRequest(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::BBB_SAVE_REQUEST:
-		GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 		break;
 
 		// Racing: most racing messages are registered in g_MessageHandlers

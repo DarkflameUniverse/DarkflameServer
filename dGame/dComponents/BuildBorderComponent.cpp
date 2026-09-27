@@ -2,6 +2,7 @@
 
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "BuildingMessages.h"
 #include "Entity.h"
 #include "Game.h"
 #include "Logger.h"
@@ -44,23 +45,27 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 		LOG("Starting with %llu", buildArea);
 
 		if (PropertyManagementComponent::Instance() != nullptr) {
-			GameMessages::SendStartArrangingWithItem(
-				originator,
-				originator->GetSystemAddress(),
-				true,
-				buildArea,
-				originator->GetPosition(),
-				0,
-				thinkingHat->GetId(),
-				thinkingHat->GetLot(),
-				4,
-				0,
-				-1,
-				NiPoint3Constant::ZERO,
-				0
-			);
+			GameMessages::StartArrangingWithItem arranging;
+			arranging.target = originator->GetObjectID();
+			arranging.firstTime = true;
+			arranging.buildAreaID = buildArea;
+			arranging.buildStartPos = originator->GetPosition();
+			arranging.sourceBag = 0;
+			arranging.sourceID = thinkingHat->GetId();
+			arranging.sourceLot = thinkingHat->GetLot();
+			arranging.sourceType = 4;
+			arranging.targetID = 0;
+			arranging.targetLot = -1;
+			arranging.targetPos = NiPoint3Constant::ZERO;
+			arranging.targetType = 0;
+			arranging.SendToClient(originator->GetSystemAddress());
 		} else {
-			GameMessages::SendStartArrangingWithItem(originator, originator->GetSystemAddress(), true, buildArea, originator->GetPosition());
+			GameMessages::StartArrangingWithItem arranging;
+			arranging.target = originator->GetObjectID();
+			arranging.firstTime = true;
+			arranging.buildAreaID = buildArea;
+			arranging.buildStartPos = originator->GetPosition();
+			arranging.SendToClient(originator->GetSystemAddress());
 		}
 
 		InventoryComponent* inv = m_Parent->GetComponent<InventoryComponent>();

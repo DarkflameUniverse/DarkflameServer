@@ -1,5 +1,6 @@
 set(DGAME_DGAMEMESSAGES_SOURCES
 	"ActivityMessages.cpp"
+	"BuildingMessages.cpp"
 	"GameMessageDecoder.cpp"
 	"GameMessageHandler.cpp"
 	"GameMessages.cpp"

@@ -14,10 +14,11 @@
 #include <vector>
 
 #include "BitStreamUtils.h"
-#include "MessageType/Client.h"
-#include "Stamps.h"
 #include "dCommonVars.h"
+#include "eBlueprintSaveResponseType.h"
+#include "MessageType/Client.h"
 #include "NiPoint3.h"
+#include "Stamps.h"
 
 enum class eCharacterCreationResponse : uint8_t;
 enum class eGameMasterLevel : uint8_t;
@@ -230,6 +231,35 @@ namespace ClientPackets {
 		DebugOutput() : LUBitStream(ServiceType::CLIENT, MessageType::Client::DEBUG_OUTPUT) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Server -> client. The answer to a BBBSaveRequest (and, with PlacementFailed and no models, to UnUseBBBModel);
+	// also sent on world load to give the client the property's brick built models. Each model is the blueprint's
+	// ID and its data, written as a u32 byte count followed by the bytes.
+	struct BlueprintSaveResponse : public LUBitStream {
+		BlueprintSaveResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		struct Model {
+			LWOOBJID blueprintId{};
+			std::string data{};
+		};
+
+		LWOOBJID localId{};
+		eBlueprintSaveResponseType reasonCode{};
+		std::vector<Model> models{}; // u32 count, then the models
+	};
+
+	// Server -> client. The answer to BBBLoadItemRequest: the model item's ID once it moved to the BBB inventory.
+	struct BlueprintLoadItemResponse : public LUBitStream {
+		BlueprintLoadItemResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::BLUEPRINT_LOAD_RESPONSE_ITEMID) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		uint8_t success{};
+		LWOOBJID itemId{};
+		LWOOBJID destItemId{};
 	};
 };
 
