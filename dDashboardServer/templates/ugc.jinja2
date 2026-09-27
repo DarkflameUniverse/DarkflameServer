@@ -72,12 +72,12 @@
 	</div>
 
 	<div id="gallery" class="ugc-gallery mb-2"></div>
-	<div class="card d-none" id="listCard">
-		<table class="table table-sm align-middle mb-0 table-stack">
-			<thead id="listHead"></thead>
-			<tbody id="rows"></tbody>
-		</table>
-	</div>
+	<div class="card d-none" id="listCard"><div class="card-body p-2">
+		<div id="modelTableBox"><table class="table table-sm align-middle mb-0 w-100 table-stack" id="ugcModelTable">
+			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Made</th><th>Size</th><th>File</th><th></th></tr></thead></table></div>
+		<div id="assemblyTableBox" class="d-none"><table class="table table-sm align-middle mb-0 w-100 table-stack" id="ugcAssemblyTable">
+			<thead><tr><th>Icon</th><th>Newest build</th><th>Type</th><th>Modules</th><th>State</th><th>Builds</th><th>Owners</th><th></th></tr></thead></table></div>
+	</div></div>
 	<div class="d-flex flex-wrap gap-2 align-items-center mt-2" id="pagerBar">
 		<nav aria-label="Pages"><ul class="pagination pagination-sm mb-0" id="pager"></ul></nav>
 		<label class="d-flex align-items-center gap-1 small">Page <input type="number" min="1" class="form-control form-control-sm" style="width:5rem" id="jumpPage" aria-label="Go to page"></label>
@@ -170,11 +170,8 @@
 				<div class="card mt-3 d-none" id="referencesCard">
 					<div class="card-header py-2 small fw-semibold d-flex flex-wrap align-items-center gap-2">References <span class="text-body-secondary fw-normal">the builds that use these modules</span>
 						<input type="search" class="form-control form-control-sm ms-auto" style="max-width: 16rem" id="refSearch" placeholder="Owner, account, property or id" aria-label="Search the builds"></div>
-					<div class="table-responsive"><table class="table table-sm small align-middle mb-0">
-						<thead><tr><th>Build (blueprint id)</th><th>Owner</th><th>Account</th><th>State</th><th>Where it is</th><th></th></tr></thead>
-						<tbody id="refRows"></tbody></table></div>
-					<div class="card-footer py-1 d-flex align-items-center gap-2 small"><nav aria-label="Reference pages"><ul class="pagination pagination-sm mb-0" id="refPager"></ul></nav>
-						<span class="ms-auto text-body-secondary" id="refTotal"></span></div>
+					<div class="card-body p-2"><table class="table table-sm small align-middle mb-0 w-100" id="refTable">
+						<thead><tr><th>Build (blueprint id)</th><th>Owner</th><th>Account</th><th>State</th><th>Where it is</th><th></th></tr></thead></table></div>
 				</div>
 			</div>
 		</div></div>

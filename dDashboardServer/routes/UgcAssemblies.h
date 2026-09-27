@@ -139,7 +139,8 @@ namespace UgcAssemblies {
 		return assembly.key;
 	}
 
-	inline void Sort(std::vector<Assembly>& list, eSort sort, const std::map<uint32_t, ModuleInfo>& modules) {
+	// reverse: the sort's other direction (the order is flipped as a whole)
+	inline void Sort(std::vector<Assembly>& list, eSort sort, const std::map<uint32_t, ModuleInfo>& modules, bool reverse = false) {
 		std::stable_sort(list.begin(), list.end(), [&](const Assembly& a, const Assembly& b) {
 			switch (sort) {
 			case eSort::OLDEST: return a.builds.back() < b.builds.back();
@@ -151,5 +152,6 @@ namespace UgcAssemblies {
 			default: return a.builds.front() > b.builds.front();
 			}
 		});
+		if (reverse) std::reverse(list.begin(), list.end());
 	}
 }

@@ -67,6 +67,7 @@ public:
 		UgcSearch search;
 		std::optional<IUgc::eProcessState> state;
 		eSort sort{ eSort::NEWEST };
+		bool reverse{}; // the sort's other direction (e.g. the fewest bricks first)
 		uint32_t offset{};
 		uint32_t limit{ 50 };
 	};

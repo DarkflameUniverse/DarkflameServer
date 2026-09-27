@@ -67,6 +67,7 @@
 		$('typeFilter').value = list.type;
 		$('sortSelect').innerHTML = SORTS[list.kind].map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join('');
 		$('sortSelect').value = SORTS[list.kind].some(function (o) { return o[0] === list.sort; }) ? list.sort : 'newest';
+		$('sortSelect').classList.toggle('d-none', list.view !== 'gallery'); // the List view sorts by its column headings
 		$('pageSize').value = String(pageSize());
 	}
 
@@ -98,23 +99,47 @@
 		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(i.error || sub) + '">' + iconImg(i, 128) +
 			'<div class="small text-truncate mt-1">' + title + '</div><div class="small text-body-secondary text-truncate">' + sub + '</div><div>' + badge(i.state) + extra + '</div></div>';
 	}
-	function listHead() {
-		return list.kind === 'modular' ? '<tr><th>Icon</th><th>Type</th><th>Modules</th><th>State</th><th>Builds</th><th>Owners</th><th></th></tr>'
-			: '<tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Made</th><th>Size</th><th>Details</th><th></th></tr>';
+	function actions(i, remakeId) {
+		return '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>' +
+			(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(remakeId) + '">Make again</button>' : '');
 	}
-	function row(i) {
-		var view = '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-preview="' + esc(i.id) + '">View</button>';
-		var error = i.error ? '<div class="small text-danger">' + esc(i.error) + '</div>' : '';
-		if (list.kind === 'modular') {
-			return '<tr><td>' + iconImg(i, 48) + '</td><td>' + esc(i.kindLabel || i.buildType) + '</td><td class="small">' + esc(moduleNames(i)) + '<div><code>' + esc(i.key) + '</code></div>' + error +
-				'</td><td>' + badge(i.state) + '</td><td>' + esc(i.uses) + '</td><td>' + esc(i.owners) + '</td><td class="text-end text-nowrap">' + view +
-				(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.iconBuild) + '">Make again</button>' : '') + '</td></tr>';
-		}
-		return '<tr><td>' + iconImg(i, 48) + '</td><td class="small">' + esc(i.id) + '</td><td>' + owner(i) + '</td><td>' + badge(i.state) +
-			(i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i) + '</td>' +
-			'<td class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</td><td class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') +
-			'</td><td class="small">' + esc(i.detail || '') + error + '</td><td class="text-end text-nowrap">' + view +
-			(canManage ? '<button type="button" class="btn btn-sm btn-outline-warning" data-remake="' + esc(i.id) + '">Make again</button>' : '') + '</td></tr>';
+	function errorText(i) { return i.error ? '<div class="small text-danger">' + esc(i.error) + '</div>' : ''; }
+
+	// The List view's columns. A column with a sort key sorts on the server by that key; desc marks the key's own
+	// direction (e.g. "bricks" is the most first), so clicking the other way asks for the reverse.
+	function column(title, render, sort, desc) {
+		return { data: null, title: title, orderable: !!sort, sortKey: sort, desc: !!desc, orderSequence: desc ? ['desc', 'asc'] : ['asc', 'desc'],
+			render: function (x, type, i) { return render(i); } };
+	}
+	var COLUMNS = {
+		model: [
+			column('Icon', function (i) { return iconImg(i, 48); }),
+			column('ID', function (i) { return '<span class="small">' + esc(i.id) + '</span>'; }, 'newest', true),
+			column('Owner', owner, 'owner'),
+			column('State', function (i) {
+				return badge(i.state) + (i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i);
+			}),
+			column('Made', function (i) { return '<span class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</span>'; }),
+			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
+			column('File', function (i) { return '<span class="small">' + esc(i.detail || '') + '</span>' + errorText(i); }, 'name'),
+			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })
+		],
+		modular: [
+			column('Icon', function (i) { return iconImg(i, 48); }),
+			column('Newest build', function (i) { return '<span class="small">' + esc(i.newestBuild) + '</span>'; }, 'newest', true),
+			column('Type', function (i) { return esc(i.kindLabel || i.buildType); }),
+			column('Modules', function (i) { return '<span class="small">' + esc(moduleNames(i)) + '</span><div><code>' + esc(i.key) + '</code></div>' + errorText(i); }, 'name'),
+			column('State', function (i) { return badge(i.state); }),
+			column('Builds', function (i) { return esc(i.uses); }, 'references', true),
+			column('Owners', function (i) { return esc(i.owners); }),
+			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.iconBuild) + '</div>'; })
+		]
+	};
+	// The sort a DataTables order asks for, as /api/ugc's sort= and reverse=
+	function orderQuery(columns, order) {
+		var o = order && order[0], c = o && columns[o.column];
+		if (!c || !c.sortKey) return 'sort=newest';
+		return 'sort=' + c.sortKey + ((o.dir === 'desc') !== c.desc ? '&reverse=1' : '');
 	}
 
 	// Numbered pages with first and last, around the current one
@@ -140,35 +165,74 @@
 		};
 	}
 
+	// What every /api/ugc answer carries besides the items
+	function applyMeta(d) {
+		canManage = d.canManage;
+		publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
+		if (d.kinds && !kinds.length) {
+			kinds = d.kinds;
+			$('typeFilter').innerHTML = '<option value="">Every type</option>' + kinds.filter(function (k) { return k.buildType !== undefined; })
+				.map(function (k) { return '<option value="' + esc(k.kind) + '">' + esc(k.label) + '</option>'; }).join('');
+			$('typeFilter').value = list.type;
+		}
+		$('manageButtons').classList.toggle('d-none', !canManage);
+		$('cacheCard').classList.toggle('d-none', !canManage);
+		$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular);
+	}
+	function filterQuery() {
+		return 'kind=' + list.kind + '&q=' + encodeURIComponent(list.q) + '&state=' + list.state + '&type=' + encodeURIComponent(list.kind === 'modular' ? list.type : '');
+	}
+
+	// The List view: a server-side DataTable per kind, made the first time it shows. Search and filters stay the
+	// page's own (above); DataTables does the paging, and sorting by the column headings.
+	var tables = {}, tableLoaded = null;
+	function listTable(kind) {
+		if (tables[kind]) return tables[kind];
+		var columns = COLUMNS[kind];
+		tables[kind] = serverTable('#' + (kind === 'modular' ? 'ugcAssemblyTable' : 'ugcModelTable'), null, columns, { dataTable: {
+			order: [[1, 'desc']],
+			pageLength: 50,
+			autoWidth: false,
+			layout: { topStart: 'pageLength', topEnd: 'info', bottomStart: null, bottomEnd: 'paging' },
+			language: { emptyTable: 'Nothing here.', zeroRecords: 'Nothing matches.' },
+			ajax: function (data, callback) {
+				var size = data.length > 0 ? data.length : 200;
+				api.get('/api/ugc?' + filterQuery() + '&' + orderQuery(columns, data.order) + '&page=' + Math.floor(data.start / size) + '&size=' + size).then(function (d) {
+					if (!d.success) { callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [], error: d.error || 'Failed' }); return; }
+					applyMeta(d);
+					if (list.kind === kind) items = d.items;
+					callback({ draw: data.draw, recordsTotal: d.total, recordsFiltered: d.total, data: d.items });
+					if (tableLoaded) { tableLoaded(); tableLoaded = null; }
+				}).catch(function () { callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] }); });
+			}
+		} });
+		return tables[kind];
+	}
+
 	var loadSequence = 0;
 	function load() {
-		var size = pageSize(), sequence = ++loadSequence;
 		showControls();
-		var query = 'kind=' + list.kind + '&q=' + encodeURIComponent(list.q) + '&state=' + list.state + '&type=' + encodeURIComponent(list.kind === 'modular' ? list.type : '') +
-			'&sort=' + list.sort + '&page=' + list.page + '&size=' + size;
-		return api.get('/api/ugc?' + query).then(function (d) {
+		var gallery = list.view === 'gallery';
+		$('gallery').classList.toggle('d-none', !gallery);
+		$('pagerBar').classList.toggle('d-none', !gallery);
+		$('listCard').classList.toggle('d-none', gallery);
+		$('modelTableBox').classList.toggle('d-none', list.kind !== 'model');
+		$('assemblyTableBox').classList.toggle('d-none', list.kind !== 'modular');
+		if (!gallery) {
+			return new Promise(function (resolve) {
+				tableLoaded = resolve;
+				var fresh = !tables[list.kind];
+				var table = listTable(list.kind);
+				if (!fresh) table.ajax.reload(null, true);
+			});
+		}
+		var size = pageSize(), sequence = ++loadSequence;
+		return api.get('/api/ugc?' + filterQuery() + '&sort=' + list.sort + '&page=' + list.page + '&size=' + size).then(function (d) {
 			if (!d.success || sequence !== loadSequence) return;
 			items = d.items;
 			total = d.total;
-			canManage = d.canManage;
-			publicUrl = (d.ugcPublicUrl || '').replace(/\/+$/, '');
-			if (d.kinds && !kinds.length) {
-				kinds = d.kinds;
-				$('typeFilter').innerHTML = '<option value="">Every type</option>' + kinds.filter(function (k) { return k.buildType !== undefined; })
-					.map(function (k) { return '<option value="' + esc(k.kind) + '">' + esc(k.label) + '</option>'; }).join('');
-				$('typeFilter').value = list.type;
-			}
-			$('manageButtons').classList.toggle('d-none', !canManage);
-			$('cacheCard').classList.toggle('d-none', !canManage);
-			$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular);
-			$('gallery').classList.toggle('d-none', list.view !== 'gallery');
-			$('listCard').classList.toggle('d-none', list.view !== 'list');
-			var nothing = list.q || list.state || list.type ? 'Nothing matches.' : 'Nothing here.';
-			if (list.view === 'gallery') $('gallery').innerHTML = items.map(tile).join('') || '<div class="text-body-secondary">' + nothing + '</div>';
-			else {
-				$('listHead').innerHTML = listHead();
-				$('rows').innerHTML = items.map(row).join('') || '<tr><td colspan="8" class="text-body-secondary">' + nothing + '</td></tr>';
-			}
+			applyMeta(d);
+			$('gallery').innerHTML = items.map(tile).join('') || '<div class="text-body-secondary">' + (list.q || list.state || list.type ? 'Nothing matches.' : 'Nothing here.') + '</div>';
 			var pages = Math.max(1, Math.ceil(total / size));
 			pager($('pager'), list.page, pages, function (p) { list.page = p; writeUrl(true); load(); });
 			$('jumpPage').max = pages;
@@ -377,31 +441,49 @@
 			return 'In the creator\'s ' + esc(x.inventory || 'inventory');
 		}).join('<br>') || '<span class="text-body-secondary">Not found placed, mailed or with its creator</span>';
 	}
+	// The builds that use the open assembly: a server-side DataTable, made once and reloaded for each assembly. A
+	// linked build (refs.highlight) opens on the page holding it, marked.
+	var REF_COLUMNS = [
+		column('Build (blueprint id)', function (b) { return '<code>' + esc(b.id) + '</code>'; }, 'id', true),
+		column('Owner', owner, 'owner'),
+		column('Account', function (b) { return b.accountId ? '<a href="/accounts/' + esc(b.accountId) + '">' + esc(b.accountName || b.accountId) + '</a>' : ''; }, 'account'),
+		column('State', function (b) { return badge(b.state) + errorText(b); }, 'state'),
+		column('Where it is', function (b) { return whereText(b.where); }),
+		column('', function (b) { return '<div class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/ugc_search?q=' + encodeURIComponent('id:' + b.id) + '">Find</a></div>'; })
+	];
+	var refTable = null;
 	function loadRefs() {
 		if (!refs) return;
-		var wanted = refs;
-		$('refRows').innerHTML = '<tr><td colspan="6" class="text-body-secondary">Loading…</td></tr>';
-		api.get('/api/ugc/assembly/builds?modules=' + encodeURIComponent(refs.key) + '&q=' + encodeURIComponent(refs.q) + '&page=' + refs.page + '&size=25' +
-			(refs.highlight ? '&build=' + encodeURIComponent(refs.highlight) : '')).then(function (d) {
-			if (refs !== wanted) return;
-			if (!d.success) { $('refRows').innerHTML = '<tr><td colspan="6" class="text-danger">' + esc(d.error || 'Failed') + '</td></tr>'; return; }
-			refs.page = d.page;
-			$('refRows').innerHTML = d.items.map(function (b) {
-				return '<tr' + (b.id === refs.highlight ? ' class="ugc-highlight" id="refHighlight"' : '') + '><td><code>' + esc(b.id) + '</code></td><td>' + owner(b) + '</td><td>' +
-					(b.accountId ? '<a href="/accounts/' + esc(b.accountId) + '">' + esc(b.accountName || b.accountId) + '</a>' : '') + '</td><td>' + badge(b.state) +
-					(b.error ? '<div class="text-danger">' + esc(b.error) + '</div>' : '') + '</td><td>' + whereText(b.where) + '</td><td class="text-end">' +
-					'<a class="btn btn-sm btn-outline-secondary" href="/ugc_search?q=' + encodeURIComponent('id:' + b.id) + '">Find</a></td></tr>';
-			}).join('') || '<tr><td colspan="6" class="text-body-secondary">No builds match.</td></tr>';
-			pager($('refPager'), d.page, Math.max(1, Math.ceil(d.total / d.size)), function (p) { refs.page = p; refs.highlight = ''; loadRefs(); });
-			$('refTotal').textContent = d.total + ' build' + (d.total === 1 ? '' : 's');
-			var hl = $('refHighlight');
-			if (hl) hl.scrollIntoView({ block: 'nearest' });
-		});
+		if (refTable) { refTable.ajax.reload(null, true); return; }
+		refTable = serverTable('#refTable', null, REF_COLUMNS, { dataTable: {
+			order: [[0, 'desc']],
+			pageLength: 25,
+			autoWidth: false,
+			layout: { topStart: 'pageLength', topEnd: 'info', bottomStart: null, bottomEnd: 'paging' },
+			language: { emptyTable: 'No builds use these modules.', zeroRecords: 'No builds match.' },
+			createdRow: function (tr, b) { if (refs && b.id === refs.highlight) tr.classList.add('ugc-highlight'); },
+			ajax: function (data, callback) {
+				if (!refs) { callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] }); return; }
+				var wanted = refs, size = data.length > 0 ? data.length : 200, highlight = refs.highlight && !refs.shown ? refs.highlight : '';
+				var sort = orderQuery(REF_COLUMNS, data.order).replace('sort=newest', 'sort=id');
+				api.get('/api/ugc/assembly/builds?modules=' + encodeURIComponent(refs.key) + '&q=' + encodeURIComponent(refs.q) + '&' + sort +
+					'&page=' + Math.floor(data.start / size) + '&size=' + size + (highlight ? '&build=' + encodeURIComponent(highlight) : '')).then(function (d) {
+					if (refs !== wanted) return;
+					if (!d.success) { callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [], error: d.error || 'Failed' }); return; }
+					refs.shown = true;
+					callback({ draw: data.draw, recordsTotal: d.total, recordsFiltered: d.total, data: d.items });
+					// The linked build is on another page: go there (the server said which)
+					if (highlight && d.page * size !== data.start) setTimeout(function () { refTable.page(d.page).draw('page'); }, 0);
+					var marked = document.querySelector('#refTable .ugc-highlight');
+					if (marked) marked.scrollIntoView({ block: 'nearest' });
+				}).catch(function () { callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] }); });
+			}
+		} });
 	}
 	$('refSearch').addEventListener('input', function () {
 		var value = this.value.trim();
 		clearTimeout(refTimer);
-		refTimer = setTimeout(function () { if (refs) { refs.q = value; refs.page = 0; refs.highlight = ''; loadRefs(); } }, 300);
+		refTimer = setTimeout(function () { if (refs) { refs.q = value; refs.highlight = ''; loadRefs(); } }, 300);
 	});
 
 	// ---- controls ----
@@ -443,7 +525,7 @@
 			if (item) preview(item);
 		}
 	}
-	$('rows').addEventListener('click', onItemClick);
+	$('listCard').addEventListener('click', onItemClick);
 	$('gallery').addEventListener('click', onItemClick);
 	$('gallery').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemClick(e); } });
 	$('previewLinks').addEventListener('click', function (e) {

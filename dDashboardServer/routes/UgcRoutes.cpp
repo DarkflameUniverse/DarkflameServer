@@ -241,7 +241,7 @@ namespace UgcRoutes {
 			"A page of player models (kind=model) or of car and rocket assemblies (kind=modular: one per combination of modules, however many builds use "
 			"it). Query: q= (\"state:\", \"kind:\"/\"type:\" (a build type, e.g. build6), \"owner:\", \"account:\", \"property:\", \"name:\", "
 			"\"lot:\"/\"module:\" (a LOT or a module's name), \"id:\", or plain text across names, owners and ids), state=, type=, sort=newest|oldest|owner|name|"
-			"bricks|triangles (models) or newest|oldest|references|name (assemblies), page= (from 0), size= (1-200). {items, total, page, size, counts, "
+			"bricks|triangles (models) or newest|oldest|references|name (assemblies), reverse=1 (the sort's other direction), page= (from 0), size= (1-200). {items, total, page, size, counts, "
 			"kinds, ugcPublicUrl, canManage}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const bool modular = QueryValue(context.queryString, "kind") == "modular";
@@ -251,6 +251,7 @@ namespace UgcRoutes {
 				const auto page = GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "page")).value_or(0);
 				const auto size = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "size")).value_or(PAGE_SIZE), 1u, 200u);
 				const auto sortText = QueryValue(context.queryString, "sort");
+				const bool reverse = QueryValue(context.queryString, "reverse") == "1";
 				nlohmann::json items = nlohmann::json::array();
 				uint64_t total = 0;
 				const auto kinds = IconKinds();
@@ -261,6 +262,7 @@ namespace UgcRoutes {
 					static const std::map<std::string, IUgcLookup::eSort> SORTS = { { "newest", IUgcLookup::eSort::NEWEST }, { "oldest", IUgcLookup::eSort::OLDEST },
 						{ "owner", IUgcLookup::eSort::OWNER }, { "name", IUgcLookup::eSort::NAME }, { "bricks", IUgcLookup::eSort::BRICKS }, { "triangles", IUgcLookup::eSort::TRIANGLES } };
 					if (const auto it = SORTS.find(sortText); it != SORTS.end()) query.sort = it->second;
+					query.reverse = reverse;
 					query.offset = page * size;
 					query.limit = size;
 					const auto [entries, count] = Database::Get()->ListUgc(IUgcLookup::eUgcKind::MODEL, query);
@@ -294,7 +296,7 @@ namespace UgcRoutes {
 					}
 					auto assemblies = UgcAssemblies::Group(AllBuilds(), modules);
 					std::erase_if(assemblies, [&](const auto& a) { return !UgcAssemblies::Matches(a, filter, modules); });
-					UgcAssemblies::Sort(assemblies, UgcAssemblies::ParseSort(sortText).value_or(UgcAssemblies::eSort::NEWEST), modules);
+					UgcAssemblies::Sort(assemblies, UgcAssemblies::ParseSort(sortText).value_or(UgcAssemblies::eSort::NEWEST), modules, reverse);
 					total = assemblies.size();
 					for (size_t i = static_cast<size_t>(page) * size; i < assemblies.size() && i < static_cast<size_t>(page + 1) * size; i++) {
 						const auto& a = assemblies[i];
@@ -321,7 +323,8 @@ namespace UgcRoutes {
 		Route(eHTTPMethod::GET, "/api/ugc/assembly/builds", Perm("properties_view"),
 			"The builds (ugc_modular_build rows) that use a combination of modules: {items: [{id, characterId, characterName, accountId, accountName, state, "
 			"attempts, processedAt, error, where: [{type: property|mail|inventory, ...}]}], total, page, size}. Query: modules= (the combination), q= (owner, "
-			"account, property or id, as the list's search), page=, size=, build= (a build to show: the page holding it is given)",
+			"account, property or id, as the list's search), sort=id|owner|account|state (default id, the newest first; owner and account A to Z, state "
+			"by state then newest), reverse=1 (the other direction), page=, size=, build= (a build to show: the page holding it is given)",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				auto asked = QueryValue(context.queryString, "modules");
 				std::replace(asked.begin(), asked.end(), '-', '+');
@@ -330,7 +333,15 @@ namespace UgcRoutes {
 				const auto parsed = ParseListSearch(QueryValue(context.queryString, "q").substr(0, 100));
 				auto builds = AllBuilds(parsed.search);
 				std::erase_if(builds, [&](const auto& b) { return UgcModularKey::Normalize(b.detail) != key || (parsed.state && b.state != *parsed.state); });
-				std::sort(builds.begin(), builds.end(), [](const auto& a, const auto& b) { return a.id > b.id; });
+				const auto sort = QueryValue(context.queryString, "sort");
+				const auto lowerName = [](const std::string& name) { return UgcAssemblies::Lower(name); };
+				std::stable_sort(builds.begin(), builds.end(), [&](const auto& a, const auto& b) {
+					if (sort == "owner" && lowerName(a.characterName) != lowerName(b.characterName)) return lowerName(a.characterName) < lowerName(b.characterName);
+					if (sort == "account" && lowerName(a.accountName) != lowerName(b.accountName)) return lowerName(a.accountName) < lowerName(b.accountName);
+					if (sort == "state" && a.state != b.state) return a.state < b.state;
+					return a.id > b.id;
+				});
+				if (QueryValue(context.queryString, "reverse") == "1") std::reverse(builds.begin(), builds.end());
 				const auto size = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "size")).value_or(25), 1u, 200u);
 				auto page = GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "page")).value_or(0);
 				if (const auto wanted = GeneralUtils::TryParse<LWOOBJID>(QueryValue(context.queryString, "build"))) {

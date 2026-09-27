@@ -170,8 +170,19 @@ TEST_F(UgcLookupSqlTests, ListsPagesWithCounts) {
 	EXPECT_EQ(total, 2);
 	query.sort = IUgcLookup::eSort::BRICKS;
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
+	query.reverse = true; // the fewest bricks first
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
+	query.reverse = false;
 	query.sort = IUgcLookup::eSort::NAME; // boat before tower
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
+	query.reverse = true; // tower before boat
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
+	query.reverse = false;
+	query.sort = IUgcLookup::eSort::NEWEST;
+	query.reverse = true; // the oldest first
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
+	query.reverse = false;
+	query.sort = IUgcLookup::eSort::NAME;
 	query.limit = 1;
 	query.offset = 1;
 	std::tie(ids, total) = List(query, false);
@@ -251,6 +262,10 @@ TEST(UgcAssemblies, GroupsBuildsByTheirModules) {
 	EXPECT_EQ(list.front().key, "4713-4714-4715"); // Classic before Racing
 	UgcAssemblies::Sort(list, UgcAssemblies::eSort::OLDEST, modules);
 	EXPECT_EQ(list.front().key, "4713-4714-4715"); // build 10
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::REFERENCES, modules, true);
+	EXPECT_EQ(list.back().key, "4713-4714-4715"); // the most builds last
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::NAME, modules, true);
+	EXPECT_EQ(list.back().key, "4713-4714-4715"); // Racing before Classic
 	EXPECT_EQ(UgcAssemblies::ParseSort("uses"), UgcAssemblies::eSort::REFERENCES);
 	EXPECT_FALSE(UgcAssemblies::ParseSort("nonsense"));
 }

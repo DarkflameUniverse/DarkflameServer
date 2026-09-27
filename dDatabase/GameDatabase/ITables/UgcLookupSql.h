@@ -50,13 +50,15 @@ namespace UgcLookupSql {
 	inline std::string ListOrder(const IUgcLookup::UgcListQuery& query, bool modular) {
 		using eSort = IUgcLookup::eSort;
 		const std::string id = modular ? "b.ugc_id" : "u.id";
+		// A sort's own direction, or the other one when the query is reversed; ties stay newest first
+		const auto dir = [&query](bool descending) { return descending != query.reverse ? " DESC" : " ASC"; };
 		switch (query.sort) {
-		case eSort::OLDEST: return "ORDER BY " + id + " ASC ";
-		case eSort::OWNER: return "ORDER BY c.name ASC, " + id + " DESC ";
-		case eSort::NAME: return std::string("ORDER BY ") + (modular ? "b.ldf_config" : "u.filename") + " ASC, " + id + " DESC ";
-		case eSort::BRICKS: return modular ? "ORDER BY " + id + " DESC " : "ORDER BY u.brick_count DESC, u.id DESC ";
-		case eSort::TRIANGLES: return modular ? "ORDER BY " + id + " DESC " : "ORDER BY u.triangle_count DESC, u.id DESC ";
-		default: return "ORDER BY " + id + " DESC ";
+		case eSort::OLDEST: return "ORDER BY " + id + dir(false) + " ";
+		case eSort::OWNER: return "ORDER BY c.name" + std::string(dir(false)) + ", " + id + " DESC ";
+		case eSort::NAME: return std::string("ORDER BY ") + (modular ? "b.ldf_config" : "u.filename") + dir(false) + ", " + id + " DESC ";
+		case eSort::BRICKS: return modular ? "ORDER BY " + id + dir(true) + " " : "ORDER BY u.brick_count" + std::string(dir(true)) + ", u.id DESC ";
+		case eSort::TRIANGLES: return modular ? "ORDER BY " + id + dir(true) + " " : "ORDER BY u.triangle_count" + std::string(dir(true)) + ", u.id DESC ";
+		default: return "ORDER BY " + id + dir(true) + " ";
 		}
 	}
 
