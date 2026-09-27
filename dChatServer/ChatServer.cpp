@@ -24,6 +24,8 @@
 #include "ChatIgnoreList.h"
 #include "StringifiedEnum.h"
 #include "TeamContainer.h"
+#include "PacketDispatcher.h"
+#include "ChatPackets.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -224,6 +226,55 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
+namespace {
+	// Packets from world servers
+	const PacketDispatcher<MessageType::Chat>& ChatHandlers() {
+		static const auto handlers = [] {
+			PacketDispatcher<MessageType::Chat> handlers;
+			using namespace ChatPackets;
+			using MessageType::Chat;
+			handlers.On<GMMute>(Chat::GM_MUTE, [](const GMMute& mute, const SystemAddress& sysAddr) { Game::playerContainer.MuteUpdate(mute, sysAddr); });
+			handlers.On<CreateTeam>(Chat::CREATE_TEAM, TeamContainer::CreateTeamServer);
+			handlers.On<GetFriendsList>(Chat::GET_FRIENDS_LIST, ChatPacketHandler::HandleFriendlistRequest);
+			handlers.On<GetIgnoreList>(Chat::GET_IGNORE_LIST, ChatIgnoreList::GetIgnoreList);
+			handlers.On<AddIgnore>(Chat::ADD_IGNORE, ChatIgnoreList::AddIgnore);
+			handlers.On<RemoveIgnore>(Chat::REMOVE_IGNORE, ChatIgnoreList::RemoveIgnore);
+			handlers.On<TeamGetStatus>(Chat::TEAM_GET_STATUS, TeamContainer::HandleTeamStatusRequest);
+			//this involves someone sending the initial request, the response is below, response as in from the other player.
+			//We basically just check to see if this player is online or not and route the packet.
+			handlers.On<AddFriendRequest>(Chat::ADD_FRIEND_REQUEST, ChatPacketHandler::HandleFriendRequest);
+			//This isn't the response a server sent, rather it is a player's response to a received request.
+			//Here, we'll actually have to add them to eachother's friend lists depending on the response code.
+			handlers.On<AddFriendResponse>(Chat::ADD_FRIEND_RESPONSE, ChatPacketHandler::HandleFriendResponse);
+			handlers.On<RemoveFriend>(Chat::REMOVE_FRIEND, ChatPacketHandler::HandleRemoveFriend);
+			handlers.On<GeneralChatMessage>(Chat::GENERAL_CHAT_MESSAGE, ChatPacketHandler::HandleChatMessage);
+			//This message is supposed to be echo'd to both the sender and the receiver
+			//BUT: they have to have different responseCodes, so we'll do some of the ol hacky wacky to fix that right up.
+			handlers.On<PrivateChatMessage>(Chat::PRIVATE_CHAT_MESSAGE, ChatPacketHandler::HandlePrivateChatMessage);
+			handlers.On<TeamInvite>(Chat::TEAM_INVITE, TeamContainer::HandleTeamInvite);
+			handlers.On<TeamInviteResponse>(Chat::TEAM_INVITE_RESPONSE, TeamContainer::HandleTeamInviteResponse);
+			handlers.On<TeamLeave>(Chat::TEAM_LEAVE, TeamContainer::HandleTeamLeave);
+			handlers.On<TeamSetLeader>(Chat::TEAM_SET_LEADER, TeamContainer::HandleTeamPromote);
+			handlers.On<TeamKick>(Chat::TEAM_KICK, TeamContainer::HandleTeamKick);
+			handlers.On<TeamSetLoot>(Chat::TEAM_SET_LOOT, TeamContainer::HandleTeamLootOption);
+			handlers.On<GMLevelUpdate>(Chat::GMLEVEL_UPDATE, ChatPacketHandler::HandleGMLevelUpdate);
+			handlers.On<LoginSessionNotify>(Chat::LOGIN_SESSION_NOTIFY, [](const LoginSessionNotify& notify, const SystemAddress& sysAddr) { Game::playerContainer.InsertPlayer(notify, sysAddr); });
+			// we just forward this packet to every connected server
+			handlers.On<Announcement>(Chat::GM_ANNOUNCE, [](const Announcement& announcement, const SystemAddress& sysAddr) {
+				RakNet::BitStream bitStream;
+				announcement.WritePacket(bitStream);
+				Game::server->Send(bitStream, sysAddr, true); // send to everyone except origin
+			});
+			handlers.On<UnexpectedDisconnect>(Chat::UNEXPECTED_DISCONNECT, [](const UnexpectedDisconnect& notify, const SystemAddress& sysAddr) { Game::playerContainer.ScheduleRemovePlayer(notify, sysAddr); });
+			handlers.On<FindPlayerRequest>(Chat::WHO, ChatPacketHandler::HandleWho);
+			handlers.On<ShowAllRequest>(Chat::SHOW_ALL, ChatPacketHandler::HandleShowAll);
+			handlers.On<AchievementNotify>(Chat::ACHIEVEMENT_NOTIFY, ChatPacketHandler::OnAchievementNotify);
+			return handlers;
+		}();
+		return handlers;
+	}
+}
+
 // Messages from master that dServer doesn't handle itself
 void HandleMasterPacket(Packet* packet) {
 	if (packet->length < 4 || static_cast<ServiceType>(packet->data[1]) != ServiceType::MASTER) return;
@@ -246,166 +297,15 @@ void HandlePacket(Packet* packet) {
 		LOG("A server is connecting, awaiting user list.");
 	} else if (packet->length < 4 || packet->data[0] != ID_USER_PACKET_ENUM) return; // Nothing left to process or not the right packet type
 
-	CINSTREAM;
-	inStream.SetReadOffset(BYTES_TO_BITS(1));
-
-	ServiceType connection;
-	inStream.Read(connection);
-	if (connection != ServiceType::CHAT) return;
-
-	MessageType::Chat chatMessageID;
-	inStream.Read(chatMessageID);
+	RakNet::BitStream inStream(packet->data, packet->length, false);
+	LUBitStream header;
+	if (!header.ReadHeader(inStream) || header.connectionType != ServiceType::CHAT) return;
 
 	// Our packing byte wasnt there? Probably a false packet
-	if (inStream.GetNumberOfUnreadBits() < 8) return;
-	inStream.IgnoreBytes(1);
+	if (packet->length < 8) return;
 
-	switch (chatMessageID) {
-	case MessageType::Chat::GM_MUTE:
-		Game::playerContainer.MuteUpdate(packet);
-		break;
-
-	case MessageType::Chat::CREATE_TEAM:
-		TeamContainer::CreateTeamServer(packet);
-		break;
-
-	case MessageType::Chat::GET_FRIENDS_LIST:
-		ChatPacketHandler::HandleFriendlistRequest(packet);
-		break;
-
-	case MessageType::Chat::GET_IGNORE_LIST:
-		ChatIgnoreList::GetIgnoreList(packet);
-		break;
-
-	case MessageType::Chat::ADD_IGNORE:
-		ChatIgnoreList::AddIgnore(packet);
-		break;
-
-	case MessageType::Chat::REMOVE_IGNORE:
-		ChatIgnoreList::RemoveIgnore(packet);
-		break;
-
-	case MessageType::Chat::TEAM_GET_STATUS:
-		TeamContainer::HandleTeamStatusRequest(packet);
-		break;
-
-	case MessageType::Chat::ADD_FRIEND_REQUEST:
-		//this involves someone sending the initial request, the response is below, response as in from the other player.
-		//We basically just check to see if this player is online or not and route the packet.
-		ChatPacketHandler::HandleFriendRequest(packet);
-		break;
-
-	case MessageType::Chat::ADD_FRIEND_RESPONSE:
-		//This isn't the response a server sent, rather it is a player's response to a received request.
-		//Here, we'll actually have to add them to eachother's friend lists depending on the response code.
-		ChatPacketHandler::HandleFriendResponse(packet);
-		break;
-
-	case MessageType::Chat::REMOVE_FRIEND:
-		ChatPacketHandler::HandleRemoveFriend(packet);
-		break;
-
-	case MessageType::Chat::GENERAL_CHAT_MESSAGE:
-		ChatPacketHandler::HandleChatMessage(packet);
-		break;
-
-	case MessageType::Chat::PRIVATE_CHAT_MESSAGE:
-		//This message is supposed to be echo'd to both the sender and the receiver
-		//BUT: they have to have different responseCodes, so we'll do some of the ol hacky wacky to fix that right up.
-		ChatPacketHandler::HandlePrivateChatMessage(packet);
-		break;
-
-	case MessageType::Chat::TEAM_INVITE:
-		TeamContainer::HandleTeamInvite(packet);
-		break;
-
-	case MessageType::Chat::TEAM_INVITE_RESPONSE:
-		TeamContainer::HandleTeamInviteResponse(packet);
-		break;
-
-	case MessageType::Chat::TEAM_LEAVE:
-		TeamContainer::HandleTeamLeave(packet);
-		break;
-
-	case MessageType::Chat::TEAM_SET_LEADER:
-		TeamContainer::HandleTeamPromote(packet);
-		break;
-
-	case MessageType::Chat::TEAM_KICK:
-		TeamContainer::HandleTeamKick(packet);
-		break;
-
-	case MessageType::Chat::TEAM_SET_LOOT:
-		TeamContainer::HandleTeamLootOption(packet);
-		break;
-	case MessageType::Chat::GMLEVEL_UPDATE:
-		ChatPacketHandler::HandleGMLevelUpdate(packet);
-		break;
-	case MessageType::Chat::LOGIN_SESSION_NOTIFY:
-		Game::playerContainer.InsertPlayer(packet);
-		break;
-	case MessageType::Chat::GM_ANNOUNCE:
-		// we just forward this packet to every connected server
-		inStream.ResetReadPointer();
-		Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
-		break;
-	case MessageType::Chat::UNEXPECTED_DISCONNECT:
-		Game::playerContainer.ScheduleRemovePlayer(packet);
-		break;
-	case MessageType::Chat::WHO:
-		ChatPacketHandler::HandleWho(packet);
-		break;
-	case MessageType::Chat::SHOW_ALL:
-		ChatPacketHandler::HandleShowAll(packet);
-		break;
-	case MessageType::Chat::ACHIEVEMENT_NOTIFY:
-		ChatPacketHandler::OnAchievementNotify(inStream, packet->systemAddress);
-		break;
-	case MessageType::Chat::USER_CHANNEL_CHAT_MESSAGE:
-	case MessageType::Chat::WORLD_DISCONNECT_REQUEST:
-	case MessageType::Chat::WORLD_PROXIMITY_RESPONSE:
-	case MessageType::Chat::WORLD_PARCEL_RESPONSE:
-	case MessageType::Chat::TEAM_MISSED_INVITE_CHECK:
-	case MessageType::Chat::GUILD_CREATE:
-	case MessageType::Chat::GUILD_INVITE:
-	case MessageType::Chat::GUILD_INVITE_RESPONSE:
-	case MessageType::Chat::GUILD_LEAVE:
-	case MessageType::Chat::GUILD_KICK:
-	case MessageType::Chat::GUILD_GET_STATUS:
-	case MessageType::Chat::GUILD_GET_ALL:
-	case MessageType::Chat::BLUEPRINT_MODERATED:
-	case MessageType::Chat::BLUEPRINT_MODEL_READY:
-	case MessageType::Chat::PROPERTY_READY_FOR_APPROVAL:
-	case MessageType::Chat::PROPERTY_MODERATION_CHANGED:
-	case MessageType::Chat::PROPERTY_BUILDMODE_CHANGED:
-	case MessageType::Chat::PROPERTY_BUILDMODE_CHANGED_REPORT:
-	case MessageType::Chat::MAIL:
-	case MessageType::Chat::WORLD_INSTANCE_LOCATION_REQUEST:
-	case MessageType::Chat::REPUTATION_UPDATE:
-	case MessageType::Chat::SEND_CANNED_TEXT:
-	case MessageType::Chat::CHARACTER_NAME_CHANGE_REQUEST:
-	case MessageType::Chat::CSR_REQUEST:
-	case MessageType::Chat::CSR_REPLY:
-	case MessageType::Chat::GM_KICK:
-	case MessageType::Chat::WORLD_ROUTE_PACKET:
-	case MessageType::Chat::GET_ZONE_POPULATIONS:
-	case MessageType::Chat::REQUEST_MINIMUM_CHAT_MODE:
-	case MessageType::Chat::MATCH_REQUEST:
-	case MessageType::Chat::UGCMANIFEST_REPORT_MISSING_FILE:
-	case MessageType::Chat::UGCMANIFEST_REPORT_DONE_FILE:
-	case MessageType::Chat::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
-	case MessageType::Chat::UGCC_REQUEST:
-	case MessageType::Chat::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
-	case MessageType::Chat::GM_CLOSE_PRIVATE_CHAT_WINDOW:
-	case MessageType::Chat::PLAYER_READY:
-	case MessageType::Chat::GET_DONATION_TOTAL:
-	case MessageType::Chat::UPDATE_DONATION:
-	case MessageType::Chat::PRG_CSR_COMMAND:
-	case MessageType::Chat::HEARTBEAT_REQUEST_FROM_WORLD:
-	case MessageType::Chat::UPDATE_FREE_TRIAL_STATUS:
+	const auto chatMessageID = static_cast<MessageType::Chat>(header.internalPacketID);
+	if (!ChatHandlers().Dispatch(chatMessageID, inStream, packet->systemAddress)) {
 		LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chatMessageID).data(), chatMessageID);
-		break;
-	default:
-		LOG("Unknown CHAT Message id: %i", chatMessageID);
 	}
 }

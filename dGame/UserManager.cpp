@@ -1,4 +1,6 @@
 #include "UserManager.h"
+#include "ChatServerLink.h"
+#include "ChatPackets.h"
 #include "DashboardNotify.h"
 #include <fstream>
 #include <future>
@@ -441,10 +443,9 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, const WorldPacke
 		Database::Get()->DeleteCharacter(objectID);
 		DashboardNotify::Changed("characters", objectID);
 
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
-		bitStream.Write(objectID);
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		ChatPackets::UnexpectedDisconnect notify;
+		notify.playerID = objectID;
+		ChatServerLink::Send(notify);
 
 		ClientPackets::DeleteCharacterResponse response;
 		response.success = true;

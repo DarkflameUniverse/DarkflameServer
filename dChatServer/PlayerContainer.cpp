@@ -26,13 +26,9 @@ TeamData::TeamData() {
 	lootFlag = Game::config->GetValue("default_team_loot") == "0" ? 0 : 1;
 }
 
-void PlayerContainer::InsertPlayer(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerId;
-	if (!inStream.Read(playerId)) {
-		LOG("Failed to read player ID");
-		return;
-	}
+void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify, const SystemAddress& sysAddr) {
+	// Names longer than ChatPackets::LoginSessionNotify::MAX_NAME_LENGTH were dropped when read
+	const LWOOBJID playerId = notify.playerID;
 
 	auto isLogin = !m_Players.contains(playerId);
 	auto& data = m_Players[playerId];
@@ -40,21 +36,11 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	data.isLogin = isLogin;
 	data.playerID = playerId;
 
-	uint32_t len;
-	if (!inStream.Read<uint32_t>(len)) return;
-
-	if (len > 33) {
-		LOG("Received a really long player name, probably a fake packet %i.", len);
-		return;
-	}
-
-	data.playerName.resize(len);
-	inStream.ReadAlignedBytes(reinterpret_cast<unsigned char*>(data.playerName.data()), len);
-
-	if (!inStream.Read(data.zoneID)) return;
-	if (!inStream.Read(data.muteExpire)) return;
-	if (!inStream.Read(data.gmLevel)) return;
-	data.worldServerSysAddr = packet->systemAddress;
+	data.playerName = notify.playerName;
+	data.zoneID = notify.zoneID;
+	data.muteExpire = static_cast<time_t>(notify.muteExpire);
+	data.gmLevel = notify.gmLevel;
+	data.worldServerSysAddr = sysAddr;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
 	m_PlayerCount++;
@@ -66,10 +52,8 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	m_PlayersToRemove.erase(playerId);
 }
 
-void PlayerContainer::ScheduleRemovePlayer(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID{ LWOOBJID_EMPTY };
-	inStream.Read(playerID);
+void PlayerContainer::ScheduleRemovePlayer(const ChatPackets::UnexpectedDisconnect& notify, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = notify.playerID;
 	constexpr float updatePlayerOnLogoutTime = 20.0f;
 	if (playerID != LWOOBJID_EMPTY) m_PlayersToRemove.insert_or_assign(playerID, updatePlayerOnLogoutTime);
 }
@@ -117,12 +101,9 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 	Database::Get()->UpdateActivityLog(playerID, eActivityType::PlayerLoggedOut, player.zoneID.GetMapID());
 }
 
-void PlayerContainer::MuteUpdate(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID;
-	inStream.Read(playerID);
-	time_t expire = 0;
-	inStream.Read(expire);
+void PlayerContainer::MuteUpdate(const ChatPackets::GMMute& mute, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = mute.playerID;
+	const time_t expire = static_cast<time_t>(mute.expire);
 
 	auto& player = this->GetPlayerDataMutable(playerID);
 
@@ -138,13 +119,10 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 }
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_MUTE);
-
-	bitStream.Write(player);
-	bitStream.Write(time);
-
-	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	ChatPackets::GMMute mute;
+	mute.playerID = player;
+	mute.expire = time;
+	mute.Broadcast();
 }
 
 std::u16string PlayerContainer::GetName(LWOOBJID playerID) {

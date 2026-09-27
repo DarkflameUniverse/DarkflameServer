@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
+#include "ChatPackets.h"
 
 enum class eGameMasterLevel : uint8_t;
 
@@ -65,10 +66,10 @@ struct TeamData {
 class PlayerContainer {
 public:
 	void Initialize();
-	void InsertPlayer(Packet* packet);
-	void ScheduleRemovePlayer(Packet* packet);
+	void InsertPlayer(const ChatPackets::LoginSessionNotify& notify, const SystemAddress& sysAddr);
+	void ScheduleRemovePlayer(const ChatPackets::UnexpectedDisconnect& notify, const SystemAddress& sysAddr);
 	void RemovePlayer(const LWOOBJID playerID);
-	void MuteUpdate(Packet* packet);
+	void MuteUpdate(const ChatPackets::GMMute& mute, const SystemAddress& sysAddr);
 	void BroadcastMuteUpdate(LWOOBJID player, time_t time);
 	void Shutdown();
 

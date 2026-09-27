@@ -1,4 +1,6 @@
 #include "User.h"
+#include "ChatServerLink.h"
+#include "ChatPackets.h"
 #include "Database.h"
 #include "Character.h"
 #include "dServer.h"
@@ -108,11 +110,10 @@ bool User::GetIsMuted() {
 				m_MuteExpire = expire;
 
 				if (Game::chatServer && m_LoggedInCharID != 0) {
-					RakNet::BitStream bitStream;
-					BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_MUTE);
-					bitStream.Write(m_LoggedInCharID);
-					bitStream.Write(m_MuteExpire);
-					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+					ChatPackets::GMMute mute;
+					mute.playerID = m_LoggedInCharID;
+					mute.expire = m_MuteExpire;
+					ChatServerLink::Send(mute);
 				}
 			}
 		}

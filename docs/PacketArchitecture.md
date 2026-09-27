@@ -170,6 +170,16 @@ Every non-game-message packet is an `LUBitStream` subclass. The base owns the fu
   (`dChatServer`, `dMasterServer`, `dWorldServer`, `dAuthServer`) and are attached to the struct by overriding
   `Handle` in that server's translation unit.
 - Fixed-width strings use `LUString`/`LUWString` with the width spelled out (`LUWString password(41)`).
+- `PacketDispatcher<MessageType::X>` (`dNet/PacketDispatcher.h`) is the dispatch map for servers where the same
+  struct is handled differently depending on who receives it (chat, master, the dashboard): each entry names the
+  struct and a handler function `(const Msg&, const SystemAddress&)`. `Dispatch(packet, service)` reads the header,
+  reads the struct and drops (and logs) packets that fail to `Deserialize`.
+- Structs go in the file of the `ServiceType` in their header (`ChatPackets` for CHAT, `ClientPackets` for CLIENT,
+  `MasterPackets` for MASTER, ...), whoever sends them. What chat sends a client in the CLIENT service (friends,
+  ignore list and team responses, and the team game messages it writes as `ClientPackets::TeamGameMsg`, since chat
+  doesn't link `dGame`) is in `ClientPackets`; chat-service packets the client receives are in `ChatPackets::Client`.
+- Chat -> client packets are wrapped in `ChatPackets::WorldRoutePacket` (`dNet/WorldRoutePacket.h`: target object ID
+  + the inner packet of any service); the world passes the inner bytes on unchanged.
 
 ```cpp
 // dNet/ChatPackets.h

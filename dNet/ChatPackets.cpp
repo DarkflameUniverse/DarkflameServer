@@ -12,50 +12,465 @@
 #include "ServiceType.h"
 #include "MessageType/Chat.h"
 
-void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) {
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::SHOW_ALL);
-	bitStream.Write(this->requestor);
-	bitStream.Write(this->displayZoneData);
-	bitStream.Write(this->displayIndividualPlayers);
-}
-
-void ShowAllRequest::Deserialize(RakNet::BitStream& inStream) {
-	inStream.Read(this->requestor);
-	inStream.Read(this->displayZoneData);
-	inStream.Read(this->displayIndividualPlayers);
-}
-
-void FindPlayerRequest::Serialize(RakNet::BitStream& bitStream) {
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WHO);
-	bitStream.Write(this->requestor);
-	bitStream.Write(this->playerName);
-}
-
-void FindPlayerRequest::Deserialize(RakNet::BitStream& inStream) {
-	inStream.Read(this->requestor);
-	inStream.Read(this->playerName);
-}
-
-void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
-
-	bitStream.Write<uint64_t>(0);
-	bitStream.Write(chatChannel);
-
-	bitStream.Write<uint32_t>(message.size());
-	bitStream.Write(LUWString(senderName));
-
-	bitStream.Write(playerObjectID);
-	bitStream.Write<uint16_t>(0);
-	bitStream.Write<char>(0);
-
-	for (uint32_t i = 0; i < message.size(); ++i) {
-		bitStream.Write<uint16_t>(message[i]);
+namespace {
+	// A zone ID as three fields: map (u16), instance (u16), clone (u32)
+	void WriteZone(RakNet::BitStream& bitStream, const LWOZONEID& zoneID) {
+		bitStream.Write(zoneID.GetMapID());
+		bitStream.Write(zoneID.GetInstanceID());
+		bitStream.Write(zoneID.GetCloneID());
 	}
-	bitStream.Write<uint16_t>(0);
 
-	SEND_PACKET_BROADCAST;
+	bool ReadZone(RakNet::BitStream& bitStream, LWOZONEID& zoneID) {
+		LWOMAPID mapID{};
+		LWOINSTANCEID instanceID{};
+		LWOCLONEID cloneID{};
+		VALIDATE_READ(bitStream.Read(mapID));
+		VALIDATE_READ(bitStream.Read(instanceID));
+		VALIDATE_READ(bitStream.Read(cloneID));
+		zoneID = LWOZONEID(mapID, instanceID, cloneID);
+		return true;
+	}
+
+	// The LUWString fills the rest of the stream (a message whose length isn't in the packet)
+	bool ReadRemainingWString(RakNet::BitStream& bitStream, LUWString& value) {
+		value.size = static_cast<uint32_t>(BITS_TO_BYTES(bitStream.GetNumberOfUnreadBits()) / sizeof(char16_t));
+		return value.size == 0 || bitStream.Read(value);
+	}
+
+	// Player and team packets from the client all start with the player's object ID and 4 unused bytes
+	bool ReadPlayerHeader(RakNet::BitStream& bitStream, LWOOBJID& playerID, uint32_t& unknown) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(bitStream.Read(unknown));
+		return true;
+	}
+}
+
+namespace ChatPackets {
+	void LoginSessionNotify::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, playerName);
+		WriteZone(bitStream, zoneID);
+		bitStream.Write(muteExpire);
+		bitStream.Write(gmLevel);
+	}
+
+	bool LoginSessionNotify::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, playerName, MAX_NAME_LENGTH));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		VALIDATE_READ(bitStream.Read(muteExpire));
+		VALIDATE_READ(bitStream.Read(gmLevel));
+		return true;
+	}
+
+	void UnexpectedDisconnect::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+	}
+
+	bool UnexpectedDisconnect::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+
+	void GMLevelUpdate::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(gmLevel);
+	}
+
+	bool GMLevelUpdate::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(bitStream.Read(gmLevel));
+		return true;
+	}
+
+	void GMMute::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(expire);
+	}
+
+	bool GMMute::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(bitStream.Read(expire));
+		return true;
+	}
+
+	void Announcement::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, title);
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, message);
+	}
+
+	bool Announcement::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, title));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, message));
+		return true;
+	}
+
+	void CreateTeam::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(leaderID);
+		bitStream.Write<uint64_t>(members.size());
+		for (const auto member : members) bitStream.Write(member);
+		WriteZone(bitStream, zoneID);
+	}
+
+	bool CreateTeam::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(leaderID));
+		uint64_t count{};
+		VALIDATE_READ(bitStream.Read(count));
+		if (count > MAX_MEMBERS) return false;
+		members.resize(count);
+		for (auto& member : members) VALIDATE_READ(bitStream.Read(member));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		return true;
+	}
+
+	void TeamUpdate::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(teamID);
+		bitStream.Write(deleteTeam);
+		if (deleteTeam) return;
+		bitStream.Write(lootFlag);
+		bitStream.Write<uint8_t>(members.size());
+		for (const auto member : members) bitStream.Write(member);
+	}
+
+	bool TeamUpdate::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(teamID));
+		VALIDATE_READ(bitStream.Read(deleteTeam));
+		if (deleteTeam) return true;
+		VALIDATE_READ(bitStream.Read(lootFlag));
+		uint8_t count{};
+		VALIDATE_READ(bitStream.Read(count));
+		members.resize(count);
+		for (auto& member : members) VALIDATE_READ(bitStream.Read(member));
+		return true;
+	}
+
+	void AchievementNotify::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint64_t>(0); // Packing
+		bitStream.Write<uint32_t>(0); // Packing
+		bitStream.Write<uint8_t>(0); // Packing
+		bitStream.Write(earnerName);
+		bitStream.Write<uint64_t>(0); // Packing / No way to know meaning because of not enough data.
+		bitStream.Write<uint32_t>(0); // Packing / No way to know meaning because of not enough data.
+		bitStream.Write<uint16_t>(0); // Packing / No way to know meaning because of not enough data.
+		bitStream.Write<uint8_t>(0); // Packing / No way to know meaning because of not enough data.
+		bitStream.Write(missionEmailID);
+		bitStream.Write(earningPlayerID);
+		bitStream.Write(targetPlayerName);
+	}
+
+	bool AchievementNotify::Deserialize(RakNet::BitStream& bitStream) {
+		bitStream.IgnoreBytes(13);
+		VALIDATE_READ(bitStream.Read(earnerName));
+		bitStream.IgnoreBytes(15);
+		VALIDATE_READ(bitStream.Read(missionEmailID));
+		VALIDATE_READ(bitStream.Read(earningPlayerID));
+		VALIDATE_READ(bitStream.Read(targetPlayerName));
+		return true;
+	}
+
+	void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(requestor);
+		bitStream.Write(displayZoneData);
+		bitStream.Write(displayIndividualPlayers);
+	}
+
+	bool ShowAllRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(requestor));
+		VALIDATE_READ(bitStream.Read(displayZoneData));
+		VALIDATE_READ(bitStream.Read(displayIndividualPlayers));
+		return true;
+	}
+
+	void FindPlayerRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(requestor);
+		bitStream.Write(playerName);
+	}
+
+	bool FindPlayerRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(requestor));
+		VALIDATE_READ(bitStream.Read(playerName));
+		return true;
+	}
+
+	void GetFriendsList::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+	}
+
+	bool GetFriendsList::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+
+	void AddFriendRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(friendName);
+		bitStream.Write(isBestFriendRequest);
+	}
+
+	bool AddFriendRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(friendName));
+		VALIDATE_READ(bitStream.Read(isBestFriendRequest));
+		return true;
+	}
+
+	void AddFriendResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(responseCode);
+		bitStream.Write(friendName);
+	}
+
+	bool AddFriendResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(responseCode));
+		VALIDATE_READ(bitStream.Read(friendName));
+		return true;
+	}
+
+	void RemoveFriend::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(friendName);
+	}
+
+	bool RemoveFriend::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(friendName));
+		return true;
+	}
+
+	void GetIgnoreList::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+	}
+
+	bool GetIgnoreList::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+
+	void AddIgnore::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(playerName);
+	}
+
+	bool AddIgnore::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(playerName));
+		return true;
+	}
+
+	void RemoveIgnore::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(playerName);
+	}
+
+	bool RemoveIgnore::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(playerName));
+		return true;
+	}
+
+	void GeneralChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(chatChannel);
+		bitStream.Write(messageLength);
+		bitStream.Write(senderName);
+		bitStream.Write(senderID);
+		bitStream.Write(sourceID);
+		bitStream.Write(senderGMLevel);
+		bitStream.Write(message);
+	}
+
+	bool GeneralChatMessage::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		VALIDATE_READ(bitStream.Read(messageLength));
+		if (messageLength > MAX_MESSAGE_LENGTH) return false;
+		VALIDATE_READ(bitStream.Read(senderName));
+		VALIDATE_READ(bitStream.Read(senderID));
+		VALIDATE_READ(bitStream.Read(sourceID));
+		VALIDATE_READ(bitStream.Read(senderGMLevel));
+		message = LUWString(messageLength);
+		if (messageLength != 0) VALIDATE_READ(bitStream.Read(message));
+		return true;
+	}
+
+	void PrivateChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(chatChannel);
+		bitStream.Write(messageLength);
+		bitStream.Write(senderName);
+		bitStream.Write(senderID);
+		bitStream.Write(sourceID);
+		bitStream.Write(senderGMLevel);
+		bitStream.Write(receiverName);
+		bitStream.Write(receiverGMLevel);
+		bitStream.Write(responseCode);
+		bitStream.Write(message);
+	}
+
+	bool PrivateChatMessage::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		VALIDATE_READ(bitStream.Read(messageLength));
+		if (messageLength > MAX_MESSAGE_LENGTH) return false;
+		VALIDATE_READ(bitStream.Read(senderName));
+		VALIDATE_READ(bitStream.Read(senderID));
+		VALIDATE_READ(bitStream.Read(sourceID));
+		VALIDATE_READ(bitStream.Read(senderGMLevel));
+		VALIDATE_READ(bitStream.Read(receiverName));
+		VALIDATE_READ(bitStream.Read(receiverGMLevel));
+		VALIDATE_READ(bitStream.Read(responseCode));
+		message = LUWString(messageLength);
+		if (messageLength != 0) VALIDATE_READ(bitStream.Read(message));
+		return true;
+	}
+
+	void TeamInvite::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(invitedPlayer);
+	}
+
+	bool TeamInvite::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(invitedPlayer));
+		return true;
+	}
+
+	void TeamInviteResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(declined);
+		bitStream.Write(leaderID);
+	}
+
+	bool TeamInviteResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(declined));
+		VALIDATE_READ(bitStream.Read(leaderID));
+		return true;
+	}
+
+	void TeamLeave::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+	}
+
+	bool TeamLeave::Deserialize(RakNet::BitStream& bitStream) {
+		return ReadPlayerHeader(bitStream, playerID, unknown);
+	}
+
+	void TeamKick::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(kickedPlayer);
+	}
+
+	bool TeamKick::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(kickedPlayer));
+		return true;
+	}
+
+	void TeamSetLeader::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(promotedPlayer);
+	}
+
+	bool TeamSetLeader::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(promotedPlayer));
+		return true;
+	}
+
+	void TeamSetLoot::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(lootFlag);
+	}
+
+	bool TeamSetLoot::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(lootFlag));
+		return true;
+	}
+
+	void TeamGetStatus::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+	}
+
+	bool TeamGetStatus::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+}
+
+namespace ChatPackets::Client {
+	void GeneralChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(unknown);
+		bitStream.Write(chatChannel);
+		bitStream.Write<uint32_t>(message.size());
+		bitStream.Write(senderName);
+		bitStream.Write(senderID);
+		bitStream.Write(sourceID);
+		bitStream.Write(senderGMLevel);
+		bitStream.Write(message);
+		bitStream.Write<uint16_t>(0); // terminator
+	}
+
+	bool GeneralChatMessage::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(unknown));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		uint32_t length{};
+		VALIDATE_READ(bitStream.Read(length));
+		if (length > MAX_MESSAGE_LENGTH) return false;
+		VALIDATE_READ(bitStream.Read(senderName));
+		VALIDATE_READ(bitStream.Read(senderID));
+		VALIDATE_READ(bitStream.Read(sourceID));
+		VALIDATE_READ(bitStream.Read(senderGMLevel));
+		message.resize(length);
+		if (length != 0) VALIDATE_READ(bitStream.ReadBits(reinterpret_cast<unsigned char*>(message.data()), BYTES_TO_BITS(length * sizeof(char16_t)), true));
+		uint16_t terminator{};
+		VALIDATE_READ(bitStream.Read(terminator));
+		return true;
+	}
+
+	void PrivateChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(chatChannel);
+		bitStream.Write(messageLength);
+		bitStream.Write(senderName);
+		bitStream.Write(senderID);
+		bitStream.Write(sourceID);
+		bitStream.Write(senderGMLevel);
+		bitStream.Write(receiverName);
+		bitStream.Write(receiverGMLevel);
+		bitStream.Write(responseCode);
+		bitStream.Write(message);
+	}
+
+	bool PrivateChatMessage::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		VALIDATE_READ(bitStream.Read(messageLength));
+		VALIDATE_READ(bitStream.Read(senderName));
+		VALIDATE_READ(bitStream.Read(senderID));
+		VALIDATE_READ(bitStream.Read(sourceID));
+		VALIDATE_READ(bitStream.Read(senderGMLevel));
+		VALIDATE_READ(bitStream.Read(receiverName));
+		VALIDATE_READ(bitStream.Read(receiverGMLevel));
+		VALIDATE_READ(bitStream.Read(responseCode));
+		VALIDATE_READ(ReadRemainingWString(bitStream, message));
+		return true;
+	}
 }
 
 void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::string& message, const bool broadcast) {
@@ -63,91 +478,14 @@ void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::str
 }
 
 void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
+	Client::GeneralChatMessage chatMessage;
+	chatMessage.chatChannel = 4;
+	chatMessage.senderName = LUWString("", 33);
+	chatMessage.message = message;
 
-	bitStream.Write<uint64_t>(0);
-	bitStream.Write<char>(4);
-
-	bitStream.Write<uint32_t>(message.size());
-	bitStream.Write(LUWString("", 33));
-
-	bitStream.Write<uint64_t>(0);
-	bitStream.Write<uint16_t>(0);
-	bitStream.Write<char>(0);
-
-	for (uint32_t i = 0; i < message.size(); ++i) {
-		bitStream.Write<uint16_t>(message[i]);
-	}
-
-	bitStream.Write<uint16_t>(0);
-
-	//This is so Wincent's announcement works:
-	if (sysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-		SEND_PACKET;
-		return;
-	}
-
-	SEND_PACKET_BROADCAST;
-}
-
-void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
-	//0x00 - "Chat is currently disabled."
-	//0x01 - "Upgrade to a full LEGO Universe Membership to chat with other players."
-
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::SEND_CANNED_TEXT);
-	bitStream.Write<uint8_t>(0); //response type, options above ^
-	//docs say there's a wstring here-- no idea what it's for, or if it's even needed so leaving it as is for now.
-	SEND_PACKET;
-}
-
-namespace ChatPackets {
-	void Announcement::Serialize(RakNet::BitStream& bitStream) const {
-		bitStream.Write<uint32_t>(title.size());
-		bitStream.Write(title);
-		bitStream.Write<uint32_t>(message.size());
-		bitStream.Write(message);
-	}
-}
-
-void ChatPackets::AchievementNotify::Serialize(RakNet::BitStream& bitstream) const {
-	bitstream.Write<uint64_t>(0); // Packing
-	bitstream.Write<uint32_t>(0); // Packing
-	bitstream.Write<uint8_t>(0); // Packing
-	bitstream.Write(earnerName);
-	bitstream.Write<uint64_t>(0); // Packing / No way to know meaning because of not enough data.
-	bitstream.Write<uint32_t>(0); // Packing / No way to know meaning because of not enough data.
-	bitstream.Write<uint16_t>(0); // Packing / No way to know meaning because of not enough data.
-	bitstream.Write<uint8_t>(0); // Packing / No way to know meaning because of not enough data.
-	bitstream.Write(missionEmailID);
-	bitstream.Write(earningPlayerID);
-	bitstream.Write(targetPlayerName);
-}
-
-bool ChatPackets::AchievementNotify::Deserialize(RakNet::BitStream& bitstream) {
-	bitstream.IgnoreBytes(13);
-	VALIDATE_READ(bitstream.Read(earnerName));
-	bitstream.IgnoreBytes(15);
-	VALIDATE_READ(bitstream.Read(missionEmailID));
-	VALIDATE_READ(bitstream.Read(earningPlayerID));
-	VALIDATE_READ(bitstream.Read(targetPlayerName));
-
-	return true;
-}
-
-void ChatPackets::TeamInviteInitialResponse::Serialize(RakNet::BitStream& bitstream) const {
-	bitstream.Write<uint8_t>(inviteFailedToSend);
-	bitstream.Write(playerName);
-}
-
-void ChatPackets::SendRoutedMsg(const LUBitStream& msg, const LWOOBJID targetID, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(targetID);
-
-	// Now write the actual packet
-	msg.WritePacket(bitStream);
+	RakNet::BitStream bitStream;
+	chatMessage.WritePacket(bitStream);
+	// A message with an address goes only to that client (so Wincent's announcement works)
 	Game::server->Send(bitStream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 }
 

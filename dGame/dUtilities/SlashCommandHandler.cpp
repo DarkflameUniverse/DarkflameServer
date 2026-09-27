@@ -6,6 +6,8 @@
 
 
 #include "SlashCommandHandler.h"
+#include "ChatServerLink.h"
+#include "ChatPackets.h"
 #include "WorldMigration.h"
 
 #include <iomanip>
@@ -339,20 +341,10 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 	//Notify chat about it
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_ANNOUNCE);
-
-	bitStream.Write<uint32_t>(title.size());
-	for (auto character : title) {
-		bitStream.Write<char>(character);
-	}
-
-	bitStream.Write<uint32_t>(message.size());
-	for (auto character : message) {
-		bitStream.Write<char>(character);
-	}
-
-	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	ChatPackets::Announcement announcement;
+	announcement.title = title;
+	announcement.message = message;
+	ChatServerLink::Send(announcement);
 }
 
 void SlashCommandHandler::Startup() {

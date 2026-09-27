@@ -9,8 +9,9 @@
 #include <vector>
 
 #include "dCommonVars.h"
+#include "ChatPackets.h"
 
-struct Packet;
+struct SystemAddress;
 struct PlayerData;
 struct TeamData;
 
@@ -21,13 +22,13 @@ namespace TeamContainer {
 
 	void Shutdown();
 
-	void HandleTeamInvite(Packet* packet);
-	void HandleTeamInviteResponse(Packet* packet);
-	void HandleTeamLeave(Packet* packet);
-	void HandleTeamKick(Packet* packet);
-	void HandleTeamPromote(Packet* packet);
-	void HandleTeamLootOption(Packet* packet);
-	void HandleTeamStatusRequest(Packet* packet);
+	void HandleTeamInvite(const ChatPackets::TeamInvite& invite, const SystemAddress& sysAddr);
+	void HandleTeamInviteResponse(const ChatPackets::TeamInviteResponse& response, const SystemAddress& sysAddr);
+	void HandleTeamLeave(const ChatPackets::TeamLeave& request, const SystemAddress& sysAddr);
+	void HandleTeamKick(const ChatPackets::TeamKick& request, const SystemAddress& sysAddr);
+	void HandleTeamPromote(const ChatPackets::TeamSetLeader& request, const SystemAddress& sysAddr);
+	void HandleTeamLootOption(const ChatPackets::TeamSetLoot& request, const SystemAddress& sysAddr);
+	void HandleTeamStatusRequest(const ChatPackets::TeamGetStatus& request, const SystemAddress& sysAddr);
 
 	void SendTeamInvite(const PlayerData& receiver, const PlayerData& sender);
 	void SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName);
@@ -39,7 +40,7 @@ namespace TeamContainer {
 	void SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName);
 	void SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOOBJID i64PlayerID, LWOZONEID zoneID);
 
-	void CreateTeamServer(Packet* packet);
+	void CreateTeamServer(const ChatPackets::CreateTeam& request, const SystemAddress& sysAddr);
 
 	TeamData* CreateLocalTeam(std::vector<LWOOBJID> members);
 	TeamData* CreateTeam(LWOOBJID leader, bool local = false);

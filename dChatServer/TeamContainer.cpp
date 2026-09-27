@@ -29,15 +29,9 @@ void TeamContainer::Shutdown() {
 	for (auto* team : g_TeamContainer.mTeams) if (team) delete team;
 }
 
-void TeamContainer::HandleTeamInvite(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-
-	LWOOBJID playerID;
-	LUWString invitedPlayer;
-
-	inStream.Read(playerID);
-	inStream.IgnoreBytes(4);
-	inStream.Read(invitedPlayer);
+void TeamContainer::HandleTeamInvite(const ChatPackets::TeamInvite& invite, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = invite.playerID;
+	const LUWString& invitedPlayer = invite.invitedPlayer;
 
 	const auto& player = Game::playerContainer.GetPlayerData(playerID);
 
@@ -76,22 +70,16 @@ void TeamContainer::HandleTeamInvite(Packet* packet) {
 		}
 	}
 
-	ChatPackets::TeamInviteInitialResponse response{};
+	ClientPackets::TeamInviteInitialResponse response{};
 	response.inviteFailedToSend = failed;
 	response.playerName = invitedPlayer.string;
-	ChatPackets::SendRoutedMsg(response, playerID, player.worldServerSysAddr);
+	ChatPacketHandler::SendRouted(playerID, player.worldServerSysAddr, response, player.worldServerSysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 }
 
-void TeamContainer::HandleTeamInviteResponse(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
-	uint32_t size = 0;
-	inStream.Read(size);
-	char declined = 0;
-	inStream.Read(declined);
-	LWOOBJID leaderID = LWOOBJID_EMPTY;
-	inStream.Read(leaderID);
+void TeamContainer::HandleTeamInviteResponse(const ChatPackets::TeamInviteResponse& response, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = response.playerID;
+	const char declined = response.declined;
+	const LWOOBJID leaderID = response.leaderID;
 
 	LOG("Invite reponse received: %llu -> %llu (%d)", playerID, leaderID, declined);
 
@@ -115,12 +103,8 @@ void TeamContainer::HandleTeamInviteResponse(Packet* packet) {
 	AddMember(team, playerID);
 }
 
-void TeamContainer::HandleTeamLeave(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
-	uint32_t size = 0;
-	inStream.Read(size);
+void TeamContainer::HandleTeamLeave(const ChatPackets::TeamLeave& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = request.playerID;
 
 	auto* team = GetTeam(playerID);
 
@@ -131,15 +115,9 @@ void TeamContainer::HandleTeamLeave(Packet* packet) {
 	}
 }
 
-void TeamContainer::HandleTeamKick(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	LUWString kickedPlayer;
-
-	inStream.Read(playerID);
-	inStream.IgnoreBytes(4);
-	inStream.Read(kickedPlayer);
+void TeamContainer::HandleTeamKick(const ChatPackets::TeamKick& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = request.playerID;
+	const LUWString& kickedPlayer = request.kickedPlayer;
 
 
 	LOG("(%llu) kicking (%s) from team", playerID, kickedPlayer.GetAsString().c_str());
@@ -165,15 +143,9 @@ void TeamContainer::HandleTeamKick(Packet* packet) {
 	}
 }
 
-void TeamContainer::HandleTeamPromote(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	LUWString promotedPlayer;
-
-	inStream.Read(playerID);
-	inStream.IgnoreBytes(4);
-	inStream.Read(promotedPlayer);
+void TeamContainer::HandleTeamPromote(const ChatPackets::TeamSetLeader& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = request.playerID;
+	const LUWString& promotedPlayer = request.promotedPlayer;
 
 	LOG("(%llu) promoting (%s) to team leader", playerID, promotedPlayer.GetAsString().c_str());
 
@@ -190,15 +162,9 @@ void TeamContainer::HandleTeamPromote(Packet* packet) {
 	}
 }
 
-void TeamContainer::HandleTeamLootOption(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
-	uint32_t size = 0;
-	inStream.Read(size);
-
-	char option;
-	inStream.Read(option);
+void TeamContainer::HandleTeamLootOption(const ChatPackets::TeamSetLoot& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = request.playerID;
+	const char option = request.lootFlag;
 
 	auto* team = GetTeam(playerID);
 
@@ -213,10 +179,8 @@ void TeamContainer::HandleTeamLootOption(Packet* packet) {
 	}
 }
 
-void TeamContainer::HandleTeamStatusRequest(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
+void TeamContainer::HandleTeamStatusRequest(const ChatPackets::TeamGetStatus& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerID = request.playerID;
 
 	auto* team = GetTeam(playerID);
 	const auto& data = Game::playerContainer.GetPlayerData(playerID);
@@ -263,190 +227,86 @@ void TeamContainer::HandleTeamStatusRequest(Packet* packet) {
 }
 
 void TeamContainer::SendTeamInvite(const PlayerData& receiver, const PlayerData& sender) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::TEAM_INVITE);
-
-	bitStream.Write(LUWString(sender.playerName.c_str()));
-	bitStream.Write(sender.playerID);
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	ClientPackets::TeamInvite invite;
+	invite.senderName = LUWString(sender.playerName.c_str());
+	invite.senderID = sender.playerID;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, invite);
 }
 
 void TeamContainer::SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	CMSGHEADER;
-
-	bitStream.Write(receiver.playerID);
-	bitStream.Write(MessageType::Game::TEAM_INVITE_CONFIRM);
-
-	bitStream.Write(bLeaderIsFreeTrial);
-	bitStream.Write(i64LeaderID);
-	bitStream.Write(i64LeaderZoneID);
-	bitStream.Write<uint32_t>(0); // BinaryBuffe, no clue what's in here
-	bitStream.Write(ucLootFlag);
-	bitStream.Write(ucNumOfOtherPlayers);
-	bitStream.Write(ucResponseCode);
-	bitStream.Write<uint32_t>(wsLeaderName.size());
-	for (const auto character : wsLeaderName) {
-		bitStream.Write(character);
-	}
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	ClientPackets::TeamInviteConfirm msg;
+	msg.target = receiver.playerID;
+	msg.bLeaderIsFreeTrial = bLeaderIsFreeTrial;
+	msg.i64LeaderID = i64LeaderID;
+	msg.i64LeaderZoneID = i64LeaderZoneID;
+	msg.ucLootFlag = ucLootFlag;
+	msg.ucNumOfOtherPlayers = ucNumOfOtherPlayers;
+	msg.ucResponseCode = ucResponseCode;
+	msg.wsLeaderName = wsLeaderName;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, msg);
 }
 
 void TeamContainer::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	CMSGHEADER;
-
-	bitStream.Write(receiver.playerID);
-	bitStream.Write(MessageType::Game::TEAM_GET_STATUS_RESPONSE);
-
-	bitStream.Write(i64LeaderID);
-	bitStream.Write(i64LeaderZoneID);
-	bitStream.Write<uint32_t>(0); // BinaryBuffe, no clue what's in here
-	bitStream.Write(ucLootFlag);
-	bitStream.Write(ucNumOfOtherPlayers);
-	bitStream.Write<uint32_t>(wsLeaderName.size());
-	for (const auto character : wsLeaderName) {
-		bitStream.Write(character);
-	}
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	ClientPackets::TeamGetStatusResponse msg;
+	msg.target = receiver.playerID;
+	msg.i64LeaderID = i64LeaderID;
+	msg.i64LeaderZoneID = i64LeaderZoneID;
+	msg.ucLootFlag = ucLootFlag;
+	msg.ucNumOfOtherPlayers = ucNumOfOtherPlayers;
+	msg.wsLeaderName = wsLeaderName;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, msg);
 }
 
 void TeamContainer::SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64PlayerID) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	CMSGHEADER;
-
-	bitStream.Write(receiver.playerID);
-	bitStream.Write(MessageType::Game::TEAM_SET_LEADER);
-
-	bitStream.Write(i64PlayerID);
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	ClientPackets::TeamSetLeader msg;
+	msg.target = receiver.playerID;
+	msg.i64PlayerID = i64PlayerID;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, msg);
 }
 
 void TeamContainer::SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTrial, bool bLocal, bool bNoLootOnDeath, LWOOBJID i64PlayerID, std::u16string wsPlayerName, LWOZONEID zoneID) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	CMSGHEADER;
-
-	bitStream.Write(receiver.playerID);
-	bitStream.Write(MessageType::Game::TEAM_ADD_PLAYER);
-
-	bitStream.Write(bIsFreeTrial);
-	bitStream.Write(bLocal);
-	bitStream.Write(bNoLootOnDeath);
-	bitStream.Write(i64PlayerID);
-	bitStream.Write<uint32_t>(wsPlayerName.size());
-	for (const auto character : wsPlayerName) {
-		bitStream.Write(character);
-	}
-	bitStream.Write1();
+	ClientPackets::TeamAddPlayer msg;
+	msg.target = receiver.playerID;
+	msg.bIsFreeTrial = bIsFreeTrial;
+	msg.bLocal = bLocal;
+	msg.bNoLootOnDeath = bNoLootOnDeath;
+	msg.i64PlayerID = i64PlayerID;
+	msg.wsPlayerName = wsPlayerName;
 	if (receiver.zoneID.GetCloneID() == zoneID.GetCloneID()) {
 		zoneID = LWOZONEID(zoneID.GetMapID(), zoneID.GetInstanceID(), 0);
 	}
-	bitStream.Write(zoneID);
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	msg.zoneID = zoneID;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, msg);
 }
 
 void TeamContainer::SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	CMSGHEADER;
-
-	bitStream.Write(receiver.playerID);
-	bitStream.Write(MessageType::Game::TEAM_REMOVE_PLAYER);
-
-	bitStream.Write(bDisband);
-	bitStream.Write(bIsKicked);
-	bitStream.Write(bIsLeaving);
-	bitStream.Write(bLocal);
-	bitStream.Write(i64LeaderID);
-	bitStream.Write(i64PlayerID);
-	bitStream.Write<uint32_t>(wsPlayerName.size());
-	for (const auto character : wsPlayerName) {
-		bitStream.Write(character);
-	}
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	ClientPackets::TeamRemovePlayer msg;
+	msg.target = receiver.playerID;
+	msg.bDisband = bDisband;
+	msg.bIsKicked = bIsKicked;
+	msg.bIsLeaving = bIsLeaving;
+	msg.bLocal = bLocal;
+	msg.i64LeaderID = i64LeaderID;
+	msg.i64PlayerID = i64PlayerID;
+	msg.wsPlayerName = wsPlayerName;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, msg);
 }
 
 void TeamContainer::SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOOBJID i64PlayerID, LWOZONEID zoneID) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receiver.playerID);
-
-	//portion that will get routed:
-	CMSGHEADER;
-
-	bitStream.Write(receiver.playerID);
-	bitStream.Write(MessageType::Game::TEAM_SET_OFF_WORLD_FLAG);
-
-	bitStream.Write(i64PlayerID);
+	ClientPackets::TeamSetOffWorldFlag msg;
+	msg.target = receiver.playerID;
+	msg.i64PlayerID = i64PlayerID;
 	if (receiver.zoneID.GetCloneID() == zoneID.GetCloneID()) {
 		zoneID = LWOZONEID(zoneID.GetMapID(), zoneID.GetInstanceID(), 0);
 	}
-	bitStream.Write(zoneID);
-
-	SystemAddress sysAddr = receiver.worldServerSysAddr;
-	SEND_PACKET;
+	msg.zoneID = zoneID;
+	ChatPacketHandler::SendRouted(receiver.playerID, receiver.worldServerSysAddr, msg);
 }
 
-void TeamContainer::CreateTeamServer(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID;
-	inStream.Read(playerID);
-	size_t membersSize = 0;
-	inStream.Read(membersSize);
-
-	if (membersSize >= 4) {
-		LOG("Tried to create a team with more than 4 players");
-		return;
-	}
-
-	std::vector<LWOOBJID> members;
-
-	members.reserve(membersSize);
-
-	for (size_t i = 0; i < membersSize; i++) {
-		LWOOBJID member;
-		inStream.Read(member);
-		members.push_back(member);
-	}
-
-	LWOZONEID zoneId;
-
-	inStream.Read(zoneId);
+void TeamContainer::CreateTeamServer(const ChatPackets::CreateTeam& request, const SystemAddress& sysAddr) {
+	// Requests for more than 4 players (ChatPackets::CreateTeam::MAX_MEMBERS) were dropped when read
+	const std::vector<LWOOBJID>& members = request.members;
+	const LWOZONEID zoneId = request.zoneID;
 
 	auto* team = CreateLocalTeam(members);
 
@@ -651,19 +511,14 @@ void TeamContainer::TeamStatusUpdate(TeamData* team) {
 }
 
 void TeamContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::TEAM_GET_STATUS);
-
-	bitStream.Write(team->teamID);
-	bitStream.Write(deleteTeam);
+	ChatPackets::TeamUpdate update;
+	update.teamID = team->teamID;
+	update.deleteTeam = deleteTeam;
 
 	if (!deleteTeam) {
-		bitStream.Write(team->lootFlag);
-		bitStream.Write<char>(team->memberIDs.size());
-		for (const auto memberID : team->memberIDs) {
-			bitStream.Write(memberID);
-		}
+		update.lootFlag = team->lootFlag;
+		update.members = team->memberIDs;
 	}
 
-	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	update.Broadcast();
 }

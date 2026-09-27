@@ -1,4 +1,6 @@
 #include "ActivityComponent.h"
+#include "ChatServerLink.h"
+#include "ChatPackets.h"
 #include "GameMessages.h"
 #include "CDClientManager.h"
 #include "MissionComponent.h"
@@ -441,19 +443,16 @@ void ActivityInstance::StartZone() {
 
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::CREATE_TEAM);
-
-		bitStream.Write(leader->GetObjectID());
-		bitStream.Write(m_Participants.size());
+		ChatPackets::CreateTeam createTeam;
+		createTeam.leaderID = leader->GetObjectID();
 
 		for (const auto& participant : m_Participants) {
-			bitStream.Write(participant);
+			createTeam.members.push_back(participant);
 		}
 
-		bitStream.Write(zoneId);
+		createTeam.zoneID = zoneId;
 
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		ChatServerLink::Send(createTeam);
 	}
 
 	const auto cloneId = GeneralUtils::GenerateRandomNumber<uint32_t>(1, UINT32_MAX);

@@ -214,7 +214,14 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		bool isOk = Game::chatFilter->IsSentenceOkay(valueStr.data(), eGameMasterLevel::CIVILIAN).empty();
 		// In case a word is removed from the whitelist after it was approved
 		const auto modelName = "%[Objects_" + std::to_string(entity.GetLOT()) + "_name]";
-		if (isOk) ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, 12, modelName, entity.GetObjectID(), false, GeneralUtils::ASCIIToUTF16(valueStr));
+		if (isOk) {
+			ChatPackets::Client::GeneralChatMessage chatMessage;
+			chatMessage.chatChannel = 12;
+			chatMessage.senderName = LUWString(modelName);
+			chatMessage.senderID = entity.GetObjectID();
+			chatMessage.message = GeneralUtils::ASCIIToUTF16(valueStr);
+			chatMessage.Broadcast();
+		}
 		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
 	} else if (nextActionType == Actions::PRIVATE_MESSAGE) {
 		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());

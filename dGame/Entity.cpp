@@ -1,4 +1,6 @@
 #include "dCommonVars.h"
+#include "ChatServerLink.h"
+#include "ChatPackets.h"
 #include "Entity.h"
 #include "EconomyLedger.h"
 #include "CDClientManager.h"
@@ -945,12 +947,10 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 
 	// Update the chat server of our GM Level
 	{
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GMLEVEL_UPDATE);
-		bitStream.Write(m_ObjectID);
-		bitStream.Write(m_GMLevel);
-
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		ChatPackets::GMLevelUpdate update;
+		update.playerID = m_ObjectID;
+		update.gmLevel = m_GMLevel;
+		ChatServerLink::Send(update);
 	}
 }
 

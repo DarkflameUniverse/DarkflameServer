@@ -59,6 +59,9 @@
 #include "Entity.h"
 #include "Character.h"
 #include "ChatPackets.h"
+#include "WorldRoutePacket.h"
+#include "ChatServerLink.h"
+#include "PacketDispatcher.h"
 #include "GameMessageHandler.h"
 #include "GameMessages.h"
 #include "Mail.h"
@@ -590,6 +593,69 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
+namespace {
+	// Packets from the chat server
+	const PacketDispatcher<MessageType::Chat>& ChatHandlers() {
+		static const auto handlers = [] {
+			PacketDispatcher<MessageType::Chat> handlers;
+			// A packet for one of our players' clients
+			handlers.On<ChatPackets::WorldRoutePacket>(MessageType::Chat::WORLD_ROUTE_PACKET, [](const ChatPackets::WorldRoutePacket& route, const SystemAddress&) {
+				auto player = Game::entityManager->GetEntity(route.targetID);
+				if (!player) return;
+
+				auto sysAddr = player->GetSystemAddress();
+
+				//Write our stream outwards:
+				RakNet::BitStream bitStream;
+				if (!route.routedData.empty()) bitStream.WriteAlignedBytes(route.routedData.data(), static_cast<uint32_t>(route.routedData.size()));
+				Game::server->Send(bitStream, sysAddr, false); //send routed packet to player
+			});
+
+			handlers.On<ChatPackets::Announcement>(MessageType::Chat::GM_ANNOUNCE, [](const ChatPackets::Announcement& announcement, const SystemAddress&) {
+				//Send to our clients:
+				AMFArrayValue args;
+
+				args.Insert("title", announcement.title);
+				args.Insert("message", announcement.message);
+
+				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+			});
+
+			handlers.On<ChatPackets::GMMute>(MessageType::Chat::GM_MUTE, [](const ChatPackets::GMMute& mute, const SystemAddress&) {
+				auto* entity = Game::entityManager->GetEntity(mute.playerID);
+				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) {
+					user->SetMuteExpire(static_cast<time_t>(mute.expire));
+
+					entity->GetCharacter()->SendMuteNotice();
+				}
+			});
+
+			handlers.On<ChatPackets::TeamUpdate>(MessageType::Chat::TEAM_GET_STATUS, [](const ChatPackets::TeamUpdate& update, const SystemAddress&) {
+				const LWOOBJID teamID = update.teamID;
+
+				if (update.deleteTeam) {
+					TeamManager::Instance()->DeleteTeam(teamID);
+
+					LOG("Deleting team (%llu)", teamID);
+
+					return;
+				}
+
+				LOG("Updating team ID:(%llu), Loot:(%i), #Members:(%i)", teamID, update.lootFlag, static_cast<int>(update.members.size()));
+				for (const auto member : update.members) {
+					LOG("Added member (%llu) to the team", member);
+				}
+
+				TeamManager::Instance()->UpdateTeam(teamID, update.lootFlag, update.members);
+			});
+			return handlers;
+		}();
+		return handlers;
+	}
+}
+
 void HandlePacketChat(Packet* packet) {
 	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
@@ -606,118 +672,12 @@ void HandlePacketChat(Packet* packet) {
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM && packet->length >= 4) {
-		if (static_cast<ServiceType>(packet->data[1]) == ServiceType::CHAT) {
-			switch (static_cast<MessageType::Chat>(packet->data[3])) {
-			case MessageType::Chat::WORLD_ROUTE_PACKET: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerID;
-				inStream.Read(playerID);
-
-				auto player = Game::entityManager->GetEntity(playerID);
-				if (!player) return;
-
-				auto sysAddr = player->GetSystemAddress();
-
-				//Write our stream outwards:
-				CBITSTREAM;
-				unsigned char data;
-				while (inStream.Read(data)) {
-					bitStream.Write(data);
-				}
-
-				SEND_PACKET; //send routed packet to player
-				break;
-			}
-
-			case MessageType::Chat::GM_ANNOUNCE: {
-				CINSTREAM_SKIP_HEADER;
-
-				std::string title;
-				std::string msg;
-
-				uint32_t len;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					title += character;
-				}
-
-				len = 0;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					msg += character;
-				}
-
-				//Send to our clients:
-				AMFArrayValue args;
-
-				args.Insert("title", title);
-				args.Insert("message", msg);
-
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-				break;
-			}
-
-			case MessageType::Chat::GM_MUTE: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerId;
-				time_t expire = 0;
-				inStream.Read(playerId);
-				inStream.Read(expire);
-
-				auto* entity = Game::entityManager->GetEntity(playerId);
-				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
-				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-				if (user) {
-					user->SetMuteExpire(expire);
-
-					entity->GetCharacter()->SendMuteNotice();
-				}
-
-				break;
-			}
-
-			case MessageType::Chat::TEAM_GET_STATUS: {
-				CINSTREAM_SKIP_HEADER;
-
-				LWOOBJID teamID = 0;
-				char lootOption = 0;
-				char memberCount = 0;
-				std::vector<LWOOBJID> members;
-
-				inStream.Read(teamID);
-				bool deleteTeam = inStream.ReadBit();
-
-				if (deleteTeam) {
-					TeamManager::Instance()->DeleteTeam(teamID);
-
-					LOG("Deleting team (%llu)", teamID);
-
-					break;
-				}
-
-				inStream.Read(lootOption);
-				inStream.Read(memberCount);
-				LOG("Updating team ID:(%llu), Loot:(%i), #Members:(%i)", teamID, lootOption, memberCount);
-				for (char i = 0; i < memberCount; i++) {
-					LWOOBJID member = LWOOBJID_EMPTY;
-					inStream.Read(member);
-					members.push_back(member);
-
-					LOG("Added member (%llu) to the team", member);
-				}
-
-				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
-
-				break;
-			}
-			default:
-				LOG("Received an unknown chat: %s", StringifiedEnum::ToString(static_cast<MessageType::Chat>(packet->data[3])).data());
-			}
+		RakNet::BitStream inStream(packet->data, packet->length, false);
+		LUBitStream header;
+		if (!header.ReadHeader(inStream) || header.connectionType != ServiceType::CHAT) return;
+		const auto messageID = static_cast<MessageType::Chat>(header.internalPacketID);
+		if (!ChatHandlers().Dispatch(messageID, inStream, packet->systemAddress)) {
+			LOG("Received an unknown chat: %s", StringifiedEnum::ToString(messageID).data());
 		}
 	}
 }
@@ -1125,22 +1085,13 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			if (user) {
 				const auto& playerName = character->GetName();
 
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::LOGIN_SESSION_NOTIFY);
-				bitStream.Write(player->GetObjectID());
-				bitStream.Write<uint32_t>(playerName.size());
-				for (size_t i = 0; i < playerName.size(); i++) {
-					bitStream.Write(playerName[i]);
-				}
-
-				auto zone = Game::zoneManager->GetZone()->GetZoneID();
-				bitStream.Write(zone.GetMapID());
-				bitStream.Write(zone.GetInstanceID());
-				bitStream.Write(zone.GetCloneID());
-				bitStream.Write(user->GetMuteExpire());
-				bitStream.Write(player->GetGMLevel());
-
-				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+				ChatPackets::LoginSessionNotify notify;
+				notify.playerID = player->GetObjectID();
+				notify.playerName = playerName;
+				notify.zoneID = Game::zoneManager->GetZone()->GetZoneID();
+				notify.muteExpire = user->GetMuteExpire();
+				notify.gmLevel = player->GetGMLevel();
+				ChatServerLink::Send(notify);
 			}
 		} else {
 			LOG("Couldn't find character to log in with for user %s (%i)!", user->GetUsername().c_str(), user->GetAccountID());
@@ -1189,10 +1140,9 @@ void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
 	}
 
 	{
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
-		bitStream.Write(user->GetLoggedInChar());
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		ChatPackets::UnexpectedDisconnect notify;
+		notify.playerID = user->GetLoggedInChar();
+		ChatServerLink::Send(notify);
 	}
 
 	UserManager::Instance()->DeleteUser(sysAddr);
@@ -1327,10 +1277,9 @@ namespace {
 				auto lastCharacter = user->GetLoggedInChar();
 				// This means we swapped characters and we need to remove the previous player from the container.
 				if (lastCharacter != playerID) {
-					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
-					bitStream.Write(lastCharacter);
-					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+					ChatPackets::UnexpectedDisconnect notify;
+					notify.playerID = lastCharacter;
+					ChatServerLink::Send(notify);
 				}
 			}
 
@@ -1493,7 +1442,11 @@ namespace {
 	struct GeneralChatMessagePacket final : public WorldPackets::GeneralChatMessage {
 		void Handle() override {
 			if (g_ChatDisabled) {
-				ChatPackets::SendMessageFail(sysAddr);
+				//0x00 - "Chat is currently disabled."
+				//0x01 - "Upgrade to a full LEGO Universe Membership to chat with other players."
+				ClientPackets::SendCannedText cannedText;
+				cannedText.responseType = 0;
+				cannedText.Send(sysAddr);
 			} else {
 				// TODO: Find a good home for the logic in this case.
 				User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -1540,7 +1493,12 @@ namespace {
 
 				std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
 				LOG("%s: %s", playerName.c_str(), sMessage.c_str());
-				ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
+				ChatPackets::Client::GeneralChatMessage generalChat;
+				generalChat.chatChannel = chatChannel;
+				generalChat.senderName = LUWString(playerName);
+				generalChat.senderID = user->GetLoggedInChar();
+				generalChat.message = message;
+				generalChat.Broadcast();
 				if (PropertyManagementComponent::Instance()) PropertyManagementComponent::Instance()->OnChatMessageReceived(sMessage);
 			}
 		}

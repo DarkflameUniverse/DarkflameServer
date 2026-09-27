@@ -266,7 +266,11 @@ uint32_t DashboardActions::Apply(const PlayerActionRequest& request) {
 		if (request.instanceId >= 0 && request.instanceId != Game::server->GetInstanceID()) return 0;
 		if (Game::config->GetValue("chat_bridge_filter") != "0" && !Game::chatFilter->IsSentenceOkay(request.text, eGameMasterLevel::CIVILIAN).empty()) return 0;
 		const auto players = PlayerManager::GetAllPlayers().size();
-		ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, static_cast<char>(4), request.name, LWOOBJID_EMPTY, false, GeneralUtils::UTF8ToUTF16(request.text));
+		ChatPackets::Client::GeneralChatMessage chatMessage;
+		chatMessage.chatChannel = 4;
+		chatMessage.senderName = LUWString(request.name);
+		chatMessage.message = GeneralUtils::UTF8ToUTF16(request.text);
+		chatMessage.Broadcast();
 		return static_cast<uint32_t>(players);
 	}
 	case ePlayerAction::RELOAD_VANITY:

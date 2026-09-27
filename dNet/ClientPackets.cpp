@@ -483,3 +483,388 @@ bool ClientPackets::BlueprintLoadItemResponse::Deserialize(RakNet::BitStream& bi
 	VALIDATE_READ(bitStream.Read(destItemId));
 	return true;
 }
+
+namespace {
+	// A zone ID as three fields: map (u16), instance (u16), clone (u32)
+	void WriteZone(RakNet::BitStream& bitStream, const LWOZONEID& zoneID) {
+		bitStream.Write(zoneID.GetMapID());
+		bitStream.Write(zoneID.GetInstanceID());
+		bitStream.Write(zoneID.GetCloneID());
+	}
+
+	bool ReadZone(RakNet::BitStream& bitStream, LWOZONEID& zoneID) {
+		LWOMAPID mapID{};
+		LWOINSTANCEID instanceID{};
+		LWOCLONEID cloneID{};
+		VALIDATE_READ(bitStream.Read(mapID));
+		VALIDATE_READ(bitStream.Read(instanceID));
+		VALIDATE_READ(bitStream.Read(cloneID));
+		zoneID = LWOZONEID(mapID, instanceID, cloneID);
+		return true;
+	}
+}
+
+namespace ClientPackets {
+	void SendCannedText::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseType);
+	}
+
+	bool SendCannedText::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(responseType));
+		return true;
+	}
+
+	void GetFriendsListResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseCode);
+		bitStream.Write(packetLength);
+		bitStream.Write<uint16_t>(friends.size());
+		for (const auto& data : friends) data.Serialize(bitStream);
+	}
+
+	bool GetFriendsListResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(responseCode));
+		VALIDATE_READ(bitStream.Read(packetLength));
+		uint16_t count{};
+		VALIDATE_READ(bitStream.Read(count));
+		friends.resize(count);
+		// The layout FriendData::Serialize writes
+		for (auto& data : friends) {
+			uint8_t isOnline{}, isBestFriend{}, isFTP{}, unknown1{};
+			uint32_t unknown4{};
+			VALIDATE_READ(bitStream.Read(isOnline));
+			VALIDATE_READ(bitStream.Read(isBestFriend));
+			VALIDATE_READ(bitStream.Read(isFTP));
+			VALIDATE_READ(bitStream.Read(unknown4));
+			VALIDATE_READ(bitStream.Read(unknown1));
+			VALIDATE_READ(ReadZone(bitStream, data.zoneID));
+			VALIDATE_READ(bitStream.Read(data.friendID));
+			LUWString name;
+			VALIDATE_READ(bitStream.Read(name));
+			data.friendName = name.GetAsString();
+			uint16_t unknown2{};
+			VALIDATE_READ(bitStream.Read(unknown4));
+			VALIDATE_READ(bitStream.Read(unknown2));
+			data.isOnline = isOnline != 0;
+			data.isBestFriend = isBestFriend != 0;
+			data.isFTP = isFTP != 0;
+		}
+		return true;
+	}
+
+	void AddFriendRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(requestorName);
+		bitStream.Write(isBestFriendRequest);
+	}
+
+	bool AddFriendRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(requestorName));
+		VALIDATE_READ(bitStream.Read(isBestFriendRequest));
+		return true;
+	}
+
+	void AddFriendResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseCode);
+		bitStream.Write(isOnlineOrBestFriend);
+		bitStream.Write(friendName);
+		if (responseCode != eAddFriendResponseType::ACCEPTED) return;
+		bitStream.Write(friendID);
+		WriteZone(bitStream, zoneID);
+		bitStream.Write(isBestFriend);
+		bitStream.Write(isFreeTrial);
+	}
+
+	bool AddFriendResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(responseCode));
+		VALIDATE_READ(bitStream.Read(isOnlineOrBestFriend));
+		VALIDATE_READ(bitStream.Read(friendName));
+		if (responseCode != eAddFriendResponseType::ACCEPTED) return true;
+		VALIDATE_READ(bitStream.Read(friendID));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		VALIDATE_READ(bitStream.Read(isBestFriend));
+		VALIDATE_READ(bitStream.Read(isFreeTrial));
+		return true;
+	}
+
+	void RemoveFriendResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(isSuccessful);
+		bitStream.Write(friendName);
+	}
+
+	bool RemoveFriendResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(isSuccessful));
+		VALIDATE_READ(bitStream.Read(friendName));
+		return true;
+	}
+
+	void UpdateFriendNotify::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(notifyType);
+		bitStream.Write(friendName);
+		WriteZone(bitStream, zoneID);
+		bitStream.Write(isBestFriend);
+		bitStream.Write(isFreeTrial);
+	}
+
+	bool UpdateFriendNotify::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(notifyType));
+		VALIDATE_READ(bitStream.Read(friendName));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		VALIDATE_READ(bitStream.Read(isBestFriend));
+		VALIDATE_READ(bitStream.Read(isFreeTrial));
+		return true;
+	}
+
+	void WhoResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(isOnline);
+		WriteZone(bitStream, zoneID);
+		bitStream.Write(playerName);
+	}
+
+	bool WhoResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(isOnline));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		VALIDATE_READ(bitStream.Read(playerName));
+		return true;
+	}
+
+	void ShowAllResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint8_t>(!displayZoneData && !displayIndividualPlayers);
+		bitStream.Write(playerCount);
+		bitStream.Write(simCount);
+		bitStream.Write<uint8_t>(displayIndividualPlayers);
+		bitStream.Write<uint8_t>(displayZoneData);
+		if (!displayZoneData && !displayIndividualPlayers) return;
+		for (const auto& player : players) {
+			bitStream.Write<uint8_t>(0); // structure packing
+			if (displayIndividualPlayers) bitStream.Write(LUWString(player.name));
+			if (displayZoneData) WriteZone(bitStream, player.zoneID);
+		}
+	}
+
+	bool ShowAllResponse::Deserialize(RakNet::BitStream& bitStream) {
+		uint8_t nothingShown{}, individualPlayers{}, zoneData{};
+		VALIDATE_READ(bitStream.Read(nothingShown));
+		VALIDATE_READ(bitStream.Read(playerCount));
+		VALIDATE_READ(bitStream.Read(simCount));
+		VALIDATE_READ(bitStream.Read(individualPlayers));
+		VALIDATE_READ(bitStream.Read(zoneData));
+		displayIndividualPlayers = individualPlayers != 0;
+		displayZoneData = zoneData != 0;
+		players.clear();
+		if (!displayZoneData && !displayIndividualPlayers) return true;
+		while (bitStream.GetNumberOfUnreadBits() > 0) {
+			auto& player = players.emplace_back();
+			uint8_t packing{};
+			VALIDATE_READ(bitStream.Read(packing));
+			if (displayIndividualPlayers) {
+				LUWString name;
+				VALIDATE_READ(bitStream.Read(name));
+				player.name = name.GetAsString();
+			}
+			if (displayZoneData) VALIDATE_READ(ReadZone(bitStream, player.zoneID));
+		}
+		return true;
+	}
+
+	void GetIgnoreListResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(isFreeTrial);
+		bitStream.Write(padding);
+		bitStream.Write<uint16_t>(ignored.size());
+		for (const auto& player : ignored) {
+			bitStream.Write(player.playerID);
+			bitStream.Write(player.playerName);
+		}
+	}
+
+	bool GetIgnoreListResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(isFreeTrial));
+		VALIDATE_READ(bitStream.Read(padding));
+		uint16_t count{};
+		VALIDATE_READ(bitStream.Read(count));
+		ignored.resize(count);
+		for (auto& player : ignored) {
+			VALIDATE_READ(bitStream.Read(player.playerID));
+			VALIDATE_READ(bitStream.Read(player.playerName));
+		}
+		return true;
+	}
+
+	void AddIgnoreResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseCode);
+		bitStream.Write(playerName);
+		bitStream.Write(playerID);
+	}
+
+	bool AddIgnoreResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(responseCode));
+		VALIDATE_READ(bitStream.Read(playerName));
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+
+	void RemoveIgnoreResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseCode);
+		bitStream.Write(playerName);
+	}
+
+	bool RemoveIgnoreResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(responseCode));
+		VALIDATE_READ(bitStream.Read(playerName));
+		return true;
+	}
+
+	void TeamInvite::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(senderName);
+		bitStream.Write(senderID);
+	}
+
+	bool TeamInvite::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(senderName));
+		VALIDATE_READ(bitStream.Read(senderID));
+		return true;
+	}
+
+	void TeamInviteInitialResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint8_t>(inviteFailedToSend);
+		bitStream.Write(playerName);
+	}
+
+	bool TeamInviteInitialResponse::Deserialize(RakNet::BitStream& bitStream) {
+		uint8_t failed{};
+		VALIDATE_READ(bitStream.Read(failed));
+		inviteFailedToSend = failed != 0;
+		VALIDATE_READ(bitStream.Read(playerName));
+		return true;
+	}
+
+	void TeamGameMsg::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(target);
+		bitStream.Write(msgId);
+	}
+
+	bool TeamGameMsg::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(target));
+		MessageType::Game readId{};
+		VALIDATE_READ(bitStream.Read(readId));
+		return readId == msgId;
+	}
+
+	void TeamInviteConfirm::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		bitStream.Write(bLeaderIsFreeTrial);
+		bitStream.Write(i64LeaderID);
+		WriteZone(bitStream, i64LeaderZoneID);
+		bitStream.Write(binaryBufferLength);
+		bitStream.Write(ucLootFlag);
+		bitStream.Write(ucNumOfOtherPlayers);
+		bitStream.Write(ucResponseCode);
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, wsLeaderName);
+	}
+
+	bool TeamInviteConfirm::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		VALIDATE_READ(bitStream.Read(bLeaderIsFreeTrial));
+		VALIDATE_READ(bitStream.Read(i64LeaderID));
+		VALIDATE_READ(ReadZone(bitStream, i64LeaderZoneID));
+		VALIDATE_READ(bitStream.Read(binaryBufferLength));
+		if (binaryBufferLength != 0) return false; // never filled
+		VALIDATE_READ(bitStream.Read(ucLootFlag));
+		VALIDATE_READ(bitStream.Read(ucNumOfOtherPlayers));
+		VALIDATE_READ(bitStream.Read(ucResponseCode));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, wsLeaderName));
+		return true;
+	}
+
+	void TeamGetStatusResponse::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		bitStream.Write(i64LeaderID);
+		WriteZone(bitStream, i64LeaderZoneID);
+		bitStream.Write(binaryBufferLength);
+		bitStream.Write(ucLootFlag);
+		bitStream.Write(ucNumOfOtherPlayers);
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, wsLeaderName);
+	}
+
+	bool TeamGetStatusResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		VALIDATE_READ(bitStream.Read(i64LeaderID));
+		VALIDATE_READ(ReadZone(bitStream, i64LeaderZoneID));
+		VALIDATE_READ(bitStream.Read(binaryBufferLength));
+		if (binaryBufferLength != 0) return false; // never filled
+		VALIDATE_READ(bitStream.Read(ucLootFlag));
+		VALIDATE_READ(bitStream.Read(ucNumOfOtherPlayers));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, wsLeaderName));
+		return true;
+	}
+
+	void TeamSetLeader::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		bitStream.Write(i64PlayerID);
+	}
+
+	bool TeamSetLeader::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		VALIDATE_READ(bitStream.Read(i64PlayerID));
+		return true;
+	}
+
+	void TeamAddPlayer::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		bitStream.Write(bIsFreeTrial);
+		bitStream.Write(bLocal);
+		bitStream.Write(bNoLootOnDeath);
+		bitStream.Write(i64PlayerID);
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, wsPlayerName);
+		bitStream.Write1(); // zoneID is always written
+		WriteZone(bitStream, zoneID);
+	}
+
+	bool TeamAddPlayer::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		VALIDATE_READ(bitStream.Read(bIsFreeTrial));
+		VALIDATE_READ(bitStream.Read(bLocal));
+		VALIDATE_READ(bitStream.Read(bNoLootOnDeath));
+		VALIDATE_READ(bitStream.Read(i64PlayerID));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, wsPlayerName));
+		bool hasZone{};
+		VALIDATE_READ(bitStream.Read(hasZone));
+		if (!hasZone) return false; // always written
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		return true;
+	}
+
+	void TeamRemovePlayer::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		bitStream.Write(bDisband);
+		bitStream.Write(bIsKicked);
+		bitStream.Write(bIsLeaving);
+		bitStream.Write(bLocal);
+		bitStream.Write(i64LeaderID);
+		bitStream.Write(i64PlayerID);
+		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, wsPlayerName);
+	}
+
+	bool TeamRemovePlayer::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		VALIDATE_READ(bitStream.Read(bDisband));
+		VALIDATE_READ(bitStream.Read(bIsKicked));
+		VALIDATE_READ(bitStream.Read(bIsLeaving));
+		VALIDATE_READ(bitStream.Read(bLocal));
+		VALIDATE_READ(bitStream.Read(i64LeaderID));
+		VALIDATE_READ(bitStream.Read(i64PlayerID));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, wsPlayerName));
+		return true;
+	}
+
+	void TeamSetOffWorldFlag::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		bitStream.Write(i64PlayerID);
+		WriteZone(bitStream, zoneID);
+	}
+
+	bool TeamSetOffWorldFlag::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		VALIDATE_READ(bitStream.Read(i64PlayerID));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		return true;
+	}
+}

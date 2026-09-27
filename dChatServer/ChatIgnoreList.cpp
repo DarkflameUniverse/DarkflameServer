@@ -8,23 +8,14 @@
 #include "eObjectBits.h"
 
 #include "Database.h"
+#include "ChatPacketHandler.h"
 
 // A note to future readers, The client handles all the actual ignoring logic:
 // not allowing teams, rejecting DMs, friends requets etc.
 // The only thing not auto-handled is instance activities force joining the team on the server.
 
-void WriteOutgoingReplyHeader(RakNet::BitStream& bitStream, const LWOOBJID& receivingPlayer, const MessageType::Client type) {
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
-	bitStream.Write(receivingPlayer);
-
-	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, type);
-}
-
-void ChatIgnoreList::GetIgnoreList(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerId;
-	inStream.Read(playerId);
+void ChatIgnoreList::GetIgnoreList(const ChatPackets::GetIgnoreList& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerId = request.playerID;
 
 	auto& receiver = Game::playerContainer.GetPlayerDataMutable(playerId);
 	if (!receiver) {
@@ -47,25 +38,17 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 		}
 	}
 
-	CBITSTREAM;
-	WriteOutgoingReplyHeader(bitStream, receiver.playerID, MessageType::Client::GET_IGNORE_LIST_RESPONSE);
-
-	bitStream.Write<uint8_t>(false); // Is Free Trial, but we don't care about that
-	bitStream.Write<uint16_t>(0); // literally spacing due to struct alignment
-
-	bitStream.Write<uint16_t>(receiver.ignoredPlayers.size());
+	ClientPackets::GetIgnoreListResponse response;
+	response.isFreeTrial = false; // Is Free Trial, but we don't care about that
 	for (const auto& ignoredPlayer : receiver.ignoredPlayers) {
-		bitStream.Write(ignoredPlayer.playerId);
-		bitStream.Write(LUWString(ignoredPlayer.playerName, 36));
+		response.ignored.push_back({ ignoredPlayer.playerId, LUWString(ignoredPlayer.playerName, 36) });
 	}
 
-	Game::server->Send(bitStream, packet->systemAddress, false);
+	ChatPacketHandler::SendRouted(receiver.playerID, sysAddr, response);
 }
 
-void ChatIgnoreList::AddIgnore(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerId;
-	inStream.Read(playerId);
+void ChatIgnoreList::AddIgnore(const ChatPackets::AddIgnore& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerId = request.playerID;
 
 	auto& receiver = Game::playerContainer.GetPlayerDataMutable(playerId);
 	if (!receiver) {
@@ -79,25 +62,20 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 		return;
 	}
 
-	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
+	std::string toIgnoreStr = request.playerName.GetAsString();
 
-	LUWString toIgnoreName;
-	inStream.Read(toIgnoreName);
-	std::string toIgnoreStr = toIgnoreName.GetAsString();
-
-	CBITSTREAM;
-	WriteOutgoingReplyHeader(bitStream, receiver.playerID, MessageType::Client::ADD_IGNORE_RESPONSE);
+	ClientPackets::AddIgnoreResponse response;
 
 	// Check if the player exists
 	LWOOBJID ignoredPlayerId = LWOOBJID_EMPTY;
 	if (toIgnoreStr == receiver.playerName || toIgnoreStr.find("[GM]") == 0) {
 		LOG_DEBUG("Player %llu tried to ignore themselves", playerId);
 
-		bitStream.Write(ChatIgnoreList::AddResponse::GENERAL_ERROR);
+		response.responseCode = eAddIgnoreResponse::GENERAL_ERROR;
 	} else if (std::count(receiver.ignoredPlayers.begin(), receiver.ignoredPlayers.end(), toIgnoreStr) > 0) {
 		LOG_DEBUG("Player %llu is already ignoring %s", playerId, toIgnoreStr.c_str());
 
-		bitStream.Write(ChatIgnoreList::AddResponse::ALREADY_IGNORED);
+		response.responseCode = eAddIgnoreResponse::ALREADY_IGNORED;
 	} else {
 		// Get the playerId falling back to query if not online
 		const auto& playerData = Game::playerContainer.GetPlayerData(toIgnoreStr);
@@ -120,23 +98,20 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 			receiver.ignoredPlayers.emplace_back(toIgnoreStr, ignoredPlayerId);
 			LOG_DEBUG("Player %llu is ignoring %s", playerId, toIgnoreStr.c_str());
 
-			bitStream.Write(ChatIgnoreList::AddResponse::SUCCESS);
+			response.responseCode = eAddIgnoreResponse::SUCCESS;
 		} else {
-			bitStream.Write(ChatIgnoreList::AddResponse::PLAYER_NOT_FOUND);
+			response.responseCode = eAddIgnoreResponse::PLAYER_NOT_FOUND;
 		}
 	}
 
-	LUWString playerNameSend(toIgnoreStr, 33);
-	bitStream.Write(playerNameSend);
-	bitStream.Write(ignoredPlayerId);
+	response.playerName = LUWString(toIgnoreStr, 33);
+	response.playerID = ignoredPlayerId;
 
-	Game::server->Send(bitStream, packet->systemAddress, false);
+	ChatPacketHandler::SendRouted(receiver.playerID, sysAddr, response);
 }
 
-void ChatIgnoreList::RemoveIgnore(Packet* packet) {
-	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerId;
-	inStream.Read(playerId);
+void ChatIgnoreList::RemoveIgnore(const ChatPackets::RemoveIgnore& request, const SystemAddress& sysAddr) {
+	const LWOOBJID playerId = request.playerID;
 
 	auto& receiver = Game::playerContainer.GetPlayerDataMutable(playerId);
 	if (!receiver) {
@@ -144,11 +119,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 		return;
 	}
 
-	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
-
-	LUWString removedIgnoreName;
-	inStream.Read(removedIgnoreName);
-	std::string removedIgnoreStr = removedIgnoreName.GetAsString();
+	std::string removedIgnoreStr = request.playerName.GetAsString();
 
 	auto toRemove = std::remove(receiver.ignoredPlayers.begin(), receiver.ignoredPlayers.end(), removedIgnoreStr);
 	if (toRemove == receiver.ignoredPlayers.end()) {
@@ -159,12 +130,9 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 	Database::Get()->RemoveIgnore(playerId, toRemove->playerId);
 	receiver.ignoredPlayers.erase(toRemove, receiver.ignoredPlayers.end());
 
-	CBITSTREAM;
-	WriteOutgoingReplyHeader(bitStream, receiver.playerID, MessageType::Client::REMOVE_IGNORE_RESPONSE);
+	ClientPackets::RemoveIgnoreResponse response;
+	response.responseCode = 0;
+	response.playerName = LUWString(removedIgnoreStr, 33);
 
-	bitStream.Write<int8_t>(0);
-	LUWString playerNameSend(removedIgnoreStr, 33);
-	bitStream.Write(playerNameSend);
-
-	Game::server->Send(bitStream, packet->systemAddress, false);
+	ChatPacketHandler::SendRouted(receiver.playerID, sysAddr, response);
 }

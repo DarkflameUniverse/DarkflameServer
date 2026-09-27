@@ -15,8 +15,11 @@
 
 #include "BitStreamUtils.h"
 #include "dCommonVars.h"
+#include "eAddFriendResponseType.h"
+#include "eAddIgnoreResponse.h"
 #include "eBlueprintSaveResponseType.h"
 #include "MessageType/Client.h"
+#include "MessageType/Game.h"
 #include "NiPoint3.h"
 #include "Stamps.h"
 
@@ -262,5 +265,248 @@ namespace ClientPackets {
 		LWOOBJID destItemId{};
 	};
 };
+
+/**
+ * What the chat server sends the client (routed through the player's world in a WorldRoutePacket): friends, ignore
+ * list and team responses, and the team game messages. SendCannedText comes from the world.
+ */
+namespace ClientPackets {
+	// World -> client: chat is off (0: "Chat is currently disabled.", 1: "Upgrade to a full LEGO Universe
+	// Membership to chat with other players.")
+	struct SendCannedText : public LUBitStream {
+		uint8_t responseType{};
+
+		SendCannedText() : LUBitStream(ServiceType::CLIENT, MessageType::Client::SEND_CANNED_TEXT) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct GetFriendsListResponse : public LUBitStream {
+		uint8_t responseCode{};
+		uint16_t packetLength{ 1 }; // the client skips it
+		std::vector<FriendData> friends; // u16 count
+
+		GetFriendsListResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GET_FRIENDS_LIST_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Someone wants to be friends
+	struct AddFriendRequest : public LUBitStream {
+		LUWString requestorName;
+		uint8_t isBestFriendRequest{}; // unused in live, and the client does nothing with it
+
+		AddFriendRequest() : LUBitStream(ServiceType::CLIENT, MessageType::Client::ADD_FRIEND_REQUEST) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct AddFriendResponse : public LUBitStream {
+		eAddFriendResponseType responseCode{};
+		// ACCEPTED: whether the friend is online; anything else: whether they are best friends already
+		uint8_t isOnlineOrBestFriend{};
+		LUWString friendName;
+		// ACCEPTED only
+		LWOOBJID friendID{};
+		LWOZONEID zoneID{};
+		uint8_t isBestFriend{};
+		uint8_t isFreeTrial{};
+
+		AddFriendResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::ADD_FRIEND_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct RemoveFriendResponse : public LUBitStream {
+		uint8_t isSuccessful{};
+		LUWString friendName;
+
+		RemoveFriendResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::REMOVE_FRIEND_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// A friend logged in (1), out (0) or changed worlds (2)
+	struct UpdateFriendNotify : public LUBitStream {
+		uint8_t notifyType{};
+		LUWString friendName;
+		LWOZONEID zoneID{}; // clone 0 when it is the receiver's clone
+		uint8_t isBestFriend{};
+		uint8_t isFreeTrial{};
+
+		UpdateFriendNotify() : LUBitStream(ServiceType::CLIENT, MessageType::Client::UPDATE_FRIEND_NOTIFY) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Answer to /findplayer
+	struct WhoResponse : public LUBitStream {
+		uint8_t isOnline{};
+		LWOZONEID zoneID{};
+		LUWString playerName;
+
+		WhoResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::WHO_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Answer to /showall
+	struct ShowAllResponse : public LUBitStream {
+		struct Player {
+			std::string name; // written when displayIndividualPlayers
+			LWOZONEID zoneID{}; // written when displayZoneData
+		};
+
+		uint32_t playerCount{};
+		uint32_t simCount{};
+		bool displayIndividualPlayers{};
+		bool displayZoneData{};
+		// Only written when either display flag is set; there is no count, they fill the rest of the packet
+		std::vector<Player> players;
+
+		ShowAllResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::SHOW_ALL_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct GetIgnoreListResponse : public LUBitStream {
+		struct Ignored {
+			LWOOBJID playerID{};
+			LUWString playerName{ 36u };
+		};
+
+		uint8_t isFreeTrial{};
+		uint16_t padding{}; // struct alignment
+		std::vector<Ignored> ignored; // u16 count
+
+		GetIgnoreListResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GET_IGNORE_LIST_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct AddIgnoreResponse : public LUBitStream {
+		eAddIgnoreResponse responseCode{};
+		LUWString playerName;
+		LWOOBJID playerID{};
+
+		AddIgnoreResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::ADD_IGNORE_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct RemoveIgnoreResponse : public LUBitStream {
+		int8_t responseCode{};
+		LUWString playerName;
+
+		RemoveIgnoreResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::REMOVE_IGNORE_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Someone invites the player to their team
+	struct TeamInvite : public LUBitStream {
+		LUWString senderName;
+		LWOOBJID senderID{};
+
+		TeamInvite() : LUBitStream(ServiceType::CLIENT, MessageType::Client::TEAM_INVITE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Whether the player's team invite went out
+	struct TeamInviteInitialResponse : public LUBitStream {
+		bool inviteFailedToSend{}; // one byte
+		LUWString playerName{};
+		TeamInviteInitialResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::TEAM_INVITE_INITIAL_RESPONSE) {}
+
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	/**
+	 * Team game messages, written by the chat server: the CLIENT/GAME_MSG header, the object the message is for,
+	 * the game message ID, then the message's own fields (like GameMessages::NetGameMsg, which chat doesn't link).
+	 */
+	struct TeamGameMsg : public LUBitStream {
+		LWOOBJID target{};
+		MessageType::Game msgId{};
+
+		TeamGameMsg(MessageType::Game id) : LUBitStream(ServiceType::CLIENT, MessageType::Client::GAME_MSG), msgId{ id } {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct TeamInviteConfirm : public TeamGameMsg {
+		bool bLeaderIsFreeTrial{};
+		LWOOBJID i64LeaderID{};
+		LWOZONEID i64LeaderZoneID{};
+		uint32_t binaryBufferLength{}; // always empty
+		uint8_t ucLootFlag{};
+		uint8_t ucNumOfOtherPlayers{};
+		uint8_t ucResponseCode{};
+		std::u16string wsLeaderName; // u32 length
+
+		TeamInviteConfirm() : TeamGameMsg(MessageType::Game::TEAM_INVITE_CONFIRM) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct TeamGetStatusResponse : public TeamGameMsg {
+		LWOOBJID i64LeaderID{};
+		LWOZONEID i64LeaderZoneID{};
+		uint32_t binaryBufferLength{}; // always empty
+		uint8_t ucLootFlag{};
+		uint8_t ucNumOfOtherPlayers{};
+		std::u16string wsLeaderName; // u32 length
+
+		TeamGetStatusResponse() : TeamGameMsg(MessageType::Game::TEAM_GET_STATUS_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct TeamSetLeader : public TeamGameMsg {
+		LWOOBJID i64PlayerID{};
+
+		TeamSetLeader() : TeamGameMsg(MessageType::Game::TEAM_SET_LEADER) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct TeamAddPlayer : public TeamGameMsg {
+		bool bIsFreeTrial{};
+		bool bLocal{};
+		bool bNoLootOnDeath{};
+		LWOOBJID i64PlayerID{};
+		std::u16string wsPlayerName; // u32 length
+		LWOZONEID zoneID{}; // always written (its default flag is always set); clone 0 when it's the receiver's clone
+
+		TeamAddPlayer() : TeamGameMsg(MessageType::Game::TEAM_ADD_PLAYER) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct TeamRemovePlayer : public TeamGameMsg {
+		bool bDisband{};
+		bool bIsKicked{};
+		bool bIsLeaving{};
+		bool bLocal{};
+		LWOOBJID i64LeaderID{}; // not empty: the client makes this player the leader
+		LWOOBJID i64PlayerID{};
+		std::u16string wsPlayerName; // u32 length
+
+		TeamRemovePlayer() : TeamGameMsg(MessageType::Game::TEAM_REMOVE_PLAYER) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	struct TeamSetOffWorldFlag : public TeamGameMsg {
+		LWOOBJID i64PlayerID{};
+		LWOZONEID zoneID{}; // clone 0 when it's the receiver's clone
+
+		TeamSetOffWorldFlag() : TeamGameMsg(MessageType::Game::TEAM_SET_OFF_WORLD_FLAG) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+}
 
 #endif // CLIENTPACKETS_H

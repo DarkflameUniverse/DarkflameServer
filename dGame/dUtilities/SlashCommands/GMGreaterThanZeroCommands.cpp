@@ -1,4 +1,5 @@
 #include "GMGreaterThanZeroCommands.h"
+#include "ChatServerLink.h"
 #include "DashboardNotify.h"
 #include "SlashCommandHandler.h"
 
@@ -180,13 +181,10 @@ namespace GMGreaterThanZeroCommands {
 			ChatPackets::SendSystemMessage(sysAddr, u"Muted: " + GeneralUtils::UTF8ToUTF16(splitArgs[0]) + u" until " + timeStr);
 
 			//Notify chat about it
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_MUTE);
-
-			bitStream.Write(characterId);
-			bitStream.Write(expire);
-
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+			ChatPackets::GMMute mute;
+			mute.playerID = characterId;
+			mute.expire = expire;
+			ChatServerLink::Send(mute);
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /mute <username> <days (optional)> <hours (optional)>");
 		}
@@ -281,15 +279,11 @@ namespace GMGreaterThanZeroCommands {
 		if (!splitArgs.empty() && !splitArgs.at(0).empty()) displayZoneData = splitArgs.at(0) == "1";
 		if (splitArgs.size() > 1) displayIndividualPlayers = splitArgs.at(1) == "1";
 
-		ShowAllRequest request {
-			.requestor = entity->GetObjectID(),
-			.displayZoneData = displayZoneData,
-			.displayIndividualPlayers = displayIndividualPlayers
-		};
-
-		CBITSTREAM;
-		request.Serialize(bitStream);
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		ChatPackets::ShowAllRequest request;
+		request.requestor = entity->GetObjectID();
+		request.displayZoneData = displayZoneData;
+		request.displayIndividualPlayers = displayIndividualPlayers;
+		ChatServerLink::Send(request);
 	}
 
 	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -298,14 +292,10 @@ namespace GMGreaterThanZeroCommands {
 			return;
 		}
 
-		FindPlayerRequest request {
-			.requestor = entity->GetObjectID(),
-			.playerName = LUWString(args)
-		};
-
-		CBITSTREAM;
-		request.Serialize(bitStream);
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		ChatPackets::FindPlayerRequest request;
+		request.requestor = entity->GetObjectID();
+		request.playerName = LUWString(args);
+		ChatServerLink::Send(request);
 	}
 
 	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

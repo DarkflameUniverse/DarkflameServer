@@ -1,4 +1,5 @@
 #include "Mission.h"
+#include "ChatServerLink.h"
 
 #include <ctime>
 
@@ -364,11 +365,8 @@ void Mission::Complete(const bool yieldRewards) {
 			notify.earningPlayerID = entity->GetObjectID();
 			notify.earnerName.string = character ? GeneralUtils::ASCIIToUTF16(character->GetName()) : u"";
 
-			// Manual write since it's sent to chat server and not a game client
-			RakNet::BitStream bitstream;
-			notify.WriteHeader(bitstream);
-			notify.Serialize(bitstream);
-			Game::chatServer->Send(&bitstream, HIGH_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+			// Sent to the chat server, not a game client
+			ChatServerLink::Send(notify, HIGH_PRIORITY);
 		}
 	}
 }

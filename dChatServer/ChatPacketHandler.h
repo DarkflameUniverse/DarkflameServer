@@ -2,60 +2,31 @@
 #include "dCommonVars.h"
 #include "dNetCommon.h"
 #include "BitStream.h"
+#include "ChatPackets.h"
+#include "ClientPackets.h"
+#include "WorldRoutePacket.h"
+#include "eChatChannel.h"
+#include "eChatMessageResponseCode.h"
 
 struct PlayerData;
+struct LUBitStream;
 
 enum class eAddFriendResponseType : uint8_t;
 
-enum class eChatChannel : uint8_t {
-	SYSTEMNOTIFY = 0,
-	SYSTEMWARNING,
-	SYSTEMERROR,
-	BROADCAST,
-	LOCAL,
-	LOCALNOANIM,
-	EMOTE,
-	PRIVATE_CHAT,
-	TEAM,
-	TEAMLOCAL,
-	GUILD,
-	GUILDNOTIFY,
-	PROPERTY,
-	ADMIN,
-	COMBATDAMAGE,
-	COMBATHEALING,
-	COMBATLOOT,
-	COMBATEXP,
-	COMBATDEATH,
-	GENERAL,
-	TRADE,
-	LFG,
-	USER
-};
-
-
-enum class eChatMessageResponseCode : uint8_t {
-	SENT = 0,
-	NOTONLINE,
-	GENERALERROR,
-	RECEIVEDNEWWHISPER,
-	NOTFRIENDS,
-	SENDERFREETRIAL,
-	RECEIVERFREETRIAL,
-};
-
 namespace ChatPacketHandler {
-	void HandleFriendlistRequest(Packet* packet);
-	void HandleFriendRequest(Packet* packet);
-	void HandleFriendResponse(Packet* packet);
-	void HandleRemoveFriend(Packet* packet);
-	void HandleGMLevelUpdate(Packet* packet);
-	void HandleWho(Packet* packet);
-	void HandleShowAll(Packet* packet);
-	void HandleChatMessage(Packet* packet);
-	void HandlePrivateChatMessage(Packet* packet);
+	// Sends msg to the world server `world`, which passes it on to the client of `target`
+	void SendRouted(const LWOOBJID target, const SystemAddress& world, const LUBitStream& msg, const bool broadcast = false);
 
-	void OnAchievementNotify(RakNet::BitStream& bitstream, const SystemAddress& sysAddr);
+	void HandleFriendlistRequest(const ChatPackets::GetFriendsList& request, const SystemAddress& sysAddr);
+	void HandleFriendRequest(const ChatPackets::AddFriendRequest& request, const SystemAddress& sysAddr);
+	void HandleFriendResponse(const ChatPackets::AddFriendResponse& response, const SystemAddress& sysAddr);
+	void HandleRemoveFriend(const ChatPackets::RemoveFriend& request, const SystemAddress& sysAddr);
+	void HandleGMLevelUpdate(const ChatPackets::GMLevelUpdate& update, const SystemAddress& sysAddr);
+	void HandleWho(const ChatPackets::FindPlayerRequest& request, const SystemAddress& sysAddr);
+	void HandleShowAll(const ChatPackets::ShowAllRequest& request, const SystemAddress& sysAddr);
+	void HandleChatMessage(const ChatPackets::GeneralChatMessage& chatMessage, const SystemAddress& sysAddr);
+	void HandlePrivateChatMessage(const ChatPackets::PrivateChatMessage& chatMessage, const SystemAddress& sysAddr);
+	void OnAchievementNotify(ChatPackets::AchievementNotify& notify, const SystemAddress& sysAddr);
 
 	//FriendData is the player we're SENDING this stuff to. Player is the friend that changed state.
 	void SendFriendUpdate(const PlayerData& friendData, const PlayerData& playerData, uint8_t notifyType, uint8_t isBestFriend);

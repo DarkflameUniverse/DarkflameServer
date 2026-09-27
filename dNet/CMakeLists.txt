@@ -9,6 +9,7 @@ set(DNET_SOURCES "AuthPackets.cpp"
 	"PacketUtils.cpp"
 	"Stamps.cpp"
 	"WorldPackets.cpp"
+	"WorldRoutePacket.cpp"
 	"ZoneInstanceManager.cpp")
 
 add_library(dNet STATIC ${DNET_SOURCES})
