@@ -46,8 +46,8 @@ public:
 	// 2 actions are required for strips to work
 	bool HasMinimumActions() const { return m_Actions.size() >= 2; }
 	
-	void OnChatMessageReceived(const std::string& sMessage);
-	void OnHit();
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender);
+	void OnHit(const LWOOBJID attacker);
 private:
 	// Indicates this Strip is waiting for an action to be taken upon it to progress to its actions
 	bool m_WaitingForAction{ false };
@@ -90,6 +90,8 @@ private:
 
 	// Speed applied to moves and rotations started by this strip
 	float m_Speed{ DEFAULT_SPEED };
+	
+	LWOOBJID m_StripInitiatorID{ LWOOBJID_EMPTY };
 };
 
 #endif  //!__STRIP__H__

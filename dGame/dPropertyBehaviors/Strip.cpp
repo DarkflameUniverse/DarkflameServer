@@ -9,6 +9,7 @@
 #include "PropertyManagementComponent.h"
 #include "PlayerManager.h"
 #include "SimplePhysicsComponent.h"
+#include "DestroyableComponent.h"
 
 #include "dChatFilter.h"
 
@@ -97,6 +98,7 @@ void Strip::HandleMsg(GameMessages::RequestUse& msg) {
 	if (nextAction.GetType() == "OnInteract") {
 		IncrementAction();
 		m_WaitingForAction = false;
+		m_StripInitiatorID = msg.target;
 	}
 }
 
@@ -114,23 +116,25 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_MovingToStart = false;
 }
 
-void Strip::OnChatMessageReceived(const std::string& sMessage) {
+void Strip::OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
 	if (nextAction.GetType() == "OnChat" && nextAction.GetValueParameterString() == sMessage) {
 		IncrementAction();
 		m_WaitingForAction = false;
+		m_StripInitiatorID = sender;
 	}
 }
 
-void Strip::OnHit() {
+void Strip::OnHit(const LWOOBJID attacker) {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
 	if (nextAction.GetType() == "OnAttack") {
 		IncrementAction();
 		m_WaitingForAction = false;
+		m_StripInitiatorID = attacker;
 	}
 }
 
@@ -263,9 +267,9 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		// In case a word is removed from the whitelist after it was approved
 		const auto modelName = "%[Objects_" + std::to_string(entity.GetLOT()) + "_name]";
 		if (isOk) ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, 12, modelName, entity.GetObjectID(), false, GeneralUtils::ASCIIToUTF16(valueStr));
-		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
+		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data(), m_StripInitiatorID);
 	} else if (nextActionType == "PrivateMessage") {
-		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
+		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data(), m_StripInitiatorID);
 	} else if (nextActionType == "PlaySound") {
 		GameMessages::PlayBehaviorSound sound;
 		sound.target = modelComponent.GetParent()->GetObjectID();
@@ -282,6 +286,8 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		Spawn(10497, entity); // Maelstrom Pirate property
 	} else if (nextActionType == "SpawnRonin") {
 		Spawn(10498, entity); // Dark Ronin property
+	} else if (nextActionType == "DoDamage") {
+		modelComponent.DoDamage(m_StripInitiatorID);
 	} else if (nextActionType == "DropImagination") {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity); // 1 Imagination powerup
 	} else if (nextActionType == "DropHealth") {
@@ -411,6 +417,7 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 
 	// Check for trigger blocks and if not a trigger block proc this blocks action
 	if (m_NextActionIndex == 0) {
+		m_StripInitiatorID = LWOOBJID_EMPTY;
 		LOG("Behavior strip started %s", nextAction.GetType().data());
 		m_Speed = DEFAULT_SPEED;
 		if (nextAction.GetType() == "OnInteract") {
@@ -431,6 +438,11 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 				IncrementAction();
 				m_PausedFromOnTimer = false;
 			}
+		} else {
+			// in case we run into an unimplemented action or one that isnt a start node
+			// mark as waiting for action so we dont waste time re-starting the same logic and serializing
+			// every frame
+			m_WaitingForAction = true;
 		}
 
 		Game::entityManager->SerializeEntity(entity);

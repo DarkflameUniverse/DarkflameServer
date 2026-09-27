@@ -24,8 +24,8 @@ public:
 
 	void Update(float deltaTime, ModelComponent& modelComponent, UpdateResult& updateResult);
 
-	void OnChatMessageReceived(const std::string& sMessage);
-	void OnHit();
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender);
+	void OnHit(const LWOOBJID attacker);
 private:
 
 	// The strips contained within this state.

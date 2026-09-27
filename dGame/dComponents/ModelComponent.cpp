@@ -16,6 +16,7 @@
 #include "SimplePhysicsComponent.h"
 #include "eMissionTaskType.h"
 #include "eObjectBits.h"
+#include "DestroyableComponent.h"
 
 #include "Database.h"
 #include "DluAssert.h"
@@ -77,6 +78,7 @@ bool ModelComponent::OnRequestUse(GameMessages::RequestUse& requestUse) {
 
 void ModelComponent::Update(float deltaTime) {
 	if (m_IsPaused) return;
+	m_DamageCooldown -= deltaTime;
 
 	// Arrived once this frame's movement reached or passed the target
 	if (m_Move.target && (*m_Move.target - m_Parent->GetPosition()).DotProduct(m_Move.targetDirection) <= 0.0f) {
@@ -388,13 +390,13 @@ void ModelComponent::ResetRotationState(const NiQuaternion& newBase) {
 	SyncAngularVelocity();
 }
 
-void ModelComponent::OnChatMessageReceived(const std::string& sMessage) {
-	for (auto& behavior : m_Behaviors) behavior.OnChatMessageReceived(sMessage);
+void ModelComponent::OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) {
+	for (auto& behavior : m_Behaviors) behavior.OnChatMessageReceived(sMessage, sender);
 }
 
-void ModelComponent::OnHit() {
+void ModelComponent::OnHit(const LWOOBJID attacker) {
 	for (auto& behavior : m_Behaviors) {
-		behavior.OnHit();
+		behavior.OnHit(attacker);
 	}
 }
 
@@ -437,4 +439,15 @@ bool ModelComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& re
 	cmptInfo.PushDebug<AMFIntValue>("Behavior Count") = m_Behaviors.size();
 
 	return true;
+}
+
+void ModelComponent::DoDamage(const LWOOBJID target) {
+	// dont do damage if we've done damage recently
+	if (m_DamageCooldown > 0.0f) return;
+	m_DamageCooldown = 1.0f;
+	auto* const initiator = Game::entityManager->GetEntity(target);
+	if (initiator) {
+		auto* const destComp = initiator->GetComponent<DestroyableComponent>();
+		if (destComp) destComp->Damage(1, GetParent()->GetObjectID());
+	}
 }

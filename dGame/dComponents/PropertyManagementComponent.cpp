@@ -802,13 +802,13 @@ const std::map<LWOOBJID, LWOOBJID>& PropertyManagementComponent::GetModels() con
 	return models;
 }
 
-void PropertyManagementComponent::OnChatMessageReceived(const std::string& sMessage) const {
+void PropertyManagementComponent::OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) const {
 	for (const auto& modelID : models | std::views::keys) {
 		auto* const model = Game::entityManager->GetEntity(modelID);
 		if (!model) continue;
 		auto* const modelComponent = model->GetComponent<ModelComponent>();
 		if (!modelComponent) continue;
 
-		modelComponent->OnChatMessageReceived(sMessage);
+		modelComponent->OnChatMessageReceived(sMessage, sender);
 	}
 }

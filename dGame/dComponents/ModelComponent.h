@@ -173,9 +173,9 @@ public:
 	// Degrees per second of the active rotation on axis.
 	float GetAngularSpeed(const int axis) const noexcept { return std::abs(m_Rotation.velocity[axis]); }
 
-	void OnChatMessageReceived(const std::string& sMessage);
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender);
 
-	void OnHit();
+	void OnHit(const LWOOBJID attacker);
 
 	// Whether or not to restart at the end of the frame
 	void RestartAtEndOfFrame() { m_RestartAtEndOfFrame = true; }
@@ -187,6 +187,7 @@ public:
 	// Decrements the number of strips listening for an attack.
 	// If this is the last strip removing an attack, it will reset the factions to the default of -1.
 	void RemoveAttack();
+	void DoDamage(const LWOOBJID target);
 private:
 	// Degrees per second per unit of behavior speed
 	static constexpr float BASE_ANGULAR_SPEED = 15.0f;
@@ -285,4 +286,6 @@ private:
 	RotationState m_Rotation;
 
 	MoveState m_Move;
+
+	float m_DamageCooldown { 0.0f };
 };
