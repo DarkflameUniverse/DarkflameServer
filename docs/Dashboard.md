@@ -661,6 +661,31 @@ the newest log files of one or all servers.
 
 The UGC server's logs are `UgcServer_<time>.log`, listed with the others.
 
+**Download logs** (on the System Log page) puts log files in one zip file. Pick a date range (a file is picked when
+the time from its start, in its name, to its last write overlaps it), the servers (master, auth, chat, dashboard,
+UGC, worlds), and for worlds any number of zones and a clone or instance. It can add crash dumps, keep only the lines
+written in the date range rather than whole files, keep only lines with some text, and hide IP addresses (they become
+`[ip]`). **Preview** lists the files and their total size first. The zip holds the files as they sit under `logs/`
+(and `crash_dumps/`) plus a `manifest.txt` with the server version, who made it, the filters and each file. It is
+built on a worker thread in the system's temporary folder and deleted once sent. `log_bundle_max_mb` (Settings, Data
+retention; default 512, at most 4000) caps how much log text one download holds before compression; over it the
+download fails with a message saying so. Every download is in the audit log (`download_logs`, with the filters, file
+count and size).
+
+The same works with an API key (`logs_system`):
+
+```sh
+# Preview: files, count, total_size, over_limit
+curl -H "Authorization: Bearer $KEY" "https://dashboard.example/api/logs/bundle/preview?from=1790400000&to=1790500000&servers=world&zones=1200"
+# The zip: only error lines of Nimbus Station worlds from that day, addresses hidden, crash dumps too
+curl -OJ -H "Authorization: Bearer $KEY" "https://dashboard.example/api/logs/bundle?from=1790400000&to=1790500000&servers=world&zones=1200&trim=1&text=error&redact=1&crash=1"
+```
+
+Query values for both: `from`, `to` (Unix seconds; either may be left out), `servers` (comma separated `master`,
+`auth`, `chat`, `dashboard`, `ugc`, `world`; default all), `zones` (comma separated zone IDs), `clone`, `instance`,
+`crash=1`, `trim=1`, `text=`, `redact=1`. The download answers 404 when nothing matches and 413 when it would be over
+`log_bundle_max_mb`.
+
 Crash dumps: set `dump_folder` (for example `crash_dumps`, relative to the server binaries) and world servers and the
 UGC server write a backtrace file there when they crash (the UGC server's is `Crash_UgcServer_<start time>_<pid>.log`; `generate_dump=1` also
 writes a memory dump on Windows). Server Health lists them
