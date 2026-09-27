@@ -208,6 +208,9 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		return;
 	}
 
+	// Flying from a knockback: pick a destination again once we land
+	if (m_MovementAI->IsKnockedBack()) return;
+
 	if (m_Timer > 0.0f) {
 		m_Timer -= deltaTime;
 		return;

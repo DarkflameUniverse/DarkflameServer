@@ -15,6 +15,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include "Zone.h"
+#include "dpKnockback.h"
+#include <optional>
 #include <vector>
 
 class ControllablePhysicsComponent;
@@ -223,7 +225,30 @@ public:
 	bool HasPath() const { return m_Path != nullptr; }
 
 	void FollowTarget(const LWOOBJID target);
+
+	/**
+	 * Knocks this entity back the way the client knocks back the character it controls (the Knockback game
+	 * message): a vector longer than dpKnockback::MIN_LAUNCH_SPEED throws it in an arc under the zone's gravity
+	 * until it lands on the navmesh, a shorter one moves it by the vector. Pathing waits until it lands.
+	 * @param vector the knockback velocity
+	 */
+	void Knockback(const NiPoint3& vector);
+
+	/**
+	 * Returns whether this entity is flying from a knockback
+	 */
+	bool IsKnockedBack() const { return m_Knockback.IsActive(); }
 private:
+
+	/**
+	 * Moves the entity along its knockback arc, landing it when it reaches the ground
+	 */
+	void UpdateKnockback(float deltaTime);
+
+	/**
+	 * The height of the ground under a point: the navmesh if the zone has one, else the height the knockback started at
+	 */
+	float GetGroundHeight(const NiPoint3& point) const;
 
 	/**
 	 * @brief
@@ -348,6 +373,21 @@ private:
 	uint32_t m_CurrentPathWaypointCount{ 0 };
 
 	LWOOBJID m_FollowedTarget{ LWOOBJID_EMPTY };
+
+	/**
+	 * The knockback this entity is flying through, if any
+	 */
+	dpKnockback::Arc m_Knockback;
+
+	/**
+	 * The height the knockback started at, the ground used when the zone has no navmesh
+	 */
+	float m_KnockbackStartHeight{};
+
+	/**
+	 * A destination set while flying, walked to after landing
+	 */
+	std::optional<NiPoint3> m_DestinationAfterKnockback;
 };
 
 #endif // MOVEMENTAICOMPONENT_H

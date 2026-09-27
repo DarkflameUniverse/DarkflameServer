@@ -188,17 +188,16 @@ void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intru
 		return;
 	}
 
+	// Knock the enemy back the way it came
 	auto dir = QuatUtils::Forward(intruder->GetRotation()) * -1;
 	dir.y += 15;
 	dir.x *= 50;
 	dir.z *= 50;
 
-	// TODO: Figure out how todo knockback, I'll stun them for now
-
 	if (NiPoint3::DistanceSquared(self->GetPosition(), intruder->GetPosition()) < 20 * 20) {
-		baseCombatAIComponent->Stun(2.0f);
-		movementAIComponent->SetDestination(baseCombatAIComponent->GetStartPosition());
+		movementAIComponent->Knockback(dir);
 	}
 
+	// Forget the players so it doesn't just run into the shield again
 	baseCombatAIComponent->ClearThreat();
 }

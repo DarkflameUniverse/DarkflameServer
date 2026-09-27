@@ -31,6 +31,13 @@ namespace {
 	 * Cache of all lots and their respective speeds
 	 */
 	std::map<LOT, float> m_PhysicsSpeedCache;
+
+	// Half the height of a character: how far a short knockback may drop onto the ground (the client uses its
+	// character's height / 2)
+	constexpr float KNOCKBACK_MAX_DROP = 2.0f;
+
+	// The client's gravity when WorldConfig has none (0x015fd9a8)
+	constexpr float DEFAULT_GRAVITY = 9.8f;
 }
 
 MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t componentID, MovementAIInfo info) : Component(parent, componentID) {
@@ -79,6 +86,11 @@ void MovementAIComponent::SetPath(const std::string pathName) {
 void MovementAIComponent::Pause() {
 	if (m_Paused) return;
 	m_Paused = true;
+	// A stun doesn't stop a knockback mid air; the entity stays put once it lands
+	if (IsKnockedBack()) {
+		m_SavedVelocity = NiPoint3Constant::ZERO;
+		return;
+	}
 	SetPosition(ApproximateLocation());
 	m_SavedVelocity = GetVelocity();
 	SetVelocity(NiPoint3Constant::ZERO);
@@ -88,6 +100,7 @@ void MovementAIComponent::Pause() {
 void MovementAIComponent::Resume() {
 	if (!m_Paused) return;
 	m_Paused = false;
+	if (IsKnockedBack()) return;
 	SetVelocity(m_SavedVelocity);
 	m_SavedVelocity = NiPoint3Constant::ZERO;
 	SetRotation(QuatUtils::LookAt(m_Parent->GetPosition(), m_NextWaypoint));
@@ -95,6 +108,11 @@ void MovementAIComponent::Resume() {
 }
 
 void MovementAIComponent::Update(const float deltaTime) {
+	if (IsKnockedBack()) {
+		UpdateKnockback(deltaTime);
+		return;
+	}
+
 	if (m_Paused) return;
 
 	auto* const quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
@@ -256,6 +274,8 @@ NiPoint3 MovementAIComponent::ApproximateLocation() const {
 }
 
 bool MovementAIComponent::Warp(const NiPoint3& point) {
+	m_Knockback.Cancel();
+	m_DestinationAfterKnockback.reset();
 	Stop();
 
 	NiPoint3 destination = point;
@@ -276,6 +296,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 }
 
 void MovementAIComponent::Stop() {
+	m_DestinationAfterKnockback.reset();
 	if (AtFinalWaypoint()) return;
 
 	SetPosition(ApproximateLocation());
@@ -299,6 +320,7 @@ void MovementAIComponent::Stop() {
 }
 
 void MovementAIComponent::PullToPoint(const NiPoint3& point) {
+	m_Knockback.Cancel();
 	Stop();
 
 	m_PullingToPoint = true;
@@ -405,6 +427,10 @@ void MovementAIComponent::SetVelocity(const NiPoint3& value) {
 
 void MovementAIComponent::SetDestination(const NiPoint3 destination) {
 	if (m_PullingToPoint) return;
+	if (IsKnockedBack()) {
+		m_DestinationAfterKnockback = destination;
+		return;
+	}
 
 	const auto location = ApproximateLocation();
 
@@ -597,4 +623,66 @@ void MovementAIComponent::FollowTarget(const LWOOBJID target) {
 	SetMaxSpeed(1.0f);
 	m_CurrentSpeed = 1.0f;
 	SetDestination(getPos.pos);
+}
+
+void MovementAIComponent::Knockback(const NiPoint3& vector) {
+	// Whatever we were walking to is forgotten, like a knocked back character losing its movement input
+	m_PullingToPoint = false;
+	Stop();
+
+	const auto position = m_Parent->GetPosition();
+	m_KnockbackStartHeight = position.y;
+
+	auto* const controllablePhysics = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	const auto ground = [this](const NiPoint3& point) { return GetGroundHeight(point); };
+
+	if (!m_Knockback.Start(position, vector)) {
+		// Too weak to launch: just shoved along the ground
+		SetPosition(dpKnockback::Nudge(position, vector, KNOCKBACK_MAX_DROP, ground));
+		Game::entityManager->SerializeEntity(m_Parent);
+		return;
+	}
+
+	SetPosition(m_Knockback.GetPosition());
+	SetVelocity(m_Knockback.GetVelocity());
+	if (controllablePhysics) controllablePhysics->SetIsOnGround(false);
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void MovementAIComponent::UpdateKnockback(const float deltaTime) {
+	auto* const controllablePhysics = m_Parent->GetComponent<ControllablePhysicsComponent>();
+
+	auto gravity = Game::zoneManager ? Game::zoneManager->GetWorldConfig().peGravityValue : 0.0f;
+	if (gravity <= 0.0f) gravity = DEFAULT_GRAVITY;
+	if (controllablePhysics && controllablePhysics->GetGravityScale() > 0.0f) gravity *= controllablePhysics->GetGravityScale();
+
+	const bool flying = m_Knockback.Step(deltaTime, gravity, [this](const NiPoint3& point) { return GetGroundHeight(point); });
+
+	if (flying) {
+		SetPosition(m_Knockback.GetPosition());
+		SetVelocity(m_Knockback.GetVelocity());
+		Game::entityManager->SerializeEntity(m_Parent);
+		return;
+	}
+
+	// Landed: put it back on the navmesh so pathing picks up from a walkable spot
+	auto landing = m_Knockback.GetPosition();
+	if (dpWorld::IsLoaded()) landing = dpWorld::GetNavMesh()->NearestPoint(landing);
+	SetPosition(landing);
+	SetVelocity(NiPoint3Constant::ZERO);
+	if (controllablePhysics) controllablePhysics->SetIsOnGround(true);
+	m_SourcePosition = landing;
+	m_NextWaypoint = landing;
+	Game::entityManager->SerializeEntity(m_Parent);
+
+	if (m_DestinationAfterKnockback) {
+		const auto destination = *m_DestinationAfterKnockback;
+		m_DestinationAfterKnockback.reset();
+		if (!m_Paused) SetDestination(destination);
+	}
+}
+
+float MovementAIComponent::GetGroundHeight(const NiPoint3& point) const {
+	if (dpWorld::IsLoaded()) return dpWorld::GetNavMesh()->GetHeightAtPoint(point);
+	return m_KnockbackStartHeight;
 }

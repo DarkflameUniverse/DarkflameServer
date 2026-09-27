@@ -427,15 +427,15 @@ public:
 	);
 
 	// Getters for status immunities
-	const bool GetImmuneToBasicAttack() { return m_ImmuneToBasicAttackCount > 0; };
-	const bool GetImmuneToDamageOverTime() { return m_ImmuneToDamageOverTimeCount > 0; };
-	const bool GetImmuneToKnockback() { return m_ImmuneToKnockbackCount > 0; };
-	const bool GetImmuneToInterrupt() { return m_ImmuneToInterruptCount > 0; };
-	const bool GetImmuneToSpeed() { return m_ImmuneToSpeedCount > 0; };
-	const bool GetImmuneToImaginationGain() { return m_ImmuneToImaginationGainCount > 0; };
-	const bool GetImmuneToImaginationLoss() { return m_ImmuneToImaginationLossCount > 0; };
-	const bool GetImmuneToQuickbuildInterrupt() { return m_ImmuneToQuickbuildInterruptCount > 0; };
-	const bool GetImmuneToPullToPoint() { return m_ImmuneToPullToPointCount > 0; };
+	bool GetImmuneToBasicAttack() const { return m_ImmuneToBasicAttackCount > 0; };
+	bool GetImmuneToDamageOverTime() const { return m_ImmuneToDamageOverTimeCount > 0; };
+	bool GetImmuneToKnockback() const { return m_ImmuneToKnockbackCount > 0; };
+	bool GetImmuneToInterrupt() const { return m_ImmuneToInterruptCount > 0; };
+	bool GetImmuneToSpeed() const { return m_ImmuneToSpeedCount > 0; };
+	bool GetImmuneToImaginationGain() const { return m_ImmuneToImaginationGainCount > 0; };
+	bool GetImmuneToImaginationLoss() const { return m_ImmuneToImaginationLossCount > 0; };
+	bool GetImmuneToQuickbuildInterrupt() const { return m_ImmuneToQuickbuildInterruptCount > 0; };
+	bool GetImmuneToPullToPoint() const { return m_ImmuneToPullToPointCount > 0; };
 
 	// Damage cooldown setters/getters
 	void SetDamageCooldownTimer(float value) { m_DamageCooldownTimer = value; }
