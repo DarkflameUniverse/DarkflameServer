@@ -211,7 +211,7 @@ namespace LiveWorld {
 	}
 
 	void RegisterRoutes() {
-		Game::web.RegisterWSSubscription("player_positions", std::function<uint8_t()>([] { return Permissions::Level("players_view"); }));
+		Game::web.RegisterWSSubscription("player_positions", std::function<uint8_t()>([] { return Permissions::Level("players_view"); }), "players_view");
 
 		Route(eHTTPMethod::GET, "/api/live/players", Perm("players_view"), "Where online players are right now (also pushed on the player_positions socket topic)",
 			[](HTTPReply& reply, const HTTPContext&) {

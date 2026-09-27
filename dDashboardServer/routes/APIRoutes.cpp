@@ -2,6 +2,7 @@
 #include "PropertyAssets.h"
 #include "OpenApi.h"
 #include "RouteUtils.h"
+#include "ApiKeyService.h"
 #include "Permissions.h"
 #include "DashboardAuthService.h"
 #include "DashboardRoutes.h"
@@ -103,9 +104,19 @@ namespace {
 		return json.dump();
 	}
 
+	// Whether the request's API key (if any) may use a documented route: its scope, read-only and session-only paths
+	bool KeyMayUse(const HTTPContext& context, const RouteDoc& doc) {
+		if (!context.apiKey) return true;
+		const auto& key = *context.apiKey;
+		if (ApiKeyService::SessionOnlyPath(doc.path)) return false;
+		if (key.readOnly && doc.method != "GET") return false;
+		return doc.permission.empty() ? (doc.minGmLevel <= 0 || key.allPermissions) : key.Has(doc.permission);
+	}
+
 	// Register a DataTables endpoint. The fetcher returns the DB layer's JSON string. Access: a GM level or a Perm.
 	template<typename Access>
 	void TableRoute(const std::string& path, const Access& access, const std::string& description, TableFetcher fetcher) {
+		ReadRoutes reads; // the query is a POST body, but it only reads
 		Route(eHTTPMethod::POST, path, access, description, [fetcher = std::move(fetcher)](HTTPReply& reply, const HTTPContext& context) {
 			const auto request = ParseDataTablesRequest(context.body);
 			const auto body = ParseBody(context);
@@ -421,11 +432,11 @@ namespace {
 				nlohmann::json routes = nlohmann::json::array();
 				for (const auto& doc : GetRouteDocs()) {
 					const int16_t level = doc.permission.empty() ? doc.minGmLevel : Permissions::Level(doc.permission);
-					if (level > context.gmLevel || !doc.path.starts_with("/api/")) continue;
+					if (level > context.gmLevel || !doc.path.starts_with("/api/") || !KeyMayUse(context, doc)) continue;
 					routes.push_back({ {"method", doc.method}, {"path", doc.path}, {"minGmLevel", level}, {"permission", doc.permission}, {"description", doc.description} });
 				}
 				JsonReply(reply, eHTTPStatusCode::OK, {
-					{"authentication", "Send 'Authorization: Bearer <token>'. Create a token on your account page (POST /api/auth/token). "
+					{"authentication", "Send 'Authorization: Bearer <key>'. Make API keys on your account page; each has its own permissions, limits and expiry. "
 						"Requests without an Authorization header, including POST /api/auth/login, must send 'X-Requested-With' (any value)."},
 					{"routes", routes}
 				});
@@ -436,7 +447,7 @@ namespace {
 				std::vector<OpenApi::Route> routes;
 				for (const auto& doc : GetRouteDocs()) {
 					const int16_t level = doc.permission.empty() ? doc.minGmLevel : Permissions::Level(doc.permission);
-					if (level > context.gmLevel || !doc.path.starts_with("/api/")) continue;
+					if (level > context.gmLevel || !doc.path.starts_with("/api/") || !KeyMayUse(context, doc)) continue;
 					routes.push_back({ doc.method, doc.path, doc.description, level, doc.permission });
 				}
 				JsonReply(reply, eHTTPStatusCode::OK, OpenApi::Build(routes, "DarkflameServer dashboard"));
@@ -1489,7 +1500,7 @@ namespace {
 				if (recipient == "0") {
 					auto characters = Database::Get()->GetCharacterIdsAndNames();
 					// Items to everyone skip the sender's own characters unless they may give themselves items (self_items; GM 9 always)
-					const bool includeOwn = !hasAttachment || context.gmLevel >= OPERATOR_LEVEL || Can(context, "self_items");
+					const bool includeOwn = !hasAttachment || (context.gmLevel >= OPERATOR_LEVEL && !context.apiKey) || Can(context, "self_items");
 					if (!includeOwn) {
 						const auto own = Database::Get()->GetAccountCharacterIds(context.accountId);
 						std::erase_if(characters, [&](const auto& entry) { return std::find(own.begin(), own.end(), entry.first) != own.end(); });

@@ -4,6 +4,7 @@ set(DASHBOARDAUTH_SOURCES
 	"DashboardAuthService.cpp"
 	"AuthMiddleware.cpp"
 	"AuthTokenHandler.cpp"
+	"ApiKeyService.cpp"
 	"RequireAuthMiddleware.cpp"
 )
 

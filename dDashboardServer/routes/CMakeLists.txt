@@ -4,6 +4,7 @@ set(DASHBOARDROUTES_SOURCES
 	"DashboardRoutes.cpp"
 	"WSRoutes.cpp"
 	"AuthRoutes.cpp"
+	"ApiKeyRoutes.cpp"
 	"RouteUtils.cpp"
 	"PlayerActions.cpp"
 	"AccountRoutes.cpp"

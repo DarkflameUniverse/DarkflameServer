@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "eHTTPStatusCode.h"
 #include "json.hpp"
+#include "ApiKeyScope.h"
 
 /**
  * HTTP Request Context
@@ -34,6 +35,9 @@ struct HTTPContext {
 	std::string authenticatedUser{};
 	uint32_t accountId = 0;
 	uint8_t gmLevel = 0;
+	// Set when an API key authenticated the request: the key's scope, on top of what the account may do (gmLevel).
+	// Every permission check must honour it (RouteUtils::Can and friends do).
+	std::shared_ptr<const ApiKeys::Scope> apiKey{};
 	
 	// Custom data for middleware to communicate
 	std::map<std::string, std::string> userData{};

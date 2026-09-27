@@ -29,6 +29,8 @@ namespace {
 	std::vector<std::string> g_WSSubscriptions;
 	// Minimum permission level per subscription, parallel to g_WSSubscriptions
 	std::vector<std::function<uint8_t()>> g_WSSubscriptionLevels;
+	// The permission guarding each subscription (empty: level only), parallel to g_WSSubscriptions
+	std::vector<std::string> g_WSSubscriptionPermissions;
 	// Authenticated WebSocket connections: their permission level, account and the token they connected with.
 	// Entries are removed on MG_EV_CLOSE so a reused connection address is never treated as authenticated.
 	struct WSClient {
@@ -37,7 +39,16 @@ namespace {
 		std::string token; // empty for trusted internal connections, which are never rechecked
 		bool apiToken{};   // connected with Authorization: Bearer (subject to the API access rule)
 		std::chrono::steady_clock::time_point nextCheck;
+		std::shared_ptr<const ApiKeys::Scope> apiKey{}; // connected with an API key: its scope
 	};
+
+	// Whether a connection may subscribe to (and receive) a subscription
+	bool MayReceive(const WSClient& client, size_t index, uint8_t minLevel) {
+		if (client.level < minLevel) return false;
+		if (!client.apiKey) return true;
+		const auto& permission = g_WSSubscriptionPermissions[index];
+		return permission.empty() ? (minLevel == 0 || client.apiKey->allPermissions) : client.apiKey->Has(permission);
+	}
 	std::map<mg_connection*, WSClient> g_AuthenticatedWSConnections;
 	constexpr uint8_t INTERNAL_WS_LEVEL = UINT8_MAX;
 	constexpr auto WS_RECHECK_INTERVAL = std::chrono::seconds(60);
@@ -66,6 +77,7 @@ namespace {
 				continue;
 			}
 			client.level = auth->level;
+			client.apiKey = auth->apiKey;
 		}
 		for (auto* connection : expired) {
 			LOG_DEBUG("Closing a WebSocket whose session is no longer valid");
@@ -357,7 +369,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 			if (level) {
 				mg_ws_upgrade(connection, const_cast<mg_http_message*>(http_msg), NULL);
 				g_AuthenticatedWSConnections[connection] = { level->level, level->accountId, connectToken, apiToken,
-					std::chrono::steady_clock::now() + WS_RECHECK_INTERVAL };
+					std::chrono::steady_clock::now() + WS_RECHECK_INTERVAL, level->apiKey };
 				const char* connType = isInternal ? "internal" : "external";
 				LOG_DEBUG("Upgraded %s connection to websocket: %d.%d.%d.%d:%i", connType, MG_IPADDR_PARTS(&connection->rem.ip), connection->rem.port);
 			} else {
@@ -549,7 +561,7 @@ void HandleWSSubscribe(mg_connection* connection, json data) {
 			// get index of subscription
 			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
 			const auto connItr = g_AuthenticatedWSConnections.find(connection);
-			if (connItr == g_AuthenticatedWSConnections.end() || connItr->second.level < g_WSSubscriptionLevels[index]()) {
+			if (connItr == g_AuthenticatedWSConnections.end() || !MayReceive(connItr->second, index, g_WSSubscriptionLevels[index]())) {
 				const std::string forbidden = "{\"error\":\"Forbidden\",\"subscription\":\"" + subscription + "\"}";
 				mg_ws_send(connection, forbidden.c_str(), forbidden.size(), WEBSOCKET_OP_TEXT);
 				return;
@@ -664,6 +676,10 @@ void Web::RegisterWSSubscription(const std::string& subscription, uint8_t minLev
 }
 
 void Web::RegisterWSSubscription(const std::string& subscription, std::function<uint8_t()> minLevel) {
+	RegisterWSSubscription(subscription, std::move(minLevel), "");
+}
+
+void Web::RegisterWSSubscription(const std::string& subscription, std::function<uint8_t()> minLevel, std::string permission) {
 	if (!Game::web.enabled) {
 		LOG_DEBUG("Failed to register WS subscription %s: web server not enabled", subscription.c_str());
 		return;
@@ -679,6 +695,7 @@ void Web::RegisterWSSubscription(const std::string& subscription, std::function<
 		LOG_DEBUG("Registered WS subscription %s", subscription.c_str());
 		g_WSSubscriptions.push_back(subscription);
 		g_WSSubscriptionLevels.push_back(std::move(minLevel));
+		g_WSSubscriptionPermissions.push_back(std::move(permission));
 	}
 }
 
@@ -800,7 +817,7 @@ void Web::SendWSMessageToAccount(const std::string subscription, json& data, uin
 	for (auto* wc = Game::web.GetManager().conns; wc != NULL; wc = wc->next) {
 		if (!wc->is_websocket || wc->is_closing || wc->data[index] != SubscriptionStatus::SUBSCRIBED) continue;
 		const auto connItr = g_AuthenticatedWSConnections.find(wc);
-		if (connItr == g_AuthenticatedWSConnections.end() || connItr->second.accountId != accountId || connItr->second.level < minLevel) continue;
+		if (connItr == g_AuthenticatedWSConnections.end() || connItr->second.accountId != accountId || !MayReceive(connItr->second, index, minLevel)) continue;
 		mg_ws_send(wc, payload.c_str(), payload.size(), WEBSOCKET_OP_TEXT);
 	}
 }
@@ -823,7 +840,7 @@ void Web::SendWSMessage(const std::string subscription, json& data) {
 	for (auto *wc = Game::web.GetManager().conns; wc != NULL; wc = wc->next) {
 		if (!wc->is_websocket || wc->is_closing || wc->data[index] != SubscriptionStatus::SUBSCRIBED) continue;
 		const auto connItr = g_AuthenticatedWSConnections.find(wc);
-		if (connItr == g_AuthenticatedWSConnections.end() || connItr->second.level < minLevel) continue;
+		if (connItr == g_AuthenticatedWSConnections.end() || !MayReceive(connItr->second, index, minLevel)) continue;
 		mg_ws_send(wc, payload.c_str(), payload.size(), WEBSOCKET_OP_TEXT);
 	}
 }

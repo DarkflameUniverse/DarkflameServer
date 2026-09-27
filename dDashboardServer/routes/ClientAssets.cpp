@@ -468,7 +468,7 @@ void RegisterClientAssetRoutes() {
 			ReplyPng(reply, path.empty() ? std::nullopt : ClientAssets::TextureAsPng(path, 64));
 		});
 
-	Route(eHTTPMethod::POST, "/api/items/info", 0, "Item details for tooltips. Body: {lots: [..]} (max 500)",
+	ReadRoute(eHTTPMethod::POST, "/api/items/info", 0, "Item details for tooltips. Body: {lots: [..]} (max 500)",
 		[](HTTPReply& reply, const HTTPContext& context) {
 			const auto body = ParseBody(context);
 			if (!body || !body->contains("lots") || !(*body)["lots"].is_array()) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "lots must be an array");

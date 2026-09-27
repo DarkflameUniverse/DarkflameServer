@@ -259,7 +259,23 @@ namespace RouteUtils {
 	void Route(eHTTPMethod method, const std::string& path, int16_t minGmLevel, const std::string& description, Handler handler);
 	void Route(eHTTPMethod method, const std::string& path, const Perm& permission, const std::string& description, Handler handler);
 
-	// Whether the signed-in user has a permission
+	// Routes registered while one of these lives only read, even POSTs (DataTables and lookups send their query as a
+	// body), so read-only API keys may use them
+	struct ReadRoutes {
+		ReadRoutes();
+		~ReadRoutes();
+		ReadRoutes(const ReadRoutes&) = delete;
+		ReadRoutes& operator=(const ReadRoutes&) = delete;
+	};
+
+	// Route for a POST that only reads (see ReadRoutes)
+	template<typename Access>
+	void ReadRoute(eHTTPMethod method, const std::string& path, const Access& access, const std::string& description, Handler handler) {
+		ReadRoutes reads;
+		Route(method, path, access, description, std::move(handler));
+	}
+
+	// Whether the signed-in user has a permission (and, for a request made with an API key, the key's scope has it)
 	bool Can(const HTTPContext& context, const std::string& permission);
 
 	// A character typed by a person: a number is its ID, anything else its name. nullopt: no such character.

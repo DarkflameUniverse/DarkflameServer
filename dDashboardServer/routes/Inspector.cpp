@@ -480,7 +480,7 @@ namespace Inspector {
 	}
 
 	void RegisterRoutes() {
-		Game::web.RegisterWSSubscription(TOPIC, std::function<uint8_t()>([] { return Permissions::Level(PERMISSION); }));
+		Game::web.RegisterWSSubscription(TOPIC, std::function<uint8_t()>([] { return Permissions::Level(PERMISSION); }), PERMISSION);
 
 		Route(eHTTPMethod::GET, "/inspector", Perm(PERMISSION), "The game message inspector",
 			[](HTTPReply& reply, const HTTPContext& context) {

@@ -56,6 +56,8 @@ enum SubscriptionStatus {
 struct WSAuth {
 	uint8_t level{};
 	uint32_t accountId{};
+	// Connected with an API key: subscriptions also need their permission in its scope
+	std::shared_ptr<const ApiKeys::Scope> apiKey{};
 };
 
 // WebSocket authentication callback function type
@@ -85,6 +87,9 @@ public:
 	void RegisterWSSubscription(const std::string& subscription, uint8_t minLevel = 0);
 	// The level is looked up each time (for permissions that can change while running)
 	void RegisterWSSubscription(const std::string& subscription, std::function<uint8_t()> minLevel);
+	// Guarded by a named permission (at its level): connections made with an API key also need it in the key's scope.
+	// Level-only subscriptions above level 0 reach API keys only when they have all of their owner's permissions.
+	void RegisterWSSubscription(const std::string& subscription, std::function<uint8_t()> minLevel, std::string permission);
 	/**
 	 * Answer this request later (from any thread) instead of when the handler returns, for slow work that would hold
 	 * up every other request: the handler hands the returned DeferredReply to a worker and returns; the web thread

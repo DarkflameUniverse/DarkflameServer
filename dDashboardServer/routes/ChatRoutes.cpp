@@ -75,7 +75,7 @@ namespace ChatRoutes {
 }
 
 void RegisterChatRoutes() {
-	Game::web.RegisterWSSubscription("chat_message", std::function<uint8_t()>([] { return Permissions::Level("chat_view"); }));
+	Game::web.RegisterWSSubscription("chat_message", std::function<uint8_t()>([] { return Permissions::Level("chat_view"); }), "chat_view");
 
 	Route(eHTTPMethod::GET, "/api/chat", Perm("chat_view"),
 		"Chat messages, oldest first. Query: after (the last id you have; for bridges polling), limit (max 500), channel (zone, whisper, team, web), "

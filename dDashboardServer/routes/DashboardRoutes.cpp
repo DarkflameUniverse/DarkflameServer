@@ -265,7 +265,7 @@ namespace {
 
 void RegisterDashboardRoutes() {
 	Route(eHTTPMethod::GET, "/", 0, "Dashboard home", [](HTTPReply& reply, const HTTPContext& context) {
-		nlohmann::json data = Permissions::Allowed(context.gmLevel, "players_view") ? ServerState::GetServerStateJson() : ServerState::PlayerSafe(ServerState::GetServerStateJson());
+		nlohmann::json data = Can(context, "players_view") ? ServerState::GetServerStateJson() : ServerState::PlayerSafe(ServerState::GetServerStateJson());
 		data["my_characters"] = Database::Get()->GetAccountCharacters(context.accountId);
 		data["stats"]["totalAccounts"] = Database::Get()->GetAccountCount();
 		data["stats"]["totalCharacters"] = Database::Get()->GetCharacterCount();

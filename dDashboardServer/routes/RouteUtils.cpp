@@ -1,4 +1,5 @@
 #include "RouteUtils.h"
+#include "ApiKeyService.h"
 #include "Permissions.h"
 
 #include "Database.h"
@@ -32,7 +33,16 @@ namespace {
 namespace RouteUtils {
 	namespace {
 		std::vector<RouteDoc> g_RouteDocs;
+		int g_ReadRoutes = 0;
+
+		std::shared_ptr<RequireAuthMiddleware> MakeRequireAuth(std::shared_ptr<RequireAuthMiddleware> middleware) {
+			if (g_ReadRoutes > 0) middleware->SetReadsOnly();
+			return middleware;
+		}
 	}
+
+	ReadRoutes::ReadRoutes() { g_ReadRoutes++; }
+	ReadRoutes::~ReadRoutes() { g_ReadRoutes--; }
 
 	void Register(eHTTPMethod method, const std::string& path, std::vector<MiddlewarePtr> middleware, Handler handler) {
 		Game::web.RegisterHTTPRoute({
@@ -53,7 +63,7 @@ namespace RouteUtils {
 
 	void Route(eHTTPMethod method, const std::string& path, int16_t minGmLevel, const std::string& description, Handler handler) {
 		std::vector<MiddlewarePtr> middleware;
-		if (minGmLevel >= 0) middleware.push_back(std::make_shared<RequireAuthMiddleware>(static_cast<uint8_t>(minGmLevel)));
+		if (minGmLevel >= 0) middleware.push_back(MakeRequireAuth(std::make_shared<RequireAuthMiddleware>(static_cast<uint8_t>(minGmLevel))));
 		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, minGmLevel, description, "" });
 		Register(method, path, std::move(middleware), std::move(handler));
 	}
@@ -61,13 +71,13 @@ namespace RouteUtils {
 	void Route(eHTTPMethod method, const std::string& path, const Perm& permission, const std::string& description, Handler handler) {
 		if (!Permissions::Find(permission.key)) LOG("Route %s uses unknown permission %s; nobody can use it", path.c_str(), permission.key.c_str());
 		std::vector<MiddlewarePtr> middleware;
-		middleware.push_back(std::make_shared<RequireAuthMiddleware>(std::function<uint8_t()>([key = permission.key] { return Permissions::Level(key); })));
+		middleware.push_back(MakeRequireAuth(std::make_shared<RequireAuthMiddleware>(std::function<uint8_t()>([key = permission.key] { return Permissions::Level(key); }), permission.key)));
 		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, Permissions::Level(permission.key), description, permission.key });
 		Register(method, path, std::move(middleware), std::move(handler));
 	}
 
 	bool Can(const HTTPContext& context, const std::string& permission) {
-		return context.isAuthenticated && Permissions::Allowed(context.gmLevel, permission);
+		return context.isAuthenticated && Permissions::Allowed(context.gmLevel, permission, context.apiKey.get());
 	}
 
 	std::optional<LWOOBJID> ResolveCharacter(std::string_view text) {
@@ -81,7 +91,7 @@ namespace RouteUtils {
 	}
 
 	bool CanViewCharacter(const HTTPContext& context, uint32_t ownerAccountId) {
-		return context.isAuthenticated && Permissions::CanViewCharacter(context.gmLevel, context.accountId, ownerAccountId);
+		return context.isAuthenticated && Permissions::CanViewCharacter(context.gmLevel, context.accountId, ownerAccountId, context.apiKey.get());
 	}
 
 	const std::vector<RouteDoc>& GetRouteDocs() {
@@ -125,13 +135,20 @@ namespace RouteUtils {
 	void Audit(const HTTPContext& context, const std::string& action, const std::string& description, const AuditTarget& target) {
 		// Staff acting on their own account or characters is called out, so it stands out in the log and in alerts
 		const auto text = description + OwnAccountNote(context.accountId, target.accountId);
+		// What was done with an API key says which key: "user (key name)"
+		auto actor = context.authenticatedUser;
+		if (context.apiKey) {
+			// The audit log's name column holds 64 characters; shorten the key's name rather than the account's
+			const auto room = actor.size() + 3 < 64 ? 64 - actor.size() - 3 : 0;
+			actor += " (" + context.apiKey->name.substr(0, room) + ")";
+		}
 		try {
-			Database::Get()->InsertAuditLog(context.accountId, context.authenticatedUser, action, text, target.accountId, target.characterId);
+			Database::Get()->InsertAuditLog(context.accountId, actor, action, text, target.accountId, target.characterId);
 		} catch (const std::exception& ex) {
 			LOG("Failed to write audit log entry %s: %s", action.c_str(), ex.what());
 		}
-		LOG("[audit] %s: %s %s", context.authenticatedUser.c_str(), action.c_str(), text.c_str());
-		Alerts::FromAudit(context.authenticatedUser, action, text);
+		LOG("[audit] %s: %s %s", actor.c_str(), action.c_str(), text.c_str());
+		Alerts::FromAudit(actor, action, text);
 	}
 
 	std::string HashPassword(const std::string& password) {
@@ -222,7 +239,7 @@ namespace RouteUtils {
 	}
 
 	bool CanManageAccount(const HTTPContext& context, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action) {
-		return context.isAuthenticated && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action) == eManageDenial::NONE;
+		return context.isAuthenticated && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, context.apiKey.get()) == eManageDenial::NONE;
 	}
 
 	nlohmann::json ManageJson(const HTTPContext& context, uint8_t targetLevel, uint32_t targetAccountId) {
@@ -240,8 +257,14 @@ namespace RouteUtils {
 			return std::nullopt;
 		}
 		const uint8_t targetLevel = target.value("gm_level", 0);
-		const auto denial = AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action);
+		const auto denial = AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, context.apiKey.get());
 		if (denial == eManageDenial::NONE) return targetLevel;
+		// The owner may do it, but the key's scope doesn't let it
+		if (context.apiKey && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action) == eManageDenial::NONE) {
+			ApiKeyService::NoteDenied(context, AccountRules::DenialMessage(denial, action));
+			JsonError(reply, eHTTPStatusCode::FORBIDDEN, "This API key may not do this: " + AccountRules::DenialMessage(denial, action));
+			return std::nullopt;
+		}
 		JsonError(reply, eHTTPStatusCode::FORBIDDEN, AccountRules::DenialMessage(denial, action));
 		return std::nullopt;
 	}
@@ -261,7 +284,7 @@ namespace RouteUtils {
 		try {
 			data.merge_patch(context.GetUserDataJson());
 			data["current_page"] = page;
-			data["can"] = Permissions::ForLevel(context.isAuthenticated ? context.gmLevel : 0);
+			data["can"] = Permissions::ForLevel(context.isAuthenticated ? context.gmLevel : 0, context.apiKey.get());
 			// The account's view choices, on <body> so each page's toggles start as they were left (static/js/common.js)
 			// Names for the game's numbered values, from the server's enums (GameLabels.h)
 			data["labels"] = GameLabels::Json();

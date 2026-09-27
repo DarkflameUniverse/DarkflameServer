@@ -455,7 +455,7 @@ void RegisterSettingsRoutes() {
 
 	Route(eHTTPMethod::GET, "/api/account/permissions", 0, "What you may do: {permissions: {name: bool}}",
 		[](HTTPReply& reply, const HTTPContext& context) {
-			JsonSuccess(reply, { {"gmLevel", context.gmLevel}, {"permissions", Permissions::ForLevel(context.gmLevel)} });
+			JsonSuccess(reply, { {"gmLevel", context.gmLevel}, {"permissions", Permissions::ForLevel(context.gmLevel, context.apiKey.get())} });
 		});
 
 	Route(eHTTPMethod::GET, "/api/permissions", Perm("permissions_manage"), "Every permission with its default and current minimum GM level, and where that comes from",

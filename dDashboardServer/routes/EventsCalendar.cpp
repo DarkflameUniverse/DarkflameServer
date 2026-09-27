@@ -933,7 +933,7 @@ namespace EventsCalendar {
 				JsonSuccess(reply, { {"message", made.empty() ? "Event scheduled" : "Event scheduled, with an empty " + made + " to put its NPCs in"}, {"id", event.id} });
 			});
 
-		Route(eHTTPMethod::POST, "/api/events/check", 0,
+		ReadRoute(eHTTPMethod::POST, "/api/events/check", 0,
 			"Check a schedule and list when it is on. Body: {schedule (recurring rules), from (unix, default now), count (default 5)}. Returns {valid, error, schedule, on, windows: [{start, end}]}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				if (!CanView(context)) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "You may not see the scheduled events");

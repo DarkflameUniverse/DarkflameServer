@@ -1,4 +1,5 @@
 #include "AuthRoutes.h"
+#include "ApiKeyRoutes.h"
 #include "Permissions.h"
 #include "DashboardAuthService.h"
 #include "AuthTokenHandler.h"
@@ -216,7 +217,9 @@ void RegisterAuthRoutes() {
 
 	// POST /api/auth/token - Issue a bearer token for API clients (bots, scripts)
 	// Request body: { "days": number (1-365, default 30) }
-	// The token carries the caller's identity; its permissions always follow the account's current GM level.
+	// Kept for scripts written for the old API tokens: it now makes an API key named "API token" with all of the
+	// caller's permissions (which always follow the account's current GM level). Pick a narrower scope, limits and
+	// no expiry with POST /api/api_keys. Tokens made before API keys keep working until they expire.
 	Game::web.RegisterHTTPRoute({
 		.path = "/api/auth/token",
 		.method = eHTTPMethod::POST,
@@ -230,10 +233,7 @@ void RegisterAuthRoutes() {
 			}
 			const auto json = RouteUtils::ParseBody(context);
 			const int64_t days = std::clamp<int64_t>(json ? json->value("days", 30) : 30, 1, MAX_API_TOKEN_DAYS);
-			const auto token = JWTUtils::GenerateSessionToken(context.accountId, context.authenticatedUser, context.gmLevel, false, days * 24 * 60 * 60);
-			if (token.empty()) return RouteUtils::JsonError(reply, eHTTPStatusCode::INTERNAL_SERVER_ERROR, "Token generation failed");
-
-			RouteUtils::Audit(context, "create_api_token", "Valid for " + std::to_string(days) + " days");
+			const auto token = ApiKeyRoutes::CreateFullKey(context, "API token", days);
 			RouteUtils::JsonReply(reply, eHTTPStatusCode::OK, { {"token", token}, {"expiresInDays", days} });
 		}
 	});

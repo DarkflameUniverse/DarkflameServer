@@ -19,6 +19,15 @@ namespace {
 
 	std::function<bool(uint8_t)> g_ApiAccessAllowed;
 	std::function<void(const HTTPContext&, HTTPReply&)> g_ForbiddenPage;
+	std::function<void(const HTTPContext&, const std::string&)> g_ApiKeyDenied;
+
+	bool RefuseApiKey(const HTTPContext& context, HTTPReply& reply, const std::string& reason, const std::string& message) {
+		if (g_ApiKeyDenied) g_ApiKeyDenied(context, reason);
+		reply.status = eHTTPStatusCode::FORBIDDEN;
+		reply.message = nlohmann::json{ {"success", false}, {"error", message}, {"code", "api_key_scope"} }.dump();
+		reply.contentType = eContentType::APPLICATION_JSON;
+		return false;
+	}
 
 	bool IsSafeMethod(const HTTPContext& context) {
 		return context.method == "GET" || context.method == "HEAD" || context.method == "OPTIONS";
@@ -36,6 +45,13 @@ void RequireAuthMiddleware::SetForbiddenPage(std::function<void(const HTTPContex
 RequireAuthMiddleware::RequireAuthMiddleware(uint8_t minGmLevel) : requiredLevel([minGmLevel] { return minGmLevel; }) {}
 
 RequireAuthMiddleware::RequireAuthMiddleware(std::function<uint8_t()> requiredLevel) : requiredLevel(std::move(requiredLevel)) {}
+
+RequireAuthMiddleware::RequireAuthMiddleware(std::function<uint8_t()> requiredLevel, std::string permission)
+	: requiredLevel(std::move(requiredLevel)), permission(std::move(permission)) {}
+
+void RequireAuthMiddleware::SetApiKeyDeniedHook(std::function<void(const HTTPContext& context, const std::string& reason)> hook) {
+	g_ApiKeyDenied = std::move(hook);
+}
 
 bool RequireAuthMiddleware::Process(HTTPContext& context, HTTPReply& reply) {
 	if (!context.isAuthenticated) {
@@ -103,6 +119,22 @@ bool RequireAuthMiddleware::Process(HTTPContext& context, HTTPReply& reply) {
 		reply.message = "{\"success\":false,\"error\":\"Insufficient permissions\"}";
 		reply.contentType = eContentType::APPLICATION_JSON;
 		return false;
+	}
+
+	// An API key can only narrow what its owner may do: read-only keys make no changes, and a route guarded by a
+	// permission needs that permission in the key's scope. Routes guarded only by a GM level above 0 have no
+	// permission to scope them by, so only keys with all of the owner's permissions reach them.
+	if (context.apiKey) {
+		const auto& key = *context.apiKey;
+		if (key.readOnly && !readsOnly && !IsSafeMethod(context)) {
+			return RefuseApiKey(context, reply, context.method + " " + context.path + " with a read-only key", "This API key is read-only");
+		}
+		if (!permission.empty() && !key.Has(permission)) {
+			return RefuseApiKey(context, reply, "no " + permission + " permission for " + context.path, "This API key doesn't have the " + permission + " permission");
+		}
+		if (permission.empty() && minGmLevel > 0 && !key.allPermissions) {
+			return RefuseApiKey(context, reply, context.path + " needs a key with all permissions", "This needs an API key with all of your permissions");
+		}
 	}
 
 	return true;

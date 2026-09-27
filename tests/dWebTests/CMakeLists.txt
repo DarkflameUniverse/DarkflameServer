@@ -14,6 +14,7 @@ set(DWEBTESTS_SOURCES
 	"ItemTraceTests.cpp"
 	"CronTests.cpp"
 	"PermissionsTests.cpp"
+	"ApiKeyTests.cpp"
 	"SettingsCatalogTests.cpp"
 	"BehaviorXmlTests.cpp"
 	"CharacterXmlTests.cpp"

@@ -52,7 +52,7 @@ namespace {
 void RegisterWSRoutes() {
 	Game::web.RegisterWSSubscription("dashboard_update", 0);
 	Game::web.RegisterWSSubscription("table_changed", 1);
-	Game::web.RegisterWSSubscription("moderation_counts", std::function<uint8_t()>([] { return Permissions::Level("moderate_names"); }));
+	Game::web.RegisterWSSubscription("moderation_counts", std::function<uint8_t()>([] { return Permissions::Level("moderate_names"); }), "moderate_names");
 	// Delivered only to the account that started the action (Web::SendWSMessageToAccount), so players get their own
 	Game::web.RegisterWSSubscription("action_result", 0);
 }

@@ -96,6 +96,8 @@
 #include "Alerts.h"
 #include "DashboardAuthService.h"
 #include "AuthTokenHandler.h"
+#include "ApiKeyService.h"
+#include "ApiKeyRoutes.h"
 #include "JWTUtils.h"
 #include "GeneralUtils.h"
 #include <fstream>
@@ -462,6 +464,13 @@ int main(int argc, char** argv) {
 	// WebSocket connections carry the session cookie; the level gates which topics they may receive
 	// Also called again for open sockets every minute and when an account changes (BroadcastTableChanged("accounts"))
 	Game::web.SetWSAuthCallback([](const std::string& token) -> std::optional<WSAuth> {
+		// An API key: its owner as of now, and its scope for the subscriptions
+		if (ApiKeyService::LooksLikeKey(token)) {
+			const auto key = ApiKeyService::Verify(token);
+			if (!key) return std::nullopt;
+			if (key->needsTwoFactorSetup) return WSAuth{ 0, key->accountId, key->scope };
+			return WSAuth{ key->gmLevel, key->accountId, key->scope };
+		}
 		const auto result = AuthTokenHandler::ValidateToken(token);
 		if (!result.isValid) return std::nullopt;
 		// Until required two-factor login is set up the session only reaches its own account page
@@ -504,6 +513,7 @@ int main(int argc, char** argv) {
 	RegisterCharacterProgressRoutes();
 	RegisterServerRoutes();
 	RegisterLeaderboardRoutes();
+	ApiKeyRoutes::RegisterRoutes();
 	RequireAuthMiddleware::SetApiAccessCheck([](uint8_t gmLevel) { return Permissions::Allowed(gmLevel, "api_access"); });
 	RequireAuthMiddleware::SetForbiddenPage([](const HTTPContext& context, HTTPReply& reply) {
 		RouteUtils::RenderError(reply, context, eHTTPStatusCode::FORBIDDEN, "You don't have permission to open this page.");
@@ -587,6 +597,7 @@ int main(int argc, char** argv) {
 			ChallengeRoutes::Update();
 			InstanceLoad::Update();
 			Traffic::Update();
+			ApiKeyService::Update();
 
 			// Broadcast dashboard updates periodically
 			if (elapsedSinceBroadcast >= broadcastInterval) {
@@ -602,6 +613,7 @@ int main(int argc, char** argv) {
 	// Cleanup: the worker threads first (they answer deferred requests), then the web server's connections
 	Workers::Stop();
 	Game::web.Shutdown();
+	ApiKeyService::Flush();
 	Inspector::Shutdown();
 	EmailService::Shutdown();
 	ModeratorHelper::Shutdown();

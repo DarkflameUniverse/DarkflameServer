@@ -1,4 +1,5 @@
 #include "AuthTokenHandler.h"
+#include "ApiKeyService.h"
 #include "DashboardAuthService.h"
 #include "Game.h"
 #include "Logger.h"
@@ -76,6 +77,13 @@ bool AuthTokenHandler::ProcessHTTPContext(HTTPContext& context, HTTPReply& reply
 	eTokenSource source = eTokenSource::NONE;
 	const auto token = ExtractToken(context.GetHeader("Cookie"), context.GetHeader("Authorization"), source);
 	if (token.empty()) return true;
+
+	// API keys: their scope and limits are checked here; a key over its limits is refused outright
+	if (source == eTokenSource::HEADER && ApiKeyService::LooksLikeKey(token)) {
+		const auto keyResult = ApiKeyService::Authenticate(token, context, reply);
+		if (keyResult == ApiKeyService::eResult::INVALID) LOG_DEBUG("API key validation failed from %s", context.clientIP.c_str());
+		return keyResult != ApiKeyService::eResult::REFUSED;
+	}
 
 	const auto result = ValidateToken(token);
 	if (!result.isValid) {

@@ -328,6 +328,7 @@ namespace {
 		c.Add(Bool(DASHBOARD, "showcase_public", "Property showcase for everyone", "Let people who aren't signed in browse approved public properties at /showcase. Signed-in players need the showcase_view permission.", false));
 
 		c.AddSection("Metrics", "Prometheus metrics at /metrics: players, worlds, memory, chat, today's economy, moderation queues and scheduled tasks. Never names or addresses.");
+		c.Add(Unit(Int(DASHBOARD, "api_key_rate_limit", "API key rate limit", "Requests a minute an API key may make unless the key sets its own limit (up to 6000).", "120", 1, 6000), "/min"));
 		c.Add(Bool(DASHBOARD, "metrics_enabled", "Metrics endpoint", "Off: /metrics answers 404. On: scrapers send an API token of an account with metrics_view, or the token below.", false));
 		c.Add(When(Secret(DASHBOARD, "metrics_token", "Scraper token", "A shared secret scrapers may send as Authorization: Bearer instead of an API token. At least 16 characters; empty: API tokens only."), DASHBOARD, "metrics_enabled", { "1" }));
 		c.Add(When(Text(DASHBOARD, "metrics_allowed_ips", "Allowed addresses", "Comma separated addresses or IPv4 ranges (10.0.0.0/8) that may fetch metrics. Empty: any."), DASHBOARD, "metrics_enabled", { "1" }));
