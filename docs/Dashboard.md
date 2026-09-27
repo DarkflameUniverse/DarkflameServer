@@ -25,6 +25,12 @@ dashboard_url=https://dashboard.example.com
 
 `dashboard_url` is used for links in emails and webhook alerts.
 
+### Tables
+
+Every table remembers how you last sorted it and how many rows it shows per page. This is kept in your browser only
+(per dashboard user), so it doesn't follow you to another browser; clearing site data resets it. Searches and the page
+you were on aren't kept.
+
 ## Files to back up
 
 Next to the server binaries, the dashboard creates:

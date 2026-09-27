@@ -352,6 +352,39 @@
 		$.extend(true, $.fn.dataTable.defaults, {
 			columnDefs: [{ targets: '_all', render: $.fn.dataTable.render.text() }]
 		});
+		/*
+		 * Every table remembers how this user last sorted it and how many rows it showed, in this browser only.
+		 * Keyed by page (numeric path segments folded, so every account page shares one choice), table id and
+		 * username. Search and paging position are deliberately not kept. Tables without an id are skipped.
+		 */
+		var sortKey = function (settings) {
+			if (!settings.sTableId) return null;
+			var page = window.location.pathname.replace(/\/\d+(?=\/|$)/g, '/*');
+			return 'dash.table:' + (DASH.username || '-') + ':' + page + ':' + settings.sTableId;
+		};
+		$.extend($.fn.dataTable.defaults, {
+			stateSave: true,
+			stateDuration: 0,
+			stateSaveCallback: function (settings, data) {
+				var key = sortKey(settings);
+				if (!key) return;
+				try { localStorage.setItem(key, JSON.stringify({ order: data.order, length: data.length })); } catch (e) { /* storage unavailable */ }
+			},
+			stateLoadCallback: function (settings) {
+				var key = sortKey(settings), saved = null;
+				if (!key) return null;
+				try { saved = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
+				if (!saved || typeof saved !== 'object') return null;
+				var count = settings.aoColumns.length, state = { time: Date.now() };
+				// Drop sorts on columns that no longer exist or can't be sorted (the table changed since)
+				if (Array.isArray(saved.order)) state.order = saved.order.filter(function (o) {
+					return Array.isArray(o) && o[0] >= 0 && o[0] < count && settings.aoColumns[o[0]].bSortable !== false && (o[1] === 'asc' || o[1] === 'desc');
+				});
+				if (state.order && !state.order.length) delete state.order;
+				if (typeof saved.length === 'number' && (saved.length === -1 || saved.length > 0)) state.length = saved.length;
+				return state;
+			}
+		});
 		$.ajaxSetup({ headers: { 'X-Requested-With': 'dashboard' } });
 		$(document).on('ajaxError', function (e, xhr) { if (xhr.status === 401) window.location.href = '/login'; });
 
