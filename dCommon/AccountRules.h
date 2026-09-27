@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+namespace ApiKeys { struct Scope; }
+
 /**
  * Who staff may use their tools on: the self and rank rules shared by the dashboard (RouteUtils) and the in-game slash
  * commands (SlashCommandHandler). The functions here are pure; Permissions.h decides the self_* and manage_equal_rank
@@ -93,4 +95,20 @@ namespace AccountRules {
 	 * Used by the dashboard and the world servers alike.
 	 */
 	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action);
+
+	/**
+	 * The self and rank rules for an API key, on top of what its owner may do (ownerDenial, from ManageDenial). The key
+	 * needs the self_* permission in its scope to act on its owner's own account, and manage_equal_rank to act on an
+	 * account at (or, for GM 9, also at) the owner's level - even when the owner is GM 9, who needs neither.
+	 */
+	inline eManageDenial ScopedManageDenial(eManageDenial ownerDenial, uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId,
+		bool scopeSelf, bool scopeEqual) {
+		if (ownerDenial != eManageDenial::NONE) return ownerDenial;
+		if (actorAccountId != 0 && actorAccountId == targetAccountId) return scopeSelf ? eManageDenial::NONE : eManageDenial::SELF;
+		if (targetLevel >= actorLevel && !scopeEqual) return eManageDenial::EQUAL_RANK;
+		return eManageDenial::NONE;
+	}
+
+	// ManageDenialNow for a request made with an API key (scope nullptr: a browser session, the plain rules)
+	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action, const ApiKeys::Scope* scope);
 }

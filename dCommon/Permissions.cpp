@@ -1,5 +1,6 @@
 #include "Permissions.h"
 #include "AccountRules.h"
+#include "ApiKeyScope.h"
 
 #include <map>
 
@@ -18,7 +19,7 @@ namespace {
 		{ "showcase_view", "Players", "Property showcase", "Browse other players' approved public properties and walk around them in 3D (setting showcase_public opens it to everyone)", 0, false, Permissions::PLAYER_LEVEL },
 		{ "own_strikes", "Players", "Their strikes", "See the strikes on their own account and why they were given", 0, false, Permissions::PLAYER_LEVEL },
 		{ "challenges_view", "Players", "Community challenges", "See the community challenges, how far along they are and what their own characters added", 0, false, Permissions::PLAYER_LEVEL },
-		{ "api_access", "Players", "API access", "Make API tokens and use the dashboard's API with them. Each request still needs the permission for what it does", 0, false, Permissions::PLAYER_LEVEL },
+		{ "api_access", "Players", "API access", "Make API keys and use the dashboard's API with them. A key only does what its owner may, narrowed to the permissions chosen for it", 0, false, Permissions::PLAYER_LEVEL },
 
 		{ "accounts_view", "Accounts", "View accounts", "The accounts list and other people's account pages", 1 },
 		{ "accounts_notes", "Accounts", "Moderation history", "See and add notes and warnings on accounts (warnings can be sent to the player)", 2 },
@@ -30,6 +31,7 @@ namespace {
 		{ "accounts_manage", "Accounts", "Manage accounts", "Create accounts, change their email or password, reset their two-factor login", 8 },
 		{ "accounts_gm_level", "Accounts", "Set GM levels", "Change GM levels (never to your own level or above, unless GM 9; their own only with self_moderation, and only lower)", 8 },
 		{ "accounts_delete", "Accounts", "Delete accounts", "Permanently delete an account and its characters", 9 },
+		{ "api_keys_manage", "Accounts", "Other accounts' API keys", "See and revoke other accounts' API keys (the rank rules apply; nobody can make keys for someone else)", 8 },
 		// Who staff may use their tools on. Each needs the tool's own permission as well; GM 9 may always act on anyone,
 		// and nobody below GM 9 can ever act on a higher GM level or raise their own
 		{ "manage_equal_rank", "Accounts", "Act on their own rank", "Use their account and character tools on other accounts with the same GM level as their own (never on a higher one)", 9 },
@@ -151,14 +153,26 @@ namespace Permissions {
 		return gmLevel >= Level(key);
 	}
 
-	bool CanViewCharacter(uint8_t gmLevel, uint32_t viewerAccountId, uint32_t ownerAccountId) {
-		const bool own = viewerAccountId != 0 && viewerAccountId == ownerAccountId;
-		return Allowed(gmLevel, "characters_view") || (own && Allowed(gmLevel, "own_characters"));
+	bool Allowed(uint8_t gmLevel, const std::string& key, const ApiKeys::Scope* scope) {
+		return Allowed(gmLevel, key) && (!scope || scope->Has(key));
 	}
 
-	nlohmann::json ForLevel(uint8_t gmLevel) {
+	std::set<std::string> NotGrantable(uint8_t gmLevel, const std::set<std::string>& requested) {
+		std::set<std::string> refused;
+		for (const auto& permission : requested) {
+			if (!Find(permission) || !Allowed(gmLevel, permission)) refused.insert(permission);
+		}
+		return refused;
+	}
+
+	bool CanViewCharacter(uint8_t gmLevel, uint32_t viewerAccountId, uint32_t ownerAccountId, const ApiKeys::Scope* scope) {
+		const bool own = viewerAccountId != 0 && viewerAccountId == ownerAccountId;
+		return Allowed(gmLevel, "characters_view", scope) || (own && Allowed(gmLevel, "own_characters", scope));
+	}
+
+	nlohmann::json ForLevel(uint8_t gmLevel, const ApiKeys::Scope* scope) {
 		nlohmann::json can = nlohmann::json::object();
-		for (const auto& permission : PERMISSIONS) can[permission.key] = Allowed(gmLevel, permission.key);
+		for (const auto& permission : PERMISSIONS) can[permission.key] = Allowed(gmLevel, permission.key, scope);
 		return can;
 	}
 }
@@ -167,5 +181,12 @@ namespace AccountRules {
 	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action) {
 		return ManageDenial(actorLevel, actorAccountId, targetLevel, targetAccountId,
 			Permissions::Allowed(actorLevel, SelfPermission(action)), Permissions::Allowed(actorLevel, EQUAL_RANK_PERMISSION));
+	}
+
+	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action, const ApiKeys::Scope* scope) {
+		const auto denial = ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, action);
+		if (!scope) return denial;
+		return ScopedManageDenial(denial, actorLevel, actorAccountId, targetLevel, targetAccountId,
+			scope->Has(SelfPermission(action)), scope->Has(EQUAL_RANK_PERMISSION));
 	}
 }
