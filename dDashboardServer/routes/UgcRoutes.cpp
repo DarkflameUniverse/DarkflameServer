@@ -223,6 +223,13 @@ namespace {
 		return std::nullopt;
 	}
 
+	// An id from a request body, as a string or a number; nullopt when it's missing or not one
+	std::optional<LWOOBJID> BodyId(const nlohmann::json& body) {
+		const auto it = body.find("id");
+		if (it == body.end()) return std::nullopt;
+		return GeneralUtils::TryParse<LWOOBJID>(it->is_string() ? it->get<std::string>() : it->dump());
+	}
+
 	nlohmann::json Counts(const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& counts) {
 		nlohmann::json out = nlohmann::json::object();
 		for (const auto state : magic_enum::enum_values<IUgc::eProcessState>()) out[IUgc::ProcessStateName(state)] = 0;
@@ -348,7 +355,7 @@ namespace UgcRoutes {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
 				const auto kind = body->value("kind", std::string("model")) == "modular" ? std::string("modular") : std::string("model");
-				const auto id = GeneralUtils::TryParse<LWOOBJID>((*body)["id"].is_string() ? (*body)["id"].get<std::string>() : (*body)["id"].dump());
+				const auto id = BodyId(*body);
 				if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
 				const auto after = body->value("after", std::string("now"));
 				Audit(context, "ugc_delete_files", "Deleted the UGC files of " + kind + " " + std::to_string(*id) + " (" + after + ")");
@@ -439,7 +446,7 @@ namespace UgcRoutes {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
 				const bool model = body->value("kind", std::string()) == "model";
-				ProxyAdmin(reply, context, "/admin/preview", { { "kind", model ? "model" : "modular" }, { "id", (*body)["id"].is_string() ? (*body)["id"].get<std::string>() : std::string("0") },
+				ProxyAdmin(reply, context, "/admin/preview", { { "kind", model ? "model" : "modular" }, { "id", std::to_string(BodyId(*body).value_or(0)) },
 					{ "modules", body->value("modules", std::string()) }, { "values", nlohmann::json::parse(UgcIconParams::ToJson(UgcIconParams::Parse(body->value("values", nlohmann::json::object()).dump()))) } });
 			});
 
@@ -463,7 +470,7 @@ namespace UgcRoutes {
 					target = UgcIconParams::CombinationTarget(key);
 					what = "the icon of the module combination " + key;
 				} else {
-					const auto id = GeneralUtils::TryParse<LWOOBJID>((*body)["id"].is_string() ? (*body)["id"].get<std::string>() : (*body)["id"].dump());
+					const auto id = BodyId(*body);
 					if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
 					target = UgcIconParams::ModelTarget(*id);
 					what = "the icon of model " + std::to_string(*id);
@@ -500,7 +507,7 @@ namespace UgcRoutes {
 				const bool modular = body->value("kind", "model") == "modular";
 				std::optional<LWOOBJID> id;
 				if (body->contains("id")) {
-					id = GeneralUtils::TryParse<LWOOBJID>((*body)["id"].is_string() ? (*body)["id"].get<std::string>() : (*body)["id"].dump());
+					id = BodyId(*body);
 					if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
 				}
 				const bool failedOnly = body->value("failedOnly", false);

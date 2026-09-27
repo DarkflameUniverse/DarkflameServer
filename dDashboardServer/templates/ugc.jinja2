@@ -109,8 +109,8 @@
 				</div>
 				<div class="mt-3" id="statsBox"></div>
 				<div class="card mt-3 d-none" id="framingCard">
-					<div class="card-header py-2 small fw-semibold d-flex align-items-center gap-2">Icon framing
-						<select class="form-select form-select-sm w-auto ms-auto" id="framingType" aria-label="Build type"><option value="6">Car</option><option value="3">Rocket</option></select></div>
+					<div class="card-header py-2 small fw-semibold d-flex align-items-center gap-2">Icon framing and light
+						<span class="ms-auto text-body-secondary fw-normal" id="framingKind"></span></div>
 					<div class="card-body py-2 small">
 						<div class="row g-3">
 							<div class="col-md-8"><div class="row g-2" id="framingControls"></div></div>
@@ -119,10 +119,10 @@
 						</div>
 						<div class="d-flex flex-wrap gap-2 mt-2">
 							<button type="button" class="btn btn-sm btn-outline-secondary" id="framingPreviewButton">Preview</button>
-							<button type="button" class="btn btn-sm btn-outline-primary" id="framingSaveType">Save as default for this type</button>
-							<button type="button" class="btn btn-sm btn-outline-primary" id="framingSaveCombo">Save for this combination</button>
+							<button type="button" class="btn btn-sm btn-outline-primary" id="framingSaveType">Save as the preset for this kind</button>
+							<button type="button" class="btn btn-sm btn-outline-primary" id="framingSaveCombo">Save for this item</button>
 							<button type="button" class="btn btn-sm btn-outline-secondary" id="framingReset">Reset</button>
-							<button type="button" class="btn btn-sm btn-outline-warning ms-auto" id="framingRegenerate">Draw all icons of this type again</button>
+							<button type="button" class="btn btn-sm btn-outline-warning ms-auto" id="framingRegenerate">Draw all icons of this kind again</button>
 						</div>
 					</div>
 				</div>

@@ -195,8 +195,8 @@
 		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', !model); });
 		$('statsBox').innerHTML = model ? '' : '<div class="small">Modules: <code>' + esc(item.modules || '') + '</code> (combination <code>' + esc(item.combination || '') +
 			'</code>). The game client puts cars and rockets together itself; only the icon is made, once per combination of modules.</div>';
-		$('framingCard').classList.toggle('d-none', model || !canManage);
-		if (!model && canManage) openFraming(item);
+		$('framingCard').classList.toggle('d-none', !canManage);
+		if (canManage) openFraming(item, model);
 		bootstrap.Modal.getOrCreateInstance($('previewModal')).show();
 		if (!model) return;
 
@@ -320,55 +320,67 @@
 	$('purgeButton').addEventListener('click', function () { purge(false); });
 	$('purgeAllButton').addEventListener('click', function () { purge(true); });
 
-	// ---- car and rocket icon framing ----
+	// ---- icon framing and light, for any item; the controls come from the server's list of parameters ----
 
-	var FRAMING = [
-		['yaw', 'Angle around', -180, 180, 1], ['pitch', 'Angle above', -89, 89, 1], ['fov', 'Field of view', 5, 90, 0.5], ['margin', 'Border (zoom)', 0.5, 3, 0.01],
-		['offsetX', 'Shift right', -0.5, 0.5, 0.01], ['offsetY', 'Shift up', -0.5, 0.5, 0.01], ['sunYaw', 'Sun around', -180, 180, 1], ['sunPitch', 'Sun above', -10, 90, 1]
-	];
-	var framingItem = null, typeFraming = {}, previewTimer = null, previewUrl = null;
-	$('framingControls').innerHTML = FRAMING.map(function (f) {
-		return '<div class="col-sm-6"><label class="d-flex justify-content-between" for="framing_' + f[0] + '"><span>' + esc(f[1]) + '</span><span id="framing_' + f[0] + '_value"></span></label>' +
-			'<input type="range" class="form-range" id="framing_' + f[0] + '" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] + '"></div>';
-	}).join('');
+	var PARAMS = [], framingItem = null, framingKind = '', previewTimer = null, previewUrl = null;
+	function stepDigits(step) { return step >= 1 ? 0 : 2; }
+	function buildControls(params) {
+		PARAMS = params;
+		$('framingControls').innerHTML = params.map(function (p) {
+			return '<div class="col-sm-6"><label class="d-flex justify-content-between" for="icon_' + esc(p.key) + '" title="' + esc(p.description || '') + '"><span>' + esc(p.label) +
+				'</span><span id="icon_' + esc(p.key) + '_value"></span></label><input type="range" class="form-range" id="icon_' + esc(p.key) + '" min="' + p.min + '" max="' + p.max + '" step="' + p.step + '"></div>';
+		}).join('');
+	}
 	function framingValues() {
 		var out = {};
-		FRAMING.forEach(function (f) { out[f[0]] = parseFloat($('framing_' + f[0]).value); });
+		PARAMS.forEach(function (p) { out[p.key] = parseFloat($('icon_' + p.key).value); });
 		return out;
 	}
-	function setFraming(values) {
-		FRAMING.forEach(function (f) {
-			if (values[f[0]] === undefined || values[f[0]] === null) return;
-			$('framing_' + f[0]).value = values[f[0]];
-			$('framing_' + f[0] + '_value').textContent = (+values[f[0]]).toFixed(f[4] < 1 ? 2 : 0);
+	function setValues(values) {
+		if (!values) return;
+		PARAMS.forEach(function (p) {
+			if (values[p.key] === undefined || values[p.key] === null) return;
+			$('icon_' + p.key).value = values[p.key];
+			$('icon_' + p.key + '_value').textContent = (+values[p.key]).toFixed(stepDigits(p.step)) + (p.unit === 'degrees' ? '\u00b0' : '');
 		});
 	}
-	function loadFramingType(useCombination) {
-		if (!framingItem) return;
-		var type = $('framingType').value;
-		return api.get('/api/ugc/framing?buildType=' + type + '&modules=' + encodeURIComponent(framingItem.modules || '')).then(function (d) {
-			if (!d.success) return;
-			typeFraming = d.type;
-			setFraming(d.type);
-			if (useCombination && d.combination) setFraming(d.combination);
-			$('framingState').textContent = d.combination && useCombination ? 'This combination has its own framing.' : 'The ' + d.name + ' framing.';
+	function itemQuery() {
+		return framingItem.model ? 'kind=model&id=' + encodeURIComponent(framingItem.id) : 'kind=modular&modules=' + encodeURIComponent(framingItem.modules || '');
+	}
+	function itemBody(extra) {
+		var body = framingItem.model ? { kind: 'model', id: framingItem.id } : { kind: 'modular', modules: framingItem.modules };
+		for (var k in extra) body[k] = extra[k];
+		return body;
+	}
+	function loadValues() {
+		return api.get('/api/ugc/icon/settings?' + itemQuery()).then(function (d) {
+			if (!d.success) { $('framingState').textContent = d.error || 'Failed'; return; }
+			framingKind = d.kind;
+			setValues(d.settings);
+			setValues(d.preset);
+			setValues(d.own);
+			$('framingState').textContent = d.own ? 'This item has its own values.' : d.preset ? 'The kind\'s preset.' : 'The default settings.';
 			renderPreview();
 		});
 	}
-	function openFraming(item) {
-		framingItem = item;
-		// The build type from what the UGC server stored with the icon, when it has
-		fetchJson(fileUrl('modular', item.id, 'combo.json')).then(function (combo) {
-			if (combo && (combo.buildType === 3 || combo.buildType === 6)) $('framingType').value = String(combo.buildType);
-			loadFramingType(true);
+	function openFraming(item, model) {
+		framingItem = { id: item.id, modules: item.modules, model: model };
+		var start = PARAMS.length ? Promise.resolve() : api.get('/api/ugc/icon/params').then(function (d) {
+			if (!d.success) return;
+			buildControls(d.params);
+			window.ugcIconKinds = d.kinds;
+		});
+		start.then(loadValues).then(function () {
+			var label = (window.ugcIconKinds || []).find(function (k) { return k.kind === framingKind; });
+			$('framingKind').textContent = label ? label.label : framingKind;
 		});
 	}
 	function renderPreview() {
 		if (!framingItem) return;
 		var img = $('framingPreview');
 		img.style.opacity = 0.5;
-		fetch('/api/ugc/framing/preview', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-			body: JSON.stringify({ modules: framingItem.modules, framing: framingValues() }) }).then(function (r) {
+		fetch('/api/ugc/icon/preview', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+			body: JSON.stringify(itemBody({ values: framingValues() })) }).then(function (r) {
 			if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'HTTP ' + r.status); });
 			return r.blob();
 		}).then(function (blob) {
@@ -378,37 +390,32 @@
 			img.style.opacity = 1;
 		}).catch(function (e) { img.style.opacity = 1; $('framingState').textContent = 'No preview: ' + e.message; });
 	}
+	function saved(d) { toast(d.success ? d.message : (d.error || 'Failed'), d.success ? 'success' : 'danger'); }
 	$('framingControls').addEventListener('input', function (e) {
-		var f = FRAMING.find(function (x) { return 'framing_' + x[0] === e.target.id; });
-		if (f) $('framing_' + f[0] + '_value').textContent = (+e.target.value).toFixed(f[4] < 1 ? 2 : 0);
+		var p = PARAMS.find(function (x) { return 'icon_' + x.key === e.target.id; });
+		if (p) $('icon_' + p.key + '_value').textContent = (+e.target.value).toFixed(stepDigits(p.step)) + (p.unit === 'degrees' ? '\u00b0' : '');
 		clearTimeout(previewTimer);
 		previewTimer = setTimeout(renderPreview, 350);
 	});
-	$('framingType').addEventListener('change', function () { loadFramingType(false); });
 	$('framingPreviewButton').addEventListener('click', renderPreview);
 	$('framingReset').addEventListener('click', function () {
-		if (!framingItem) return;
-		if (!confirm('Go back to the type\'s framing? This combination\'s own framing, if it has one, is removed.')) return;
-		api.post('/api/ugc/framing/save', { scope: 'combination', modules: framingItem.modules, framing: null }).then(function () { loadFramingType(false); });
+		if (!framingItem || !confirm('Remove this item\'s own values and go back to its kind\'s?')) return;
+		api.post('/api/ugc/icon/save', itemBody({ scope: 'item', values: null })).then(function (d) { saved(d); loadValues(); });
 	});
 	$('framingSaveType').addEventListener('click', function () {
-		var name = $('framingType').selectedOptions[0].textContent.toLowerCase();
-		if (!confirm('Use this framing for every ' + name + ' icon? Icons already made keep theirs until they are drawn again.')) return;
-		api.post('/api/ugc/framing/save', { scope: 'type', buildType: +$('framingType').value, framing: framingValues() }).then(function (d) {
-			toast(d.success ? d.message : (d.error || 'Failed'), d.success ? 'success' : 'danger');
-		});
+		if (!confirm('Use these values for every icon of this kind? Icons already made keep theirs until they are drawn again.')) return;
+		api.post('/api/ugc/icon/save', { scope: 'kind', kind: framingKind, values: framingValues() }).then(saved);
 	});
 	$('framingSaveCombo').addEventListener('click', function () {
 		if (!framingItem) return;
-		api.post('/api/ugc/framing/save', { scope: 'combination', modules: framingItem.modules, framing: framingValues() }).then(function (d) {
-			toast(d.success ? d.message : (d.error || 'Failed'), d.success ? 'success' : 'danger');
-			if (d.success) $('framingState').textContent = 'This combination has its own framing.';
+		api.post('/api/ugc/icon/save', itemBody({ scope: 'item', values: framingValues() })).then(function (d) {
+			saved(d);
+			if (d.success) $('framingState').textContent = 'This item has its own values.';
 		});
 	});
 	$('framingRegenerate').addEventListener('click', function () {
-		var name = $('framingType').selectedOptions[0].textContent.toLowerCase();
-		if (!confirm('Draw every stored ' + name + ' icon again with the saved framings?')) return;
-		api.post('/api/ugc/framing/regenerate', { buildType: +$('framingType').value }).then(function (d) {
+		if (!confirm('Draw every stored icon of this kind again with the saved values? (Only icons are drawn.)')) return;
+		api.post('/api/ugc/icon/regenerate', { kind: framingKind }).then(function (d) {
 			toast(d.success ? d.queued + ' icon' + (d.queued === 1 ? '' : 's') + ' queued' : (d.error || 'Failed'), d.success ? 'success' : 'danger');
 		});
 	});
