@@ -4,8 +4,12 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <unordered_map>
 
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "UgcPalette.h"
+#include "UgcThrottle.h"
 
 namespace {
 	constexpr float INF = std::numeric_limits<float>::infinity();
@@ -37,8 +41,151 @@ namespace {
 		}
 	}
 
-	float ToLinear(float c) { return std::pow(std::clamp(c, 0.0f, 1.0f), 2.2f); }
-	float ToSrgb(float c) { return std::pow(std::clamp(c, 0.0f, 1.0f), 1.0f / 2.2f); }
+	float ToLinear(float c) { return UgcPalette::SrgbToLinear(std::clamp(c, 0.0f, 1.0f)); }
+	float ToSrgb(float c) { return UgcPalette::LinearToSrgb(std::clamp(c, 0.0f, 1.0f)); }
+
+	// A bounding volume hierarchy over a mesh's triangles, for the occlusion rays
+	class Bvh {
+	public:
+		explicit Bvh(const UgcModel::Mesh& mesh) : m_Mesh(mesh) {
+			const size_t count = mesh.TriangleCount();
+			m_Order.resize(count);
+			std::iota(m_Order.begin(), m_Order.end(), 0u);
+			m_Centers.resize(count);
+			for (size_t t = 0; t < count; t++) m_Centers[t] = (Vertex(t, 0) + Vertex(t, 1) + Vertex(t, 2)) / 3.0f;
+			if (count > 0) Build(0, static_cast<uint32_t>(count));
+			Flatten();
+		}
+
+		// Whether a ray from `origin` along `direction` (unit) hits a triangle nearer than `maxDistance`
+		bool Hits(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) const {
+			if (m_Nodes.empty()) return false;
+			const glm::vec3 inverse(1.0f / (std::abs(direction.x) > 1e-12f ? direction.x : 1e-12f), 1.0f / (std::abs(direction.y) > 1e-12f ? direction.y : 1e-12f),
+				1.0f / (std::abs(direction.z) > 1e-12f ? direction.z : 1e-12f));
+			uint32_t stack[64];
+			int top = 0;
+			stack[top++] = 0;
+			while (top > 0) {
+				const auto& node = m_Nodes[stack[--top]];
+				if (!BoxHit(node, origin, inverse, maxDistance)) continue;
+				if (node.count > 0) {
+					for (uint32_t i = node.first; i < node.first + node.count; i++) {
+						if (TriangleHit(m_Triangles[i], origin, direction, maxDistance)) return true;
+					}
+				} else if (top < 62) {
+					stack[top++] = node.first;
+					stack[top++] = node.first + 1;
+				}
+			}
+			return false;
+		}
+
+	private:
+		struct Node {
+			glm::vec3 min{};
+			glm::vec3 max{};
+			uint32_t first{}; // leaf: first triangle in m_Order; inner: the first of two children
+			uint32_t count{}; // triangles, 0 for inner nodes
+		};
+
+		glm::vec3 Vertex(size_t t, int k) const { return m_Mesh.positions[m_Mesh.indices[t * 3 + k]]; }
+
+		void Build(uint32_t first, uint32_t count) {
+			// Iterative, so deep trees don't use the stack
+			struct Task { uint32_t node, first, count; };
+			m_Nodes.push_back({});
+			std::vector<Task> tasks{ { 0, first, count } };
+			while (!tasks.empty()) {
+				const auto task = tasks.back();
+				tasks.pop_back();
+				Node node;
+				node.min = glm::vec3(INF);
+				node.max = glm::vec3(-INF);
+				glm::vec3 centerMin(INF), centerMax(-INF);
+				for (uint32_t i = task.first; i < task.first + task.count; i++) {
+					for (int k = 0; k < 3; k++) {
+						node.min = glm::min(node.min, Vertex(m_Order[i], k));
+						node.max = glm::max(node.max, Vertex(m_Order[i], k));
+					}
+					centerMin = glm::min(centerMin, m_Centers[m_Order[i]]);
+					centerMax = glm::max(centerMax, m_Centers[m_Order[i]]);
+				}
+				const auto extent = centerMax - centerMin;
+				const int axis = extent.x >= extent.y && extent.x >= extent.z ? 0 : extent.y >= extent.z ? 1 : 2;
+				if (task.count <= 4 || extent[axis] <= 0.0f) {
+					node.first = task.first;
+					node.count = task.count;
+					m_Nodes[task.node] = node;
+					continue;
+				}
+				const uint32_t half = task.count / 2;
+				auto* begin = m_Order.data() + task.first;
+				std::nth_element(begin, begin + half, begin + task.count, [&](uint32_t a, uint32_t b) { return m_Centers[a][axis] < m_Centers[b][axis]; });
+				node.first = static_cast<uint32_t>(m_Nodes.size());
+				node.count = 0;
+				m_Nodes[task.node] = node;
+				m_Nodes.push_back({});
+				m_Nodes.push_back({});
+				tasks.push_back({ node.first, task.first, half });
+				tasks.push_back({ node.first + 1, task.first + half, task.count - half });
+			}
+		}
+
+		static bool BoxHit(const Node& node, const glm::vec3& origin, const glm::vec3& inverse, float maxDistance) {
+			const auto t0 = (node.min - origin) * inverse;
+			const auto t1 = (node.max - origin) * inverse;
+			const auto near = glm::min(t0, t1), far = glm::max(t0, t1);
+			const float enter = std::max(std::max(near.x, near.y), std::max(near.z, 0.0f));
+			const float exit = std::min(std::min(far.x, far.y), std::min(far.z, maxDistance));
+			return enter <= exit;
+		}
+
+		struct Triangle {
+			glm::vec3 a, e1, e2;
+		};
+
+		// The triangles in leaf order, edges worked out once (the rays read them far more often than the tree is built)
+		void Flatten() {
+			m_Triangles.reserve(m_Order.size());
+			for (const auto t : m_Order) {
+				const auto a = Vertex(t, 0);
+				m_Triangles.push_back({ a, Vertex(t, 1) - a, Vertex(t, 2) - a });
+			}
+		}
+
+		static bool TriangleHit(const Triangle& triangle, const glm::vec3& origin, const glm::vec3& direction, float maxDistance) {
+			const auto& a = triangle.a;
+			const auto& e1 = triangle.e1;
+			const auto& e2 = triangle.e2;
+			const auto p = glm::cross(direction, e2);
+			const float det = glm::dot(e1, p);
+			if (std::abs(det) < 1e-12f) return false;
+			const float inv = 1.0f / det;
+			const auto s = origin - a;
+			const float u = glm::dot(s, p) * inv;
+			if (u < 0.0f || u > 1.0f) return false;
+			const auto q = glm::cross(s, e1);
+			const float v = glm::dot(direction, q) * inv;
+			if (v < 0.0f || u + v > 1.0f) return false;
+			const float distance = glm::dot(e2, q) * inv;
+			return distance > 1e-4f && distance < maxDistance;
+		}
+
+		const UgcModel::Mesh& m_Mesh;
+		std::vector<Triangle> m_Triangles;
+		std::vector<uint32_t> m_Order;
+		std::vector<glm::vec3> m_Centers;
+		std::vector<Node> m_Nodes;
+	};
+
+	float RadicalInverse(uint32_t bits) {
+		bits = (bits << 16u) | (bits >> 16u);
+		bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+		bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+		bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+		bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+		return static_cast<float>(bits) * 2.3283064365386963e-10f;
+	}
 
 	// Looking at a sphere (center, radius) from direction `dir` (towards the viewer), square orthographic view
 	struct OrthoView {
@@ -102,7 +249,7 @@ namespace UgcRender {
 		OptimizeResult result;
 		auto& opaque = model.opaque;
 		result.trianglesBefore = opaque.TriangleCount() + model.transparent.TriangleCount();
-		if (model.Empty() || (!options.removeHidden && !options.bakeAo)) return result;
+		if (opaque.Empty() || !options.removeHidden) return result;
 
 		glm::vec3 center{};
 		float radius{};
@@ -124,10 +271,11 @@ namespace UgcRender {
 		}
 		// Without normals nothing is culled
 		if (opaque.normals.size() != opaque.positions.size()) std::fill(faceNormals.begin(), faceNormals.end(), glm::vec3(0.0f));
-		std::vector<float> aoOpaque(opaque.positions.size()), weightOpaque(opaque.positions.size());
-		std::vector<float> aoTransparent(model.transparent.positions.size()), weightTransparent(model.transparent.positions.size());
 
 		for (const auto& direction : SphereDirections()) {
+			// A ground plane under the model hides everything from below
+			if (options.groundPlane && direction.y < -0.05f) continue;
+			UgcThrottle::Checkpoint();
 			const OrthoView view(center, radius, direction, resolution);
 			const float bias = view.PixelSize();
 			std::fill(depth.begin(), depth.end(), INF);
@@ -138,6 +286,7 @@ namespace UgcRender {
 			for (size_t t = 0; t < triangles; t++) facing[t] = glm::dot(faceNormals[t], direction) > -0.1f;
 			for (size_t t = 0; t < triangles; t++) {
 				if (!facing[t]) continue;
+				if ((t & 0x3FFF) == 0) UgcThrottle::Checkpoint();
 				const auto id = static_cast<uint32_t>(t + 1);
 				Rasterize(resolution, resolution, screen[opaque.indices[t * 3]], screen[opaque.indices[t * 3 + 1]], screen[opaque.indices[t * 3 + 2]],
 					[&](int x, int y, float z, float, float, float) {
@@ -152,93 +301,96 @@ namespace UgcRender {
 				if (id != 0) visible[id - 1] = true;
 			}
 
-			// Whether a point is in front of what was drawn around its pixel
-			const auto exposed = [&](const glm::vec3& point, float allowance, bool neighbours) {
-				const auto p = view.Project(point);
-				const int px = static_cast<int>(std::floor(p.x)), py = static_cast<int>(std::floor(p.y));
-				const int reach = neighbours ? 1 : 0;
-				for (int dy = -reach; dy <= reach; dy++) {
-					for (int dx = -reach; dx <= reach; dx++) {
-						const int x = px + dx, y = py + dy;
-						if (x < 0 || y < 0 || x >= resolution || y >= resolution) return true;
-						if (p.z <= depth[static_cast<size_t>(y) * resolution + x] + allowance) return true;
-					}
-				}
-				return false;
-			};
-
 			// Triangles too small or thin to cover a pixel centre: kept when their centre isn't behind what was drawn.
 			// Bigger ones that show would have covered one.
-			if (options.removeHidden) {
-				const float smallArea = 2.0f; // pixels
-				for (size_t t = 0; t < triangles; t++) {
-					if (visible[t] || !facing[t]) continue;
-					const auto& a = screen[opaque.indices[t * 3]];
-					const auto& b = screen[opaque.indices[t * 3 + 1]];
-					const auto& c = screen[opaque.indices[t * 3 + 2]];
-					if (std::abs(Edge(a, b, c.x, c.y)) * 0.5f > smallArea) continue;
-					const auto centre = (a + b + c) / 3.0f;
-					const int x = static_cast<int>(centre.x), y = static_cast<int>(centre.y);
-					if (x < 0 || y < 0 || x >= resolution || y >= resolution || centre.z <= depth[static_cast<size_t>(y) * resolution + x] + bias) visible[t] = true;
-				}
-			}
-
-			if (options.bakeAo) {
-				const auto accumulate = [&](const UgcModel::Mesh& mesh, std::vector<float>& ao, std::vector<float>& weight) {
-					for (size_t v = 0; v < mesh.positions.size(); v++) {
-						const float w = v < mesh.normals.size() ? glm::dot(mesh.normals[v], direction) : 1.0f;
-						if (w <= 0.0f) continue;
-						weight[v] += w;
-						const auto normal = v < mesh.normals.size() ? mesh.normals[v] : glm::vec3(0.0f);
-						if (exposed(mesh.positions[v] + normal * bias, bias, false)) ao[v] += w;
-					}
-				};
-				accumulate(opaque, aoOpaque, weightOpaque);
-				accumulate(model.transparent, aoTransparent, weightTransparent);
-			}
-		}
-
-		if (options.bakeAo) {
-			const float strength = std::clamp(options.aoStrength, 0.0f, 1.0f);
-			const auto apply = [strength](UgcModel::Mesh& mesh, const std::vector<float>& ao, const std::vector<float>& weight) {
-				for (size_t v = 0; v < mesh.colors.size() && v < ao.size(); v++) {
-					if (weight[v] <= 0.0f) continue;
-					const float factor = 1.0f - strength * (1.0f - ao[v] / weight[v]);
-					auto& color = mesh.colors[v];
-					color.r = ToSrgb(ToLinear(color.r) * factor);
-					color.g = ToSrgb(ToLinear(color.g) * factor);
-					color.b = ToSrgb(ToLinear(color.b) * factor);
-				}
-			};
-			apply(opaque, aoOpaque, weightOpaque);
-			apply(model.transparent, aoTransparent, weightTransparent);
-		}
-
-		if (options.removeHidden) {
-			UgcModel::Mesh kept;
-			std::vector<uint32_t> remap(opaque.positions.size(), UINT32_MAX);
+			const float smallArea = 2.0f; // pixels
 			for (size_t t = 0; t < triangles; t++) {
-				if (!visible[t]) {
-					result.trianglesRemoved++;
-					continue;
-				}
-				for (int k = 0; k < 3; k++) {
-					const auto source = opaque.indices[t * 3 + k];
-					if (remap[source] == UINT32_MAX) {
-						remap[source] = static_cast<uint32_t>(kept.positions.size());
-						kept.positions.push_back(opaque.positions[source]);
-						if (source < opaque.normals.size()) kept.normals.push_back(opaque.normals[source]);
-						if (source < opaque.colors.size()) kept.colors.push_back(opaque.colors[source]);
-					}
-					kept.indices.push_back(remap[source]);
-				}
+				if (visible[t] || !facing[t]) continue;
+				const auto& a = screen[opaque.indices[t * 3]];
+				const auto& b = screen[opaque.indices[t * 3 + 1]];
+				const auto& c = screen[opaque.indices[t * 3 + 2]];
+				if (std::abs(Edge(a, b, c.x, c.y)) * 0.5f > smallArea) continue;
+				const auto centre = (a + b + c) / 3.0f;
+				const int x = static_cast<int>(centre.x), y = static_cast<int>(centre.y);
+				if (x < 0 || y < 0 || x >= resolution || y >= resolution || centre.z <= depth[static_cast<size_t>(y) * resolution + x] + bias) visible[t] = true;
 			}
-			opaque = std::move(kept);
 		}
+
+		for (size_t t = 0; t < triangles; t++) result.trianglesRemoved += visible[t] ? 0 : 1;
+		result.kept = visible;
+		UgcModel::KeepTriangles(opaque, visible);
 		return result;
 	}
 
-	Image RenderIcon(const UgcModel::Model& source, const IconOptions& options) {
+	std::vector<float> AmbientOcclusion(const UgcModel::Mesh& mesh, const UgcModel::Mesh& occluders, float distance, int samples) {
+		std::vector<float> ao(mesh.positions.size(), 1.0f);
+		if (occluders.Empty() || samples <= 0 || distance <= 0.0f || mesh.normals.size() != mesh.positions.size()) return ao;
+		const Bvh bvh(occluders);
+		const auto count = static_cast<uint32_t>(samples);
+		// Vertices at the same place facing the same way (bricks' shared corners) are worked out once
+		struct Key {
+			int32_t p[3], n[3];
+			bool operator==(const Key& o) const { return std::equal(p, p + 3, o.p) && std::equal(n, n + 3, o.n); }
+		};
+		struct KeyHash {
+			size_t operator()(const Key& k) const {
+				size_t h = 1469598103934665603ull;
+				for (int i = 0; i < 3; i++) h = (h ^ static_cast<uint32_t>(k.p[i])) * 1099511628211ull ^ static_cast<uint32_t>(k.n[i]) * 0x9E3779B97F4A7C15ull;
+				return h;
+			}
+		};
+		std::unordered_map<Key, float, KeyHash> known;
+		known.reserve(mesh.positions.size());
+		for (size_t v = 0; v < mesh.positions.size(); v++) {
+			if ((v & 0xFF) == 0) UgcThrottle::Checkpoint();
+			const auto& normal = mesh.normals[v];
+			const Key key{ { static_cast<int32_t>(std::lround(mesh.positions[v].x * 1000.0f)), static_cast<int32_t>(std::lround(mesh.positions[v].y * 1000.0f)),
+				static_cast<int32_t>(std::lround(mesh.positions[v].z * 1000.0f)) }, { static_cast<int32_t>(std::lround(normal.x * 100.0f)),
+				static_cast<int32_t>(std::lround(normal.y * 100.0f)), static_cast<int32_t>(std::lround(normal.z * 100.0f)) } };
+			if (const auto it = known.find(key); it != known.end()) {
+				ao[v] = it->second;
+				continue;
+			}
+			if (glm::dot(normal, normal) < 0.5f) continue;
+			// A frame around the normal
+			const glm::vec3 helper = std::abs(normal.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+			const auto tangent = glm::normalize(glm::cross(helper, normal));
+			const auto bitangent = glm::cross(normal, tangent);
+			// Hammersley points, turned by an amount of the vertex's own (fixed) so neighbours don't band
+			const float turn = static_cast<float>((v * 0x9E3779B9u) >> 8 & 0xFFFFFF) / 16777216.0f;
+			const auto origin = mesh.positions[v] + normal * 1e-3f;
+			uint32_t open = 0;
+			for (uint32_t i = 0; i < count; i++) {
+				const float u = (i + 0.5f) / static_cast<float>(count);
+				const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
+				const float r = std::sqrt(u), z = std::sqrt(std::max(0.0f, 1.0f - u));
+				const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * z;
+				if (!bvh.Hits(origin, direction, distance)) open++;
+			}
+			ao[v] = static_cast<float>(open) / static_cast<float>(count);
+			known.emplace(key, ao[v]);
+		}
+		return ao;
+	}
+
+	std::vector<float> BakeAo(UgcModel::Model& model, const AoOptions& options) {
+		auto& opaque = model.opaque;
+		if (!options.enabled || opaque.Empty()) return {};
+		auto ao = AmbientOcclusion(opaque, opaque, options.distance, options.samples);
+		const float strength = std::clamp(options.strength, 0.0f, 1.0f);
+		for (size_t v = 0; v < opaque.colors.size() && v < ao.size(); v++) {
+			glm::vec3 lit(1.0f - strength * (1.0f - ao[v]));
+			if (v < opaque.glow.size()) lit += opaque.glow[v] * options.glowStrength;
+			lit = glm::clamp(lit, 0.0f, 1.0f);
+			auto& color = opaque.colors[v];
+			color.r = ToSrgb(ToLinear(color.r) * lit.r);
+			color.g = ToSrgb(ToLinear(color.g) * lit.g);
+			color.b = ToSrgb(ToLinear(color.b) * lit.b);
+		}
+		return ao;
+	}
+
+	Image RenderIcon(const UgcModel::Model& source, const IconOptions& options, const std::vector<float>* opaqueAo) {
 		const int size = std::clamp(options.size, 8, 1024);
 		const int supersample = std::clamp(options.supersample, 1, 8);
 		const int n = size * supersample;
@@ -284,8 +436,47 @@ namespace UgcRender {
 		// Linear, premultiplied
 		std::vector<glm::vec4> color(static_cast<size_t>(n) * n, glm::vec4(0.0f));
 		std::vector<float> depth(static_cast<size_t>(n) * n, INF);
-		const glm::vec3 light = glm::normalize(dir + glm::vec3(-0.35f, 1.1f, 0.25f));
-		const auto shade = [&](const UgcModel::Mesh& mesh, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
+		const float sunYaw = glm::radians(options.sunYawDegrees), sunPitch = glm::radians(options.sunPitchDegrees);
+		const glm::vec3 light = glm::normalize(glm::vec3(std::sin(sunYaw) * std::cos(sunPitch), std::sin(sunPitch), std::cos(sunYaw) * std::cos(sunPitch)));
+
+		// Ambient occlusion darkens the world light (opaque bricks only, as they are what occludes)
+		std::vector<float> ao;
+		if (options.ao.enabled) {
+			ao = opaqueAo && opaqueAo->size() == model.opaque.positions.size() ? *opaqueAo : AmbientOcclusion(model.opaque, model.opaque, options.ao.distance, options.ao.samples);
+		}
+
+		// The sun's shadows: a depth map seen from the sun, looked up with a few taps for the sun's soft edge
+		const int shadowSize = 1024;
+		const OrthoView sunView(center, radius * 1.05f, light, shadowSize);
+		std::vector<float> shadowDepth;
+		if (options.shadows) {
+			shadowDepth.assign(static_cast<size_t>(shadowSize) * shadowSize, INF);
+			const auto& mesh = model.opaque;
+			std::vector<glm::vec3> screen(mesh.positions.size());
+			for (size_t v = 0; v < mesh.positions.size(); v++) screen[v] = sunView.Project(mesh.positions[v]);
+			for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+				if ((i & 0xFFFF) == 0) UgcThrottle::Checkpoint();
+				Rasterize(shadowSize, shadowSize, screen[mesh.indices[i]], screen[mesh.indices[i + 1]], screen[mesh.indices[i + 2]], [&](int x, int y, float z, float, float, float) {
+					auto& stored = shadowDepth[static_cast<size_t>(y) * shadowSize + x];
+					stored = std::min(stored, z);
+				});
+			}
+		}
+		const float shadowBias = sunView.PixelSize() * 2.0f;
+		const auto sunlit = [&](const glm::vec3& position) {
+			if (shadowDepth.empty()) return 1.0f;
+			const auto p = sunView.Project(position);
+			float lit = 0.0f;
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					const int x = static_cast<int>(p.x) + dx, y = static_cast<int>(p.y) + dy;
+					if (x < 0 || y < 0 || x >= shadowSize || y >= shadowSize || p.z <= shadowDepth[static_cast<size_t>(y) * shadowSize + x] + shadowBias) lit += 1.0f;
+				}
+			}
+			return lit / 9.0f;
+		};
+
+		const auto shade = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
 			glm::vec3 normal(0.0f, 1.0f, 0.0f);
 			if (mesh.normals.size() == mesh.positions.size()) {
 				normal = mesh.normals[i0] * w0 + mesh.normals[i1] * w1 + mesh.normals[i2] * w2;
@@ -295,7 +486,13 @@ namespace UgcRender {
 			}
 			glm::vec4 base(0.63f, 0.63f, 0.63f, 1.0f);
 			if (mesh.colors.size() == mesh.positions.size()) base = mesh.colors[i0] * w0 + mesh.colors[i1] * w1 + mesh.colors[i2] * w2;
-			const float lighting = 0.55f + 0.6f * std::max(0.0f, glm::dot(normal, light));
+			const float occlusion = isOpaque && ao.size() == mesh.positions.size() ? ao[i0] * w0 + ao[i1] * w1 + ao[i2] * w2 : 1.0f;
+			const float strength = std::clamp(options.ao.strength, 0.0f, 1.0f);
+			const auto position = mesh.positions[i0] * w0 + mesh.positions[i1] * w1 + mesh.positions[i2] * w2;
+			const float direct = std::max(0.0f, glm::dot(normal, light));
+			// Diffuse: the world's light (radiance `ambient`) and the sun's (irradiance `sunStrength`, over pi)
+			const float lighting = options.ambient * (1.0f - strength * (1.0f - occlusion)) +
+				options.sunStrength / 3.14159265f * direct * (direct > 0.0f ? sunlit(position + normal * shadowBias) : 0.0f);
 			return glm::vec4(ToLinear(base.r) * lighting, ToLinear(base.g) * lighting, ToLinear(base.b) * lighting, std::clamp(base.a, 0.0f, 1.0f));
 		};
 
@@ -310,7 +507,7 @@ namespace UgcRender {
 					const size_t index = static_cast<size_t>(y) * n + x;
 					if (z >= depth[index]) return;
 					depth[index] = z;
-					const auto shaded = shade(mesh, i0, i1, i2, w0, w1, w2);
+					const auto shaded = shade(mesh, true, i0, i1, i2, w0, w1, w2);
 					color[index] = glm::vec4(glm::vec3(shaded), 1.0f);
 				});
 			}
@@ -330,7 +527,7 @@ namespace UgcRender {
 				Rasterize(n, n, screen[i0], screen[i1], screen[i2], [&](int x, int y, float z, float w0, float w1, float w2) {
 					const size_t index = static_cast<size_t>(y) * n + x;
 					if (z >= depth[index]) return;
-					const auto shaded = shade(mesh, i0, i1, i2, w0, w1, w2);
+					const auto shaded = shade(mesh, false, i0, i1, i2, w0, w1, w2);
 					const float alpha = shaded.a;
 					auto& target = color[index];
 					target = glm::vec4(glm::vec3(shaded) * alpha + glm::vec3(target) * (1.0f - alpha), alpha + target.a * (1.0f - alpha));

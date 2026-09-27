@@ -5,12 +5,14 @@ set(DUGC_SOURCES
 	"UgcJobs.cpp"
 	"UgcModel.cpp"
 	"UgcModular.cpp"
+	"UgcPalette.cpp"
 	"UgcRender.cpp"
 	"UgcStorage.cpp"
+	"UgcThrottle.cpp"
 )
 
 add_library(dUgc STATIC ${DUGC_SOURCES})
-target_include_directories(dUgc PUBLIC "." "${PROJECT_SOURCE_DIR}/thirdparty/MD5")
+target_include_directories(dUgc PUBLIC "." "${PROJECT_SOURCE_DIR}/thirdparty/MD5" "${PROJECT_SOURCE_DIR}/thirdparty/nlohmann")
 target_link_libraries(dUgc PUBLIC dCommon glm::glm tinyxml2 MD5)
 
 add_executable(UgcServer "UgcServer.cpp" "UgcProcessor.cpp" "UgcCdClient.cpp")
@@ -36,5 +38,5 @@ target_link_libraries(UgcServer ${COMMON_LIBRARIES} dWeb dServer dUgc)
 
 # Rendering is far too slow unoptimized (minutes a model instead of seconds), so it is optimized in every build type
 if(NOT MSVC)
-	set_source_files_properties("UgcRender.cpp" "UgcModel.cpp" PROPERTIES COMPILE_OPTIONS "-O2")
+	set_source_files_properties("UgcRender.cpp" "UgcModel.cpp" "UgcPalette.cpp" PROPERTIES COMPILE_OPTIONS "-O2")
 endif()

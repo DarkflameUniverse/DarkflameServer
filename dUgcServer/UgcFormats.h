@@ -26,6 +26,26 @@ namespace UgcFormats {
 	 */
 	std::string WriteNif(const std::string& rootName, const std::vector<NifShape>& shapes);
 
+	struct NifLod {
+		float nearDistance{};
+		float farDistance{};
+		std::string name;                      // the level's node, e.g. LOD_0
+		std::vector<const UgcModel::Mesh*> pieces; // its shapes (UgcModel::Divide's pieces)
+	};
+
+	struct NifLodGroup {
+		std::string name; // S01_Opaque_Model: the NiLODNode and its shapes
+		bool transparent{};
+		std::vector<NifLod> lods;
+	};
+
+	/**
+	 * The layout LU Toolbox exports (setup_lod_data) and the game's own brick models (res/BrickModels/ndmade) have:
+	 * the root node, an NiLODNode per group with NiRangeLODData holding each level's distances, a node per level and
+	 * the level's shapes under it, named like the group. Properties as WriteNif.
+	 */
+	std::string WriteLodNif(const std::string& rootName, const std::vector<NifLodGroup>& groups);
+
 	// PNG (8-bit RGBA)
 	std::string EncodePng(const UgcRender::Image& image);
 

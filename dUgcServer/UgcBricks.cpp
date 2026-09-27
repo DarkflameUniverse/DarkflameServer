@@ -185,14 +185,16 @@ namespace UgcBricks {
 		return it != m_Materials.end() ? it->second : Material{};
 	}
 
-	std::shared_ptr<const std::vector<Geometry>> BrickLibrary::GetDesign(uint32_t design) {
+	std::shared_ptr<const std::vector<Geometry>> BrickLibrary::GetDesign(uint32_t design, std::optional<uint32_t> lodLevel) {
+		const uint32_t lod = std::min<uint32_t>(lodLevel.value_or(m_Lod), 2);
+		const uint64_t key = (static_cast<uint64_t>(lod) << 32) | design;
 		{
 			std::lock_guard lock(m_Mutex);
-			if (const auto it = m_Designs.find(design); it != m_Designs.end()) return it->second;
+			if (const auto it = m_Designs.find(key); it != m_Designs.end()) return it->second;
 		}
 		// Loaded outside the lock; two threads loading the same design at once is harmless
 		auto parts = std::make_shared<std::vector<Geometry>>();
-		const auto folder = "brickprimitives/lod" + std::to_string(m_Lod) + "/";
+		const auto folder = "brickprimitives/lod" + std::to_string(lod) + "/";
 		for (uint32_t index = 0; index < MAX_GEOMETRY_PARTS; index++) {
 			const auto name = std::to_string(design) + ".g" + (index == 0 ? "" : std::to_string(index));
 			const auto path = ResolvePath(m_Res, folder + name);
@@ -202,7 +204,13 @@ namespace UgcBricks {
 			if (!geometry) break;
 			parts->push_back(std::move(*geometry));
 		}
+		if (parts->empty() && lod > 0) return GetDesign(design, lod - 1);
 		std::lock_guard lock(m_Mutex);
-		return m_Designs.emplace(design, std::move(parts)).first->second;
+		return m_Designs.emplace(key, std::move(parts)).first->second;
+	}
+
+	size_t BrickLibrary::CachedDesigns() const {
+		std::lock_guard lock(m_Mutex);
+		return m_Designs.size();
 	}
 }

@@ -187,63 +187,120 @@ namespace {
 		out.U16(0); // match groups
 		return std::move(out.Data());
 	}
+	// An NiNode's data: no properties, `children`, no effects
+	std::string NodeData(int32_t name, const std::vector<int32_t>& children) {
+		Writer node;
+		WriteAv(node, name, {});
+		node.U32(static_cast<uint32_t>(children.size()));
+		for (const auto child : children) node.I32(child);
+		node.U32(0); // effects
+		return std::move(node.Data());
+	}
+
+	// The properties every shape shares, and the shapes
+	class SharedProperties {
+	public:
+		explicit SharedProperties(NifBuilder& nif) : m_Nif(nif) {
+			Writer material;
+			WriteNet(material, -1);
+			for (int i = 0; i < 3; i++) material.Float(1.0f); // ambient
+			for (int i = 0; i < 3; i++) material.Float(1.0f); // diffuse
+			for (int i = 0; i < 3; i++) material.Float(0.0f); // specular
+			for (int i = 0; i < 3; i++) material.Float(0.0f); // emissive
+			material.Float(10.0f); // glossiness
+			material.Float(1.0f);  // alpha
+			m_Material = nif.Add("NiMaterialProperty", std::move(material.Data()));
+
+			Writer vertexColor;
+			WriteNet(vertexColor, -1);
+			vertexColor.U16((2 << 4) | (1 << 3)); // vertex colors are ambient and diffuse; lit
+			m_VertexColor = nif.Add("NiVertexColorProperty", std::move(vertexColor.Data()));
+		}
+
+		// An NiTriShape of `mesh` (-1 when it is empty or too big for the format)
+		int32_t Shape(const std::string& name, const UgcModel::Mesh* mesh, bool transparent) {
+			if (!mesh || mesh->Empty() || mesh->positions.size() > 65535 || mesh->TriangleCount() > 65535) return -1;
+			std::vector<int32_t> properties{ m_Material, m_VertexColor };
+			if (transparent) {
+				if (m_Alpha < 0) {
+					Writer alpha;
+					WriteNet(alpha, -1);
+					alpha.U16(1 | (6 << 1) | (7 << 5)); // blend source alpha over one minus source alpha
+					alpha.U8(0);
+					m_Alpha = m_Nif.Add("NiAlphaProperty", std::move(alpha.Data()));
+				}
+				properties.push_back(m_Alpha);
+			}
+			const auto shapeBlock = m_Nif.Reserve("NiTriShape");
+			const auto dataBlock = m_Nif.Add("NiTriShapeData", TriShapeData(*mesh));
+			Writer tri;
+			WriteAv(tri, m_Nif.String(name), properties);
+			tri.I32(dataBlock);
+			tri.I32(-1); // skin instance
+			tri.U32(0);  // materials
+			tri.I32(-1); // active material
+			tri.U8(0);   // material needs update
+			m_Nif.Fill(shapeBlock, std::move(tri.Data()));
+			return shapeBlock;
+		}
+
+	private:
+		NifBuilder& m_Nif;
+		int32_t m_Material{ -1 };
+		int32_t m_VertexColor{ -1 };
+		int32_t m_Alpha{ -1 };
+	};
 }
 
 namespace UgcFormats {
 	std::string WriteNif(const std::string& rootName, const std::vector<NifShape>& shapes) {
 		NifBuilder nif;
 		const int32_t root = nif.Reserve("NiNode");
-
-		// Shared properties
-		Writer material;
-		WriteNet(material, -1);
-		for (int i = 0; i < 3; i++) material.Float(1.0f); // ambient
-		for (int i = 0; i < 3; i++) material.Float(1.0f); // diffuse
-		for (int i = 0; i < 3; i++) material.Float(0.0f); // specular
-		for (int i = 0; i < 3; i++) material.Float(0.0f); // emissive
-		material.Float(10.0f); // glossiness
-		material.Float(1.0f);  // alpha
-		const auto materialBlock = nif.Add("NiMaterialProperty", std::move(material.Data()));
-
-		Writer vertexColor;
-		WriteNet(vertexColor, -1);
-		vertexColor.U16((2 << 4) | (1 << 3)); // vertex colors are ambient and diffuse; lit
-		const auto vertexColorBlock = nif.Add("NiVertexColorProperty", std::move(vertexColor.Data()));
-
-		int32_t alphaBlock = -1;
+		SharedProperties properties(nif);
 		std::vector<int32_t> children;
 		for (const auto& shape : shapes) {
-			if (!shape.mesh || shape.mesh->Empty() || shape.mesh->positions.size() > 65535 || shape.mesh->TriangleCount() > 65535) continue;
-			std::vector<int32_t> properties{ materialBlock, vertexColorBlock };
-			if (shape.transparent) {
-				if (alphaBlock < 0) {
-					Writer alpha;
-					WriteNet(alpha, -1);
-					alpha.U16(1 | (6 << 1) | (7 << 5)); // blend source alpha over one minus source alpha
-					alpha.U8(0);
-					alphaBlock = nif.Add("NiAlphaProperty", std::move(alpha.Data()));
-				}
-				properties.push_back(alphaBlock);
-			}
-			const auto shapeBlock = nif.Reserve("NiTriShape");
-			const auto dataBlock = nif.Add("NiTriShapeData", TriShapeData(*shape.mesh));
-			Writer tri;
-			WriteAv(tri, nif.String(shape.name), properties);
-			tri.I32(dataBlock);
-			tri.I32(-1); // skin instance
-			tri.U32(0);  // materials
-			tri.I32(-1); // active material
-			tri.U8(0);   // material needs update
-			nif.Fill(shapeBlock, std::move(tri.Data()));
-			children.push_back(shapeBlock);
+			const auto block = properties.Shape(shape.name, shape.mesh, shape.transparent);
+			if (block >= 0) children.push_back(block);
 		}
+		nif.Fill(root, NodeData(nif.String(rootName), children));
+		return nif.Finish(root);
+	}
 
-		Writer node;
-		WriteAv(node, nif.String(rootName), {});
-		node.U32(static_cast<uint32_t>(children.size()));
-		for (const auto child : children) node.I32(child);
-		node.U32(0); // effects
-		nif.Fill(root, std::move(node.Data()));
+	std::string WriteLodNif(const std::string& rootName, const std::vector<NifLodGroup>& groups) {
+		NifBuilder nif;
+		const int32_t root = nif.Reserve("NiNode");
+		SharedProperties properties(nif);
+		std::vector<int32_t> groupBlocks;
+		for (const auto& group : groups) {
+			if (group.lods.empty()) continue;
+			const auto lodNode = nif.Reserve("NiLODNode");
+			std::vector<int32_t> levels;
+			Writer ranges;
+			for (int i = 0; i < 3; i++) ranges.Float(0.0f); // LOD center
+			ranges.U32(static_cast<uint32_t>(group.lods.size()));
+			for (const auto& lod : group.lods) {
+				const auto level = nif.Reserve("NiNode");
+				std::vector<int32_t> shapes;
+				for (const auto* piece : lod.pieces) {
+					const auto block = properties.Shape(group.name, piece, group.transparent);
+					if (block >= 0) shapes.push_back(block);
+				}
+				nif.Fill(level, NodeData(nif.String(lod.name), shapes));
+				levels.push_back(level);
+				ranges.Float(lod.nearDistance);
+				ranges.Float(lod.farDistance);
+			}
+			const auto rangeData = nif.Add("NiRangeLODData", std::move(ranges.Data()));
+			auto data = NodeData(nif.String(group.name), levels);
+			Writer lod;
+			lod.Raw(data);
+			lod.U16(3); // switch flags: update only the active child, and controllers (as the game's own files)
+			lod.U32(0); // index
+			lod.I32(rangeData);
+			nif.Fill(lodNode, std::move(lod.Data()));
+			groupBlocks.push_back(lodNode);
+		}
+		nif.Fill(root, NodeData(nif.String(rootName), groupBlocks));
 		return nif.Finish(root);
 	}
 

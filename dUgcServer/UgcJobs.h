@@ -15,10 +15,22 @@
  * the finished files. No database, network or CDClient: the main thread gathers the input and stores the result.
  */
 namespace UgcJobs {
+	/**
+	 * How models are made. The defaults are LU Toolbox's (Process Model, Bake Lighting and the icon renderer), see the
+	 * parity table in docs/UgcServer.md.
+	 */
 	struct Settings {
-		UgcRender::OptimizeOptions optimize;
+		UgcModel::BuildOptions build;          // palette, color variation, transparent opacity
+		std::vector<uint32_t> lods{ 0, 2 };    // brickprimitives levels made (LU Toolbox imports LOD 0 and 2; the client has no 3)
+		UgcModel::LodDistances lodDistances;
+		std::string shaderOpaque{ "01" };      // S<shader>_Opaque_...; transparent shapes are always S01
+		UgcRender::OptimizeOptions optimize;   // hidden surface removal
+		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
 		UgcRender::IconOptions icon;
+		bool iconCorrectColors{ true };        // the icon renderer's Correct Colors
+		float iconColorVariation{ 0.0f };      // percent; its Apply Color Variation is off
 		UgcRender::IconOptions modularIcon;
+		uint32_t maxBricks{};                  // a model with more fails; 0: no limit
 	};
 
 	struct Outcome {
@@ -27,6 +39,7 @@ namespace UgcJobs {
 		std::string note;        // what was odd but not fatal (missing bricks, ...)
 		UgcStorage::Files files; // name -> bytes, when ok
 		bool aoBaked{};
+		std::string stats;       // stats.json: bricks, triangles before and after per LOD, timings
 	};
 
 	// The client's download of `data` (`name` + ".gz" and ".checksum") added to `files`
@@ -35,8 +48,15 @@ namespace UgcJobs {
 	// The LXFML of a ugc row's lxfml column (an sd0 stream, or plain LXFML); empty when it can't be read
 	std::string LxfmlFromBlob(const std::string& blob);
 
-	// A player model: the optimized .nif, its icon and its LXFML for download
-	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings);
+	// A player model: the optimized .nif, its icon and its LXFML for download, and stats.json. `seed` picks the color
+	// variation's random numbers (the model's id, so making it again gives the same colors).
+	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed = 0);
+
+	// How many bricks (parts) an LXFML has, counted cheaply (for the memory estimate before a job starts)
+	size_t CountParts(std::string_view lxfml);
+
+	// About how much memory making a model of `parts` bricks takes, in bytes
+	uint64_t EstimateMemory(size_t parts, const Settings& settings);
 
 	struct ModuleInput {
 		uint32_t lot{};

@@ -64,7 +64,12 @@ namespace UgcBricks {
 		Material GetMaterial(uint32_t id) const;
 
 		// Every geometry file of a design, in order (.g, .g1, ...); empty when the design has none. Loaded once.
-		std::shared_ptr<const std::vector<Geometry>> GetDesign(uint32_t design);
+		// `lod`: the brickprimitives level, the library's own when omitted; a design without that level uses the
+		// next more detailed one.
+		std::shared_ptr<const std::vector<Geometry>> GetDesign(uint32_t design, std::optional<uint32_t> lod = std::nullopt);
+
+		// Designs loaded (for the memory report)
+		size_t CachedDesigns() const;
 
 		const std::filesystem::path& GetResPath() const { return m_Res; }
 
@@ -72,7 +77,7 @@ namespace UgcBricks {
 		std::filesystem::path m_Res;
 		uint32_t m_Lod;
 		std::map<uint32_t, Material> m_Materials;
-		std::mutex m_Mutex;
-		std::map<uint32_t, std::shared_ptr<const std::vector<Geometry>>> m_Designs;
+		mutable std::mutex m_Mutex;
+		std::map<uint64_t, std::shared_ptr<const std::vector<Geometry>>> m_Designs; // lod << 32 | design
 	};
 }

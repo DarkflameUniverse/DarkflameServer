@@ -36,10 +36,24 @@ public:
 		size_t threads{ 2 };
 	};
 
+	/**
+	 * What the workers may use; changed while running (Configure) when the settings are reloaded.
+	 */
+	struct Limits {
+		double maxCpus{};            // CPUs the workers may use together on average (UgcThrottle); 0: no limit
+		uint64_t maxMemoryBytes{};   // estimated memory of the jobs running at once; 0: no limit
+		int nice{};                  // the workers' scheduling priority (Linux nice, 0 to 19)
+		int pauseFromHour{ -1 };     // local hours in which no new jobs start (from, to; -1: never)
+		int pauseToHour{ -1 };
+	};
+
 	UgcProcessor(Config config, UgcStorage& storage, UgcBricks::BrickLibrary& library, UgcJobs::Settings settings);
 	~UgcProcessor();
 
 	void Start();
+
+	// Main thread: new settings and limits (config reload)
+	void Configure(UgcJobs::Settings settings, Limits limits);
 	// Waits for the jobs that are running; queued ones are dropped (they stay pending in the database)
 	void Stop();
 
@@ -62,6 +76,11 @@ public:
 	size_t Queued() const { std::lock_guard lock(m_Mutex); return m_Jobs.size(); }
 	size_t Busy() const { std::lock_guard lock(m_Mutex); return m_Active; }
 	size_t Threads() const { return m_Config.threads; }
+	// Main thread: the process's CPU use (percent of one core) and resident memory, and the running jobs' estimate
+	double CpuPercent() const { return m_CpuPercent; }
+	static uint64_t ResidentBytes();
+	uint64_t JobMemory() const { std::lock_guard lock(m_Mutex); return m_MemoryInUse; }
+	bool Throttled() const;
 
 	// Main thread: totals since the start and the files' size (traffic reports, then the dashboard and /metrics)
 	uint64_t Made() const { return m_Made; }
@@ -75,8 +94,10 @@ private:
 		Kind kind{};
 		LWOOBJID id{};
 		uint32_t attempts{};
-		std::string blob;               // models: the stored LXFML
+		std::string blob;               // models: the LXFML
 		UgcJobs::ModularInput modular;  // modular builds
+		uint64_t memory{};              // estimated bytes it needs
+		size_t parts{};
 	};
 
 	struct Done {
@@ -92,17 +113,26 @@ private:
 	void Collect();
 	void Record(const Done& done);
 	void Worker();
+	void SampleUsage();
 
 	Config m_Config;
 	UgcStorage& m_Storage;
 	UgcBricks::BrickLibrary& m_Library;
-	UgcJobs::Settings m_Settings;
+	UgcJobs::Settings m_Settings; // guarded by m_Mutex (workers copy it per job)
+	Limits m_Limits;              // guarded by m_Mutex
 
 	mutable std::mutex m_Mutex;
 	std::condition_variable m_Wake;
 	std::deque<Job> m_Jobs;
 	std::deque<Done> m_Done;
 	size_t m_Active{};
+	uint64_t m_MemoryInUse{};  // estimates of the running jobs
+	uint64_t m_Waiting{};      // times a job waited for memory
+	bool m_Paused{};           // main thread: in the pause hours
+	// Main thread: process CPU use, measured between status reads
+	std::chrono::steady_clock::time_point m_CpuSampled{};
+	double m_CpuSeconds{};
+	double m_CpuPercent{};
 	bool m_Stopping{};
 	std::vector<std::thread> m_Threads;
 

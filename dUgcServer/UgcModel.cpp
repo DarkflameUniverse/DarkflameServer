@@ -10,6 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "NifFile.h"
+#include "UgcPalette.h"
 #include "tinyxml2.h"
 
 namespace {
@@ -146,6 +147,11 @@ namespace UgcModel {
 		positions.insert(positions.end(), other.positions.begin(), other.positions.end());
 		normals.insert(normals.end(), other.normals.begin(), other.normals.end());
 		colors.insert(colors.end(), other.colors.begin(), other.colors.end());
+		if (!glow.empty() || !other.glow.empty()) {
+			glow.resize(base, glm::vec3(0.0f));
+			if (other.glow.empty()) glow.resize(positions.size(), glm::vec3(0.0f));
+			else glow.insert(glow.end(), other.glow.begin(), other.glow.end());
+		}
 		indices.reserve(indices.size() + other.indices.size());
 		for (const auto index : other.indices) indices.push_back(base + index);
 	}
@@ -172,24 +178,59 @@ namespace UgcModel {
 		return any;
 	}
 
-	Model Build(const std::vector<Part>& parts, UgcBricks::BrickLibrary& library) {
+	Model Build(const std::vector<Part>& parts, UgcBricks::BrickLibrary& library, const BuildOptions& options) {
 		Model model;
 		std::set<uint32_t> missing;
-		for (const auto& part : parts) {
-			const auto design = library.GetDesign(part.designId);
+		const bool luToolbox = options.palette == ePalette::LU_TOOLBOX;
+		bool anyGlow = false;
+		for (uint32_t brick = 0; brick < parts.size(); brick++) {
+			const auto& part = parts[brick];
+			const auto design = library.GetDesign(part.designId, options.lod);
 			if (!design || design->empty()) {
 				missing.insert(part.designId);
 				continue;
 			}
 			model.bricks++;
+			const auto materialOf = [&part](size_t index) {
+				auto id = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
+				// Unknown colors are black in LU Toolbox (its name included, so black's variation too)
+				if (id == 0 || !UgcPalette::Linear(id)) id = UgcPalette::FALLBACK_ID;
+				return id;
+			};
+			// A brick is transparent only when all of its materials are (LU Toolbox's IS_TRANSPARENT)
+			bool transparent = true;
+			for (size_t index = 0; index < design->size(); index++) {
+				const auto id = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
+				transparent = transparent && (luToolbox ? UgcPalette::IsTransparent(materialOf(index)) : library.GetMaterial(id).Transparent());
+			}
+			auto& mesh = transparent ? model.transparent : model.opaque;
 			const glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(part.transform)));
 			for (size_t index = 0; index < design->size(); index++) {
 				const auto& geometry = (*design)[index];
-				const auto materialId = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
-				const auto material = library.GetMaterial(materialId);
-				auto& mesh = material.Transparent() ? model.transparent : model.opaque;
+				glm::vec3 linear{};
+				float alpha = 1.0f;
+				glm::vec3 glow(0.0f);
+				uint32_t colorId{};
+				if (luToolbox) {
+					colorId = materialOf(index);
+					linear = *UgcPalette::Linear(colorId, options.icon);
+					if (transparent) alpha = std::clamp(options.transparentOpacity / 100.0f, 0.0f, 1.0f);
+					if (!transparent) {
+						if (const auto g = UgcPalette::Glow(colorId)) glow = *g;
+					}
+				} else {
+					colorId = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
+					const auto material = library.GetMaterial(colorId);
+					linear = UgcPalette::SrgbToLinear(glm::vec3(material.r, material.g, material.b) / 255.0f);
+					if (transparent) alpha = material.a / 255.0f;
+				}
+				if (options.colorVariation > 0.0f) {
+					const float variation = options.colorVariation * (luToolbox ? UgcPalette::VariationScale(colorId) : 1.0f);
+					linear = UgcPalette::ApplyVariation(linear, variation, UgcPalette::BrickRandom(options.seed, brick, colorId));
+				}
+				const glm::vec4 color(UgcPalette::LinearToSrgb(linear), alpha);
+				anyGlow = anyGlow || glow != glm::vec3(0.0f);
 				const auto base = static_cast<uint32_t>(mesh.positions.size());
-				const auto color = ToColor(material);
 				const size_t vertexCount = geometry.positions.size() / 3;
 				for (size_t v = 0; v < vertexCount; v++) {
 					const glm::vec3 position(geometry.positions[v * 3], geometry.positions[v * 3 + 1], geometry.positions[v * 3 + 2]);
@@ -200,12 +241,47 @@ namespace UgcModel {
 					mesh.positions.push_back(glm::vec3(part.transform * glm::vec4(position, 1.0f)));
 					mesh.normals.push_back(normal);
 					mesh.colors.push_back(color);
+					if (&mesh == &model.opaque) model.opaque.glow.push_back(glow);
 				}
 				for (const auto i : geometry.indices) mesh.indices.push_back(base + i);
 			}
 		}
+		if (!anyGlow) model.opaque.glow.clear();
+		else model.opaque.glow.resize(model.opaque.positions.size(), glm::vec3(0.0f));
 		model.missingDesigns.assign(missing.begin(), missing.end());
 		return model;
+	}
+
+	std::vector<std::pair<float, float>> LodRanges(const std::vector<uint32_t>& used, const LodDistances& d) {
+		// LU Toolbox's setup_lod_data ("DYNAMIC LOD HELL"), by the set of levels there are
+		const std::set<uint32_t> set(used.begin(), used.end());
+		const auto is = [&set](std::initializer_list<uint32_t> levels) { return set == std::set<uint32_t>(levels); };
+		std::vector<std::pair<float, float>> ranges;
+		for (const auto level : used) {
+			std::pair<float, float> range{ 0.0f, 0.0f };
+			if (set.size() == 1) {
+				range = { d.lod0, d.cull };
+			} else if (level == 0) {
+				range.first = d.lod0;
+				if (is({ 0, 2 }) || is({ 0, 2, 3 })) range.second = d.lod2;
+				else if (is({ 0, 3 })) range.second = d.lod3;
+				else range.second = d.lod1;
+			} else if (level == 1) {
+				if (is({ 0, 1 })) range = { d.lod1, d.cull };
+				else if (is({ 1, 2 }) || is({ 1, 2, 3 })) range = { d.lod0, d.lod2 };
+				else if (is({ 0, 1, 3 })) range = { d.lod1, d.lod3 };
+				else if (is({ 1, 3 })) range = { d.lod0, d.lod3 };
+				else if (is({ 0, 1, 2 }) || is({ 0, 1, 2, 3 })) range = { d.lod1, d.lod2 };
+			} else if (level == 2) {
+				if (is({ 0, 2 }) || is({ 1, 2 }) || is({ 0, 1, 2 })) range = { d.lod2, d.cull };
+				else if (is({ 2, 3 })) range = { d.lod0, d.lod3 };
+				else if (is({ 0, 2, 3 }) || is({ 1, 2, 3 }) || is({ 0, 1, 2, 3 })) range = { d.lod2, d.lod3 };
+			} else if (level == 3) {
+				range = { d.lod3, d.cull };
+			}
+			ranges.push_back(range);
+		}
+		return ranges;
 	}
 
 	Model FromNif(const NifFile::Model& nif) {
@@ -241,6 +317,26 @@ namespace UgcModel {
 		return model;
 	}
 
+	void KeepTriangles(Mesh& mesh, const std::vector<bool>& keep) {
+		Mesh kept;
+		std::vector<uint32_t> remap(mesh.positions.size(), UINT32_MAX);
+		for (size_t t = 0; t < mesh.TriangleCount(); t++) {
+			if (t >= keep.size() || !keep[t]) continue;
+			for (int k = 0; k < 3; k++) {
+				const auto source = mesh.indices[t * 3 + k];
+				if (remap[source] == UINT32_MAX) {
+					remap[source] = static_cast<uint32_t>(kept.positions.size());
+					kept.positions.push_back(mesh.positions[source]);
+					if (source < mesh.normals.size()) kept.normals.push_back(mesh.normals[source]);
+					if (source < mesh.colors.size()) kept.colors.push_back(mesh.colors[source]);
+					if (source < mesh.glow.size()) kept.glow.push_back(mesh.glow[source]);
+				}
+				kept.indices.push_back(remap[source]);
+			}
+		}
+		mesh = std::move(kept);
+	}
+
 	std::vector<Mesh> Split(const Mesh& mesh, size_t maxVertices, size_t maxTriangles) {
 		std::vector<Mesh> pieces;
 		if (mesh.positions.size() <= maxVertices && mesh.TriangleCount() <= maxTriangles) {
@@ -265,11 +361,70 @@ namespace UgcModel {
 					current.positions.push_back(mesh.positions[source]);
 					if (source < mesh.normals.size()) current.normals.push_back(mesh.normals[source]);
 					if (source < mesh.colors.size()) current.colors.push_back(mesh.colors[source]);
+					if (source < mesh.glow.size()) current.glow.push_back(mesh.glow[source]);
 				}
 				current.indices.push_back(it->second);
 			}
 		}
 		flush();
+		return pieces;
+	}
+
+	std::vector<Mesh> Divide(const Mesh& mesh, size_t maxVertices, size_t maxTriangles) {
+		if (mesh.Empty()) return {};
+		if (mesh.positions.size() <= maxVertices && mesh.TriangleCount() <= maxTriangles) return { mesh };
+
+		// Connected pieces (vertices joined by triangles), so a brick's faces stay together
+		std::vector<uint32_t> parent(mesh.positions.size());
+		for (uint32_t i = 0; i < parent.size(); i++) parent[i] = i;
+		const std::function<uint32_t(uint32_t)> find = [&](uint32_t x) {
+			while (parent[x] != x) x = parent[x] = parent[parent[x]];
+			return x;
+		};
+		for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+			const auto a = find(mesh.indices[i]);
+			parent[find(mesh.indices[i + 1])] = a;
+			parent[find(mesh.indices[i + 2])] = a;
+		}
+
+		// divide_mesh: vertices below the mean along the longest side of the bounds, and everything linked to them
+		glm::vec3 min = mesh.positions[0], max = mesh.positions[0], mean(0.0f);
+		for (const auto& p : mesh.positions) {
+			min = glm::min(min, p);
+			max = glm::max(max, p);
+			mean += p;
+		}
+		mean /= static_cast<float>(mesh.positions.size());
+		const auto size = max - min;
+		const int axis = size.x >= size.y && size.x >= size.z ? 0 : size.y >= size.z ? 1 : 2;
+		std::vector<bool> below(mesh.positions.size(), false);
+		for (uint32_t v = 0; v < mesh.positions.size(); v++) {
+			if (mesh.positions[v][axis] < mean[axis]) below[find(v)] = true;
+		}
+
+		Mesh halves[2];
+		std::vector<uint32_t> remap(mesh.positions.size(), UINT32_MAX);
+		for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+			auto& half = halves[below[find(mesh.indices[i])] ? 1 : 0];
+			for (int k = 0; k < 3; k++) {
+				const auto source = mesh.indices[i + k];
+				if (remap[source] == UINT32_MAX) {
+					remap[source] = static_cast<uint32_t>(half.positions.size());
+					half.positions.push_back(mesh.positions[source]);
+					if (source < mesh.normals.size()) half.normals.push_back(mesh.normals[source]);
+					if (source < mesh.colors.size()) half.colors.push_back(mesh.colors[source]);
+					if (source < mesh.glow.size()) half.glow.push_back(mesh.glow[source]);
+				}
+				half.indices.push_back(remap[source]);
+			}
+		}
+		// LU Toolbox gives up below a 10% share; this splits the old way then
+		const float share = static_cast<float>(halves[1].positions.size()) / static_cast<float>(mesh.positions.size());
+		if (std::min(share, 1.0f - share) < 0.1f) return Split(mesh, maxVertices, maxTriangles);
+		std::vector<Mesh> pieces;
+		for (const auto& half : halves) {
+			for (auto& piece : Divide(half, maxVertices, maxTriangles)) pieces.push_back(std::move(piece));
+		}
 		return pieces;
 	}
 }

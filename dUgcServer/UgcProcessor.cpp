@@ -4,7 +4,18 @@
 #include "Database.h"
 #include "Logger.h"
 #include "UgcCdClient.h"
+#include "UgcThrottle.h"
 #include "json.hpp"
+
+#include <ctime>
+#include <fstream>
+#include <thread>
+#if defined(__linux__)
+#include <malloc.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
 
 namespace {
 	constexpr size_t MAX_ERROR_LENGTH = 1000; // process_error holds 1024
@@ -16,6 +27,22 @@ namespace {
 		return kind == UgcStorage::Kind::MODEL ? "model" : "modular";
 	}
 
+	// The process's CPU time (user and system, every thread), seconds
+	double ProcessCpuSeconds() {
+		timespec ts{};
+		if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0) return static_cast<double>(ts.tv_sec) + ts.tv_nsec / 1e9;
+		return 0.0;
+	}
+
+	void ApplyNice(int nice) {
+#if defined(__linux__)
+		// Per thread on Linux: only the calling worker's priority changes
+		setpriority(PRIO_PROCESS, static_cast<id_t>(syscall(SYS_gettid)), std::clamp(nice, 0, 19));
+#else
+		(void)nice;
+#endif
+	}
+
 	int64_t UnixNow() {
 		return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	}
@@ -23,6 +50,41 @@ namespace {
 
 UgcProcessor::UgcProcessor(Config config, UgcStorage& storage, UgcBricks::BrickLibrary& library, UgcJobs::Settings settings)
 	: m_Config(config), m_Storage(storage), m_Library(library), m_Settings(std::move(settings)) {}
+
+uint64_t UgcProcessor::ResidentBytes() {
+#if defined(__linux__)
+	std::ifstream statm("/proc/self/statm");
+	uint64_t size = 0, resident = 0;
+	if (statm >> size >> resident) return resident * static_cast<uint64_t>(sysconf(_SC_PAGESIZE));
+#endif
+	return 0;
+}
+
+bool UgcProcessor::Throttled() const {
+	const auto last = UgcThrottle::GetStats().lastSleepUnixMs;
+	return last > 0 && UnixNow() * 1000 - last < 5000;
+}
+
+void UgcProcessor::Configure(UgcJobs::Settings settings, Limits limits) {
+	{
+		std::lock_guard lock(m_Mutex);
+		m_Settings = std::move(settings);
+		m_Limits = limits;
+	}
+	UgcThrottle::SetBudget(limits.maxCpus);
+	m_Wake.notify_all();
+}
+
+void UgcProcessor::SampleUsage() {
+	const auto now = std::chrono::steady_clock::now();
+	const double cpu = ProcessCpuSeconds();
+	if (m_CpuSampled.time_since_epoch().count() != 0) {
+		const double elapsed = std::chrono::duration<double>(now - m_CpuSampled).count();
+		if (elapsed > 0.0) m_CpuPercent = (cpu - m_CpuSeconds) / elapsed * 100.0;
+	}
+	m_CpuSampled = now;
+	m_CpuSeconds = cpu;
+}
 
 UgcProcessor::~UgcProcessor() {
 	Stop();
@@ -50,27 +112,54 @@ void UgcProcessor::Stop() {
 }
 
 void UgcProcessor::Worker() {
+	int appliedNice = 0;
 	while (true) {
 		Job job;
+		UgcJobs::Settings settings;
+		int nice = 0;
 		{
 			std::unique_lock lock(m_Mutex);
-			m_Wake.wait(lock, [this] { return m_Stopping || !m_Jobs.empty(); });
+			// The first job that fits the memory budget beside the ones running; one that is too big alone runs
+			// when nothing else does
+			auto pick = m_Jobs.end();
+			m_Wake.wait(lock, [this, &pick] {
+				if (m_Stopping) return true;
+				pick = m_Jobs.end();
+				for (auto it = m_Jobs.begin(); it != m_Jobs.end(); ++it) {
+					if (m_Limits.maxMemoryBytes == 0 || m_Active == 0 || m_MemoryInUse + it->memory <= m_Limits.maxMemoryBytes) {
+						pick = it;
+						break;
+					}
+				}
+				if (pick == m_Jobs.end() && !m_Jobs.empty()) m_Waiting++;
+				return pick != m_Jobs.end();
+			});
 			if (m_Stopping) return;
-			job = std::move(m_Jobs.front());
-			m_Jobs.pop_front();
+			job = std::move(*pick);
+			m_Jobs.erase(pick);
 			m_Active++;
+			m_MemoryInUse += job.memory;
+			settings = m_Settings;
+			nice = m_Limits.nice;
+		}
+		if (nice != appliedNice) {
+			ApplyNice(nice);
+			appliedNice = nice;
 		}
 
+		UgcThrottle::Begin();
 		const auto start = std::chrono::steady_clock::now();
 		Done done{ job.kind, job.id, job.attempts };
 		try {
 			done.outcome = job.kind == Kind::MODEL
-				? UgcJobs::ProcessModel(job.blob, m_Library, m_Settings)
-				: UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), m_Settings);
+				? UgcJobs::ProcessModel(job.blob, m_Library, settings, static_cast<uint64_t>(job.id))
+				: UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
 		} catch (const std::exception& ex) {
 			done.outcome.ok = false;
 			done.outcome.error = std::string("crashed: ") + ex.what();
 		}
+		job.blob.clear();
+		job.blob.shrink_to_fit();
 		if (done.outcome.ok) {
 			std::string error;
 			const auto bytes = m_Storage.Write(job.kind, job.id, done.outcome.files, error);
@@ -83,20 +172,42 @@ void UgcProcessor::Worker() {
 		}
 		done.outcome.files.clear();
 		done.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+		UgcThrottle::Checkpoint();
 
-		std::lock_guard lock(m_Mutex);
-		m_Active--;
-		m_Done.push_back(std::move(done));
+		{
+			std::lock_guard lock(m_Mutex);
+			m_Active--;
+			m_MemoryInUse -= std::min(m_MemoryInUse, job.memory);
+			m_Done.push_back(std::move(done));
+		}
+#if defined(__linux__) && defined(__GLIBC__)
+		// Give the big buffers of the job back to the system
+		malloc_trim(0);
+#endif
+		m_Wake.notify_all();
 	}
 }
 
 void UgcProcessor::Poll() {
 	size_t queued = 0, active = 0;
+	Limits limits;
+	UgcJobs::Settings settings;
 	{
 		std::lock_guard lock(m_Mutex);
 		queued = m_Jobs.size();
 		active = m_Active;
+		limits = m_Limits;
+		settings = m_Settings;
 	}
+	const auto now = std::time(nullptr);
+	std::tm local{};
+#if defined(_WIN32)
+	localtime_s(&local, &now);
+#else
+	localtime_r(&now, &local);
+#endif
+	m_Paused = UgcThrottle::InHours(local.tm_hour, limits.pauseFromHour, limits.pauseToHour);
+	if (m_Paused) return;
 	// Enough to keep every worker busy until the next poll
 	const size_t wanted = std::max<size_t>(m_Threads.size() * 2, m_Config.pollBatch);
 	if (queued + active >= wanted) return;
@@ -105,11 +216,16 @@ void UgcProcessor::Poll() {
 	std::vector<Job> jobs;
 	for (auto& model : Database::Get()->GetUgcModelsToProcess(limit)) {
 		if (m_InFlight.contains({ Kind::MODEL, model.id })) continue;
-		jobs.push_back(Job{ Kind::MODEL, model.id, model.attempts, std::move(model.lxfml) });
+		Job job{ Kind::MODEL, model.id, model.attempts, UgcJobs::LxfmlFromBlob(model.lxfml) };
+		if (job.blob.empty()) job.blob = std::move(model.lxfml); // the worker reports it can't be read
+		job.parts = UgcJobs::CountParts(job.blob);
+		job.memory = UgcJobs::EstimateMemory(job.parts, settings);
+		jobs.push_back(std::move(job));
 	}
 	for (auto& build : Database::Get()->GetModularBuildsToProcess(limit)) {
 		if (m_InFlight.contains({ Kind::MODULAR, build.id })) continue;
 		Job job{ Kind::MODULAR, build.id, build.attempts };
+		job.memory = UgcJobs::EstimateMemory(64, settings);
 		std::string error;
 		if (!UgcCdClient::GatherModular(build.modules, job.modular, error)) {
 			// Nothing a worker could do: record it right away
@@ -171,6 +287,7 @@ void UgcProcessor::Collect() {
 void UgcProcessor::Update() {
 	Collect();
 	const auto now = std::chrono::steady_clock::now();
+	if (now - m_CpuSampled >= std::chrono::seconds(2)) SampleUsage();
 	if (now >= m_NextPoll) {
 		m_NextPoll = now + std::chrono::milliseconds(m_Config.pollIntervalMs);
 		Poll();
@@ -220,7 +337,29 @@ nlohmann::json UgcProcessor::Status() const {
 		status["queued"] = m_Jobs.size();
 		status["active"] = m_Active;
 	}
+	Limits limits;
+	{
+		std::lock_guard lock(m_Mutex);
+		limits = m_Limits;
+		status["jobMemoryBytes"] = m_MemoryInUse;
+		status["memoryWaits"] = m_Waiting;
+	}
 	status["workers"] = m_Threads.size();
+	const auto throttle = UgcThrottle::GetStats();
+	status["usage"] = {
+		{ "cpuPercent", std::lround(m_CpuPercent) }, // of one core
+		{ "cores", std::thread::hardware_concurrency() },
+		{ "residentBytes", ResidentBytes() },
+		{ "throttled", Throttled() },
+		{ "throttledMs", throttle.sleptMs },
+		{ "paused", m_Paused },
+	};
+	status["limits"] = {
+		{ "maxCpus", limits.maxCpus },
+		{ "maxMemoryBytes", limits.maxMemoryBytes },
+		{ "nice", limits.nice },
+		{ "pauseHours", limits.pauseFromHour >= 0 ? std::to_string(limits.pauseFromHour) + "-" + std::to_string(limits.pauseToHour) : "" },
+	};
 	status["made"] = m_Made;
 	status["failed"] = m_Failed;
 	status["evicted"] = m_Evicted;

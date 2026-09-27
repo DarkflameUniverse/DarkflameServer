@@ -8,6 +8,8 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <sstream>
+#include <set>
 #include <thread>
 
 #include "BinaryPathFinder.h"
@@ -33,6 +35,7 @@
 #include "UgcModel.h"
 #include "UgcProcessor.h"
 #include "UgcStorage.h"
+#include "UgcThrottle.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -52,20 +55,68 @@ namespace {
 		return GeneralUtils::TryParse<T>(Game::config->GetValue(key)).value_or(fallback);
 	}
 
+	std::vector<uint32_t> ParseLods(const std::string& text) {
+		std::vector<uint32_t> lods;
+		std::stringstream stream(text);
+		std::string item;
+		while (std::getline(stream, item, ',')) {
+			std::erase_if(item, [](unsigned char c) { return std::isspace(c); });
+			if (const auto lod = GeneralUtils::TryParse<uint32_t>(item); lod && *lod <= 3) lods.push_back(*lod);
+		}
+		return lods;
+	}
+
+	// ugcconfig.ini (and the dashboard's settings); the defaults are LU Toolbox's
 	UgcJobs::Settings ReadSettings() {
 		UgcJobs::Settings settings;
+		settings.build.palette = Game::config->GetValue("color_palette") == "brickdb" ? UgcModel::ePalette::BRICKDB : UgcModel::ePalette::LU_TOOLBOX;
+		settings.build.colorVariation = std::clamp(Setting<float>("color_variation", 5.0f), 0.0f, 100.0f);
+		settings.build.transparentOpacity = std::clamp(Setting<float>("transparent_opacity", 58.82f), 0.0f, 100.0f);
+		const auto lods = ParseLods(Game::config->GetValue("lods").empty() ? "0,2" : Game::config->GetValue("lods"));
+		if (!lods.empty()) settings.lods = lods;
+		settings.lodDistances.lod0 = Setting<float>("lod_distance_0", 0.0f);
+		settings.lodDistances.lod1 = Setting<float>("lod_distance_1", 50.0f);
+		settings.lodDistances.lod2 = Setting<float>("lod_distance_2", 100.0f);
+		settings.lodDistances.lod3 = Setting<float>("lod_distance_3", 280.0f);
+		settings.lodDistances.cull = Setting<float>("lod_cull", 10000.0f);
+		if (!Game::config->GetValue("shader_opaque").empty()) settings.shaderOpaque = Game::config->GetValue("shader_opaque");
 		settings.optimize.removeHidden = Setting<int32_t>("remove_hidden_faces", 1) != 0;
-		settings.optimize.bakeAo = Setting<int32_t>("bake_ao", 1) != 0;
-		settings.optimize.aoStrength = Setting<float>("ao_strength", 0.6f);
+		settings.optimize.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
 		settings.optimize.resolution = Setting<int32_t>("optimize_resolution", 1024);
+		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
+		settings.ao.distance = Setting<float>("ao_distance", 5.0f);
+		settings.ao.samples = std::clamp(Setting<int32_t>("ao_samples", 64), 1, 1024);
+		settings.ao.strength = Setting<float>("ao_strength", 1.0f);
+		settings.ao.glowStrength = Setting<float>("glow_strength", 6.0f);
 		settings.icon.size = Setting<int32_t>("icon_size", 128);
-		settings.icon.yawDegrees = Setting<float>("icon_yaw", 35.0f);
-		settings.icon.pitchDegrees = Setting<float>("icon_pitch", 25.0f);
+		settings.icon.yawDegrees = Setting<float>("icon_yaw", 53.36f);
+		settings.icon.pitchDegrees = Setting<float>("icon_pitch", 19.54f);
+		settings.icon.fovDegrees = Setting<float>("icon_fov", 39.6f);
 		settings.icon.margin = Setting<float>("icon_margin", 1.03f);
+		settings.icon.sunYawDegrees = Setting<float>("icon_sun_yaw", 21.0f);
+		settings.icon.sunPitchDegrees = Setting<float>("icon_sun_pitch", 50.3f);
+		settings.icon.sunStrength = Setting<float>("icon_sun_strength", 2.5f);
+		settings.icon.ambient = Setting<float>("icon_ambient", 0.192f);
+		settings.icon.shadows = Setting<int32_t>("icon_shadows", 1) != 0;
+		settings.icon.ao.enabled = Setting<int32_t>("icon_ao", 1) != 0;
+		settings.icon.ao.distance = settings.ao.distance;
+		settings.iconCorrectColors = Setting<int32_t>("icon_correct_colors", 1) != 0;
+		settings.iconColorVariation = std::clamp(Setting<float>("icon_color_variation", 0.0f), 0.0f, 100.0f);
 		settings.modularIcon = settings.icon;
-		settings.modularIcon.yawDegrees = Setting<float>("modular_icon_yaw", 35.0f);
-		settings.modularIcon.pitchDegrees = Setting<float>("modular_icon_pitch", 20.0f);
+		settings.modularIcon.yawDegrees = Setting<float>("modular_icon_yaw", 53.36f);
+		settings.modularIcon.pitchDegrees = Setting<float>("modular_icon_pitch", 19.54f);
+		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
 		return settings;
+	}
+
+	UgcProcessor::Limits ReadLimits() {
+		UgcProcessor::Limits limits;
+		const auto cores = std::max<unsigned>(std::thread::hardware_concurrency(), 1);
+		limits.maxCpus = std::clamp(Setting<double>("max_cpu_percent", 0.0), 0.0, 100.0) / 100.0 * cores;
+		limits.maxMemoryBytes = Setting<uint64_t>("max_memory_mb", 0) * 1024 * 1024;
+		limits.nice = std::clamp(Setting<int32_t>("worker_nice", 0), 0, 19);
+		UgcThrottle::ParseHours(Game::config->GetValue("pause_hours"), limits.pauseFromHour, limits.pauseToHour);
+		return limits;
 	}
 
 	std::vector<std::string> Segments(const std::string& path) {
@@ -187,9 +238,17 @@ namespace {
 				const auto id = GeneralUtils::TryParse<uint64_t>(segments[2]);
 				const auto kind = segments[1] == "model" ? std::optional(UgcStorage::Kind::MODEL) : segments[1] == "modular" ? std::optional(UgcStorage::Kind::MODULAR) : std::nullopt;
 				const auto& name = segments[3];
-				if (!id || !kind || (name != "icon.png" && name != "model.nif")) return;
+				static const std::set<std::string> PREVIEWS = { "icon.png", "model.nif", "model.noao.nif", "stats.json",
+					"previous.icon.png", "previous.model.nif", "previous.model.noao.nif", "previous.stats.json" };
+				if (!id || !kind || !PREVIEWS.contains(name)) return;
 				reply.headers.clear();
-				ServeFile(reply, *kind, static_cast<LWOOBJID>(*id), name, name == "icon.png" ? eContentType::IMAGE_PNG : eContentType::APPLICATION_OCTET_STREAM, true);
+				const auto type = name.ends_with(".png") ? eContentType::IMAGE_PNG : name.ends_with(".json") ? eContentType::APPLICATION_JSON : eContentType::APPLICATION_OCTET_STREAM;
+				ServeFile(reply, *kind, static_cast<LWOOBJID>(*id), name, type, true);
+				// Made again since: the newest files differ, so they mustn't be cached as long as the client's
+				if (reply.status == eHTTPStatusCode::OK) {
+					std::erase_if(reply.headers, [](const std::string& header) { return header.starts_with("Cache-Control"); });
+					reply.headers.push_back("Cache-Control: no-cache");
+				}
 			} });
 
 		Game::web.RegisterHTTPRoute({ .path = "/status", .method = eHTTPMethod::GET, .middleware = {},
@@ -212,7 +271,7 @@ namespace {
 	int MakeFromCommandLine(const std::string& mode, const std::string& input, const std::filesystem::path& output) {
 		const auto res = ResPath();
 		const auto settings = ReadSettings();
-		UgcBricks::BrickLibrary library(res, Setting<uint32_t>("brick_lod", 0));
+		UgcBricks::BrickLibrary library(res, 0);
 		if (!library.LoadMaterials()) std::cerr << "Couldn't read Materials.xml from " << (res / "brickdb.zip") << "; bricks will be grey\n";
 		UgcJobs::Outcome outcome;
 		const auto start = std::chrono::steady_clock::now();
@@ -309,7 +368,7 @@ int main(int argc, char** argv) {
 		ServiceType::UGC, Game::config, &Game::lastSignal, masterPassword);
 	Game::server = g_Server;
 
-	UgcBricks::BrickLibrary library(res, Setting<uint32_t>("brick_lod", 0));
+	UgcBricks::BrickLibrary library(res, 0);
 	if (!library.LoadMaterials()) LOG("Couldn't read Materials.xml from %s; bricks will be grey", (res / "brickdb.zip").string().c_str());
 
 	auto outputDir = std::filesystem::path(Game::config->GetValue("ugc_output_dir").empty() ? "ugc" : Game::config->GetValue("ugc_output_dir"));
@@ -325,6 +384,7 @@ int main(int argc, char** argv) {
 	const auto threads = Setting<uint32_t>("worker_threads", 0);
 	processorConfig.threads = threads > 0 ? threads : std::max<size_t>(std::thread::hardware_concurrency() / 2, 1);
 	UgcProcessor processor(processorConfig, storage, library, ReadSettings());
+	processor.Configure(ReadSettings(), ReadLimits());
 	g_Processor = &processor;
 	// Sent with the traffic reports to the dashboard (Diagnostics)
 	TrafficStats::Local().SetGauge("workers_busy", [&processor] { return static_cast<double>(processor.Busy()); });
@@ -339,6 +399,10 @@ int main(int argc, char** argv) {
 		{ "ugc_max_storage_bytes", [&processor] { return static_cast<double>(processor.MaxStorageBytes()); } },
 	};
 	for (const auto& [name, gauge] : ugcGauges) TrafficStats::Local().SetGauge(name, gauge);
+	TrafficStats::Local().SetGauge("cpu_percent", [&processor] { return processor.CpuPercent(); });
+	TrafficStats::Local().SetGauge("memory_mb", [] { return static_cast<double>(UgcProcessor::ResidentBytes()) / (1024.0 * 1024.0); });
+	TrafficStats::Local().SetGauge("job_memory_mb", [&processor] { return static_cast<double>(processor.JobMemory()) / (1024.0 * 1024.0); });
+	TrafficStats::Local().SetGauge("throttled", [&processor] { return processor.Throttled() ? 1.0 : 0.0; });
 
 	const auto listenIp = Game::config->GetValue("listen_ip").empty() ? std::string("0.0.0.0") : Game::config->GetValue("listen_ip");
 	const auto port = Setting<uint32_t>("port", 2008);
@@ -351,6 +415,7 @@ int main(int argc, char** argv) {
 	LOG("UGC Server started on %s:%u, files in %s", listenIp.c_str(), port, outputDir.string().c_str());
 
 	auto lastTick = std::chrono::steady_clock::now();
+	auto lastConfigure = lastTick;
 	while (!Game::ShouldShutdown()) {
 		// The poll's wait for network traffic is also this loop's sleep
 		Game::web.ReceiveRequests(10);
@@ -364,6 +429,11 @@ int main(int argc, char** argv) {
 			packet = g_Server->ReceiveFromMaster();
 		}
 		processor.Update();
+		// Settings the dashboard changed arrive as a config reload; pick them up
+		if (now - lastConfigure >= std::chrono::seconds(5)) {
+			lastConfigure = now;
+			processor.Configure(ReadSettings(), ReadLimits());
+		}
 	}
 
 	LOG("Stopping the UGC server");
@@ -372,6 +442,7 @@ int main(int argc, char** argv) {
 	TrafficStats::Local().SetGauge("workers_queued", nullptr);
 	TrafficStats::Local().SetGauge("workers_threads", nullptr);
 	for (const auto& [name, gauge] : ugcGauges) TrafficStats::Local().SetGauge(name, nullptr);
+	for (const auto* gauge : { "cpu_percent", "memory_mb", "job_memory_mb", "throttled" }) TrafficStats::Local().SetGauge(gauge, nullptr);
 	Game::web.Shutdown();
 	g_Processor = nullptr;
 	Database::Destroy("UgcServer");

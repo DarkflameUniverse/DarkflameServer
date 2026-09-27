@@ -10,7 +10,12 @@ namespace {
 		"model.nif", "model.nif.gz", "model.nif.checksum",
 		"model.lxfml.gz", "model.lxfml.checksum",
 		"icon.dds.gz", "icon.dds.checksum", "icon.png",
+		"model.noao.nif", "stats.json",
+		"previous.icon.png", "previous.model.nif", "previous.model.noao.nif", "previous.stats.json",
 	};
+
+	// What of the files made before is kept when an item is made again, for comparing (as previous.<name>)
+	constexpr std::array KEPT_FILES = { "icon.png", "model.nif", "model.noao.nif", "stats.json" };
 
 	const char* KindFolder(UgcStorage::Kind kind) {
 		return kind == UgcStorage::Kind::MODEL ? "models" : "modular";
@@ -60,6 +65,14 @@ std::optional<uint64_t> UgcStorage::Write(Kind kind, LWOOBJID id, const Files& f
 			return std::nullopt;
 		}
 		bytes += data.size();
+	}
+	// Keep the last version's previews to compare with
+	for (const auto* name : KEPT_FILES) {
+		if (files.contains(name)) {
+			std::filesystem::copy_file(folder / name, temporary / (std::string("previous.") + name), std::filesystem::copy_options::overwrite_existing, code);
+			if (!code) bytes += std::filesystem::file_size(temporary / (std::string("previous.") + name), code);
+			code.clear();
+		}
 	}
 	// Swap the old folder out and the new one in; the old one is deleted after
 	const auto old = folder.parent_path() / (".old-" + folder.filename().string() + "-" + RandomSuffix());

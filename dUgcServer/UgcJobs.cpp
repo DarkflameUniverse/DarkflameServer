@@ -1,6 +1,9 @@
 #include "UgcJobs.h"
 
+#include <chrono>
 #include <sstream>
+
+#include "json.hpp"
 
 #include "Sd0.h"
 #include "UgcFormats.h"
@@ -27,8 +30,8 @@ namespace UgcJobs {
 
 	namespace {
 		// The icon files of a model, and false when nothing was drawn
-		bool AddIcon(UgcStorage::Files& files, const UgcModel::Model& model, const UgcRender::IconOptions& options) {
-			const auto icon = UgcRender::RenderIcon(model, options);
+		bool AddIcon(UgcStorage::Files& files, const UgcModel::Model& model, const UgcRender::IconOptions& options, const std::vector<float>* ao = nullptr) {
+			const auto icon = UgcRender::RenderIcon(model, options, ao);
 			bool drawn = false;
 			for (size_t i = 3; i < icon.rgba.size(); i += 4) drawn = drawn || icon.rgba[i] != 0;
 			files["icon.png"] = UgcFormats::EncodePng(icon);
@@ -37,8 +40,34 @@ namespace UgcJobs {
 		}
 	}
 
-	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings) {
+	size_t CountParts(std::string_view lxfml) {
+		size_t count = 0;
+		for (size_t at = lxfml.find("<Part"); at != std::string_view::npos; at = lxfml.find("<Part", at + 5)) count++;
+		return count;
+	}
+
+	uint64_t EstimateMemory(size_t parts, const Settings& settings) {
+		// Measured: the renders' buffers, and per brick its mesh in each LOD (positions, normals, colors, indices,
+		// the occlusion tree and copies made along the way), about 40 KB at LOD 0
+		const uint64_t resolution = static_cast<uint64_t>(std::clamp(settings.optimize.resolution, 64, 4096));
+		const uint64_t icon = static_cast<uint64_t>(settings.icon.size) * settings.icon.supersample;
+		const uint64_t fixed = resolution * resolution * 8 + icon * icon * 20 + 1024 * 1024 * 4 + 16 * 1024 * 1024;
+		return fixed + static_cast<uint64_t>(parts) * 40 * 1024 * (1 + settings.lods.size());
+	}
+
+	namespace {
+		double Since(std::chrono::steady_clock::time_point start) {
+			return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+		}
+
+		std::string ShapeName(const std::string& shader, bool transparent) {
+			return ("S" + (transparent ? std::string("01") : shader) + (transparent ? "_Alpha_" : "_Opaque_") + "Model").substr(0, 60);
+		}
+	}
+
+	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed) {
 		Outcome outcome;
+		const auto started = std::chrono::steady_clock::now();
 		const auto lxfml = LxfmlFromBlob(blob);
 		if (lxfml.empty()) {
 			outcome.error = "the stored LXFML can't be read";
@@ -50,40 +79,124 @@ namespace UgcJobs {
 			outcome.error = error;
 			return outcome;
 		}
-		auto model = UgcModel::Build(parts, library);
-		if (!model.missingDesigns.empty()) {
-			outcome.note = "no geometry for design(s)";
-			for (const auto design : model.missingDesigns) outcome.note += " " + std::to_string(design);
-		}
-		if (model.Empty()) {
-			outcome.error = "none of the model's bricks have geometry";
-			if (!outcome.note.empty()) outcome.error += " (" + outcome.note + ")";
+		if (settings.maxBricks > 0 && parts.size() > settings.maxBricks) {
+			outcome.error = "the model has " + std::to_string(parts.size()) + " bricks, more than max_model_bricks (" + std::to_string(settings.maxBricks) + ")";
 			return outcome;
 		}
 
-		const auto optimized = UgcRender::Optimize(model, settings.optimize);
-		outcome.aoBaked = settings.optimize.bakeAo;
-		if (optimized.trianglesRemoved > 0) {
-			if (!outcome.note.empty()) outcome.note += "; ";
-			outcome.note += "removed " + std::to_string(optimized.trianglesRemoved) + " of " + std::to_string(optimized.trianglesBefore) + " triangles";
-		}
+		auto lods = settings.lods;
+		std::erase_if(lods, [](uint32_t lod) { return lod > 3; });
+		std::sort(lods.begin(), lods.end());
+		lods.erase(std::unique(lods.begin(), lods.end()), lods.end());
+		if (lods.empty()) lods.push_back(0);
+		const auto ranges = UgcModel::LodRanges(lods, settings.lodDistances);
 
-		// Named like LU Toolbox names its shapes: S<shader>_<Opaque|Alpha>_<name>
-		std::vector<std::pair<UgcModel::Mesh, bool>> pieces;
-		for (const bool transparent : { false, true }) {
-			for (auto& piece : UgcModel::Split(transparent ? model.transparent : model.opaque)) pieces.emplace_back(std::move(piece), transparent);
+		nlohmann::json stats;
+		stats["version"] = 1;
+		stats["bricks"] = parts.size();
+		auto& lodStats = stats["lods"] = nlohmann::json::array();
+		double buildMs = 0, hsrMs = 0, aoMs = 0;
+
+		// Every LOD made like LU Toolbox makes each LOD collection: colored, hidden faces removed, lighting baked, divided
+		std::vector<UgcModel::Model> models;
+		std::vector<std::vector<UgcModel::Mesh>> opaquePieces, transparentPieces;
+		UgcModel::Model preview; // LOD 0 before the lighting bake, for the dashboard
+		// The icon: LU Toolbox's icon renderer imports LOD 0 again, with its own color corrections and no variation.
+		// The same bricks in the same order, so LOD 0's hidden surface removal and occlusion apply to it too (neither
+		// changes what the icon's camera sees).
+		UgcModel::Model iconModel;
+		std::vector<float> iconAo;
+		double iconMs = 0;
+		for (size_t i = 0; i < lods.size(); i++) {
+			auto options = settings.build;
+			options.seed = seed;
+			options.lod = lods[i];
+			auto step = std::chrono::steady_clock::now();
+			auto model = UgcModel::Build(parts, library, options);
+			buildMs += Since(step);
+			if (i == 0) {
+				if (!model.missingDesigns.empty()) {
+					outcome.note = "no geometry for design(s)";
+					for (const auto design : model.missingDesigns) outcome.note += " " + std::to_string(design);
+					stats["missingDesigns"] = model.missingDesigns;
+				}
+				if (model.Empty()) {
+					outcome.error = "none of the model's bricks have geometry";
+					if (!outcome.note.empty()) outcome.error += " (" + outcome.note + ")";
+					return outcome;
+				}
+			}
+			nlohmann::json entry{ { "lod", lods[i] }, { "near", ranges[i].first }, { "far", ranges[i].second },
+				{ "opaqueBefore", model.opaque.TriangleCount() }, { "transparent", model.transparent.TriangleCount() } };
+			step = std::chrono::steady_clock::now();
+			const auto optimized = UgcRender::Optimize(model, settings.optimize);
+			hsrMs += Since(step);
+			if (i == 0 && optimized.trianglesRemoved > 0) {
+				if (!outcome.note.empty()) outcome.note += "; ";
+				outcome.note += "removed " + std::to_string(optimized.trianglesRemoved) + " of " + std::to_string(optimized.trianglesBefore) + " triangles";
+			}
+			if (i == 0) {
+				preview = model;
+				step = std::chrono::steady_clock::now();
+				auto iconOptions = settings.build;
+				iconOptions.seed = seed;
+				iconOptions.lod = 0;
+				iconOptions.icon = settings.iconCorrectColors;
+				iconOptions.colorVariation = settings.iconColorVariation;
+				iconModel = UgcModel::Build(parts, library, iconOptions);
+				if (!optimized.kept.empty() && iconModel.opaque.TriangleCount() == optimized.kept.size()) UgcModel::KeepTriangles(iconModel.opaque, optimized.kept);
+				iconMs += Since(step);
+			}
+			step = std::chrono::steady_clock::now();
+			auto ao = UgcRender::BakeAo(model, settings.ao);
+			aoMs += Since(step);
+			if (i == 0) iconAo = std::move(ao);
+			entry["opaqueAfter"] = model.opaque.TriangleCount();
+			entry["vertices"] = model.opaque.positions.size() + model.transparent.positions.size();
+			opaquePieces.push_back(UgcModel::Divide(model.opaque));
+			transparentPieces.push_back(UgcModel::Divide(model.transparent));
+			entry["shapes"] = opaquePieces.back().size() + transparentPieces.back().size();
+			lodStats.push_back(entry);
 		}
-		std::vector<UgcFormats::NifShape> shapes;
-		size_t opaqueIndex = 0, transparentIndex = 0;
-		for (const auto& [piece, transparent] : pieces) {
-			const auto index = transparent ? transparentIndex++ : opaqueIndex++;
-			shapes.push_back({ std::string("S01_") + (transparent ? "Alpha" : "Opaque") + "_Model" + (index > 0 ? std::to_string(index) : ""), &piece, transparent });
-		}
-		const auto nif = UgcFormats::WriteNif("SceneNode_Model", shapes);
+		outcome.aoBaked = settings.ao.enabled;
+
+		// An NiLODNode for the opaque bricks and one for the transparent ones, as LU Toolbox names them
+		const auto groups = [&](size_t levels, const std::vector<std::vector<UgcModel::Mesh>>& opaque, const std::vector<std::vector<UgcModel::Mesh>>& transparent) {
+			std::vector<UgcFormats::NifLodGroup> out;
+			for (const bool isTransparent : { false, true }) {
+				UgcFormats::NifLodGroup group{ ShapeName(settings.shaderOpaque, isTransparent), isTransparent, {} };
+				bool any = false;
+				for (size_t i = 0; i < levels; i++) {
+					UgcFormats::NifLod lod{ ranges[i].first, ranges[i].second, "LOD_" + std::to_string(lods[i]), {} };
+					for (const auto& piece : (isTransparent ? transparent : opaque)[i]) lod.pieces.push_back(&piece);
+					any = any || !lod.pieces.empty();
+					group.lods.push_back(std::move(lod));
+				}
+				if (any) out.push_back(std::move(group));
+			}
+			return out;
+		};
+		const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", groups(lods.size(), opaquePieces, transparentPieces));
 		outcome.files["model.nif"] = nif;
 		AddDownload(outcome.files, "model.nif", nif);
 		AddDownload(outcome.files, "model.lxfml", lxfml);
-		AddIcon(outcome.files, model, settings.icon);
+		{
+			const std::vector<std::vector<UgcModel::Mesh>> opaque{ UgcModel::Divide(preview.opaque) }, transparent{ UgcModel::Divide(preview.transparent) };
+			outcome.files["model.noao.nif"] = UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent));
+		}
+
+		const auto iconStart = std::chrono::steady_clock::now();
+		AddIcon(outcome.files, iconModel, settings.icon, iconAo.empty() ? nullptr : &iconAo);
+		iconMs += Since(iconStart);
+
+		stats["ms"] = { { "build", std::lround(buildMs) }, { "hiddenSurfaces", std::lround(hsrMs) }, { "ambientOcclusion", std::lround(aoMs) },
+			{ "icon", std::lround(iconMs) }, { "total", std::lround(Since(started)) } };
+		stats["settings"] = { { "palette", settings.build.palette == UgcModel::ePalette::LU_TOOLBOX ? "lu_toolbox" : "brickdb" },
+			{ "colorVariation", settings.build.colorVariation }, { "transparentOpacity", settings.build.transparentOpacity },
+			{ "removeHiddenFaces", settings.optimize.removeHidden }, { "groundPlane", settings.optimize.groundPlane },
+			{ "ao", settings.ao.enabled }, { "aoDistance", settings.ao.distance }, { "aoSamples", settings.ao.samples }, { "aoStrength", settings.ao.strength } };
+		outcome.stats = stats.dump();
+		outcome.files["stats.json"] = outcome.stats;
 		outcome.ok = true;
 		return outcome;
 	}
