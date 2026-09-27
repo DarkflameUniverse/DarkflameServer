@@ -23,10 +23,13 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 639 | ENH: Implement saving checks to prevent overwriting of saves | done | `5b407b8f` feat: refuse stale character saves with a save generation |
 | 691 | Tracking Issue: Hardcoded Content | partial | `1f9cf3f9` refactor: modular build items and root part come from ModularBuildComponent<br>`3154b300` refactor: power-up statistics come from the power-up's pickup skill<br>`aac8132f` refactor: item set passive abilities come from the CDClient and item scripts |
 | 746 | Tracking Issue: Missing Scripts | partial | `6230cd06` feat: add missing force field, jetpack NPC and Skullkin volume scripts |
+| 764 | BUG: Driving the wrong way does not warp you back | done | `3ad0e9f4` fix(racing): put racers going the wrong way back on the track |
 | 943 | ENH: Add config option for charging property rent | done | `52cb2bf3` feat: optional property rent |
+| 960 | ENH: Make use of `minNumRequired` when deleting items | done | `f66c6763` feat(inventory): enforce DeletionRestrictions when deleting items |
 | 1021 | BUG: Crux Prime daily mission objectives for smashables don't always complete | partial | `c274b72b` fix: Skullkin drill credits the player who breaks it |
 | 1113 | ENH: Add data validation to user editable strings in .ini's | partial | `3b40e979` fix: ignore whitespace around config keys and values |
 | 1127 | BUG: Enemies at Cavalry Hill take 1 damage from too far away on spawn | done | `9ed60f7e` fix: filter physics volumes like the client's collision groups |
+| 1129 | BUG: Vendor selling window does not replicate live behavior | done | `b5084b53` fix(vendor): keep 27 buyback items and drop the oldest |
 | 1179 | BUG: enemies aren't affected by speed alterations | done | `a48c92cc` fix: slows and speed buffs change enemy movement speed |
 | 1332 | ENH: make saving code safer | partial | `d57d4452` fix: read character flags the way they are written again<br>`7bfd793b` fix: character xml load and save no longer crash on bad data |
 | 1428 | BUG: enemies, summons etc stay aggro'd onto other entities that have died | done | `0f35cf44` fix: enemies and summons drop targets that have died |
@@ -38,7 +41,6 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 
 ## Waiting on other work
 
-- Needs the message conversion follow-ups (now unblocked): vendor buyback 1129; deletion restrictions 960; wrong-way warp 764.
 - Pets 166 (untamed dragons and skunks don't use their skills): not fixed. Their combat AI, NPC combat skill and
   hostile faction are set up by DamagingPets; nothing wrong could be found without watching it in game.
 - Pet scripts' group TODOs: the panda and crab now leave their spawn groups (`68bb1dc6`); the dig and object pet
