@@ -654,7 +654,9 @@ int main(int argc, char** argv) {
 
 	}
 
-	// Cleanup
+	// Cleanup: the conversion threads first (they answer deferred requests), then the web server's connections
+	Scenery::Shutdown();
+	Game::web.Shutdown();
 	Inspector::Shutdown();
 	EmailService::Shutdown();
 	ModeratorHelper::Shutdown();

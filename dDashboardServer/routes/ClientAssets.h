@@ -37,6 +37,12 @@ namespace ClientAssets {
 	// Where a file inside res/ is on disk (matched ignoring case), if it exists
 	std::optional<std::filesystem::path> ResolveResFile(const std::string& relativePath);
 
+	// The client's res/ folder (empty when client_location isn't set)
+	std::filesystem::path ResFolder();
+
+	// ResolveResFile inside a res/ folder from ResFolder: reads no settings, so worker threads may call it
+	std::optional<std::filesystem::path> ResolveResFile(const std::string& relativePath, const std::filesystem::path& res);
+
 	// The res/-relative path of a file called `fileName` (ignoring case) anywhere under res/<folder>
 	std::optional<std::string> FindResFile(const std::string& folder, const std::string& fileName);
 

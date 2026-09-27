@@ -27,6 +27,7 @@ struct HTTPContext {
 	
 	// Client information
 	std::string clientIP{};
+	unsigned long connectionId = 0; // the web server's id of the connection (for Web::Defer)
 	
 	// Authentication information (populated by auth middleware)
 	bool isAuthenticated = false;

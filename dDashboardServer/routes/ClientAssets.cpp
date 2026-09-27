@@ -47,8 +47,8 @@ namespace {
 	 * Where a normalized (lowercase) res/ path is on disk. Unpacked clients keep their original mixed case, so on
 	 * case-sensitive file systems each part is matched ignoring case.
 	 */
-	std::filesystem::path ResolveRes(const std::string& normalized) {
-		auto current = ClientRes();
+	std::filesystem::path ResolveResIn(const std::filesystem::path& res, const std::string& normalized) {
+		auto current = res;
 		std::error_code ec;
 		for (const auto& part : GeneralUtils::SplitString(normalized, '/')) {
 			if (part.empty()) continue;
@@ -70,6 +70,10 @@ namespace {
 			current = match.empty() ? current / part : match;
 		}
 		return current;
+	}
+
+	std::filesystem::path ResolveRes(const std::string& normalized) {
+		return ResolveResIn(ClientRes(), normalized);
 	}
 
 	std::optional<std::string> ReadFile(const std::filesystem::path& path) {
@@ -333,6 +337,19 @@ namespace ClientAssets {
 		const auto normalized = NormalizeAssetPath(relativePath);
 		if (ClientRes().empty() || !IsSafeAssetPath(normalized)) return std::nullopt;
 		auto path = ResolveRes(normalized);
+		std::error_code ec;
+		if (!std::filesystem::is_regular_file(path, ec)) return std::nullopt;
+		return path;
+	}
+
+	std::filesystem::path ResFolder() {
+		return ClientRes();
+	}
+
+	std::optional<std::filesystem::path> ResolveResFile(const std::string& relativePath, const std::filesystem::path& res) {
+		const auto normalized = NormalizeAssetPath(relativePath);
+		if (res.empty() || !IsSafeAssetPath(normalized)) return std::nullopt;
+		auto path = ResolveResIn(res, normalized);
 		std::error_code ec;
 		if (!std::filesystem::is_regular_file(path, ec)) return std::nullopt;
 		return path;

@@ -278,6 +278,9 @@ namespace {
 		c.Add(Bool(DASHBOARD, "secure_cookies", "HTTPS only cookies", "Turn on when the dashboard is served over HTTPS.", false));
 		c.Add(Bool(DASHBOARD, "behind_proxy", "Behind a reverse proxy", "Use the proxy's X-Forwarded-For for rate limits. Only when the dashboard can't be reached directly.", false));
 		c.Add(Unit(Int(DASHBOARD, "broadcast_interval", "Live update interval", "How often server status is pushed to open pages.", "2000", 250, 60000, true), "ms"));
+		c.Add(Unit(Int(DASHBOARD, "scenery_workers", "3D model conversion threads",
+			"Threads converting the client's models for the 3D views, so the dashboard keeps answering meanwhile. One of them only takes flairs and small models. 0 picks half the CPU cores (2 to 4).",
+			"0", 0, 16, true), "threads"));
 
 		c.AddSection("Keys", "Only in the .ini file or the environment.");
 		c.Add(Secret(DASHBOARD, "jwt_secret", "Session signing secret", "At least 32 characters; empty makes one. Changing it signs everyone out.", true));

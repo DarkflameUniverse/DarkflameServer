@@ -342,7 +342,7 @@ void RegisterShowcaseRoutes() {
 			if (!zone) return;
 			const auto asset = PathId<uint32_t>(context.path, 5);
 			if (!asset) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid model");
-			Scenery::ReplyMesh(reply, *zone, *asset, lodOf(context));
+			Scenery::ReplyMesh(reply, context, *zone, *asset, lodOf(context));
 		});
 
 	Route(eHTTPMethod::GET, "/api/showcase/scenery/:zone/texture/:asset/:slot", PUBLIC, "A scenery texture of a property zone as DDS for the showcase's 3D view",
@@ -352,6 +352,6 @@ void RegisterShowcaseRoutes() {
 			const auto asset = PathId<uint32_t>(context.path, 5);
 			const auto slot = PathId<uint32_t>(context.path, 6);
 			if (!asset || !slot) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid model or texture");
-			Scenery::ReplyTexture(reply, *zone, *asset, *slot, lodOf(context));
+			Scenery::ReplyTexture(reply, context, *zone, *asset, *slot, lodOf(context));
 		});
 }

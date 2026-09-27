@@ -10,6 +10,8 @@
 #include "json_fwd.hpp"
 #include "eHTTPStatusCode.h"
 #include "HTTPContext.h"
+#include "HTTPReply.h"
+#include "DeferredReply.h"
 #include "IHTTPMiddleware.h"
 
 // Forward declarations for game namespace
@@ -23,32 +25,6 @@ enum class eHTTPMethod;
 
 // Forward declaration for mongoose manager
 typedef struct mg_mgr mg_mgr;
-
-// Content type enum for HTTP responses
-enum class eContentType {
-	APPLICATION_JSON,
-	TEXT_HTML,
-	TEXT_CSS,
-	TEXT_JAVASCRIPT,
-	TEXT_PLAIN,
-	TEXT_CSV,
-	IMAGE_PNG,
-	IMAGE_JPEG,
-	APPLICATION_OCTET_STREAM,
-	TEXT_PROMETHEUS // the Prometheus text exposition format
-};
-
-// For passing HTTP messages between functions
-struct HTTPReply {
-	eHTTPStatusCode status = eHTTPStatusCode::NOT_FOUND;
-	std::string message = "{\"error\":\"Not Found\"}";
-	eContentType contentType = eContentType::APPLICATION_JSON;
-	std::string location = "";  // For redirect responses (Location header)
-	std::vector<std::string> headers{}; // Extra raw headers, e.g. "Set-Cookie: a=b"
-	// When set on a 200 reply, this file is streamed from disk as the body (with contentType and headers) instead of
-	// message, so large downloads never sit in memory
-	std::string file{};
-};
 
 // HTTP route structure
 // This structure is used to register HTTP routes
@@ -109,6 +85,14 @@ public:
 	void RegisterWSSubscription(const std::string& subscription, uint8_t minLevel = 0);
 	// The level is looked up each time (for permissions that can change while running)
 	void RegisterWSSubscription(const std::string& subscription, std::function<uint8_t()> minLevel);
+	/**
+	 * Answer this request later (from any thread) instead of when the handler returns, for slow work that would hold
+	 * up every other request: the handler hands the returned DeferredReply to a worker and returns; the web thread
+	 * sends the worker's reply on its next poll. Headers middleware set on `reply` are sent with it.
+	 */
+	static DeferredReply Defer(HTTPReply& reply, const HTTPContext& context);
+	// Deferred requests still waiting for their answers
+	size_t PendingDeferred() const;
 	// Add global middleware that applies to all routes
 	void AddGlobalMiddleware(MiddlewarePtr middleware);
 	// Set WebSocket authentication callback for token validation
@@ -117,6 +101,12 @@ public:
 	void SetWSApiAccessCallback(std::function<bool(uint8_t)> callback) { wsApiAccessCallback = std::move(callback); }
 	// Returns if the web server is enabled
 	bool IsEnabled() const { return enabled; };
+	/**
+	 * Close every connection and stop listening, before the server's other state is torn down (the destructor runs
+	 * during static destruction, when what the connections' close events touch may be gone). Deferred requests still
+	 * waiting are cancelled; stop the workers that answer them first.
+	 */
+	void Shutdown();
 	// Send a message to all connected WebSocket clients that are subscribed to the given topic
 	void static SendWSMessage(std::string sub, nlohmann::json& message);
 	// Send a message on a topic only to the subscribed connections of one account
@@ -133,10 +123,14 @@ public:
 	WSAuthCallback GetWSAuthCallback() const { return wsAuthCallback; }
 	const std::function<bool(uint8_t)>& GetWSApiAccessCallback() const { return wsApiAccessCallback; }
 private:
+	// Send the answers of deferred requests that have arrived
+	void SendDeferredReplies();
 	// mongoose manager
 	mg_mgr mgr;
 	// If the web server is enabled
 	bool enabled = false;
+	// mg_mgr_free has run (Shutdown)
+	bool managerFreed = false;
 	// WebSocket authentication callback
 	WSAuthCallback wsAuthCallback = nullptr;
 	std::function<bool(uint8_t)> wsApiAccessCallback = nullptr;

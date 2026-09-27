@@ -72,6 +72,9 @@ namespace {
 	
 	// Global middleware applied to all routes
 	std::vector<MiddlewarePtr> g_GlobalMiddleware;
+
+	// Requests answered later by Web::Defer
+	DeferredQueue g_Deferred;
 	
 	// Helper to extract client IP from mongoose connection
 	static std::string GetClientIP(mg_connection* connection) {
@@ -124,6 +127,7 @@ namespace {
 		
 		// Get client IP
 		context.clientIP = GetClientIP(connection);
+		context.connectionId = connection ? connection->id : 0;
 	}
 
 	const char* ContentTypeToString(eContentType contentType) {
@@ -178,6 +182,53 @@ namespace {
 		default: return status < 400 ? "OK" : "Error";
 		}
 	}
+}
+
+// Send a reply; http_msg is the request (null for a deferred reply, whose request is gone)
+static void SendReply(mg_connection* connection, const HTTPReply& reply, const mg_http_message* http_msg) {
+	// Build headers
+	std::string headers = std::string("Content-Type: ") + ContentTypeToString(reply.contentType) + "\r\n";
+	if (!reply.location.empty()) {
+		headers += "Location: " + reply.location + "\r\n";
+	}
+	// A route's own header replaces a default header of the same name
+	const auto headerName = [](const std::string& header) {
+		std::string name = header.substr(0, header.find(':'));
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+		return name;
+	};
+	for (const auto& header : Game::web.GetDefaultHeaders()) {
+		const auto name = headerName(header);
+		if (std::ranges::none_of(reply.headers, [&](const std::string& h) { return headerName(h) == name; })) headers += header + "\r\n";
+	}
+	for (const auto& header : reply.headers) headers += header + "\r\n";
+
+	if (!reply.file.empty() && reply.status == eHTTPStatusCode::OK) {
+		// Streamed in chunks by mongoose. Content-Type comes from the mime override (it adds its own header).
+		std::string extraHeaders = headers.substr(headers.find("\r\n") + 2);
+		const std::string mimeTypes = std::string("*=") + ContentTypeToString(reply.contentType);
+		mg_http_serve_opts opts{};
+		opts.extra_headers = extraHeaders.c_str();
+		opts.mime_types = mimeTypes.c_str();
+		// Without Accept-Encoding, so a stale "<file>.gz" next to the file is never served instead
+		mg_http_message request{};
+		if (http_msg) request = *http_msg;
+		else request.method = mg_str("GET");
+		for (auto& header : request.headers) {
+			if (header.name.len && mg_strcasecmp(header.name, mg_str("Accept-Encoding")) == 0) header.name = mg_str("X-Ignored");
+		}
+		mg_http_serve_file(connection, &request, reply.file.c_str(), &opts);
+		return;
+	}
+
+	// Written by hand rather than with mg_http_reply: that pads Content-Length with spaces (it fills the number in
+	// afterwards), which strict clients such as Node's fetch reject, and it can't send binary bodies
+	headers += "Content-Length: " + std::to_string(reply.message.size()) + "\r\n";
+	const auto status = static_cast<int>(reply.status);
+	std::string resp = "HTTP/1.1 " + std::to_string(status) + " " + ReasonPhrase(status) + "\r\n" + headers + "\r\n";
+	mg_send(connection, resp.data(), resp.size());
+	mg_send(connection, reply.message.data(), reply.message.size());
+	connection->is_resp = 0;
 }
 
 void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_msg) {
@@ -394,47 +445,16 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		}
 	}
 	
-	// Build headers
-	std::string headers = std::string("Content-Type: ") + ContentTypeToString(reply.contentType) + "\r\n";
-	if (!reply.location.empty()) {
-		headers += "Location: " + reply.location + "\r\n";
-	}
-	// A route's own header replaces a default header of the same name
-	const auto headerName = [](const std::string& header) {
-		std::string name = header.substr(0, header.find(':'));
-		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-		return name;
-	};
-	for (const auto& header : Game::web.GetDefaultHeaders()) {
-		const auto name = headerName(header);
-		if (std::ranges::none_of(reply.headers, [&](const std::string& h) { return headerName(h) == name; })) headers += header + "\r\n";
-	}
-	for (const auto& header : reply.headers) headers += header + "\r\n";
-
-	if (!reply.file.empty() && reply.status == eHTTPStatusCode::OK && http_msg) {
-		// Streamed in chunks by mongoose. Content-Type comes from the mime override (it adds its own header).
-		std::string extraHeaders = headers.substr(headers.find("\r\n") + 2);
-		const std::string mimeTypes = std::string("*=") + ContentTypeToString(reply.contentType);
-		mg_http_serve_opts opts{};
-		opts.extra_headers = extraHeaders.c_str();
-		opts.mime_types = mimeTypes.c_str();
-		// Without Accept-Encoding, so a stale "<file>.gz" next to the file is never served instead
-		mg_http_message request = *http_msg;
-		for (auto& header : request.headers) {
-			if (header.name.len && mg_strcasecmp(header.name, mg_str("Accept-Encoding")) == 0) header.name = mg_str("X-Ignored");
-		}
-		mg_http_serve_file(connection, &request, reply.file.c_str(), &opts);
+	if (reply.deferred) {
+		// Answered later (Web::Defer): the connection keeps is_resp set, so mongoose reads no further request on it
+		const auto* cc = http_msg ? mg_http_get_header(const_cast<mg_http_message*>(http_msg), "Connection") : nullptr;
+		g_Deferred.SetReplyOptions(connection->id, reply.headers, cc && mg_strcasecmp(*cc, mg_str("close")) == 0);
 		return;
 	}
+	// The handler deferred and then failed: its late answer is dropped
+	if (g_Deferred.IsPending(connection->id)) g_Deferred.Close(connection->id);
 
-	// Written by hand rather than with mg_http_reply: that pads Content-Length with spaces (it fills the number in
-	// afterwards), which strict clients such as Node's fetch reject, and it can't send binary bodies
-	headers += "Content-Length: " + std::to_string(reply.message.size()) + "\r\n";
-	const auto status = static_cast<int>(reply.status);
-	std::string resp = "HTTP/1.1 " + std::to_string(status) + " " + ReasonPhrase(status) + "\r\n" + headers + "\r\n";
-	mg_send(connection, resp.data(), resp.size());
-	mg_send(connection, reply.message.data(), reply.message.size());
-	connection->is_resp = 0;
+	SendReply(connection, reply, http_msg);
 }
 
 
@@ -554,6 +574,8 @@ void HandleMessages(mg_connection* connection, int message, void* message_data) 
 			break;
 		case MG_EV_CLOSE:
 			g_AuthenticatedWSConnections.erase(connection);
+			// A deferred answer that comes after this is dropped
+			g_Deferred.Close(connection->id);
 			break;
 		default:
 			break;
@@ -638,7 +660,21 @@ Web::Web() {
 }
 
 Web::~Web() {
+	// Static destruction: the maps and queues the close events touch are gone by now, so the handlers are off
+	// (HandleMessages checks enabled). Servers call Shutdown first, while they're still there.
+	enabled = false;
+	if (!managerFreed) mg_mgr_free(&mgr);
+	managerFreed = true;
+}
+
+void Web::Shutdown() {
+	if (managerFreed) return;
+	// Closing the connections fires their close events, which still clean up (WebSocket clients, deferred requests)
+	g_Deferred.CancelAll();
 	mg_mgr_free(&mgr);
+	managerFreed = true;
+	enabled = false;
+	g_AuthenticatedWSConnections.clear();
 }
 
 bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
@@ -677,7 +713,28 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 
 void Web::ReceiveRequests(int timeoutMs) {
 	mg_mgr_poll(&mgr, timeoutMs);
+	SendDeferredReplies();
 	RecheckDueWebSockets();
+}
+
+void Web::SendDeferredReplies() {
+	for (auto& finished : g_Deferred.Drain()) {
+		mg_connection* connection = mgr.conns;
+		while (connection && connection->id != finished.connection) connection = connection->next;
+		if (!connection || connection->is_closing) continue;
+		// Clears is_resp once the reply is out, so mongoose reads the connection's next request again
+		SendReply(connection, finished.reply, nullptr);
+		if (finished.close) connection->is_draining = 1;
+	}
+}
+
+DeferredReply Web::Defer(HTTPReply& reply, const HTTPContext& context) {
+	reply.deferred = g_Deferred.Begin(context.connectionId);
+	return DeferredReply(reply.deferred);
+}
+
+size_t Web::PendingDeferred() const {
+	return g_Deferred.Pending();
 }
 
 void Web::RecheckWebSockets(uint32_t accountId) {

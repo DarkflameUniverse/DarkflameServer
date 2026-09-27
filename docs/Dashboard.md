@@ -894,8 +894,19 @@ Shadows and Hidden objects (off by default), remembered per account.
 scene object's model and the zone's sky, from the game client's files (needs `client_location`). Models load nearest
 first; the detail setting picks the model level of detail, how far objects are drawn (1400/800/450 units), texture
 sharpness and a memory budget. Switch it off with *Scenery*. The 3D world view draws the same as its *Models* layer
-(on by default, Medium detail), plus the terrain's flairs. Converted models are cached in memory and in
-`dDashboardServer/scenery_cache` next to the server (at most 512 MB); nothing needs ImageMagick. Endpoints:
+(on by default, Medium detail), plus the terrain's flairs. Converted models are cached in memory (64 MB) and in
+`dDashboardServer/scenery_cache` next to the server (at most 512 MB); nothing needs ImageMagick.
+
+Converting a model the caches don't have yet (a big "glom" file takes a moment) happens on a few worker threads, so
+the dashboard keeps answering everything else meanwhile: the route hands the request to a worker (`Web::Defer`) and
+the web thread sends the answer when it is ready. Flairs and small models (up to 256 KB) go first, and one of the
+threads only takes those, so the grass around the camera never waits behind a big model; models of 4 MB and more wait
+behind smaller ones. A model asked for twice at once (two viewers) is converted once. When a zone's scenery or flair
+manifest is asked for, the zone's models are also converted ahead of time onto the disk cache, flairs and smallest
+first, at the detail its viewer last used: only when nothing else waits, on at most half of the threads besides the
+flairs' one, stopping when nobody has viewed the zone for 90 seconds or the disk cache is three quarters full (it
+never evicts for this). The number of threads is `scenery_workers` in `dashboardconfig.ini` (Settings > Dashboard >
+Web server; 0, the default, picks half the CPU cores, 2 to 4; read at startup). Endpoints:
 `/api/properties/:id/scenery`, `/api/world3d/:zone/scenery`, `/api/world3d/:zone/flairs`,
 `/api/scenery/:zone/mesh/:asset?lod=`, `/api/scenery/:zone/texture/:asset/:slot?lod=`. The world view's other data:
 `/api/world3d/:zone/scene` (objects and scenes), `/terrain_chunks` and `/terrain_layers` (the terrain file; sent

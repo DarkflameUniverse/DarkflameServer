@@ -5,6 +5,7 @@
 #include <string>
 
 struct HTTPReply;
+struct HTTPContext;
 
 namespace WorldScene {
 	struct Object;
@@ -19,6 +20,12 @@ namespace WorldScene {
  * wants, nearest first. Models are converted from .nif on the server (NifFile) to a small binary format and kept in a
  * bounded in-memory cache; textures are sent as the client's own DDS files (textures stored inside a .nif are
  * wrapped as DDS), which the browser decodes itself, so nothing needs ImageMagick.
+ *
+ * Converting a big model takes a while, so models and textures not in memory are answered from a few worker threads
+ * (Web::Defer, WorkerPool; scenery_workers in dashboardconfig.ini) and the web server keeps answering meanwhile.
+ * Flairs and small models go first, in a lane of their own; the same model asked for twice at once is converted
+ * once. When a zone's manifest is asked for, its models are converted ahead of time onto the disk cache while
+ * someone views the zone.
  */
 namespace Scenery {
 	/**
@@ -40,12 +47,17 @@ namespace Scenery {
 	// Whether the client draws a model for this scene object (its render component's, or its nif_name)
 	bool HasModel(const WorldScene::Object& object);
 
-	// Reply with model `asset` of the zone's manifest (NifFile::Encode), `lod` 0 the most detailed
-	void ReplyMesh(HTTPReply& reply, uint32_t zoneId, uint32_t asset, uint32_t lod);
+	// Reply with model `asset` of the zone's manifest (NifFile::Encode), `lod` 0 the most detailed. Deferred (answered
+	// from a worker thread) unless the model is in memory.
+	void ReplyMesh(HTTPReply& reply, const HTTPContext& context, uint32_t zoneId, uint32_t asset, uint32_t lod);
 
-	// Reply with texture `slot` (the model's "textures" list at that `lod`) of model `asset`, as a DDS file
-	void ReplyTexture(HTTPReply& reply, uint32_t zoneId, uint32_t asset, uint32_t slot, uint32_t lod);
+	// Reply with texture `slot` (the model's "textures" list at that `lod`) of model `asset`, as a DDS file. Deferred.
+	void ReplyTexture(HTTPReply& reply, const HTTPContext& context, uint32_t zoneId, uint32_t asset, uint32_t slot, uint32_t lod);
 
-	// /api/scenery/:zone/mesh/:asset and /api/scenery/:zone/texture/:asset/:slot, for anyone signed in
+	// /api/scenery/:zone/mesh/:asset and /api/scenery/:zone/texture/:asset/:slot, for anyone signed in; starts the
+	// conversion threads
 	void RegisterRoutes();
+
+	// Stop the conversion threads (queued work is dropped)
+	void Shutdown();
 }
