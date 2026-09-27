@@ -33,6 +33,16 @@ enum class eItemType : int32_t;
 
 namespace GameMessages {
 	struct GetObjectReportInfo;
+	struct EquipInventory;
+	struct UnEquipInventory;
+	struct RemoveItemFromInventory;
+	struct MoveItemInInventory;
+	struct MoveItemBetweenInventoryTypes;
+	struct RequestMoveItemBetweenInventoryTypes;
+	struct ClientItemConsumed;
+	struct UseNonEquipmentItem;
+	struct UpdateInventoryGroup;
+	struct UpdateInventoryGroupContents;
 }
 
 /**
@@ -445,6 +455,19 @@ public:
 	void RegenerateItemIDs();
 
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
+
+	// Game messages received from the client (see InventoryMessages.h).
+	void OnEquipInventory(const GameMessages::EquipInventory& msg);
+	void OnUnEquipInventory(const GameMessages::UnEquipInventory& msg);
+	void OnRemoveItemFromInventory(const GameMessages::RemoveItemFromInventory& msg);
+	void OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg);
+	void OnMoveItemBetweenInventoryTypes(const GameMessages::MoveItemBetweenInventoryTypes& msg);
+	// Answers the client at sysAddr with ResponseMoveItemBetweenInventoryTypes.
+	void OnRequestMoveItemBetweenInventoryTypes(const GameMessages::RequestMoveItemBetweenInventoryTypes& msg, const SystemAddress& sysAddr);
+	void OnClientItemConsumed(const GameMessages::ClientItemConsumed& msg);
+	void OnUseNonEquipmentItem(const GameMessages::UseNonEquipmentItem& msg);
+	void OnUpdateInventoryGroup(const GameMessages::UpdateInventoryGroup& msg);
+	void OnUpdateInventoryGroupContents(const GameMessages::UpdateInventoryGroupContents& msg);
 
 	~InventoryComponent() override;
 

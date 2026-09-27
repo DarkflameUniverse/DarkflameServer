@@ -12,6 +12,8 @@
 #include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "GameMessages.h"
+#include "InventoryMessages.h"
+#include "Database.h"
 #include "SkillComponent.h"
 #include "Character.h"
 #include "EntityManager.h"
@@ -324,7 +326,15 @@ ReceivedItem InventoryComponent::ReceiveItem(const LWOOBJID id, const LOT lot, c
 	if (keepId) slot = options.preferredSlot != -1 && inventory->IsSlotEmpty(options.preferredSlot) ? options.preferredSlot : inventory->FindEmptySlot();
 	if (slot != -1) {
 		auto* item = new Item(id, lot, inventory, slot, count, bound || Inventory::FindItemComponent(lot).isBOP, config, LWOOBJID_EMPTY, subKey, lootSourceType);
-		GameMessages::SendAddItemToInventoryClientSync(m_Parent, m_Parent->GetSystemAddress(), item, id, options.showFlyingLoot && !options.equip, static_cast<int>(count), subKey, lootSourceType);
+		GameMessages::AddItemToInventoryClientSync addItem;
+		addItem.target = m_Parent->GetObjectID();
+		addItem.SetItem(*item);
+		addItem.eLootTypeSource = lootSourceType;
+		addItem.iSubkey = subKey;
+		addItem.itemCount = static_cast<int>(count);
+		addItem.newObjID = id;
+		addItem.showFlyingLoot = options.showFlyingLoot && !options.equip;
+		addItem.SendToClient(m_Parent->GetSystemAddress());
 		EconomyLedger::RecordItems(m_Parent, lot, count, static_cast<uint32_t>(lootSourceType));
 		if (options.equip) {
 			item->Equip();
@@ -578,7 +588,11 @@ bool InventoryComponent::HasSpaceForLoot(const Loot::Return& loot) {
 	}
 
 	if (slotsNeeded > 0) {
-		GameMessages::SendNotifyNotEnoughInvSpace(m_Parent->GetObjectID(), slotsNeeded, ITEMS, m_Parent->GetSystemAddress());
+		GameMessages::NotifyNotEnoughInvSpace notEnoughSpace;
+		notEnoughSpace.target = m_Parent->GetObjectID();
+		notEnoughSpace.freeSlotsNeeded = slotsNeeded;
+		notEnoughSpace.inventoryType = ITEMS;
+		notEnoughSpace.Send(m_Parent->GetSystemAddress());
 
 		return false;
 	}
@@ -1109,7 +1123,12 @@ void InventoryComponent::HandlePossession(Item* item) {
 	Game::entityManager->ConstructEntity(mount);
 	possessorComponent->Mount(mount);
 
-	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
+	GameMessages::MarkInventoryItemAsActive markActive;
+	markActive.target = m_Parent->GetObjectID();
+	markActive.bActive = true;
+	markActive.iType = eUnequippableActiveType::MOUNT;
+	markActive.itemID = item->GetId();
+	markActive.Send(m_Parent->GetSystemAddress());
 }
 
 void InventoryComponent::ApplyBuff(Item* item) const {
@@ -1261,7 +1280,9 @@ void InventoryComponent::FixInvisibleItems() {
 	for (int32_t i = 1; i < something + 1; i++) {
 		// client loads 12 items every 1/8 seconds, we're adding a small hack to fix invisible inventory items due to closing the news screen too fast.
 		m_Parent->AddCallbackTimer((arbitaryInventorySize / numberItemsLoadedPerFrame) * callbackTime * i, [this]() {
-			GameMessages::SendUpdateInventoryUi(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
+			GameMessages::UpdateInventoryUi updateUi;
+			updateUi.target = m_Parent->GetObjectID();
+			updateUi.SendToClient(m_Parent->GetSystemAddress());
 			});
 	}
 }
@@ -1354,7 +1375,10 @@ void InventoryComponent::SpawnPet(Item* item) {
 	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
 	if (Game::config->GetValue("pets_take_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
-		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
+		GameMessages::UseItemRequirementsResponse requirementsResponse;
+		requirementsResponse.target = m_Parent->GetObjectID();
+		requirementsResponse.eUseResponse = eUseItemResponse::NoImaginationForPet;
+		requirementsResponse.SendToClient(m_Parent->GetSystemAddress());
 		return;
 	}
 
@@ -1981,4 +2005,184 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 	}
 
 	return true;
+}
+
+void InventoryComponent::OnEquipInventory(const GameMessages::EquipInventory& msg) {
+	Item* item = FindItemById(msg.itemToEquip);
+	if (!item) return;
+
+	item->Equip();
+
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void InventoryComponent::OnUnEquipInventory(const GameMessages::UnEquipInventory& msg) {
+	auto* item = FindItemById(msg.itemToUnequip);
+
+	if (!item) return;
+
+	item->UnEquip();
+
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void InventoryComponent::OnRemoveItemFromInventory(const GameMessages::RemoveItemFromInventory& msg) {
+	// this is used for a lot more than just inventory trashing (trades, vendors, etc.) but for now since it's just used for that, that's all im going to implement
+	auto* item = FindItemById(msg.iObjID);
+
+	if (item == nullptr) {
+		return;
+	}
+
+	const auto iStackCount = std::min<uint32_t>(item->GetCount(), msg.iStackCount);
+
+	if (msg.bConfirmed) {
+		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
+		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
+			item->DisassembleModel(iStackCount);
+		} else if (itemType == eItemType::VEHICLE) {
+			Database::Get()->DeleteUgcBuild(item->GetSubKey());
+		}
+		auto lot = item->GetLot();
+		item->SetCount(item->GetCount() - iStackCount, true);
+		Game::entityManager->SerializeEntity(m_Parent);
+
+		auto* missionComponent = m_Parent->GetComponent<MissionComponent>();
+
+		if (missionComponent != nullptr) {
+			missionComponent->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -iStackCount);
+		}
+	}
+}
+
+void InventoryComponent::OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg) {
+	auto* item = FindItemById(msg.iObjID);
+
+	if (!item) {
+		return;
+	}
+
+	MoveStack(item, static_cast<eInventoryType>(msg.destInvType), msg.slot);
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void InventoryComponent::OnMoveItemBetweenInventoryTypes(const GameMessages::MoveItemBetweenInventoryTypes& msg) {
+	auto showFlyingLoot = msg.showFlyingLoot;
+	auto* item = FindItemById(msg.objectID);
+
+	if (!item) {
+		// Attempt to find the item by lot in inventory A since A is the source inventory.
+		item = FindItemByLot(msg.templateID, static_cast<eInventoryType>(msg.inventoryTypeA));
+		if (!item) {
+			// As a final resort, try to find the item in its default inventory based on type.
+			item = FindItemByLot(msg.templateID);
+			if (!item) {
+				return;
+			}
+		}
+	}
+
+	if (m_Parent->GetCharacter()) {
+		if (m_Parent->GetCharacter()->GetBuildMode()) {
+			showFlyingLoot = false;
+		}
+	}
+
+	MoveItemToInventory(item, msg.inventoryTypeB, msg.stackCount, showFlyingLoot);
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void InventoryComponent::OnRequestMoveItemBetweenInventoryTypes(const GameMessages::RequestMoveItemBetweenInventoryTypes& msg, const SystemAddress& sysAddr) {
+	GameMessages::ResponseMoveItemBetweenInventoryTypes response;
+	response.target = m_Parent->GetObjectID();
+	response.inventoryTypeDestination = msg.invTypeDst;
+	response.inventoryTypeSource = msg.invTypeSrc;
+
+	if (msg.itemID != LWOOBJID_EMPTY) {
+		auto* item = FindItemById(msg.itemID);
+
+		if (!item) {
+			response.response = eReponseMoveItemBetweenInventoryTypeCode::FAIL_ITEM_NOT_FOUND;
+			response.SendToClient(sysAddr);
+			return;
+		}
+
+		if (item->GetLot() == 6086) { // Thinking hat
+			response.response = eReponseMoveItemBetweenInventoryTypeCode::FAIL_CANT_MOVE_THINKING_HAT;
+			response.SendToClient(sysAddr);
+			return;
+		}
+
+		auto* destInv = GetInventory(msg.invTypeDst);
+		if (destInv && destInv->GetEmptySlots() == 0) {
+			response.response = eReponseMoveItemBetweenInventoryTypeCode::FAIL_INV_FULL;
+			response.SendToClient(sysAddr);
+			return;
+		}
+
+		// Despawn the pet if we are moving that pet to the vault.
+		auto* petComponent = PetComponent::GetActivePet(m_Parent->GetObjectID());
+		if (petComponent && petComponent->GetDatabaseId() == item->GetSubKey()) {
+			DespawnPet();
+		}
+
+		MoveItemToInventory(item, msg.invTypeDst, msg.iStackCount, msg.showFlyingLoot, false, false, msg.destSlot);
+		response.response = eReponseMoveItemBetweenInventoryTypeCode::SUCCESS;
+		response.SendToClient(sysAddr);
+	}
+}
+
+void InventoryComponent::OnClientItemConsumed(const GameMessages::ClientItemConsumed& msg) {
+	auto* item = FindItemById(msg.item);
+	if (item == nullptr) {
+		return;
+	}
+	LOT itemLot = item->GetLot();
+
+	item->Consume();
+
+	auto* missions = static_cast<MissionComponent*>(m_Parent->GetComponent(eReplicaComponentType::MISSION));
+	if (missions != nullptr) {
+		missions->Progress(eMissionTaskType::USE_ITEM, itemLot);
+	}
+}
+
+void InventoryComponent::OnUseNonEquipmentItem(const GameMessages::UseNonEquipmentItem& msg) {
+	auto* item = FindItemById(msg.itemToUse);
+
+	if (item) item->UseNonEquip(item);
+}
+
+void InventoryComponent::OnUpdateInventoryGroup(const GameMessages::UpdateInventoryGroup& msg) {
+	GroupUpdate groupUpdate;
+	groupUpdate.groupId = msg.groupID;
+	groupUpdate.inventory = msg.inventoryType;
+	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(msg.groupName);
+
+	if (msg.action == "ADD") groupUpdate.command = GroupUpdateCommand::ADD;
+	else if (msg.action == "MODIFY") groupUpdate.command = GroupUpdateCommand::MODIFY;
+	else if (msg.action == "REMOVE") groupUpdate.command = GroupUpdateCommand::REMOVE;
+	else {
+		LOG("Invalid action %s", msg.action.c_str());
+		return;
+	}
+
+	UpdateGroup(groupUpdate);
+}
+
+void InventoryComponent::OnUpdateInventoryGroupContents(const GameMessages::UpdateInventoryGroupContents& msg) {
+	GroupUpdate groupUpdate;
+
+	if (msg.action == "ADD") groupUpdate.command = GroupUpdateCommand::ADD_LOT;
+	else if (msg.action == "REMOVE") groupUpdate.command = GroupUpdateCommand::REMOVE_LOT;
+	else {
+		LOG("Invalid action %s", msg.action.c_str());
+		return;
+	}
+
+	groupUpdate.groupId = msg.groupID;
+	groupUpdate.inventory = msg.inventoryType;
+	groupUpdate.lot = msg.lot;
+
+	UpdateGroup(groupUpdate);
 }

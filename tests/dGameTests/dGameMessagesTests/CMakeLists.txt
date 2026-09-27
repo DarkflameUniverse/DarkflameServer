@@ -4,6 +4,7 @@ SET(DGAMEMESSAGES_TESTS
 	"GameMessageTests.cpp"
 	"GameMsgSplitTests.cpp"
 	"EffectsMessagesTests.cpp"
+	"InventoryMessagesTests.cpp"
 	"MissionMessagesTests.cpp"
 	"PetMessagesTests.cpp"
 	"PropertyMessagesTests.cpp"

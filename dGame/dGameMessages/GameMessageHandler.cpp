@@ -36,6 +36,7 @@
 #include "RacingMessages.h"
 #include "MissionMessages.h"
 #include "EffectsMessages.h"
+#include "InventoryMessages.h"
 #include "PetMessages.h"
 #include "PropertyMessages.h"
 #include "eMissionTaskType.h"
@@ -82,6 +83,21 @@ namespace {
 		{ MESSAGE_BOX_RESPOND, []() { return std::make_unique<MessageBoxRespond>(); } },
 		{ CHOICE_BOX_RESPOND, []() { return std::make_unique<ChoiceBoxRespond>(); } },
 		{ CINEMATIC_UPDATE, []() { return std::make_unique<CinematicUpdate>(); } },
+
+		// Inventory and items
+		{ EQUIP_INVENTORY, []() { return std::make_unique<EquipInventory>(); } },
+		{ UN_EQUIP_INVENTORY, []() { return std::make_unique<UnEquipInventory>(); } },
+		{ REMOVE_ITEM_FROM_INVENTORY, []() { return std::make_unique<RemoveItemFromInventory>(); } },
+		{ MOVE_ITEM_IN_INVENTORY, []() { return std::make_unique<MoveItemInInventory>(); } },
+		{ MOVE_ITEM_BETWEEN_INVENTORY_TYPES, []() { return std::make_unique<MoveItemBetweenInventoryTypes>(); } },
+		{ REQUEST_MOVE_ITEM_BETWEEN_INVENTORY_TYPES, []() { return std::make_unique<RequestMoveItemBetweenInventoryTypes>(); } },
+		{ PUSH_EQUIPPED_ITEMS_STATE, []() { return std::make_unique<PushEquippedItemsState>(); } },
+		{ POP_EQUIPPED_ITEMS_STATE, []() { return std::make_unique<PopEquippedItemsState>(); } },
+		{ CLIENT_ITEM_CONSUMED, []() { return std::make_unique<ClientItemConsumed>(); } },
+		{ USE_NON_EQUIPMENT_ITEM, []() { return std::make_unique<UseNonEquipmentItem>(); } },
+		{ SET_CONSUMABLE_ITEM, []() { return std::make_unique<SetConsumableItem>(); } },
+		{ UPDATE_INVENTORY_GROUP, []() { return std::make_unique<UpdateInventoryGroup>(); } },
+		{ UPDATE_INVENTORY_GROUP_CONTENTS, []() { return std::make_unique<UpdateInventoryGroupContents>(); } },
 
 		// Pets
 		{ PET_TAMING_TRY_BUILD, []() { return std::make_unique<PetTamingTryBuild>(); } },
@@ -173,24 +189,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	switch (messageID) {
 
-	case MessageType::Game::MOVE_ITEM_IN_INVENTORY: {
-		GameMessages::HandleMoveItemInInventory(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::REMOVE_ITEM_FROM_INVENTORY: {
-		GameMessages::HandleRemoveItemFromInventory(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::EQUIP_INVENTORY:
-		GameMessages::HandleEquipItem(inStream, entity);
-		break;
-
-	case MessageType::Game::UN_EQUIP_INVENTORY:
-		GameMessages::HandleUnequipItem(inStream, entity);
-		break;
-
 											  // Currently not actually used for our implementation, however its used right now to get around invisible inventory items in the client.
 	case MessageType::Game::SELECT_SKILL: {
 		auto var = entity->GetVar<bool>(u"dlu_first_time_load");
@@ -227,7 +225,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 			// Fixes a bug where testmapping too fast causes large item inventories to become invisible.
 			// Only affects item inventory
-			GameMessages::SendSetInventorySize(entity, eInventoryType::ITEMS, inv->GetInventory(eInventoryType::ITEMS)->GetSize());
+			GameMessages::SetInventorySize setSize;
+			setSize.target = entity->GetObjectID();
+			setSize.inventoryType = eInventoryType::ITEMS;
+			setSize.size = inv->GetInventory(eInventoryType::ITEMS)->GetSize();
+			setSize.SendToClient(entity->GetSystemAddress());
 		}
 
 		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
@@ -462,18 +464,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		entity->Smash(entity->GetObjectID());
 		break;
 
-	case MessageType::Game::MOVE_ITEM_BETWEEN_INVENTORY_TYPES:
-		GameMessages::HandleMoveItemBetweenInventoryTypes(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::PUSH_EQUIPPED_ITEMS_STATE:
-		GameMessages::HandlePushEquippedItemsState(inStream, entity);
-		break;
-
-	case MessageType::Game::POP_EQUIPPED_ITEMS_STATE:
-		GameMessages::HandlePopEquippedItemsState(inStream, entity);
-		break;
-
 	case MessageType::Game::BUY_FROM_VENDOR:
 		GameMessages::HandleBuyFromVendor(inStream, entity, sysAddr);
 		break;
@@ -492,18 +482,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::MATCH_REQUEST:
 		GameMessages::HandleMatchRequest(inStream, entity);
-		break;
-
-	case MessageType::Game::USE_NON_EQUIPMENT_ITEM:
-		GameMessages::HandleUseNonEquipmentItem(inStream, entity);
-		break;
-
-	case MessageType::Game::CLIENT_ITEM_CONSUMED:
-		GameMessages::HandleClientItemConsumed(inStream, entity);
-		break;
-
-	case MessageType::Game::SET_CONSUMABLE_ITEM:
-		GameMessages::HandleSetConsumableItem(inStream, entity, sysAddr);
 		break;
 
 	case MessageType::Game::VERIFY_ACK:
@@ -538,10 +516,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 
 		// NT
-	case MessageType::Game::REQUEST_MOVE_ITEM_BETWEEN_INVENTORY_TYPES:
-		GameMessages::HandleRequestMoveItemBetweenInventoryTypes(inStream, entity, sysAddr);
-		break;
-
 	case MessageType::Game::TOGGLE_GHOST_REFERENCE_OVERRIDE:
 		GameMessages::HandleToggleGhostReferenceOverride(inStream, entity, sysAddr);
 		break;
@@ -606,13 +580,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	case MessageType::Game::REQUEST_VENDOR_STATUS_UPDATE:
 		GameMessages::SendVendorStatusUpdate(entity, sysAddr, true);
 		break;
-	case MessageType::Game::UPDATE_INVENTORY_GROUP:
-		GameMessages::HandleUpdateInventoryGroup(inStream, entity, sysAddr);
-		break;
-	case MessageType::Game::UPDATE_INVENTORY_GROUP_CONTENTS:
-		GameMessages::HandleUpdateInventoryGroupContents(inStream, entity, sysAddr);
-		break;
-
 	default:
 		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 		break;

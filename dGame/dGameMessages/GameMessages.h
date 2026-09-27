@@ -146,7 +146,6 @@ namespace GameMessages {
 	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
 	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
 
-	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::NONE);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
@@ -160,8 +159,6 @@ namespace GameMessages {
 
 	void SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot);
 	void SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot, float coinSpawnTime);
-
-	void SendSetInventorySize(Entity* entity, int invType, int size);
 
 	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
 
@@ -178,11 +175,6 @@ namespace GameMessages {
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
 	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
 	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr, eVendorTransactionResult result);
-
-	void SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID iObjID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining);
-	void SendConsumeClientItem(Entity* entity, bool bSuccess, LWOOBJID item);
-	void SendUseItemResult(Entity* entity, LOT templateID, bool useItemResult);
-	void SendMoveInventoryBatch(Entity* entity, uint32_t stackCount, int srcInv, int dstInv, const LWOOBJID& iObjID);
 
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
@@ -239,8 +231,6 @@ namespace GameMessages {
 	void SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr);
 
 	void SendLockNodeRotation(Entity* entity, std::string nodeName);
-
-	void HandleSetConsumableItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 		LWOOBJID originator = LWOOBJID_EMPTY, bool bCantAttack = false, bool bCantEquip = false,
@@ -314,12 +304,8 @@ namespace GameMessages {
 	void HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Pets:
-	void SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr);
 
 	void SendDisplayZoneSummary(LWOOBJID objectId, const SystemAddress& sysAddr, bool isPropertyMap = false, bool isZoneStart = false, LWOOBJID sender = LWOOBJID_EMPTY);
-
-	//UI:
-	void SendNotifyNotEnoughInvSpace(LWOOBJID objectId, uint32_t freeSlotsNeeded, eInventoryType inventoryType, const SystemAddress& sysAddr);
 
 	// Mounts
 	/**
@@ -351,8 +337,6 @@ namespace GameMessages {
 
 	//Racing:
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, eUseItemResponse itemResponse);
 
 	// SG:
 
@@ -391,9 +375,6 @@ namespace GameMessages {
 
 	//NT:
 
-	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response);
-
 	//Handlers:
 
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -411,23 +392,10 @@ namespace GameMessages {
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity);
-	void HandleEquipItem(RakNet::BitStream& inStream, Entity* entity);
-	void HandleUnequipItem(RakNet::BitStream& inStream, Entity* entity);
-	void HandleRemoveItemFromInventory(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleMoveItemInInventory(RakNet::BitStream& inStream, Entity* entity);
-	void HandleMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandlePickupItem(RakNet::BitStream& inStream, Entity* entity);
 	void HandleResurrect(RakNet::BitStream& inStream, Entity* entity);
 	void HandleModifyPlayerZoneStatistic(RakNet::BitStream& inStream, Entity* entity);
 	void HandleUpdatePlayerStatistic(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandlePushEquippedItemsState(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandlePopEquippedItemsState(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandleClientItemConsumed(RakNet::BitStream& inStream, Entity* entity);
-
-	void HandleUseNonEquipmentItem(RakNet::BitStream& inStream, Entity* entity);
 
 	void HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity);
 
@@ -452,12 +420,7 @@ namespace GameMessages {
 	void HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
-
-	// This is a client gm however its default values are exactly what we need to get around the invisible inventory item issues.
-	void SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	struct DisplayTooltip : public NetGameMsg {
 		DisplayTooltip() : NetGameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}

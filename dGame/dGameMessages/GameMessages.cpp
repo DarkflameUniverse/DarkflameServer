@@ -1,5 +1,6 @@
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "InventoryMessages.h"
 #include "DashboardNotify.h"
 #include "PlayerReports.h"
 #include "EconomyLedger.h"
@@ -348,65 +349,6 @@ void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLev
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey, eLootSourceType lootSourceType) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::ADD_ITEM_TO_INVENTORY_CLIENT_SYNC);
-	bitStream.Write(item->GetBound());
-	bitStream.Write(item->GetInfo().isBOE);
-	bitStream.Write(item->GetInfo().isBOP);
-
-	bitStream.Write(lootSourceType != eLootSourceType::NONE); // Loot source
-	if (lootSourceType != eLootSourceType::NONE) bitStream.Write(lootSourceType);
-	std::u16string extraInfo;
-
-	const auto& config = item->GetConfig();
-
-	for (const auto& data : config.values | std::views::values) {
-		extraInfo += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
-	}
-
-	if (extraInfo.length() > 0) extraInfo.pop_back(); // remove the last comma
-
-	bitStream.Write<uint32_t>(extraInfo.size());
-	if (extraInfo.size() > 0) {
-		for (uint32_t i = 0; i < extraInfo.size(); ++i) {
-			bitStream.Write<uint16_t>(extraInfo[i]);
-		}
-		bitStream.Write<uint16_t>(0x00);
-	}
-
-	bitStream.Write(item->GetLot());
-
-	bitStream.Write(subKey != LWOOBJID_EMPTY);
-	if (subKey != LWOOBJID_EMPTY) bitStream.Write(subKey);
-
-	auto* inventory = item->GetInventory();
-	const auto inventoryType = inventory->GetType();
-
-	bitStream.Write(inventoryType != eInventoryType::ITEMS);
-	if (inventoryType != eInventoryType::ITEMS) bitStream.Write(inventoryType);
-
-	bitStream.Write(itemCount != 1);
-	if (itemCount != 1) bitStream.Write(itemCount);
-
-	const auto count = item->GetCount();
-
-	bitStream.Write(count != 0); //items total
-	if (count != 0) bitStream.Write(count);
-
-	bitStream.Write(objectID);
-	bitStream.Write(0.0f);
-	bitStream.Write(0.0f);
-	bitStream.Write(0.0f);
-	bitStream.Write(showFlyingLoot);
-	bitStream.Write(item->GetSlot());
-
-	SEND_PACKET;
-}
-
 void GameMessages::SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -572,19 +514,6 @@ void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOB
 	}
 
 	SEND_PACKET_BROADCAST;
-}
-
-void GameMessages::SendSetInventorySize(Entity* entity, int invType, int size) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::SET_INVENTORY_SIZE);
-	bitStream.Write(invType);
-	bitStream.Write(size);
-
-	SystemAddress sysAddr = entity->GetSystemAddress();
-	SEND_PACKET;
 }
 
 void GameMessages::SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks, bool doHover, int effectID, float airspeed, float maxAirspeed, float verticalVelocity, int warningEffectID) {
@@ -824,141 +753,6 @@ void GameMessages::SendVendorTransactionResult(Entity* entity, const SystemAddre
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::VENDOR_TRANSACTION_RESULT);
 	bitStream.Write(result);
-
-	SEND_PACKET;
-}
-
-void GameMessages::SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID objectID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining) {
-	CBITSTREAM;
-	CMSGHEADER;
-	// this is used for a lot more than just inventory trashing (trades, vendors, etc.) but for now since it's just used for that, that's all im going to implement
-	bool bConfirmed = true;
-	bool bDeleteItem = true;
-	bool bOutSuccess = false;
-	int eInvType = inventoryType;
-	int eLootTypeSource = LOOTTYPE_NONE;
-	bool forceDeletion = true;
-	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
-	LWOOBJID iObjID = objectID;
-	LOT iObjTemplate = templateID;
-	LWOOBJID iRequestingObjID = LWOOBJID_EMPTY;
-	uint32_t iStackCount = stackCount;
-	uint32_t iStackRemaining = stackRemaining;
-	LWOOBJID iSubkey = LWOOBJID_EMPTY;
-	LWOOBJID iTradeID = LWOOBJID_EMPTY;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::REMOVE_ITEM_FROM_INVENTORY);
-	bitStream.Write(bConfirmed);
-	bitStream.Write(bDeleteItem);
-	bitStream.Write(bOutSuccess);
-	bitStream.Write1();
-	bitStream.Write(eInvType);
-	bitStream.Write1();
-	bitStream.Write(eLootTypeSource);
-	bitStream.Write<uint32_t>(0); //extra info
-	//bitStream.Write<uint16_t>(0); //extra info
-	bitStream.Write(forceDeletion);
-	bitStream.Write0();
-	bitStream.Write1();
-	bitStream.Write(iObjID);
-	bitStream.Write1();
-	bitStream.Write(iObjTemplate);
-	bitStream.Write0();
-	bitStream.Write1();
-	bitStream.Write(iStackCount);
-	bitStream.Write1();
-	bitStream.Write(iStackRemaining);
-	bitStream.Write0();
-	bitStream.Write0();
-
-	SEND_PACKET;
-}
-
-void GameMessages::SendConsumeClientItem(Entity* entity, bool bSuccess, LWOOBJID item) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::CONSUME_CLIENT_ITEM);
-	bitStream.Write(bSuccess);
-	bitStream.Write(item);
-
-	SystemAddress sysAddr = entity->GetSystemAddress();
-	SEND_PACKET;
-}
-
-void GameMessages::SendUseItemResult(Entity* entity, LOT templateID, bool useItemResult) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::USE_ITEM_RESULT);
-	bitStream.Write(templateID);
-	bitStream.Write(useItemResult);
-
-	SystemAddress sysAddr = entity->GetSystemAddress();
-	SEND_PACKET;
-}
-
-void GameMessages::SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, eUseItemResponse itemResponse) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectID);
-	bitStream.Write(MessageType::Game::USE_ITEM_REQUIREMENTS_RESPONSE);
-
-	bitStream.Write(itemResponse);
-
-	SEND_PACKET;
-}
-
-void GameMessages::SendMoveInventoryBatch(Entity* entity, uint32_t stackCount, int srcInv, int dstInv, const LWOOBJID& iObjID) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-
-	Item* itemStack = inv->FindItemById(iObjID);
-	if (!itemStack) return;
-
-	bool bAllowPartial = false;
-	bool bOutSuccess = false;
-	uint32_t count = stackCount;
-	int dstBag = dstInv;
-	LOT moveLOT = itemStack->GetLot();
-	//LWOOBJID moveSubkey = LWOOBJID_EMPTY;
-	bool showFlyingLoot = false;
-	int srcBag = srcInv;
-	LWOOBJID startObjectID = iObjID;
-
-	bitStream.Write(bAllowPartial);
-	bitStream.Write(bOutSuccess);
-	if (count == 1) {
-		bitStream.Write0();
-	} else {
-		bitStream.Write1();
-		bitStream.Write(count);
-	}
-	if (dstBag == 0) {
-		bitStream.Write0();
-	} else {
-		bitStream.Write1();
-		bitStream.Write(dstBag);
-	}
-	bitStream.Write0();
-	bitStream.Write(showFlyingLoot);
-	if (srcBag == 0) {
-		bitStream.Write0();
-	} else {
-		bitStream.Write1();
-		bitStream.Write(srcBag);
-	}
-	bitStream.Write1();
-	bitStream.Write(startObjectID);
-
-	auto sysAddr = entity->GetSystemAddress();
 
 	SEND_PACKET;
 }
@@ -1396,18 +1190,6 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 	if (duration != 3.0f) bitStream.Write(duration);
 
 	SEND_PACKET_BROADCAST;
-}
-
-void GameMessages::HandleSetConsumableItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LOT lot;
-
-	inStream.Read(lot);
-
-	auto* inventory = entity->GetComponent<InventoryComponent>();
-
-	if (inventory == nullptr) return;
-
-	inventory->SetConsumable(lot);
 }
 
 void GameMessages::SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
@@ -1883,25 +1665,6 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* 
 
 //Pets:
 
-void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::MARK_INVENTORY_ITEM_AS_ACTIVE);
-
-	bitStream.Write(bActive);
-
-	bitStream.Write(iType != eUnequippableActiveType::INVALID);
-	if (iType != eUnequippableActiveType::INVALID) bitStream.Write(iType);
-
-	bitStream.Write(itemID != LWOOBJID_EMPTY);
-	if (itemID != LWOOBJID_EMPTY) bitStream.Write(itemID);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
 void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -1934,21 +1697,6 @@ void GameMessages::SendDisplayZoneSummary(LWOOBJID objectId, const SystemAddress
 }
 
 //UI
-
-void GameMessages::SendNotifyNotEnoughInvSpace(LWOOBJID objectId, uint32_t freeSlotsNeeded, eInventoryType inventoryType, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::VEHICLE_NOTIFY_FINISHED_RACE);
-
-	bitStream.Write(freeSlotsNeeded);
-	bitStream.Write(inventoryType != 0);
-	if (inventoryType != 0) bitStream.Write(inventoryType);
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
 
 // Mounts
 
@@ -1991,7 +1739,14 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* e
 			auto* character = entity->GetComponent<CharacterComponent>();
 			if (character) {
 				// If we had an active item turn it off
-				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessorComponent->GetMountItemID(), entity->GetSystemAddress());
+				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) {
+					GameMessages::MarkInventoryItemAsActive markActive;
+					markActive.target = entity->GetObjectID();
+					markActive.bActive = false;
+					markActive.iType = eUnequippableActiveType::MOUNT;
+					markActive.itemID = possessorComponent->GetMountItemID();
+					markActive.Send(entity->GetSystemAddress());
+				}
 				possessorComponent->SetMountItemID(LWOOBJID_EMPTY);
 			}
 
@@ -2174,89 +1929,6 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 
 
 // NT
-
-void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bAllowPartial{};
-	int32_t destSlot = -1;
-	int32_t iStackCount = 1;
-	eInventoryType invTypeDst = ITEMS;
-	eInventoryType invTypeSrc = ITEMS;
-	LWOOBJID itemID = LWOOBJID_EMPTY;
-	bool showFlyingLoot{};
-	LWOOBJID subkey = LWOOBJID_EMPTY;
-	LOT itemLOT = 0;
-
-	bAllowPartial = inStream.ReadBit();
-	if (inStream.ReadBit()) inStream.Read(destSlot);
-	if (inStream.ReadBit()) inStream.Read(iStackCount);
-	if (inStream.ReadBit()) inStream.Read(invTypeDst);
-	if (inStream.ReadBit()) inStream.Read(invTypeSrc);
-	if (inStream.ReadBit()) inStream.Read(itemID);
-	showFlyingLoot = inStream.ReadBit();
-	if (inStream.ReadBit()) inStream.Read(subkey);
-	if (inStream.ReadBit()) inStream.Read(itemLOT);
-
-	if (invTypeDst == invTypeSrc) {
-		SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
-		return;
-	}
-
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-	if (inventoryComponent) {
-		if (itemID != LWOOBJID_EMPTY) {
-			auto* item = inventoryComponent->FindItemById(itemID);
-
-			if (!item) {
-				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_ITEM_NOT_FOUND);
-				return;
-			}
-
-			if (item->GetLot() == 6086) { // Thinking hat
-				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_CANT_MOVE_THINKING_HAT);
-				return;
-			}
-
-			auto* destInv = inventoryComponent->GetInventory(invTypeDst);
-			if (destInv && destInv->GetEmptySlots() == 0) {
-				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_INV_FULL);
-				return;
-			}
-
-			// Despawn the pet if we are moving that pet to the vault.
-			auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
-			if (petComponent && petComponent->GetDatabaseId() == item->GetSubKey()) {
-				inventoryComponent->DespawnPet();
-			}
-
-			inventoryComponent->MoveItemToInventory(item, invTypeDst, iStackCount, showFlyingLoot, false, false, destSlot);
-			SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::SUCCESS);
-		}
-	} else {
-		SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
-	}
-}
-
-void GameMessages::SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::RESPONSE_MOVE_ITEM_BETWEEN_INVENTORY_TYPES);
-
-	bitStream.Write(inventoryTypeDestination != eInventoryType::ITEMS);
-	if (inventoryTypeDestination != eInventoryType::ITEMS) bitStream.Write(inventoryTypeDestination);
-
-	bitStream.Write(inventoryTypeSource != eInventoryType::ITEMS);
-	if (inventoryTypeSource != eInventoryType::ITEMS) bitStream.Write(inventoryTypeSource);
-
-	bitStream.Write(response != eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
-	if (response != eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC) bitStream.Write(response);
-
-	SEND_PACKET;
-}
-
-
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------- Handlers ------------------------------------------------------------------
@@ -2667,138 +2339,6 @@ void GameMessages::HandleRequestDie(RakNet::BitStream& inStream, Entity* entity)
 	inStream.Read(killerID);
 }
 
-void GameMessages::HandleEquipItem(RakNet::BitStream& inStream, Entity* entity) {
-	bool immediate;
-	LWOOBJID objectID;
-	inStream.Read(immediate);
-	inStream.Read(immediate); //twice?
-	inStream.Read(objectID);
-
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-
-	Item* item = inv->FindItemById(objectID);
-	if (!item) return;
-
-	item->Equip();
-
-	Game::entityManager->SerializeEntity(entity);
-}
-
-void GameMessages::HandleUnequipItem(RakNet::BitStream& inStream, Entity* entity) {
-	bool immediate;
-	LWOOBJID objectID;
-	inStream.Read(immediate);
-	inStream.Read(immediate);
-	inStream.Read(immediate);
-	inStream.Read(objectID);
-
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(objectID);
-
-	if (!item) return;
-
-	item->UnEquip();
-
-	Game::entityManager->SerializeEntity(entity);
-}
-
-void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	// this is used for a lot more than just inventory trashing (trades, vendors, etc.) but for now since it's just used for that, that's all im going to implement
-	bool bConfirmed = false;
-	bool bDeleteItem = true;
-	bool bOutSuccess = false;
-	bool eInvTypeIsDefault = false;
-	int eInvType = INVENTORY_MAX;
-	bool eLootTypeSourceIsDefault = false;
-	int eLootTypeSource = LOOTTYPE_NONE;
-	int32_t extraInfoLength = 0;
-	std::u16string extraInfo;
-	bool forceDeletion = true;
-	bool iLootTypeSourceIsDefault = false;
-	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
-	bool iObjIDIsDefault = false;
-	LWOOBJID iObjID = LWOOBJID_EMPTY;
-	bool iObjTemplateIsDefault = false;
-	LOT iObjTemplate = LOT_NULL;
-	bool iRequestingObjIDIsDefault = false;
-	LWOOBJID iRequestingObjID = LWOOBJID_EMPTY;
-	bool iStackCountIsDefault = false;
-	uint32_t iStackCount = 1;
-	bool iStackRemainingIsDefault = false;
-	uint32_t iStackRemaining = 0;
-	bool iSubkeyIsDefault = false;
-	LWOOBJID iSubkey = LWOOBJID_EMPTY;
-	bool iTradeIDIsDefault = false;
-	LWOOBJID iTradeID = LWOOBJID_EMPTY;
-
-	inStream.Read(bConfirmed);
-	inStream.Read(bDeleteItem);
-	inStream.Read(bOutSuccess);
-	inStream.Read(eInvTypeIsDefault);
-	if (eInvTypeIsDefault) inStream.Read(eInvType);
-	inStream.Read(eLootTypeSourceIsDefault);
-	if (eLootTypeSourceIsDefault) inStream.Read(eLootTypeSource);
-	inStream.Read(extraInfoLength);
-	if (extraInfoLength > 0) {
-		for (uint32_t i = 0; i < extraInfoLength; ++i) {
-			uint16_t character;
-			inStream.Read(character);
-			extraInfo.push_back(character);
-		}
-		uint16_t nullTerm;
-		inStream.Read(nullTerm);
-	}
-	inStream.Read(forceDeletion);
-	inStream.Read(iLootTypeSourceIsDefault);
-	if (iLootTypeSourceIsDefault) inStream.Read(iLootTypeSource);
-	inStream.Read(iObjIDIsDefault);
-	if (iObjIDIsDefault) inStream.Read(iObjID);
-	inStream.Read(iObjTemplateIsDefault);
-	if (iObjTemplateIsDefault) inStream.Read(iObjTemplate);
-	inStream.Read(iRequestingObjIDIsDefault);
-	if (iRequestingObjIDIsDefault) inStream.Read(iRequestingObjID);
-	inStream.Read(iStackCountIsDefault);
-	if (iStackCountIsDefault) inStream.Read(iStackCount);
-	inStream.Read(iStackRemainingIsDefault);
-	if (iStackRemainingIsDefault) inStream.Read(iStackRemaining);
-	inStream.Read(iSubkeyIsDefault);
-	if (iSubkeyIsDefault) inStream.Read(iSubkey);
-	inStream.Read(iTradeIDIsDefault);
-	if (iTradeIDIsDefault) inStream.Read(iTradeID);
-
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(iObjID);
-
-	if (item == nullptr) {
-		return;
-	}
-
-	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
-
-	if (bConfirmed) {
-		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
-		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
-			item->DisassembleModel(iStackCount);
-		} else if (itemType == eItemType::VEHICLE) {
-			Database::Get()->DeleteUgcBuild(item->GetSubKey());
-		}
-		auto lot = item->GetLot();
-		item->SetCount(item->GetCount() - iStackCount, true);
-		Game::entityManager->SerializeEntity(entity);
-
-		auto* missionComponent = entity->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr) {
-			missionComponent->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -iStackCount);
-		}
-	}
-}
-
 void GameMessages::SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -2809,79 +2349,6 @@ void GameMessages::SendSetGravityScale(const LWOOBJID& target, const float effec
 	bitStream.Write(effectScale);
 
 	SEND_PACKET;
-}
-
-void GameMessages::HandleMoveItemInInventory(RakNet::BitStream& inStream, Entity* entity) {
-	bool destInvTypeIsDefault = false;
-	int32_t destInvType = eInventoryType::INVALID;
-	LWOOBJID iObjID;
-	int inventoryType;
-	int responseCode;
-	int slot;
-	inStream.Read(destInvTypeIsDefault);
-	if (destInvTypeIsDefault) { inStream.Read(destInvType); }
-	inStream.Read(iObjID);
-	inStream.Read(inventoryType);
-	inStream.Read(responseCode);
-	inStream.Read(slot);
-
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(iObjID);
-
-	if (!item) {
-		return;
-	}
-
-	inv->MoveStack(item, static_cast<eInventoryType>(destInvType), slot);
-	Game::entityManager->SerializeEntity(entity);
-}
-
-void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	eInventoryType inventoryTypeA;
-	eInventoryType inventoryTypeB;
-	LWOOBJID objectID;
-	bool showFlyingLoot = true;
-	bool stackCountIsDefault = false;
-	uint32_t stackCount = 1;
-	bool templateIDIsDefault = false;
-	LOT templateID = LOT_NULL;
-
-	inStream.Read(inventoryTypeA);
-	inStream.Read(inventoryTypeB);
-	inStream.Read(objectID);
-	inStream.Read(showFlyingLoot);
-	inStream.Read(stackCountIsDefault);
-	if (stackCountIsDefault) inStream.Read(stackCount);
-	inStream.Read(templateIDIsDefault);
-	if (templateIDIsDefault) inStream.Read(templateID);
-
-	auto inv = entity->GetComponent<InventoryComponent>();
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(objectID);
-
-	if (!item) {
-		// Attempt to find the item by lot in inventory A since A is the source inventory.
-		item = inv->FindItemByLot(templateID, static_cast<eInventoryType>(inventoryTypeA));
-		if (!item) {
-			// As a final resort, try to find the item in its default inventory based on type.
-			item = inv->FindItemByLot(templateID);
-			if (!item) {
-				return;
-			}
-		}
-	}
-
-	if (entity->GetCharacter()) {
-		if (entity->GetCharacter()->GetBuildMode()) {
-			showFlyingLoot = false;
-		}
-	}
-
-	inv->MoveItemToInventory(item, inventoryTypeB, stackCount, showFlyingLoot);
-	Game::entityManager->SerializeEntity(entity);
 }
 
 void GameMessages::HandleResurrect(RakNet::BitStream& inStream, Entity* entity) {
@@ -2898,60 +2365,6 @@ void GameMessages::HandleResurrect(RakNet::BitStream& inStream, Entity* entity) 
 			scriptEntity->GetScript()->OnPlayerResurrected(scriptEntity, entity);
 		}
 	}
-}
-
-void GameMessages::HandlePushEquippedItemsState(RakNet::BitStream& inStream, Entity* entity) {
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-	inv->PushEquippedItems();
-}
-
-void GameMessages::HandlePopEquippedItemsState(RakNet::BitStream& inStream, Entity* entity) {
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	if (!inv) return;
-	inv->PopEquippedItems();
-	Game::entityManager->SerializeEntity(entity); // so it updates on client side
-}
-
-
-void GameMessages::HandleClientItemConsumed(RakNet::BitStream& inStream, Entity* entity) {
-	LWOOBJID itemConsumed;
-
-	inStream.Read(itemConsumed);
-
-	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-
-	if (inventory == nullptr) {
-		return;
-	}
-
-	auto* item = inventory->FindItemById(itemConsumed);
-	if (item == nullptr) {
-		return;
-	}
-	LOT itemLot = item->GetLot();
-
-	item->Consume();
-
-	auto* missions = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
-	if (missions != nullptr) {
-		missions->Progress(eMissionTaskType::USE_ITEM, itemLot);
-	}
-}
-
-
-void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream& inStream, Entity* entity) {
-	LWOOBJID itemConsumed;
-
-	inStream.Read(itemConsumed);
-
-	auto* inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(itemConsumed);
-
-	if (item) item->UseNonEquip(item);
 }
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity) {
@@ -3289,72 +2702,6 @@ void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Ent
 	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
 }
 
-void GameMessages::HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	std::string action;
-	std::u16string groupName;
-	InventoryComponent::GroupUpdate groupUpdate;
-	bool locked{}; // All groups are locked by default
-
-	uint32_t size{};
-	if (!inStream.Read(size)) return;
-	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
-	action.resize(size);
-	if (!inStream.Read(action.data(), size)) return;
-
-	if (!inStream.Read(size)) return;
-	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
-	groupUpdate.groupId.resize(size);
-	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
-
-	if (!inStream.Read(size)) return;
-	if (size > MAX_MESSAGE_LENGTH / 2) return; // Bounds check: size * 2 would overflow or exceed limit
-	groupName.resize(size);
-	if (!inStream.Read(reinterpret_cast<char*>(groupName.data()), size * 2)) return;
-
-	if (!inStream.Read(groupUpdate.inventory)) return;
-	if (!inStream.Read(locked)) return;
-
-	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(groupName);
-
-	if (action == "ADD") groupUpdate.command = InventoryComponent::GroupUpdateCommand::ADD;
-	else if (action == "MODIFY") groupUpdate.command = InventoryComponent::GroupUpdateCommand::MODIFY;
-	else if (action == "REMOVE") groupUpdate.command = InventoryComponent::GroupUpdateCommand::REMOVE;
-	else {
-		LOG("Invalid action %s", action.c_str());
-		return;
-	}
-
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
-}
-
-void GameMessages::HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	std::string action;
-	InventoryComponent::GroupUpdate groupUpdate;
-
-	uint32_t size{};
-	if (!inStream.Read(size)) return;
-	action.resize(size);
-	if (!inStream.Read(action.data(), size)) return;
-
-	if (action == "ADD") groupUpdate.command = InventoryComponent::GroupUpdateCommand::ADD_LOT;
-	else if (action == "REMOVE") groupUpdate.command = InventoryComponent::GroupUpdateCommand::REMOVE_LOT;
-	else {
-		LOG("Invalid action %s", action.c_str());
-		return;
-	}
-
-	if (!inStream.Read(size)) return;
-	groupUpdate.groupId.resize(size);
-	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
-
-	if (!inStream.Read(groupUpdate.inventory)) return;
-	if (!inStream.Read(groupUpdate.lot)) return;
-
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
-}
-
 void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -3370,16 +2717,6 @@ void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling
 	SEND_PACKET;
 }
 
-
-void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::UPDATE_INVENTORY_UI);
-
-	SEND_PACKET;
-}
 
 namespace GameMessages {
 	bool GameMsg::Send() {

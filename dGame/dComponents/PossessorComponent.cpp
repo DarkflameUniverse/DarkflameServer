@@ -6,6 +6,7 @@
 #include "GameMessages.h"
 #include "RacingMessages.h"
 #include "eUnequippableActiveType.h"
+#include "InventoryMessages.h"
 
 PossessorComponent::PossessorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Possessable = LWOOBJID_EMPTY;
@@ -18,7 +19,12 @@ PossessorComponent::~PossessorComponent() {
 			auto* possessable = mount->GetComponent<PossessableComponent>();
 			if (possessable) {
 				if (possessable->GetIsItemSpawned()) {
-					GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), false, eUnequippableActiveType::MOUNT, GetMountItemID(), m_Parent->GetSystemAddress());
+					GameMessages::MarkInventoryItemAsActive markActive;
+					markActive.target = m_Parent->GetObjectID();
+					markActive.bActive = false;
+					markActive.iType = eUnequippableActiveType::MOUNT;
+					markActive.itemID = GetMountItemID();
+					markActive.Send(m_Parent->GetSystemAddress());
 				}
 				possessable->Dismount();
 			}

@@ -6,6 +6,7 @@
 #include "ObjectIDManager.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
+#include "InventoryMessages.h"
 #include "Entity.h"
 #include "Game.h"
 #include "Logger.h"
@@ -107,7 +108,15 @@ Item::Item(
 
 	auto* entity = inventoryComponent->GetParent();
 	if (parent == LWOOBJID_EMPTY) EconomyLedger::RecordItems(entity, lot, this->count, static_cast<uint32_t>(lootSourceType));
-	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
+	GameMessages::AddItemToInventoryClientSync addItem;
+	addItem.target = entity->GetObjectID();
+	addItem.SetItem(*this);
+	addItem.eLootTypeSource = lootSourceType;
+	addItem.iSubkey = subKey;
+	addItem.itemCount = static_cast<int>(this->count);
+	addItem.newObjID = id;
+	addItem.showFlyingLoot = showFlyingLoot;
+	addItem.SendToClient(entity->GetSystemAddress());
 
 	if (isModMoveAndEquip) {
 		Equip();
@@ -187,9 +196,25 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 		auto* entity = inventory->GetComponent()->GetParent();
 
 		if (value > count) {
-			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, LWOOBJID_EMPTY, lootSourceType);
+			GameMessages::AddItemToInventoryClientSync addItem;
+			addItem.target = entity->GetObjectID();
+			addItem.SetItem(*this);
+			addItem.eLootTypeSource = lootSourceType;
+			addItem.itemCount = delta;
+			addItem.newObjID = id;
+			addItem.showFlyingLoot = showFlyingLoot;
+			addItem.SendToClient(entity->GetSystemAddress());
 		} else {
-			GameMessages::SendRemoveItemFromInventory(entity, entity->GetSystemAddress(), id, lot, inventory->GetType(), delta, value);
+			GameMessages::RemoveItemFromInventory removeItem;
+			removeItem.target = entity->GetObjectID();
+			removeItem.bConfirmed = true;
+			removeItem.eInvType = inventory->GetType();
+			removeItem.eLootTypeSource = LOOTTYPE_NONE;
+			removeItem.iObjID = id;
+			removeItem.iObjTemplate = lot;
+			removeItem.iStackCount = delta;
+			removeItem.iStackRemaining = value;
+			removeItem.SendToClient(entity->GetSystemAddress());
 		}
 	}
 
@@ -285,7 +310,12 @@ bool Item::Consume() {
 
 	LOG_DEBUG("Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
 
-	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
+	auto* const owner = inventory->GetComponent()->GetParent();
+	GameMessages::UseItemResult useItemResult;
+	useItemResult.target = owner->GetObjectID();
+	useItemResult.itemTemplateID = lot;
+	useItemResult.useItemResult = success;
+	useItemResult.SendToClient(owner->GetSystemAddress());
 
 	const auto myLot = this->lot;
 	if (success && inventory->GetComponent()->RemoveItem(lot, 1, eInventoryType::ALL)) {
@@ -372,17 +402,20 @@ void Item::UseNonEquip(Item* item) {
 						success = false;
 					}
 				} else {
-					GameMessages::SendUseItemRequirementsResponse(
-						playerInventoryComponent->GetParent()->GetObjectID(),
-						playerInventoryComponent->GetParent()->GetSystemAddress(),
-						eUseItemResponse::FailedPrecondition
-					);
+					GameMessages::UseItemRequirementsResponse requirementsResponse;
+					requirementsResponse.target = playerInventoryComponent->GetParent()->GetObjectID();
+					requirementsResponse.eUseResponse = eUseItemResponse::FailedPrecondition;
+					requirementsResponse.SendToClient(playerInventoryComponent->GetParent()->GetSystemAddress());
 					success = false;
 				}
 			}
 		}
 		LOG_DEBUG("Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
-		GameMessages::SendUseItemResult(playerInventoryComponent->GetParent(), thisLot, success);
+		GameMessages::UseItemResult useItemResult;
+		useItemResult.target = playerInventoryComponent->GetParent()->GetObjectID();
+		useItemResult.itemTemplateID = thisLot;
+		useItemResult.useItemResult = success;
+		useItemResult.SendToClient(playerInventoryComponent->GetParent()->GetSystemAddress());
 	}
 }
 

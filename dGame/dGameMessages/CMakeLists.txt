@@ -5,6 +5,7 @@ set(DGAME_DGAMEMESSAGES_SOURCES
 	"GameMessageHandler.cpp"
 	"EffectsMessages.cpp"
 	"GameMessages.cpp"
+	"InventoryMessages.cpp"
 	"MissionMessages.cpp"
 	"PetMessages.cpp"
 	"PropertyMessages.cpp"

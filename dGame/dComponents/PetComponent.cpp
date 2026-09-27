@@ -2,6 +2,7 @@
 #include "DashboardNotify.h"
 #include "GameMessages.h"
 #include "PetMessages.h"
+#include "InventoryMessages.h"
 #include "EffectsMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
@@ -960,7 +961,12 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 		}
 	}
 
-	GameMessages::SendMarkInventoryItemAsActive(m_Owner, true, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());
+	GameMessages::MarkInventoryItemAsActive markActive;
+	markActive.target = m_Owner;
+	markActive.bActive = true;
+	markActive.iType = eUnequippableActiveType::PET;
+	markActive.itemID = m_ItemId;
+	markActive.Send(GetOwner()->GetSystemAddress());
 
 	activePets[m_Owner] = m_Parent->GetObjectID();
 
@@ -1029,7 +1035,10 @@ void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 			auto playerEntity = playerDestroyableComponent->GetParent();
 			if (!playerEntity) return;
 
-			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
+			GameMessages::UseItemRequirementsResponse requirementsResponse;
+			requirementsResponse.target = playerEntity->GetObjectID();
+			requirementsResponse.eUseResponse = eUseItemResponse::NoImaginationForPet;
+			requirementsResponse.SendToClient(playerEntity->GetSystemAddress());
 		}
 
 		this->AddDrainImaginationTimer();
@@ -1047,7 +1056,12 @@ void PetComponent::Deactivate() {
 
 	if (owner == nullptr) return;
 
-	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, owner->GetSystemAddress());
+	GameMessages::MarkInventoryItemAsActive markActive;
+	markActive.target = m_Owner;
+	markActive.bActive = false;
+	markActive.iType = eUnequippableActiveType::PET;
+	markActive.itemID = m_ItemId;
+	markActive.Send(owner->GetSystemAddress());
 
 	{
 		GameMessages::AddPetToPlayer msg;

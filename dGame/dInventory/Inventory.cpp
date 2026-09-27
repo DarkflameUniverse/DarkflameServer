@@ -1,5 +1,6 @@
 #include "Inventory.h"
 #include "GameMessages.h"
+#include "InventoryMessages.h"
 #include "Game.h"
 #include "Item.h"
 #include "InventoryComponent.h"
@@ -80,7 +81,11 @@ void Inventory::SetSize(const uint32_t value) {
 
 	size = value;
 
-	GameMessages::SendSetInventorySize(component->GetParent(), type, static_cast<int>(size));
+	GameMessages::SetInventorySize setSize;
+	setSize.target = component->GetParent()->GetObjectID();
+	setSize.inventoryType = type;
+	setSize.size = static_cast<int>(size);
+	setSize.SendToClient(component->GetParent()->GetSystemAddress());
 }
 
 int32_t Inventory::FindEmptySlot() {
