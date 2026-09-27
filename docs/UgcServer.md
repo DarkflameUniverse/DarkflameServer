@@ -40,6 +40,24 @@ UGCSERVERDIR=0:/ugc,
 DATACENTERID=1:150,
 ```
 
+### What the 1.10.64 client does in practice (checked in the client)
+
+* With `UGCUSE3DSERVICES=7:1` the client downloads a property's models (`.lxfml.checksum`, `3DOPTIMIZED/*.nif.checksum`
+  and `*.hkx.checksum` for each) through its patch server connection, and in the client tested it ignored the
+  `UGCSERVERIP`, `UGCSERVERPORT`, `UGCSERVERDIR` and `PATCHSERVER*` lines of `boot.cfg`: it asked
+  `http://127.0.0.1:80/lwoclient/UserBrickModels/UGCC<DATACENTERID>/...` (its built-in defaults; `DATACENTERID` was
+  honored). Every failed download is reported to the world as `UgcDownloadFailed` (world message 120), and the models
+  then don't show. So 3D services only work when the UGC server answers on port 80 of that address; it serves
+  `/lwoclient/UserBrickModels/...` as well as `client_path` for that.
+* With `UGCUSE3DSERVICES=7:0` (the client's own default) the client builds the models itself from the LXFML the world
+  sends, and property models load. It also asks the world for manifests (`REQUEST_UGC_MANIFEST_INFO`), which the world
+  doesn't answer; that doesn't stop the models from loading. Use this until the UGC server can be reached as above.
+* A NIF the UGC server makes, put in place of one of the game's own models and spawned, renders in the client with its
+  colors: the NIFs are written like the game's `res/BrickModels/ndmade` files (nif.xml's 20.3.0.9, user version 0;
+  every shape with a material, alpha blending by the vertex alpha, specular off and vertex colors, in that order).
+* The server logs every client download with its answer (`Client download <path> -> <status>`), and answers the LXFML
+  from the database, so it is never waited for or evicted.
+
 ## Processing
 
 Player models (`ugc` rows) are made the way LU Toolbox (the Blender add-on the community makes LU models with) makes
@@ -76,10 +94,20 @@ defaults. The table below goes through it step by step.
 7. The icon is drawn from the finished `.nif`: it is read back with the same reader as the client's files (NifFile,
    LOD 0) and rasterized, so it shows exactly what the game shows, with the color variation, the faces that were
    removed and the lighting baked into the vertex colors (so the icon adds no occlusion of its own). The camera and
-   lights are LU Toolbox's icon renderer's (its UGC render add-on's BrickBuild scene), drawn by a software rasterizer
-   (no GPU, no display), 4x4 supersampled: a 50 mm lens (39.6 degrees) from 53.4 degrees around and 19.5 above,
-   framed at 1.03, a sun of strength 2.5 from 21 degrees around and 50.3 above with soft shadows, and a grey (0.192)
-   world light, on a transparent background: `icon.png` for the dashboard and a 32-bit `icon.dds` for the client.
+   framing is LU Toolbox's icon renderer's (its UGC render add-on's BrickBuild scene: a 50 mm lens, 39.6 degrees, from
+   53.4 degrees around and 19.5 above, framed at 1.03, the sun from 21 degrees around and 50.3 above). The light (world
+   light, a fill from the camera, the sun with soft shadows, a highlight, exposure and contrast) is set so the icons are
+   as bright as the game's own model icons (`res/textures/ui/inventory/models`: mean luminance 120 of 255 over 150 of
+   them; ours 118 on a set of player models). Drawn by a software rasterizer (no GPU, no display), 4x4 supersampled,
+   on a transparent background: `icon.png` for the dashboard and a 32-bit `icon.dds` for the client.
+
+   The light settings are `icon_world_light`, `icon_sun_light`, `icon_fill`, `icon_specular`, `icon_shininess`,
+   `icon_exposure`, `icon_contrast`, `icon_shadow_strength` and `icon_ao_strength` (new names: the older
+   `icon_ambient`, `icon_sun_strength` and `icon_shadows` lines of existing ugcconfig.ini files, with the darker
+   values, are no longer read). Every framing and light value (key, `icon_*` setting, range, default) is listed once in `UgcIconParams`; the
+   settings, the dashboard's settings page and its icon editor are built from that list. Values come from the settings,
+   then the kind's preset (player models, or a car or rocket build type from the client's `ModularBuildComponent`),
+   then the item's own (a model, or a combination of car or rocket modules), the last two in `ugc_icon_settings`.
 8. `stats.json` records the bricks, each LOD's triangles before and after hidden faces were removed, vertices,
    shapes, how long each step took and the settings used; `model.noao.nif` is LOD 0 before the lighting bake. Both,
    and the icon and mesh of the version before (`previous.*`), are for the dashboard's viewer.
@@ -111,9 +139,9 @@ defaults. The table below goes through it step by step.
 | Physics (`.hkx`) | Intentionally not done: `.hkx` requests answer 404, so the client makes its own |
 | Icon: LOD 0 imported again with its own color corrections (white and black toned down) and no color variation | Different on purpose: the icon is drawn from the generated `.nif` (LOD 0), so it matches the game, variation and baked lighting included; no icon-only color corrections |
 | Icon: Bevel Edges and Subdivide | Not done (the rasterizer draws the bricks as they are) |
-| Icon: principled materials (roughness 0.16), hashed transparency, Cycles | Approximated: diffuse sun with soft shadow-mapped shadows plus world light (player models: their baked lighting; cars and rockets: ambient occlusion, `icon_ao`); no highlights or bounced light; transparent bricks sorted and blended |
-| Icon scene BrickBuild / Car: 50 mm lens, camera 53.4 / 19.5 degrees, sun 2.5 at 21 / 50.3, world 0.192, 128 px, framing 1.03, transparent film | Same (`icon_*`, `modular_icon_*`) |
-| Icon scene Rocket: 35 mm lens, other angles, two suns | Not done: rockets use the car camera |
+| Icon: principled materials (roughness 0.16), hashed transparency, Cycles | Approximated: world light, camera fill, sun with soft shadow-mapped shadows and a highlight, exposure and contrast, matched to the game's own icons' brightness; no bounced light; transparent bricks sorted and blended |
+| Icon scene BrickBuild / Car: 50 mm lens, camera 53.4 / 19.5 degrees, sun at 21 / 50.3, 128 px, framing 1.03, transparent film | Same framing (`icon_*`); the light is brighter, to match the game's icons |
+| Icon scene Rocket: 35 mm lens, other angles, two suns | Not built in; a preset for the rocket build type can be set in the icon editor |
 
 Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:4715`):
 
@@ -125,25 +153,43 @@ Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:471
    part's node of that name, or its origin on that node; `ModuleComponent.xml`'s `connection` translation is used when
    the parent's NIF has no such node. (Module LXFMLs in `res/BrickModels` exist for only some modules and are
    authored in different spaces, so they aren't used.)
-3. The assembled mesh gets an icon like a model's. No mesh is written: the client assembles modular builds itself.
+3. The assembled mesh gets an icon like a model's (with the build type's preset and the combination's own values). No
+   mesh is written: the client assembles modular builds itself.
+
+Cars and rockets are put together from a fixed set of modules, so the icon is made once per combination of modules
+and shared by every build of it. A build's combination is its `ldf_config`'s LOTs sorted (`UgcModularKey::Normalize`,
+e.g. `4713-4714-4715`: each LOT belongs to one slot of one build type), stored under an id hashed from it. A build whose
+combination is made already is marked made right away; builds of a combination being made wait for it and all get its
+outcome. The client's downloads stay per blueprint id: the server looks up the build's combination and serves the
+shared files. `combo.json` in the combination's folder says its LOTs and build type.
 
 ## Storage
 
 Files live under `ugc_output_dir` (default `ugc` next to the server binaries):
 
 ```
-ugc/models/<id % 1000>/<id>/model.nif, model.nif.gz, model.nif.checksum, model.lxfml.gz, model.lxfml.checksum,
-                              icon.dds.gz, icon.dds.checksum, icon.png, model.noao.nif, stats.json,
-                              previous.icon.png, previous.model.nif, previous.model.noao.nif, previous.stats.json
-ugc/modular/<id % 1000>/<id>/icon.dds.gz, icon.dds.checksum, icon.png
+ugc/models/<id % 1000>/<id>/model.nif.gz, model.nif.checksum, icon.dds.gz, icon.dds.checksum, icon.png,
+                              model.noao.nif.gz, stats.json, previous.icon.png, previous.model.nif.gz, previous.stats.json
+ugc/modular/<combination id % 1000>/<combination id>/icon.dds.gz, icon.dds.checksum, icon.png, combo.json
 ```
 
 A model's files are written to a temporary folder and renamed into place, so a half written model is never served.
-When an item is made again, the icon, mesh and stats of the version before are kept as `previous.*` to compare.
+Meshes are only stored compressed (a model took about 18 MB when the .nif was kept uncompressed beside its .gz, so the
+2 GB cap held about 110 models and the server kept evicting and remaking them); the dashboard's copies are inflated
+when it asks. When an item is made again, its icon, mesh and stats of the version before are kept as `previous.*`.
 `ugc_max_storage_mb` (default 2048, 0 for no limit) caps the folder: when it is over, the models whose files were used
 longest ago are deleted. Their rows stay `is_optimized = 1`; when something asks for their files the server sets
 them back to 0 and makes them again (the request answers 408 meanwhile), so deleted files are only made again when
-wanted.
+wanted. A combination's files are deleted like any others even while builds share them: the next request for any of
+those builds makes them again.
+
+### Deleting and purging
+
+The dashboard can delete stored files (the UGC server does it on its main thread and says how many bytes it freed):
+one item's, every item matching a filter (kind, state, owner, made more than N days ago, not asked for in N days) or
+all of a kind (typing `PURGE ALL`). Afterwards the rows stay made (made again when a game client asks), are queued to
+be made now, or are marked failed with "Deleted from the dashboard". Items being made at that moment are skipped, so a
+worker never writes into a folder being deleted.
 
 ## Database state
 
@@ -159,6 +205,18 @@ LXFML (`UpdateUgcModelData`) sets it back to unprocessed.
 
 `ugc_modular_build`: new `is_optimized`, `processed_at`, `process_attempts`, `process_error`, meaning the same.
 
+Migrations `dlu/mysql/86_ugc_debounce_icon_settings.sql` and `dlu/sqlite/69_ugc_debounce_icon_settings.sql`:
+`ugc.process_after` and the table `ugc_icon_settings` (`target`: `kind:<kind>`, `model:<id>` or `combo:<key>`; `params`
+JSON; `updated_at`).
+
+### Waiting while the owner is still building
+
+A saved model isn't made right away: `InsertNewUgcModel` stores `process_after` = now + `ugc_debounce_seconds`
+(`sharedconfig.ini`, default 120, 0: right away) and moves the owner's other waiting models to that time too, so each
+save starts the wait again. The UGC server only takes models whose `process_after` has passed. The wait ends early when
+a game client asks for the model's files, when the owner leaves the world or logs out, or when it is made again from
+the dashboard. Every save is a new blueprint: versions deleted during the wait are never made. It survives restarts.
+
 The database is the queue: the UGC server looks for rows with `is_optimized = 0` every `poll_interval_ms` (default
 2000), newest first, so worlds need no change to have new models processed. Rows that failed are tried again up to
 `max_attempts` (default 3) times. Reprocessing (dashboard) sets rows back to `is_optimized = 0, process_attempts = 0`.
@@ -166,7 +224,7 @@ No master messages are needed for any of it.
 
 ### Marking models for processing (for code that writes `ugc` rows)
 
-* A new row needs nothing: `is_optimized` defaults to 0 (`InsertNewUgcModel` writes 0).
+* A new row needs nothing: `is_optimized` defaults to 0 (`InsertNewUgcModel` writes 0, and its `process_after`).
 * When a model's LXFML changes, `UpdateUgcModelData` sets `is_optimized = 0, process_attempts = 0, process_error = ''`
   in the same statement. Anything that writes `ugc.lxfml` another way must do the same, or call
   `ResetUgcModelProcessing(id, false)`.
@@ -217,11 +275,16 @@ files are what every player on a property sees anyway):
 
 * `<client_path>/UGCC<dc>/<dc><id>.lxfml.gz|.checksum`, `<client_path>/UGCC<dc>/3DOPTIMIZED/<dc><id>.nif.gz|.checksum`,
   `<client_path>/UGCC<dc>/IMAGE128DDS/<dc><id>.dds.gz|.checksum` for the client (`client_path`, default `/ugc`, is
-  the client's `UGCSERVERDIR`). HKX answers 404. A model that exists but isn't made yet (or was evicted) is moved to
+  the client's `UGCSERVERDIR`), and the same under `/lwoclient/UserBrickModels` (the path the client really uses, see
+  above). HKX answers 404. The LXFML comes from the database. A model that exists but isn't made yet (or was evicted) is moved to
   the front of the queue and answers 408 so the client asks again.
-* `/files/model/<id>/<file>` and `/files/modular/<id>/icon.png` for the dashboard (`icon.png`, `model.nif`,
-  `model.noao.nif`, `stats.json` and their `previous.` versions), not cached by browsers since they change when an
-  item is made again.
+* `/files/model/<id>/<file>` and `/files/modular/<id>/<file>` for the dashboard (`icon.png`, `model.nif` and
+  `model.noao.nif` (inflated), `stats.json`, `combo.json` and `previous.` versions), not cached by browsers.
+* `/admin/preview`, `/admin/regenerate-icons`, `/admin/delete` (POST, JSON) for the dashboard only: they need the header
+  `X-Ugc-Admin-Key` with the master password. A preview draws an icon with given values on a worker (ahead of the
+  queue, within the CPU and memory budgets) and returns the PNG without storing it; regenerate-icons draws every stored
+  icon of a kind again (player models' from their stored .nif, nothing else is made); delete is described under
+  Storage.
 * `/status`: JSON with the queue length, what the workers are doing and totals since start.
 
 Files are sent from disk (mongoose streams them, with its own ETag) with `Cache-Control: public, max-age=3600`.
