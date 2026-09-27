@@ -108,6 +108,18 @@ defaults. The table below goes through it step by step.
    settings, the dashboard's settings page and its icon editor are built from that list. Values come from the settings,
    then the kind's preset (player models, or a car or rocket build type from the client's `ModularBuildComponent`),
    then the item's own (a model, or a combination of car or rocket modules), the last two in `ugc_icon_settings`.
+
+   **The pose.** The camera, the model's turn and the crop are worked out in `UgcIconPose` (shared with the
+   dashboard's editor, see below), in this order: the model is turned about its origin by `modelYaw` (around +Y),
+   then `modelPitch` (around +X), then `modelRoll` (around +Z), i.e. R = Ry * Rx * Rz (three.js's Euler order `YXZ`;
+   settings `icon_model_yaw`, `icon_model_pitch`, `icon_model_roll`, all 0 by default so icons stay as they were). A car
+   or rocket is first turned by its build type's `AdditionalModelRotation`. The camera then looks at the centre of the
+   turned model's bounds from `yaw` (around +Y, from +Z towards +X) and `pitch` (up), as far away as makes the bounding
+   sphere fill the field of view `fov` (a perspective projection, the camera's up is +Y). Last the picture is cropped
+   to the model's projected bounds: scaled so their larger side fills the icon divided by `margin` (1 fills it, more
+   leaves a border), centred, then moved by `offsetX` and `offsetY` (shares of the icon's width and height). The
+   camera's distance follows from the field of view and the border, and the shift is the target moved in the picture,
+   so these parameters describe every pose the icon can have.
 8. `stats.json` records the bricks, each LOD's triangles before and after hidden faces were removed, vertices,
    shapes, how long each step took and the settings used; `model.noao.nif` is LOD 0 before the lighting bake. Both,
    and the icon and mesh of the version before (`previous.*`), are for the dashboard's viewer.
@@ -154,7 +166,8 @@ Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:471
    the parent's NIF has no such node. (Module LXFMLs in `res/BrickModels` exist for only some modules and are
    authored in different spaces, so they aren't used.)
 3. The assembled mesh gets an icon like a model's (with the build type's preset and the combination's own values). No
-   mesh is written: the client assembles modular builds itself.
+   mesh is stored: the client assembles modular builds itself. For the dashboard's icon editor the assembled mesh is
+   made on request (`/admin/assembly`, below).
 
 Cars and rockets are put together from a fixed set of modules, so the icon is made once per combination of modules
 and shared by every build of it. A build's combination is its `ldf_config`'s LOTs sorted (`UgcModularKey::Normalize`,
@@ -204,6 +217,10 @@ reason, empty when none). `bake_ao` (existing) records whether lighting was bake
 LXFML (`UpdateUgcModelData`) sets it back to unprocessed.
 
 `ugc_modular_build`: new `is_optimized`, `processed_at`, `process_attempts`, `process_error`, meaning the same.
+
+Migrations `dlu/mysql/88_ugc_model_stats.sql` and `dlu/sqlite/71_ugc_model_stats.sql`: `ugc.brick_count` and
+`ugc.triangle_count`, what the UGC server counted when it made a model (its bricks, and the triangles of the made
+mesh's most detailed level, from `stats.json`; 0 until it has), so the dashboard can sort models by size.
 
 Migrations `dlu/mysql/86_ugc_debounce_icon_settings.sql` and `dlu/sqlite/69_ugc_debounce_icon_settings.sql`:
 `ugc.process_after` and the table `ugc_icon_settings` (`target`: `kind:<kind>`, `model:<id>` or `combo:<key>`; `params`
@@ -280,11 +297,14 @@ files are what every player on a property sees anyway):
   the front of the queue and answers 408 so the client asks again.
 * `/files/model/<id>/<file>` and `/files/modular/<id>/<file>` for the dashboard (`icon.png`, `model.nif` and
   `model.noao.nif` (inflated), `stats.json`, `combo.json` and `previous.` versions), not cached by browsers.
-* `/admin/preview`, `/admin/regenerate-icons`, `/admin/delete` (POST, JSON) for the dashboard only: they need the header
-  `X-Ugc-Admin-Key` with the master password. A preview draws an icon with given values on a worker (ahead of the
-  queue, within the CPU and memory budgets) and returns the PNG without storing it; regenerate-icons draws every stored
-  icon of a kind again (player models' from their stored .nif, nothing else is made); delete is described under
-  Storage.
+* `/admin/preview`, `/admin/assembly`, `/admin/regenerate-icons`, `/admin/delete` (POST, JSON) for the dashboard only:
+  they need the header `X-Ugc-Admin-Key` with the master password. A preview draws an icon with given values (the
+  whole pose included) on a worker (ahead of the queue, within the CPU and memory budgets) and returns the PNG without
+  storing it. `assembly` (`{modules}`) returns a combination's assembled mesh as a .nif, put together exactly as for
+  its icon and already turned by the build type's `AdditionalModelRotation`, made on a worker the same way and kept in
+  a small cache (the last 32 combinations, at most 64 MB), so the editor can show what the icon renderer draws.
+  regenerate-icons draws every stored icon of a kind again (player models' from their stored .nif, nothing else is
+  made); delete is described under Storage.
 * `/status`: JSON with the queue length, what the workers are doing and totals since start.
 
 Files are sent from disk (mongoose streams them, with its own ETag) with `Cache-Control: public, max-age=3600`.
@@ -304,16 +324,61 @@ comes back, in the System Log (`UgcServer_*.log`) and crash dumps (`Crash_UgcSer
 Prometheus (`darkflame_ugc_up`, `darkflame_ugc_items`, `darkflame_server_ugc_*{server="ugc"}`). See docs/Dashboard.md.
 
 The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the new `ugc_manage` permission to make
-things again) reads the database: counts per state for models and for cars and rockets, and the items as a gallery of
-their icons or a list (owner, state, attempts, last attempt, failure reason), filtered by kind, state and a search by
-id or owner name, with buttons to make one item, the failed ones or everything again (these only reset the columns;
-the UGC server picks the rows up).
+things again and to save icon values) reads the database: counts per state for models and for cars and rockets, and the
+items as a gallery of their icons or a list. Player models are listed one by one (owner, state, attempts, last attempt,
+bricks and triangles, file name, failure reason). Cars and rockets are listed as **assemblies**, one per combination of
+modules however many builds use it (the UGC server makes one icon per combination): its icon, build type (named after
+the type's assembly object in `ModularBuildComponent`), its modules with their names and icons from the CDClient, its
+state (made when any build of it is) and how many builds and owners use it.
+
+Both lists are paged on the server (`GET /api/ugc?kind=model|modular&q=&state=&type=&sort=&page=&size=`, with the
+total), with numbered pages, first and last, a page to jump to and a page size kept per user. The search box takes
+plain text (names, owners, ids) or field prefixes: `owner:`, `account:`, `property:`, `name:`, `lot:` or `module:` (a
+LOT, or for assemblies a module's name), `id:`, `state:` and `kind:` (a car or rocket type). Models sort by newest,
+oldest, most bricks, most triangles, owner or file name; assemblies by newest, oldest, most builds or name. The kind,
+search, filters, sort, page and view are kept in the address, so Back and Forward and shared links work. The search
+is the UGC search's SQL (`UgcLookupSql`, the same on MySQL and SQLite, `IUgcLookup::ListUgc`); assemblies are grouped
+from the builds (`UgcAssemblies`). Buttons make one item, the failed ones or everything again (these only reset the
+columns; the UGC server picks the rows up).
+
+An assembly opens with its modules, the icon editor and **References**: the builds that use it (`GET
+/api/ugc/assembly/builds?modules=&q=&page=`), with owner character and account, state and where each is (placed on a
+property, in a mail, in its creator's inventories; the same lookup as the UGC search), paged and searchable. A link
+to a build, `/ugc?item=<build id>&kind=modular` (what the UGC search and the character pages link to), opens its
+assembly (`GET /api/ugc/assembly/of/<id>`) with that build highlighted in References.
+
+**The icon editor** (on every opened item, and per type under **Icon presets per type**, which opens each type on an
+example: the newest made player model, the most used combination of each car or rocket type) is one panel for
+everything an icon's look can be set to, all from the parameter list (`GET /api/ugc/icon/params`, with each
+parameter's group):
+
+* A 3D view (three.js) of the player model's made .nif (`/api/ugc/mesh/<id>?lod=0`, what its icon is drawn from) or of
+  the assembly (`GET /api/ugc/assembly?modules=`, the UGC server's assembled .nif converted by the dashboard), seen
+  through the icon renderer's own camera: `static/js/ugc-pose-math.js` is `UgcIconPose` in JavaScript (the same
+  perspective, turn order, framing and crop; both are checked against one fixture, `tests/dUgcTests/
+  ugc-pose-fixture.json`, by gtest and by node). The view shows a little more than the icon, with the icon's square
+  outlined, so it matches the preview beside it. Dragging moves the camera around the model, turns the model (Ctrl+
+  drag, or the Turn model mode; Alt+wheel rolls it), moves the sun (Alt+drag, shown as an arrow) or shifts the model in
+  the icon (Shift+drag or right drag); the wheel changes the border. The light in the view is close to the icon's
+  (world light, sun, fill, exposure, contrast) but has no shadows or highlights: the preview is the real thing.
+* Sliders for every parameter, grouped (camera, border and shift, model turn, sun, light, look), kept in step with
+  the view both ways.
+* A live preview drawn by the UGC server (`POST /api/ugc/icon/preview`, sent a moment after the last change).
+* Save as the preset for the item's type, save for this model or combination of modules, go back to the type's
+  preset or the default settings, remove the item's own values, and draw every icon of the type again. Saving needs
+  `ugc_manage` and is written to the audit log.
+
+**Settings** for the UGC server have their own category on the Settings page (serving, processing, models, storage,
+icons) and the UGC page shows each section beside what it changes (processing, models and serving under the server
+status, storage with the purge tools, icon defaults with the presets), for those with the `settings` permission.
+Both read the settings catalog and save the same way (the servers reload at once; settings marked restart are read
+when the UGC server starts), and each links to its entry on the Settings page (`/settings#ugcconfig.ini/<name>`).
 
 Everything from the UGC server goes through the dashboard, which reaches it at `ugc_internal_url`
 (`dashboardconfig.ini`; empty: `http://127.0.0.1:2008`, the same machine), so the page works from wherever the browser
 is: `/api/ugc/server/status` (its `/status`, kept 2 seconds), `/api/ugc/files/<kind>/<id>/<file>` (kept 15 seconds)
-and `/api/ugc/mesh/<id>?lod=&version=current|previous&ao=0|1` (its NIF converted by the dashboard's worker threads
-with the scenery viewer's NifFile conversion). The fetches run on the dashboard's worker threads. `ugc_public_url` is
+`/api/ugc/mesh/<id>?lod=&version=current|previous&ao=0|1` and `/api/ugc/assembly?modules=` (its NIFs converted by the
+dashboard's worker threads with the scenery viewer's NifFile conversion). The fetches run on the dashboard's worker threads. `ugc_public_url` is
 only used for an "open on the UGC server" link.
 
 The status box shows the queue, workers, CPU (with its limit), memory, the jobs' estimated memory (with its limit) and
