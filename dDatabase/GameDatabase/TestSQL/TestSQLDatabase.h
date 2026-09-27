@@ -211,6 +211,14 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<AccountNote> GetAccountNotes(uint32_t accountId) override { return {}; }
 	std::optional<AccountNote> GetAccountNote(uint64_t id) override { return {}; }
 	void DeleteAccountNote(uint64_t id) override {}
+	uint64_t InsertApiKey(const ApiKey& key) override { return 0; }
+	std::optional<ApiKey> GetApiKey(uint64_t id) override { return {}; }
+	std::optional<ApiKey> GetApiKeyByHash(const std::string& keyHash) override { return {}; }
+	std::vector<ApiKey> GetApiKeys(uint32_t accountId) override { return {}; }
+	void RevokeApiKey(uint64_t id, const std::string& revokedBy, int64_t time) override {}
+	uint32_t RevokeAccountApiKeys(uint32_t accountId, const std::string& revokedBy, int64_t time) override { return 0; }
+	void RotateApiKey(uint64_t id, const std::string& keyHash, const std::string& keyPrefix, int64_t issuedAt) override {}
+	void RecordApiKeyUsage(const std::vector<ApiKeyUsage>& usage) override {}
 	uint64_t InsertStrike(const Strike& strike) override { return 0; }
 	std::vector<Strike> GetStrikes(uint32_t accountId) override { return {}; }
 	std::optional<Strike> GetStrike(uint64_t id) override { return {}; }

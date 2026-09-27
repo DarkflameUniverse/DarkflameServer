@@ -203,6 +203,16 @@ public:
 	void InsertTrafficMinutes(const std::vector<TrafficMinute>& minutes) override;
 	std::vector<TrafficMinute> GetTrafficMinutes(int64_t from, int64_t to, int64_t bucketSeconds) override;
 	uint32_t PruneTrafficMinutes(int64_t beforeTime) override;
+
+	// IApiKeys
+	uint64_t InsertApiKey(const ApiKey& key) override;
+	std::optional<ApiKey> GetApiKey(uint64_t id) override;
+	std::optional<ApiKey> GetApiKeyByHash(const std::string& keyHash) override;
+	std::vector<ApiKey> GetApiKeys(uint32_t accountId) override;
+	void RevokeApiKey(uint64_t id, const std::string& revokedBy, int64_t time) override;
+	uint32_t RevokeAccountApiKeys(uint32_t accountId, const std::string& revokedBy, int64_t time) override;
+	void RotateApiKey(uint64_t id, const std::string& keyHash, const std::string& keyPrefix, int64_t issuedAt) override;
+	void RecordApiKeyUsage(const std::vector<ApiKeyUsage>& usage) override;
 	// IBbbAutosave
 	std::optional<IBbbAutosave::Info> GetBbbAutosave(const LWOOBJID characterId) override;
 	void SetBbbAutosave(const LWOOBJID characterId, const IBbbAutosave::Info& info) override;

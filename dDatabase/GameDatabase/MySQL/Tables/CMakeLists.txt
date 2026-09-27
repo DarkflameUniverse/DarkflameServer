@@ -11,6 +11,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"CharacterSnapshots.cpp"
 	"AccountNotes.cpp"
 	"AccountStrikes.cpp"
+	"ApiKeys.cpp"
 	"Moderation.cpp"
 	"ServerHealth.cpp"
 	"PlayerPositions.cpp"

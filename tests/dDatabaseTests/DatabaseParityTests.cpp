@@ -63,6 +63,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountEmails::EmailInfo, email, confirmed);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountEmails::AccountToken, accountId, data);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountNotes::AccountNote, id, accountId, kind, text, actor, createdAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountStrikes::Strike, id, accountId, characterId, source, subject, reason, givenById, givenBy, createdAt, revokedAt, revokedBy, revokeReason);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IApiKeys::ApiKey, id, accountId, name, note, keyHash, keyPrefix, permissions, readOnly, allowedIps, allowedPaths, rateLimit, dailyQuota, createdAt, createdBy, issuedAt, expiresAt, revokedAt, revokedBy, lastUsedAt, lastIp, requestCount, quotaDay, dayCount);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ICharacterSnapshots::CharacterSnapshot, id, characterId, takenAt, reason, actor, size, hash, compressed);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatMessage, id, time, channel, senderId, senderName, accountId, recipientId, recipientName, zoneId, instanceId, cloneId, message, blocked);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardAdmin::Webhook, id, name, url, format, events, secret, enabled, createdAt, lastSentAt, lastStatus, lastError);
@@ -1110,6 +1111,29 @@ TEST_F(ParitySeeded, AccountNotesAndStrikes) {
 	Both("CountActiveStrikes", [](GameDatabase& db) { return json{ db.CountActiveStrikes(2, 0), db.CountActiveStrikes(2, 1700000050), db.CountActiveStrikes(1, 1650000000) }; });
 	Both("SetStrikeStep", [](GameDatabase& db) { db.SetStrikeStep(1, "WARN", 1); db.SetStrikeStep(2, "MUTE", 2); });
 	Both("GetAppliedStrikeSteps", [](GameDatabase& db) { return json{ db.GetAppliedStrikeSteps(2, 0), db.GetAppliedStrikeSteps(2, 1700000050), db.GetAppliedStrikeSteps(1, 0) }; });
+}
+
+TEST_F(ParitySeeded, ApiKeys) {
+	Both("InsertApiKey", [](GameDatabase& db) {
+		json ids = json::array();
+		ids.push_back(db.InsertApiKey({ 0, 2, "bot", "chat bridge", std::string(64, 'a'), "dlk_aaaa", "chat_view,players_view", true, "10.0.0.", "/api/chat", 60, 1000,
+			1700000000, "bob", 1700000000, 1800000000 }));
+		ids.push_back(db.InsertApiKey({ 0, 2, "all", "", std::string(64, 'b'), "dlk_bbbb", "*", false, "", "", 0, 0, 1700000100, "bob", 1700000100, 0 }));
+		ids.push_back(db.InsertApiKey({ 0, 1, "alice", "", std::string(64, 'c'), "dlk_cccc", "own_characters", false, "", "", 0, 0, 1700000200, "alice", 1700000200, 0 }));
+		return ids;
+	});
+	Both("GetApiKeys", [](GameDatabase& db) { return db.GetApiKeys(2); });
+	Both("GetApiKey", [](GameDatabase& db) { return json{ db.GetApiKey(1), db.GetApiKey(99) }; });
+	Both("GetApiKeyByHash", [](GameDatabase& db) { return json{ db.GetApiKeyByHash(std::string(64, 'b')), db.GetApiKeyByHash("nope") }; });
+	Both("RecordApiKeyUsage", [](GameDatabase& db) {
+		db.RecordApiKeyUsage({ { 1, 5, 1700000500, "10.0.0.2", 19675, 5 }, { 2, 1, 1700000600, "::1", 19675, 1 } });
+		db.RecordApiKeyUsage({ { 1, 3, 1700000400, "10.0.0.3", 19676, 3 } });
+		return json{ db.GetApiKey(1), db.GetApiKey(2) };
+	});
+	Both("RotateApiKey", [](GameDatabase& db) { db.RotateApiKey(1, std::string(64, 'd'), "dlk_dddd", 1700000700); return json{ db.GetApiKey(1), db.GetApiKeyByHash(std::string(64, 'a')) }; });
+	Both("RevokeApiKey", [](GameDatabase& db) { db.RevokeApiKey(1, "gm", 1700000800); db.RevokeApiKey(1, "late", 1700000900); return db.GetApiKey(1); });
+	Both("RotateApiKey revoked", [](GameDatabase& db) { db.RotateApiKey(1, std::string(64, 'e'), "dlk_eeee", 1700001000); return db.GetApiKey(1); });
+	Both("RevokeAccountApiKeys", [](GameDatabase& db) { return json{ db.RevokeAccountApiKeys(2, "bob", 1700001100), db.GetApiKeys(2), db.GetApiKeys(1) }; });
 }
 
 TEST_F(ParitySeeded, Moderation) {
