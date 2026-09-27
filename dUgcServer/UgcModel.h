@@ -29,6 +29,9 @@ namespace UgcModel {
 	// Empty with `error` set when it can't be read.
 	std::vector<Part> ParseLxfml(std::string_view lxfml, std::string& error);
 
+	// Whether an LXFML reads but has no bricks at all (nothing to make; not a failure)
+	bool HasNoBricks(std::string_view lxfml);
+
 	struct Mesh {
 		std::vector<glm::vec3> positions;
 		std::vector<glm::vec3> normals;

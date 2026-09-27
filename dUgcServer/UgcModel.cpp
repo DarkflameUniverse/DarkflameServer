@@ -142,6 +142,13 @@ namespace UgcModel {
 		return parts;
 	}
 
+	bool HasNoBricks(std::string_view lxfml) {
+		tinyxml2::XMLDocument doc;
+		if (doc.Parse(lxfml.data(), lxfml.size()) != tinyxml2::XML_SUCCESS || !doc.FirstChildElement("LXFML")) return false;
+		std::string error;
+		return ParseLxfml(lxfml, error).empty() && lxfml.find("<Part") == std::string_view::npos;
+	}
+
 	void Mesh::Append(const Mesh& other) {
 		const auto base = static_cast<uint32_t>(positions.size());
 		positions.insert(positions.end(), other.positions.begin(), other.positions.end());

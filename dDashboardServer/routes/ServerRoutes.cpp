@@ -65,9 +65,10 @@ namespace {
 	// The UGC server's queue in the database (its work list), from the model and modular build tables
 	nlohmann::json UgcCounts() {
 		const auto counts = [](const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& rows) {
-			nlohmann::json out = { {"pending", 0}, {"done", 0}, {"failed", 0} };
+			nlohmann::json out = nlohmann::json::object();
+			for (const auto state : magic_enum::enum_values<IUgc::eProcessState>()) out[IUgc::ProcessStateName(state)] = 0;
 			for (const auto& [state, count] : rows) {
-				out[state == IUgc::eProcessState::PENDING ? "pending" : state == IUgc::eProcessState::DONE ? "done" : "failed"] = count;
+				out[IUgc::ProcessStateName(state)] = count;
 			}
 			return out;
 		};

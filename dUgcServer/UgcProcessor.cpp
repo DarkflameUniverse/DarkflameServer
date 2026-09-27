@@ -327,6 +327,7 @@ void UgcProcessor::Record(const Done& done) {
 	auto error = done.outcome.error.substr(0, MAX_ERROR_LENGTH);
 	const auto attempts = done.attempts + 1;
 	const auto state = done.outcome.ok ? IUgc::eProcessState::DONE
+		: done.outcome.empty ? IUgc::eProcessState::EMPTY
 		: attempts >= m_Config.maxAttempts ? IUgc::eProcessState::FAILED : IUgc::eProcessState::PENDING;
 	if (done.kind == Kind::MODEL) {
 		Database::Get()->SetUgcModelProcessed(done.id, state, attempts, error, done.outcome.ok && done.outcome.aoBaked);
@@ -335,7 +336,10 @@ void UgcProcessor::Record(const Done& done) {
 	}
 	m_Recent.erase({ done.kind, done.id });
 
-	if (done.outcome.ok) {
+	if (done.outcome.empty) {
+		m_Empty++;
+		LOG_DEBUG("%s %llu has no bricks: nothing to make", KindName(done.kind), static_cast<unsigned long long>(done.id));
+	} else if (done.outcome.ok) {
 		m_Made++;
 		m_StoredBytes += done.bytes;
 		LOG_DEBUG("Made %s %llu in %.0f ms%s%s", KindName(done.kind), static_cast<unsigned long long>(done.id), done.milliseconds,
@@ -344,7 +348,7 @@ void UgcProcessor::Record(const Done& done) {
 		m_Failed++;
 		LOG("Couldn't make %s %llu (attempt %u): %s", KindName(done.kind), static_cast<unsigned long long>(done.id), attempts, error.c_str());
 	}
-	m_Log.push_back({ done.kind, done.id, done.outcome.ok, done.milliseconds, done.outcome.ok ? done.outcome.note : error, UnixNow() });
+	m_Log.push_back({ done.kind, done.id, done.outcome.ok || done.outcome.empty, done.milliseconds, done.outcome.empty ? std::string("no bricks: nothing to make") : done.outcome.ok ? done.outcome.note : error, UnixNow() });
 	while (m_Log.size() > LOG_LENGTH) m_Log.pop_front();
 }
 
@@ -432,7 +436,8 @@ UgcProcessor::Availability UgcProcessor::Request(Kind kind, LWOOBJID id) {
 
 	const auto info = kind == Kind::MODEL ? Database::Get()->GetUgcProcessInfo(id) : Database::Get()->GetModularBuildProcessInfo(id);
 	Availability answer = Availability::UNKNOWN;
-	if (info && info->state != IUgc::eProcessState::FAILED) {
+	// Failed, or nothing to make (no bricks): 404, as for HKX, so the client doesn't wait
+	if (info && info->state != IUgc::eProcessState::FAILED && info->state != IUgc::eProcessState::EMPTY) {
 		// Made before but the files are gone (deleted to save space): make them again, first
 		if (info->state == IUgc::eProcessState::DONE) {
 			if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(id, false);
@@ -480,6 +485,7 @@ nlohmann::json UgcProcessor::Status() const {
 	};
 	status["made"] = m_Made;
 	status["failed"] = m_Failed;
+	status["empty"] = m_Empty;
 	status["evicted"] = m_Evicted;
 	status["storedBytes"] = m_StoredBytes;
 	status["maxStorageBytes"] = m_Config.maxStorageBytes;

@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+#include "magic_enum.hpp"
+
 class IUgc {
 public:
 	struct Model {
@@ -40,7 +42,22 @@ public:
 		PENDING = 0, // not made yet (or to be made again)
 		DONE = 1,    // the UGC server's files are made
 		FAILED = 2,  // gave up after the allowed attempts
+		EMPTY = 3,   // nothing to make: the model has no bricks (not a failure; never retried)
 	};
+
+	// A state's name for the dashboard, the API and metrics ("pending", "done", "failed", "empty")
+	static std::string ProcessStateName(eProcessState state) {
+		std::string name(magic_enum::enum_name(state));
+		for (auto& c : name) c = static_cast<char>(c >= 'A' && c <= 'Z' ? c - 'A' + 'a' : c);
+		return name.empty() ? "unknown" : name;
+	}
+
+	static std::optional<eProcessState> ParseProcessState(std::string_view text) {
+		for (const auto state : magic_enum::enum_values<eProcessState>()) {
+			if (ProcessStateName(state) == text) return state;
+		}
+		return std::nullopt;
+	}
 
 	// A row's processing state, for the UGC server and the dashboard
 	struct ProcessInfo {

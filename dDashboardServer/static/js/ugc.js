@@ -9,7 +9,7 @@
 
 	var kind = 'model', state = '', search = '', page = 0, view = 'gallery', canManage = false, publicUrl = '';
 	var nifViewer = null, lxfmlViewer = null, current = null;
-	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'] };
+	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
 	var PAGE_SIZE = { gallery: 48, list: 50 };
 
 	try { view = localStorage.getItem('ugcView') === 'list' ? 'list' : 'gallery'; } catch (e) { /* storage blocked */ }
@@ -25,7 +25,7 @@
 	function countCard(title, c) {
 		return '<div class="col-md-6"><div class="card"><div class="card-body py-2"><div class="small text-body-secondary">' + esc(title) + '</div>' +
 			fmt.badge(c.done + ' made', 'success') + ' ' + fmt.badge(c.pending + ' waiting', 'secondary') + ' ' + fmt.badge(c.failed + ' failed', c.failed ? 'danger' : 'secondary') +
-			'</div></div></div>';
+			(c.empty ? ' ' + fmt.badge(c.empty + ' empty', 'light') : '') + '</div></div></div>';
 	}
 
 	function owner(i) {

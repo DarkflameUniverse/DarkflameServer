@@ -40,6 +40,7 @@ namespace UgcJobs {
 		std::string note;        // what was odd but not fatal (missing bricks, ...)
 		UgcStorage::Files files; // name -> bytes, when ok
 		bool aoBaked{};
+		bool empty{};            // nothing to make (no bricks): not a failure
 		std::string stats;       // stats.json: bricks, triangles before and after per LOD, timings
 	};
 

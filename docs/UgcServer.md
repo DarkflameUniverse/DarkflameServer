@@ -151,7 +151,9 @@ Migrations `dlu/mysql/81_ugc_processing.sql` and `dlu/sqlite/64_ugc_processing.s
 that aren't there yet).
 
 `ugc`: `is_optimized` (existing) is 0 until the model has been processed, 1 once its files are made, 2 when processing
-failed. New: `processed_at` (Unix seconds of the last attempt), `process_attempts`, `process_error` (the last failure's
+failed, 3 when there was nothing to make (the model has no bricks; not a failure, never retried, counted and shown as
+"empty", answered with 404 like HKX so the client doesn't wait; migrations 87/70 move the rows that had failed only for
+that). The names come from `IUgc::eProcessState` (`IUgc::ProcessStateName`). New: `processed_at` (Unix seconds of the last attempt), `process_attempts`, `process_error` (the last failure's
 reason, empty when none). `bake_ao` (existing) records whether lighting was baked into the model. Changing a model's
 LXFML (`UpdateUgcModelData`) sets it back to unprocessed.
 

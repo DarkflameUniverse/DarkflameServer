@@ -13,6 +13,7 @@
 #include "UgcFormats.h"
 #include "UgcModel.h"
 #include "UgcJobs.h"
+#include "IUgc.h"
 #include "UgcIconParams.h"
 #include "UgcKeys.h"
 #include "UgcModular.h"
@@ -708,4 +709,29 @@ TEST(UgcIconParams, OneListDrivesEverything) {
 	auto shifted = plain;
 	shifted.offsetX = 0.25f;
 	EXPECT_NEAR(centroid(UgcRender::RenderIcon(model, shifted)) - centroid(UgcRender::RenderIcon(model, plain)), 16.0, 1.0);
+}
+
+TEST(UgcJobs, ModelsWithoutBricksAreEmptyNotFailed) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	UgcJobs::Settings settings;
+	const auto empty = UgcJobs::ProcessModel(R"(<?xml version="1.0"?><LXFML versionMajor="5"><Meta/><Bricks/></LXFML>)", library, settings);
+	EXPECT_FALSE(empty.ok);
+	EXPECT_TRUE(empty.empty);
+	EXPECT_TRUE(UgcModel::HasNoBricks(R"(<LXFML versionMajor="5"><Bricks/></LXFML>)"));
+	// Broken LXFML, or bricks without geometry, are failures
+	EXPECT_FALSE(UgcJobs::ProcessModel("<LXFML><nope", library, settings).empty);
+	const auto missing = UgcJobs::ProcessModel(R"(<LXFML versionMajor="5"><Bricks><Brick><Part designID="9999" materials="1">
+		<Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick></Bricks></LXFML>)", library, settings);
+	EXPECT_FALSE(missing.ok);
+	EXPECT_FALSE(missing.empty);
+	EXPECT_FALSE(UgcModel::HasNoBricks(R"(<LXFML versionMajor="5"><Bricks><Brick><Part designID="9999"/></Brick></Bricks></LXFML>)"));
+}
+
+TEST(UgcStates, NamesComeFromTheEnum) {
+	EXPECT_EQ(IUgc::ProcessStateName(IUgc::eProcessState::EMPTY), "empty");
+	EXPECT_EQ(IUgc::ProcessStateName(IUgc::eProcessState::FAILED), "failed");
+	EXPECT_EQ(IUgc::ParseProcessState("empty"), IUgc::eProcessState::EMPTY);
+	EXPECT_EQ(IUgc::ParseProcessState("pending"), IUgc::eProcessState::PENDING);
+	EXPECT_FALSE(IUgc::ParseProcessState("nonsense").has_value());
+	EXPECT_EQ(magic_enum::enum_count<IUgc::eProcessState>(), 4u);
 }

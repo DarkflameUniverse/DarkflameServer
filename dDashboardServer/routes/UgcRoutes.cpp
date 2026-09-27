@@ -28,21 +28,10 @@ using namespace RouteUtils;
 namespace {
 	constexpr uint32_t PAGE_SIZE = 50;
 
-	const char* StateName(IUgc::eProcessState state) {
-		switch (state) {
-		case IUgc::eProcessState::PENDING: return "pending";
-		case IUgc::eProcessState::DONE: return "done";
-		case IUgc::eProcessState::FAILED: return "failed";
-		}
-		return "unknown";
-	}
+	std::string StateName(IUgc::eProcessState state) { return IUgc::ProcessStateName(state); }
 
-	std::optional<IUgc::eProcessState> ParseState(const std::string& text) {
-		if (text == "pending") return IUgc::eProcessState::PENDING;
-		if (text == "done") return IUgc::eProcessState::DONE;
-		if (text == "failed") return IUgc::eProcessState::FAILED;
-		return std::nullopt;
-	}
+	std::optional<IUgc::eProcessState> ParseState(const std::string& text) { return IUgc::ParseProcessState(text); }
+
 
 	/**
 	 * The dashboard's own way to the UGC server (ugc_internal_url, normally the same machine): its status and the files
@@ -235,7 +224,8 @@ namespace {
 	}
 
 	nlohmann::json Counts(const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& counts) {
-		nlohmann::json out = { { "pending", 0 }, { "done", 0 }, { "failed", 0 } };
+		nlohmann::json out = nlohmann::json::object();
+		for (const auto state : magic_enum::enum_values<IUgc::eProcessState>()) out[IUgc::ProcessStateName(state)] = 0;
 		for (const auto& [state, count] : counts) out[StateName(state)] = count;
 		return out;
 	}

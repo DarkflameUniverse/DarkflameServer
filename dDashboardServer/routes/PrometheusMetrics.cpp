@@ -223,10 +223,9 @@ namespace {
 		ok &= Timed(w, "ugc", [&] {
 			w.Declare("darkflame_ugc_items", "Player models (model) and cars and rockets (modular) by UGC processing state", "gauge");
 			const auto add = [&](const char* kind, const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& rows) {
-				std::map<std::string, uint64_t> states{ {"pending", 0}, {"done", 0}, {"failed", 0} };
-				for (const auto& [state, count] : rows) {
-					states[state == IUgc::eProcessState::PENDING ? "pending" : state == IUgc::eProcessState::DONE ? "done" : "failed"] += count;
-				}
+				std::map<std::string, uint64_t> states;
+				for (const auto state : magic_enum::enum_values<IUgc::eProcessState>()) states[IUgc::ProcessStateName(state)] = 0;
+				for (const auto& [state, count] : rows) states[IUgc::ProcessStateName(state)] += count;
 				for (const auto& [state, count] : states) w.Add("darkflame_ugc_items", "", "gauge", { {"kind", kind}, {"state", state} }, static_cast<double>(count));
 			};
 			add("model", db->GetUgcProcessCounts());

@@ -86,6 +86,8 @@ namespace UgcJobs {
 		const auto parts = UgcModel::ParseLxfml(lxfml, error);
 		if (parts.empty()) {
 			outcome.error = error;
+			// A model with no bricks has nothing to make; the LXFML itself is still served
+			outcome.empty = UgcModel::HasNoBricks(lxfml);
 			return outcome;
 		}
 		if (settings.maxBricks > 0 && parts.size() > settings.maxBricks) {

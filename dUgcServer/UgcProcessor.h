@@ -189,7 +189,8 @@ private:
 	std::set<LWOOBJID> m_ComboJobs;                         // combinations being made
 	std::map<LWOOBJID, std::vector<std::pair<LWOOBJID, uint32_t>>> m_ComboRows; // combination -> builds (id, attempts) waiting for it
 	std::map<LWOOBJID, LWOOBJID> m_ComboOf;                 // build -> combination (StorageId)
-	uint64_t m_Reused{};                                    // builds whose combination was made already
+	uint64_t m_Reused{};
+	uint64_t m_Empty{};  // models with no bricks (nothing to make)                                    // builds whose combination was made already
 	std::chrono::steady_clock::time_point m_NextPoll{};
 	std::chrono::steady_clock::time_point m_NextEviction{};
 	std::map<std::pair<Kind, LWOOBJID>, std::pair<std::chrono::steady_clock::time_point, Availability>> m_Recent; // answers for missing files
