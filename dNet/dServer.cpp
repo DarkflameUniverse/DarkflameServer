@@ -16,6 +16,7 @@
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
 #include "StringifiedEnum.h"
+#include "GeneralUtils.h"
 
 //! Replica Constructor class
 class ReplicaConstructor : public ReceiveConstructionInterface {
@@ -81,6 +82,7 @@ dServer::dServer(
 	mLogger->SetLogToConsole(true);
 
 	if (mIsOkay) {
+		LOG("Bound to %s (bind_ip)", mBindAddress.empty() ? "all interfaces" : mBindAddress.c_str());
 		if (zoneID == 0)
 			LOG("%s Server is listening on %s:%i with encryption: %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption));
 		else
@@ -231,7 +233,16 @@ bool dServer::IsConnected(const SystemAddress& sysAddr) {
 }
 
 bool dServer::Startup() {
-	mSocketDescriptor = SocketDescriptor(uint16_t(mPort), 0);
+	// bind_ip picks the local interface the sockets listen on; players are still sent external_ip
+	const auto bindIP = mConfig->GetValue("bind_ip");
+	const auto bindAddress = GeneralUtils::ParseBindAddress(bindIP);
+	if (!bindAddress) {
+		LOG("bind_ip \"%s\" is not an IPv4 address (leave it empty to listen on all interfaces)", bindIP.c_str());
+		return false;
+	}
+	mBindAddress = *bindAddress;
+
+	mSocketDescriptor = SocketDescriptor(uint16_t(mPort), mBindAddress.c_str());
 	mPeer = RakNetworkFactory::GetRakPeerInterface();
 
 	if (!mPeer) return false;
@@ -283,7 +294,7 @@ void dServer::Shutdown() {
 }
 
 void dServer::SetupForMasterConnection() {
-	mMasterSocketDescriptor = SocketDescriptor(uint16_t(mPort + 1), 0);
+	mMasterSocketDescriptor = SocketDescriptor(uint16_t(mPort + 1), mBindAddress.c_str());
 	mMasterPeer = RakNetworkFactory::GetRakPeerInterface();
 	bool ret = mMasterPeer->Startup(1, 30, &mMasterSocketDescriptor, 1);
 	if (!ret) LOG("Failed MasterPeer Startup!");

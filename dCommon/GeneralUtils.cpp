@@ -271,6 +271,26 @@ std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string_view 
 	return vector;
 }
 
+std::optional<std::string> GeneralUtils::ParseBindAddress(const std::string_view value) {
+	const auto first = value.find_first_not_of(" \t\r\n");
+	if (first == std::string_view::npos) return std::string{};
+	const auto trimmed = value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
+
+	if (trimmed == "*" || trimmed == "0.0.0.0") return std::string{};
+	if (CaseInsensitiveStringCompare(trimmed, "localhost")) return std::string{ "127.0.0.1" };
+
+	// Dotted quad only: four decimal octets of 0-255, no signs, no empty parts, no leading zeros that read as octal
+	const auto octets = SplitString(trimmed, '.');
+	if (octets.size() != 4) return std::nullopt;
+	for (const auto& octet : octets) {
+		if (octet.empty() || octet.size() > 3) return std::nullopt;
+		if (octet.find_first_not_of("0123456789") != std::string::npos) return std::nullopt;
+		if (octet.size() > 1 && octet[0] == '0') return std::nullopt;
+		if (std::stoi(octet) > 255) return std::nullopt;
+	}
+	return std::string{ trimmed };
+}
+
 std::vector<std::string> GeneralUtils::SplitString(const std::string_view str, const char delimiter) {
 	std::vector<std::string> vector = std::vector<std::string>();
 	std::string current = "";

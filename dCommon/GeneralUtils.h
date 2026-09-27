@@ -154,6 +154,12 @@ namespace GeneralUtils {
 	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string_view folder);
 
 	/**
+	 * Reads a bind address setting (bind_ip). Returns the IPv4 address to bind to, an empty string for all
+	 * interfaces (empty, "*" or "0.0.0.0"), "127.0.0.1" for "localhost", or nullopt when the value isn't an IPv4 address.
+	 */
+	[[nodiscard]] std::optional<std::string> ParseBindAddress(const std::string_view value);
+
+	/**
 	 * Transparent string hasher - used to allow string_view key lookups for maps storing std::string keys
 	 * https://www.reddit.com/r/cpp_questions/comments/12xw3sn/find_stdstring_view_in_unordered_map_with/jhki225/
 	 * https://godbolt.org/z/789xv8Eeq

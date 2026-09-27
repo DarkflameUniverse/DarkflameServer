@@ -3,7 +3,8 @@
 DarkflameServer ships with a web dashboard for managing accounts, moderating, and watching the server. It replaces
 the separate NexusDashboard. Master starts it when `enable_dashboard=1` is set in `masterconfig.ini`, and it listens on
 the `port` in `dashboardconfig.ini` (2006 by default). It also talks to master over UDP on `net_port` and the port after
-it (2010 and 2011 by default); keep those clear of the other servers' ports.
+it (2010 and 2011 by default); keep those clear of the other servers' ports. Those UDP ports listen on `bind_ip` from
+`sharedconfig.ini` like every other server; the web page itself listens on `listen_ip`.
 
 This page is for server operators. Everything below the first section is optional.
 

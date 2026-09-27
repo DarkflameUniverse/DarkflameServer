@@ -98,6 +98,8 @@ protected:
 	Game::signal_t* mShouldShutdown = nullptr;
 	SocketDescriptor mSocketDescriptor;
 	std::string mIP;
+	// Local address the sockets are bound to (bind_ip), empty for all interfaces
+	std::string mBindAddress;
 	int mPort;
 	int mMaxConnections;
 	unsigned int mZoneID;

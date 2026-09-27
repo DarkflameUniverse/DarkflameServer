@@ -113,6 +113,7 @@ namespace {
 
 		c.AddSection("Network", "Addresses and ports. Changing a port needs a restart of every server.");
 		c.Add(Format(Text(SHARED, "external_ip", "Public address", "The address players connect to. localhost for a server only you play on.", "localhost", true), eFormat::HOST));
+		c.Add(Format(Text(SHARED, "bind_ip", "Listen address", "The local IPv4 address the servers listen on. Empty for all interfaces; players are still sent the public address.", "", true), eFormat::HOST));
 		c.Add(Format(Text(MASTER, "master_ip", "Master address", "The address the other servers use to reach master.", "localhost", true), eFormat::HOST));
 		c.Add(Port(MASTER, "master_server_port", "Master port", "", "2000"));
 		c.Add(Port(AUTH, "auth_server_port", "Auth port", "The retail client always connects to 1001.", "1001"));

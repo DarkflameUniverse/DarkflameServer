@@ -234,6 +234,7 @@ Navigate to `build/sharedconfig.ini` and fill in the following fields:
 * `chatconfig.ini` contains a port option.
 * `masterconfig.ini` contains options related to permissions you want to run your servers with.
 * `sharedconfig.ini` contains several options that are shared across all servers
+	* `bind_ip` sets the local IPv4 address the servers listen on (empty, the default, listens on all interfaces). Players are still sent `external_ip`, so the two can differ behind NAT or a proxy.
 * `worldconfig.ini` contains several options to turn on Quality of Life improvements should you want them. If you would like the most vanilla experience possible, you will need to turn some of these settings off.
 
 ## Verify your setup
