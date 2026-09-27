@@ -1,0 +1,327 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Diagnostics - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	/* Series colours in a fixed order (checked for colour blindness against both themes); grey is "other servers" */
+	:root, [data-bs-theme=light] { --tr-1: #0d6efd; --tr-2: #fd7e14; --tr-3: #20c997; --tr-4: #6f42c1; --tr-5: #d63384; --tr-6: #0aa2c0; --tr-other: #6c757d; }
+	[data-bs-theme=dark] { --tr-1: #3d8bfd; --tr-2: #ca6510; --tr-3: #1aa179; --tr-4: #8c68cd; --tr-5: #d63384; --tr-6: #0aa2c0; --tr-other: #8c959f; }
+	.tr-chart-box { position: relative; min-height: 150px; }
+	.tr-chart { width: 100%; height: 100%; display: block; position: absolute; inset: 0; }
+	.tr-chart .grid { stroke: var(--bs-border-color); stroke-width: 1; }
+	.tr-chart .axis { fill: var(--bs-secondary-color); font-size: 11px; }
+	.tr-chart .line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+	.tr-chart .cross { stroke: var(--bs-secondary-color); stroke-width: 1; stroke-dasharray: 3 3; }
+	.tr-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
+		padding: .35rem .5rem; font-size: .75rem; white-space: nowrap; box-shadow: var(--bs-box-shadow-sm); }
+	.tr-legend { font-size: .75rem; color: var(--bs-secondary-color); }
+	.tr-legend span.key { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+	.tr-tile .value { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.tr-table td, .tr-table th { font-variant-numeric: tabular-nums; }
+	.tr-table tr[data-server] { cursor: pointer; }
+	@media (min-width: 1200px) { .tr-grid { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 1rem; height: 100%; } .tr-grid > .row { min-height: 0; --bs-gutter-y: 0; } .tr-grid > .row > * { height: 100%; } }
+	@media (max-width: 1199.98px) { .tr-chart-box { height: 200px; } .tr-grid > .row + .row { margin-top: 1rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "health_tabs.jinja2" %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+	<p class="text-body-secondary mb-0 small">Packets and bytes every server sends and receives, and the HTTP requests of the dashboard and UGC server.
+		The last hour is kept at one second in memory; minutes are stored for <code>traffic_days</code>. Prometheus: <code>darkflame_net_*</code>, <code>darkflame_http_*</code>.</p>
+	<div class="d-flex flex-wrap gap-2 align-items-center">
+		<select class="form-select form-select-sm w-auto" id="serverFilter" aria-label="Server"><option value="">All servers</option></select>
+		<div class="btn-group btn-group-sm text-nowrap" role="group" aria-label="Range">
+			<input type="radio" class="btn-check" name="trRange" id="range5m" value="5m" checked data-pref="diagnostics.range"><label class="btn btn-outline-secondary" for="range5m">Live</label>
+			<input type="radio" class="btn-check" name="trRange" id="range1h" value="1h" data-pref="diagnostics.range"><label class="btn btn-outline-secondary" for="range1h">1 hour</label>
+			<input type="radio" class="btn-check" name="trRange" id="range24h" value="24h" data-pref="diagnostics.range"><label class="btn btn-outline-secondary" for="range24h">24 hours</label>
+			<input type="radio" class="btn-check" name="trRange" id="range7d" value="7d" data-pref="diagnostics.range"><label class="btn btn-outline-secondary" for="range7d">7 days</label>
+		</div>
+	</div>
+</div>
+
+<div class="row g-2 mb-3" id="tiles"></div>
+
+<div class="row g-3 fill-viewport-xl">
+	<div class="col-xl-8">
+		<div class="tr-grid">
+			<div class="row g-3">
+				<div class="col-md-6"><div class="card h-100 panel-fill"><div class="card-header py-2 d-flex justify-content-between"><h5 class="mb-0 fs-6">Packets per second</h5><span class="tr-legend" id="legendPackets"></span></div><div class="card-body p-2 tr-chart-box"><svg class="tr-chart" id="chartPackets" role="img" aria-label="Packets in and out per second"></svg></div></div></div>
+				<div class="col-md-6"><div class="card h-100 panel-fill"><div class="card-header py-2 d-flex justify-content-between"><h5 class="mb-0 fs-6">Bytes per second</h5><span class="tr-legend" id="legendBytes"></span></div><div class="card-body p-2 tr-chart-box"><svg class="tr-chart" id="chartBytes" role="img" aria-label="Bytes in and out per second"></svg></div></div></div>
+			</div>
+			<div class="row g-3">
+				<div class="col-12"><div class="card h-100 panel-fill"><div class="card-header py-2 d-flex justify-content-between flex-wrap gap-1"><h5 class="mb-0 fs-6">Packets per second by server <span class="text-body-secondary fw-normal">(in + out)</span></h5><span class="tr-legend" id="legendServers"></span></div><div class="card-body p-2 tr-chart-box"><svg class="tr-chart" id="chartServers" role="img" aria-label="Packets per second of each server"></svg></div></div></div>
+			</div>
+			<div class="row g-3">
+				<div class="col-md-6"><div class="card h-100 panel-fill"><div class="card-header py-2 d-flex justify-content-between"><h5 class="mb-0 fs-6">HTTP requests per second</h5><span class="tr-legend" id="legendHttp"></span></div><div class="card-body p-2 tr-chart-box"><svg class="tr-chart" id="chartHttp" role="img" aria-label="HTTP requests per second"></svg></div></div></div>
+				<div class="col-md-6"><div class="card h-100 panel-fill"><div class="card-header py-2 d-flex justify-content-between"><h5 class="mb-0 fs-6">HTTP latency</h5><span class="tr-legend" id="legendLatency"></span></div><div class="card-body p-2 tr-chart-box"><svg class="tr-chart" id="chartLatency" role="img" aria-label="HTTP latency percentiles"></svg></div></div></div>
+			</div>
+		</div>
+	</div>
+	<div class="col-xl-4 d-flex flex-column gap-3 mt-3 mt-xl-0">
+		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2"><h5 class="mb-0 fs-6">Servers <span class="text-body-secondary fw-normal small">(averages over the range; click to filter)</span></h5></div><div class="card-body p-0" id="servers"></div></div>
+		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">Busiest message types</h5>
+			<div class="btn-group btn-group-sm" role="group" aria-label="Direction"><input type="radio" class="btn-check" name="msgDir" id="dirIn" value="in" checked><label class="btn btn-outline-secondary py-0" for="dirIn">In</label><input type="radio" class="btn-check" name="msgDir" id="dirOut" value="out"><label class="btn btn-outline-secondary py-0" for="dirOut">Out</label></div></div>
+			<div class="card-body p-0" id="messages"></div></div>
+		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2"><h5 class="mb-0 fs-6">HTTP routes <span class="text-body-secondary fw-normal small">(last hour at most)</span></h5></div><div class="card-body p-0" id="routes"></div></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	var nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+	var COLORS = ['var(--tr-1)', 'var(--tr-2)', 'var(--tr-3)', 'var(--tr-4)', 'var(--tr-5)', 'var(--tr-6)'];
+	var OTHER = 'var(--tr-other)';
+	var range = (document.querySelector('input[name="trRange"]:checked') || {}).value || '5m';
+	var server = '';
+	var direction = 'in';
+	var data = null;
+
+	function bytes(v) {
+		if (v >= 1073741824) return (v / 1073741824).toFixed(2) + ' GB';
+		if (v >= 1048576) return (v / 1048576).toFixed(1) + ' MB';
+		if (v >= 1024) return (v / 1024).toFixed(1) + ' kB';
+		return Math.round(v) + ' B';
+	}
+	function rate(v) { return nf.format(v); }
+	function ms(v) { return v == null ? '-' : (v >= 1000 ? (v / 1000).toFixed(2) + ' s' : nf.format(v) + ' ms'); }
+	function timeLabel(t, withSeconds) {
+		var d = new Date(t * 1000);
+		if (range === '7d') return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + (withSeconds ? ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+		return d.toLocaleTimeString([], range === '5m' || withSeconds ? { hour: '2-digit', minute: '2-digit', second: '2-digit' } : { hour: '2-digit', minute: '2-digit' });
+	}
+	function niceMax(v) {
+		if (v <= 0) return 1;
+		var p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p;
+		return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+	}
+
+	/**
+	 * Line chart in the page's style: x is time, y from 0; series [{name, color, values}] (null values leave a gap).
+	 * Hovering shows a crosshair and every series' value at that time.
+	 */
+	function chart(svg, legendEl, times, series, format) {
+		var box = svg.parentNode;
+		var width = box.clientWidth || 600, height = box.clientHeight || 170, left = 56, bottom = 20, top = 8, right = 8;
+		var max = 0;
+		series.forEach(function (s) { s.values.forEach(function (v) { if (v != null && v > max) max = v; }); });
+		max = niceMax(max);
+		var n = times.length, from = times[0], to = times[n - 1];
+		var x = function (i) { return left + (n > 1 ? i / (n - 1) : 0) * (width - left - right); };
+		var y = function (v) { return top + (1 - v / max) * (height - top - bottom); };
+		var html = '';
+		[0, 0.5, 1].forEach(function (f) {
+			html += '<line class="grid" x1="' + left + '" x2="' + (width - right) + '" y1="' + y(max * f) + '" y2="' + y(max * f) + '"/>' +
+				'<text class="axis" x="' + (left - 4) + '" y="' + (y(max * f) + 4) + '" text-anchor="end">' + esc(format(max * f)) + '</text>';
+		});
+		if (n) [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i, k) {
+			html += '<text class="axis" x="' + x(i) + '" y="' + (height - 4) + '" text-anchor="' + ['start', 'middle', 'end'][k] + '">' + esc(timeLabel(times[i])) + '</text>';
+		});
+		var any = false;
+		series.forEach(function (s) {
+			var d = '', pen = false;
+			s.values.forEach(function (v, i) {
+				if (v == null) { pen = false; return; }
+				d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1);
+				pen = true;
+				any = true;
+			});
+			if (d) html += '<path class="line" stroke="' + s.color + '" d="' + d + '"/>';
+		});
+		if (!any) html += '<text class="axis" x="' + ((left + width) / 2) + '" y="' + (height / 2) + '" text-anchor="middle">No traffic reported in this range</text>';
+		html += '<line class="cross" id="' + svg.id + 'Cross" y1="' + top + '" y2="' + (height - bottom) + '" x1="-10" x2="-10"/>';
+		html += '<rect x="' + left + '" y="0" width="' + Math.max(0, width - left - right) + '" height="' + height + '" fill="transparent" data-hit="1"/>';
+		svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+		svg.innerHTML = html;
+		if (legendEl) legendEl.innerHTML = series.length > 1 ? series.map(function (s) { return '<span class="me-2 text-nowrap"><span class="key" style="background:' + s.color + '"></span>' + esc(s.name) + '</span>'; }).join('') : '';
+
+		var tip = box.querySelector('.tr-tip');
+		if (!tip) { tip = document.createElement('div'); tip.className = 'tr-tip d-none'; box.appendChild(tip); }
+		var cross = svg.querySelector('.cross');
+		svg.onmousemove = function (e) {
+			if (!n) return;
+			var rect = svg.getBoundingClientRect();
+			var px = e.clientX - rect.left;
+			var i = Math.max(0, Math.min(n - 1, Math.round((px - left) / Math.max(1, width - left - right) * (n - 1))));
+			cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i));
+			tip.innerHTML = '<div class="fw-semibold mb-1">' + esc(timeLabel(times[i], true)) + '</div>' + series.map(function (s) {
+				return '<div><span class="key d-inline-block me-1" style="width:10px;height:3px;border-radius:2px;vertical-align:middle;background:' + s.color + '"></span>' + esc(s.name) + ': <b>' + esc(s.values[i] == null ? '-' : format(s.values[i])) + '</b></div>';
+			}).join('');
+			tip.classList.remove('d-none');
+			var tx = x(i) + 12;
+			if (tx + tip.offsetWidth > width) tx = x(i) - tip.offsetWidth - 12;
+			tip.style.left = Math.max(0, tx) + 'px';
+			tip.style.top = '8px';
+		};
+		svg.onmouseleave = function () { tip.classList.add('d-none'); cross.setAttribute('x1', -10); cross.setAttribute('x2', -10); };
+	}
+
+	function sum(list, field) {
+		var out = null;
+		list.forEach(function (s) {
+			var v = s.series && s.series[field];
+			if (!v) return;
+			if (!out) out = v.map(function () { return 0; });
+			v.forEach(function (x, i) { out[i] += x || 0; });
+		});
+		return out || data.times.map(function () { return 0; });
+	}
+	function average(values) {
+		var total = 0, count = 0;
+		(values || []).forEach(function (v) { if (v != null) { total += v; count++; } });
+		return count ? total / count : 0;
+	}
+
+	// Colours follow the server (sorted by key), not its rank, so a filter never repaints the others
+	function colorOf(key) {
+		var keys = data.servers.map(function (s) { return s.key; }).sort();
+		var i = keys.indexOf(key);
+		return i >= 0 && i < COLORS.length ? COLORS[i] : OTHER;
+	}
+
+	function render() {
+		if (!data) return;
+		var selected = data.servers.filter(function (s) { return !server || s.key === server; });
+		var times = data.times;
+
+		var pin = sum(selected, 'packets_in'), pout = sum(selected, 'packets_out'), bin = sum(selected, 'bytes_in'), bout = sum(selected, 'bytes_out');
+		chart(document.getElementById('chartPackets'), document.getElementById('legendPackets'), times,
+			[{ name: 'In', color: COLORS[0], values: pin }, { name: 'Out', color: COLORS[1], values: pout }], rate);
+		chart(document.getElementById('chartBytes'), document.getElementById('legendBytes'), times,
+			[{ name: 'In', color: COLORS[0], values: bin }, { name: 'Out', color: COLORS[1], values: bout }], bytes);
+
+		// Every server its own line: the six busiest in colour order of their keys, the rest as one grey line
+		var withTraffic = data.servers.filter(function (s) { return s.series; });
+		var sorted = withTraffic.slice().sort(function (a, b) { return (average(b.series.packets_in) + average(b.series.packets_out)) - (average(a.series.packets_in) + average(a.series.packets_out)); });
+		var shown = sorted.filter(function (s) { return colorOf(s.key) !== OTHER; });
+		var rest = sorted.filter(function (s) { return colorOf(s.key) === OTHER; });
+		var serverSeries = shown.map(function (s) {
+			return { name: s.label, color: colorOf(s.key), values: s.series.packets_in.map(function (v, i) { return v + s.series.packets_out[i]; }) };
+		});
+		if (rest.length) {
+			var a = sum(rest, 'packets_in'), b = sum(rest, 'packets_out');
+			serverSeries.push({ name: rest.length + ' other', color: OTHER, values: a.map(function (v, i) { return v + b[i]; }) });
+		}
+		chart(document.getElementById('chartServers'), document.getElementById('legendServers'), times, serverSeries, rate);
+
+		var http = selected.filter(function (s) { return s.series && s.series.http; });
+		chart(document.getElementById('chartHttp'), document.getElementById('legendHttp'), times, http.map(function (s) {
+			return { name: s.label, color: colorOf(s.key), values: s.series.http };
+		}).concat(http.length ? [{ name: 'Errors (4xx/5xx)', color: OTHER, values: sum(http, 'http_errors') }] : []), rate);
+		// Latency of the busiest HTTP server (or the one picked): percentiles of one server, never averaged across servers
+		var latencyServer = http.slice().sort(function (a, b) { return average(b.series.http) - average(a.series.http); })[0];
+		chart(document.getElementById('chartLatency'), document.getElementById('legendLatency'), times, latencyServer ? [
+			{ name: latencyServer.label + ' p50', color: COLORS[2], values: latencyServer.series.p50 },
+			{ name: 'p95', color: COLORS[3], values: latencyServer.series.p95 },
+			{ name: 'p99', color: COLORS[4], values: latencyServer.series.p99 }] : [], ms);
+
+		renderTiles(selected);
+		renderServers();
+		renderMessages();
+		renderRoutes();
+	}
+
+	function renderTiles(selected) {
+		var latest = function (field) { var v = sum(selected, field); for (var i = v.length - 1; i >= 0; i--) if (v[i]) return v[i]; return 0; };
+		var avg = function (field) { return average(sum(selected, field)); };
+		var label = range === '5m' ? 'now' : 'average';
+		var pick = range === '5m' ? latest : avg;
+		var tiles = [['Packets in/s', rate(pick('packets_in'))], ['Packets out/s', rate(pick('packets_out'))], ['Received/s', bytes(pick('bytes_in'))],
+			['Sent/s', bytes(pick('bytes_out'))], ['HTTP requests/s', rate(pick('http'))],
+			['Servers reporting', nf.format(data.servers.filter(function (s) { return s.online; }).length)]];
+		document.getElementById('tiles').innerHTML = tiles.map(function (t) {
+			return '<div class="col-6 col-md-4 col-xl-2"><div class="card tr-tile"><div class="card-body py-2 px-3"><div class="text-body-secondary small">' + esc(t[0]) +
+				(t[0] !== 'Servers reporting' ? ' <span class="opacity-75">(' + label + ')</span>' : '') + '</div><div class="value">' + esc(t[1]) + '</div></div></div></div>';
+		}).join('');
+	}
+
+	function renderServers() {
+		var rows = data.servers.slice().sort(function (a, b) { return a.label.localeCompare(b.label, undefined, { numeric: true }); }).map(function (s) {
+			var p = s.series ? average(s.series.packets_in) + average(s.series.packets_out) : 0;
+			var b = s.series ? average(s.series.bytes_in) + average(s.series.bytes_out) : 0;
+			var link = s.link || {};
+			var gauges = s.gauges || {};
+			var extra = [];
+			if (gauges.workers_threads) extra.push('workers ' + gauges.workers_busy + '/' + gauges.workers_threads + (gauges.workers_queued ? ' +' + gauges.workers_queued + ' queued' : ''));
+			if (gauges.http_deferred_pending) extra.push(gauges.http_deferred_pending + ' deferred');
+			return '<tr data-server="' + esc(s.key) + '"' + (server === s.key ? ' class="table-active"' : '') + '><td><span class="d-inline-block rounded-circle me-1" style="width:8px;height:8px;background:' + colorOf(s.key) + '"></span>' +
+				esc(s.label) + (s.online ? '' : ' <span class="badge text-bg-secondary">gone</span>') +
+				(extra.length ? '<div class="small text-body-secondary">' + esc(extra.join(', ')) + '</div>' : '') + '</td>' +
+				'<td class="text-end">' + esc(rate(p)) + '</td><td class="text-end">' + esc(bytes(b)) + '</td>' +
+				'<td class="text-end" title="Connections, average ping, messages RakNet resent in the last report">' + (s.online ? esc(link.connections + ' / ' + link.ping_ms + ' ms' + (link.resends ? ' / ' + link.resends + ' resent' : '')) : '-') + '</td></tr>';
+		});
+		document.getElementById('servers').innerHTML = rows.length ? '<table class="table table-sm table-hover align-middle mb-0 tr-table small"><thead><tr><th>Server</th><th class="text-end">Pkts/s</th><th class="text-end">Bytes/s</th><th class="text-end">Conn / ping</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>'
+			: '<p class="text-body-secondary p-3 mb-0">No server has reported yet. Servers report every 5 seconds through master.</p>';
+
+		var select = document.getElementById('serverFilter');
+		var options = '<option value="">All servers</option>' + data.servers.map(function (s) { return '<option value="' + esc(s.key) + '">' + esc(s.label) + '</option>'; }).join('');
+		if (select.dataset.options !== options) { select.innerHTML = options; select.dataset.options = options; }
+		select.value = server;
+	}
+
+	function renderMessages() {
+		var list = data.messages.filter(function (m) { return m.direction === direction; });
+		var total = list.reduce(function (t, m) { return t + m.count; }, 0) || 1;
+		document.getElementById('messages').innerHTML = list.length ? '<table class="table table-sm align-middle mb-0 tr-table small"><thead><tr><th>Type</th><th class="text-end">Count</th><th class="text-end">Bytes</th></tr></thead><tbody>' +
+			list.map(function (m) {
+				var name = m.game_message ? m.game_message : m.packet;
+				return '<tr><td><code>' + esc(name) + '</code> <span class="text-body-secondary">' + esc(m.game_message ? m.service + ' game message' : m.service) + '</span>' +
+					'<div class="progress mt-1" style="height:3px" role="presentation"><div class="progress-bar" style="width:' + (m.count / total * 100).toFixed(1) + '%"></div></div></td>' +
+					'<td class="text-end">' + esc(nf.format(m.count)) + '</td><td class="text-end">' + esc(bytes(m.bytes)) + '</td></tr>';
+			}).join('') + '</tbody></table><p class="small text-body-secondary px-2 py-1 mb-0">All servers, since ' + esc(fmt.unix(data.messages_since)) + '. Only what the dashboard saw since it started.</p>'
+			: '<p class="text-body-secondary p-3 mb-0">Nothing yet.</p>';
+	}
+
+	function renderRoutes() {
+		document.getElementById('routes').innerHTML = data.routes.length ? '<table class="table table-sm align-middle mb-0 tr-table small"><thead><tr><th>Route</th><th class="text-end">Requests</th><th class="text-end">Errors</th><th class="text-end" title="p50 / p95 / p99">Latency</th></tr></thead><tbody>' +
+			data.routes.map(function (r) {
+				var errors = r.status_4xx + r.status_5xx;
+				return '<tr><td><code class="text-break">' + esc(r.route) + '</code>' + (r.server !== 'dashboard' ? ' <span class="badge text-bg-secondary">' + esc(r.server) + '</span>' : '') + '</td>' +
+					'<td class="text-end">' + esc(nf.format(r.count)) + '</td><td class="text-end">' + (errors ? '<span class="text-warning-emphasis">' + esc(nf.format(errors)) + '</span>' : '0') + '</td>' +
+					'<td class="text-end text-nowrap">' + esc(ms(r.p50) + ' / ' + ms(r.p95) + ' / ' + ms(r.p99)) + '</td></tr>';
+			}).join('') + '</tbody></table>' : '<p class="text-body-secondary p-3 mb-0">No HTTP requests yet.</p>';
+	}
+
+	var loading = false;
+	function load() {
+		if (loading) return;
+		loading = true;
+		api.get('/api/diagnostics/traffic?range=' + range).then(function (d) {
+			loading = false;
+			if (!d.success) return;
+			data = d;
+			render();
+		}, function () { loading = false; });
+	}
+
+	document.querySelectorAll('input[name="trRange"]').forEach(function (r) {
+		r.addEventListener('change', function () { range = r.value; load(); schedule(); });
+	});
+	document.querySelectorAll('input[name="msgDir"]').forEach(function (r) {
+		r.addEventListener('change', function () { direction = r.value; renderMessages(); });
+	});
+	document.getElementById('serverFilter').addEventListener('change', function (e) { server = e.target.value; render(); });
+	document.getElementById('servers').addEventListener('click', function (e) {
+		var row = e.target.closest('tr[data-server]');
+		if (!row) return;
+		server = server === row.dataset.server ? '' : row.dataset.server;
+		render();
+	});
+
+	// Live: new data comes over the socket every few seconds; longer ranges refresh on a timer
+	Live.onTopic('traffic', Live.throttle(function () { if (range === '5m' || range === '1h') load(); }, 2000));
+	var timer = null;
+	function schedule() {
+		clearInterval(timer);
+		timer = setInterval(load, range === '5m' ? 10000 : range === '1h' ? 15000 : 60000);
+	}
+	window.addEventListener('resize', Live.throttle(render, 300));
+	schedule();
+	load();
+})();
+</script>
+{% endblock %}

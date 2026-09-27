@@ -465,6 +465,7 @@ void RegisterDashboardRoutes() {
 	SimplePage("/vanity", Perm("vanity_manage"), "vanity.jinja2", "vanity", "Vanity: the vanity files and their NPCs, plaque texts, vanity events and a preview of what the worlds load");
 	SimplePage("/leaderboards", Perm("leaderboards_view"), "leaderboards.jinja2", "leaderboards", "Leaderboards for every activity");
 	SimplePage("/health", Perm("health_view"), "health.jinja2", "health", "Player counts, worlds, uptime and memory over time; crash dumps");
+	SimplePage("/diagnostics", Perm("health_view"), "diagnostics.jinja2", "diagnostics", "Packets, bytes and HTTP requests per second of every server");
 	SimplePage("/players", Perm("players_view"), "players.jinja2", "players", "Who is online, with kick, rescue and teleport");
 	SimplePage("/backups", Perm("backups"), "backups.jinja2", "backups", "Database backups");
 	SimplePage("/permissions", Perm("permissions_manage"), "permissions.jinja2", "permissions", "What each GM level may do");

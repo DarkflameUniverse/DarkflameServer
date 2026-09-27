@@ -27,6 +27,8 @@ set(DASHBOARDROUTES_SOURCES
 	"MissionTools.cpp"
 	"CharacterProgress.cpp"
 	"ServerRoutes.cpp"
+	"Traffic.cpp"
+	"TrafficHistory.cpp"
 	"LeaderboardRoutes.cpp"
 	"VanityRoutes.cpp"
 	"ChatRoutes.cpp"

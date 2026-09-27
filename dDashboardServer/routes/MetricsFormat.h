@@ -73,13 +73,21 @@ namespace MetricsFormat {
 	public:
 		// type: counter or gauge. A counter's name should end in _total.
 		void Add(const std::string& name, const std::string& help, const std::string& type, const Labels& labels, double value) {
-			const auto metric = Name(name);
+			AddSample(name, name, help, type, labels, value);
+		}
+
+		/**
+		 * A sample named differently from its family, for histograms: the family "x_seconds" (type histogram) holds
+		 * x_seconds_bucket{le=...}, x_seconds_sum and x_seconds_count.
+		 */
+		void AddSample(const std::string& family, const std::string& sample, const std::string& help, const std::string& type, const Labels& labels, double value) {
+			const auto metric = Name(family);
 			auto it = m_Index.find(metric);
 			if (it == m_Index.end()) {
 				it = m_Index.emplace(metric, m_Families.size()).first;
 				m_Families.push_back({ metric, help, type, {} });
 			}
-			std::string line = metric;
+			std::string line = Name(sample);
 			if (!labels.empty()) {
 				line += '{';
 				for (size_t i = 0; i < labels.size(); i++) {

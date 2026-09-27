@@ -386,6 +386,7 @@ namespace {
 		c.Add(Days("log_chat_days", "Chat log", "", "90"));
 		c.Add(Days("log_login_address_days", "Login addresses", "Addresses an account hasn't logged in from for this long are forgotten.", "90"));
 		c.Add(Days("health_days", "Server health history", "Minute-by-minute player counts and uptime.", "30"));
+		c.Add(Days("traffic_days", "Server traffic history", "Minute-by-minute packets, bytes and HTTP requests of every server (Diagnostics). The last hour at one second is only kept in memory.", "30"));
 
 		c.AddSection("Player movement", "Where players went, for replays on the 3D world view (staff with players_history only).");
 		c.Add(Bool(DASHBOARD, "position_history", "Record player movement", "Keeps a player's position every few seconds while they move, and every 30 seconds while they stand still.", true));

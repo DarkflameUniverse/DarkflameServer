@@ -1,5 +1,6 @@
 #include "PrometheusMetrics.h"
 #include "MetricsFormat.h"
+#include "Traffic.h"
 
 #include <algorithm>
 #include <chrono>
@@ -266,6 +267,7 @@ namespace {
 		if (!g_Text.empty() && now - g_BuiltAt < std::chrono::seconds(cacheSeconds)) return g_Text;
 		MetricsFormat::Writer w;
 		AddLive(w);
+		Traffic::AddMetrics(w);
 		AddDatabase(w);
 		g_Text = w.Text();
 		g_BuiltAt = now;

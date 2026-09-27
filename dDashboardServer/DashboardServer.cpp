@@ -84,6 +84,8 @@
 #include "InstanceLoad.h"
 #include "WorldView.h"
 #include "PrometheusMetrics.h"
+#include "Traffic.h"
+#include "master/ServerTraffic.h"
 #include "Background.h"
 #include "master/DashboardMessages.h"
 #include "master/DataChanged.h"
@@ -322,6 +324,7 @@ namespace {
 			handlers.On<DataChanged>(Master::DATA_CHANGED, [](const DataChanged& changed, const SystemAddress&) { BroadcastDataChanged(changed); });
 			handlers.On<PlayerActionResult>(Master::PLAYER_ACTION_RESULT, [](const PlayerActionResult& result, const SystemAddress&) { PlayerActions::HandleResult(result); });
 			handlers.On<MasterPackets::WorldShutDown>(Master::SHUTDOWN_RESPONSE, OnWorldShutDown);
+			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, [](const ServerTraffic& report, const SystemAddress&) { Traffic::Ingest(report); });
 			return handlers;
 		}();
 		return handlers;
@@ -524,6 +527,7 @@ int main(int argc, char** argv) {
 	WorldView::RegisterRoutes();
 	Scenery::RegisterRoutes();
 	PrometheusMetrics::RegisterRoutes();
+	Traffic::RegisterRoutes();
 	RegisterPublicRoutes();
 	RegisterShowcaseRoutes();
 	FeaturedProperties::RegisterRoutes();
@@ -582,6 +586,7 @@ int main(int argc, char** argv) {
 			LiveEventRoutes::Update();
 			ChallengeRoutes::Update();
 			InstanceLoad::Update();
+			Traffic::Update();
 
 			// Broadcast dashboard updates periodically
 			if (elapsedSinceBroadcast >= broadcastInterval) {

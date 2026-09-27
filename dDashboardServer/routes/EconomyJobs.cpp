@@ -215,6 +215,7 @@ namespace {
 			std::tuple{ std::optional(eLog::LOGIN_ADDRESS), "log_login_address_days", 90 },
 			std::tuple{ std::optional<eLog>(), "log_task_days", 90 },
 			std::tuple{ std::optional<eLog>(), "health_days", 30 },
+			std::tuple{ std::optional<eLog>(), "traffic_days", 30 },
 			std::tuple{ std::optional<eLog>(), "position_history_days", 3 } }) {
 			const auto days = Setting(key, fallback);
 			run->Log(std::string(key) + " = " + (days > 0 ? std::to_string(days) : "0 (keep everything)"));
@@ -227,6 +228,7 @@ namespace {
 				if (days <= 0) continue;
 				const auto before = now - days * DAY_SECONDS;
 				pruned[key] = log ? db.PruneLog(*log, before) : key == std::string("health_days") ? db.PruneHealthSamples(before)
+					: key == std::string("traffic_days") ? db.PruneTrafficMinutes(before)
 					: key == std::string("position_history_days") ? db.PrunePositionSamples(before) : db.PruneTaskRuns(before);
 			}
 			return pruned;
