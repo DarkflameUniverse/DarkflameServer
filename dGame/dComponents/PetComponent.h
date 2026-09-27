@@ -18,6 +18,13 @@ class PetComponent final : public Component
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
+	// Bits of the serialized pet status. State number N is bit 1 << (N - 1) (the client's StateNumToIndex,
+	// 0x00bd19b0); the meanings are what the live server sent (2014 packet captures) and what the client does with them.
+
+	// State 8: a pet constructed with it plays its spawnAnim (LWOPetComponent::Deserialize, 0x00cd1270). Live
+	// constructed summoned pets with 0x84 and cleared this bit once the spawn animation was over.
+	static constexpr uint32_t PET_STATE_SPAWNING = 1 << 7;
+
 	explicit PetComponent(Entity* parentEntity, const int32_t componentID);
 	~PetComponent() override;
 
@@ -344,6 +351,11 @@ private:
 	 * Pet information loaded from the CDClientDatabase
 	 */
 	CDPetComponent m_PetInfo;
+
+	/**
+	 * Set once the pet has been sent back to the backpack; it is removed after its despawn effect has played
+	 */
+	bool m_Despawning{ false };
 };
 
 #endif // !PETCOMPONENT_H

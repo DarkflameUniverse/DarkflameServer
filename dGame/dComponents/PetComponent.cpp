@@ -290,6 +290,9 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
+	// Going back to the backpack, removed once the despawn effect has played
+	if (m_Despawning) return;
+
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) {
@@ -921,7 +924,19 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) return;
-	SetStatus(1);
+
+	if (registerPet) {
+		// Summoned from the backpack. Live constructed the pet in the spawning state, so the client plays its
+		// spawn animation, played the pet's "despawn" effect (the circles and stars) and then cleared the state.
+		SetStatus(1 | PET_STATE_SPAWNING);
+		m_Parent->AddCallbackTimer(RenderComponent::GetAnimationTime(m_Parent, "spawn"), [this]() {
+			GameMessages::PlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
+			SetStatus(m_Status & ~PET_STATE_SPAWNING);
+			Game::entityManager->SerializeEntity(m_Parent);
+			});
+	} else {
+		SetStatus(1);
+	}
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 
@@ -1047,11 +1062,20 @@ void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 }
 
 void PetComponent::Deactivate() {
+	if (m_Despawning) return;
+	m_Despawning = true;
+
 	GameMessages::PlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	activePets.erase(m_Owner);
 
-	m_Parent->Kill();
+	auto* const movementAI = m_Parent->GetComponent<MovementAIComponent>();
+	if (movementAI) movementAI->Stop();
+
+	// Live removed the pet only once its despawn effect had played; removing it at once cut the effect short
+	m_Parent->AddCallbackTimer(RenderComponent::GetAnimationTime(m_Parent, "despawn"), [this]() {
+		m_Parent->Kill();
+		});
 
 	auto* owner = GetOwner();
 
