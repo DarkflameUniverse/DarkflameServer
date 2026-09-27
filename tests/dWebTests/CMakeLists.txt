@@ -36,6 +36,7 @@ set(DWEBTESTS_SOURCES
 	"NifFileTests.cpp"
 	"DeferredReplyTests.cpp"
 	"WorkerPoolTests.cpp"
+	"OnceCacheTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/WorkerPool.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/NifFile.cpp"
 	"BackupFilesTests.cpp"

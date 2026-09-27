@@ -21,13 +21,20 @@ namespace WorldScene {
  * bounded in-memory cache; textures are sent as the client's own DDS files (textures stored inside a .nif are
  * wrapped as DDS), which the browser decodes itself, so nothing needs ImageMagick.
  *
+ * Everything here is thread safe: the manifests are built on worker threads too (the routes use Workers::Reply).
  * Converting a big model takes a while, so models and textures not in memory are answered from a few worker threads
- * (Web::Defer, WorkerPool; scenery_workers in dashboardconfig.ini) and the web server keeps answering meanwhile.
+ * (Web::Defer, Workers; scenery_workers in dashboardconfig.ini) and the web server keeps answering meanwhile.
  * Flairs and small models go first, in a lane of their own; the same model asked for twice at once is converted
  * once. When a zone's manifest is asked for, its models are converted ahead of time onto the disk cache while
  * someone views the zone.
  */
 namespace Scenery {
+	/**
+	 * Read what the builders need from the CDClient (render components, flairs) and index the client's model files,
+	 * at startup: the manifests are built on worker threads, which never query the CDClient.
+	 */
+	void Preload();
+
 	/**
 	 * The zone's manifest as JSON: {zone, sky (asset index or -1), assets: [res path, ...],
 	 * objects: {asset: [...], pos: [x, y, z, ...], rot: [x, y, z, w, ...], scale: [...], hidden: [0 or 1, ...]}}, where
@@ -36,6 +43,9 @@ namespace Scenery {
 	 */
 	std::optional<std::string> ZoneJson(uint32_t zoneId);
 
+	// Whether ZoneJson is built (so answering it is quick)
+	bool ZoneReady(uint32_t zoneId);
+
 	/**
 	 * The zone's flairs (the grass, flowers and small rocks its terrain file strews over it, models from FlairTable) as a
 	 * manifest in ZoneJson's form, whose models the same mesh and texture routes serve, plus: distance (how far from the
@@ -43,6 +53,9 @@ namespace Scenery {
 	 * nullopt without client files.
 	 */
 	std::optional<std::string> FlairsJson(uint32_t zoneId);
+
+	// Whether FlairsJson is built
+	bool FlairsReady(uint32_t zoneId);
 
 	// Whether the client draws a model for this scene object (its render component's, or its nif_name)
 	bool HasModel(const WorldScene::Object& object);
@@ -54,10 +67,8 @@ namespace Scenery {
 	// Reply with texture `slot` (the model's "textures" list at that `lod`) of model `asset`, as a DDS file. Deferred.
 	void ReplyTexture(HTTPReply& reply, const HTTPContext& context, uint32_t zoneId, uint32_t asset, uint32_t slot, uint32_t lod);
 
-	// /api/scenery/:zone/mesh/:asset and /api/scenery/:zone/texture/:asset/:slot, for anyone signed in; starts the
-	// conversion threads
+	// /api/scenery/:zone/mesh/:asset and /api/scenery/:zone/texture/:asset/:slot, for anyone signed in
 	void RegisterRoutes();
 
-	// Stop the conversion threads (queued work is dropped)
-	void Shutdown();
+
 }

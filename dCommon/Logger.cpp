@@ -3,7 +3,14 @@
 #include <algorithm>
 #include <ctime>
 #include <filesystem>
+#include <mutex>
 #include <stdarg.h>
+
+namespace {
+	// Servers with worker threads (the dashboard) log from several threads: one line is written at a time, and
+	// localtime's buffer is shared
+	std::mutex g_LogMutex;
+}
 
 Writer::~Writer() {
 	// Flush before we close
@@ -49,6 +56,7 @@ Logger::Logger(const std::string& outpath, bool logToConsole, bool logDebugState
 }
 
 void Logger::vLog(const char* format, va_list args) {
+	std::lock_guard lock(g_LogMutex);
 	time_t t = time(NULL);
 	struct tm* time = localtime(&t);
 	char timeStr[70];
@@ -78,6 +86,7 @@ void Logger::LogDebug(const char* className, const char* format, ...) {
 }
 
 void Logger::Flush() {
+	std::lock_guard lock(g_LogMutex);
 	for (const auto& writer : m_Writers) {
 		writer->Flush();
 	}

@@ -13,6 +13,7 @@
 #include "CharacterTools.h"
 #include "ClientAssets.h"
 #include "Scenery.h"
+#include "Workers.h"
 #include "LiveWorld.h"
 #include "ServerState.h"
 #include "WSRoutes.h"
@@ -1091,12 +1092,14 @@ namespace {
 				if (!propId) return;
 				const auto info = AuthorizedProperty(context, *propId, reply);
 				if (!info) return;
-				const auto terrain = ZoneTerrainJson(info->zoneId);
-				if (!terrain) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone (is client_location set?)");
-				reply.status = eHTTPStatusCode::OK;
-				reply.contentType = eContentType::APPLICATION_JSON;
-				reply.message = *terrain;
-				reply.headers.push_back("Cache-Control: private, max-age=86400");
+				Workers::Reply(reply, context, ZoneTerrainJsonReady(info->zoneId), [zone = info->zoneId](HTTPReply& out) {
+					const auto terrain = ZoneTerrainJson(zone);
+					if (!terrain) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone (is client_location set?)");
+					out.status = eHTTPStatusCode::OK;
+					out.contentType = eContentType::APPLICATION_JSON;
+					out.message = *terrain;
+					out.headers.push_back("Cache-Control: private, max-age=86400");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/properties/:id/terrain_chunks", 0,
@@ -1106,12 +1109,14 @@ namespace {
 				if (!propId) return;
 				const auto info = AuthorizedProperty(context, *propId, reply);
 				if (!info) return;
-				const auto terrain = ZoneTerrainChunksJson(info->zoneId);
-				if (!terrain) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone (is client_location set?)");
-				reply.status = eHTTPStatusCode::OK;
-				reply.contentType = eContentType::APPLICATION_JSON;
-				reply.message = *terrain;
-				reply.headers.push_back("Cache-Control: private, max-age=86400");
+				Workers::Reply(reply, context, ZoneTerrainChunksReady(info->zoneId), [zone = info->zoneId](HTTPReply& out) {
+					const auto terrain = ZoneTerrainChunksJson(zone);
+					if (!terrain) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone (is client_location set?)");
+					out.status = eHTTPStatusCode::OK;
+					out.contentType = eContentType::APPLICATION_JSON;
+					out.message = *terrain;
+					out.headers.push_back("Cache-Control: private, max-age=86400");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/properties/:id/scenery", 0,
@@ -1121,24 +1126,28 @@ namespace {
 				if (!propId) return;
 				const auto info = AuthorizedProperty(context, *propId, reply);
 				if (!info) return;
-				const auto scenery = Scenery::ZoneJson(info->zoneId);
-				if (!scenery) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No scenery for this zone (is client_location set?)");
-				reply.status = eHTTPStatusCode::OK;
-				reply.contentType = eContentType::APPLICATION_JSON;
-				reply.message = *scenery;
-				reply.headers.push_back("Cache-Control: private, max-age=86400");
+				Workers::Reply(reply, context, Scenery::ZoneReady(info->zoneId), [zone = info->zoneId](HTTPReply& out) {
+					const auto scenery = Scenery::ZoneJson(zone);
+					if (!scenery) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No scenery for this zone (is client_location set?)");
+					out.status = eHTTPStatusCode::OK;
+					out.contentType = eContentType::APPLICATION_JSON;
+					out.message = *scenery;
+					out.headers.push_back("Cache-Control: private, max-age=86400");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/terrain_textures/:id", 0, "A terrain texture (mapTextureResource ID) as PNG, for the property 3D view",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto textureId = RequireId<uint32_t>(context, 2, reply);
 				if (!textureId) return;
-				const auto png = TerrainTextureFile(*textureId);
-				if (!png) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Texture not found");
-				reply.status = eHTTPStatusCode::OK;
-				reply.contentType = eContentType::IMAGE_PNG;
-				reply.message = *png;
-				reply.headers.push_back("Cache-Control: private, max-age=604800");
+				Workers::Reply(reply, context, TerrainTextureReady(*textureId), [id = *textureId](HTTPReply& out) {
+					const auto png = TerrainTextureFile(id);
+					if (!png) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "Texture not found");
+					out.status = eHTTPStatusCode::OK;
+					out.contentType = eContentType::IMAGE_PNG;
+					out.message = *png;
+					out.headers.push_back("Cache-Control: private, max-age=604800");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/properties/:id/boundary", 0, "Where a property's owner may build: the outline from the zone file and the height limit (needs client_location)",

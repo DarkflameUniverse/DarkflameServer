@@ -43,6 +43,7 @@ set(DASHBOARDROUTES_SOURCES
 	"NifFile.cpp"
 	"Scenery.cpp"
 	"WorkerPool.cpp"
+	"Workers.cpp"
 	"AccountModeration.cpp"
 	"ModerationTools.cpp"
 	"ModeratorHelper.cpp"

@@ -1,4 +1,5 @@
 #include "Showcase.h"
+#include "Workers.h"
 
 #include <chrono>
 #include <map>
@@ -164,16 +165,21 @@ namespace {
 		if (!cacheControl.empty()) reply.headers.push_back("Cache-Control: " + cacheControl);
 	}
 
-	// Terrain and the build area come from the client's files and are the same for every property in a zone
+	/**
+	 * Terrain and the build area come from the client's files and are the same for every property in a zone.
+	 * `ready` says whether what `fetch` needs is built; when it isn't, fetch runs on a worker thread (Workers::Reply),
+	 * so it must be thread safe. The property is looked up here, on the web thread.
+	 */
 	template<typename Fetch>
-	void ZoneFileRoute(const std::string& path, const std::string& description, Fetch fetch) {
-		Route(eHTTPMethod::GET, path, PUBLIC, description, [fetch](HTTPReply& reply, const HTTPContext& context) {
+	void ZoneFileRoute(const std::string& path, const std::string& description, Fetch fetch, std::function<bool(uint32_t zone)> ready = nullptr) {
+		Route(eHTTPMethod::GET, path, PUBLIC, description, [fetch, ready](HTTPReply& reply, const HTTPContext& context) {
 			if (!Allowed(context, reply, Kind::DATA)) return;
 			const auto id = PathId<LWOOBJID>(context.path, 2);
 			if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid ID");
 			const auto info = ShownProperty(*id, reply);
 			if (!info) return;
-			fetch(reply, *info);
+			if (!ready) return fetch(reply, *info);
+			Workers::Reply(reply, context, ready(info->zoneId), [fetch, info = *info](HTTPReply& out) { fetch(out, info); });
 		});
 	}
 }
@@ -251,14 +257,14 @@ void RegisterShowcaseRoutes() {
 			const auto terrain = ZoneTerrainChunksJson(info.zoneId);
 			if (!terrain) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
 			RawReply(reply, eContentType::APPLICATION_JSON, *terrain, "private, max-age=86400");
-		});
+		}, ZoneTerrainChunksReady);
 
 	ZoneFileRoute("/api/showcase/:id/terrain", "A height grid of a showcased property's zone (needs client_location)",
 		[](HTTPReply& reply, const IProperty::Info& info) {
 			const auto terrain = ZoneTerrainJson(info.zoneId);
 			if (!terrain) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
 			RawReply(reply, eContentType::APPLICATION_JSON, *terrain, "private, max-age=86400");
-		});
+		}, ZoneTerrainJsonReady);
 
 	ZoneFileRoute("/api/showcase/:id/boundary", "Where a showcased property's owner may build (needs client_location)",
 		[](HTTPReply& reply, const IProperty::Info& info) {
@@ -311,9 +317,11 @@ void RegisterShowcaseRoutes() {
 			if (!Allowed(context, reply, Kind::ASSET)) return;
 			const auto textureId = PathId<uint32_t>(context.path, 3);
 			if (!textureId) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid ID");
-			const auto png = TerrainTextureFile(*textureId);
-			if (!png) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Texture not found");
-			RawReply(reply, eContentType::IMAGE_PNG, *png, "public, max-age=604800");
+			Workers::Reply(reply, context, TerrainTextureReady(*textureId), [id = *textureId](HTTPReply& out) {
+				const auto png = TerrainTextureFile(id);
+				if (!png) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "Texture not found");
+				RawReply(out, eContentType::IMAGE_PNG, *png, "public, max-age=604800");
+			});
 		});
 
 	ZoneFileRoute("/api/showcase/:id/scenery", "Everything the game draws around a showcased property: its zone's scene objects with their models and the sky (needs client_location)",
@@ -321,7 +329,7 @@ void RegisterShowcaseRoutes() {
 			const auto scenery = Scenery::ZoneJson(info.zoneId);
 			if (!scenery) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No scenery for this zone");
 			RawReply(reply, eContentType::APPLICATION_JSON, *scenery, "private, max-age=86400");
-		});
+		}, Scenery::ZoneReady);
 
 	// Scenery models and textures of the zones properties are in (the only ones the showcase shows)
 	const auto propertyZone = [](HTTPReply& reply, const HTTPContext& context) -> std::optional<uint32_t> {

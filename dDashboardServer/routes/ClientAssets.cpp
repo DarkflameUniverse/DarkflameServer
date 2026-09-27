@@ -7,6 +7,7 @@
 #include <set>
 #include <unordered_map>
 
+#include "OnceCache.h"
 #include "RouteUtils.h"
 #include "CDClientDatabase.h"
 #include "Game.h"
@@ -26,11 +27,14 @@ namespace {
 	std::map<LOT, nlohmann::json> g_ItemCache;
 	std::map<LOT, std::vector<int>> g_ItemSetsByLot; // lot -> set ids containing it
 	bool g_ItemSetsLoaded = false;
-	std::set<std::string> g_FailedConversions;
 
+	// Read once (client_location only changes with a restart), so worker threads never read the settings
 	std::filesystem::path ClientRes() {
-		const auto client = Game::config->GetValue("client_location");
-		return client.empty() ? std::filesystem::path{} : std::filesystem::path(client) / "res";
+		static const std::filesystem::path res = [] {
+			const auto client = Game::config ? Game::config->GetValue("client_location") : std::string{};
+			return client.empty() ? std::filesystem::path{} : std::filesystem::path(client) / "res";
+		}();
+		return res;
 	}
 
 	// Lowercase, forward slashes, no leading "../" or "res/"
@@ -195,11 +199,8 @@ namespace {
 
 	// Every object's name and displayName, read once: the CDClient has no index on Objects.id, so looking a LOT up
 	// scans the whole table, and pages name thousands of items at once
-	const std::unordered_map<LOT, ObjectNames>& ObjectNameTable() {
-		static std::unordered_map<LOT, ObjectNames> table;
-		static bool loaded = false;
-		if (loaded) return table;
-		loaded = true;
+	std::unordered_map<LOT, ObjectNames> ReadObjectNames() {
+		std::unordered_map<LOT, ObjectNames> table;
 		try {
 			auto row = CDClientDatabase::ExecuteQuery("SELECT id, name, displayName FROM Objects;");
 			for (; !row.eof(); row.nextRow()) {
@@ -211,6 +212,23 @@ namespace {
 		}
 		return table;
 	}
+
+	// Read at startup (ClientAssets::Preload), so worker threads only read it and never query the CDClient
+	const std::unordered_map<LOT, ObjectNames>& ObjectNameTable() {
+		static const auto table = ReadObjectNames();
+		return table;
+	}
+
+	// Where TextureAsPng keeps a texture it converted
+	std::filesystem::path PngCachePath(const std::string& normalized, uint32_t maxSize, bool opaque) {
+		std::string cacheName = normalized + "_" + std::to_string(maxSize) + (opaque ? "_opaque" : "") + ".png";
+		std::replace(cacheName.begin(), cacheName.end(), '/', '_');
+		std::replace(cacheName.begin(), cacheName.end(), ' ', '_');
+		return std::filesystem::path("dDashboardServer") / "icon_cache" / cacheName;
+	}
+
+	// ImageMagick conversions by cache file name: whether it worked (a failed one isn't tried again)
+	OnceCache<std::string, bool> g_Conversions;
 }
 
 namespace ClientAssets {
@@ -305,26 +323,37 @@ namespace ClientAssets {
 		if (normalized.ends_with(".png")) return ReadFile(source);
 		if (!normalized.ends_with(".dds")) return std::nullopt;
 
-		std::string cacheName = normalized + "_" + std::to_string(maxSize) + (opaque ? "_opaque" : "") + ".png";
-		std::replace(cacheName.begin(), cacheName.end(), '/', '_');
-		std::replace(cacheName.begin(), cacheName.end(), ' ', '_');
-		const auto cacheDir = std::filesystem::path("dDashboardServer") / "icon_cache";
-		const auto target = cacheDir / cacheName;
-		if (!std::filesystem::exists(target)) {
-			// ImageMagick runs without a shell (an argument vector); odd characters are still refused as a precaution
-			if (g_FailedConversions.contains(cacheName) || Process::HasShellMetacharacters(source.string())) return std::nullopt;
-			std::filesystem::create_directories(cacheDir, ec);
-			const std::string size = std::to_string(maxSize) + "x" + std::to_string(maxSize) + ">";
-			std::vector<std::string> arguments{ "magick", source.string() };
-			if (opaque) { arguments.push_back("-alpha"); arguments.push_back("off"); }
-			arguments.insert(arguments.end(), { "-resize", size, target.string() });
-			if (Process::Run(arguments) != 0) {
-				LOG_DEBUG("Texture conversion failed for %s (is ImageMagick installed?)", normalized.c_str());
-				g_FailedConversions.insert(cacheName);
-				return std::nullopt;
-			}
+		const auto target = PngCachePath(normalized, maxSize, opaque);
+		const auto cacheDir = target.parent_path();
+		const auto cacheName = target.filename().string();
+		// ImageMagick runs without a shell (an argument vector); odd characters are still refused as a precaution
+		if (!std::filesystem::exists(target, ec) && !Process::HasShellMetacharacters(source.string())) {
+			// Once per file, however many threads ask at once; written under another name and renamed, so a reader
+			// never sees half a file
+			const auto converted = g_Conversions.Get(cacheName, [&] {
+				if (std::filesystem::exists(target, ec)) return true;
+				std::filesystem::create_directories(cacheDir, ec);
+				const auto partial = cacheDir / (cacheName + ".part.png");
+				const std::string size = std::to_string(maxSize) + "x" + std::to_string(maxSize) + ">";
+				std::vector<std::string> arguments{ "magick", source.string() };
+				if (opaque) { arguments.push_back("-alpha"); arguments.push_back("off"); }
+				arguments.insert(arguments.end(), { "-resize", size, partial.string() });
+				std::error_code renameError;
+				if (Process::Run(arguments) != 0 || (std::filesystem::rename(partial, target, renameError), renameError)) {
+					LOG_DEBUG("Texture conversion failed for %s (is ImageMagick installed?)", normalized.c_str());
+					return false;
+				}
+				return true;
+			});
+			if (!converted) return std::nullopt;
 		}
 		return ReadFile(target);
+	}
+
+	bool TextureAsPngReady(const std::string& assetPath, uint32_t maxSize, bool opaque) {
+		const auto normalized = NormalizeAssetPath(assetPath);
+		std::error_code ec;
+		return normalized.ends_with(".png") || std::filesystem::exists(PngCachePath(normalized, maxSize, opaque), ec);
 	}
 
 	std::optional<std::string> ReadResFile(const std::string& relativePath) {
@@ -340,6 +369,11 @@ namespace ClientAssets {
 		std::error_code ec;
 		if (!std::filesystem::is_regular_file(path, ec)) return std::nullopt;
 		return path;
+	}
+
+	void Preload() {
+		ClientRes();
+		ObjectNameTable();
 	}
 
 	std::filesystem::path ResFolder() {

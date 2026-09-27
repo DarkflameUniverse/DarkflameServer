@@ -19,9 +19,11 @@
 #include "NifFile.h"
 #include "ReportRoutes.h"
 #include "RouteUtils.h"
+#include "OnceCache.h"
 #include "TtlCache.h"
 #include "Web.h"
 #include "WorkerPool.h"
+#include "Workers.h"
 #include "WorldScene.h"
 #include "ZonePaths.h"
 
@@ -78,13 +80,10 @@ namespace {
 		std::unordered_map<std::string, std::vector<std::string>> byName;
 	};
 
-	const FileIndex& Files() {
-		static std::optional<FileIndex> index;
-		if (index) return *index;
-		index.emplace();
-		const auto client = Game::config->GetValue("client_location");
-		if (client.empty()) return *index;
-		const auto res = std::filesystem::path(client) / "res";
+	FileIndex IndexFiles() {
+		FileIndex index;
+		const auto res = ClientAssets::ResFolder();
+		if (res.empty()) return index;
 		std::error_code ec;
 		for (const char* folder : { "mesh", "textures", "animations" }) {
 			// Unpacked clients keep their original case, so the top folder is matched ignoring case too
@@ -93,12 +92,18 @@ namespace {
 				for (auto it = std::filesystem::recursive_directory_iterator(top.path(), ec); !ec && it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
 					if (!it->is_regular_file(ec)) continue;
 					const auto relative = Lower(std::filesystem::relative(it->path(), res, ec).generic_string());
-					index->paths.insert(relative);
-					index->byName[Lower(it->path().filename().string())].push_back(relative);
+					index.paths.insert(relative);
+					index.byName[Lower(it->path().filename().string())].push_back(relative);
 				}
 			}
 		}
-		return *index;
+		return index;
+	}
+
+	// Built at startup (Scenery::Preload); read only afterwards
+	const FileIndex& Files() {
+		static const FileIndex index = IndexFiles();
+		return index;
 	}
 
 	// A texture a model names: next to the model if it's there (the usual case), else the file of that name sharing
@@ -140,24 +145,27 @@ namespace {
 	};
 
 	// Every LOT with a render component, read once (Objects has no index on id, so it is read whole too)
-	const std::unordered_map<uint32_t, RenderInfo>& RenderInfos() {
-		static std::optional<std::unordered_map<uint32_t, RenderInfo>> infos;
-		if (infos) return *infos;
-		infos.emplace();
+	std::unordered_map<uint32_t, RenderInfo> ReadRenderInfos() {
+		std::unordered_map<uint32_t, RenderInfo> infos;
 		try {
 			auto row = CDClientDatabase::ExecuteQuery(
 				"SELECT cr.id, rc.render_asset FROM ComponentsRegistry cr JOIN RenderComponent rc ON rc.id = cr.component_id "
 				"WHERE cr.component_type = " + std::to_string(RENDER_COMPONENT) + ";");
-			for (; !row.eof(); row.nextRow()) infos->try_emplace(static_cast<uint32_t>(row.getIntField(0)), RenderInfo{ row.getStringField(1, ""), "" });
+			for (; !row.eof(); row.nextRow()) infos.try_emplace(static_cast<uint32_t>(row.getIntField(0)), RenderInfo{ row.getStringField(1, ""), "" });
 			auto types = CDClientDatabase::ExecuteQuery("SELECT id, type FROM Objects;");
 			for (; !types.eof(); types.nextRow()) {
-				const auto it = infos->find(static_cast<uint32_t>(types.getIntField(0)));
-				if (it != infos->end() && it->second.type.empty()) it->second.type = types.getStringField(1, "");
+				const auto it = infos.find(static_cast<uint32_t>(types.getIntField(0)));
+				if (it != infos.end() && it->second.type.empty()) it->second.type = types.getStringField(1, "");
 			}
 		} catch (const std::exception& ex) {
 			LOG("Could not read the render components of objects: %s", ex.what());
 		}
-		return *infos;
+		return infos;
+	}
+
+	const std::unordered_map<uint32_t, RenderInfo>& RenderInfos() {
+		static const auto infos = ReadRenderInfos();
+		return infos;
 	}
 
 	struct Model {
@@ -176,30 +184,33 @@ namespace {
 		if (info == infos.end()) return {};
 		const auto draw = WorldScene::ClientDraws(object, info->second.type);
 		if (draw == WorldScene::eClientDraw::NO_MODEL) return {};
+		static std::mutex mutex;
 		static std::unordered_map<std::string, std::string> resolved;
 		const auto& stored = object.nifName.empty() ? info->second.asset : object.nifName;
-		auto it = resolved.find(stored);
-		if (it == resolved.end()) it = resolved.emplace(stored, ResolveModel(stored)).first;
-		return { it->second, draw == WorldScene::eClientDraw::HIDDEN };
+		{
+			std::lock_guard lock(mutex);
+			if (const auto it = resolved.find(stored); it != resolved.end()) return { it->second, draw == WorldScene::eClientDraw::HIDDEN };
+		}
+		auto path = ResolveModel(stored);
+		std::lock_guard lock(mutex);
+		resolved.try_emplace(stored, path);
+		return { std::move(path), draw == WorldScene::eClientDraw::HIDDEN };
 	}
 
 	std::optional<std::string> LuzPath(uint32_t zone) {
-		auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT zoneName FROM ZoneTable WHERE zoneID = ? LIMIT 1;");
-		stmt.bind(1, static_cast<int>(zone));
-		auto result = stmt.execQuery();
-		if (result.eof()) return std::nullopt;
-		std::string path = result.getStringField(0, "");
-		if (!path.ends_with(".luz")) return std::nullopt;
-		return path;
+		return ZoneLuzPath(zone);
 	}
 
 	double Round(float value, double scale) { return std::round(static_cast<double>(value) * scale) / scale; }
 
+	/**
+	 * A zone's models and scenery manifest, built once (g_Zones). Once shared, assets, index, flairModels and the
+	 * warmed flags are guarded by g_ZoneMutex: the flairs' models join assets when their manifest is built.
+	 */
 	struct ZoneScenery {
 		std::vector<std::string> assets;      // res paths of models, indexed by the manifests
 		std::map<std::string, size_t> index;  // res path -> its index in assets
 		std::string json;
-		std::optional<std::string> flairs;    // the flairs' manifest, built when first asked for (their models join assets)
 		std::unordered_set<std::string> flairModels; // res paths of the flairs' models, converted ahead of others
 		bool warmedScenery{};                 // WarmUp queued the scenery's models
 		bool warmedFlairs{};                  // and the flairs'
@@ -211,14 +222,12 @@ namespace {
 		}
 	};
 
-	std::optional<ZoneScenery>& Zone(uint32_t zoneId) {
-		static std::map<uint32_t, std::optional<ZoneScenery>> cache;
-		if (const auto it = cache.find(zoneId); it != cache.end()) return it->second;
-		auto& entry = cache[zoneId];
+	std::mutex g_ZoneMutex;
 
+	std::shared_ptr<ZoneScenery> BuildZone(uint32_t zoneId) {
 		const auto luzPath = LuzPath(zoneId);
 		const auto luz = luzPath ? ClientAssets::ReadResFile("maps/" + *luzPath) : std::nullopt;
-		if (!luz) return entry;
+		if (!luz) return nullptr;
 		const auto folder = luzPath->substr(0, luzPath->find_last_of('/') + 1);
 
 		ZoneScenery scenery;
@@ -247,22 +256,36 @@ namespace {
 			{"zone", zoneId}, {"sky", sky}, {"assets", scenery.assets},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"hidden", hidden} }}
 		}.dump();
-		entry = std::move(scenery);
-		return entry;
+		return std::make_shared<ZoneScenery>(std::move(scenery));
+	}
+
+	OnceCache<uint32_t, std::shared_ptr<ZoneScenery>> g_Zones;
+
+	// The zone's scenery, built when first asked for (any thread); nullptr without client files
+	std::shared_ptr<ZoneScenery> Zone(uint32_t zoneId) {
+		return g_Zones.Get(zoneId, [zoneId] { return BuildZone(zoneId); });
+	}
+
+	// The same, only when it is built already (never waits)
+	std::shared_ptr<ZoneScenery> ZoneIfBuilt(uint32_t zoneId) {
+		return g_Zones.Ready(zoneId) ? Zone(zoneId) : nullptr;
 	}
 
 	// FlairTable: flair id -> the model's res path (empty when the client lacks it), read once
-	const std::unordered_map<uint32_t, std::string>& FlairModels() {
-		static std::optional<std::unordered_map<uint32_t, std::string>> models;
-		if (models) return *models;
-		models.emplace();
+	std::unordered_map<uint32_t, std::string> ReadFlairModels() {
+		std::unordered_map<uint32_t, std::string> models;
 		try {
 			auto row = CDClientDatabase::ExecuteQuery("SELECT id, asset FROM FlairTable;");
-			for (; !row.eof(); row.nextRow()) models->try_emplace(static_cast<uint32_t>(row.getIntField(0)), ResolveModel(row.getStringField(1, "")));
+			for (; !row.eof(); row.nextRow()) models.try_emplace(static_cast<uint32_t>(row.getIntField(0)), ResolveModel(row.getStringField(1, "")));
 		} catch (const std::exception& ex) {
 			LOG("Could not read the flairs: %s", ex.what());
 		}
-		return *models;
+		return models;
+	}
+
+	const std::unordered_map<uint32_t, std::string>& FlairModels() {
+		static const auto models = ReadFlairModels();
+		return models;
 	}
 
 	/**
@@ -275,18 +298,16 @@ namespace {
 	 * The flairs' manifest (as the scenery's, plus a tint per flair), from the zone's terrain file. A flair's color
 	 * tints its model; 63 is full strength (the files use 0 to 63 for most flairs, a little more for brighter ones).
 	 */
-	const std::optional<std::string>& Flairs(uint32_t zoneId, ZoneScenery& scenery) {
-		if (scenery.flairs) return scenery.flairs;
-		const auto raw = ZoneRaw(zoneId);
+	std::optional<std::string> BuildFlairs(uint32_t zoneId, ZoneScenery& scenery) {
+		const auto raw = ZoneRawShared(zoneId);
 		const auto& models = FlairModels();
-		nlohmann::json assetOf = nlohmann::json::array(), positions = nlohmann::json::array(), rotations = nlohmann::json::array(),
-			scales = nlohmann::json::array(), colors = nlohmann::json::array();
+		std::vector<const std::string*> modelOf;
+		nlohmann::json positions = nlohmann::json::array(), rotations = nlohmann::json::array(), scales = nlohmann::json::array(), colors = nlohmann::json::array();
 		for (const auto& chunk : raw ? raw->chunks : std::vector<Raw::Chunk>{}) {
 			for (const auto& flair : chunk.flairs) {
 				const auto model = models.find(flair.id);
 				if (model == models.end() || model->second.empty() || !std::isfinite(flair.position.x)) continue;
-				assetOf.push_back(scenery.IndexOf(model->second));
-				scenery.flairModels.insert(model->second);
+				modelOf.push_back(&model->second);
 				for (const auto value : { flair.position.x, flair.position.y, flair.position.z }) positions.push_back(Round(value, 100.0));
 				// Radians about x, y and z, applied in that order
 				const double c1 = std::cos(flair.rotation.x / 2), c2 = std::cos(flair.rotation.y / 2), c3 = std::cos(flair.rotation.z / 2);
@@ -298,11 +319,32 @@ namespace {
 				for (const auto value : { flair.colorR, flair.colorG, flair.colorB }) colors.push_back(value);
 			}
 		}
-		scenery.flairs = nlohmann::json{
-			{"zone", zoneId}, {"sky", -1}, {"assets", scenery.assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 63.0},
+		// The flairs' models join the zone's list, which mesh requests read meanwhile
+		nlohmann::json assetOf = nlohmann::json::array();
+		std::vector<std::string> assets;
+		{
+			std::lock_guard lock(g_ZoneMutex);
+			for (const auto* model : modelOf) {
+				assetOf.push_back(scenery.IndexOf(*model));
+				scenery.flairModels.insert(*model);
+			}
+			assets = scenery.assets;
+		}
+		return nlohmann::json{
+			{"zone", zoneId}, {"sky", -1}, {"assets", assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 63.0},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"color", colors} }}
 		}.dump();
-		return scenery.flairs;
+	}
+
+	OnceCache<uint32_t, std::optional<std::string>> g_Flairs;
+
+	/**
+	 * The flairs' manifest (as the scenery's, plus a tint per flair), from the zone's terrain file. A flair's color
+	 * tints its model; 63 is full strength (the files use 0 to 63 for most flairs, a little more for brighter ones).
+	 * Built when first asked for (any thread).
+	 */
+	const std::optional<std::string>& Flairs(uint32_t zoneId, ZoneScenery& scenery) {
+		return g_Flairs.Get(zoneId, [zoneId, &scenery] { return BuildFlairs(zoneId, scenery); });
 	}
 
 	constexpr uint32_t FORMAT_VERSION = 1; // bump when NifFile's output changes, so cached files are rebuilt
@@ -518,7 +560,7 @@ namespace {
 
 	// ---- Converting on worker threads, so a big model never holds up the web server's one thread ----
 
-	WorkerPool g_Pool;
+	WorkerPool& Pool() { return Workers::Pool(); }
 
 	constexpr uintmax_t SMALL_MODEL_BYTES = 256 * 1024;       // .nif files this small convert in the pool's fast lane
 	constexpr uintmax_t LARGE_MODEL_BYTES = 4 * 1024 * 1024;  // and this big wait behind everything smaller
@@ -550,8 +592,11 @@ namespace {
 	}
 
 	// Flairs (small, and drawn around the camera) and small models first; big ones behind the rest
-	WorkerPool::ePriority PriorityOf(const ZoneScenery& zone, const std::string& path, const std::filesystem::path& file) {
-		if (zone.flairModels.contains(path)) return WorkerPool::ePriority::URGENT;
+	WorkerPool::ePriority PriorityOf(const ZoneScenery* zone, const std::string& path, const std::filesystem::path& file) {
+		if (zone) {
+			std::lock_guard lock(g_ZoneMutex);
+			if (zone->flairModels.contains(path)) return WorkerPool::ePriority::URGENT;
+		}
 		std::error_code ec;
 		const auto size = std::filesystem::file_size(file, ec);
 		if (ec || size <= SMALL_MODEL_BYTES) return WorkerPool::ePriority::URGENT;
@@ -563,11 +608,10 @@ namespace {
 	/**
 	 * Convert models of a zone ahead of time (onto the disk cache), at the LOD its viewer last asked for, while
 	 * someone views it. The lowest priority: only when nothing else waits. Smallest first; `front` puts these before
-	 * the zone's other queued ones (the flairs). Web thread.
+	 * the zone's other queued ones (the flairs). Any thread.
 	 */
 	void WarmUp(uint32_t zoneId, const std::vector<std::string>& paths, bool front) {
-		if (!g_Pool.Running() || paths.empty()) return;
-		Files(); // built here: workers only read it
+		if (!Pool().Running() || paths.empty()) return;
 		struct Item {
 			std::string path;
 			std::filesystem::path file;
@@ -576,9 +620,10 @@ namespace {
 		std::vector<Item> items;
 		std::set<std::string> seen;
 		std::error_code ec;
+		const auto res = ClientAssets::ResFolder();
 		for (const auto& path : paths) {
 			if (!seen.insert(path).second) continue;
-			const auto file = ClientAssets::ResolveResFile(path);
+			const auto file = ClientAssets::ResolveResFile(path, res);
 			if (file) items.push_back({ path, *file, std::filesystem::file_size(*file, ec) });
 		}
 		std::stable_sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.size < b.size; });
@@ -587,10 +632,10 @@ namespace {
 		// Queued at the front in reverse, so they still run smallest first
 		if (front) std::reverse(items.begin(), items.end());
 		for (auto& item : items) {
-			g_Pool.Submit(WorkerPool::ePriority::BACKGROUND, [zoneId, group, path = std::move(item.path), file = std::move(item.file)] {
+			Pool().Submit(WorkerPool::ePriority::BACKGROUND, [zoneId, group, path = std::move(item.path), file = std::move(item.file)] {
 				const auto activity = Viewed(zoneId);
 				if (!activity || g_Disk.Total() >= WARM_DISK_BYTES) {
-					g_Pool.Cancel(group);
+					Pool().Cancel(group);
 					return;
 				}
 				const auto key = ModelKey(path, activity->lod);
@@ -601,15 +646,26 @@ namespace {
 		}
 	}
 
-	// Warm the zone's models when its manifest is asked for (again after nobody viewed it for a while)
+	/**
+	 * Warm the zone's models when its manifest is asked for (again after nobody viewed it for a while). Planning it
+	 * (finding the files) is left to a worker, so a manifest in memory is still answered at once.
+	 */
 	void WarmScenery(uint32_t zoneId, ZoneScenery& zone, bool flairs) {
-		if (!Viewed(zoneId)) zone.warmedScenery = zone.warmedFlairs = false;
+		std::vector<std::string> paths;
+		{
+			const bool idle = !Viewed(zoneId);
+			std::lock_guard lock(g_ZoneMutex);
+			if (idle) zone.warmedScenery = zone.warmedFlairs = false;
+			auto& warmed = flairs ? zone.warmedFlairs : zone.warmedScenery;
+			if (!warmed) {
+				warmed = true;
+				if (flairs) paths.assign(zone.flairModels.begin(), zone.flairModels.end());
+				else paths = zone.assets;
+			}
+		}
 		Touch(zoneId);
-		auto& warmed = flairs ? zone.warmedFlairs : zone.warmedScenery;
-		if (warmed) return;
-		warmed = true;
-		if (flairs) WarmUp(zoneId, { zone.flairModels.begin(), zone.flairModels.end() }, true);
-		else WarmUp(zoneId, zone.assets, false);
+		if (paths.empty() || !Pool().Running()) return;
+		Pool().Submit(WorkerPool::ePriority::NORMAL, [zoneId, paths = std::move(paths), flairs] { WarmUp(zoneId, paths, flairs); });
 	}
 
 	// The texture `name` of model `path` (textures[slot] of its encoded form) as a DDS file. Any thread.
@@ -636,25 +692,66 @@ namespace {
 		return dds;
 	}
 
-	// The model path of `asset` in the zone's manifests, or a 404 reply
-	const std::string* AssetPath(HTTPReply& reply, uint32_t zoneId, uint32_t asset) {
-		auto& zone = Zone(zoneId);
-		// The flairs' models join the list when their manifest is first built (a browser may still have it cached)
-		if (zone && asset >= zone->assets.size()) Flairs(zoneId, *zone);
-		if (!zone || asset >= zone->assets.size()) {
-			JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No such model in this zone");
-			return nullptr;
+	// The model path of `asset` in the zone's manifests, building what's missing (any thread); nullopt: no such model
+	std::optional<std::string> AssetPath(uint32_t zoneId, uint32_t asset) {
+		const auto zone = Zone(zoneId);
+		if (!zone) return std::nullopt;
+		{
+			std::lock_guard lock(g_ZoneMutex);
+			if (asset < zone->assets.size()) return zone->assets[asset];
 		}
-		return &zone->assets[asset];
+		// The flairs' models join the list when their manifest is first built (a browser may still have it cached)
+		Flairs(zoneId, *zone);
+		std::lock_guard lock(g_ZoneMutex);
+		if (asset < zone->assets.size()) return zone->assets[asset];
+		return std::nullopt;
+	}
+
+	// The same without building anything (never waits): nullopt when it isn't known yet
+	std::optional<std::string> AssetPathIfBuilt(uint32_t zoneId, uint32_t asset) {
+		const auto zone = ZoneIfBuilt(zoneId);
+		if (!zone) return std::nullopt;
+		std::lock_guard lock(g_ZoneMutex);
+		if (asset < zone->assets.size()) return zone->assets[asset];
+		return std::nullopt;
+	}
+
+	/**
+	 * Where model `asset` is, and how urgent converting it is, when that is known without building anything: for
+	 * the web thread, which only hands the work on
+	 */
+	struct Known {
+		std::optional<std::string> path;
+		std::optional<std::filesystem::path> file;
+		WorkerPool::ePriority priority{ WorkerPool::ePriority::NORMAL };
+	};
+
+	Known KnownAsset(uint32_t zoneId, uint32_t asset) {
+		Known known;
+		known.path = AssetPathIfBuilt(zoneId, asset);
+		if (!known.path) return known;
+		known.file = ClientAssets::ResolveResFile(*known.path, ClientAssets::ResFolder());
+		if (known.file) known.priority = PriorityOf(ZoneIfBuilt(zoneId).get(), *known.path, *known.file);
+		return known;
 	}
 }
 
 namespace Scenery {
+	void Preload() {
+		Files();
+		RenderInfos();
+		FlairModels();
+	}
+
 	std::optional<std::string> ZoneJson(uint32_t zoneId) {
-		auto& zone = Zone(zoneId);
+		const auto zone = Zone(zoneId);
 		if (!zone) return std::nullopt;
 		WarmScenery(zoneId, *zone, false);
 		return zone->json;
+	}
+
+	bool ZoneReady(uint32_t zoneId) {
+		return g_Zones.Ready(zoneId);
 	}
 
 	bool HasModel(const WorldScene::Object& object) {
@@ -663,60 +760,67 @@ namespace Scenery {
 	}
 
 	std::optional<std::string> FlairsJson(uint32_t zoneId) {
-		auto& zone = Zone(zoneId);
+		const auto zone = Zone(zoneId);
 		if (!zone) return std::nullopt;
 		const auto& flairs = Flairs(zoneId, *zone);
 		WarmScenery(zoneId, *zone, true);
 		return flairs;
 	}
 
+	bool FlairsReady(uint32_t zoneId) {
+		return g_Zones.Ready(zoneId) && g_Flairs.Ready(zoneId);
+	}
+
 	void ReplyMesh(HTTPReply& reply, const HTTPContext& context, uint32_t zoneId, uint32_t asset, uint32_t lod) {
-		const auto* found = AssetPath(reply, zoneId, asset);
-		if (!found) return;
-		const auto path = *found;
 		lod = std::min(lod, MAX_LOD);
 		Touch(zoneId, lod);
-		if (const auto cached = g_Models.Get(ModelKey(path, lod))) return Binary(reply, *cached);
-		const auto file = ClientAssets::ResolveResFile(path);
-		if (!file) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Could not read this model");
-		Files(); // built here: workers only read it
+		auto known = KnownAsset(zoneId, asset);
+		if (known.path) {
+			if (const auto cached = g_Models.Get(ModelKey(*known.path, lod))) return Binary(reply, *cached);
+		}
+		const auto res = ClientAssets::ResFolder();
 		const auto deferred = Web::Defer(reply, context);
-		g_Pool.Submit(PriorityOf(*Zone(zoneId), path, *file), [deferred, path, lod, file = *file] {
+		Pool().Submit(known.priority, [deferred, zoneId, asset, lod, res, known = std::move(known)] {
 			if (deferred.Cancelled()) return;
 			HTTPReply out;
-			const auto encoded = Encoded(path, lod, file);
-			if (encoded) Binary(out, *encoded);
-			else JsonError(out, eHTTPStatusCode::NOT_FOUND, "Could not read this model");
+			const auto path = known.path ? known.path : AssetPath(zoneId, asset);
+			const auto file = known.file ? known.file : path ? ClientAssets::ResolveResFile(*path, res) : std::nullopt;
+			if (!path) {
+				JsonError(out, eHTTPStatusCode::NOT_FOUND, "No such model in this zone");
+			} else if (const auto encoded = file ? Encoded(*path, lod, *file) : nullptr) {
+				Binary(out, *encoded);
+			} else {
+				JsonError(out, eHTTPStatusCode::NOT_FOUND, "Could not read this model");
+			}
 			deferred.Send(std::move(out));
 		});
 	}
 
 	void ReplyTexture(HTTPReply& reply, const HTTPContext& context, uint32_t zoneId, uint32_t asset, uint32_t slot, uint32_t lod) {
-		const auto* found = AssetPath(reply, zoneId, asset);
-		if (!found) return;
-		const auto path = *found;
 		lod = std::min(lod, MAX_LOD);
 		Touch(zoneId, lod);
-		const auto file = ClientAssets::ResolveResFile(path);
-		if (!file) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No such texture");
-		Files();
+		auto known = KnownAsset(zoneId, asset);
 		// Quick when the model is converted already and the texture is a file of its own, or one kept from its model
-		auto priority = WorkerPool::ePriority::URGENT;
-		if (const auto cached = g_Models.Get(ModelKey(path, lod))) {
-			const auto textures = TexturesOf(*cached);
-			if (slot < textures.size() && textures[slot].starts_with('#') && !g_Embedded.Get(path + textures[slot])) priority = PriorityOf(*Zone(zoneId), path, *file);
-		} else {
-			priority = PriorityOf(*Zone(zoneId), path, *file);
+		if (known.path) {
+			if (const auto cached = g_Models.Get(ModelKey(*known.path, lod))) {
+				const auto textures = TexturesOf(*cached);
+				if (slot >= textures.size() || !textures[slot].starts_with('#') || g_Embedded.Get(*known.path + textures[slot])) known.priority = WorkerPool::ePriority::URGENT;
+			}
 		}
+		const auto res = ClientAssets::ResFolder();
 		const auto deferred = Web::Defer(reply, context);
-		g_Pool.Submit(priority, [deferred, path, lod, slot, file = *file, res = ClientAssets::ResFolder()] {
+		Pool().Submit(known.priority, [deferred, zoneId, asset, lod, slot, res, known = std::move(known)] {
 			if (deferred.Cancelled()) return;
 			HTTPReply out;
-			const auto encoded = Encoded(path, lod, file);
+			const auto path = known.path ? known.path : AssetPath(zoneId, asset);
+			const auto file = known.file ? known.file : path ? ClientAssets::ResolveResFile(*path, res) : std::nullopt;
+			const auto encoded = path && file ? Encoded(*path, lod, *file) : nullptr;
 			const auto textures = encoded ? TexturesOf(*encoded) : std::vector<std::string>{};
-			if (slot >= textures.size() || textures[slot].empty()) {
+			if (!path) {
+				JsonError(out, eHTTPStatusCode::NOT_FOUND, "No such model in this zone");
+			} else if (slot >= textures.size() || textures[slot].empty()) {
 				JsonError(out, eHTTPStatusCode::NOT_FOUND, "No such texture");
-			} else if (auto dds = TextureBytes(path, file, textures, textures[slot], res)) {
+			} else if (auto dds = TextureBytes(*path, *file, textures, textures[slot], res)) {
 				Binary(out, std::move(*dds));
 			} else {
 				JsonError(out, eHTTPStatusCode::NOT_FOUND, "Could not read this texture");
@@ -725,18 +829,7 @@ namespace Scenery {
 		});
 	}
 
-	void Shutdown() {
-		g_Pool.Stop();
-	}
-
 	void RegisterRoutes() {
-		auto threads = Game::config ? Game::config->GetValue<uint32_t>("scenery_workers", 0) : 0;
-		if (threads == 0) threads = static_cast<uint32_t>(WorkerPool::DefaultThreads(std::thread::hardware_concurrency()));
-		threads = std::clamp<uint32_t>(threads, 2, 16);
-		// Converting ahead of time never takes more than half of the threads besides the fast lane
-		g_Pool.Start(threads, std::max<size_t>(1, (threads - 1) / 2));
-		LOG("Converting scenery models with %u threads", threads);
-
 		Route(eHTTPMethod::GET, "/api/scenery/:zone/mesh/:asset", 0,
 			"Model `asset` of a zone's scenery (see the scenery routes of properties and /world3d), converted from the client's .nif. Query: ?lod=0 (most detailed) to 3",
 			[](HTTPReply& reply, const HTTPContext& context) {

@@ -10,6 +10,9 @@ struct PlayerPositions;
 namespace WorldView {
 	void RegisterRoutes();
 
+	// Read the CDClient data the zone data builders need (at startup: they run on worker threads)
+	void Preload();
+
 	// A world server reported its players' positions: keep some of them for replays (throttled, written in batches)
 	void RecordPositions(const PlayerPositions& positions);
 }

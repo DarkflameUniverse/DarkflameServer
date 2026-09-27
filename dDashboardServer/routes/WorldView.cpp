@@ -11,6 +11,8 @@
 #include "Permissions.h"
 #include "ServerState.h"
 #include "Background.h"
+#include "OnceCache.h"
+#include "Workers.h"
 
 #include <chrono>
 #include <cmath>
@@ -83,20 +85,13 @@ namespace {
 	}
 
 	std::optional<std::string> LuzPath(uint32_t zone) {
-		auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT zoneName FROM ZoneTable WHERE zoneID = ? LIMIT 1;");
-		stmt.bind(1, static_cast<int>(zone));
-		auto result = stmt.execQuery();
-		if (result.eof()) return std::nullopt;
-		std::string path = result.getStringField(0, "");
-		if (!path.ends_with(".luz")) return std::nullopt;
-		return path;
+		return ZoneLuzPath(zone);
 	}
 
-	// LOT -> index into WorldScene::KINDS for every LOT with one of those components, read once
-	const std::map<uint32_t, uint8_t>& LotKinds() {
-		static std::optional<std::map<uint32_t, uint8_t>> kinds;
-		if (kinds) return *kinds;
-		kinds.emplace();
+	// LOT -> index into WorldScene::KINDS for every LOT with one of those components, read at startup (Preload): the
+	// zone data is built on worker threads, which never query the CDClient
+	std::map<uint32_t, uint8_t> ReadLotKinds() {
+		std::map<uint32_t, uint8_t> kinds;
 		std::map<uint32_t, std::vector<uint32_t>> components;
 		try {
 			auto result = CDClientDatabase::ExecuteQuery("SELECT id, component_type FROM ComponentsRegistry;");
@@ -106,9 +101,14 @@ namespace {
 		}
 		for (const auto& [lot, types] : components) {
 			const auto kind = WorldScene::Classify(types);
-			if (kind < WorldScene::KINDS.size()) (*kinds)[lot] = static_cast<uint8_t>(kind);
+			if (kind < WorldScene::KINDS.size()) kinds[lot] = static_cast<uint8_t>(kind);
 		}
-		return *kinds;
+		return kinds;
+	}
+
+	const std::map<uint32_t, uint8_t>& LotKinds() {
+		static const auto kinds = ReadLotKinds();
+		return kinds;
 	}
 
 	double Round(float value) { return std::round(static_cast<double>(value) * 100.0) / 100.0; }
@@ -118,15 +118,12 @@ namespace {
 	 * its .luz (the scene list) and its scene files. Objects are columns (lot, kind, flags, scene, x/y/z) to keep big zones
 	 * small: flags 1 = spawner, 2 = client only, 4 = drawn with a model by the scenery layer.
 	 */
-	std::optional<std::string> SceneJson(uint32_t zone) {
-		static std::map<uint32_t, std::optional<std::string>> cache;
-		if (const auto it = cache.find(zone); it != cache.end()) return it->second;
-
+	std::optional<std::string> BuildSceneJson(uint32_t zone) {
 		const auto luzPath = LuzPath(zone);
 		const auto luz = luzPath ? ClientAssets::ReadResFile("maps/" + *luzPath) : std::nullopt;
 		std::string error;
 		const auto zoneFile = luz ? ZonePaths::ReadHeader(*luz, error) : std::nullopt;
-		if (!zoneFile) return cache[zone] = std::nullopt;
+		if (!zoneFile) return std::nullopt;
 
 		const auto& lotKinds = LotKinds();
 		const auto other = static_cast<uint8_t>(WorldScene::KINDS.size());
@@ -167,19 +164,24 @@ namespace {
 			{"objects", { {"lot", lots}, {"kind", kindOf}, {"flags", flags}, {"scene", sceneOf}, {"pos", positions}, {"names", names} }}, {"lotNames", lotNames},
 			{"spawnPoints", ZoneSpawnPointsJson(zone).value_or(nlohmann::json::array())}
 		};
-		return cache[zone] = json.dump();
+		return json.dump();
+	}
+
+	OnceCache<uint32_t, std::optional<std::string>> g_Scenes;
+	OnceCache<uint32_t, std::optional<std::string>> g_Paths;
+
+	// Built on a worker thread the first time (any thread)
+	const std::optional<std::string>& SceneJson(uint32_t zone) {
+		return g_Scenes.Get(zone, [zone] { return BuildSceneJson(zone); });
 	}
 
 	// A zone's paths, which need the whole .luz (they are most of it): loaded when a path layer is first shown
-	std::optional<std::string> PathsJson(uint32_t zone) {
-		static std::map<uint32_t, std::optional<std::string>> cache;
-		if (const auto it = cache.find(zone); it != cache.end()) return it->second;
-
+	std::optional<std::string> BuildPathsJson(uint32_t zone) {
 		const auto luzPath = LuzPath(zone);
 		const auto luz = luzPath ? ClientAssets::ReadResFile("maps/" + *luzPath) : std::nullopt;
 		std::string error;
 		const auto zoneFile = luz ? ZonePaths::Read(*luz, error) : std::nullopt;
-		if (!zoneFile) return cache[zone] = std::nullopt;
+		if (!zoneFile) return std::nullopt;
 
 		nlohmann::json pathTypes = nlohmann::json::array();
 		for (const auto type : magic_enum::enum_values<PathType>()) pathTypes.push_back({ {"value", static_cast<int>(type)}, {"name", GameLabels::Name(type)} });
@@ -194,7 +196,11 @@ namespace {
 			if (points.empty()) continue;
 			paths.push_back({ {"name", path.pathName}, {"type", static_cast<int>(path.pathType)}, {"loop", path.pathBehavior == PathBehavior::Loop}, {"points", points} });
 		}
-		return cache[zone] = nlohmann::json{ {"zone", zone}, {"pathTypes", pathTypes}, {"paths", paths} }.dump();
+		return nlohmann::json{ {"zone", zone}, {"pathTypes", pathTypes}, {"paths", paths} }.dump();
+	}
+
+	const std::optional<std::string>& PathsJson(uint32_t zone) {
+		return g_Paths.Get(zone, [zone] { return BuildPathsJson(zone); });
 	}
 
 	std::string CharacterName(LWOOBJID id) {
@@ -211,22 +217,28 @@ namespace {
 		reply.headers.push_back(std::string("Cache-Control: ") + cache);
 	}
 
+	using Deflated = OnceCache<uint32_t, std::optional<std::string>>;
+
+	bool TakesDeflate(const HTTPContext& context) {
+		return context.GetHeader("Accept-Encoding").find("deflate") != std::string::npos;
+	}
+
 	/**
 	 * A big cached JSON body, deflated once per zone when the browser takes it: a zone's terrain chunks are mostly
-	 * base64 maps that shrink about tenfold (Avant Gardens: 19 MB to 1.4 MB).
+	 * base64 maps that shrink about tenfold (Avant Gardens: 19 MB to 1.4 MB). Any thread.
 	 */
-	void DeflatedJson(HTTPReply& reply, const HTTPContext& context, std::map<uint32_t, std::string>& deflated, uint32_t zone, const std::string& json, const char* cache) {
-		if (context.GetHeader("Accept-Encoding").find("deflate") == std::string::npos || json.size() > UINT32_MAX / 2) return RawJson(reply, json, cache);
-		auto it = deflated.find(zone);
-		if (it == deflated.end()) {
+	void DeflatedJson(HTTPReply& reply, bool deflate, Deflated& deflated, uint32_t zone, const std::string& json, const char* cache) {
+		if (!deflate || json.size() > UINT32_MAX / 2) return RawJson(reply, json, cache);
+		const auto& out = deflated.Get(zone, [&json]() -> std::optional<std::string> {
 			std::string out(ZCompression::GetMaxCompressedLength(static_cast<uint32_t>(json.size())), '\0');
 			const auto size = ZCompression::Compress(reinterpret_cast<const uint8_t*>(json.data()), static_cast<uint32_t>(json.size()),
 				reinterpret_cast<uint8_t*>(out.data()), static_cast<uint32_t>(out.size()));
-			if (size <= 0) return RawJson(reply, json, cache);
+			if (size <= 0) return std::nullopt;
 			out.resize(static_cast<size_t>(size));
-			it = deflated.emplace(zone, std::move(out)).first;
-		}
-		RawJson(reply, it->second, cache);
+			return out;
+		});
+		if (!out) return RawJson(reply, json, cache);
+		RawJson(reply, *out, cache);
 		reply.headers.push_back("Content-Encoding: deflate");
 		reply.headers.push_back("Vary: Accept-Encoding");
 	}
@@ -237,6 +249,10 @@ namespace {
 }
 
 namespace WorldView {
+	void Preload() {
+		LotKinds();
+	}
+
 	void RecordPositions(const PlayerPositions& positions) {
 		if (Setting("position_history", 1) == 0) {
 			g_Buffer.clear();
@@ -286,9 +302,11 @@ namespace WorldView {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto zone = PathId<uint32_t>(context.path, 2);
 				if (!zone) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid zone");
-				const auto json = SceneJson(*zone);
-				if (!json) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No zone file for this zone (is client_location set?)");
-				RawJson(reply, *json, "private, max-age=3600");
+				Workers::Reply(reply, context, g_Scenes.Ready(*zone), [zone = *zone](HTTPReply& out) {
+					const auto& json = SceneJson(zone);
+					if (!json) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No zone file for this zone (is client_location set?)");
+					RawJson(out, *json, "private, max-age=3600");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/world3d/:zone/paths", Perm("players_view"),
@@ -296,9 +314,11 @@ namespace WorldView {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto zone = PathId<uint32_t>(context.path, 2);
 				if (!zone) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid zone");
-				const auto json = PathsJson(*zone);
-				if (!json) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No zone file for this zone (is client_location set?)");
-				RawJson(reply, *json, "private, max-age=3600");
+				Workers::Reply(reply, context, g_Paths.Ready(*zone), [zone = *zone](HTTPReply& out) {
+					const auto& json = PathsJson(zone);
+					if (!json) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No zone file for this zone (is client_location set?)");
+					RawJson(out, *json, "private, max-age=3600");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/world3d/:zone/terrain_layers", Perm("players_view"),
@@ -306,10 +326,13 @@ namespace WorldView {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto zone = PathId<uint32_t>(context.path, 2);
 				if (!zone) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid zone");
-				const auto layers = ZoneTerrainLayersJson(*zone);
-				if (!layers) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
-				static std::map<uint32_t, std::string> deflated;
-				DeflatedJson(reply, context, deflated, *zone, *layers, "private, max-age=86400");
+				static Deflated deflated;
+				const auto deflate = TakesDeflate(context);
+				Workers::Reply(reply, context, ZoneTerrainLayersReady(*zone) && (!deflate || deflated.Ready(*zone)), [zone = *zone, deflate](HTTPReply& out) {
+					const auto layers = ZoneTerrainLayersJson(zone);
+					if (!layers) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
+					DeflatedJson(out, deflate, deflated, zone, *layers, "private, max-age=86400");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/world3d/:zone/flairs", Perm("players_view"),
@@ -317,9 +340,11 @@ namespace WorldView {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto zone = PathId<uint32_t>(context.path, 2);
 				if (!zone) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid zone");
-				const auto flairs = Scenery::FlairsJson(*zone);
-				if (!flairs) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
-				RawJson(reply, *flairs, "private, max-age=3600");
+				Workers::Reply(reply, context, Scenery::FlairsReady(*zone), [zone = *zone](HTTPReply& out) {
+					const auto flairs = Scenery::FlairsJson(zone);
+					if (!flairs) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
+					RawJson(out, *flairs, "private, max-age=3600");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/world3d/:zone/terrain_chunks", Perm("players_view"),
@@ -327,10 +352,13 @@ namespace WorldView {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto zone = PathId<uint32_t>(context.path, 2);
 				if (!zone) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid zone");
-				const auto terrain = ZoneTerrainChunksJson(*zone);
-				if (!terrain) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
-				static std::map<uint32_t, std::string> deflated;
-				DeflatedJson(reply, context, deflated, *zone, *terrain, "private, max-age=86400");
+				static Deflated deflated;
+				const auto deflate = TakesDeflate(context);
+				Workers::Reply(reply, context, ZoneTerrainChunksReady(*zone) && (!deflate || deflated.Ready(*zone)), [zone = *zone, deflate](HTTPReply& out) {
+					const auto terrain = ZoneTerrainChunksJson(zone);
+					if (!terrain) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No terrain for this zone");
+					DeflatedJson(out, deflate, deflated, zone, *terrain, "private, max-age=86400");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/world3d/:zone/scenery", Perm("players_view"),
@@ -338,9 +366,11 @@ namespace WorldView {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto zone = PathId<uint32_t>(context.path, 2);
 				if (!zone) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid zone");
-				const auto scenery = Scenery::ZoneJson(*zone);
-				if (!scenery) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No zone file for this zone (is client_location set?)");
-				RawJson(reply, *scenery, "private, max-age=3600");
+				Workers::Reply(reply, context, Scenery::ZoneReady(*zone), [zone = *zone](HTTPReply& out) {
+					const auto scenery = Scenery::ZoneJson(zone);
+					if (!scenery) return JsonError(out, eHTTPStatusCode::NOT_FOUND, "No zone file for this zone (is client_location set?)");
+					RawJson(out, *scenery, "private, max-age=3600");
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/world3d/history/instances", Perm("players_history"),

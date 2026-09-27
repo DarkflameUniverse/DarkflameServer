@@ -22,6 +22,25 @@ std::optional<std::string> ZoneTerrainJson(uint32_t zoneId);
 
 #include "Raw.h"
 
+/**
+ * The zone data below is built on the dashboard's worker threads too, so it is thread safe: results are built once
+ * (OnceCache) and the CDClient tables it needs are read at startup by PreloadZoneData (workers never query the
+ * CDClient). The ...Ready functions say whether a result is built, so a route can answer it at once.
+ */
+void PreloadZoneData();
+bool ZoneTerrainJsonReady(uint32_t zoneId);
+bool ZoneTerrainChunksReady(uint32_t zoneId);
+bool ZoneTerrainLayersReady(uint32_t zoneId);
+bool TerrainTextureReady(uint32_t textureId);
+
+// A zone's .luz file (relative to res/maps) from ZoneTable
+std::optional<std::string> ZoneLuzPath(uint32_t zoneId);
+
+#include <memory>
+
+// ZoneRaw, shared: the last few zones read are kept, and a zone asked for by several threads at once is read once
+std::shared_ptr<const Raw::Raw> ZoneRawShared(uint32_t zoneId);
+
 // A zone's terrain file (.raw) read whole, as its .luz names it; nullopt without client files or when it's damaged
 std::optional<Raw::Raw> ZoneRaw(uint32_t zoneId);
 

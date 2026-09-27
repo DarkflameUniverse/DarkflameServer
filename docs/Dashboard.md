@@ -906,7 +906,14 @@ manifest is asked for, the zone's models are also converted ahead of time onto t
 first, at the detail its viewer last used: only when nothing else waits, on at most half of the threads besides the
 flairs' one, stopping when nobody has viewed the zone for 90 seconds or the disk cache is three quarters full (it
 never evicts for this). The number of threads is `scenery_workers` in `dashboardconfig.ini` (Settings > Dashboard >
-Web server; 0, the default, picks half the CPU cores, 2 to 4; read at startup). Endpoints:
+Web server; 0, the default, picks half the CPU cores, 2 to 4; read at startup).
+
+The same threads build a zone's data the first time it is viewed (its terrain chunks and layers, scene objects,
+paths, scenery and flair manifests, deflated bodies) and convert terrain textures with ImageMagick, so opening a new
+zone doesn't hold up the rest of the dashboard; what is built already is answered at once. Each is built once, even
+when asked for twice at the same time. Workers never query the CDClient, read settings or touch the network: the
+tables they need (ZoneTable, render components, flairs, object names, terrain textures) are read at startup.
+Endpoints:
 `/api/properties/:id/scenery`, `/api/world3d/:zone/scenery`, `/api/world3d/:zone/flairs`,
 `/api/scenery/:zone/mesh/:asset?lod=`, `/api/scenery/:zone/texture/:asset/:slot?lod=`. The world view's other data:
 `/api/world3d/:zone/scene` (objects and scenes), `/terrain_chunks` and `/terrain_layers` (the terrain file; sent

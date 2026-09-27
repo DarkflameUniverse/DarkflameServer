@@ -37,24 +37,21 @@ namespace {
 		return name.empty() ? "Zone " + std::to_string(zoneId) : name;
 	}
 
-	nlohmann::json g_ZoneNamesCache;
-	bool g_ZoneNamesCached = false;
-
+	// Built once (worker threads read it too, so never lazily twice)
 	const nlohmann::json& GetZoneNamesJson() {
-		if (g_ZoneNamesCached) return g_ZoneNamesCache;
-
-		g_ZoneNamesCache["0"] = "Character Select";
-		auto keys = Locale::GetPhraseIdsWithPrefix("ZoneTable_");
-		for (const auto& key : keys) {
-			if (key.find("_DisplayDescription") == std::string::npos) continue;
-			auto start = std::string("ZoneTable_").length();
-			auto end = key.find("_DisplayDescription");
-			auto idStr = key.substr(start, end - start);
-			const auto& name = Locale::GetPhrase(key);
-			if (!name.empty()) g_ZoneNamesCache[idStr] = name;
-		}
-		g_ZoneNamesCached = true;
-		return g_ZoneNamesCache;
+		static const nlohmann::json names = [] {
+			nlohmann::json names;
+			names["0"] = "Character Select";
+			for (const auto& key : Locale::GetPhraseIdsWithPrefix("ZoneTable_")) {
+				if (key.find("_DisplayDescription") == std::string::npos) continue;
+				const auto start = std::string("ZoneTable_").length();
+				const auto end = key.find("_DisplayDescription");
+				const auto& name = Locale::GetPhrase(key);
+				if (!name.empty()) names[key.substr(start, end - start)] = name;
+			}
+			return names;
+		}();
+		return names;
 	}
 
 	nlohmann::json ParseCharacterXml(const std::string& xml) {

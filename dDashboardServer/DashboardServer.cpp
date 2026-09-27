@@ -60,6 +60,11 @@
 #include "ModeratorHelper.h"
 #include "LiveWorld.h"
 #include "Scenery.h"
+#include "Workers.h"
+#include "ReportRoutes.h"
+#include "WorldView.h"
+#include "ClientAssets.h"
+#include "DashboardRoutes.h"
 #include "LiveEventRoutes.h"
 #include "ChallengeRoutes.h"
 #include "Inspector.h"
@@ -411,6 +416,19 @@ int main(int argc, char** argv) {
 	);
 	Game::server = g_Server;
 
+	// What the worker threads read from the CDClient and the settings, read now on this thread: workers never query
+	// the CDClient, read settings or touch the network (RakNet and mongoose are the main thread's)
+	{
+		const auto start = std::chrono::steady_clock::now();
+		ClientAssets::Preload();
+		PreloadZoneData();
+		Scenery::Preload();
+		WorldView::Preload();
+		ZoneNames();
+		LOG("Read the client data for the 3D views in %lld ms", static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()));
+	}
+	Workers::Start();
+
 	// Initialize web server
 	if (!Game::web.Startup(ourIP, ourPort)) {
 		LOG("Failed to start web server on %s:%d", ourIP.c_str(), ourPort);
@@ -570,8 +588,8 @@ int main(int argc, char** argv) {
 
 	}
 
-	// Cleanup: the conversion threads first (they answer deferred requests), then the web server's connections
-	Scenery::Shutdown();
+	// Cleanup: the worker threads first (they answer deferred requests), then the web server's connections
+	Workers::Stop();
 	Game::web.Shutdown();
 	Inspector::Shutdown();
 	EmailService::Shutdown();

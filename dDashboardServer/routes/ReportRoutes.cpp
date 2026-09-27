@@ -1,4 +1,7 @@
 #include "ReportRoutes.h"
+#include "OnceCache.h"
+#include <deque>
+#include <future>
 #include "ZonePaths.h"
 
 #include <algorithm>
@@ -387,18 +390,72 @@ namespace {
 		std::string luzPath; // relative to res/maps
 	};
 
-	std::optional<ZoneInfo> GetZoneInfo(uint32_t zoneId) {
-		static std::map<uint32_t, std::optional<ZoneInfo>> cache;
-		if (const auto it = cache.find(zoneId); it != cache.end()) return it->second;
-		auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT zoneName, DisplayDescription FROM ZoneTable WHERE zoneID = ?;");
-		stmt.bind(1, static_cast<int>(zoneId));
-		auto result = stmt.execQuery();
-		std::optional<ZoneInfo> info;
-		if (!result.eof()) {
-			const std::string description = result.getStringField("DisplayDescription", "");
-			info = ZoneInfo{ description.empty() ? "Zone " + std::to_string(zoneId) : description, result.getStringField("zoneName", "") };
+	// Standard base64 (plain C++, no mongoose: zone data is built on worker threads)
+	std::string Base64(std::string_view bytes) {
+		static constexpr char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+		std::string out;
+		out.reserve((bytes.size() + 2) / 3 * 4);
+		size_t i = 0;
+		for (; i + 2 < bytes.size(); i += 3) {
+			const uint32_t n = (static_cast<uint8_t>(bytes[i]) << 16) | (static_cast<uint8_t>(bytes[i + 1]) << 8) | static_cast<uint8_t>(bytes[i + 2]);
+			for (const int shift : { 18, 12, 6, 0 }) out += ALPHABET[(n >> shift) & 63];
 		}
-		return cache[zoneId] = info;
+		if (i < bytes.size()) {
+			uint32_t n = static_cast<uint8_t>(bytes[i]) << 16;
+			if (i + 1 < bytes.size()) n |= static_cast<uint8_t>(bytes[i + 1]) << 8;
+			out += ALPHABET[(n >> 18) & 63];
+			out += ALPHABET[(n >> 12) & 63];
+			out += i + 1 < bytes.size() ? ALPHABET[(n >> 6) & 63] : '=';
+			out += '=';
+		}
+		return out;
+	}
+
+	std::map<uint32_t, ZoneInfo> ReadZoneTable() {
+		std::map<uint32_t, ZoneInfo> zones;
+		try {
+			auto result = CDClientDatabase::ExecuteQuery("SELECT zoneID, zoneName, DisplayDescription FROM ZoneTable;");
+			for (; !result.eof(); result.nextRow()) {
+				const std::string description = result.getStringField("DisplayDescription", "");
+				const auto zoneId = static_cast<uint32_t>(result.getIntField("zoneID", 0));
+				zones.try_emplace(zoneId, ZoneInfo{ description.empty() ? "Zone " + std::to_string(zoneId) : description, result.getStringField("zoneName", "") });
+			}
+		} catch (const std::exception& ex) {
+			LOG("Could not read the zone table: %s", ex.what());
+		}
+		return zones;
+	}
+
+	// ZoneTable, read at startup (PreloadZoneData) so worker threads never query the CDClient
+	const std::map<uint32_t, ZoneInfo>& ZoneTable() {
+		static const auto zones = ReadZoneTable();
+		return zones;
+	}
+
+	std::optional<ZoneInfo> GetZoneInfo(uint32_t zoneId) {
+		const auto& zones = ZoneTable();
+		const auto it = zones.find(zoneId);
+		if (it == zones.end()) return std::nullopt;
+		return it->second;
+	}
+
+	// mapTextureResource: texture id -> file name (lowercase), read at startup
+	const std::map<uint32_t, std::string>& TerrainTextureNames() {
+		static const auto names = [] {
+			std::map<uint32_t, std::string> names;
+			try {
+				auto result = CDClientDatabase::ExecuteQuery("SELECT id, texturepath FROM mapTextureResource;");
+				for (; !result.eof(); result.nextRow()) {
+					std::string file = result.getStringField(1, "");
+					std::transform(file.begin(), file.end(), file.begin(), ::tolower);
+					names.try_emplace(static_cast<uint32_t>(result.getIntField(0, 0)), file);
+				}
+			} catch (const std::exception& ex) {
+				LOG("Could not read the terrain textures: %s", ex.what());
+			}
+			return names;
+		}();
+		return names;
 	}
 
 	/**
@@ -457,10 +514,9 @@ namespace {
 	}
 
 	// Terrain for a zone as JSON with base64 16-bit heights, built once per zone
-	std::optional<std::string> TerrainJson(uint32_t zoneId) {
-		static std::map<uint32_t, std::optional<std::string>> cache;
-		if (const auto it = cache.find(zoneId); it != cache.end()) return it->second;
+	OnceCache<uint32_t, std::optional<std::string>> g_TerrainJson;
 
+	std::optional<std::string> BuildTerrainJson(uint32_t zoneId) {
 		std::optional<std::string> json;
 		const auto zone = GetZoneInfo(zoneId);
 		if (zone) {
@@ -469,8 +525,7 @@ namespace {
 			const auto grid = raw ? TerrainMap::Parse(*raw, 1024) : std::nullopt;
 			if (grid) {
 				const auto packed = TerrainMap::Quantize(*grid);
-				std::string encoded(packed.size() * 4 / 3 + 8, '\0');
-				encoded.resize(mg_base64_encode(reinterpret_cast<const unsigned char*>(packed.data()), packed.size(), encoded.data(), encoded.size()));
+				const auto encoded = Base64({ reinterpret_cast<const char*>(packed.data()), packed.size() * sizeof(packed[0]) });
 				nlohmann::json terrain{
 					{"zone", zoneId}, {"minX", grid->minX}, {"minZ", grid->minZ}, {"step", grid->step},
 					{"width", grid->width}, {"height", grid->height}, {"minY", grid->minY}, {"maxY", grid->maxY}, {"heights", encoded}
@@ -479,7 +534,11 @@ namespace {
 				json = terrain.dump();
 			}
 		}
-		return cache[zoneId] = json;
+		return json;
+	}
+
+	std::optional<std::string> TerrainJson(uint32_t zoneId) {
+		return g_TerrainJson.Get(zoneId, [zoneId] { return BuildTerrainJson(zoneId); });
 	}
 
 	std::string DayText(uint32_t day) {
@@ -534,16 +593,36 @@ std::optional<std::string> ZoneTerrainJson(uint32_t zoneId) {
 }
 
 namespace {
-	std::string Base64(std::string_view bytes) {
-		std::string encoded(bytes.size() * 4 / 3 + 8, '\0');
-		encoded.resize(mg_base64_encode(reinterpret_cast<const unsigned char*>(bytes.data()), bytes.size(), encoded.data(), encoded.size()));
-		return encoded;
-	}
 }
 
 std::optional<Raw::Raw> ZoneRaw(uint32_t zoneId) {
 	const auto zone = GetZoneInfo(zoneId);
 	return zone ? ReadZoneRaw(*zone) : std::nullopt;
+}
+
+std::shared_ptr<const Raw::Raw> ZoneRawShared(uint32_t zoneId) {
+	// The last few zones: their chunks, layers and flairs are built one after the other when a zone is first viewed
+	constexpr size_t KEEP = 2;
+	static std::mutex mutex;
+	static std::deque<std::pair<uint32_t, std::shared_future<std::shared_ptr<const Raw::Raw>>>> recent;
+	std::promise<std::shared_ptr<const Raw::Raw>> promise;
+	std::shared_future<std::shared_ptr<const Raw::Raw>> future;
+	{
+		std::lock_guard lock(mutex);
+		const auto it = std::find_if(recent.begin(), recent.end(), [zoneId](const auto& entry) { return entry.first == zoneId; });
+		if (it != recent.end()) return it->second.get(); // may wait for the thread reading it
+		future = promise.get_future().share();
+		recent.emplace_back(zoneId, future);
+		if (recent.size() > KEEP) recent.pop_front();
+	}
+	std::shared_ptr<const Raw::Raw> raw;
+	try {
+		if (auto read = ZoneRaw(zoneId)) raw = std::make_shared<const Raw::Raw>(std::move(*read));
+	} catch (const std::exception& ex) {
+		LOG("Could not read the terrain of zone %u: %s", zoneId, ex.what());
+	}
+	promise.set_value(raw);
+	return raw;
 }
 
 namespace {
@@ -552,11 +631,39 @@ namespace {
 	}
 }
 
+namespace {
+	OnceCache<uint32_t, std::optional<std::string>> g_TerrainChunks;
+	OnceCache<uint32_t, std::optional<std::string>> g_TerrainLayers;
+	OnceCache<uint32_t, std::string> g_TerrainTexturePaths; // id -> path under res/ ("" when the client lacks it)
+}
+
+bool ZoneTerrainJsonReady(uint32_t zoneId) {
+	return g_TerrainJson.Ready(zoneId);
+}
+
+bool ZoneTerrainChunksReady(uint32_t zoneId) {
+	return g_TerrainChunks.Ready(zoneId);
+}
+
+bool ZoneTerrainLayersReady(uint32_t zoneId) {
+	return g_TerrainLayers.Ready(zoneId);
+}
+
+std::optional<std::string> ZoneLuzPath(uint32_t zoneId) {
+	const auto zone = GetZoneInfo(zoneId);
+	if (!zone || !zone->luzPath.ends_with(".luz")) return std::nullopt;
+	return zone->luzPath;
+}
+
+void PreloadZoneData() {
+	ZoneTable();
+	TerrainTextureNames();
+}
+
 std::optional<std::string> ZoneTerrainChunksJson(uint32_t zoneId) {
-	static std::map<uint32_t, std::optional<std::string>> cache;
-	if (const auto it = cache.find(zoneId); it != cache.end()) return it->second;
+	return g_TerrainChunks.Get(zoneId, [zoneId]() -> std::optional<std::string> {
 	std::optional<std::string> json;
-	if (const auto raw = ZoneRaw(zoneId)) {
+	if (const auto raw = ZoneRawShared(zoneId)) {
 		nlohmann::json out{ {"zone", zoneId}, {"chunks", nlohmann::json::array()} };
 		std::set<uint32_t> textures;
 		for (const auto& chunk : raw->chunks) {
@@ -575,15 +682,15 @@ std::optional<std::string> ZoneTerrainChunksJson(uint32_t zoneId) {
 		out["textures"] = textures;
 		json = out.dump();
 	}
-	return cache[zoneId] = json;
+	return json;
+	});
 }
 
 std::optional<std::string> ZoneTerrainLayersJson(uint32_t zoneId) {
-	static std::map<uint32_t, std::optional<std::string>> cache;
-	if (const auto it = cache.find(zoneId); it != cache.end()) return it->second;
+	return g_TerrainLayers.Get(zoneId, [zoneId]() -> std::optional<std::string> {
 	std::optional<std::string> json;
 	const auto zone = GetZoneInfo(zoneId);
-	const auto raw = zone ? ReadZoneRaw(*zone) : std::nullopt;
+	const auto raw = zone ? ZoneRawShared(zoneId) : nullptr;
 	if (raw) {
 		// Scene names from the .luz: the terrain's scene map holds the ids of its general scenes (audio scenes share them)
 		std::map<uint32_t, std::string> names;
@@ -615,30 +722,42 @@ std::optional<std::string> ZoneTerrainLayersJson(uint32_t zoneId) {
 		for (const auto& chunk : raw->chunks) flairs += chunk.flairs.size();
 		json = nlohmann::json{ {"zone", zoneId}, {"version", raw->version}, {"scenes", scenes}, {"chunks", chunks}, {"flairs", flairs} }.dump();
 	}
-	return cache[zoneId] = json;
+	return json;
+	});
+}
+
+namespace {
+	// Where terrain texture `textureId` is under res/, found once ("" when the client lacks it)
+	const std::string& TerrainTexturePath(uint32_t textureId) {
+		return g_TerrainTexturePaths.Get(textureId, [textureId] {
+			const auto& names = TerrainTextureNames();
+			const auto name = names.find(textureId);
+			if (name == names.end()) return std::string{};
+			if (ClientAssets::ResolveResFile("textures/env/" + name->second)) return "textures/env/" + name->second;
+			return ClientAssets::FindResFile("textures", name->second).value_or("");
+		});
+	}
+
+	// Tiled 4 times per chunk: 512 pixels is plenty and keeps the page light
+	constexpr uint32_t TERRAIN_TEXTURE_SIZE = 512;
 }
 
 std::optional<std::string> TerrainTextureFile(uint32_t textureId) {
-	static std::map<uint32_t, std::string> paths; // id -> path under res/, found once
-	if (!paths.contains(textureId)) {
-		auto stmt = CDClientDatabase::CreatePreppedStmt("SELECT texturepath FROM mapTextureResource WHERE id = ? LIMIT 1;");
-		stmt.bind(1, static_cast<int>(textureId));
-		auto result = stmt.execQuery();
-		if (result.eof()) return std::nullopt;
-		std::string file = result.getStringField(0);
-		std::transform(file.begin(), file.end(), file.begin(), ::tolower);
-		std::string found;
-		if (ClientAssets::ReadResFile("textures/env/" + file)) found = "textures/env/" + file;
-		else if (const auto listing = ClientAssets::FindResFile("textures", file)) found = *listing;
-		paths[textureId] = found;
-	}
-	if (paths[textureId].empty()) return std::nullopt;
-	// Tiled 4 times per chunk: 512 pixels is plenty and keeps the page light
-	return ClientAssets::TextureAsPng(paths[textureId], 512, true);
+	const auto& path = TerrainTexturePath(textureId);
+	if (path.empty()) return std::nullopt;
+	return ClientAssets::TextureAsPng(path, TERRAIN_TEXTURE_SIZE, true);
+}
+
+bool TerrainTextureReady(uint32_t textureId) {
+	if (!g_TerrainTexturePaths.Ready(textureId)) return false;
+	const auto& path = TerrainTexturePath(textureId);
+	return path.empty() || ClientAssets::TextureAsPngReady(path, TERRAIN_TEXTURE_SIZE, true);
 }
 
 std::optional<nlohmann::json> ZonePropertyAreasJson(uint32_t zoneId) {
+	static std::mutex mutex;
 	static std::map<uint32_t, std::optional<nlohmann::json>> cache;
+	std::lock_guard lock(mutex);
 	if (const auto it = cache.find(zoneId); it != cache.end()) return it->second;
 	std::optional<nlohmann::json> json;
 	const auto zone = GetZoneInfo(zoneId);
