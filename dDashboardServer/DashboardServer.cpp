@@ -74,6 +74,7 @@
 #include "Showcase.h"
 #include "ContrabandRoutes.h"
 #include "UgcRoutes.h"
+#include "UgcLinks.h"
 #include "PropertyRentRoutes.h"
 #include "FeaturedProperties.h"
 #include "PasswordRecovery.h"
@@ -546,6 +547,7 @@ int main(int argc, char** argv) {
 	FeaturedProperties::RegisterRoutes();
 	ContrabandRoutes::RegisterRoutes();
 	UgcRoutes::RegisterRoutes();
+	UgcLinks::RegisterRoutes();
 	PropertyRentRoutes::RegisterRoutes();
 	RegisterPasswordRecoveryRoutes();
 	RegisterWSRoutes();

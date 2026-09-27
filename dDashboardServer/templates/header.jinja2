@@ -12,6 +12,7 @@
 		{% if can.accounts_view %}<a href="/accounts" class="list-group-item list-group-item-action{% if current_page == "accounts" %} active{% endif %}">Accounts</a>{% endif %}
 		{% if can.characters_view %}<a href="/characters" class="list-group-item list-group-item-action{% if current_page == "characters" %} active{% endif %}">Characters</a>{% endif %}
 		{% if can.properties_view %}<a href="/properties" class="list-group-item list-group-item-action{% if current_page == "properties" %} active{% endif %}">Properties</a>{% endif %}
+		{% if can.properties_view %}<a href="/ugc_search" class="list-group-item list-group-item-action{% if current_page == "ugc_search" %} active{% endif %}">UGC Search</a>{% endif %}
 	</div>
 
 	{% set inboxPages = ["moderation", "player_reports", "bug_reports"] %}

@@ -38,6 +38,20 @@
 	font-size: 10px;
 	opacity: 0.7;
 }
+/* A player's creation (ugc-links.js): the UGC server's icon, and a link to it in the UGC viewer */
+.inv-item.inv-ugc { border-color: var(--bs-info-border-subtle); }
+.inv-ugc-link {
+	position: absolute;
+	top: 1px;
+	right: 2px;
+	font-size: 9px;
+	font-weight: bold;
+	padding: 0 2px;
+	border-radius: 3px;
+	color: var(--bs-info-text-emphasis);
+	background: var(--bs-info-bg-subtle);
+}
+.inv-ugc-link:hover { text-decoration: underline; }
 </style>
 {% endblock %}
 
@@ -259,7 +273,7 @@
 						<div class="d-flex flex-wrap">
 							{% for item in inv.items %}
 							{% if can.reports_view and item.id != "" %}<a href="/reports?object={{ item.id }}" class="text-reset text-decoration-none" aria-label="Trace {{ item.name }}">{% endif %}
-							<div class="inv-item{% if item.equipped %}{{ " equipped" }}{% endif %}" data-lot="{{ item.lot }}" data-count="{{ item.count }}" data-equipped="{% if item.equipped %}1{% endif %}" data-bound="{% if item.bound %}1{% endif %}" title="{{ item.name }}">
+							<div class="inv-item{% if item.equipped %}{{ " equipped" }}{% endif %}" data-id="{{ item.id }}" data-lot="{{ item.lot }}" data-count="{{ item.count }}" data-equipped="{% if item.equipped %}1{% endif %}" data-bound="{% if item.bound %}1{% endif %}" title="{{ item.name }}">
 								<img src="/api/icon/{{ item.lot }}" alt="{{ item.name }}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22><rect fill=%22%23333%22 width=%2264%22 height=%2264%22/><text x=%2232%22 y=%2236%22 fill=%22%23888%22 text-anchor=%22middle%22 font-size=%2210%22>{{ item.lot }}</text></svg>'">
 								{% if item.count > 1 %}<span class="inv-count">{% if item.count > 999 %}999+{% else %}{{ item.count }}{% endif %}</span>{% endif %}
 								{% if item.bound %}<span class="inv-lock">L</span>{% endif %}
@@ -479,6 +493,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 	var inventory = document.getElementById('inventoryModal');
 	if (inventory) inventory.addEventListener('show.bs.modal', loadItemTooltips, { once: true });
+	// Models, cars and rockets the player built show the UGC server's icon of them
+	if (inventory) inventory.addEventListener('show.bs.modal', function () { UgcLinks.decorateInventory(characterId, inventory); }, { once: true });
 });
 
 var characterId = document.getElementById('restrictions').getAttribute('data-character-id');
@@ -633,6 +649,7 @@ function rescueCharacter() {
 }
 </script>
 <script src="/js/rescue.js"></script>
+<script src="/js/ugc-links.js"></script>
 <script src="/js/character-tools.js"></script>
 <script src="/js/character-missions.js"></script>
 <script src="/js/related.js"></script>

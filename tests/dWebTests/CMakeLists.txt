@@ -39,6 +39,7 @@ set(DWEBTESTS_SOURCES
 	"DeferredReplyTests.cpp"
 	"WorkerPoolTests.cpp"
 	"OnceCacheTests.cpp"
+	"UgcLookupTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/WorkerPool.cpp"
 	"BackupFilesTests.cpp"
 	"LogBundleTests.cpp"
