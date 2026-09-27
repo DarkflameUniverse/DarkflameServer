@@ -63,5 +63,8 @@ namespace MessageType {
 		MIGRATE_STATUS,
 		// Source world -> master -> target world: what a moved player had that isn't in their saved character
 		MIGRATE_PLAYER_STATE,
+
+		// Any server -> master -> dashboard: traffic counters of the last few seconds (see ServerTraffic.h)
+		SERVER_TRAFFIC,
 	};
 }

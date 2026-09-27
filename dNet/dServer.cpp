@@ -17,6 +17,9 @@
 #include "ZoneInstanceManager.h"
 #include "StringifiedEnum.h"
 #include "GeneralUtils.h"
+#include "TrafficStats.h"
+#include "RakNetStatistics.h"
+#include "master/ServerTraffic.h"
 
 //! Replica Constructor class
 class ReplicaConstructor : public ReceiveConstructionInterface {
@@ -134,6 +137,7 @@ Packet* dServer::ReceiveFromMaster() {
 	if (!mMasterConnectionActive) ConnectToMaster();
 
 	Packet* packet = mMasterPeer->Receive();
+	CountTraffic(packet);
 	if (packet) {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
@@ -197,7 +201,9 @@ Packet* dServer::ReceiveFromMaster() {
 }
 
 Packet* dServer::Receive() {
-	return mPeer->Receive();
+	Packet* packet = mPeer->Receive();
+	CountTraffic(packet);
+	return packet;
 }
 
 void dServer::DeallocatePacket(Packet* packet) {
@@ -210,11 +216,13 @@ void dServer::DeallocateMasterPacket(Packet* packet) {
 
 void dServer::Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) {
 	if (mSendObserver) mSendObserver(bitStream, sysAddr, broadcast);
+	CountTraffic(bitStream, broadcast, sysAddr);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
 }
 
 void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 	if (!mMasterConnectionActive) ConnectToMaster();
+	CountTraffic(bitStream, false, mMasterSystemAddress);
 	mMasterPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
 }
 
@@ -223,6 +231,7 @@ void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifi
 	notify.disconnectID = disconNotifyID;
 	RakNet::BitStream bitStream;
 	notify.WritePacket(bitStream);
+	CountTraffic(bitStream, false, sysAddr);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
 
 	mPeer->CloseConnection(sysAddr, true);
@@ -315,4 +324,66 @@ int dServer::GetPing(const SystemAddress& sysAddr) const {
 
 int dServer::GetLatestPing(const SystemAddress& sysAddr) const {
 	return mPeer->GetLastPing(sysAddr);
+}
+
+void dServer::CountTraffic(const Packet* packet) {
+	const auto now = TrafficStats::Now();
+	if (packet) TrafficStats::Local().Packet(now, TrafficStats::KeyOf(packet->data, packet->length, false), packet->length);
+	if (TrafficStats::Local().Due(now, ServerTraffic::REPORT_SECONDS)) ReportTraffic();
+}
+
+void dServer::CountTraffic(const RakNet::BitStream& bitStream, bool broadcast, const SystemAddress& sysAddr) {
+	// A broadcast goes to every connection but the one given
+	uint32_t fanout = 1;
+	if (broadcast) {
+		const uint32_t connections = mPeer ? mPeer->NumberOfConnections() : 0;
+		fanout = sysAddr == UNASSIGNED_SYSTEM_ADDRESS ? connections : (connections > 0 ? connections - 1 : 0);
+	}
+	const auto bytes = bitStream.GetNumberOfBytesUsed();
+	TrafficStats::Local().Packet(TrafficStats::Now(), TrafficStats::KeyOf(bitStream.GetData(), bytes, true), bytes, fanout);
+}
+
+void dServer::AddLinkStats(RakPeerInterface* peer, uint64_t peerIndex, ServerTraffic& report, uint64_t& pingSum, std::map<uint64_t, LinkCounters>& seen) {
+	if (!peer) return;
+	std::vector<SystemAddress> addresses(std::max<unsigned short>(peer->GetMaximumNumberOfPeers(), 1));
+	unsigned short count = static_cast<unsigned short>(addresses.size());
+	if (!peer->GetConnectionList(addresses.data(), &count)) return;
+	auto& link = report.report.link;
+	for (unsigned short i = 0; i < count; i++) {
+		auto* stats = peer->GetStatistics(addresses[i]);
+		if (!stats) continue;
+		LinkCounters now{ stats->packetsSent, stats->packetsReceived, stats->totalBitsSent, stats->bitsReceived, stats->messageResends };
+		const uint64_t key = (peerIndex << 48) | (static_cast<uint64_t>(addresses[i].binaryAddress) << 16) | addresses[i].port;
+		const auto it = mLinkCounters.find(key);
+		const LinkCounters before = it != mLinkCounters.end() ? it->second : LinkCounters{};
+		// A reused address is a new connection whose totals started again
+		const auto delta = [](uint64_t current, uint64_t previous) { return current >= previous ? current - previous : current; };
+		link.datagramsSent += delta(now.datagramsSent, before.datagramsSent);
+		link.datagramsReceived += delta(now.datagramsReceived, before.datagramsReceived);
+		link.bytesSent += delta(now.bitsSent, before.bitsSent) / 8;
+		link.bytesReceived += delta(now.bitsReceived, before.bitsReceived) / 8;
+		link.resends += delta(now.resends, before.resends);
+		link.resendQueue += stats->messagesOnResendQueue;
+		link.connections++;
+		pingSum += std::max(0, peer->GetAveragePing(addresses[i]));
+		seen[key] = now;
+	}
+}
+
+void dServer::ReportTraffic() {
+	ServerTraffic report;
+	report.serverType = mServerType;
+	report.zoneId = mZoneID;
+	report.instanceId = static_cast<uint32_t>(mInstanceID);
+	report.report = TrafficStats::Local().Take(TrafficStats::Now());
+
+	uint64_t pingSum = 0;
+	std::map<uint64_t, LinkCounters> seen;
+	AddLinkStats(mPeer, 0, report, pingSum, seen);
+	AddLinkStats(mMasterPeer, 1, report, pingSum, seen);
+	mLinkCounters = std::move(seen);
+	if (report.report.link.connections) report.report.link.averagePingMs = static_cast<uint32_t>(pingSum / report.report.link.connections);
+
+	if (mTrafficSink) mTrafficSink(report);
+	else if (mMasterPeer && mMasterConnectionActive) MasterPackets::SendToMaster(report, this);
 }

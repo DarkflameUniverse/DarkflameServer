@@ -3,12 +3,14 @@
 #include <chrono>
 #include <csignal>
 #include <functional>
+#include <map>
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
 
 class Logger;
 class dConfig;
+struct ServerTraffic;
 enum class eServerDisconnectIdentifiers : uint32_t;
 enum class ServiceType : uint16_t;
 
@@ -51,6 +53,11 @@ public:
 
 	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 
+	// Where this server's traffic report goes every few seconds (see ServerTraffic.h). By default it is sent to
+	// master; master sends its own to the dashboard, the dashboard keeps its own.
+	using TrafficSink = std::function<void(ServerTraffic& report)>;
+	void SetTrafficSink(TrafficSink sink) { mTrafficSink = std::move(sink); }
+
 	bool IsConnected(const SystemAddress& sysAddr);
 	const std::string& GetIP() const { return mIP; }
 	const int GetPort() const { return mPort; }
@@ -80,7 +87,16 @@ public:
 	}
 
 private:
+	struct LinkCounters {
+		uint64_t datagramsSent{}, datagramsReceived{}, bitsSent{}, bitsReceived{}, resends{};
+	};
 	bool Startup();
+	// Traffic diagnostics (TrafficStats): count one packet, and send the report when it is due
+	void CountTraffic(const Packet* packet);
+	void CountTraffic(const RakNet::BitStream& bitStream, bool broadcast, const SystemAddress& sysAddr);
+	void ReportTraffic();
+	// Adds the peer's connections to the report's link statistics (changes since the last report)
+	void AddLinkStats(RakPeerInterface* peer, uint64_t peerIndex, ServerTraffic& report, uint64_t& pingSum, std::map<uint64_t, LinkCounters>& seen);
 	void Shutdown();
 	void SetupForMasterConnection();
 	bool ConnectToMaster();
@@ -118,4 +134,8 @@ protected:
 	std::chrono::steady_clock::time_point mStartTime = std::chrono::steady_clock::now();
 	std::string mMasterPassword;
 	SendObserver mSendObserver;
+
+	TrafficSink mTrafficSink;
+	// RakNet's per-connection statistics are totals since the connection opened; the last ones seen, for deltas
+	std::map<uint64_t, LinkCounters> mLinkCounters;
 };

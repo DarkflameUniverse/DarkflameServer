@@ -4,6 +4,7 @@ set(DCOMMON_SOURCES
 		"BinaryIO.cpp"
 		"dConfig.cpp"
 		"Diagnostics.cpp"
+		"TrafficStats.cpp"
 		"Locale.cpp"
 		"Logger.cpp"
 		"Game.cpp"

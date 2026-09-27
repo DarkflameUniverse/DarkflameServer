@@ -51,6 +51,7 @@
 #include "master/DataChanged.h"
 #include "master/MessageCapture.h"
 #include "master/InstanceMigration.h"
+#include "master/ServerTraffic.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
 
@@ -396,6 +397,10 @@ int main(int argc, char** argv) {
 	assert(res == 0);
 
 	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServiceType::MASTER, Game::config, &Game::lastSignal, hash);
+	// Master has no master to send its traffic report to: it goes straight to the dashboard
+	Game::server->SetTrafficSink([](ServerTraffic& report) {
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, report);
+	});
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
@@ -855,6 +860,12 @@ namespace {
 		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, msg);
 	}
 
+	// Every server's traffic report goes on to the dashboard (the dashboard keeps its own)
+	void OnServerTraffic(const ServerTraffic& report, const SystemAddress& sysAddr) {
+		if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS || sysAddr == dashboardServerMasterPeerSysAddr) return;
+		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, report);
+	}
+
 	void OnAnnounce(const Announcement& announcement, const SystemAddress& sysAddr) {
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
 			LOG("Ignoring announcement from a server that is not the dashboard");
@@ -975,6 +986,7 @@ namespace {
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);
 			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, ForwardWorldToDashboard<MessageCaptureData>);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
+			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
 			return handlers;
 		}();
 		return handlers;
