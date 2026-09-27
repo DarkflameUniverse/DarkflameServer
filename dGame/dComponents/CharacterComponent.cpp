@@ -21,6 +21,14 @@
 #include "EconomyLedger.h"
 #include "Database.h"
 #include "CDRewardCodesTable.h"
+#include "CDObjectsTable.h"
+#include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
+#include "CDBehaviorParameterTable.h"
+#include "Behavior.h"
+
+#include <set>
+#include <unordered_map>
 #include "Mail.h"
 #include "ZoneInstanceManager.h"
 #include "ClientPackets.h"
@@ -527,34 +535,51 @@ void CharacterComponent::TrackMissionCompletion(bool isAchievement) {
 }
 
 void CharacterComponent::TrackLOTCollection(LOT lot) {
-	switch (lot) {
-		// Handle all the imagination powerup lots
-	case 935:   // 1 point
-	case 4035:  // 2 points
-	case 11910: // 3 points
-	case 11911: // 5 points
-	case 11918: // 10 points
-		UpdatePlayerStatistic(ImaginationPowerUpsCollected);
-		break;
-		// Handle all the armor powerup lots
-	case 6431:  // 1 point
-	case 11912: // 2 points
-	case 11913: // 3 points
-	case 11914: // 5 points
-	case 11919: // 10 points
-		UpdatePlayerStatistic(ArmorPowerUpsCollected);
-		break;
-		// Handle all the life powerup lots
-	case 177:   // 1 point
-	case 11915: // 2 points
-	case 11916: // 3 points
-	case 11917: // 5 points
-	case 11920: // 10 points
-		UpdatePlayerStatistic(LifePowerUpsCollected);
-		break;
-	default:
-		break;
+	const auto statistic = GetPowerUpStatistic(lot);
+	if (statistic) UpdatePlayerStatistic(statistic.value());
+}
+
+std::optional<StatisticID> CharacterComponent::GetPowerUpStatistic(const LOT lot) {
+	static std::unordered_map<LOT, std::optional<StatisticID>> cache;
+	const auto cached = cache.find(lot);
+	if (cached != cache.end()) return cached->second;
+
+	std::optional<StatisticID> statistic;
+
+	// A power-up counts towards the statistic of what its pickup skill restores
+	// (e.g. Imagination Powerup 2 points: skill 129 -> Imagination behavior)
+	const auto& object = CDClientManager::GetTable<CDObjectsTable>()->GetByID(lot);
+	if (object.id != 0 && object.type == "Powerup") {
+		auto* const skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
+		auto* const parameterTable = CDClientManager::GetTable<CDBehaviorParameterTable>();
+
+		std::vector<uint32_t> toVisit;
+		for (const auto& skill : CDClientManager::GetTable<CDObjectSkillsTable>()->Get(lot)) {
+			toVisit.push_back(skillTable->GetSkillByID(skill.skillID).behaviorID);
+		}
+
+		std::set<uint32_t> visited;
+		while (!toVisit.empty() && !statistic) {
+			const auto behaviorID = toVisit.back();
+			toVisit.pop_back();
+			if (behaviorID == 0 || !visited.insert(behaviorID).second) continue;
+
+			switch (Behavior::GetBehaviorTemplate(behaviorID)) {
+			case BehaviorTemplate::IMAGINATION: statistic = ImaginationPowerUpsCollected; break;
+			case BehaviorTemplate::REPAIR_ARMOR: statistic = ArmorPowerUpsCollected; break;
+			case BehaviorTemplate::HEAL: statistic = LifePowerUpsCollected; break;
+			default:
+				// Parameters that are behaviors (e.g. "action", "behavior 1") lead further down the tree
+				for (const auto& [name, value] : parameterTable->GetParametersByBehaviorID(behaviorID)) {
+					if (value > 0.0f && (name == "action" || name.starts_with("behavior "))) toVisit.push_back(static_cast<uint32_t>(value));
+				}
+				break;
+			}
+		}
 	}
+
+	cache.emplace(lot, statistic);
+	return statistic;
 }
 
 void CharacterComponent::TrackHealthDelta(int32_t health) {

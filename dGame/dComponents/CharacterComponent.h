@@ -13,6 +13,7 @@
 #include <set>
 #include "Loot.h"
 #include "StatisticID.h"
+#include <optional>
 
 enum class eGameActivity : uint32_t;
 
@@ -189,6 +190,13 @@ public:
 	 * @param lot the lot of the object that was collected
 	 */
 	void TrackLOTCollection(LOT lot);
+
+	/**
+	 * The statistic a power-up counts towards, from what its pickup skill restores (life, armor or imagination)
+	 * @param lot the LOT that was picked up
+	 * @return the statistic, or nothing when the LOT is not such a power-up
+	 */
+	static std::optional<StatisticID> GetPowerUpStatistic(LOT lot);
 
 	/**
 	 * Handles a change in health and updates the statistics
