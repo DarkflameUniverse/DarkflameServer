@@ -111,6 +111,7 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_RotationProgress = 0.0f;
 	m_Speed = DEFAULT_SPEED;
 	m_PausedFromOnTimer = false;
+	m_MovingToStart = false;
 }
 
 void Strip::OnChatMessageReceived(const std::string& sMessage) {
@@ -180,6 +181,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		const bool isMoveLeft = nextActionType == "MoveLeft";
 		if (modelComponent.TryStartMove(0, isMoveLeft ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
 			m_InActionTranslation.x = isMoveLeft ? -number : number;
 		}
 	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
@@ -187,6 +189,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		const bool isFlyDown = nextActionType == "FlyDown";
 		if (modelComponent.TryStartMove(1, isFlyDown ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
 			m_InActionTranslation.y = isFlyDown ? -number : number;
 		}
 	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
@@ -194,6 +197,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		const bool isMoveBackward = nextActionType == "MoveBackward";
 		if (modelComponent.TryStartMove(2, isMoveBackward ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
 			m_InActionTranslation.z = isMoveBackward ? -number : number;
 		}
 	}
@@ -228,6 +232,9 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 	else if (nextActionType == "SetSpeed") {
 		// Floored so a move or rotation can never stall forever
 		m_Speed = std::max(static_cast<float>(number), MIN_SPEED);
+	} else if (nextActionType == "MoveBackToStart") {
+		modelComponent.StartMoveTo(modelComponent.GetOriginalPosition(), m_Speed);
+		m_MovingToStart = true;
 	}
 	/* END Navigation */
 
@@ -325,6 +332,14 @@ void Strip::RemoveStates(ModelComponent& modelComponent) const {
 }
 
 bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
+	if (m_MovingToStart) {
+		if (modelComponent.IsMovingToTarget()) return false;
+		m_MovingToStart = false;
+	}
+
+	// A MoveBackToStart cancelled our move, so skip to the next action
+	if (m_MoveInterruptCount != modelComponent.GetMoveInterruptCount()) m_InActionTranslation = NiPoint3Constant::ZERO;
+
 	auto& entity = *modelComponent.GetParent();
 	const auto& currentPos = entity.GetPosition();
 	const auto diff = currentPos - m_PreviousFramePosition;

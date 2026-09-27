@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <map>
+#include <optional>
 
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
@@ -141,7 +142,7 @@ public:
 	void Resume();
 
 	// Attempts to claim a local axis (0 = right, 1 = up, 2 = forward) for movement in direction (+1 or -1) at speed units per second.
-	// Returns false if the axis is already controlled by a behavior.
+	// Returns false if the axis is already controlled by a behavior. Cancels any active StartMoveTo.
 	bool TryStartMove(const int axis, const float direction, const float speed);
 
 	// Releases the local axis so another behavior can move along it.
@@ -149,6 +150,15 @@ public:
 
 	// World space direction of the local axis used for the most recently applied velocity.
 	const NiPoint3& GetMoveAxis(const int axis) const { return m_Move.basis[axis]; }
+
+	// Interrupts all active moves and moves in a straight line to target at speed units per second.
+	void StartMoveTo(const NiPoint3& target, const float speed);
+
+	// Whether a StartMoveTo move has yet to arrive or be overridden.
+	bool IsMovingToTarget() const noexcept { return m_Move.target.has_value(); }
+
+	// Changes whenever active moves are interrupted, so strips can tell their move was cancelled.
+	uint32_t GetMoveInterruptCount() const noexcept { return m_Move.interruptCount; }
 
 	// Attempts to claim a world axis (0 = x, 1 = y, 2 = z) for rotation in direction (+1 or -1) at the given behavior speed.
 	// Returns false if the axis is already controlled by a behavior.
@@ -204,6 +214,18 @@ private:
 
 		// Whether the last velocity update came from an active move
 		bool wasMoving{ false };
+
+		// World position of an active StartMoveTo move
+		std::optional<NiPoint3> target;
+
+		// Units per second of the move to target
+		float targetSpeed{};
+
+		// Direction to target as of the last velocity update, zero once there
+		NiPoint3 targetDirection{};
+
+		// Incremented each time StartMoveTo interrupts the active moves
+		uint32_t interruptCount{};
 	};
 
 	// Sends the client-side angular velocity for the currently active rotation axes.

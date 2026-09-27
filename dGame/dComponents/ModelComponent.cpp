@@ -78,6 +78,12 @@ bool ModelComponent::OnRequestUse(GameMessages::RequestUse& requestUse) {
 void ModelComponent::Update(float deltaTime) {
 	if (m_IsPaused) return;
 
+	// Arrived once this frame's movement reached or passed the target
+	if (m_Move.target && (*m_Move.target - m_Parent->GetPosition()).DotProduct(m_Move.targetDirection) <= 0.0f) {
+		m_Parent->SetPosition(*m_Move.target);
+		m_Move.target.reset();
+	}
+
 	for (auto& behavior : m_Behaviors) {
 		behavior.Update(deltaTime, *this);
 	}
@@ -297,6 +303,7 @@ bool ModelComponent::TryStartMove(const int axis, const float direction, const f
 	if (axis < 0 || axis > 2 || direction == 0.0f || speed <= 0.0f) return false;
 	if (m_Move.velocity[axis] != 0.0f) return false;
 
+	m_Move.target.reset();
 	m_Move.velocity[axis] = std::copysign(speed, direction);
 	return true;
 }
@@ -306,12 +313,26 @@ void ModelComponent::StopMove(const int axis) {
 	m_Move.velocity[axis] = 0.0f;
 }
 
+void ModelComponent::StartMoveTo(const NiPoint3& target, const float speed) {
+	m_Move.velocity = NiPoint3Constant::ZERO;
+	m_Move.interruptCount++;
+	m_Move.target = target;
+	m_Move.targetSpeed = speed;
+}
+
 void ModelComponent::SyncLinearVelocity() {
 	const auto& rotation = m_Parent->GetRotation();
 	m_Move.basis = { QuatUtils::Right(rotation), QuatUtils::Up(rotation), QuatUtils::Forward(rotation) };
 
 	NiPoint3 velocity = NiPoint3Constant::ZERO;
 	for (int axis = 0; axis < 3; axis++) velocity += m_Move.basis[axis] * m_Move.velocity[axis];
+
+	if (m_Move.target) {
+		const auto toTarget = *m_Move.target - m_Parent->GetPosition();
+		const float distance = toTarget.Length();
+		m_Move.targetDirection = distance > 0.0f ? toTarget / distance : NiPoint3Constant::ZERO;
+		velocity += m_Move.targetDirection * m_Move.targetSpeed;
+	}
 
 	// Leave velocity alone unless a move owns it, e.g. pets are driven elsewhere
 	const bool isMoving = velocity != NiPoint3Constant::ZERO;

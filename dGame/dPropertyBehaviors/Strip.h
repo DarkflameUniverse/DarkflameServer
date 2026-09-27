@@ -79,6 +79,12 @@ private:
 	// The signed degrees the current rotation action has progressed so far
 	float m_RotationProgress{ 0.0f };
 
+	// Whether this strip is waiting on a MoveBackToStart to arrive
+	bool m_MovingToStart{ false };
+
+	// The model's move interrupt count when this strip's current move started
+	uint32_t m_MoveInterruptCount{};
+
 	static constexpr float DEFAULT_SPEED = 3.0f;
 	static constexpr float MIN_SPEED = 0.1f;
 
