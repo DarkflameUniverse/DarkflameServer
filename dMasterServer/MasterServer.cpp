@@ -61,6 +61,10 @@ namespace Game {
 	std::mt19937 randomEngine;
 } //namespace Game
 
+namespace {
+	std::string g_ServiceName;
+}
+
 bool shutdownSequenceStarted = false;
 int ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
@@ -80,7 +84,9 @@ int GenerateBCryptPassword(const std::string& password, const int workFactor, ch
 int main(int argc, char** argv) {
 	constexpr uint32_t masterFramerate = mediumFramerate;
 	constexpr uint32_t masterFrameDelta = mediumFrameDelta;
-	Diagnostics::SetProcessName("Master");
+	const auto curTimeStr = std::to_string(time(nullptr));
+	g_ServiceName = "MasterServer_" + curTimeStr;
+	Diagnostics::SetProcessName(g_ServiceName);
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
@@ -96,7 +102,7 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig("masterconfig.ini");
 
 	//Create all the objects we need to run our service:
-	Server::SetupLogger("MasterServer");
+	Server::SetupLogger(g_ServiceName, "MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
 	Game::config->LogSettings();
 
@@ -914,7 +920,7 @@ int ShutdownSequence(int32_t signal) {
 
 int32_t FinalizeShutdown(int32_t signal) {
 	//Delete our objects here:
-	Database::Destroy("MasterServer");
+	Database::Destroy(g_ServiceName);
 	if (Game::config) delete Game::config;
 	Game::config = nullptr;
 	if (Game::im) delete Game::im;

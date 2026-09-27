@@ -82,7 +82,7 @@ struct bt_ctx {
 };
 
 static inline void Bt(struct backtrace_state* state) {
-	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
+	std::string fileName = Diagnostics::GetOutDirectory() + "Crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
 	LOG("backtrace is enabled, crash dump located at %s", fileName.c_str());
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
@@ -98,7 +98,7 @@ static void ErrorCallback(void* data, const char* msg, int errnum) {
 	fprintf(stderr, "ERROR: %s (%d)", msg, errnum);
 	ctx->error = 1;
 
-	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
+	std::string fileName = Diagnostics::GetOutDirectory() + "Crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
 		fprintf(file, "ERROR: %s (%d)", msg, errnum);
@@ -126,7 +126,7 @@ void CatchUnhandled(int sig) {
 
 #ifndef INCLUDE_BACKTRACE
 
-	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
+	std::string fileName = Diagnostics::GetOutDirectory() + "Crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
 	LOG("Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
 	if (Diagnostics::GetProduceMemoryDump()) {
 		GenerateDump();

@@ -40,7 +40,9 @@ void HandlePacket(Packet* packet);
 int main(int argc, char** argv) {
 	constexpr uint32_t authFramerate = mediumFramerate;
 	constexpr uint32_t authFrameDelta = mediumFrameDelta;
-	Diagnostics::SetProcessName("Auth");
+	const auto curTimeStr = std::to_string(time(nullptr));
+	const auto serviceName = "AuthServer_" + curTimeStr;
+	Diagnostics::SetProcessName(serviceName);
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
@@ -50,7 +52,7 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig("authconfig.ini");
 
 	//Create all the objects we need to run our service:
-	Server::SetupLogger("AuthServer");
+	Server::SetupLogger(serviceName, "AuthServer");
 	if (!Game::logger) return EXIT_FAILURE;
 	Game::config->LogSettings();
 
@@ -62,7 +64,7 @@ int main(int argc, char** argv) {
 		Database::Connect();
 	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
-		Database::Destroy("AuthServer");
+		Database::Destroy(serviceName);
 		delete Game::server;
 		delete Game::logger;
 		return EXIT_FAILURE;
@@ -156,7 +158,7 @@ int main(int argc, char** argv) {
 
 	LOG("Exited Main Loop! (signal %d)", Game::lastSignal);
 	//Delete our objects here:
-	Database::Destroy("AuthServer");
+	Database::Destroy(serviceName);
 	delete Game::server;
 	delete Game::logger;
 	delete Game::config;

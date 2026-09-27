@@ -47,7 +47,9 @@ void HandlePacket(Packet* packet);
 int main(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
 	constexpr uint32_t chatFrameDelta = mediumFrameDelta;
-	Diagnostics::SetProcessName("Chat");
+	const auto curTimeStr = std::to_string(time(nullptr));
+	const auto serviceName = "ChatServer_" + curTimeStr;
+	Diagnostics::SetProcessName(serviceName);
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
@@ -57,7 +59,7 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig("chatconfig.ini");
 
 	//Create all the objects we need to run our service:
-	Server::SetupLogger("ChatServer");
+	Server::SetupLogger(serviceName, "ChatServer");
 	if (!Game::logger) return EXIT_FAILURE;
 	Game::config->LogSettings();
 
@@ -88,7 +90,7 @@ int main(int argc, char** argv) {
 		Database::Connect();
 	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
-		Database::Destroy("ChatServer");
+		Database::Destroy(serviceName);
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;
@@ -99,7 +101,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("web_server_enabled") == "1" && !Game::web.Startup("localhost", web_server_port)) {
 		// if we want the web server and it fails to start, exit
 		LOG("Failed to start web server, shutting down.");
-		Database::Destroy("ChatServer");
+		Database::Destroy(serviceName);
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;
@@ -200,7 +202,7 @@ int main(int argc, char** argv) {
 	Game::playerContainer.Shutdown();
 	TeamContainer::Shutdown();
 	//Delete our objects here:
-	Database::Destroy("ChatServer");
+	Database::Destroy(serviceName);
 	delete Game::server;
 	Game::server = nullptr;
 	delete Game::logger;

@@ -100,6 +100,10 @@ namespace Game {
 } // namespace Game
 
 namespace {
+	std::string g_ServiceName;
+}
+
+namespace {
 	struct TempSessionInfo {
 		SystemAddress sysAddr;
 		std::string hash;
@@ -125,7 +129,10 @@ void HandleMasterPacket(Packet* packet);
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
-	Diagnostics::SetProcessName("World");
+	const auto curTimeStr = std::to_string(time(nullptr));
+	g_ServiceName = "WorldServer";
+	// Set this once here before we parse a bunch of options in case we crash early
+	Diagnostics::SetProcessName(g_ServiceName);
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
@@ -158,7 +165,13 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig("worldconfig.ini");
 
 	//Create all the objects we need to run our service:
-	Server::SetupLogger("WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(g_InstanceID));
+	const auto zoneStr = std::to_string(zoneID);
+	const auto cloneStr = std::to_string(cloneID);
+	const auto instanceStr = std::to_string(g_InstanceID);
+	g_ServiceName += "_" + zoneStr + "_" + cloneStr + "_" + instanceStr + "_" + curTimeStr;
+	// Here we re-set the process name since it'll have more info now
+	Diagnostics::SetProcessName(g_ServiceName);
+	Server::SetupLogger(g_ServiceName, "WorldServer/" + zoneStr + "/" + cloneStr + "/");
 	if (!Game::logger) return EXIT_FAILURE;
 	Game::config->LogSettings();
 
@@ -1586,7 +1599,7 @@ void FinalizeShutdown() {
 
 	//Delete our objects here:
 	dpWorld::Shutdown();
-	Database::Destroy("WorldServer");
+	Database::Destroy(g_ServiceName);
 	if (Game::chatFilter) delete Game::chatFilter;
 	Game::chatFilter = nullptr;
 	if (Game::zoneManager) delete Game::zoneManager;
