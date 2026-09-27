@@ -12,6 +12,7 @@ set(DGAMETEST_SOURCES
 	"ItemSetPassiveAbilityTests.cpp"
 	"PowerUpStatisticTests.cpp"
 	"BrickByBrickTests.cpp"
+	"ModularBuildTableTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

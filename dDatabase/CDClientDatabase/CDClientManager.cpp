@@ -37,6 +37,7 @@
 #include "CDRewardsTable.h"
 #include "CDPropertyEntranceComponentTable.h"
 #include "CDPropertyTemplateTable.h"
+#include "CDModularBuildComponentTable.h"
 #include "CDFeatureGatingTable.h"
 #include "CDRailActivatorComponent.h"
 #include "CDRewardCodesTable.h"
@@ -93,6 +94,7 @@ DEFINE_TABLE_STORAGE(CDPetComponentTable);
 DEFINE_TABLE_STORAGE(CDProximityMonitorComponentTable);
 DEFINE_TABLE_STORAGE(CDPropertyEntranceComponentTable);
 DEFINE_TABLE_STORAGE(CDPropertyTemplateTable);
+DEFINE_TABLE_STORAGE(CDModularBuildComponentTable);
 DEFINE_TABLE_STORAGE(CDRailActivatorComponentTable);
 DEFINE_TABLE_STORAGE(CDRarityTableTable);
 DEFINE_TABLE_STORAGE(CDRebuildComponentTable);
@@ -139,6 +141,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDProximityMonitorComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyEntranceComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyTemplateTable::Instance().LoadValuesFromDatabase();
+	CDModularBuildComponentTable::Instance().LoadValuesFromDatabase();
 	CDRailActivatorComponentTable::Instance().LoadValuesFromDatabase();
 	CDRarityTableTable::Instance().LoadValuesFromDatabase();
 	CDRebuildComponentTable::Instance().LoadValuesFromDatabase();

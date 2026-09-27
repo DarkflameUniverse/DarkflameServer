@@ -30,6 +30,8 @@
 #include "Sd0.h"
 #include "ScriptComponent.h"
 #include "BrickByBrick.h"
+#include "CDClientManager.h"
+#include "CDModularBuildComponentTable.h"
 #include "User.h"
 #include "UserManager.h"
 
@@ -290,6 +292,8 @@ namespace GameMessages {
 
 		auto* temp = inv->GetInventory(TEMP_MODELS);
 		std::vector<LOT> modList;
+		// The build this many parts make (3: a rocket, 7: a car), from ModularBuildComponent
+		const auto build = CDClientManager::GetTable<CDModularBuildComponentTable>()->GetByNumberOfParts(static_cast<uint32_t>(count));
 		auto& oldPartList = character->GetVar<std::string>(u"currentModifiedBuild");
 		bool everyPieceSwapped = !oldPartList.empty(); // If the player didn't put a build in initially, then they should not get this achievement.
 		if (count >= 3 && count < 8) {
@@ -316,8 +320,8 @@ namespace GameMessages {
 				}
 
 				// Doing this check for 1 singular mission that needs to know when you've swapped every part out during a car modular build.
-				// since all 8129's are the same, skip checking that
-				if (mod != 8129) {
+				// Every build has the same root part (the car's chassis), so it is not checked
+				if (!build || mod != build->rootPartExampleLOT) {
 					if (oldPartList.find(GeneralUtils::UTF16ToWTF8(modToStr)) != std::string::npos) everyPieceSwapped = false;
 
 				}
@@ -331,10 +335,8 @@ namespace GameMessages {
 
 			LWOOBJID newID = ObjectIDManager::GetPersistentID();
 
-			if (count == 3) {
-				inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newID);
-			} else if (count == 7) {
-				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newID);
+			if (build) {
+				inv->AddItem(build->createdLOT, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newID);
 			}
 
 			auto* pCharacter = character->GetCharacter();
