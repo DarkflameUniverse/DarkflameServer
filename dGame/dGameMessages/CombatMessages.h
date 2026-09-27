@@ -223,7 +223,8 @@ namespace GameMessages {
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 
-		// DLU always sends false: setting it makes the client ignore the message.
+		// With either flag set the client only removes a buff that was added with the matching cancelOnRemoveBuff /
+		// cancelOnUnEquip (LWOBuffComponent::RemoveBuffIcon @ 00cf99b0 in 1.10.64).
 		bool bFromRemoveBehavior{ false };
 		bool bFromUnEquip{ false };
 		bool bRemoveImmunity{ false };

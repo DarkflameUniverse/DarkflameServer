@@ -27,7 +27,9 @@ void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext b
 
 	if (buffComponent == nullptr) return;
 
-	buffComponent->RemoveBuff(m_BuffId);
+	// UnCast only runs when the item (or item set) that cast the buff is unequipped. Live servers sent those
+	// removals with bFromUnEquip set (2014 captures: buffs 3, 4, 5, 50 and 61, all cancel_on_unequip).
+	buffComponent->RemoveBuff(m_BuffId, true);
 }
 
 void ApplyBuffBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {

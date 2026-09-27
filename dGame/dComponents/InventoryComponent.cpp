@@ -1160,7 +1160,7 @@ void InventoryComponent::ApplyBuff(Item* item) const {
 	}
 }
 
-// TODO Something needs to send the remove buff GameMessage as well when it is unequipping items that would remove buffs.
+// Uncasting the item's equip skills sends RemoveBuff (with bFromUnEquip) for the buffs they applied, see ApplyBuffBehavior::UnCast.
 void InventoryComponent::RemoveBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, false);
 

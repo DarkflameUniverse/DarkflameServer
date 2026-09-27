@@ -229,6 +229,10 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 	// If the buff is already scheduled to be removed, don't do it again
 	if (iter == m_Buffs.end() || m_BuffsToRemove.contains(id)) return;
 
+	// The client only removes a buff for an unequip when it was applied with cancelOnUnequip
+	// (LWOBuffComponent::RemoveBuffIcon @ 00cf99b0 in 1.10.64); keep the server's copy in step with it.
+	if (fromUnEquip && !iter->second.cancelOnUnequip) return;
+
 	if (!ignoreRefCount && !iter->second.cancelOnRemoveBuff) {
 		iter->second.refCount--;
 		LOG_DEBUG("refCount for buff %i is now %i", id, iter->second.refCount);
