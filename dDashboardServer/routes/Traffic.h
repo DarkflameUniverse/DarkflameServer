@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include "json.hpp"
+
 struct ServerTraffic;
 namespace MetricsFormat { class Writer; }
 
@@ -15,6 +18,9 @@ namespace Traffic {
 
 	// Main loop: write finished minutes, tell open pages there is news
 	void Update();
+
+	// Main thread: one server's last report ("ugc", "chat", ...): {key, label, online, last_seen, link, gauges}
+	nlohmann::json Server(const std::string& key);
 
 	// Counters for /metrics
 	void AddMetrics(MetricsFormat::Writer& w);

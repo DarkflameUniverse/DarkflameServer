@@ -308,6 +308,10 @@ namespace {
 }
 
 namespace Traffic {
+	nlohmann::json Server(const std::string& key) {
+		return ServerInfo(key, TrafficStats::Now());
+	}
+
 	void Ingest(const ServerTraffic& report) {
 		g_History.Ingest(static_cast<uint16_t>(report.serverType), report.zoneId, report.instanceId, report.report, TrafficStats::Now());
 		g_Changed = true;

@@ -16,6 +16,8 @@ public:
 		bool authOnline{};
 		bool chatOnline{};
 		uint64_t memoryKb{}; // all server processes together (Linux only, else 0)
+		bool ugcEnabled{};   // master starts the UGC server (in a bucket: at any sample)
+		bool ugcOnline{};    // in a bucket: at every sample
 	};
 
 	virtual void InsertHealthSample(const HealthSample& sample) = 0;

@@ -1,17 +1,18 @@
 #include "MySQLDatabase.h"
 
 void MySQLDatabase::InsertHealthSample(const HealthSample& sample) {
-	ExecuteInsert("REPLACE INTO server_health (time, players, worlds, auth_online, chat_online, memory_kb) VALUES (?, ?, ?, ?, ?, ?);",
-		sample.time, sample.players, sample.worlds, sample.authOnline, sample.chatOnline, static_cast<int64_t>(sample.memoryKb));
+	ExecuteInsert("REPLACE INTO server_health (time, players, worlds, auth_online, chat_online, memory_kb, ugc_enabled, ugc_online) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+		sample.time, sample.players, sample.worlds, sample.authOnline, sample.chatOnline, static_cast<int64_t>(sample.memoryKb), sample.ugcEnabled, sample.ugcOnline);
 }
 
 std::vector<IServerHealth::HealthSample> MySQLDatabase::GetHealthSamples(int64_t from, int64_t to, int64_t bucketSeconds) {
 	std::vector<HealthSample> samples;
-	auto result = ExecuteSelect("SELECT FLOOR(time / ?) * ? AS bucket, MAX(players) AS players, MAX(worlds) AS worlds, MIN(auth_online) AS auth, MIN(chat_online) AS chat, AVG(memory_kb) AS memory "
+	auto result = ExecuteSelect("SELECT FLOOR(time / ?) * ? AS bucket, MAX(players) AS players, MAX(worlds) AS worlds, MIN(auth_online) AS auth, MIN(chat_online) AS chat, AVG(memory_kb) AS memory, MAX(ugc_enabled) AS ugc_enabled, MIN(ugc_online) AS ugc "
 		"FROM server_health WHERE time >= ? AND time <= ? GROUP BY bucket ORDER BY bucket;", bucketSeconds, bucketSeconds, from, to);
 	while (result->next()) {
 		samples.push_back({ result->getInt64("bucket"), result->getUInt("players"), result->getUInt("worlds"),
-			result->getInt("auth") != 0, result->getInt("chat") != 0, static_cast<uint64_t>(result->getDouble("memory")) });
+			result->getInt("auth") != 0, result->getInt("chat") != 0, static_cast<uint64_t>(result->getDouble("memory")),
+			result->getInt("ugc_enabled") != 0, result->getInt("ugc") != 0 });
 	}
 	return samples;
 }

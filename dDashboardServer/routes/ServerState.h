@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <ctime>
 #include <map>
 #include <mutex>
 #include <vector>
@@ -13,6 +14,15 @@ struct ServerStatus {
 	uint32_t players{0};
 	std::string version{};
 	std::chrono::steady_clock::time_point lastSeen{};
+	int64_t since{}; // unix time the dashboard first saw it up this time (0: down)
+
+	// Online or not, keeping `since` for as long as it stays up
+	void Set(bool up) {
+		if (up && !online) since = static_cast<int64_t>(std::time(nullptr));
+		if (!up) since = 0;
+		online = up;
+		if (up) lastSeen = std::chrono::steady_clock::now();
+	}
 };
 
 struct WorldInstanceInfo {
@@ -34,6 +44,10 @@ struct WorldInstanceInfo {
 namespace ServerState {
 	extern ServerStatus g_AuthStatus;
 	extern ServerStatus g_ChatStatus;
+	// The UGC server (docs/UgcServer.md): enabled is master's enable_ugc_server, pid the process master last started
+	extern ServerStatus g_UgcStatus;
+	extern bool g_UgcEnabled;
+	extern uint32_t g_UgcPid;
 	extern std::vector<WorldInstanceInfo> g_WorldInstances;
 	extern std::mutex g_StatusMutex;
 
@@ -45,6 +59,9 @@ namespace ServerState {
 		data["auth"]["players"] = g_AuthStatus.players;
 		data["chat"]["online"] = g_ChatStatus.online;
 		data["chat"]["players"] = g_ChatStatus.players;
+		data["auth"]["since"] = g_AuthStatus.since;
+		data["chat"]["since"] = g_ChatStatus.since;
+		data["ugc"] = { {"enabled", g_UgcEnabled}, {"online", g_UgcStatus.online}, {"since", g_UgcStatus.since} };
 
 		uint32_t totalOnlinePlayers = 0;
 		data["worlds"] = nlohmann::json::array();

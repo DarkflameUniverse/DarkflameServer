@@ -97,16 +97,20 @@ namespace {
 	// What the dashboard knows without asking the database: master's server list, its own connections, /proc
 	void AddLive(MetricsFormat::Writer& w) {
 		std::vector<WorldInstanceInfo> worlds;
-		bool authUp = false, chatUp = false;
+		bool authUp = false, chatUp = false, ugcEnabled = false, ugcUp = false;
 		{
 			std::lock_guard lock(ServerState::g_StatusMutex);
 			worlds = ServerState::g_WorldInstances;
 			authUp = ServerState::g_AuthStatus.online;
 			chatUp = ServerState::g_ChatStatus.online;
+			ugcEnabled = ServerState::g_UgcEnabled;
+			ugcUp = ServerState::g_UgcStatus.online;
 		}
 		w.Add("darkflame_master_connected", "Whether the dashboard is connected to the master server", "gauge", Game::server && Game::server->GetIsConnectedToMaster() ? 1 : 0);
 		w.Add("darkflame_auth_up", "Whether the auth server is up, as master last reported", "gauge", authUp ? 1 : 0);
 		w.Add("darkflame_chat_up", "Whether the chat server is up, as master last reported", "gauge", chatUp ? 1 : 0);
+		w.Add("darkflame_ugc_enabled", "Whether master starts the UGC server (enable_ugc_server)", "gauge", ugcEnabled ? 1 : 0);
+		w.Add("darkflame_ugc_up", "Whether the UGC server is up, as master last reported", "gauge", ugcUp ? 1 : 0);
 
 		uint32_t players = 0;
 		std::map<uint32_t, std::pair<std::string, std::pair<uint32_t, uint32_t>>> zones; // id -> name, {instances, players}
@@ -213,6 +217,20 @@ namespace {
 			IModeration::PlayerReportQuery q;
 			q.status = static_cast<int16_t>(ePlayerReportStatus::OPEN);
 			w.Add("darkflame_moderation_queue", "", "gauge", { {"queue", "player_reports"} }, db->CountPlayerReports(q));
+		});
+
+		// The UGC server's work list: models and modular builds by processing state
+		ok &= Timed(w, "ugc", [&] {
+			w.Declare("darkflame_ugc_items", "Player models (model) and cars and rockets (modular) by UGC processing state", "gauge");
+			const auto add = [&](const char* kind, const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& rows) {
+				std::map<std::string, uint64_t> states{ {"pending", 0}, {"done", 0}, {"failed", 0} };
+				for (const auto& [state, count] : rows) {
+					states[state == IUgc::eProcessState::PENDING ? "pending" : state == IUgc::eProcessState::DONE ? "done" : "failed"] += count;
+				}
+				for (const auto& [state, count] : states) w.Add("darkflame_ugc_items", "", "gauge", { {"kind", kind}, {"state", state} }, static_cast<double>(count));
+			};
+			add("model", db->GetUgcProcessCounts());
+			add("modular", db->GetModularBuildProcessCounts());
 		});
 
 		ok &= Timed(w, "strikes", [&] {

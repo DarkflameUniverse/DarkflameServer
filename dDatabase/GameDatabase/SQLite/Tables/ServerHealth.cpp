@@ -1,17 +1,18 @@
 #include "SQLiteDatabase.h"
 
 void SQLiteDatabase::InsertHealthSample(const HealthSample& sample) {
-	ExecuteInsert("INSERT OR REPLACE INTO server_health (time, players, worlds, auth_online, chat_online, memory_kb) VALUES (?, ?, ?, ?, ?, ?);",
-		sample.time, sample.players, sample.worlds, sample.authOnline, sample.chatOnline, static_cast<int64_t>(sample.memoryKb));
+	ExecuteInsert("INSERT OR REPLACE INTO server_health (time, players, worlds, auth_online, chat_online, memory_kb, ugc_enabled, ugc_online) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+		sample.time, sample.players, sample.worlds, sample.authOnline, sample.chatOnline, static_cast<int64_t>(sample.memoryKb), sample.ugcEnabled, sample.ugcOnline);
 }
 
 std::vector<IServerHealth::HealthSample> SQLiteDatabase::GetHealthSamples(int64_t from, int64_t to, int64_t bucketSeconds) {
 	std::vector<HealthSample> samples;
-	auto [_, result] = ExecuteSelect("SELECT (time / ?) * ? AS bucket, MAX(players) AS players, MAX(worlds) AS worlds, MIN(auth_online) AS auth, MIN(chat_online) AS chat, AVG(memory_kb) AS memory "
+	auto [_, result] = ExecuteSelect("SELECT (time / ?) * ? AS bucket, MAX(players) AS players, MAX(worlds) AS worlds, MIN(auth_online) AS auth, MIN(chat_online) AS chat, AVG(memory_kb) AS memory, MAX(ugc_enabled) AS ugc_enabled, MIN(ugc_online) AS ugc "
 		"FROM server_health WHERE time >= ? AND time <= ? GROUP BY bucket ORDER BY bucket;", bucketSeconds, bucketSeconds, from, to);
 	while (!result.eof()) {
 		samples.push_back({ result.getInt64Field("bucket"), static_cast<uint32_t>(result.getIntField("players")), static_cast<uint32_t>(result.getIntField("worlds")),
-			result.getIntField("auth") != 0, result.getIntField("chat") != 0, static_cast<uint64_t>(result.getFloatField("memory")) });
+			result.getIntField("auth") != 0, result.getIntField("chat") != 0, static_cast<uint64_t>(result.getFloatField("memory")),
+			result.getIntField("ugc_enabled") != 0, result.getIntField("ugc") != 0 });
 		result.nextRow();
 	}
 	return samples;

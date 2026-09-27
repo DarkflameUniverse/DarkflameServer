@@ -115,6 +115,9 @@ namespace Game {
 namespace ServerState {
 	ServerStatus g_AuthStatus{};
 	ServerStatus g_ChatStatus{};
+	ServerStatus g_UgcStatus{};
+	bool g_UgcEnabled{};
+	uint32_t g_UgcPid{};
 	std::vector<WorldInstanceInfo> g_WorldInstances{};
 	std::mutex g_StatusMutex{};
 }
@@ -197,10 +200,11 @@ namespace {
 
 	void OnServerList(const MasterPackets::ServerListResponse& list, const SystemAddress&) {
 		std::lock_guard lock(ServerState::g_StatusMutex);
-		ServerState::g_AuthStatus.online = list.authOnline != 0;
-		ServerState::g_AuthStatus.lastSeen = std::chrono::steady_clock::now();
-		ServerState::g_ChatStatus.online = list.chatOnline != 0;
-		ServerState::g_ChatStatus.lastSeen = std::chrono::steady_clock::now();
+		ServerState::g_AuthStatus.Set(list.authOnline != 0);
+		ServerState::g_ChatStatus.Set(list.chatOnline != 0);
+		ServerState::g_UgcStatus.Set(list.ugcOnline != 0);
+		ServerState::g_UgcEnabled = list.ugcEnabled != 0;
+		ServerState::g_UgcPid = list.ugcPid;
 
 		ServerState::g_WorldInstances.clear();
 		for (const auto& instance : list.instances) {
@@ -217,30 +221,28 @@ namespace {
 			ServerState::g_WorldInstances.push_back(info);
 		}
 
-		LOG_DEBUG("Received server list: auth=%s chat=%s worlds=%u",
+		LOG_DEBUG("Received server list: auth=%s chat=%s ugc=%s worlds=%u",
 			list.authOnline ? "online" : "offline",
 			list.chatOnline ? "online" : "offline",
+			list.ugcOnline ? "online" : list.ugcEnabled ? "offline" : "off",
 			static_cast<uint32_t>(list.instances.size()));
 	}
 
 	void OnServerInfo(const MasterPackets::ServerInfo& serverInfo, const SystemAddress&) {
 		std::lock_guard lock(ServerState::g_StatusMutex);
+		// Master sends "offline" as the address when one goes away
+		const bool up = serverInfo.ip.string != "offline";
 		switch (serverInfo.serverType) {
 		case ServiceType::AUTH:
-			if (serverInfo.ip.string == "offline") {
-				ServerState::g_AuthStatus.online = false;
-			} else {
-				ServerState::g_AuthStatus.online = true;
-				ServerState::g_AuthStatus.lastSeen = std::chrono::steady_clock::now();
-			}
+			ServerState::g_AuthStatus.Set(up);
 			break;
 		case ServiceType::CHAT:
-			if (serverInfo.ip.string == "offline") {
-				ServerState::g_ChatStatus.online = false;
-			} else {
-				ServerState::g_ChatStatus.online = true;
-				ServerState::g_ChatStatus.lastSeen = std::chrono::steady_clock::now();
-			}
+			ServerState::g_ChatStatus.Set(up);
+			break;
+		case ServiceType::UGC:
+			ServerState::g_UgcStatus.Set(up);
+			// Only started when enabled; the pid comes with the next server list
+			if (up) ServerState::g_UgcEnabled = true;
 			break;
 		default:
 			break;

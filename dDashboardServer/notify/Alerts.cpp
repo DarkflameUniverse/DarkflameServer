@@ -47,7 +47,13 @@ namespace {
 	bool g_Started = false;
 
 	uint32_t g_LastBugReportId = 0;
-	std::optional<std::pair<bool, bool>> g_LastServerStatus;
+	struct LastServerStatus {
+		bool auth{};
+		bool chat{};
+		bool ugcEnabled{};
+		bool ugc{};
+	};
+	std::optional<LastServerStatus> g_LastServerStatus;
 
 	size_t Discard(char*, size_t size, size_t count, void*) { return size * count; }
 
@@ -287,21 +293,26 @@ namespace Alerts {
 			"/accounts/" + std::to_string(accountId));
 	}
 
-	void ServerStatus(bool authOnline, bool chatOnline) {
-		const std::pair<bool, bool> current{ authOnline, chatOnline };
+	void ServerStatus(bool authOnline, bool chatOnline, bool ugcEnabled, bool ugcOnline) {
+		const LastServerStatus current{ authOnline, chatOnline, ugcEnabled, ugcOnline };
 		if (!g_LastServerStatus) {
 			g_LastServerStatus = current;
 			return;
 		}
 		const auto previous = *g_LastServerStatus;
 		g_LastServerStatus = current;
-		if (previous.first != authOnline) {
+		if (previous.auth != authOnline) {
 			Emit("server", authOnline ? "Auth server is back" : "Auth server went offline",
 				authOnline ? "Players can log in again." : "Players cannot log in until it is back.", {}, "/");
 		}
-		if (previous.second != chatOnline) {
+		if (previous.chat != chatOnline) {
 			Emit("server", chatOnline ? "Chat server is back" : "Chat server went offline",
 				chatOnline ? "Chat, friends and teams work again." : "Chat, friends and teams are unavailable.", {}, "/");
+		}
+		// Turning enable_ugc_server on or off is not an outage
+		if (previous.ugcEnabled && ugcEnabled && previous.ugc != ugcOnline) {
+			Emit("server", ugcOnline ? "UGC server is back" : "UGC server went offline",
+				ugcOnline ? "Player models' meshes and icons are made and downloaded again." : "Game clients cannot download player models' meshes and icons until it is back.", {}, "/ugc");
 		}
 	}
 }

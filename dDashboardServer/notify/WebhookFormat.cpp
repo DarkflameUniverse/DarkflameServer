@@ -55,7 +55,7 @@ namespace WebhookFormat {
 			{ "moderation", "Bans, locks, mutes, kicks and restrictions, from the dashboard or in game" },
 			{ "security", "GM level changes, two-factor login changes, API tokens, recovery code use" },
 			{ "economy_flag", "The nightly checks flagged unusual income, an item spike or a duplicated item" },
-			{ "server", "Auth or chat went offline or came back, restarts scheduled or cancelled" },
+			{ "server", "Auth, chat or the UGC server went offline or came back, restarts scheduled or cancelled" },
 			{ "test", "Test messages sent from the webhooks page" },
 		};
 		return events;

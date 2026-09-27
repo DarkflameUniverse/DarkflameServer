@@ -6,6 +6,9 @@
 namespace ServerState {
 	ServerStatus g_AuthStatus{};
 	ServerStatus g_ChatStatus{};
+	ServerStatus g_UgcStatus{};
+	bool g_UgcEnabled{};
+	uint32_t g_UgcPid{};
 	std::vector<WorldInstanceInfo> g_WorldInstances{};
 	std::mutex g_StatusMutex{};
 }
@@ -16,6 +19,8 @@ protected:
 		std::lock_guard lock(ServerState::g_StatusMutex);
 		ServerState::g_AuthStatus = {};
 		ServerState::g_ChatStatus = {};
+		ServerState::g_UgcStatus = {};
+		ServerState::g_UgcEnabled = false;
 		ServerState::g_WorldInstances.clear();
 	}
 };
@@ -25,6 +30,8 @@ TEST_F(ServerStateTest, DefaultStateAllOffline) {
 
 	EXPECT_FALSE(json["auth"]["online"].get<bool>());
 	EXPECT_FALSE(json["chat"]["online"].get<bool>());
+	EXPECT_FALSE(json["ugc"]["online"].get<bool>());
+	EXPECT_FALSE(json["ugc"]["enabled"].get<bool>());
 	EXPECT_TRUE(json["worlds"].empty());
 	EXPECT_EQ(json["stats"]["onlinePlayers"].get<uint32_t>(), 0);
 }
@@ -164,4 +171,26 @@ TEST_F(ServerStateTest, ServerStatusDefaults) {
 	EXPECT_FALSE(status.online);
 	EXPECT_EQ(status.players, 0);
 	EXPECT_EQ(status.version, "");
+}
+
+TEST_F(ServerStateTest, UgcServerComesAndGoes) {
+	{
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		ServerState::g_UgcEnabled = true;
+		ServerState::g_UgcStatus.Set(true);
+	}
+	auto json = ServerState::GetServerStateJson();
+	EXPECT_TRUE(json["ugc"]["enabled"].get<bool>());
+	EXPECT_TRUE(json["ugc"]["online"].get<bool>());
+	const auto since = json["ugc"]["since"].get<int64_t>();
+	EXPECT_GT(since, 0);
+
+	// Still up: it keeps the time it came up
+	ServerState::g_UgcStatus.Set(true);
+	EXPECT_EQ(ServerState::GetServerStateJson()["ugc"]["since"].get<int64_t>(), since);
+
+	ServerState::g_UgcStatus.Set(false);
+	json = ServerState::GetServerStateJson();
+	EXPECT_FALSE(json["ugc"]["online"].get<bool>());
+	EXPECT_EQ(json["ugc"]["since"].get<int64_t>(), 0);
 }

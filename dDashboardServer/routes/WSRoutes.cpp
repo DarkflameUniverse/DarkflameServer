@@ -60,7 +60,8 @@ void RegisterWSRoutes() {
 void BroadcastDashboardUpdate() {
 	// Sent to every signed-in account, so it only has what players may see; staff load /api/worlds for details
 	nlohmann::json status = ServerState::PlayerSafe(ServerState::GetServerStateJson());
-	Alerts::ServerStatus(status["auth"].value("online", false), status["chat"].value("online", false));
+	Alerts::ServerStatus(status["auth"].value("online", false), status["chat"].value("online", false),
+		status["ugc"].value("enabled", false), status["ugc"].value("online", false));
 	status["restart"] = LiveWorld::RestartStatus();
 
 	try {

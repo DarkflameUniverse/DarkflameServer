@@ -78,7 +78,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IScheduledTasks::TaskSettings, name, schedule
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IScheduledTasks::TaskRun, id, task, trigger, actor, startedAt, finishedAt, status, summary, log);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IServerConfig::Setting, file, name, fileValue, fileSource, webValue, webWins, secret, description, seenAt, updatedAt, updatedBy);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IServerConfig::SettingChange, id, file, name, oldValue, oldWebWins, newValue, newWebWins, fileValue, secret, removed, revertOf, changedAt, accountId, changedBy);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IServerHealth::HealthSample, time, players, worlds, authOnline, chatOnline, memoryKb);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IServerHealth::HealthSample, time, players, worlds, authOnline, chatOnline, memoryKb, ugcEnabled, ugcOnline);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IServerHealth::InstanceSample, time, zoneId, instanceId, cloneId, players);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPlayerPositions::PositionSample, time, characterId, zoneId, instanceId, cloneId, x, y, z);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPlayerPositions::PositionInstance, zoneId, instanceId, cloneId, first, last, players);
@@ -1230,8 +1230,8 @@ TEST_F(ParitySeeded, ChatLog) {
 TEST_F(ParitySeeded, ServerHealth) {
 	Both("InsertHealthSample", [](GameDatabase& db) {
 		db.InsertHealthSample({ 1700000000, 5, 2, true, true, 100000 });
-		db.InsertHealthSample({ 1700000060, 7, 3, true, false, 110000 });
-		db.InsertHealthSample({ 1700000120, 3, 3, false, true, 90000 });
+		db.InsertHealthSample({ 1700000060, 7, 3, true, false, 110000, true, true });
+		db.InsertHealthSample({ 1700000120, 3, 3, false, true, 90000, true, false });
 		db.InsertHealthSample({ 1700000500, 1, 1, true, true, 50000 });
 	});
 	Both("GetHealthSamples", [](GameDatabase& db) { return json{ db.GetHealthSamples(1700000000, 1700001000, 60), db.GetHealthSamples(1700000000, 1700001000, 300), db.GetHealthSamples(1700000050, 1700000130, 60) }; });

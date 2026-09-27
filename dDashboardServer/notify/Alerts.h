@@ -44,6 +44,6 @@ namespace Alerts {
 	// Bans and mutes done in game with slash commands
 	void InGameAccountAction(const std::string& action, uint32_t accountId);
 
-	// Auth/chat availability changes (first call only records the state)
-	void ServerStatus(bool authOnline, bool chatOnline);
+	// Auth/chat/UGC availability changes (first call only records the state); the UGC server only while it is enabled
+	void ServerStatus(bool authOnline, bool chatOnline, bool ugcEnabled = false, bool ugcOnline = false);
 }

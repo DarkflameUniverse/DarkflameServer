@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <iterator>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -11,6 +13,8 @@
 
 #include "RouteUtils.h"
 #include "ServerState.h"
+#include "Traffic.h"
+#include "dServer.h"
 #include "Background.h"
 #include "PlayerActions.h"
 #include "BinaryPathFinder.h"
@@ -21,6 +25,10 @@
 #include "GeneralUtils.h"
 #include "eHTTPMethod.h"
 
+#ifdef __linux__
+#include <unistd.h>
+#endif
+
 using namespace RouteUtils;
 
 namespace {
@@ -29,32 +37,62 @@ namespace {
 	constexpr size_t MAX_MATCHES = 1000;
 	std::chrono::steady_clock::time_point g_NextSample{};
 
-	// All DarkflameServer processes from this build together, in kB (Linux: /proc; elsewhere 0)
-	uint64_t ServerMemoryKb() {
+	uint32_t OwnPid() {
 #ifdef __linux__
-		const auto binaryDir = BinaryPathFinder::GetBinaryDir().string();
-		uint64_t total = 0;
-		std::error_code ec;
-		for (const auto& entry : fs::directory_iterator("/proc", ec)) {
-			const auto pid = entry.path().filename().string();
-			if (pid.empty() || !std::all_of(pid.begin(), pid.end(), ::isdigit)) continue;
-			std::error_code linkError;
-			const auto exe = fs::read_symlink(entry.path() / "exe", linkError).string();
-			if (linkError || !exe.starts_with(binaryDir) || !exe.ends_with("Server")) continue;
-			std::ifstream status(entry.path() / "status");
-			std::string line;
-			while (std::getline(status, line)) {
-				if (!line.starts_with("VmRSS:")) continue;
-				uint64_t kb = 0;
-				std::istringstream(line.substr(6)) >> kb; // "VmRSS:   12345 kB"
-				total += kb;
-				break;
-			}
-		}
-		return total;
+		return static_cast<uint32_t>(getpid());
 #else
 		return 0;
 #endif
+	}
+
+	// CPU seconds of each process when it was last looked at, for its CPU use since then
+	std::map<uint32_t, std::pair<double, std::chrono::steady_clock::time_point>> g_LastCpu;
+
+	// All DarkflameServer processes from this build together, in kB
+	uint64_t ServerMemoryKb() {
+		uint64_t total = 0;
+		for (const auto& process : ServerRoutes::Processes()) total += process.memoryKb;
+		return total;
+	}
+
+	nlohmann::json ProcessJson(const ServerRoutes::Process& p) {
+		return { {"pid", p.pid}, {"memory_kb", p.memoryKb}, {"cpu_percent", std::round(p.cpuPercent * 10) / 10}, {"started_at", p.startedAt} };
+	}
+
+	// The UGC server's queue in the database (its work list), from the model and modular build tables
+	nlohmann::json UgcCounts() {
+		const auto counts = [](const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& rows) {
+			nlohmann::json out = { {"pending", 0}, {"done", 0}, {"failed", 0} };
+			for (const auto& [state, count] : rows) {
+				out[state == IUgc::eProcessState::PENDING ? "pending" : state == IUgc::eProcessState::DONE ? "done" : "failed"] = count;
+			}
+			return out;
+		};
+		return { {"model", counts(Database::Get()->GetUgcProcessCounts())}, {"modular", counts(Database::Get()->GetModularBuildProcessCounts())} };
+	}
+
+	// What /api/servers and the home page show of the UGC server
+	nlohmann::json UgcSummary(bool withCounts) {
+		const auto state = ServerState::GetServerStateJson()["ugc"];
+		nlohmann::json out = state;
+		uint32_t pid = 0;
+		{
+			std::lock_guard lock(ServerState::g_StatusMutex);
+			pid = ServerState::g_UgcPid;
+		}
+		out["pid"] = pid;
+		// Its traffic report (every few seconds, via master) carries its workers, totals and storage
+		const auto traffic = Traffic::Server("ugc");
+		out["gauges"] = traffic.value("gauges", nlohmann::json::object());
+		out["last_report"] = traffic.value("last_seen", int64_t{});
+		if (withCounts) {
+			try {
+				out["counts"] = UgcCounts();
+			} catch (const std::exception& ex) {
+				LOG_DEBUG("Could not count the UGC queue: %s", ex.what());
+			}
+		}
+		return out;
 	}
 
 	IServerHealth::HealthSample CurrentSample() {
@@ -66,6 +104,8 @@ namespace {
 		sample.authOnline = state["auth"].value("online", false);
 		sample.chatOnline = state["chat"].value("online", false);
 		sample.memoryKb = ServerMemoryKb();
+		sample.ugcEnabled = state["ugc"].value("enabled", false);
+		sample.ugcOnline = state["ugc"].value("online", false);
 		return sample;
 	}
 
@@ -86,6 +126,76 @@ namespace {
 }
 
 namespace ServerRoutes {
+	std::vector<Process> Processes() {
+		std::vector<Process> processes;
+#ifdef __linux__
+		const auto binaryDir = BinaryPathFinder::GetBinaryDir().string();
+		const auto ticks = static_cast<double>(sysconf(_SC_CLK_TCK));
+		const auto now = std::chrono::steady_clock::now();
+		// Process start times are in ticks since boot
+		int64_t bootTime = 0;
+		{
+			std::ifstream stat("/proc/stat");
+			std::string line;
+			while (std::getline(stat, line)) {
+				if (line.starts_with("btime ")) { bootTime = GeneralUtils::TryParse<int64_t>(line.substr(6)).value_or(0); break; }
+			}
+		}
+		std::map<uint32_t, std::pair<double, std::chrono::steady_clock::time_point>> seen;
+		std::error_code ec;
+		for (const auto& entry : fs::directory_iterator("/proc", ec)) {
+			const auto pidText = entry.path().filename().string();
+			if (pidText.empty() || !std::all_of(pidText.begin(), pidText.end(), ::isdigit)) continue;
+			std::error_code linkError;
+			const auto exe = fs::read_symlink(entry.path() / "exe", linkError);
+			const auto exeText = exe.string();
+			if (linkError || !exeText.starts_with(binaryDir) || !exeText.ends_with("Server")) continue;
+			Process process;
+			process.program = exe.filename().string();
+			process.pid = GeneralUtils::TryParse<uint32_t>(pidText).value_or(0);
+
+			std::ifstream status(entry.path() / "status");
+			std::string line;
+			while (std::getline(status, line)) {
+				if (!line.starts_with("VmRSS:")) continue;
+				std::istringstream(line.substr(6)) >> process.memoryKb; // "VmRSS:   12345 kB"
+				break;
+			}
+
+			// stat: "pid (name) state ..." then utime, stime (fields 14, 15) and starttime (22), counted after the name
+			std::ifstream statFile(entry.path() / "stat");
+			std::string stat((std::istreambuf_iterator<char>(statFile)), std::istreambuf_iterator<char>());
+			if (const auto close = stat.rfind(')'); close != std::string::npos) {
+				std::istringstream fields(stat.substr(close + 2));
+				std::vector<std::string> values{ std::istream_iterator<std::string>(fields), std::istream_iterator<std::string>() };
+				if (values.size() > 19 && ticks > 0) {
+					const auto cpu = (GeneralUtils::TryParse<double>(values[11]).value_or(0) + GeneralUtils::TryParse<double>(values[12]).value_or(0)) / ticks;
+					process.startedAt = bootTime + static_cast<int64_t>(GeneralUtils::TryParse<double>(values[19]).value_or(0) / ticks);
+					const auto last = g_LastCpu.find(process.pid);
+					if (last != g_LastCpu.end()) {
+						const auto wall = std::chrono::duration<double>(now - last->second.second).count();
+						if (wall > 0.5) process.cpuPercent = std::max(0.0, (cpu - last->second.first) / wall * 100);
+					}
+					// Keep the older reading when looked at again too soon for a fair number
+					seen[process.pid] = last != g_LastCpu.end() && std::chrono::duration<double>(now - last->second.second).count() <= 0.5 ? last->second : std::pair{ cpu, now };
+				}
+			}
+
+			// World servers: WorldServer -zone <id> -port <port> -instance <id> ...
+			std::ifstream cmdline(entry.path() / "cmdline");
+			std::vector<std::string> args;
+			for (std::string arg; std::getline(cmdline, arg, '\0');) args.push_back(arg);
+			for (size_t i = 0; i + 1 < args.size(); i++) {
+				if (args[i] == "-zone") process.zoneId = GeneralUtils::TryParse<uint32_t>(args[i + 1]).value_or(0);
+				if (args[i] == "-instance") process.instanceId = GeneralUtils::TryParse<uint32_t>(args[i + 1]).value_or(0);
+			}
+			processes.push_back(std::move(process));
+		}
+		g_LastCpu = std::move(seen);
+#endif
+		return processes;
+	}
+
 	void Update() {
 		const auto now = std::chrono::steady_clock::now();
 		// The first sample waits a minute, so auth and chat have time to connect after a start
@@ -109,12 +219,70 @@ void RegisterServerRoutes() {
 			const auto now = static_cast<int64_t>(std::time(nullptr));
 			nlohmann::json samples = nlohmann::json::array();
 			for (const auto& s : Database::Get()->GetHealthSamples(now - span, now, bucket)) {
-				samples.push_back({ {"time", s.time}, {"players", s.players}, {"worlds", s.worlds}, {"auth", s.authOnline}, {"chat", s.chatOnline}, {"memory_kb", s.memoryKb} });
+				samples.push_back({ {"time", s.time}, {"players", s.players}, {"worlds", s.worlds}, {"auth", s.authOnline}, {"chat", s.chatOnline}, {"memory_kb", s.memoryKb},
+					{"ugc_enabled", s.ugcEnabled}, {"ugc", s.ugcOnline} });
 			}
 			const auto current = CurrentSample();
 			JsonSuccess(reply, { {"from", now - span}, {"to", now}, {"bucket", bucket}, {"samples", samples},
-				{"current", { {"players", current.players}, {"worlds", current.worlds}, {"auth", current.authOnline}, {"chat", current.chatOnline}, {"memory_kb", current.memoryKb} }} });
+				{"current", { {"players", current.players}, {"worlds", current.worlds}, {"auth", current.authOnline}, {"chat", current.chatOnline}, {"memory_kb", current.memoryKb},
+					{"ugc_enabled", current.ugcEnabled}, {"ugc", current.ugcOnline} }} });
 		});
+
+	Route(eHTTPMethod::GET, "/api/servers", Perm("health_view"),
+		"Every server: {servers: [{key, label, kind, online, since, players, process: {pid, memory_kb, cpu_percent, started_at}, "
+		"traffic: {online, last_seen, connections, ping_ms, gauges}}], ugc: {enabled, online, since, pid, gauges, last_report, counts}}. "
+		"cpu_percent is of one core since the last time the processes were read",
+		[](HTTPReply& reply, const HTTPContext&) {
+			const auto state = ServerState::GetServerStateJson();
+			auto processes = ServerRoutes::Processes();
+			const auto ugc = UgcSummary(true);
+			// The process of a server: by pid when known, else the only one of its program (worlds: by zone and instance)
+			const auto take = [&](const std::string& program, uint32_t pid, uint32_t zone, uint32_t instance) -> nlohmann::json {
+				for (auto it = processes.begin(); it != processes.end(); ++it) {
+					const bool match = pid ? it->pid == pid : it->program == program && (program != "WorldServer" || (it->zoneId == zone && it->instanceId == instance));
+					if (!match) continue;
+					auto json = ProcessJson(*it);
+					processes.erase(it);
+					return json;
+				}
+				return nullptr;
+			};
+			const auto row = [&](const std::string& key, const std::string& kind, bool online, int64_t since, nlohmann::json process) {
+				const auto traffic = Traffic::Server(key);
+				const auto link = traffic.value("link", nlohmann::json::object());
+				return nlohmann::json{ {"key", key}, {"label", traffic.value("label", key)}, {"kind", kind}, {"online", online}, {"since", since}, {"process", process},
+					{"traffic", { {"online", traffic.value("online", false)}, {"last_seen", traffic.value("last_seen", int64_t{})},
+						{"connections", link.value("connections", 0u)}, {"ping_ms", link.value("ping_ms", 0u)}, {"gauges", traffic.value("gauges", nlohmann::json::object())} }} };
+			};
+			nlohmann::json servers = nlohmann::json::array();
+			const bool masterUp = Game::server && Game::server->GetIsConnectedToMaster();
+			servers.push_back(row("master", "MASTER", masterUp, 0, take("MasterServer", 0, 0, 0)));
+			servers.push_back(row("auth", "AUTH", state["auth"].value("online", false), state["auth"].value("since", int64_t{}), take("AuthServer", 0, 0, 0)));
+			servers.push_back(row("chat", "CHAT", state["chat"].value("online", false), state["chat"].value("since", int64_t{}), take("ChatServer", 0, 0, 0)));
+			servers.push_back(row("dashboard", "DASHBOARD", true, 0, take("DashboardServer", OwnPid(), 0, 0)));
+			if (ugc.value("enabled", false) || ugc.value("online", false)) {
+				auto ugcRow = row("ugc", "UGC", ugc.value("online", false), ugc.value("since", int64_t{}), take("UgcServer", ugc.value("pid", 0u), 0, 0));
+				if (ugcRow["process"].is_null()) ugcRow["process"] = take("UgcServer", 0, 0, 0);
+				servers.push_back(ugcRow);
+			}
+			for (const auto& world : state.value("worlds", nlohmann::json::array())) {
+				const auto zone = world.value("mapID", 0u), instance = world.value("instanceID", 0u);
+				auto worldRow = row("world:" + std::to_string(zone) + ":" + std::to_string(instance), "WORLD", true, 0, take("WorldServer", 0, zone, instance));
+				worldRow["players"] = world.value("players", 0u);
+				servers.push_back(worldRow);
+			}
+			// Anything left over, e.g. a world master no longer lists
+			for (const auto& process : processes) {
+				servers.push_back({ {"key", process.program + ":" + std::to_string(process.pid)}, {"label", process.program}, {"kind", "OTHER"}, {"online", false},
+					{"since", 0}, {"process", ProcessJson(process)}, {"traffic", nullptr} });
+			}
+			JsonSuccess(reply, { {"servers", servers}, {"ugc", ugc} });
+		});
+
+	Route(eHTTPMethod::GET, "/api/servers/ugc", Perm("health_view"),
+		"The UGC server for the home page: {enabled, online, since, pid, gauges: {workers_busy, workers_queued, workers_threads, ugc_made_total, "
+		"ugc_failed_total, ugc_evicted_total, ugc_stored_bytes, ugc_max_storage_bytes}, last_report, counts: {model, modular: {pending, done, failed}}}",
+		[](HTTPReply& reply, const HTTPContext&) { JsonSuccess(reply, UgcSummary(true)); });
 
 	Route(eHTTPMethod::GET, "/api/crash_dumps", Perm("logs_system"), "Crash dumps in dump_folder, newest first",
 		[](HTTPReply& reply, const HTTPContext&) {
