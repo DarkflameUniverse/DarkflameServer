@@ -11,6 +11,9 @@
 #include "dServer.h"
 #include "Logger.h"
 #include "CDClientManager.h"
+#include "CDDeletionRestrictionsTable.h"
+#include "eGameMasterLevel.h"
+#include <set>
 #include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "GameMessages.h"
@@ -2063,6 +2066,11 @@ void InventoryComponent::OnRemoveItemFromInventory(const GameMessages::RemoveIte
 
 	const auto iStackCount = std::min<uint32_t>(item->GetCount(), msg.iStackCount);
 
+	if (msg.bConfirmed && !CanDelete(*item)) {
+		LOG("%llu tried to delete %llu (LOT %i), which its deletion restriction does not allow", m_Parent->GetObjectID(), item->GetId(), item->GetLot());
+		return;
+	}
+
 	if (msg.bConfirmed) {
 		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
 		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
@@ -2212,4 +2220,77 @@ void InventoryComponent::OnUpdateInventoryGroupContents(const GameMessages::Upda
 	groupUpdate.lot = msg.lot;
 
 	UpdateGroup(groupUpdate);
+}
+
+namespace {
+	// A comma separated list of numbers; anything that is not a number is skipped
+	std::vector<int64_t> ParseDeletionRestrictionIds(const std::string& ids) {
+		std::vector<int64_t> parsed;
+		for (auto part : GeneralUtils::SplitString(ids, ',')) {
+			const auto first = part.find_first_not_of(" \t\r\n");
+			if (first == std::string::npos) continue;
+			part = part.substr(first, part.find_last_not_of(" \t\r\n") - first + 1);
+			const auto value = GeneralUtils::TryParse<int64_t>(part);
+			if (value) parsed.push_back(*value);
+		}
+		return parsed;
+	}
+}
+
+bool InventoryComponent::CanDelete(const Item& item) const {
+	if (m_Parent->GetGMLevel() == eGameMasterLevel::OPERATOR) return true;
+
+	const auto row = static_cast<int32_t>(item.GetInfo().delResIndex);
+	if (row < 0) return true;
+
+	std::set<int32_t> visited;
+	return CheckDeletionRestriction(item.GetId(), row, visited);
+}
+
+bool InventoryComponent::CheckDeletionRestriction(const LWOOBJID itemId, const int32_t row, std::set<int32_t>& visited) const {
+	// Rows that are missing, not restricted, of an unknown type or without IDs don't restrict anything
+	const auto* const restriction = CDClientManager::GetTable<CDDeletionRestrictionsTable>()->Get(row);
+	if (!restriction || !restriction->restricted) return true;
+
+	const auto checkType = static_cast<eDeletionRestrictionCheckType>(restriction->checkType);
+	if (checkType == eDeletionRestrictionCheckType::ALWAYS_RESTRICTED) return false;
+	if (restriction->checkType < 0 || restriction->checkType > GeneralUtils::ToUnderlying(eDeletionRestrictionCheckType::ALWAYS_RESTRICTED)) return true;
+
+	const auto ids = ParseDeletionRestrictionIds(restriction->ids);
+	if (ids.empty()) return true;
+
+	switch (checkType) {
+	case eDeletionRestrictionCheckType::ANY_RESTRICTION:
+	case eDeletionRestrictionCheckType::ALL_RESTRICTIONS: {
+		if (!visited.insert(row).second) return true;
+		const bool any = checkType == eDeletionRestrictionCheckType::ANY_RESTRICTION;
+		bool result = !any;
+		for (const auto id : ids) {
+			const bool allowed = CheckDeletionRestriction(itemId, static_cast<int32_t>(id), visited);
+			result = any ? (result || allowed) : (result && allowed);
+		}
+		visited.erase(row);
+		return result;
+	}
+	case eDeletionRestrictionCheckType::ZONE: {
+		const auto mapId = Game::zoneManager->GetZoneID().GetMapID();
+		return std::ranges::find(ids, static_cast<int64_t>(mapId)) != ids.end();
+	}
+	case eDeletionRestrictionCheckType::LOTS_INCLUDED:
+	case eDeletionRestrictionCheckType::LOTS_EXCLUDED: {
+		// The other items the player has, in any inventory, not counting the one being deleted
+		std::set<int64_t> missing(ids.begin(), ids.end());
+		for (const auto& [type, inventory] : m_Inventories) {
+			for (const auto& [id, other] : inventory->GetItems()) {
+				if (id == itemId || !missing.contains(other->GetLot())) continue;
+				if (checkType == eDeletionRestrictionCheckType::LOTS_INCLUDED) return true;
+				missing.erase(other->GetLot());
+				if (missing.empty()) return true;
+			}
+		}
+		return false;
+	}
+	default:
+		return true;
+	}
 }

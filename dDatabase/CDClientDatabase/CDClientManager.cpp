@@ -36,6 +36,7 @@
 #include "CDMissionEmailTable.h"
 #include "CDRewardsTable.h"
 #include "CDPropertyEntranceComponentTable.h"
+#include "CDDeletionRestrictionsTable.h"
 #include "CDPropertyTemplateTable.h"
 #include "CDModularBuildComponentTable.h"
 #include "CDFeatureGatingTable.h"
@@ -93,6 +94,7 @@ DEFINE_TABLE_STORAGE(CDPackageComponentTable);
 DEFINE_TABLE_STORAGE(CDPetComponentTable);
 DEFINE_TABLE_STORAGE(CDProximityMonitorComponentTable);
 DEFINE_TABLE_STORAGE(CDPropertyEntranceComponentTable);
+DEFINE_TABLE_STORAGE(CDDeletionRestrictionsTable);
 DEFINE_TABLE_STORAGE(CDPropertyTemplateTable);
 DEFINE_TABLE_STORAGE(CDModularBuildComponentTable);
 DEFINE_TABLE_STORAGE(CDRailActivatorComponentTable);
@@ -118,6 +120,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDBrickIDTableTable::Instance().LoadValuesFromDatabase();
 	CDCLIENT_DONT_CACHE_TABLE(CDComponentsRegistryTable::Instance().LoadValuesFromDatabase());
 	CDCurrencyTableTable::Instance().LoadValuesFromDatabase();
+	CDDeletionRestrictionsTable::Instance().LoadValuesFromDatabase();
 	CDDestructibleComponentTable::Instance().LoadValuesFromDatabase();
 	CDEmoteTableTable::Instance().LoadValuesFromDatabase();
 	CDFeatureGatingTable::Instance().LoadValuesFromDatabase();

@@ -4,6 +4,7 @@
 #define INVENTORYCOMPONENT_H
 
 #include <map>
+#include <set>
 #include <stack>
 
 
@@ -334,6 +335,12 @@ public:
 	std::vector<uint32_t> FindBuffs(Item* item, bool castOnEquip) const;
 
 	/**
+	 * One DeletionRestrictions row (CheckDeletionRestrictionIndex @ 00c94c20). visited stops rows that refer back to
+	 * themselves; the client lets such rows through.
+	 */
+	bool CheckDeletionRestriction(LWOOBJID itemId, int32_t row, std::set<int32_t>& visited) const;
+
+	/**
 	 * Initializes the equipped items with a list of items
 	 * @param items the items to equip
 	 */
@@ -451,6 +458,12 @@ public:
 	void OnEquipInventory(const GameMessages::EquipInventory& msg);
 	void OnUnEquipInventory(const GameMessages::UnEquipInventory& msg);
 	void OnRemoveItemFromInventory(const GameMessages::RemoveItemFromInventory& msg);
+
+	/**
+	 * Whether the player may delete this item: its ItemComponent's DeletionRestrictions row, as the client checks it
+	 * (LWOInventoryComponent_Common::CanRemoveFromInventory @ 00ce0d20 in 1.10.64). Operators may delete anything.
+	 */
+	bool CanDelete(const Item& item) const;
 	void OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg);
 	void OnMoveItemBetweenInventoryTypes(const GameMessages::MoveItemBetweenInventoryTypes& msg);
 	// Answers the client at sysAddr with ResponseMoveItemBetweenInventoryTypes.
