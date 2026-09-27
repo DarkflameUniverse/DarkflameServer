@@ -113,7 +113,7 @@ namespace ClientPackets {
 		};
 
 		// Written as a u8 count first
-		uint8_t selectedCharacterIndex{}; // TODO: Pick the most recent played index. DLU always sends 0
+		uint8_t selectedCharacterIndex{}; // The character with the latest last login
 		std::vector<Character> characters{};
 
 		CharacterListResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::CHARACTER_LIST_RESPONSE) {}

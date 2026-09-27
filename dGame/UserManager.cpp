@@ -248,8 +248,16 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars.push_back(character);
 	}
 
+	// Live kept the characters in the order they were made and selected the one with the latest last login (a new
+	// character counts as logged in when it is made), as 2014 captures of the character list show. Character IDs
+	// only grow, so sorting by ID gives the order they were made in.
+	std::ranges::sort(chars, {}, &Character::GetID);
+
 	ClientPackets::CharacterListResponse response;
-	response.selectedCharacterIndex = 0; //TODO: Pick the most recent played index.  character index in front, just picking 0
+	response.selectedCharacterIndex = 0;
+	for (size_t i = 1; i < chars.size(); i++) {
+		if (chars[i]->GetLastLogin() > chars[response.selectedCharacterIndex]->GetLastLogin()) response.selectedCharacterIndex = static_cast<uint8_t>(i);
+	}
 
 	for (const auto* const character : u->GetCharacters()) {
 		auto& entry = response.characters.emplace_back();
