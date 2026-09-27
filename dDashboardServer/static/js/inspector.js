@@ -210,7 +210,8 @@
 			var end = s.state === 'ended' ? s.endedAt : Date.now() / 1000;
 			return '<tr data-session="' + s.id + '">' +
 				'<td class="small">' + esc(fmt.unix(s.startedAt)) + '</td>' +
-				'<td>' + fmt.character(s.characterId, s.characterName) +
+				'<td>' + (s.kind === 1 ? '<span class="badge text-bg-info me-1">Packets</span>' + esc(s.target === 'everything' ? 'everything' : s.target === 'account' ? s.accountName : s.characterName) :
+					fmt.character(s.characterId, s.characterName)) +
 				(s.accountId ? '<div class="small text-body-secondary">account ' + fmt.link('/accounts/' + s.accountId, s.accountName || String(s.accountId)) + '</div>' : '') + '</td>' +
 				'<td>' + esc(s.startedBy) + '</td>' +
 				'<td class="text-nowrap">' + esc(durationText(end - s.startedAt)) + '</td>' +
@@ -218,7 +219,8 @@
 				'<td class="text-end">' + nf.format(s.received) + (s.dropped ? ' <span class="text-warning" title="Left out by the world (too many at once)">+' + nf.format(s.dropped) + '</span>' : '') + '</td>' +
 				'<td class="text-end text-nowrap">' + esc(bytesText(s.bytes)) + '</td>' +
 				'<td class="small">' + (s.state === 'ended' ? esc(s.endReason) : stateBadge(s)) + '</td>' +
-				'<td class="text-end text-nowrap small"><a class="btn btn-sm btn-link p-0 me-2" href="' + sessionUrl(s.id) + '/download" title="Download JSON (audited)">JSON</a>' +
+				'<td class="text-end text-nowrap small">' + (s.kind === 1 ? '<a class="btn btn-sm btn-link p-0 me-2" href="' + sessionUrl(s.id) + '/bundle" title="Portable bundle (audited)">Bundle</a>' :
+					'<a class="btn btn-sm btn-link p-0 me-2" href="' + sessionUrl(s.id) + '/download" title="Download JSON (audited)">JSON</a>') +
 				(s.state === 'ended' ? '<button type="button" class="btn btn-sm btn-link text-danger p-0" data-delete="' + s.id + '">Delete</button>' : '') + '</td></tr>';
 		}).join('') : '<tr><td colspan="9" class="text-body-secondary small">No saved captures' + (filtered() ? ' match these filters' : ' yet') + '.</td></tr>';
 		var limit = parseInt(byId('sessionPageSize').value, 10);
@@ -240,7 +242,12 @@
 			return;
 		}
 		var row = e.target.closest('[data-session]');
-		if (row) open(parseInt(row.dataset.session, 10));
+		if (!row) return;
+		var id = parseInt(row.dataset.session, 10);
+		var picked = sessions.rows.filter(function (r) { return r.id === id; })[0];
+		// Packet captures have their own viewer
+		if (picked && picked.kind === 1) { window.location.href = '/inspector/packets#capture=' + id; return; }
+		open(id);
 	});
 
 	document.querySelectorAll('.sessions-table th[data-sort]').forEach(function (th) {

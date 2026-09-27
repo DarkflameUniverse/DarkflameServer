@@ -874,6 +874,25 @@ async function loadReplay() {
 	const data = await api.get('/api/world3d/history?zone=' + state.zone + '&instance=' + state.instance + '&from=' + range.from + '&to=' + range.to).catch(() => null);
 	setStatus('');
 	if (!data || data.success === false) { toast((data && data.error) || 'Could not load the replay', 'danger'); return; }
+	startReplay(data);
+}
+
+/**
+ * A packet capture's movement (the Packet Captures page's "World 3D" button: /world3d?capture=<id>&zone=<zone>): the
+ * captured characters' position updates, replayed like recorded positions. The capture page's timeline drives the
+ * time here while it plays (BroadcastChannel "dlu-capture-replay").
+ */
+async function loadCaptureReplay(capture) {
+	setStatus('Loading the capture…');
+	const data = await api.get('/api/inspector/sessions/' + encodeURIComponent(capture) + '/positions?zone=' + state.zone).catch(() => null);
+	setStatus('');
+	if (!data || data.success === false) { toast((data && data.error) || 'Could not load the capture', 'danger'); return; }
+	startReplay(data);
+	state.replay.capture = String(capture);
+	if (!data.players.length) toast('No movement was captured in this zone' + (data.zones && data.zones.length ? ' (captured in: ' + data.zones.map(zoneName).join(', ') + ')' : ''), 'info');
+}
+
+function startReplay(data) {
 	stopReplay();
 	const gap = Math.max(data.idleSeconds * 1.6, data.bucket * 2.5, data.interval * 3);
 	const replay = { from: data.from, to: data.to, players: data.players, gap, hold: data.idleSeconds, t: 0, playing: false, trails: null };
@@ -933,6 +952,16 @@ if (canHistory) {
 		$('replayPlay').textContent = r.playing ? 'Pause' : 'Play';
 	});
 	$('replayScrub').addEventListener('input', () => setReplayTime(Number($('replayScrub').value)));
+}
+
+if ('BroadcastChannel' in window) {
+	new BroadcastChannel('dlu-capture-replay').addEventListener('message', (e) => {
+		const r = state.replay, m = e.data || {};
+		if (!r || !r.capture || String(m.capture) !== r.capture) return;
+		r.playing = false;
+		$('replayPlay').textContent = 'Play';
+		setReplayTime(Number(m.t) || 0);
+	});
 }
 
 // ---- heat map timelapse ----
@@ -1149,5 +1178,14 @@ function animate() {
 	// Running worlds and their player counts change; refresh them now and then
 	setInterval(() => api.get('/api/world3d/meta').then((m) => { state.meta.worlds = m.worlds; renderInstances(); }).catch(() => {}), 30000);
 	animate();
+	const params = new URLSearchParams(location.search);
+	if (params.get('zone') && $('zoneSelect').querySelector('option[value="' + CSS.escape(params.get('zone')) + '"]')) $('zoneSelect').value = params.get('zone');
 	if ($('zoneSelect').value) await loadZone(Number($('zoneSelect').value));
+	if (params.get('capture') && canHistory) {
+		$('modeReplay').checked = true;
+		await setMode('replay');
+		await loadCaptureReplay(params.get('capture'));
+	} else if (params.get('capture')) {
+		toast('Replaying a capture here needs the players_history permission', 'warning');
+	}
 })();

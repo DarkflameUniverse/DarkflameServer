@@ -1,0 +1,137 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Packet Captures - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.pc-layout { display: grid; grid-template-columns: 19rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+	.pc-side { position: sticky; top: 4rem; }
+	.pc-side .list-group-item { cursor: pointer; }
+	.pc-side .list-group-item.active .text-body-secondary { color: inherit !important; opacity: .85; }
+	.pc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(22rem, 30rem); gap: 1rem; align-items: start; }
+	.pc-grid.no-detail { grid-template-columns: minmax(0, 1fr); }
+	.pc-table-wrap { height: calc(100vh - 24rem); min-height: 18rem; overflow: auto; }
+	.pc-table { font-size: .8rem; table-layout: fixed; width: 100%; }
+	.pc-table td, .pc-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.pc-table tbody tr { cursor: pointer; }
+	.pc-table tbody tr.selected > td { background: var(--bs-primary-bg-subtle); }
+	.pc-table tbody tr.gap > td { background: var(--bs-warning-bg-subtle); }
+	.pc-table tbody tr.to-server > td:first-child { box-shadow: inset 3px 0 0 var(--bs-primary); }
+	.pc-table .c-i { width: 4.5rem; }
+	.pc-table .c-t { width: 6.5rem; }
+	.pc-table .c-src { width: 7.5rem; }
+	.pc-table .c-dir { width: 9rem; }
+	.pc-table .c-b { width: 4.5rem; }
+	.pc-detail { position: sticky; top: 4rem; max-height: calc(100vh - 5rem); overflow: auto; }
+	.pc-hex { font-family: var(--bs-font-monospace); font-size: .75rem; white-space: pre; overflow-x: auto; margin: 0; }
+	.pc-fields { font-family: var(--bs-font-monospace); font-size: .75rem; white-space: pre-wrap; word-break: break-all; margin: 0; }
+	@media (max-width: 1599.98px) { .pc-grid { grid-template-columns: minmax(0, 1fr); } .pc-detail { position: static; max-height: none; } }
+	@media (max-width: 991.98px) { .pc-layout { grid-template-columns: minmax(0, 1fr); } .pc-side { position: static; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="packetCapturePage">
+	<div class="mb-3">
+		<h2 class="mb-1">Packet Captures</h2>
+		<p class="text-body-secondary mb-0">Record every packet of one account (from its next login, or now if it is online), one character (from when
+			it is picked), or everything, on all servers at once: auth, chat, every world and master, on one timeline. Play a capture back here, watch the
+			movement in <a href="/world3d">World 3D</a>, or export it as a bundle for the capture tool's replay against a sandbox server
+			(<code>docs/CaptureReplay.md</code>). Passwords, session keys and user keys are never recorded. Arming, stopping and exporting are audited;
+			captures are kept as long as the <a href="/inspector">Message Inspector</a>'s.</p>
+	</div>
+
+	<div class="pc-layout">
+		<aside class="pc-side">
+			<div class="card mb-3">
+				<div class="card-header"><h5 class="mb-0 fs-6">New packet capture</h5></div>
+				<div class="card-body">
+					<form id="armForm" class="d-grid gap-2">
+						<div class="btn-group btn-group-sm" role="group" aria-label="What to capture">
+							<input type="radio" class="btn-check" name="target" id="targetAccount" value="account" checked>
+							<label class="btn btn-outline-primary" for="targetAccount">Account</label>
+							<input type="radio" class="btn-check" name="target" id="targetCharacter" value="character">
+							<label class="btn btn-outline-primary" for="targetCharacter">Character</label>
+							<input type="radio" class="btn-check" name="target" id="targetEverything" value="everything">
+							<label class="btn btn-outline-primary" for="targetEverything">Everything</label>
+						</div>
+						<div id="pickerWrap"><label class="form-label small mb-1" for="targetPicker" id="pickerLabel">Account</label>
+							<input class="form-control form-control-sm" id="targetPicker" placeholder="Part of a name, or an ID">
+							<div class="form-text small" id="pickerHint">Account or character name, account ID or character object ID. Online ones are marked.</div></div>
+						<div id="everythingHint" class="small text-warning d-none">Everything on every server: a busy server makes large files. Keep it short.</div>
+						<div><label class="form-label small mb-1" for="armSeconds">For</label>
+							<select class="form-select form-select-sm" id="armSeconds" data-pref="packets.seconds">
+								<option value="60">1 minute</option>
+								<option value="300" selected>5 minutes</option>
+								<option value="600">10 minutes</option>
+								<option value="900">15 minutes</option>
+							</select></div>
+						<button class="btn btn-sm btn-primary">Arm capture</button>
+					</form>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">Captures</h5>
+					<a class="small" href="/inspector">Game messages</a></div>
+				<div class="list-group list-group-flush" id="captureList"><div class="list-group-item text-body-secondary small">Loading&hellip;</div></div>
+			</div>
+		</aside>
+
+		<div style="min-width: 0">
+			<div class="card d-none" id="viewer">
+				<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+					<div style="min-width: 0"><h5 class="mb-0" id="viewTitle"></h5><div class="small text-body-secondary" id="viewSubtitle"></div></div>
+					<div class="d-flex flex-wrap gap-2">
+						<a class="btn btn-sm btn-outline-secondary" id="world3dBtn" target="_blank" rel="noopener" title="The captured movement in World 3D; this page's timeline drives it while it plays">World 3D</a>
+						<a class="btn btn-sm btn-outline-secondary" id="bundleBtn" title="A portable bundle for the capture tool (audited)">Export bundle</a>
+						<a class="btn btn-sm btn-outline-secondary" id="fixtureBtn" title="Names and chat replaced, for a local test fixture (audited)">Export anonymised</a>
+						<button class="btn btn-sm btn-outline-danger d-none" id="stopBtn">Stop</button>
+						<button class="btn btn-sm btn-outline-danger d-none" id="deleteBtn">Delete</button>
+					</div>
+				</div>
+				<div class="card-body">
+					<div class="d-flex flex-wrap align-items-center gap-2 mb-2 small" aria-label="Playback">
+						<button type="button" class="btn btn-sm btn-primary" id="playBtn" title="Play or pause (space)">Play</button>
+						<select class="form-select form-select-sm w-auto" id="speed" data-pref="packets.speed" title="Speed">
+							<option value="0.25">0.25&times;</option><option value="0.5">0.5&times;</option><option value="1" selected>1&times;</option>
+							<option value="2">2&times;</option><option value="4">4&times;</option><option value="16">16&times;</option><option value="64">64&times;</option>
+						</select>
+						<input type="range" class="form-range flex-grow-1 w-auto" id="scrub" min="0" max="1" step="1" value="0" aria-label="Time in the capture">
+						<span class="font-monospace text-nowrap" id="timeText"></span>
+						<button type="button" class="btn btn-sm btn-outline-secondary" id="endBtn" title="Show everything">End</button>
+					</div>
+					<div class="row g-2 align-items-end mb-2">
+						<div class="col-md-5"><input class="form-control form-control-sm" id="nameFilter" placeholder="Packet name part, e.g. POSITION, GAME_MSG REQUEST_USE"></div>
+						<div class="col-md-3"><select class="form-select form-select-sm" id="sourceFilter" aria-label="Server">
+							<option value="">Every server</option><option value="auth">Auth</option><option value="chat">Chat</option><option value="world">Worlds</option><option value="master">Master</option></select></div>
+						<div class="col-md-4 small text-body-secondary" id="countText"></div>
+					</div>
+					<div class="pc-grid no-detail" id="grid">
+						<div class="pc-table-wrap border rounded" id="tableWrap">
+							<table class="table table-sm table-hover mb-0 pc-table">
+								<thead class="sticky-top"><tr><th class="c-i">#</th><th class="c-t">Time</th><th class="c-src">Server</th><th class="c-dir">From &rarr; to</th><th>Packet</th><th class="c-b text-end">Bytes</th></tr></thead>
+								<tbody id="rows"></tbody>
+							</table>
+						</div>
+						<div class="card pc-detail d-none" id="detail">
+							<div class="card-header d-flex justify-content-between align-items-center gap-2"><h5 class="mb-0 fs-6 text-truncate" id="detailTitle"></h5>
+								<button type="button" class="btn-close" id="detailClose" aria-label="Close"></button></div>
+							<div class="card-body">
+								<div class="small text-body-secondary mb-2" id="detailMeta"></div>
+								<pre class="pc-fields border rounded p-2 mb-2" id="detailFields"></pre>
+								<h6 class="small text-uppercase text-body-secondary">Bytes (as sent over RakNet)</h6>
+								<pre class="pc-hex border rounded p-2" id="detailHex"></pre>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="text-body-secondary small" id="emptyViewer">Arm a capture, or pick one on the left.</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/packet-captures.js"></script>
+{% endblock %}

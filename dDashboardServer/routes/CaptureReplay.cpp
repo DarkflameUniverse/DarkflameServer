@@ -426,6 +426,11 @@ namespace CaptureReplay {
 	void RegisterRoutes() {
 		Game::web.RegisterWSSubscription(TOPIC, std::function<uint8_t()>([] { return Permissions::Level(PERMISSION); }));
 
+		Route(eHTTPMethod::GET, "/inspector/packets", Perm(PERMISSION), "Packet captures: arm, play back, export",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				RenderPage(reply, context, "packet-captures.jinja2", "inspector");
+			});
+
 		Route(eHTTPMethod::GET, "/api/inspector/targets", Perm(PERMISSION),
 			"Accounts and characters to capture, by part of an account or character name, or an account or character ID. Query: ?q=",
 			[](HTTPReply& reply, const HTTPContext& context) {
