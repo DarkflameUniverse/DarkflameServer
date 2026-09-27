@@ -217,7 +217,22 @@ function showSelection(model, index) {
 		'<dt class="col-4">Model ID</dt><dd class="col-8 text-break">' + esc(model.id) + '</dd>' +
 		'<dt class="col-4">Position</dt><dd class="col-8">' + model.position.map((v) => esc(v.toFixed(2))).join(', ') + '</dd>' +
 		'<dt class="col-4">Rotation</dt><dd class="col-8">' + esc(yaw) + '&deg;</dd>' + ugcInfo(model) + '</dl>' +
-		(showcase ? '' : '<a class="btn btn-sm btn-outline-secondary" href="/api/property_models/' + esc(model.id) + '/lxfml">Download LXFML</a>');
+		(showcase ? '' : brickBuilt(model) ? '<h6 class="mt-2 mb-1">UGC</h6><div id="ugcDetails" class="small text-body-secondary">Loading…</div>'
+			: '<a class="btn btn-sm btn-outline-secondary" href="/api/property_models/' + esc(model.id) + '/lxfml">Download LXFML</a>');
+	if (!showcase && brickBuilt(model)) {
+		const item = ugc[model.id];
+		const placed = property && property.models.find((m) => String(m.id) === String(model.id));
+		UgcLinks.details(item ? item.ugcId : placed && placed.ugc_id, 'property=' + propertyId, model.id).then((html) => {
+			const box = document.getElementById('ugcDetails');
+			if (box && selectedIndex === index) { box.className = ''; box.innerHTML = html; }
+		});
+	}
+}
+
+// Brick-built models (their blueprint is on the UGC server); cars and rockets are modular and drawn by the client
+function brickBuilt(model) {
+	const item = ugc[model.id];
+	return item ? item.kind === 'model' : model.lot === 14;
 }
 
 // A player-built model's UGC server state, what it is drawn from, and a link to it in the UGC viewer

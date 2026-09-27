@@ -217,6 +217,12 @@ function ugcState(m) {
 	return '<div class="small mt-1">UGC server: ' + UgcLinks.state(m.ugc) + (m.ugc.link ? ' <a href="' + esc(m.ugc.link) + '">Open in UGC viewer</a>' : '') + '</div>';
 }
 
+// A brick-built model's full UGC data (icons, stats, links), loaded when opened (ugc-links.js)
+function ugcDetails(m) {
+	return '<details class="mt-1" data-ugc-details="' + esc(m.ugc_id || '') + '" data-model="' + esc(m.id) + '" data-via="property=' + esc(propertyId) + '">' +
+		'<summary class="small">UGC details</summary><div class="ugc-details-body mt-1 small text-body-secondary">Loading…</div></details>';
+}
+
 const labels = $('#modelsTable thead th').map(function () { return $(this).text().trim(); }).get();
 const columns = [
 	{ data: null, render: (m, type) => {
@@ -236,13 +242,13 @@ const columns = [
 	{ data: null, render: (m, type) => {
 		if (m.lxfml_size === null || m.lxfml_size === undefined) {
 			if (type !== 'display') return m.ldf_config || '';
-			return m.ldf_config ? '<span class="small">Modular: <code>' + esc(m.ldf_config) + '</code></span>' + ugcState(m) : muted(m.lot === UGC_LOT ? 'Missing' : 'Prebuilt');
+			return m.ldf_config ? '<span class="small">Modular: <code>' + esc(m.ldf_config) + '</code></span>' + ugcState(m) : (m.lot === UGC_LOT ? muted('Missing') + ugcDetails(m) : muted('Prebuilt'));
 		}
 		if (type !== 'display') return m.lxfml_size;
 		return '<span class="small">' + esc(bytes(m.lxfml_size)) + '</span> ' +
 			(m.is_optimized ? fmt.badge('Optimized', 'info') + ' ' : '') + (m.bake_ao ? fmt.badge('Baked AO', 'secondary') + ' ' : '') +
 			(m.ldf_config ? '<div class="small">Modular: <code>' + esc(m.ldf_config) + '</code></div>' : '') +
-			'<div class="small text-body-secondary">UGC ' + esc(m.ugc_id) + (m.filename ? ' &middot; ' + esc(m.filename) : '') + '</div>' + ugcState(m);
+			'<div class="small text-body-secondary">UGC ' + esc(m.ugc_id) + (m.filename ? ' &middot; ' + esc(m.filename) : '') + '</div>' + ugcState(m) + (!m.ugc || m.ugc.kind === 'model' ? ugcDetails(m) : '');
 	} },
 	{ data: 'position', orderable: false, render: (d) => '<span class="small text-nowrap">' + d.map((v) => v.toFixed(1)).join(', ') + '</span>' },
 	{ data: 'id', orderable: false, className: 'actions', render: (d) =>
