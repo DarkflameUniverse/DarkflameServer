@@ -315,20 +315,32 @@ TEST_F(PropertyMessagesTests, PlaceModelResponseMatchesLegacy) {
 						msg.propertyPlaqueID = plaque;
 						msg.response = response;
 						msg.rotation = rotation;
-						ExpectSameAsLegacy([&](const SystemAddress& a) { LegacyGameMessages::SendPlaceModelResponse(target, a, position, plaque, response, rotation); }, msg);
-						// The kept wire bug (response written where rotation belongs) only round trips with the default rotation.
+						// WIRE FIX: the legacy bytes wrote response where the rotation belongs; they only still match when
+						// the rotation is the identity (its flag is 0 and nothing follows).
 						if (rotation == QuatUtils::IDENTITY) {
-							const auto copy = RoundTrip(msg);
-							EXPECT_EQ(copy.position, position);
-							EXPECT_EQ(copy.propertyPlaqueID, plaque);
-							EXPECT_EQ(copy.response, response);
-							ExpectTruncatedFails(msg);
+							ExpectSameAsLegacy([&](const SystemAddress& a) { LegacyGameMessages::SendPlaceModelResponse(target, a, position, plaque, response, rotation); }, msg);
 						}
+						const auto copy = RoundTrip(msg);
+						EXPECT_EQ(copy.position, position);
+						EXPECT_EQ(copy.propertyPlaqueID, plaque);
+						EXPECT_EQ(copy.response, response);
+						EXPECT_EQ(copy.rotation, rotation);
+						ExpectTruncatedFails(msg);
 					}
 				}
 			}
 		}
 	}
+}
+
+// WIRE FIX golden bytes: a placed model turned 90 degrees, as a live server answered it. The rotation goes on the wire
+// as w, x, y, z after its flag (0x00dc0170), not the 4-byte response DLU used to repeat there.
+TEST_F(PropertyMessagesTests, PlaceModelResponseWritesRotation) {
+	GameMessages::PlaceModelResponse msg;
+	msg.response = 14;
+	msg.rotation = NiQuaternion(0.5f, 0.5f, 0.5f, 0.5f); // glm: w, x, y, z
+	// flags 0 (position), 0 (plaque), 1 + 0e 00 00 00, 1 + four 0.5f (00 00 00 3f)
+	EXPECT_PACKET_EQ(FromHex("21 c0 00 00 10 00 00 03 f0 00 00 03 f0 00 00 03 f0 00 00 03 f0", 164), Payload(msg));
 }
 
 TEST_F(PropertyMessagesTests, UgcEquipMessagesMatchLegacy) {

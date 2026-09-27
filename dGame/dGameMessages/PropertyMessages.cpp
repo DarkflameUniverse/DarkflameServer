@@ -298,9 +298,7 @@ namespace GameMessages {
 		BitStreamUtils::WriteOptional(bitStream, position, NiPoint3Constant::ZERO);
 		BitStreamUtils::WriteOptional(bitStream, propertyPlaqueID, LWOOBJID_EMPTY);
 		BitStreamUtils::WriteOptional(bitStream, response, 0);
-		// WIRE BUG (kept, see the struct): the value written after rotation's flag is response, not rotation.
-		bitStream.Write(rotation != QuatUtils::IDENTITY);
-		if (rotation != QuatUtils::IDENTITY) bitStream.Write(response);
+		BitStreamUtils::WriteOptional(bitStream, rotation, QuatUtils::IDENTITY);
 	}
 
 	bool PlaceModelResponse::Deserialize(RakNet::BitStream& bitStream) {

@@ -134,10 +134,9 @@ namespace GameMessages {
 		std::vector<std::pair<LWOOBJID, LWOOBJID>> models{}; // u32 count, then both IDs of each pair
 	};
 
-	// Server -> client.
-	// WIRE BUG (kept): DLU writes rotation's flag, but then writes response (4 bytes) instead of the quaternion
-	// (16 bytes) that the client's PlaceModelResponse::Deserialize (0x00dc0170) reads. Deserialize reads the
-	// client's layout, so a message with a non-identity rotation does not round trip.
+	// Server -> client. Laid out as the client's PlaceModelResponse::Deserialize (0x00dc0170) reads it: every field is
+	// optional and the rotation is a w, x, y, z quaternion. response is 14 when a model was placed and 16 when one was
+	// taken off the property (picked up or put away).
 	struct PlaceModelResponse : public NetGameMsg {
 		PlaceModelResponse() : NetGameMsg(MessageType::Game::PLACE_MODEL_RESPONSE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

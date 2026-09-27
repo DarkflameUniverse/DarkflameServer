@@ -306,7 +306,7 @@ the 1.10.64 client.
 
 | Message | DLU | Client / reference |
 |---|---|---|
-| `PlaceModelResponse` | Writes a 4-byte `response` where the client expects the rotation. | The client reads a 16-byte quaternion when the rotation isn't identity (`0x00dc0170`). |
+| `PlaceModelResponse` | Fixed (wire fix, see docs/BuildWorkflow.md): used to write a 4-byte `response` where the client expects the rotation. | The client reads a 16-byte w, x, y, z quaternion when the rotation isn't identity (`0x00dc0170`); a live server echoed the rotation the client placed the model with. |
 | `NotifyPetTamingPuzzleSelected` | Written as the client's `Serialize` (`0x00db6880`) writes it. | The client's own `Deserialize` (`0x00e3a7c0`) reads an extra `u32` its `Serialize` never writes. |
 | `SetBuildModeConfirmed` | Always sends the default flags. | The client has non-default flag fields. |
 | `NotifyNotEnoughInvSpace` | Sent with message ID `VEHICLE_NOTIFY_FINISHED_RACE` (1396). | Its ID is `NOTIFY_NOT_ENOUGH_INV_SPACE` (1516). |
