@@ -212,6 +212,7 @@ public:
 	void CancelTimer(const std::string& name);
 
 	void AddToGroup(const std::string& group);
+	void RemoveFromGroup(const std::string& group);
 	bool IsPlayer() const;
 
 	std::unordered_map<eReplicaComponentType, Component*>& GetComponents() { return m_Components; } // TODO: Remove

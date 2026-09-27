@@ -17,7 +17,9 @@ void FvPandaServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetT
 	} else if (type == ePetTamingNotifyType::QUIT || type == ePetTamingNotifyType::FAILED) {
 		self->Smash();
 	} else if (type == ePetTamingNotifyType::SUCCESS) {
-		// TODO: Remove from groups
+		// A tamed panda no longer counts against the spawner's limit or the tamer's one panda (live script)
+		self->RemoveFromGroup("pandas");
+		self->RemoveFromGroup("panda" + std::to_string(tamer->GetObjectID()));
 
 		auto* character = tamer->GetCharacter();
 		if (character != nullptr) {

@@ -37,7 +37,8 @@ void CrabServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTami
 		auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr)
 			return;
-		// TODO: Remove custom group?
+		// The live script takes the tamed crab out of its tamer's group
+		self->RemoveFromGroup("crab" + std::to_string(tamer->GetObjectID()));
 		// Command the pet to the player as it may otherwise go to its spawn point which is non existant
 		// petComponent->Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 6, 202, true);
 	}

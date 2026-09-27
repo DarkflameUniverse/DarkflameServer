@@ -1935,6 +1935,10 @@ void Entity::AddToGroup(const std::string& group) {
 	}
 }
 
+void Entity::RemoveFromGroup(const std::string& group) {
+	std::erase(m_Groups, group);
+}
+
 void Entity::RetroactiveVaultSize() const {
 	auto* const inventoryComponent = GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
