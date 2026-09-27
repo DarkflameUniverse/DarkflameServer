@@ -466,6 +466,19 @@ void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID t
 	behavior->Handle(&context, bitStream, { target });
 }
 
+void SkillComponent::CalculateUnmanaged(const uint32_t behaviorId, const LWOOBJID caster, const LWOOBJID target) {
+	BehaviorContext context{ caster, true };
+
+	context.unmanaged = true;
+	context.caster = caster;
+
+	auto* behavior = Behavior::CreateBehavior(behaviorId);
+
+	RakNet::BitStream bitStream{};
+
+	behavior->Calculate(&context, bitStream, { target });
+}
+
 void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target) {
 	BehaviorContext context{ target };
 

@@ -175,6 +175,15 @@ public:
 	static void HandleUnmanaged(uint32_t behaviorId, LWOOBJID target, LWOOBJID source = LWOOBJID_EMPTY);
 
 	/**
+	 * Calculates a behavior on the server only, without syncing it to clients, for effects the
+	 * clients already run on their own (e.g. item set DarkInspiration status effects).
+	 * @param behaviorId the root behavior ID of the skill
+	 * @param caster the entity the behavior is cast by
+	 * @param target the entity the behavior targets
+	 */
+	static void CalculateUnmanaged(uint32_t behaviorId, LWOOBJID caster, LWOOBJID target);
+
+	/**
 	 * Computes a server-side skill uncast calculation without an associated entity.
 	 * @param behaviorId the root behavior ID of the skill
 	 * @param target the explicit target of the skill

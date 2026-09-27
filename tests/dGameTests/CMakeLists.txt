@@ -9,6 +9,7 @@ set(DGAMETEST_SOURCES
 	"ContrabandTests.cpp"
 	"KnockbackTests.cpp"
 	"CollisionFilterTests.cpp"
+	"ItemSetPassiveAbilityTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)
@@ -26,6 +27,8 @@ file(COPY ${COMPONENT_TEST_DATA} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})
 target_include_directories(dGameTests PRIVATE "." "${PROJECT_SOURCE_DIR}/dChatServer" "${PROJECT_SOURCE_DIR}/dScripts")
+# Tests against the live CDClient look for it in the source tree's build folder
+target_compile_definitions(dGameTests PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 if(APPLE)
 	add_custom_target(dGameTestsLink

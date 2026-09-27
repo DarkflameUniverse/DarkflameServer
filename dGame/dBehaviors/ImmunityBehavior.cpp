@@ -96,6 +96,10 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 
 }
 
+void ImmunityBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
+	Timer(context, branch, branch.target);
+}
+
 void ImmunityBehavior::Load() {
 	//Stun
 	this->m_ImmuneToStunAttack = GetBoolean("immune_stun_attack", false);

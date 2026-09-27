@@ -18,8 +18,6 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 	this->m_ID = id;
 	this->m_InventoryComponent = inventoryComponent;
 
-	this->m_PassiveAbilities = ItemSetPassiveAbility::FindAbilities(id, m_InventoryComponent->GetParent(), this);
-
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = ?;");
 	query.bind(1, static_cast<int>(id));
@@ -44,7 +42,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 		auto skillResult = skillQuery.execQuery();
 
 		if (skillResult.eof()) {
-			return;
+			continue;
 		}
 
 		while (!skillResult.eof()) {
@@ -95,6 +93,8 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 		const auto validToken = GeneralUtils::TryParse<int32_t>(token);
 		if (validToken) m_Items.push_back(validToken.value());
 	}
+
+	m_PassiveAbilities = ItemSetPassiveAbility::FindAbilities(id, m_Items, { m_SkillsWith2, m_SkillsWith3, m_SkillsWith4, m_SkillsWith5, m_SkillsWith6 }, m_InventoryComponent->GetParent(), this);
 
 	m_Equipped = {};
 

@@ -470,18 +470,10 @@ bool DestroyableComponent::IsCooldownImmune() const {
 
 bool DestroyableComponent::IsKnockbackImmune() const {
 	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
 
-	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivity::QUICKBUILDING) {
-		const auto hasPassive = inventoryComponent->HasAnyPassive({
-			eItemSetPassiveAbilityID::EngineerRank2, eItemSetPassiveAbilityID::EngineerRank3,
-			eItemSetPassiveAbilityID::SummonerRank2, eItemSetPassiveAbilityID::SummonerRank3,
-			eItemSetPassiveAbilityID::InventorRank2, eItemSetPassiveAbilityID::InventorRank3,
-			}, 5);
-
-		if (hasPassive) {
-			return true;
-		}
+	// Quickbuild interrupt immunity comes from Immunity behaviors, e.g. the 5 item Assembly rank 2 and 3 set skill (584)
+	if (characterComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivity::QUICKBUILDING && GetImmuneToQuickbuildInterrupt()) {
+		return true;
 	}
 
 	return IsImmune() || m_IsShielded || m_AttacksToBlock > 0;

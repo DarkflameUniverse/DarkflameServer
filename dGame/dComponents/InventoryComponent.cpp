@@ -1357,21 +1357,6 @@ void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, En
 	}
 }
 
-bool InventoryComponent::HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const {
-	for (auto* set : m_Itemsets) {
-		if (set->GetEquippedCount() < equipmentRequirement) {
-			continue;
-		}
-
-		// Check if the set has any of the passive abilities
-		if (std::find(passiveIDs.begin(), passiveIDs.end(), static_cast<eItemSetPassiveAbilityID>(set->GetID())) != passiveIDs.end()) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void InventoryComponent::DespawnPet() {
 	auto* current = PetComponent::GetActivePet(m_Parent->GetObjectID());
 

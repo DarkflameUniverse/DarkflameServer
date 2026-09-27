@@ -17,6 +17,9 @@ public:
 
 	void Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) override;
 
+	// Removes the immunities again when an equipped item's or item set's skill is uncast
+	void UnCast(BehaviorContext* context, BehaviorBranchContext branch) override;
+
 	void Load() override;
 
 private:

@@ -17,7 +17,6 @@
 #include "DatabasePet.h"
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
-#include "eItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
@@ -357,14 +356,6 @@ public:
 	 * @param trigger the trigger to fire
 	 */
 	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
-
-	/**
-	 * Returns if the entity has any of the passed passive abilities equipped
-	 * @param passiveIDs the IDs to check for
-	 * @param equipmentRequirement the number of equipment required to be allowed to have the ability
-	 * @return if the entity has any of the passed passive abilities equipped
-	 */
-	bool HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
 
 	/**
 	 * Despawns the currently active pet, if any
