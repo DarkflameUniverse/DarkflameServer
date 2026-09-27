@@ -49,13 +49,13 @@ namespace {
 		return slot == slots.end() ? nullptr : &*slot;
 	}
 
-	// A location given by the dashboard (a property world's map id); missing: the slot's own world
+	// A location given by the dashboard: only the slot's own world (missing means that too), since the news screen
+	// names the slot's world whatever property is sent for it (HotPropertySlots::Location)
 	std::optional<uint32_t> ParseLocation(const nlohmann::json& value, const HotPropertySlots::Slot& slot) {
 		if (value.is_null()) return slot.mapId;
 		const auto mapId = value.is_string() ? GeneralUtils::TryParse<uint32_t>(value.get<std::string>())
 			: value.is_number_unsigned() ? std::optional<uint32_t>(value.get<uint32_t>()) : std::nullopt;
-		const auto& worlds = GetNewsWorlds().worlds;
-		if (!mapId || std::find(worlds.begin(), worlds.end(), *mapId) == worlds.end()) return std::nullopt;
+		if (mapId != slot.mapId) return std::nullopt;
 		return mapId;
 	}
 
@@ -207,13 +207,13 @@ void FeaturedProperties::RegisterRoutes() {
 		});
 
 	Route(eHTTPMethod::GET, "/api/featured_properties/:template/candidates", Perm("feature_properties"),
-		"Approved public properties a \"Today's Top Properties\" slot can show, most reputation first (at most 25). Query: ?location= (a property world's map id, default the slot's own), ?search= (name, description or owner)",
+		"Approved public properties a \"Today's Top Properties\" slot can show, most reputation first (at most 25). Only the slot's own world (the news screen names it). Query: ?search= (name, description or owner)",
 		[](HTTPReply& reply, const HTTPContext& context) {
 			const auto* slot = FindSlot(PathId<uint32_t>(context.path, 2));
 			if (!slot) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No such slot");
 			const auto locationValue = QueryValue(context.queryString, "location");
 			const auto location = ParseLocation(locationValue.empty() ? nlohmann::json(nullptr) : nlohmann::json(locationValue), *slot);
-			if (!location) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "location must be a property world");
+			if (!location) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "A slot can only show a property of its own world (the news screen names that world)");
 
 			const auto candidates = Candidates(*location, MAX_MATCHES, QueryValue(context.queryString, "search").substr(0, MAX_SEARCH));
 			nlohmann::json list = nlohmann::json::array();
@@ -222,7 +222,7 @@ void FeaturedProperties::RegisterRoutes() {
 		});
 
 	Route(eHTTPMethod::POST, "/api/featured_properties/:template", Perm("feature_properties"),
-		"Choose what a \"Today's Top Properties\" slot shows. Body: {location (a property world's map id, default the slot's own), mode: auto|picked|empty, property_id (for picked: an approved public property of the location that no other slot picked)}",
+		"Choose what a \"Today's Top Properties\" slot shows. Body: {mode: auto|picked|empty, property_id (for picked: an approved public property of the slot's own world that no other slot picked)}",
 		[](HTTPReply& reply, const HTTPContext& context) {
 			const auto templateId = PathId<uint32_t>(context.path, 2);
 			if (!templateId) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid slot");
@@ -235,7 +235,7 @@ void FeaturedProperties::RegisterRoutes() {
 			const auto mode = HotPropertySlots::ParseMode(body->value("mode", ""));
 			if (!mode) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "mode must be auto, picked or empty");
 			const auto location = ParseLocation(body->contains("location") ? (*body)["location"] : nlohmann::json(nullptr), *slot);
-			if (!location) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "location must be a property world");
+			if (!location) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "A slot can only show a property of its own world (the news screen names that world)");
 
 			IFeaturedProperties::FeaturedSlot row;
 			row.templateId = slot->templateId;

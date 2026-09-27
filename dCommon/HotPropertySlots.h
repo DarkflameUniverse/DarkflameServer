@@ -135,9 +135,13 @@ namespace HotPropertySlots {
 		return entered ? entered : any;
 	}
 
-	// A slot's location as stored (0: none) if it is still a property world, else the slot's own world
-	inline uint32_t Location(uint32_t stored, const Slot& slot, const std::vector<uint32_t>& worlds) {
-		return stored != 0 && std::find(worlds.begin(), worlds.end(), stored) != worlds.end() ? stored : slot.mapId;
+	/**
+	 * A slot's location: always the slot's own world. The news screen's tooltip names the slot's world whatever
+	 * property is sent for it, so a property of another world would be shown under the wrong name. A location stored
+	 * by an older version (featured_properties.zone_id) is kept in the table but not used.
+	 */
+	inline uint32_t Location(uint32_t /*stored*/, const Slot& slot, const std::vector<uint32_t>& /*worlds*/) {
+		return slot.mapId;
 	}
 
 	constexpr int32_t PRIVACY_PUBLIC = 2; // ePropertyPrivacyOption::Public
@@ -172,14 +176,13 @@ namespace HotPropertySlots {
 	constexpr uint32_t CANDIDATES_PER_WORLD = NEWS_SPAWN_NAMES.size();
 
 	/**
-	 * The worlds whose best CANDIDATES_PER_WORLD candidates Resolve needs (0: every world, for full auto). The picked
+	 * The worlds whose best CANDIDATES_PER_WORLD candidates Resolve needs (full auto: every slot's world). The picked
 	 * properties have to be added to the candidates as well, when they may be shown in their slot's location.
 	 */
 	inline std::vector<uint32_t> CandidateWorlds(const std::vector<Choice>& choices, bool fullAuto) {
-		if (fullAuto) return { 0 };
 		std::vector<uint32_t> worlds;
 		for (const auto& choice : choices) {
-			if (choice.mode != eMode::EMPTY && std::find(worlds.begin(), worlds.end(), choice.mapId) == worlds.end()) worlds.push_back(choice.mapId);
+			if ((fullAuto || choice.mode != eMode::EMPTY) && std::find(worlds.begin(), worlds.end(), choice.mapId) == worlds.end()) worlds.push_back(choice.mapId);
 		}
 		return worlds;
 	}
@@ -187,7 +190,8 @@ namespace HotPropertySlots {
 	/**
 	 * What each slot shows (one entry per choice, in slot order), so that no property is shown twice.
 	 * candidates: the properties that may be shown (see CandidateWorlds); a property listed twice counts once.
-	 * Full auto ignores the choices: the slots show the candidates with the most reputation, in slot order.
+	 * Full auto ignores the modes and picks: each slot shows its location's candidate with the most reputation, in slot
+	 * order.
 	 * Otherwise the picks come first, in slot order: a pick is shown when it is a candidate of the slot's location that
 	 * an earlier slot doesn't show, else the slot falls back to AUTO. Then the AUTO slots, in slot order, each show the
 	 * candidate of their location with the most reputation that isn't shown yet (two on one world: its #1 and #2).
@@ -210,7 +214,7 @@ namespace HotPropertySlots {
 		};
 
 		if (fullAuto) {
-			for (size_t i = 0; i < choices.size(); i++) show(i, best(std::nullopt));
+			for (size_t i = 0; i < choices.size(); i++) show(i, best(choices[i].mapId));
 			return showing;
 		}
 

@@ -19,7 +19,7 @@
 	<div class="card-header d-flex flex-wrap justify-content-between align-items-start gap-2">
 		<div>
 			<h5 class="mb-0"><button type="button" class="btn btn-link p-0 text-body text-decoration-none fs-5 dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#topPropertiesBody" aria-expanded="true" aria-controls="topPropertiesBody">Today's Top Properties</button></h5>
-			<details class="about-text"><summary>How the slots are picked</summary><div>The four slots of the game's news screen. Only approved public properties can be shown, and never one in two slots. <em>Full auto</em> shows the four with the most reputation across every property world; <em>Per slot</em> lets each slot show a property of any property world (its location): <em>Auto</em> the location's one with the most reputation not shown in another slot, a picked one, or nothing. Players see a change the next time they open the news screen (within 30 seconds).</div></details>
+			<details class="about-text"><summary>How the slots are picked</summary><div>The four slots of the game's news screen. Each slot belongs to one property world and can only show a property of that world, since the game names the slot's world whatever property is in it. Only approved public properties can be shown, and never one in two slots. <em>Full auto</em> shows each world's property with the most reputation; <em>Per slot</em> lets each slot show its world's <em>Auto</em> pick (the most reputation not shown in another slot), a picked one, or nothing. Players see a change the next time they open the news screen (within 30 seconds).</div></details>
 			<div class="small text-body-secondary" id="topPropertiesSetBy"></div>
 		</div>
 		<div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Top properties mode">
@@ -86,10 +86,6 @@ $(function () {
 		var modeInputs = document.querySelectorAll('input[name="topPropertiesMode"]');
 		var propLabel = function (p) { return (p.name || '(unnamed)') + ' by ' + (p.owner_name || '?') + ' \u2014 ' + Number(p.reputation || 0).toLocaleString() + ' rep'; };
 		var countLabel = function (n) { return n + ' approved public ' + (n === 1 ? 'property' : 'properties'); };
-		// The news screen's tooltip is the slot's own world, whatever world the property is on
-		var tooltipNote = function (s, location) {
-			return String(location) === String(s.map_id) ? '' : 'In game the slot\'s tooltip still names ' + s.zone_name + '.';
-		};
 		var renderSlots = function (state) {
 			var slots = state.slots || [];
 			var fullAuto = !!state.full_auto;
@@ -97,24 +93,15 @@ $(function () {
 			document.getElementById('topPropertiesSetBy').textContent = state.settings_updated_at
 				? 'Switched to ' + (fullAuto ? 'full auto' : 'per slot') + ' by ' + (state.settings_updated_by || '?') + ' ' + new Date(state.settings_updated_at * 1000).toLocaleString() : '';
 			if (!slots.length) { slotsEl.innerHTML = '<div class="col text-body-secondary">No property worlds found in the client data.</div>'; return; }
-			var worldOptions = function (selected) {
-				return (state.worlds || []).map(function (w) {
-					return '<option value="' + w.map_id + '"' + (String(w.map_id) === String(selected) ? ' selected' : '') + '>' + esc(w.zone_name) + '</option>';
-				}).join('');
-			};
 			slotsEl.innerHTML = slots.map(function (s) {
 				var showing = s.showing
-					? fmt.link('/properties/' + s.showing.id, s.showing.name || '(unnamed)') + ' <span class="text-body-secondary">by ' + esc(s.showing.owner_name) +
-						(String(s.showing.zone_id) !== String(s.map_id) ? ', on ' + esc(s.showing.zone_name) : '') + '</span>'
+					? fmt.link('/properties/' + s.showing.id, s.showing.name || '(unnamed)') + ' <span class="text-body-secondary">by ' + esc(s.showing.owner_name) + '</span>'
 					: '<span class="text-body-secondary">Nothing (locked slot)</span>';
-				var showingNote = s.showing ? tooltipNote(s, s.showing.zone_id) : '';
-				var warn = fullAuto ? '' : s.picked_unavailable ? '<div class="small text-warning mt-1">The picked property is no longer approved and public in ' + esc(s.location_name) + ', so the slot falls back to Auto.</div>'
+				var warn = fullAuto ? '' : s.picked_unavailable ? '<div class="small text-warning mt-1">The picked property isn\'t an approved public property of ' + esc(s.zone_name) + ' (any more), so the slot falls back to Auto.</div>'
 					: s.picked_shown_elsewhere ? '<div class="small text-warning mt-1">The picked property is already shown in an earlier slot, so this one falls back to Auto.</div>' : '';
 				var changed = s.updated_at ? '<div class="small text-body-secondary mt-1">Set by ' + esc(s.updated_by || '?') + ' ' + esc(new Date(s.updated_at * 1000).toLocaleString()) + '</div>' : '';
-				var controls = fullAuto ? '<div class="small text-body-secondary mb-2">Full auto is on: this slot\'s own settings (' + esc(s.location_name) + ', ' + esc(s.mode) + ') are kept for when you switch back to per slot.</div>' :
-					'<label class="form-label small mb-1">Location</label>' +
-					'<select class="form-select form-select-sm mb-1" data-location aria-label="Location">' + worldOptions(s.location) + '</select>' +
-					'<div class="small text-body-secondary mb-2"><span data-count>' + countLabel(s.candidate_total) + '</span><span class="d-block text-info" data-tooltip-note>' + esc(tooltipNote(s, s.location)) + '</span></div>' +
+				var controls = fullAuto ? '<div class="small text-body-secondary mb-2">Full auto is on: this slot\'s own setting (' + esc(s.mode) + ') is kept for when you switch back to per slot.</div>' :
+					'<div class="small text-body-secondary mb-2"><span data-count>' + countLabel(s.candidate_total) + '</span></div>' +
 					'<select class="form-select form-select-sm mb-2" data-mode aria-label="What the slot shows">' +
 						'<option value="auto"' + (s.mode === 'auto' ? ' selected' : '') + '>Auto (most reputation)</option>' +
 						'<option value="picked"' + (s.mode === 'picked' ? ' selected' : '') + (s.candidate_total || s.picked ? '' : ' disabled') + '>Pick a property</option>' +
@@ -124,34 +111,20 @@ $(function () {
 					'<button class="btn btn-sm btn-primary" data-save>Save</button>';
 				return '<div class="col-12 col-md-6 col-xl-3"><div class="border rounded p-3 h-100" data-slot="' + s.template_id + '">' +
 					'<div class="fw-semibold">' + esc(s.zone_name) + ' slot</div>' + controls +
-					'<div class="small mt-2">Showing: ' + showing + '</div>' +
-					(showingNote ? '<div class="small text-info">' + esc(showingNote) + '</div>' : '') + warn + (fullAuto ? '' : changed) +
+					'<div class="small mt-2">Showing: ' + showing + '</div>' + warn + (fullAuto ? '' : changed) +
 				'</div></div>';
 			}).join('');
 			if (fullAuto) return;
 			slots.forEach(function (s) {
 				var box = slotsEl.querySelector('[data-slot="' + s.template_id + '"]');
-				var select = SearchSelect(box.querySelector('[data-property]'), {
+				SearchSelect(box.querySelector('[data-property]'), {
 					value: s.picked ? s.property_id : '',
 					label: s.picked ? propLabel(s.picked) : '',
 					search: function (text) {
-						var location = box.querySelector('[data-location]').value;
-						return api.get('/api/featured_properties/' + s.template_id + '/candidates?location=' + encodeURIComponent(location) + '&search=' + encodeURIComponent(text)).then(function (d) {
+						return api.get('/api/featured_properties/' + s.template_id + '/candidates?search=' + encodeURIComponent(text)).then(function (d) {
 							return (d.properties || []).map(function (p) { return { value: p.id, label: propLabel(p) }; });
 						});
 					}
-				});
-				// Another location: the pick has to be made there, and how many there are to pick from changes
-				box.querySelector('[data-location]').addEventListener('change', function (e) {
-					var location = e.target.value;
-					if (location === String(s.location) && s.picked) select.set(s.property_id, propLabel(s.picked));
-					else select.set('', '');
-					box.querySelector('[data-tooltip-note]').textContent = tooltipNote(s, location);
-					api.get('/api/featured_properties/' + s.template_id + '/candidates?location=' + encodeURIComponent(location)).then(function (d) {
-						if (box.querySelector('[data-location]').value !== location) return;
-						box.querySelector('[data-count]').textContent = countLabel(d.total || 0);
-						box.querySelector('[data-mode] option[value="picked"]').disabled = !d.total;
-					}).catch(function () {});
 				});
 			});
 		};
@@ -179,7 +152,7 @@ $(function () {
 			if (!e.target.matches('[data-save]')) return;
 			var box = e.target.closest('[data-slot]');
 			var mode = box.querySelector('[data-mode]').value;
-			var body = { mode: mode, location: Number(box.querySelector('[data-location]').value) };
+			var body = { mode: mode };
 			if (mode === 'picked') {
 				body.property_id = box.querySelector('[data-property]').dataset.value;
 				if (!body.property_id) { toast('Search for a property and pick one first', 'warning'); return; }

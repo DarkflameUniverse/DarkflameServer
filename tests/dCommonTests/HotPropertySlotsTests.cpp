@@ -90,9 +90,10 @@ TEST(HotPropertySlotsTests, PropertyWorldsAreTheEnteredTemplateMaps) {
 TEST(HotPropertySlotsTests, LocationDefaultsToTheSlotsWorld) {
 	const auto worlds = PropertyWorlds(TEMPLATES, ENTRANCES);
 	const Slot blockYard{ 25166, 1150, "AGSmallProperty" };
-	EXPECT_EQ(Location(0, blockYard, worlds), 1150u);    // rows from before locations
-	EXPECT_EQ(Location(1251, blockYard, worlds), 1251u); // Nimbus Isle
-	EXPECT_EQ(Location(58001, blockYard, worlds), 1150u); // not a property world (any more)
+	EXPECT_EQ(Location(0, blockYard, worlds), 1150u);
+	// A location stored by an older version isn't used: the news screen would name the slot's own world
+	EXPECT_EQ(Location(1251, blockYard, worlds), 1150u);
+	EXPECT_EQ(Location(58001, blockYard, worlds), 1150u);
 }
 
 namespace {
@@ -151,17 +152,17 @@ TEST(HotPropertySlotsTests, APickOfAnotherWorld) {
 	EXPECT_EQ(Shown(Resolve(choices, false, CANDIDATES)), (Ids{ 202, 201, std::nullopt, 301 }));
 }
 
-TEST(HotPropertySlotsTests, FullAutoShowsTheTopFourAcrossEveryWorld) {
-	// The choices don't matter
-	const std::vector<Choice> choices{ { eMode::EMPTY, 1150 }, { eMode::PICKED, 1150, 103 }, { eMode::AUTO, 1350 }, { eMode::AUTO, 1450 } };
+TEST(HotPropertySlotsTests, FullAutoShowsEachSlotsWorldsBest) {
+	// The modes and picks don't matter; each slot still shows only its own world
+	const std::vector<Choice> choices{ { eMode::EMPTY, 1150 }, { eMode::PICKED, 1150, 103 }, { eMode::AUTO, 1350 }, { eMode::AUTO, 1151 } };
 	const auto showing = Resolve(choices, true, CANDIDATES);
-	EXPECT_EQ(Shown(showing), (Ids{ 201, 301, 101, 102 }));
+	EXPECT_EQ(Shown(showing), (Ids{ 101, 102, std::nullopt, 201 }));
 	for (const auto& slot : showing) EXPECT_FALSE(slot.pickFellBack);
 }
 
 TEST(HotPropertySlotsTests, FullAutoWithFewerPropertiesThanSlots) {
-	const std::vector<Choice> choices(4);
-	EXPECT_EQ(Shown(Resolve(choices, true, { { 202, 1151, 50 }, { 301, 1250, 700 } })), (Ids{ 301, 202, std::nullopt, std::nullopt }));
+	const std::vector<Choice> choices{ { eMode::AUTO, 1150 }, { eMode::AUTO, 1151 }, { eMode::AUTO, 1250 }, { eMode::AUTO, 1350 } };
+	EXPECT_EQ(Shown(Resolve(choices, true, { { 202, 1151, 50 }, { 301, 1250, 700 } })), (Ids{ std::nullopt, 202, 301, std::nullopt }));
 	EXPECT_EQ(Shown(Resolve(choices, true, {})), (Ids(4, std::nullopt)));
 }
 
@@ -176,5 +177,5 @@ TEST(HotPropertySlotsTests, ACandidateListedTwiceCountsOnce) {
 TEST(HotPropertySlotsTests, CandidateWorlds) {
 	const std::vector<Choice> choices{ { eMode::AUTO, 1150 }, { eMode::PICKED, 1151, 202 }, { eMode::EMPTY, 1350 }, { eMode::AUTO, 1150 } };
 	EXPECT_EQ(CandidateWorlds(choices, false), (std::vector<uint32_t>{ 1150, 1151 }));
-	EXPECT_EQ(CandidateWorlds(choices, true), (std::vector<uint32_t>{ 0 }));
+	EXPECT_EQ(CandidateWorlds(choices, true), (std::vector<uint32_t>{ 1150, 1151, 1350 }));
 }
