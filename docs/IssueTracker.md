@@ -12,6 +12,11 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 185 | BUG: Assembly Engineer Fortress Knockback | partial | `46f6d56c` feat: server side knockback for AI moved objects |
 | 225 | ENH: "bind_ip" config option | done | `c4cdf717` feat: bind_ip setting for the server sockets |
 | 257 | EH: Crux Prime shields stun instead of knockback | done | `46f6d56c` feat: server side knockback for AI moved objects |
+| 536 | BUG: Pet Bouncer incomplete implementation | done | `5a755f12` fix(pets): pet bouncers wait for the owner and cost imagination<br>`71cdcb49` wire: add the Help game message |
+| 537 | BUG: Pet Digs missing interaction step and imagination cost | done | `e6ed1e61` fix(pets): pet digs wait for the owner and cost imagination<br>`71cdcb49` wire: add the Help game message |
+| 539 | BUG: Client thinks pet is active after automatically de-spawning | done | `cfa0ef83` fix(pets): the backpack lets go of a pet that went away on its own |
+| 546 | BUG: (Most?) spawned Pets don't play their summoning/hibernating Animation/VFX/Audio | done | `ebbb5994` fix(pets): summoned pets play their spawn animation and effect |
+| 547 | BUG: Pet Taming Mini-Game uses poor/invalid positions | done | `647b78eb` fix(pets): place the taming minigame where live did |
 | 596 | BUG: Crux Prime Computer does not respawn if it is killed by an Area of Effect attack | done | `46d7e1f0` fix: Crux Prime dropship computer respawns and no longer crashes |
 | 636 | BUG: Reputation system not working correctly on Properties | done | `f402aff6` feat: property reputation from visitors, resistant to farming |
 | 637 | BUG: Today's Top Properties not showing any properties | done | `f402aff6` feat: property reputation from visitors, resistant to farming |
@@ -33,5 +38,9 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 
 ## Waiting on other work
 
-- Needs the message conversion follow-ups (now unblocked): pets 536, 537, 539, 546, 547, 166; vendor buyback 1129; deletion restrictions 960; wrong-way warp 764.
+- Needs the message conversion follow-ups (now unblocked): vendor buyback 1129; deletion restrictions 960; wrong-way warp 764.
+- Pets 166 (untamed dragons and skunks don't use their skills): not fixed. Their combat AI, NPC combat skill and
+  hostile faction are set up by DamagingPets; nothing wrong could be found without watching it in game.
+- Pet scripts' group TODOs: the panda and crab now leave their spawn groups (`68bb1dc6`); the dig and object pet
+  scripts' live versions are not shipped with the client, so theirs stay.
 - Property behaviors 803, floating models 983: not started.
