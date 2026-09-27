@@ -183,6 +183,10 @@ namespace {
 		c.Add(When(List(WORLD, "hardcore_uscore_reduced_lots", "Reduced U-score enemies", "", eListOf::LOT), WORLD, "hardcore_mode", { "1" }));
 		c.Add(When(List(WORLD, "hardcore_uscore_excluded_enemies", "Enemies without U-score", "", eListOf::LOT), WORLD, "hardcore_mode", { "1" }));
 
+		c.AddSection("Property rent", "Owners pay rent for their properties, like live: each property world's PropertyTemplate price and period, or what the Property Rent page sets. Block Yard is free.");
+		c.Add(Bool(WORLD, "property_rent_enabled", "Charge rent", "Rent is taken from the owner's coins when they log in. Unpaid rent makes the property private until it is paid.", false));
+		c.Add(When(Unit(Int(WORLD, "property_rent_grace_days", "Grace period", "How long rent can be unpaid before the property is made private.", "3", 0, 365), "days"), WORLD, "property_rent_enabled", { "1" }));
+
 		c.AddSection("Events", "Event flags sent at login; they switch on event content in levels (e.g. Talk_Like_A_Pirate).", eLayout::GRID);
 		for (int i = 1; i <= 8; i++) c.Add(Text(SHARED, "event_" + std::to_string(i), "Event " + std::to_string(i), "", ""));
 

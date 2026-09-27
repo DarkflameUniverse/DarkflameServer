@@ -884,6 +884,21 @@ name. Players see changes the next time they open the news screen, within 30 sec
 `GET /api/featured_properties/:template/candidates?location=&search=`,
 `POST /api/featured_properties/:template {location, mode, property_id}`.
 
+### Property rent
+
+Off unless `property_rent_enabled` is on (Settings, Gameplay, Property rent). Owners then pay rent for their
+properties like live: each property world costs its PropertyTemplate's `minimumPrice` every `rentDuration`
+`durationType` (type 1 counts days, the rest months of 30 days; every property world is 1 month, Block Yard is free),
+unless the **Property Rent** page (World & Economy; `properties_view` to see it, `property_rent_manage` (GM 8) to
+change it) sets another price (0: free) or period for the world.
+
+Rent is taken from the owner's coins a few seconds after their character loads in any world; paying moves the due
+date one period on from then (missed periods aren't charged later) and the owner gets a mail receipt. If they don't
+have enough coins they get a mail, and once `property_rent_grace_days` (3) have passed since the rent was due the
+property is made private. It can't be made public or best friends only again until the rent is paid (the owner is
+told in chat when they try), and a property world that loads with overdue rent makes itself private too. Nothing on
+the property changes. The property's page shows the rent last charged and when the next is due.
+
 ### Properties in 3D
 
 **Open 3D view** on a property page (or *View in 3D* next to a model) shows every placed model on the zone's terrain,

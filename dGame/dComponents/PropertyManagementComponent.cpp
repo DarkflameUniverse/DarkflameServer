@@ -1,4 +1,6 @@
 #include "PropertyManagementComponent.h"
+#include "PropertyRent.h"
+#include "ChatPackets.h"
 #include "DashboardNotify.h"
 
 #include <sstream>
@@ -77,6 +79,13 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const i
 		this->claimedTime = propertyInfo->claimedTime;
 		this->reputation = propertyInfo->reputation;
 
+		// Rent that went unpaid while the owner was away makes the property private
+		if (privacyOption != PropertyPrivacyOption::Private && PropertyRent::IsOverdue(propertyId, zoneId)) {
+			privacyOption = PropertyPrivacyOption::Private;
+			Database::Get()->SetPropertyPrivacy(propertyId, static_cast<int32_t>(privacyOption));
+			LOG("Property %llu is private: its rent is unpaid", propertyId);
+		}
+
 		Load();
 	}
 }
@@ -132,6 +141,13 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	if (value == static_cast<PropertyPrivacyOption>(3)) // Client sends 3 for private for some reason, but expects 0 in return?
 	{
 		value = PropertyPrivacyOption::Private;
+	}
+
+	// Unpaid rent keeps the property private, like live
+	if (value != PropertyPrivacyOption::Private && PropertyRent::IsOverdue(propertyId, Game::zoneManager->GetZoneID().GetMapID())) {
+		value = PropertyPrivacyOption::Private;
+		auto* ownerEntity = GetOwner();
+		if (ownerEntity) ChatPackets::SendSystemMessage(ownerEntity->GetSystemAddress(), u"Your property's rent is unpaid, so it stays private until the rent is paid.");
 	}
 
 	if (value == PropertyPrivacyOption::Public && privacyOption != PropertyPrivacyOption::Public) {

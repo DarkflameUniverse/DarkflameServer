@@ -245,6 +245,15 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<ZoneLimit> GetZoneLimits() override { return {}; }
 	void SetZoneLimit(const ZoneLimit& limit) override {}
 	void DeleteZoneLimit(uint32_t zoneId) override {}
+	// IPropertyRent
+	std::vector<RentRate> GetPropertyRentRates() override { return {}; }
+	void SetPropertyRentRate(const RentRate& rate) override {}
+	bool DeletePropertyRentRate(uint32_t mapId) override { return false; }
+	std::vector<OwnedProperty> GetPropertiesOfOwner(LWOOBJID ownerId) override { return {}; }
+	int64_t GetPropertyRentDue(LWOOBJID propertyId) override { return 0; }
+	void SetPropertyRent(LWOOBJID propertyId, int64_t amount, int64_t due) override {}
+	void SetPropertyPrivacy(LWOOBJID propertyId, int32_t privacyOption) override {}
+
 	// IContraband
 	std::vector<ContrabandItem> GetContrabandItems() override { return {}; }
 	void SetContrabandItem(const ContrabandItem& item) override {}

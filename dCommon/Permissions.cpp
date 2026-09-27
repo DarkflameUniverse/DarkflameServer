@@ -86,6 +86,7 @@ namespace {
 		{ "reports_review_flags", "Economy and map", "Review flags", "Mark economy flags dismissed or actioned", 3 },
 		{ "items_restore", "Economy and map", "Give items back", "Mail a traced item back to a player, or what a character lost since one of its snapshots (with original IDs when they no longer exist)", 8 },
 		{ "reports_run_checks", "Economy and map", "Run economy checks", "Run the anomaly checks by hand", 8 },
+		{ "property_rent_manage", "Economy and map", "Property rent", "Change the rent of property worlds on the Property Rent page", 8 },
 		{ "contraband_manage", "Economy and map", "Contraband list", "Add, change and remove contraband items (flagged, or removed from players, when a character has one)", 8 },
 
 		{ "play_keys_manage", "Server", "Play keys", "Create, edit and delete play keys, and see the key an account used", 8 },

@@ -73,6 +73,7 @@
 #include "PublicRoutes.h"
 #include "Showcase.h"
 #include "ContrabandRoutes.h"
+#include "PropertyRentRoutes.h"
 #include "FeaturedProperties.h"
 #include "PasswordRecovery.h"
 #include "SettingsRoutes.h"
@@ -526,6 +527,7 @@ int main(int argc, char** argv) {
 	RegisterShowcaseRoutes();
 	FeaturedProperties::RegisterRoutes();
 	ContrabandRoutes::RegisterRoutes();
+	PropertyRentRoutes::RegisterRoutes();
 	RegisterPasswordRecoveryRoutes();
 	RegisterWSRoutes();
 	RegisterDashboardRoutes(); // Must be last - catches all unmatched routes

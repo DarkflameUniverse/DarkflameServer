@@ -19,6 +19,7 @@ set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
 	"LiveOps.cpp"
 	"FeaturedProperties.cpp"
 	"Contraband.cpp"
+	"PropertyRent.cpp"
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"RelatedData.cpp"

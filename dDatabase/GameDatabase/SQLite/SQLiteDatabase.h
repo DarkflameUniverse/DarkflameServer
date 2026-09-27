@@ -199,6 +199,15 @@ public:
 	std::vector<ZoneLimit> GetZoneLimits() override;
 	void SetZoneLimit(const ZoneLimit& limit) override;
 	void DeleteZoneLimit(uint32_t zoneId) override;
+	// IPropertyRent
+	std::vector<RentRate> GetPropertyRentRates() override;
+	void SetPropertyRentRate(const RentRate& rate) override;
+	bool DeletePropertyRentRate(uint32_t mapId) override;
+	std::vector<OwnedProperty> GetPropertiesOfOwner(LWOOBJID ownerId) override;
+	int64_t GetPropertyRentDue(LWOOBJID propertyId) override;
+	void SetPropertyRent(LWOOBJID propertyId, int64_t amount, int64_t due) override;
+	void SetPropertyPrivacy(LWOOBJID propertyId, int32_t privacyOption) override;
+
 	// IContraband
 	std::vector<ContrabandItem> GetContrabandItems() override;
 	void SetContrabandItem(const ContrabandItem& item) override;

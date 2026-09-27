@@ -53,6 +53,7 @@ set(DASHBOARDROUTES_SOURCES
 	"Showcase.cpp"
 	"FeaturedProperties.cpp"
 	"ContrabandRoutes.cpp"
+	"PropertyRentRoutes.cpp"
 	"PasswordRecovery.cpp"
 	"PrometheusMetrics.cpp"
 	"../email/SmtpClient.cpp"

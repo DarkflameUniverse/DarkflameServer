@@ -48,8 +48,8 @@
 	</div>
 	{% endif %}
 
-	{% set worldPages = ["world3d", "reports", "contraband"] %}
-	{% if can.players_view or can.reports_view %}
+	{% set worldPages = ["world3d", "reports", "contraband", "property_rent"] %}
+	{% if can.players_view or can.reports_view or can.properties_view %}
 	<div class="nav-group">
 		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-world" aria-expanded="{% if current_page in worldPages %}true{% else %}false{% endif %}" aria-controls="nav-world">
 			World &amp; Economy<span class="nav-group-dot" title="Something in here needs attention"></span>
@@ -59,6 +59,7 @@
 				{% if can.players_view %}<a href="/world3d" class="list-group-item list-group-item-action{% if current_page == "world3d" %} active{% endif %}">World 3D</a>{% endif %}
 				{% if can.reports_view %}<a href="/reports" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center{% if current_page == "reports" %} active{% endif %}">Economy &amp; Map <span class="badge rounded-pill text-bg-danger d-none" data-badge="reports" title="Open economy flags"></span></a>{% endif %}
 				{% if can.reports_view %}<a href="/contraband" class="list-group-item list-group-item-action{% if current_page == "contraband" %} active{% endif %}">Contraband</a>{% endif %}
+				{% if can.properties_view %}<a href="/property_rent" class="list-group-item list-group-item-action{% if current_page == "property_rent" %} active{% endif %}">Property Rent</a>{% endif %}
 			</div>
 		</div>
 	</div>

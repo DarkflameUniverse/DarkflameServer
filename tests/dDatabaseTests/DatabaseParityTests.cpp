@@ -99,6 +99,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::Challenge, id, title, description, 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::ChallengeTotal, total, contributors);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ILiveOps::Reward, challengeId, characterId, amount, coins, rewardedAt, claimedAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IFeaturedProperties::FeaturedSlot, templateId, mode, propertyId, updatedAt, updatedBy, zoneId);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPropertyRent::RentRate, mapId, price, periodDays, updatedBy, updatedAt);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPropertyRent::OwnedProperty, id, zoneId, privacyOption, rentDue, name);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IContraband::ContrabandItem, lot, reason, action, addedBy, addedAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IFeaturedProperties::FeaturedSettings, fullAuto, updatedAt, updatedBy);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IMessageCaptures::MessageCaptureSession, id, characterId, characterName, accountId, accountName, startedById, startedBy, startedAt, endsAt, endedAt, endReason, toServer, toClient, onlyMessages, skipMessages, zoneId, instanceId, cloneId, zones, messageCount, byteCount, dropped);
@@ -1393,6 +1395,25 @@ TEST_F(ParitySeeded, FeaturedProperties) {
 	Both("SetFeaturedPropertiesSettings replaces", [](GameDatabase& db) {
 		db.SetFeaturedPropertiesSettings({ false, 1700000600, "admin" });
 		return db.GetFeaturedPropertiesSettings();
+	});
+}
+
+TEST_F(ParitySeeded, PropertyRent) {
+	Both("SetPropertyRentRate", [](GameDatabase& db) {
+		db.SetPropertyRentRate({ 1151, 1000, 0, "admin", 1700000000 });
+		db.SetPropertyRentRate({ 1250, 500, 7, "admin", 1700000001 });
+		db.SetPropertyRentRate({ 1151, 0, 30, "mod", 1700000002 });
+		return db.GetPropertyRentRates();
+	});
+	Both("DeletePropertyRentRate", [](GameDatabase& db) { return json{ db.DeletePropertyRentRate(1250), db.DeletePropertyRentRate(1250), db.GetPropertyRentRates() }; });
+	const auto owned = Both("GetPropertiesOfOwner", [](GameDatabase& db) { return db.GetPropertiesOfOwner(CHAR_ALICE); });
+	Both("GetPropertiesOfOwner nobody", [](GameDatabase& db) { return db.GetPropertiesOfOwner(42); });
+	ASSERT_FALSE(owned.empty());
+	const auto propertyId = owned[0]["id"].get<LWOOBJID>();
+	Both("SetPropertyRent", [&](GameDatabase& db) {
+		db.SetPropertyRent(propertyId, 1000, 1800000000);
+		db.SetPropertyPrivacy(propertyId, 0);
+		return json{ db.GetPropertyRentDue(propertyId), db.GetPropertyRentDue(42), db.GetPropertiesOfOwner(CHAR_ALICE) };
 	});
 }
 

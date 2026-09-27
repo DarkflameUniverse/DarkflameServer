@@ -7,6 +7,7 @@
 #include "master/MessageCapture.h"
 #include "MessageInspector.h"
 #include "Contraband.h"
+#include "PropertyRent.h"
 #include "LiveEvents.h"
 #include <iostream>
 #include <string>
@@ -955,6 +956,7 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 
 			// Contraband is flagged (and removed if its entry says so) before the character is saved and sent
 			Contraband::CheckOnLoad(player);
+			PropertyRent::OnOwnerLoaded(player);
 
 			// Update the characters xml to ensure the update above is not only saved, but so the client picks up on the changes.
 			c->SaveXMLToDatabase();

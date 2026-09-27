@@ -57,6 +57,11 @@ namespace HotPropertySlots {
 		uint32_t id{};
 		uint32_t mapId{};
 		std::string spawnName;
+		// Rent (PropertyRent.h) and reputation (PropertyReputation.h) of the template
+		int64_t minimumPrice{};
+		int32_t rentDuration{};
+		int32_t durationType{};
+		int32_t reputationPerMinute{};
 	};
 
 	struct EntranceRow { // PropertyEntranceComponent
@@ -110,6 +115,24 @@ namespace HotPropertySlots {
 			if (std::find(worlds.begin(), worlds.end(), row->mapId) == worlds.end()) worlds.push_back(row->mapId);
 		}
 		return worlds;
+	}
+
+	/**
+	 * The PropertyTemplate row a property world uses: the lowest id among its rows a property entrance leads to (as
+	 * PropertyWorlds), or its lowest id row when no entrance leads there. nullptr when the map has no row.
+	 */
+	inline const TemplateRow* WorldTemplate(const std::vector<TemplateRow>& templates, const std::vector<EntranceRow>& entrances, uint32_t mapId) {
+		const TemplateRow* entered = nullptr;
+		const TemplateRow* any = nullptr;
+		for (const auto& row : templates) {
+			if (row.mapId != mapId) continue;
+			if (!any || row.id < any->id) any = &row;
+			const bool isEntered = std::any_of(entrances.begin(), entrances.end(), [&](const EntranceRow& entrance) {
+				return entrance.mapId == row.mapId && entrance.propertyName == row.spawnName;
+			});
+			if (isEntered && (!entered || row.id < entered->id)) entered = &row;
+		}
+		return entered ? entered : any;
 	}
 
 	// A slot's location as stored (0: none) if it is still a property world, else the slot's own world
