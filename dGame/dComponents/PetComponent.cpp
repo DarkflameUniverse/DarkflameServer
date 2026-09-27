@@ -175,43 +175,30 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	const auto petPosition = m_Parent->GetPosition();
-
-	const auto originatorPosition = originator->GetPosition();
-
-	m_Parent->SetRotation(QuatUtils::LookAt(petPosition, originatorPosition));
-
-	float interactionDistance = m_Parent->GetVar<float>(u"interaction_distance");
-	if (interactionDistance <= 0) {
-		interactionDistance = 15;
+	// Where live put the minigame (2014 captures, the same for every try at a pet): the pet goes back to where it
+	// spawned, facing the way it spawned, and the player is teleported 12 units in front of it, facing the pet.
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
+		m_StartPosition = m_Parent->GetPosition();
+		m_StartRotation = m_Parent->GetRotation();
 	}
 
-	auto position = originatorPosition;
+	constexpr float TAMING_PLAYER_DISTANCE = 12.0f;
 
-	NiPoint3 forward = QuatUtils::Forward(QuatUtils::LookAt(m_Parent->GetPosition(), originator->GetPosition()));
+	auto petPosition = m_StartPosition;
+	auto forward = QuatUtils::Forward(m_StartRotation);
 	forward.y = 0;
+	forward = forward.SquaredLength() > 0.0f ? forward.Unitize() : NiPoint3Constant::UNIT_Z;
+	auto position = petPosition + forward * TAMING_PLAYER_DISTANCE;
 
 	if (dpWorld::IsLoaded()) {
-		NiPoint3 attempt = petPosition + forward * interactionDistance;
-
-		NiPoint3 nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
-
-		while (std::abs(nearestPoint.y - petPosition.y) > 4 && interactionDistance > 10) {
-			const NiPoint3 forward = QuatUtils::Forward(m_Parent->GetRotation());
-
-			attempt = originatorPosition + forward * interactionDistance;
-
-			nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
-
-			interactionDistance -= 0.5f;
-		}
-
-		position = nearestPoint;
-	} else {
-		position = petPosition + forward * interactionDistance;
+		petPosition.y = dpWorld::GetNavMesh()->GetHeightAtPoint(petPosition);
+		position.y = dpWorld::GetNavMesh()->GetHeightAtPoint(position);
 	}
 
-	auto rotation = QuatUtils::LookAt(position, petPosition);
+	const auto rotation = QuatUtils::AxisAngle(NiPoint3Constant::UNIT_Y, glm::pi<float>()) * m_StartRotation;
+
+	m_Parent->SetPosition(petPosition);
+	m_Parent->SetRotation(m_StartRotation);
 
 	{
 		GameMessages::NotifyPetTamingMinigame msg;
@@ -265,6 +252,7 @@ void PetComponent::OnUse(Entity* originator) {
 void PetComponent::Update(float deltaTime) {
 	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
+		m_StartRotation = m_Parent->GetRotation();
 	}
 
 	if (m_Owner == LWOOBJID_EMPTY) {

@@ -379,6 +379,11 @@ private:
 	NiPoint3 m_StartPosition;
 
 	/**
+	 * The rotation that this pet was spawned with
+	 */
+	NiQuaternion m_StartRotation{ QuatUtils::IDENTITY };
+
+	/**
 	 * The movement AI component that is related to this pet, required to move it around
 	 */
 	MovementAIComponent* m_MovementAI;
