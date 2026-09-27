@@ -603,6 +603,110 @@ namespace GameMessages {
 		return true;
 	}
 
+	void UGObjectMetadata::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(userModelID);
+		bitStream.Write(blueprintID);
+		BitStreamUtils::WriteLengthPrefixed(bitStream, userModelName);
+		BitStreamUtils::WriteLengthPrefixed(bitStream, userModelDesc);
+		bitStream.Write(owningPlayerID);
+		bitStream.Write(accountID);
+		BitStreamUtils::WriteLengthPrefixed(bitStream, owningPlayerName);
+		const auto count = static_cast<uint8_t>(std::min<size_t>(userModelBehaviors.size(), UINT8_MAX));
+		bitStream.Write(count);
+		for (uint8_t i = 0; i < count; i++) bitStream.Write(userModelBehaviors[i]);
+	}
+
+	bool UGObjectMetadata::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(userModelID));
+		VALIDATE_READ(bitStream.Read(blueprintID));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, userModelName));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, userModelDesc));
+		VALIDATE_READ(bitStream.Read(owningPlayerID));
+		VALIDATE_READ(bitStream.Read(accountID));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, owningPlayerName));
+		uint8_t count{};
+		VALIDATE_READ(bitStream.Read(count));
+		userModelBehaviors.resize(count);
+		for (auto& behavior : userModelBehaviors) VALIDATE_READ(bitStream.Read(behavior));
+		return true;
+	}
+
+	void BlueprintMetadata::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(blueprintID);
+		bitStream.Write(blueprintCreationTimestamp);
+		bitStream.Write(userModelMod);
+		bitStream.Write(modelBoxMins);
+		bitStream.Write(modelBoxMaxs);
+		bitStream.Write(userModelOpt);
+		bitStream.Write(ugcIconReady);
+		BitStreamUtils::WriteLengthPrefixed(bitStream, brickListColonDelim);
+		bitStream.Write(neverFalseIfPresentInCaps);
+		bitStream.Write(numberOfBricks);
+	}
+
+	bool BlueprintMetadata::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(blueprintID));
+		VALIDATE_READ(bitStream.Read(blueprintCreationTimestamp));
+		VALIDATE_READ(bitStream.Read(userModelMod));
+		VALIDATE_READ(bitStream.Read(modelBoxMins));
+		VALIDATE_READ(bitStream.Read(modelBoxMaxs));
+		VALIDATE_READ(bitStream.Read(userModelOpt));
+		VALIDATE_READ(bitStream.Read(ugcIconReady));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, brickListColonDelim));
+		VALIDATE_READ(bitStream.Read(neverFalseIfPresentInCaps));
+		VALIDATE_READ(bitStream.Read(numberOfBricks));
+		return true;
+	}
+
+	void FetchModelMetadataRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(context);
+		bitStream.Write(objectID);
+		bitStream.Write(requestorID);
+		bitStream.Write(ugID);
+	}
+
+	bool FetchModelMetadataRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(context));
+		VALIDATE_READ(bitStream.Read(objectID));
+		VALIDATE_READ(bitStream.Read(requestorID));
+		VALIDATE_READ(bitStream.Read(ugID));
+		return true;
+	}
+
+	void FetchModelMetadataRequest::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		FetchModelMetadataResponse response;
+		response.target = entity.GetObjectID();
+		response.ugID = ugID;
+		response.objectID = objectID;
+		response.requestorID = requestorID;
+		response.context = context;
+		BrickByBrick::FillModelMetadata(entity, ugID, response);
+		response.Send(sysAddr);
+	}
+
+	void FetchModelMetadataResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(ugID);
+		bitStream.Write(objectID);
+		bitStream.Write(requestorID);
+		bitStream.Write(context);
+		bitStream.Write(bHasUGData);
+		bitStream.Write(bHasBPData);
+		if (bHasUGData) ugData.Serialize(bitStream);
+		if (bHasBPData) bpData.Serialize(bitStream);
+	}
+
+	bool FetchModelMetadataResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(ugID));
+		VALIDATE_READ(bitStream.Read(objectID));
+		VALIDATE_READ(bitStream.Read(requestorID));
+		VALIDATE_READ(bitStream.Read(context));
+		VALIDATE_READ(bitStream.Read(bHasUGData));
+		VALIDATE_READ(bitStream.Read(bHasBPData));
+		if (bHasUGData) VALIDATE_READ(ugData.Deserialize(bitStream));
+		if (bHasBPData) VALIDATE_READ(bpData.Deserialize(bitStream));
+		return true;
+	}
+
 	void SetModelToBuild::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(modelLot != -1);
 		if (modelLot != -1) bitStream.Write(modelLot);

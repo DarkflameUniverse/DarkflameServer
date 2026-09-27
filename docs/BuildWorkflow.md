@@ -39,6 +39,35 @@ A brick built model item's config (as live sent it): `blueprintid`, `userModelID
 `userModelHasBhvr`, `userModelBehaviors` ("id,id,id,id,id"), `userModelBehaviorSourceIDs`, `userModelOpt`,
 `userModelMod`, `userModelPhysicsType` (`BrickByBrick::ModelItemConfig`).
 
+### Brick built models in the inventory
+
+How the client shows a brick built model item (LOT 6662) in the backpack, and what it asks the server:
+
+- **Icon**: `LWOInventoryComponent_Client::LoadBlueprintIcon` (`0x00c64980`) loads the item's `blueprintid` config
+  (else its subkey) as a 3D services resource (`ResourceSpecifier(blueprint id, Dds)`: the UGC server's
+  `IMAGE128DDS/` file, docs/UgcServer.md) and shows it with `InventoryLoadCustomIcon`; until then the item shows
+  `RenderComponent.icon_asset`. Nothing is sent to the world server for the icon.
+- **Tooltip** (`LWOInventoryComponent_Client::FillinDetailsBlueprint`, `0x00cddb40`): for LOT 6662 with a persistent
+  subkey (the UGID) it reads the model's metadata from the client's cache (`UGModelMetadataCache::GetModelMetadata`,
+  `0x00b5e680`). Not cached: `C->S FetchModelMetadataRequest(context, objectID, requestorID, ugID)` and the name shows
+  `BBB_LOADING_BLUEPRINT` until the answer. With no name the tooltip says whose model it is (`UGG_MODEL_owner_model`
+  with `owningPlayerName`). Exhibits need both parts too: they compare the model's box to the exhibit's size.
+- **Answer**: `S->C FetchModelMetadataResponse(ugID, objectID, requestorID, context, bHasUGData, bHasBPData, UG data,
+  blueprint data)` (`0x00e3ccb0`, `0x00f5f590`, `0x00f5f760`). The client caches it and writes `blueprintid`,
+  `userModelMod`, `userModelOpt`, `userModelID`, `userModelName`, `userModelDesc`, `userModelHasBhvr` and
+  `userModelBehaviors` into the item's config (`msgFetchModelMetadataResponse`, `0x00c64300`), then refreshes the item.
+
+What live sent (2014 captures, one request per model the client shows, the item's own ids 0): UG data with the UGID,
+blueprint id, name and description (mostly empty), owner character, account and name, and always 5 behavior ids; for
+a brick built model also the blueprint data: blueprint id, creation time, `userModelMod` 1, the model's box relative
+to its origin, `userModelOpt` 1, `ugcIconReady` 1, the brick list (every brick's LOT followed by `:`), 1, and the
+number of bricks. Premade models got UG data only (behaviors, no owner); an unknown UGID got neither.
+
+DLU (`BrickByBrick::FillModelMetadata`) finds the UGID among the player's items (their subkey), else among the placed
+models (`properties_contents`), and fills the rest from the `ugc` row (owner) and its LXFML (bricks and box). Two
+differences: there is no creation time stored (0 is sent), and the box holds the bricks' origins (brick shapes are
+not known to the world server), so it is smaller than the model.
+
 ## 2. Entering and leaving property editing
 
 1. `C->S StartBuildingWithItem` (subject: property plaque/build area; source = the thinking hat, `sourceType` 1).
@@ -213,6 +242,12 @@ equipped), `S->C FinishArrangingWithItem` / `ModularBuildEnd`, `C->S DoneArrangi
 | `0x00b73c70` | `BBBManager::RegisterUIListeners` |
 | `0x00cfabd0` | `LWOBBBComponent_Client::msgRebuildBBBAutosaveMsg` |
 | `0x00d8ecb0` | `GameMessage::ActivateBrickMode::Deserialize` |
+| `0x00b5e680` | `UGModelMetadataCache::GetModelMetadata` (sends `FetchModelMetadataRequest`) |
+| `0x00c64300` | `LWOInventoryComponent_Client::msgFetchModelMetadataResponse` |
+| `0x00e3ccb0` | `GameMessage::FetchModelMetadataResponse::Serialize` |
+| `0x00f5f590` / `0x00f5f760` | `UGObjectMetadata::Serialize` / `BlueprintMetadata::Serialize` |
+| `0x00cddb40` | `LWOInventoryComponent_Client::FillinDetailsBlueprint` (model item tooltip) |
+| `0x00c64980` | `LWOInventoryComponent_Client::LoadBlueprintIcon` |
 | `0x00f2af60` | `GameMessage::SetBBBAutosave::Deserialize` |
 | `0x00dc0170` | `GameMessage::PlaceModelResponse::Deserialize` |
 | `0x00ce1310` | `LWOInventoryComponent_Common::msgMoveInventoryBatch` |

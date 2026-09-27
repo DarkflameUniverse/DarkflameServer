@@ -4,6 +4,7 @@
 #include "StringifiedEnum.h"
 #include "TinyXmlUtils.h"
 
+#include <algorithm>
 #include <ranges>
 #include <unordered_map>
 #include <unordered_set>
@@ -28,6 +29,48 @@ namespace {
     </GroupSystem>
 </GroupSystems>
 </LXFML>)";
+}
+
+Lxfml::Contents Lxfml::ReadContents(const std::string_view data) {
+	Contents contents;
+	if (data.empty()) return contents;
+
+	tinyxml2::XMLDocument doc;
+	if (doc.Parse(data.data(), data.size()) != tinyxml2::XML_SUCCESS) return contents;
+	const auto* bricks = doc.FirstChildElement("LXFML") ? doc.FirstChildElement("LXFML")->FirstChildElement("Bricks") : nullptr;
+	if (!bricks) return contents;
+
+	bool anyBone = false;
+	for (const auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
+		// designID may carry a suffix ("3001;A")
+		const std::string_view design = brick->Attribute("designID") ? brick->Attribute("designID") : "";
+		const auto digits = design.substr(0, design.find_first_not_of("0123456789"));
+		const auto designId = GeneralUtils::TryParse<uint32_t>(digits);
+		if (designId) contents.designIds.push_back(*designId);
+
+		for (const auto* part = brick->FirstChildElement("Part"); part; part = part->NextSiblingElement("Part")) {
+			for (const auto* bone = part->FirstChildElement("Bone"); bone; bone = bone->NextSiblingElement("Bone")) {
+				const auto* transformation = bone->Attribute("transformation");
+				if (!transformation) continue;
+				const auto split = GeneralUtils::SplitString(transformation, ',');
+				if (split.size() < 12) continue;
+				const auto x = GeneralUtils::TryParse<float>(split[9]);
+				const auto y = GeneralUtils::TryParse<float>(split[10]);
+				const auto z = GeneralUtils::TryParse<float>(split[11]);
+				if (!x || !y || !z) continue;
+				const NiPoint3 position{ *x, *y, *z };
+				if (!anyBone) {
+					contents.boxMin = position;
+					contents.boxMax = position;
+					anyBone = true;
+					continue;
+				}
+				contents.boxMin = NiPoint3(std::min(contents.boxMin.x, position.x), std::min(contents.boxMin.y, position.y), std::min(contents.boxMin.z, position.z));
+				contents.boxMax = NiPoint3(std::max(contents.boxMax.x, position.x), std::max(contents.boxMax.y, position.y), std::max(contents.boxMax.z, position.z));
+			}
+		}
+	}
+	return contents;
 }
 
 Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoint3& curPosition) {

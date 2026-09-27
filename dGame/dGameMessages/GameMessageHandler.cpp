@@ -141,6 +141,7 @@ namespace {
 		{ SET_BUILD_MODE, []() { return std::make_unique<SetBuildMode>(); } },
 		{ BUILD_MODE_SET, []() { return std::make_unique<BuildModeSet>(); } },
 		{ UN_USE_BBB_MODEL, []() { return std::make_unique<UnUseBBBModel>(); } },
+		{ FETCH_MODEL_METADATA_REQUEST, []() { return std::make_unique<FetchModelMetadataRequest>(); } },
 		{ BBB_LOAD_ITEM_REQUEST, []() { return std::make_unique<BBBLoadItemRequest>(); } },
 		{ BBB_SAVE_REQUEST, []() { return std::make_unique<BBBSaveRequest>(); } },
 		{ SET_BBB_AUTOSAVE, []() { return std::make_unique<SetBBBAutosave>(); } },

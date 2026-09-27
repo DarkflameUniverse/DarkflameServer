@@ -411,3 +411,22 @@ TEST(LxfmlTests, DeepCloneDepthProtection) {
 		}
 	}
 }
+
+TEST(LxfmlTests, ReadContentsListsBricksAndTheirBox) {
+	const std::string lxfml = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<LXFML versionMajor="5" versionMinor="0">
+<Bricks>
+<Brick refID="0" designID="3710"><Part refID="0" designID="3710" materials="21"><Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,-1.2,0,0.4"/></Part></Brick>
+<Brick refID="1" designID="3001;A"><Part refID="1" designID="3001" materials="1"><Bone refID="1" transformation="1,0,0,0,1,0,0,0,1,0.8,0.96,-0.4"/></Part></Brick>
+</Bricks>
+</LXFML>)";
+	const auto contents = Lxfml::ReadContents(lxfml);
+	EXPECT_EQ(contents.designIds, (std::vector<uint32_t>{ 3710, 3001 }));
+	EXPECT_EQ(contents.boxMin, NiPoint3(-1.2f, 0.0f, -0.4f));
+	EXPECT_EQ(contents.boxMax, NiPoint3(0.8f, 0.96f, 0.4f));
+
+	const auto nothing = Lxfml::ReadContents("");
+	EXPECT_TRUE(nothing.designIds.empty());
+	EXPECT_EQ(nothing.boxMin, NiPoint3Constant::ZERO);
+	EXPECT_TRUE(Lxfml::ReadContents("<LXFML><Bricks/></LXFML>").designIds.empty());
+}

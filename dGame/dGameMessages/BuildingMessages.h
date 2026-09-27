@@ -242,6 +242,70 @@ namespace GameMessages {
 		int32_t count{};
 	};
 
+	// A model's user generated data (UGObjectMetadata::Serialize, 0x00f5f590)
+	struct UGObjectMetadata {
+		LWOOBJID userModelID{};
+		LWOOBJID blueprintID{};
+		std::u16string userModelName;
+		std::u16string userModelDesc;
+		LWOOBJID owningPlayerID{};
+		LWOOBJID accountID{};
+		std::u16string owningPlayerName;
+		std::vector<LWOOBJID> userModelBehaviors; // a u8 count on the wire; live always sent 5
+
+		void Serialize(RakNet::BitStream& bitStream) const;
+		bool Deserialize(RakNet::BitStream& bitStream);
+	};
+
+	// A brick built model's blueprint data (BlueprintMetadata::Serialize, 0x00f5f760)
+	struct BlueprintMetadata {
+		LWOOBJID blueprintID{};
+		int64_t blueprintCreationTimestamp{}; // Unix seconds
+		int32_t userModelMod{ 1 };
+		NiPoint3 modelBoxMins{};  // the model's box, relative to its origin (the exhibit checks its size)
+		NiPoint3 modelBoxMaxs{};
+		bool userModelOpt{ true };
+		bool ugcIconReady{ true };
+		std::u16string brickListColonDelim; // every brick's LOT, each followed by ':'
+		bool neverFalseIfPresentInCaps{ true };
+		int32_t numberOfBricks{};
+
+		void Serialize(RakNet::BitStream& bitStream) const;
+		bool Deserialize(RakNet::BitStream& bitStream);
+	};
+
+	// Client -> server. The client wants the name, owner, behaviors and blueprint of a model (its UGID) it has no
+	// metadata for: a brick built model item's tooltip (LWOInventoryComponent_Client::FillinDetailsBlueprint, 0x00cddb40, via
+	// UGModelMetadataCache::GetModelMetadata, 0x00b5e680), a model on the property, an exhibit.
+	struct FetchModelMetadataRequest : public NetGameMsg {
+		FetchModelMetadataRequest() : NetGameMsg(MessageType::Game::FETCH_MODEL_METADATA_REQUEST) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		int32_t context{};
+		LWOOBJID objectID{};
+		LWOOBJID requestorID{};
+		LWOOBJID ugID{};
+	};
+
+	// Server -> client. The answer: the client caches it by UGID and blueprint id and writes it into the config of
+	// the inventory item objectID (LWOInventoryComponent_Client::msgFetchModelMetadataResponse, 0x00c64300).
+	struct FetchModelMetadataResponse : public NetGameMsg {
+		FetchModelMetadataResponse() : NetGameMsg(MessageType::Game::FETCH_MODEL_METADATA_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		LWOOBJID ugID{};
+		LWOOBJID objectID{};
+		LWOOBJID requestorID{};
+		int32_t context{};
+		bool bHasUGData{};
+		bool bHasBPData{};
+		UGObjectMetadata ugData;     // when bHasUGData
+		BlueprintMetadata bpData;    // when bHasBPData
+	};
+
 	struct SetModelToBuild : public NetGameMsg {
 		SetModelToBuild() : NetGameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

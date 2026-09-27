@@ -119,3 +119,14 @@ TEST_F(BrickByBrickTests, AReturnedModelIsNeverUsedUpByTheAutosave) {
 	ASSERT_TRUE(saved.has_value());
 	EXPECT_EQ(saved->sourceItems, (std::vector<LWOOBJID>{ 8 }));
 }
+
+TEST_F(BrickByBrickTests, ModelMetadataHasFiveBehaviorsAndAColonBrickList) {
+	EXPECT_EQ(BrickByBrick::BehaviorIds(""), std::vector<LWOOBJID>(5, 0));
+	EXPECT_EQ(BrickByBrick::BehaviorIds("0,0,0,0,0"), std::vector<LWOOBJID>(5, 0));
+	EXPECT_EQ(BrickByBrick::BehaviorIds("10449,7"), (std::vector<LWOOBJID>{ 10449, 7, 0, 0, 0 }));
+	EXPECT_EQ(BrickByBrick::BehaviorIds("1,2,3,4,5,6"), (std::vector<LWOOBJID>{ 1, 2, 3, 4, 5 }));
+
+	EXPECT_EQ(BrickByBrick::BrickList({}), u"");
+	EXPECT_EQ(BrickByBrick::BrickList({ 66 }), u"66:");
+	EXPECT_EQ(BrickByBrick::BrickList({ 529, 529, 41 }), u"529:529:41:");
+}

@@ -435,3 +435,58 @@ TEST_F(BuildingMessagesTests, BrickModeMessagesRoundTrip) {
 	EXPECT_EQ(RoundTrip(rebuilt).count, 2);
 	ExpectTruncatedFails(rebuilt);
 }
+
+// FetchModelMetadataRequest / Response as the client writes and reads them (GameMessage::FetchModelMetadataResponse::
+// Serialize, 0x00e3ccb0; UGObjectMetadata::Serialize, 0x00f5f590; BlueprintMetadata::Serialize, 0x00f5f760)
+TEST_F(BuildingMessagesTests, FetchModelMetadataWire) {
+	GameMessages::FetchModelMetadataRequest request;
+	request.context = 1;
+	request.objectID = 2;
+	request.requestorID = 3;
+	request.ugID = 4;
+	EXPECT_PACKET_EQ(FromHex("01 00 00 00 02 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00"), Payload(request));
+	const auto requestCopy = RoundTrip(request);
+	EXPECT_EQ(requestCopy.context, 1);
+	EXPECT_EQ(requestCopy.objectID, 2);
+	EXPECT_EQ(requestCopy.requestorID, 3);
+	EXPECT_EQ(requestCopy.ugID, 4);
+	ExpectTruncatedFails(request);
+
+	// Nothing known: ugID, objectID, requestorID, context, then the two flags
+	GameMessages::FetchModelMetadataResponse none;
+	none.ugID = 4;
+	EXPECT_EQ(Bits(none), 8 * 28 + 2);
+
+	GameMessages::FetchModelMetadataResponse full;
+	full.ugID = 4;
+	full.bHasUGData = true;
+	full.bHasBPData = true;
+	full.ugData.userModelID = 4;
+	full.ugData.blueprintID = 5;
+	full.ugData.userModelName = u"Car";
+	full.ugData.owningPlayerID = 6;
+	full.ugData.accountID = 7;
+	full.ugData.owningPlayerName = u"Builder";
+	full.ugData.userModelBehaviors = { 8, 0, 0, 0, 0 };
+	full.bpData.blueprintID = 5;
+	full.bpData.modelBoxMins = NiPoint3(-1.6f, 0.0f, -0.8f);
+	full.bpData.modelBoxMaxs = NiPoint3(1.6f, 0.5f, 0.8f);
+	full.bpData.brickListColonDelim = u"66:";
+	full.bpData.numberOfBricks = 1;
+	// UG: 2 ids, name (4 + 6), desc (4), 2 ids, owner name (4 + 14), u8 count, 5 ids
+	const uint32_t ugBits = 8 * (16 + 10 + 4 + 16 + 18 + 1 + 40);
+	// BP: id, timestamp, mod, 2 points, 2 flags, bricks (4 + 6), flag, count
+	const uint32_t bpBits = 8 * (8 + 8 + 4 + 24 + 10 + 4) + 3;
+	EXPECT_EQ(Bits(full), 8 * 28 + 2 + ugBits + bpBits);
+	const auto copy = RoundTrip(full);
+	EXPECT_EQ(copy.ugData.userModelName, u"Car");
+	EXPECT_EQ(copy.ugData.owningPlayerName, u"Builder");
+	EXPECT_EQ(copy.ugData.userModelBehaviors, full.ugData.userModelBehaviors);
+	EXPECT_EQ(copy.bpData.brickListColonDelim, u"66:");
+	EXPECT_EQ(copy.bpData.modelBoxMaxs, full.bpData.modelBoxMaxs);
+	EXPECT_EQ(copy.bpData.numberOfBricks, 1);
+	EXPECT_TRUE(copy.bpData.userModelOpt);
+	EXPECT_TRUE(copy.bpData.ugcIconReady);
+	EXPECT_TRUE(copy.bpData.neverFalseIfPresentInCaps);
+	ExpectTruncatedFails(full);
+}

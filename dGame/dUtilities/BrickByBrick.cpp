@@ -1,6 +1,8 @@
 #include "BrickByBrick.h"
 
 #include "BuildingMessages.h"
+#include "CDBrickIDTableTable.h"
+#include "CDClientManager.h"
 #include "Character.h"
 #include "ClientPackets.h"
 #include "DashboardNotify.h"
@@ -33,6 +35,7 @@
 #include <fstream>
 #include <ranges>
 #include <sstream>
+#include <unordered_map>
 
 namespace {
 	// Every item in one inventory, copied so the inventory can change while going through them
@@ -127,6 +130,45 @@ namespace {
 			for (const auto& chunk : model.GetAsVector()) entry.sd0.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
 		}
 		return saved;
+	}
+
+	// A config value as text (empty when missing)
+	std::string ConfigText(const LwoNameValue& config, const std::u16string& key) {
+		const auto it = config.find(key);
+		if (it == config.end() || !it->second) return "";
+		return it->second->GetValueAsString();
+	}
+
+	// A brick's LOT by its LEGO design id (BrickIDTable); 0 when the design has no item
+	LOT BrickLot(const uint32_t designId) {
+		static std::unordered_map<uint32_t, LOT> lots;
+		if (lots.empty()) {
+			for (const auto& entry : CDClientManager::GetTable<CDBrickIDTableTable>()->Query([](const CDBrickIDTable&) { return true; })) {
+				lots.try_emplace(entry.LEGOBrickID, static_cast<LOT>(entry.NDObjectID));
+			}
+		}
+		const auto it = lots.find(designId);
+		return it == lots.end() ? 0 : it->second;
+	}
+
+	// The blueprint data of a stored brick built model (its ugc row); false when there is no such row
+	bool FillBlueprintMetadata(const LWOOBJID blueprintId, GameMessages::BlueprintMetadata& data) {
+		auto model = Database::Get()->GetUgcModel(blueprintId);
+		if (!model) return false;
+
+		data.blueprintID = blueprintId;
+		Sd0 sd0(model->lxfmlData);
+		const auto contents = Lxfml::ReadContents(sd0.GetAsStringUncompressed());
+		std::vector<LOT> lots;
+		for (const auto designId : contents.designIds) {
+			const auto lot = BrickLot(designId);
+			if (lot != 0) lots.push_back(lot);
+		}
+		data.brickListColonDelim = BrickByBrick::BrickList(lots);
+		data.numberOfBricks = static_cast<int32_t>(contents.designIds.size());
+		data.modelBoxMins = contents.boxMin;
+		data.modelBoxMaxs = contents.boxMax;
+		return true;
 	}
 }
 
@@ -392,4 +434,87 @@ uint32_t BrickByBrick::RecoverUnfinishedBuild(Entity& player) {
 		message.SendToClient(player.GetSystemAddress());
 	}
 	return rebuilt;
+}
+
+std::vector<LWOOBJID> BrickByBrick::BehaviorIds(const std::string_view behaviors) {
+	std::vector<LWOOBJID> ids(5, LWOOBJID_EMPTY);
+	size_t index = 0;
+	for (const auto& part : GeneralUtils::SplitString(std::string(behaviors), ',')) {
+		if (index >= ids.size()) break;
+		ids[index++] = GeneralUtils::TryParse<LWOOBJID>(part).value_or(LWOOBJID_EMPTY);
+	}
+	return ids;
+}
+
+std::u16string BrickByBrick::BrickList(const std::vector<LOT>& brickLots) {
+	std::u16string list;
+	for (const auto lot : brickLots) {
+		list += GeneralUtils::to_u16string(lot);
+		list += u':';
+	}
+	return list;
+}
+
+void BrickByBrick::FillModelMetadata(Entity& player, const LWOOBJID ugId, GameMessages::FetchModelMetadataResponse& response) {
+	if (ugId == LWOOBJID_EMPTY) return;
+
+	bool found = false;
+	LWOOBJID blueprintId = LWOOBJID_EMPTY;
+	std::string behaviors;
+	std::u16string name;
+	std::u16string description;
+
+	// One of the player's model items: a brick built model keeps its UGID as the item's subkey
+	auto* inventory = player.GetComponent<InventoryComponent>();
+	if (inventory) {
+		for (auto* bag : inventory->GetInventories() | std::views::values) {
+			for (const auto* item : bag->GetItems() | std::views::values) {
+				if (item->GetSubKey() != ugId) continue;
+				const auto& config = item->GetConfig();
+				blueprintId = ConfigObjectId(config, u"blueprintid");
+				behaviors = ConfigText(config, u"userModelBehaviors");
+				name = GeneralUtils::UTF8ToUTF16(ConfigText(config, u"userModelName"));
+				description = GeneralUtils::UTF8ToUTF16(ConfigText(config, u"userModelDesc"));
+				found = true;
+				break;
+			}
+			if (found) break;
+		}
+	}
+
+	// A model placed on a property (this one or one the player visits)
+	if (!found) {
+		const auto model = Database::Get()->GetModel(ugId);
+		if (model) {
+			found = true;
+			blueprintId = model->ugcId;
+			for (size_t i = 0; i < model->behaviors.size(); i++) {
+				if (i != 0) behaviors += ',';
+				behaviors += std::to_string(model->behaviors[i]);
+			}
+		}
+	}
+	if (!found) {
+		LOG_DEBUG("Player %llu asked for the metadata of model %llu, which is neither theirs nor placed", player.GetObjectID(), ugId);
+		return;
+	}
+
+	auto& ug = response.ugData;
+	response.bHasUGData = true;
+	ug.userModelID = ugId;
+	ug.userModelName = name;
+	ug.userModelDesc = description;
+	ug.userModelBehaviors = BehaviorIds(behaviors);
+
+	// A premade model (no blueprint) has no owner or blueprint data, as live sent it
+	if (blueprintId == LWOOBJID_EMPTY) return;
+	ug.blueprintID = blueprintId;
+	const auto owner = Database::Get()->GetUgcProcessInfo(blueprintId);
+	if (owner) {
+		ug.owningPlayerID = owner->characterId;
+		ug.owningPlayerName = GeneralUtils::UTF8ToUTF16(owner->characterName);
+		const auto character = Database::Get()->GetCharacterInfo(owner->characterId);
+		if (character) ug.accountID = character->accountId;
+	}
+	response.bHasBPData = FillBlueprintMetadata(blueprintId, response.bpData);
 }

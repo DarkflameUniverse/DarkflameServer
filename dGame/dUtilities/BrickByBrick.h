@@ -18,6 +18,7 @@ class InventoryComponent;
 
 namespace GameMessages {
 	struct MoveInventoryBatch;
+	struct FetchModelMetadataResponse;
 }
 
 // Brick by brick building and the model items it works on, as the 1.10.64 client expects them (docs/BuildWorkflow.md).
@@ -70,7 +71,18 @@ namespace BrickByBrick {
 	// An object id kept in a config (blueprintid, userModelID), or LWOOBJID_EMPTY
 	LWOOBJID ConfigObjectId(const LwoNameValue& config, const std::u16string& key);
 
+	// A model's behavior ids from its userModelBehaviors config ("id,id,id,id,id"): always 5, missing ones 0 (live
+	// always sent 5 in FetchModelMetadataResponse)
+	std::vector<LWOOBJID> BehaviorIds(std::string_view behaviors);
+
+	// BlueprintMetadata's brick list: every brick's LOT followed by ':' ("66:" for one 1x4 plate), as live sent it
+	std::u16string BrickList(const std::vector<LOT>& brickLots);
+
 	// ---- Handlers ----
+
+	// FetchModelMetadataRequest: fills in the UG data (and, for a brick built model, the blueprint data) of the model
+	// ugId: one of the player's model items (its subkey), else a model placed on any property. Neither: both left out.
+	void FillModelMetadata(Entity& player, LWOOBJID ugId, GameMessages::FetchModelMetadataResponse& response);
 
 	// BBBLoadItemRequest: moves the model item from MODELS to MODELS_IN_BBB keeping its object id (as live did).
 	// Returns the id in MODELS_IN_BBB, or LWOOBJID_EMPTY when the player has no such model.
