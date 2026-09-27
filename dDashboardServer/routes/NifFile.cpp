@@ -118,6 +118,7 @@ namespace {
 		int32_t texturing = -1;
 		int32_t vertexColor = -1;
 		int32_t stencil = -1;
+		int32_t shaderTag = -1; // the nearest multishader tag ("S05__...") on the way down the tree
 	};
 
 	struct NetHeader {
@@ -125,6 +126,7 @@ namespace {
 	};
 
 	struct AvHeader {
+		std::string name;
 		uint16_t flags{};
 		Transform transform;
 		std::vector<int32_t> properties;
@@ -330,7 +332,7 @@ namespace {
 
 		AvHeader ReadAv(Reader& reader) {
 			AvHeader av;
-			ReadNet(reader);
+			av.name = ReadNet(reader).name;
 			av.flags = reader.U16();
 			for (auto& value : av.transform.t) value = reader.Float();
 			// Matrix33 is stored m11, m21, m31, m12, ... (nif.xml): column by column
@@ -385,6 +387,7 @@ namespace {
 
 			const auto world = parent.Then(av.transform);
 			properties = Inherit(properties, av.properties);
+			if (const auto tag = NifFile::ShaderTag(av.name); tag >= 0) properties.shaderTag = tag;
 
 			std::vector<int32_t> drawn = children;
 			if (type == "NiSwitchNode" || type == "NiLODNode") {
@@ -431,6 +434,7 @@ namespace {
 			const auto skin = reader.I32();
 			if (!reader.Ok() || (av.flags & APP_CULLED)) return;
 			properties = Inherit(properties, av.properties);
+			if (const auto tag = NifFile::ShaderTag(av.name); tag >= 0) properties.shaderTag = tag;
 			const auto* dataType = TypeOf(dataRef);
 			if (!dataType || (*dataType != "NiTriShapeData" && *dataType != "NiTriStripsData")) return;
 			m_Used.insert(dataRef);
@@ -438,6 +442,7 @@ namespace {
 			NifFile::Mesh mesh;
 			if (!ReadGeometryData(dataRef, *dataType == "NiTriStripsData", parent.Then(av.transform), mesh) || mesh.indices.empty()) return;
 			mesh.material = ReadMaterial(properties);
+			mesh.material.shaderTag = properties.shaderTag;
 			if (skin >= 0) {
 				m_Model.skinned++;
 				m_Used.insert(skin);
@@ -606,6 +611,48 @@ namespace {
 }
 
 namespace NifFile {
+	int32_t ShaderTag(std::string_view name) {
+		// The client reads the tag with sscanf: "S%d" at the start of the name, else "_S%d" after the first "_S"
+		const auto number = [](std::string_view digits) -> int32_t {
+			size_t i = 0;
+			while (i < digits.size() && (digits[i] == ' ' || digits[i] == '\t')) i++;
+			// A signed number names no mapShaders row, like no number at all
+			if (i >= digits.size() || digits[i] < '0' || digits[i] > '9') return -1;
+			int32_t value = 0;
+			for (; i < digits.size() && digits[i] >= '0' && digits[i] <= '9' && value < 100000; i++) value = value * 10 + (digits[i] - '0');
+			return value;
+		};
+		if (name.starts_with('S')) {
+			const auto tag = number(name.substr(1));
+			if (tag >= 0) return tag;
+		}
+		const auto at = name.find("_S");
+		if (at == std::string_view::npos || at + 3 >= name.size()) return -1;
+		return number(name.substr(at + 2));
+	}
+
+	int32_t MultishaderPart(std::optional<int32_t> tagShader) {
+		return tagShader && *tagShader >= 3 && *tagShader <= 0x6C ? *tagShader : LEGO_SHADER;
+	}
+
+	eTextureAlpha TextureAlphaFor(int32_t shader) {
+		switch (shader) {
+			// LEGOPPLighting: textured alone the texture's alpha is forced to 1; with vertex colors it only lays the
+			// texture over them (lerp by its alpha) and the vertex alpha is what shows through
+			case 4: case 5: case 12: case 25: case 27: case 28: case 29: case 30: case 50: case 72: case 88:
+			// Darkling: the same lay-over; alpha from lighting or the fade
+			case 75: case 76: case 77: case 102: case 103: case 104:
+				return eTextureAlpha::DECAL;
+			// LEGOPPLighting_Item: texture alpha forced to 1, multiplied by the vertex colors
+			case 31: case 48:
+			// TerrainMeshLighting_Rim: texture times vertex colors, alpha only the fade
+			case 3:
+				return eTextureAlpha::IGNORED;
+			default:
+				return eTextureAlpha::OPACITY;
+		}
+	}
+
 	std::optional<Model> Parse(std::string_view data, uint32_t lod, std::string& error) {
 		return Parser(data, lod).Run(error);
 	}
@@ -635,7 +682,8 @@ namespace NifFile {
 				{"normals", !mesh.normals.empty()}, {"uv", !mesh.uvs.empty() && textureIndex >= 0}, {"colors", !mesh.colors.empty()},
 				{"diffuse", Color(material.diffuse)}, {"emissive", Color(material.emissive)}, {"alpha", std::round(material.alpha * 1000.0f) / 1000.0f},
 				{"blend", material.alphaBlend}, {"test", material.alphaTest ? material.alphaThreshold : -1}, {"doubleSided", material.doubleSided},
-				{"vertexColors", material.vertexColorMode}, {"texture", textureIndex}, {"clampU", material.clampU}, {"clampV", material.clampV}
+				{"vertexColors", material.vertexColorMode}, {"texture", textureIndex}, {"clampU", material.clampU}, {"clampV", material.clampV},
+				{"shaderTag", material.shaderTag}
 			};
 			Append(body, mesh.positions.data(), mesh.positions.size() * sizeof(float));
 			if (!mesh.normals.empty()) {

@@ -964,6 +964,10 @@ first; the detail setting picks the model level of detail, how far objects are d
 sharpness and a memory budget. Switch it off with *Scenery*. The 3D world view draws the same as its *Models* layer
 (on by default, Medium detail), plus the terrain's flairs. Converted models are cached in memory (64 MB) and in
 `dDashboardServer/scenery_cache` next to the server (at most 512 MB); nothing needs ImageMagick.
+Whether a texture's alpha makes a model see-through follows the shader the game draws it with (the render component's
+shader, or for a multishaded model the `S05__`-style tag in each part's name), not only the .nif: the LEGO shaders
+lay the texture over the vertex colors and terrain meshes and LEGO items ignore its alpha, so their textures' alpha
+channels (often gloss or leftover masks) don't punch holes in them.
 
 Converting a model the caches don't have yet (a big "glom" file takes a moment) happens on a few worker threads, so
 the dashboard keeps answering everything else meanwhile: the route hands the request to a worker (`Web::Defer`) and

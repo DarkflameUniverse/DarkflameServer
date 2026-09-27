@@ -37,6 +37,23 @@ export function parseModel(buffer) {
 }
 
 /**
+ * What a mesh's texture alpha does in the game, from the manifest's shader data (Scenery.cpp AddShaders): the
+ * client's shader decides, not the .nif. 'opacity' see-through where the alpha is; 'decal' the texture is laid over
+ * the vertex colors by its alpha (LEGO shaders); 'ignored' the alpha does nothing. A multishader model's parts name
+ * their shader in their node names (mesh.shaderTag); a tag the client can't use falls back to the LEGO shader.
+ */
+export function textureAlphaMode(manifest, asset, mesh) {
+	if (!manifest || !manifest.shaders || !manifest.textureAlpha) return 'opacity';
+	let shader = manifest.shaders[asset];
+	if (shader === undefined || shader === null) return 'opacity';
+	if (shader === manifest.multishader) {
+		const tagged = mesh && mesh.shaderTag >= 0 && manifest.shaderTags ? manifest.shaderTags[mesh.shaderTag] : undefined;
+		shader = tagged !== undefined && tagged >= 3 && tagged <= 108 ? tagged : manifest.defaultShader;
+	}
+	return manifest.textureAlpha[shader] || 'opacity';
+}
+
+/**
  * Meshes of a model that look the same (texture, colors, blending, sides, attributes) joined into one, so a model
  * made of many pieces (the zones' "glom" files have over a hundred) costs a few draw calls instead of one per piece.
  * Order is kept otherwise; indices become 32-bit when a joined mesh passes 65535 vertices.
@@ -46,7 +63,7 @@ export function mergeMeshes(meshes) {
 	for (const mesh of meshes) {
 		if (!mesh.vertices || !mesh.indices.length) continue;
 		const key = JSON.stringify([mesh.texture, mesh.diffuse, mesh.emissive, mesh.alpha, mesh.blend, mesh.test, mesh.doubleSided,
-			mesh.vertexColors, mesh.clampU, mesh.clampV, !!mesh.normals, !!mesh.uvs, !!mesh.colors]);
+			mesh.vertexColors, mesh.clampU, mesh.clampV, !!mesh.normals, !!mesh.uvs, !!mesh.colors, mesh.shaderTag]);
 		if (!groups.has(key)) groups.set(key, []);
 		groups.get(key).push(mesh);
 	}

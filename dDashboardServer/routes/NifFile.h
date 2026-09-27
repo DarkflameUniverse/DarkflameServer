@@ -35,6 +35,7 @@ namespace NifFile {
 		int32_t embeddedTexture{ -1 }; // else the block with the texture's pixels in the file (EmbeddedTexture)
 		bool clampU{};
 		bool clampV{};
+		int32_t shaderTag{ -1 }; // mapShaders id from a multishader tag in the name of the mesh or a node above it
 	};
 
 	struct Mesh {
@@ -45,6 +46,31 @@ namespace NifFile {
 		std::vector<uint8_t> colors;    // r, g, b, a per vertex (sRGB), empty when none
 		std::vector<uint16_t> indices;  // triangles
 	};
+
+	/**
+	 * What a texture's alpha channel does, which the client's shader decides (res/shaders/*.fx), not the .nif:
+	 * OPACITY it is see-through where the alpha is (Basic, AlphaAsAlpha, fixed function and most others); DECAL the
+	 * texture is laid over the vertex colors by its alpha and the mesh itself stays as opaque as its vertex colors
+	 * (the LEGO lighting shaders); IGNORED the alpha does nothing (LEGO items, terrain meshes).
+	 */
+	enum class eTextureAlpha : uint8_t { OPACITY, DECAL, IGNORED };
+
+	// mapShaders.gameValue of the LEGO shader, the client's default
+	constexpr int32_t LEGO_SHADER = 5;
+	// RenderComponent's shader for models whose parts name their own shaders (mapShaders "Multishader")
+	constexpr int32_t MULTISHADER = 9999;
+
+	/**
+	 * The mapShaders id in a multishader part's name: "S05__TRUNKS" or "rock_S30" (LWOBaseRenderComponent::
+	 * AddObjectToRenderPipe reads "S%d", else "_S%d"); -1 for none.
+	 */
+	int32_t ShaderTag(std::string_view name);
+
+	// The shader (gameValue) a multishader part is drawn with, from its tag's gameValue: outside 3..108 the LEGO shader
+	int32_t MultishaderPart(std::optional<int32_t> tagShader);
+
+	// What a texture's alpha does under a shader (mapShaders.gameValue); -1 is fixed function (opacity)
+	eTextureAlpha TextureAlphaFor(int32_t shader);
 
 	struct Model {
 		uint32_t version{};

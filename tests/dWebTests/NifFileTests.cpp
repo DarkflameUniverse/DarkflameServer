@@ -395,3 +395,47 @@ TEST(NifFileTests, ReadsTheClientsMeshes) {
 	EXPECT_EQ(read, files);
 	EXPECT_GT(withMeshes, files * 9 / 10);
 }
+
+TEST(NifFileTests, ReadsMultishaderTagsLikeTheClient) {
+	EXPECT_EQ(NifFile::ShaderTag("S05__TRUNKS"), 5);
+	EXPECT_EQ(NifFile::ShaderTag("S30__Rockwall_0"), 30);
+	EXPECT_EQ(NifFile::ShaderTag("rock_S14"), 14);
+	EXPECT_EQ(NifFile::ShaderTag("Shadow_S7_glow"), 7); // "S" not followed by a number: the "_S" tag counts
+	EXPECT_EQ(NifFile::ShaderTag("rock_S"), -1);
+	EXPECT_EQ(NifFile::ShaderTag("ROCK"), -1);
+	EXPECT_EQ(NifFile::ShaderTag(""), -1);
+	// The client draws a part with the LEGO shader when its tag names no usable shader
+	EXPECT_EQ(NifFile::MultishaderPart(38), 38);
+	EXPECT_EQ(NifFile::MultishaderPart(2), NifFile::LEGO_SHADER);
+	EXPECT_EQ(NifFile::MultishaderPart(9999), NifFile::LEGO_SHADER);
+	EXPECT_EQ(NifFile::MultishaderPart(std::nullopt), NifFile::LEGO_SHADER);
+}
+
+TEST(NifFileTests, KnowsWhichShadersUseTextureAlphaAsOpacity) {
+	using NifFile::eTextureAlpha;
+	EXPECT_EQ(NifFile::TextureAlphaFor(NifFile::LEGO_SHADER), eTextureAlpha::DECAL); // LEGOPPLighting: lerp over vertex colors
+	EXPECT_EQ(NifFile::TextureAlphaFor(31), eTextureAlpha::IGNORED);  // LEGO-Item: alpha forced to 1
+	EXPECT_EQ(NifFile::TextureAlphaFor(3), eTextureAlpha::IGNORED);   // Terrain Mesh Rim Light: alpha is the fade only
+	EXPECT_EQ(NifFile::TextureAlphaFor(7), eTextureAlpha::OPACITY);   // VertColor_Alpha (AlphaAsAlpha)
+	EXPECT_EQ(NifFile::TextureAlphaFor(38), eTextureAlpha::OPACITY);  // Basic VC
+	EXPECT_EQ(NifFile::TextureAlphaFor(14), eTextureAlpha::OPACITY);  // LEGO Masked NonDecal: texture alpha is output
+	EXPECT_EQ(NifFile::TextureAlphaFor(53), eTextureAlpha::OPACITY);  // LEGO-Emissive lets texture alpha through
+	EXPECT_EQ(NifFile::TextureAlphaFor(-1), eTextureAlpha::OPACITY);  // fixed function: NiAlphaProperty as Gamebryo does
+}
+
+TEST(NifFileTests, PassesMultishaderTagsDownToMeshes) {
+	NifBuilder nif;
+	auto rootAv = Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {});
+	const auto name = nif.String("S30__Rockwall_0");
+	std::memcpy(rootAv.data.data(), &name, 4);
+	const auto file = OneTriangle(nif, rootAv);
+	std::string error;
+	const auto model = NifFile::Parse(file, 0, error);
+	ASSERT_TRUE(model) << error;
+	ASSERT_EQ(model->meshes.size(), 1u);
+	EXPECT_EQ(model->meshes[0].material.shaderTag, 30);
+	const auto encoded = NifFile::Encode(*model, { "" });
+	uint32_t length{};
+	std::memcpy(&length, encoded.data(), 4);
+	EXPECT_EQ(nlohmann::json::parse(encoded.substr(4, length))["meshes"][0]["shaderTag"], 30);
+}

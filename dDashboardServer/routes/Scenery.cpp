@@ -142,16 +142,24 @@ namespace {
 	struct RenderInfo {
 		std::string asset; // RenderComponent.render_asset as stored
 		std::string type;  // Objects.type
+		int32_t shader{ -1 }; // mapShaders.gameValue of RenderComponent.shader_id (-1 fixed function or unknown)
 	};
+
+	// mapShaders: id (what RenderComponent.shader_id and multishader tags name) -> gameValue (the shader drawn)
+	std::map<int32_t, int32_t> g_ShaderValues;
 
 	// Every LOT with a render component, read once (Objects has no index on id, so it is read whole too)
 	std::unordered_map<uint32_t, RenderInfo> ReadRenderInfos() {
 		std::unordered_map<uint32_t, RenderInfo> infos;
 		try {
 			auto row = CDClientDatabase::ExecuteQuery(
-				"SELECT cr.id, rc.render_asset FROM ComponentsRegistry cr JOIN RenderComponent rc ON rc.id = cr.component_id "
-				"WHERE cr.component_type = " + std::to_string(RENDER_COMPONENT) + ";");
-			for (; !row.eof(); row.nextRow()) infos.try_emplace(static_cast<uint32_t>(row.getIntField(0)), RenderInfo{ row.getStringField(1, ""), "" });
+				"SELECT cr.id, rc.render_asset, m.gameValue FROM ComponentsRegistry cr JOIN RenderComponent rc ON rc.id = cr.component_id "
+				"LEFT JOIN mapShaders m ON m.id = rc.shader_id WHERE cr.component_type = " + std::to_string(RENDER_COMPONENT) + ";");
+			for (; !row.eof(); row.nextRow()) {
+				infos.try_emplace(static_cast<uint32_t>(row.getIntField(0)), RenderInfo{ row.getStringField(1, ""), "", row.fieldIsNull(2) ? -1 : row.getIntField(2) });
+			}
+			auto shaders = CDClientDatabase::ExecuteQuery("SELECT id, gameValue FROM mapShaders;");
+			for (; !shaders.eof(); shaders.nextRow()) g_ShaderValues.try_emplace(shaders.getIntField(0), shaders.getIntField(1));
 			auto types = CDClientDatabase::ExecuteQuery("SELECT id, type FROM Objects;");
 			for (; !types.eof(); types.nextRow()) {
 				const auto it = infos.find(static_cast<uint32_t>(types.getIntField(0)));
@@ -171,6 +179,7 @@ namespace {
 	struct Model {
 		std::string path;  // res path of the .nif, empty for none
 		bool hidden{};     // the client doesn't draw it (WorldScene::ClientDraws)
+		int32_t shader{ -1 }; // RenderInfo::shader
 	};
 
 	/**
@@ -189,12 +198,34 @@ namespace {
 		const auto& stored = object.nifName.empty() ? info->second.asset : object.nifName;
 		{
 			std::lock_guard lock(mutex);
-			if (const auto it = resolved.find(stored); it != resolved.end()) return { it->second, draw == WorldScene::eClientDraw::HIDDEN };
+			if (const auto it = resolved.find(stored); it != resolved.end()) return { it->second, draw == WorldScene::eClientDraw::HIDDEN, info->second.shader };
 		}
 		auto path = ResolveModel(stored);
 		std::lock_guard lock(mutex);
 		resolved.try_emplace(stored, path);
-		return { std::move(path), draw == WorldScene::eClientDraw::HIDDEN };
+		return { std::move(path), draw == WorldScene::eClientDraw::HIDDEN, info->second.shader };
+	}
+
+	/**
+	 * How the client's shaders use each model's texture alpha, for the viewer: "shaders" gives each asset's shader
+	 * (the first object drawing it wins; -1 fixed function or not an object), "shaderTags" a multishader part's tag ->
+	 * shader, and "textureAlpha" the shaders whose texture alpha isn't opacity (NifFile::TextureAlphaFor).
+	 */
+	void AddShaders(nlohmann::json& manifest, const std::vector<int32_t>& assetShaders) {
+		RenderInfos(); // reads g_ShaderValues
+		manifest["shaders"] = assetShaders;
+		nlohmann::json tags = nlohmann::json::object(), modes = nlohmann::json::object();
+		for (const auto& [id, value] : g_ShaderValues) tags[std::to_string(id)] = value;
+		auto mode = [&modes](int32_t value) {
+			const auto alpha = NifFile::TextureAlphaFor(value);
+			if (alpha != NifFile::eTextureAlpha::OPACITY) modes[std::to_string(value)] = alpha == NifFile::eTextureAlpha::DECAL ? "decal" : "ignored";
+		};
+		for (const auto& [id, value] : g_ShaderValues) mode(value);
+		mode(NifFile::LEGO_SHADER);
+		manifest["shaderTags"] = std::move(tags);
+		manifest["textureAlpha"] = std::move(modes);
+		manifest["multishader"] = NifFile::MULTISHADER;
+		manifest["defaultShader"] = NifFile::LEGO_SHADER;
 	}
 
 	std::optional<std::string> LuzPath(uint32_t zone) {
@@ -233,6 +264,7 @@ namespace {
 		ZoneScenery scenery;
 		nlohmann::json assetOf = nlohmann::json::array(), positions = nlohmann::json::array(), rotations = nlohmann::json::array(), scales = nlohmann::json::array();
 		nlohmann::json hidden = nlohmann::json::array();
+		std::vector<int32_t> assetShaders;
 		int64_t sky = -1;
 		for (const auto& scene : ZonePaths::ReadSceneFiles(*luz)) {
 			const auto lvl = ClientAssets::ReadResFile("maps/" + folder + scene);
@@ -245,17 +277,23 @@ namespace {
 				// A spawner is drawn as what it spawns, where the client would show it
 				const auto model = ModelFor(object);
 				if (model.path.empty()) continue;
-				assetOf.push_back(scenery.IndexOf(model.path));
+				const auto asset = scenery.IndexOf(model.path);
+				assetOf.push_back(asset);
+				if (asset >= assetShaders.size()) assetShaders.resize(asset + 1, -1);
+				if (assetShaders[asset] == -1) assetShaders[asset] = model.shader;
 				hidden.push_back(model.hidden ? 1 : 0);
 				for (const auto value : { object.x, object.y, object.z }) positions.push_back(Round(value, 100.0));
 				for (const auto value : { object.qx, object.qy, object.qz, object.qw }) rotations.push_back(Round(value, 10000.0));
 				scales.push_back(Round(object.scale, 1000.0));
 			}
 		}
-		scenery.json = nlohmann::json{
+		nlohmann::json manifest{
 			{"zone", zoneId}, {"sky", sky}, {"assets", scenery.assets},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"hidden", hidden} }}
-		}.dump();
+		};
+		assetShaders.resize(scenery.assets.size(), -1);
+		AddShaders(manifest, assetShaders);
+		scenery.json = manifest.dump();
 		return std::make_shared<ZoneScenery>(std::move(scenery));
 	}
 

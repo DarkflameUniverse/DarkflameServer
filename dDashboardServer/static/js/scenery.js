@@ -9,7 +9,7 @@
  * follows the camera, far away, behind everything.
  */
 import * as THREE from 'three';
-import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode } from '/js/scenery-core.js';
 
 // Per detail level (the property view's 0 high, 1 medium, 2 low): the model LOD, how far objects are drawn, the
 // largest texture side and a memory budget for geometry and textures
@@ -126,12 +126,50 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		return geometry;
 	}
 
-	function materialOf(mesh, map, forSky) {
+	// The game's LEGO shaders lay the texture over the vertex colors by its alpha instead of letting it show through
+	const DECAL_FRAGMENT = `
+#if defined( USE_COLOR_ALPHA )
+	diffuseColor *= vColor;
+#elif defined( USE_COLOR )
+	diffuseColor.rgb *= vColor;
+#endif
+#ifdef USE_MAP
+	vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+	#if defined( USE_COLOR ) || defined( USE_COLOR_ALPHA )
+	diffuseColor.rgb = mix( diffuseColor.rgb, sampledDiffuseColor.rgb, sampledDiffuseColor.a );
+	#else
+	diffuseColor.rgb *= sampledDiffuseColor.rgb;
+	#endif
+#endif
+`;
+	// ... or leave its alpha out altogether (LEGO items, terrain meshes)
+	const OPAQUE_MAP_FRAGMENT = `
+#ifdef USE_MAP
+	diffuseColor.rgb *= texture2D( map, vMapUv ).rgb;
+#endif
+`;
+
+	function useTextureAlpha(material, mode) {
+		if (mode === 'opacity' || !material.map) return material;
+		material.onBeforeCompile = (shader) => {
+			if (mode === 'decal') {
+				shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', '').replace('#include <color_fragment>', DECAL_FRAGMENT);
+			} else {
+				shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', OPAQUE_MAP_FRAGMENT);
+			}
+		};
+		material.customProgramCacheKey = () => 'textureAlpha:' + mode;
+		return material;
+	}
+
+	function materialOf(mesh, map, forSky, alphaMode = 'opacity') {
 		// Nearly everything in the game's files has alpha blending switched on; it only shows where something is see-
-		// through: the material, a vertex or the texture. Blended meshes still write depth, as Gamebryo's default does.
+		// through: the material, a vertex or the texture (only when the object's shader uses the texture's alpha as
+		// opacity). Blended meshes still write depth, as Gamebryo's default does.
 		let vertexAlpha = false;
 		if (mesh.colors && mesh.vertexColors !== 0) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
-		const seeThrough = mesh.blend && (mesh.alpha < 0.99 || vertexAlpha || !!(map && map.userData.alpha));
+		const textureAlpha = alphaMode === 'opacity' && !!(map && map.userData.alpha);
+		const seeThrough = mesh.blend && (mesh.alpha < 0.99 || vertexAlpha || textureAlpha);
 		const options = {
 			color: new THREE.Color().setRGB(mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2], THREE.SRGBColorSpace),
 			vertexColors: !!(mesh.colors && mesh.vertexColors !== 0),
@@ -141,10 +179,10 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			side: mesh.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
 			map: map || null
 		};
-		if (forSky) return new THREE.MeshBasicMaterial({ ...options, depthWrite: false, fog: false });
+		if (forSky) return useTextureAlpha(new THREE.MeshBasicMaterial({ ...options, depthWrite: false, fog: false }), alphaMode);
 		const material = new THREE.MeshStandardMaterial({ ...options, roughness: 0.85, metalness: 0 });
 		material.emissive.setRGB(mesh.emissive[0], mesh.emissive[1], mesh.emissive[2], THREE.SRGBColorSpace);
-		return material;
+		return useTextureAlpha(material, alphaMode);
 	}
 
 	async function buildParts(asset, lod, forSky) {
@@ -165,7 +203,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 				}
 			}
 			const geometry = geometryOf(mesh);
-			parts.push({ geometry, material: materialOf(mesh, map, forSky) });
+			parts.push({ geometry, material: materialOf(mesh, map, forSky, textureAlphaMode(manifest, asset, mesh)) });
 		}
 		const min = model.header.min, max = model.header.max;
 		const radius = Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) / 2;
