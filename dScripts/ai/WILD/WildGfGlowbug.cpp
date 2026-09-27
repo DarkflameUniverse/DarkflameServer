@@ -1,5 +1,6 @@
 #include "WildGfGlowbug.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 void WildGfGlowbug::OnStartup(Entity* self){
 	self->SetVar(u"switch", false);
@@ -9,9 +10,9 @@ void WildGfGlowbug::OnFireEventServerSide(Entity* self, Entity* sender, std::str
 	if (args == "physicsReady") {
 		auto switchState = self->GetVar<bool>(u"switch");
 		if (!switchState) {
-			GameMessages::SendStopFXEffect(self, true, "glowlight");
+			GameMessages::StopFXEffect(self->GetObjectID(), true, "glowlight").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		} else if (switchState) {
-			GameMessages::SendPlayFXEffect(self, -1, u"light", "glowlight", LWOOBJID_EMPTY);
+			GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"light", "glowlight").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }
@@ -19,10 +20,10 @@ void WildGfGlowbug::OnFireEventServerSide(Entity* self, Entity* sender, std::str
 void WildGfGlowbug::OnUse(Entity* self, Entity* user) {
 	auto switchState = self->GetVar<bool>(u"switch");
 	if (switchState) {
-		GameMessages::SendStopFXEffect(self, true, "glowlight");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "glowlight").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar(u"switch", false);
 	} else if (!switchState) {
-		GameMessages::SendPlayFXEffect(self, -1, u"light", "glowlight", LWOOBJID_EMPTY);
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"light", "glowlight").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar(u"switch", true);
 	}
 }

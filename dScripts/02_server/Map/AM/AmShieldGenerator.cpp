@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityInfo.h"
 #include "MovementAIComponent.h"
 #include "BaseCombatAIComponent.h"
@@ -62,7 +63,7 @@ void AmShieldGenerator::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("BuffPlayers", 3.0f);
 	} else if (timerName == "PlayFX") {
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 5351, u"generatorOn", "generatorOn");
+		GameMessages::PlayFXEffect(self->GetObjectID(), 5351, u"generatorOn", "generatorOn").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddTimer("PlayFX", 1.5f);
 	} else if (timerName == "RefreshEnemies") {

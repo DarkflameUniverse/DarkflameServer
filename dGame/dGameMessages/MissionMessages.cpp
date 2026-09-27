@@ -15,6 +15,7 @@
 #include "Mission.h"
 #include "MissionComponent.h"
 #include "MissionOfferComponent.h"
+#include "EffectsMessages.h"
 
 namespace GameMessages {
 	void OfferMission::Serialize(RakNet::BitStream& bitStream) const {
@@ -150,7 +151,9 @@ namespace GameMessages {
 			|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
 		player->AddCallbackTimer(0.5f, [player]() {
 			if (!player) return;
-			GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
+			GameMessages::EndCinematic endCinematic;
+			endCinematic.target = player->GetObjectID();
+			endCinematic.Send(player->GetSystemAddress());
 			});
 	}
 

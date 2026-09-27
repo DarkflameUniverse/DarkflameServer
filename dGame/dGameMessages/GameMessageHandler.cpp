@@ -35,6 +35,7 @@
 #include "BuildingMessages.h"
 #include "RacingMessages.h"
 #include "MissionMessages.h"
+#include "EffectsMessages.h"
 #include "PetMessages.h"
 #include "PropertyMessages.h"
 #include "eMissionTaskType.h"
@@ -75,6 +76,12 @@ namespace {
 		{ REQUEST_LINKED_MISSION, []() { return std::make_unique<RequestLinkedMission>(); } },
 		{ SET_FLAG, []() { return std::make_unique<SetFlag>(); } },
 		{ HAS_BEEN_COLLECTED, []() { return std::make_unique<HasBeenCollected>(); } },
+
+		// Effects, emotes, cinematics, UI
+		{ PLAY_EMOTE, []() { return std::make_unique<PlayEmote>(); } },
+		{ MESSAGE_BOX_RESPOND, []() { return std::make_unique<MessageBoxRespond>(); } },
+		{ CHOICE_BOX_RESPOND, []() { return std::make_unique<ChoiceBoxRespond>(); } },
+		{ CINEMATIC_UPDATE, []() { return std::make_unique<CinematicUpdate>(); } },
 
 		// Pets
 		{ PET_TAMING_TRY_BUILD, []() { return std::make_unique<PetTamingTryBuild>(); } },
@@ -165,11 +172,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	}
 
 	switch (messageID) {
-
-	case MessageType::Game::PLAY_EMOTE: {
-		GameMessages::HandlePlayEmote(inStream, entity);
-		break;
-	}
 
 	case MessageType::Game::MOVE_ITEM_IN_INVENTORY: {
 		GameMessages::HandleMoveItemInInventory(inStream, entity);
@@ -287,7 +289,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 			|| !entity->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
 		entity->AddCallbackTimer(0.5f, [entity, sysAddr]() {
 			if (!entity) return;
-			GameMessages::SendEndCinematic(entity->GetObjectID(), u"", sysAddr);
+			GameMessages::EndCinematic endCinematic;
+			endCinematic.target = entity->GetObjectID();
+			endCinematic.Send(sysAddr);
 			});
 		break;
 	}
@@ -520,14 +524,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		GameMessages::HandleClientTradeUpdate(inStream, entity, sysAddr);
 		break;
 
-	case MessageType::Game::MESSAGE_BOX_RESPOND:
-		GameMessages::HandleMessageBoxResponse(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::CHOICE_BOX_RESPOND:
-		GameMessages::HandleChoiceBoxRespond(inStream, entity, sysAddr);
-		break;
-
 		// Racing: most racing messages are registered in g_MessageHandlers
 	case MessageType::Game::ACKNOWLEDGE_POSSESSION:
 		GameMessages::HandleAcknowledgePossession(inStream, entity, sysAddr);
@@ -573,10 +569,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::PLAYER_RAIL_ARRIVED_NOTIFICATION:
 		GameMessages::HandlePlayerRailArrivedNotification(inStream, entity, sysAddr);
-		break;
-
-	case MessageType::Game::CINEMATIC_UPDATE:
-		GameMessages::HandleCinematicUpdate(inStream, entity, sysAddr);
 		break;
 
 	case MessageType::Game::MODIFY_PLAYER_ZONE_STATISTIC:

@@ -23,6 +23,7 @@
 
 // Emuns
 #include "eGameMasterLevel.h"
+#include "EffectsMessages.h"
 
 namespace GMZeroCommands {
 	void Pvp(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -101,7 +102,11 @@ namespace GMZeroCommands {
 
 			args.Insert("state", "Story");
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = entity->GetObjectID();
+			uiMessage.strMessageName = "pushGameState";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(entity->GetSystemAddress());
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
@@ -112,7 +117,11 @@ namespace GMZeroCommands {
 
 			LOG("Sending %s", customText.c_str());
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = entity->GetObjectID();
+			uiMessage.strMessageName = "ToggleStoryBox";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(entity->GetSystemAddress());
 			});
 	}
 
@@ -124,7 +133,11 @@ namespace GMZeroCommands {
 
 			args.Insert("state", "Story");
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = entity->GetObjectID();
+			uiMessage.strMessageName = "pushGameState";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(entity->GetSystemAddress());
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
@@ -135,7 +148,11 @@ namespace GMZeroCommands {
 
 			LOG("Sending %s", customText.c_str());
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = entity->GetObjectID();
+			uiMessage.strMessageName = "ToggleStoryBox";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(entity->GetSystemAddress());
 			});
 	}
 

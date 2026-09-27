@@ -1,6 +1,7 @@
 #include "PropertyBankInteract.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Amf3.h"
 #include "Entity.h"
 
@@ -24,7 +25,11 @@ void PropertyBankInteract::OnUse(Entity* self, Entity* user) {
 
 	args.Insert("state", "bank");
 
-	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
+	GameMessages::UIMessageServerToSingleClient uiMessage;
+	uiMessage.target = user->GetObjectID();
+	uiMessage.strMessageName = "pushGameState";
+	uiMessage.args = std::move(args);
+	uiMessage.SendToClient(user->GetSystemAddress());
 
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"OpenBank", 0, 0, LWOOBJID_EMPTY,
 		"", user->GetSystemAddress());
@@ -37,7 +42,11 @@ void PropertyBankInteract::OnFireEventServerSide(Entity* self, Entity* sender, s
 
 		amfArgs.Insert("visible", false);
 
-		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", amfArgs);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = sender->GetObjectID();
+		uiMessage.strMessageName = "ToggleBank";
+		uiMessage.args = std::move(amfArgs);
+		uiMessage.SendToClient(sender->GetSystemAddress());
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"CloseBank", 0, 0, LWOOBJID_EMPTY,
 			"", sender->GetSystemAddress());

@@ -2,6 +2,7 @@
 #include "BaseCombatAIComponent.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "SkillComponent.h"
@@ -40,7 +41,11 @@ void BaseEnemyApe::OnHit(Entity* self, Entity* attacker) {
 			skillComponent->Reset();
 		}
 		RenderComponent::PlayAnimation(self, u"disable", 1.7f);
-		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_NONE, eAnimationFlags::IDLE_COMBAT, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::ChangeIdleFlags idleFlags;
+		idleFlags.target = self->GetObjectID();
+		idleFlags.flagsOn = eAnimationFlags::IDLE_NONE;
+		idleFlags.flagsOff = eAnimationFlags::IDLE_COMBAT;
+		idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		const auto reviveTime = self->GetVar<float_t>(u"reviveTime") != 0.0f
 			? self->GetVar<float_t>(u"reviveTime") : 12.0f;
 		self->AddTimer("reviveTime", reviveTime);
@@ -57,7 +62,11 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 			destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor() / timesStunned);
 		}
 		Game::entityManager->SerializeEntity(self);
-		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_COMBAT, eAnimationFlags::IDLE_NONE, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::ChangeIdleFlags idleFlags;
+		idleFlags.target = self->GetObjectID();
+		idleFlags.flagsOn = eAnimationFlags::IDLE_COMBAT;
+		idleFlags.flagsOff = eAnimationFlags::IDLE_NONE;
+		idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar<uint32_t>(u"timesStunned", timesStunned + 1);
 		StunApe(self, false);
 

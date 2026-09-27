@@ -21,6 +21,7 @@
 #include "MessageType/Chat.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
+#include "EffectsMessages.h"
 
 namespace GMGreaterThanZeroCommands {
 
@@ -288,7 +289,7 @@ namespace GMGreaterThanZeroCommands {
 
 	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		if (args.empty()) {
-			GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"No player Given").SendToClient(entity->GetSystemAddress());
 			return;
 		}
 
@@ -306,10 +307,10 @@ namespace GMGreaterThanZeroCommands {
 
 		auto player = PlayerManager::GetPlayer(args);
 		if (!player) {
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Player not found");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Player not found").SendToClient(entity->GetSystemAddress());
 			return;
 		}
-		GameMessages::SendSlashCommandFeedbackText(entity, u"Spectating Player");
+		GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Spectating Player").SendToClient(entity->GetSystemAddress());
 		GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, player->GetObjectID());
 	}
 }

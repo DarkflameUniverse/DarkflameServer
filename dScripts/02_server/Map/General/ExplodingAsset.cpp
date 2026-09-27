@@ -1,6 +1,7 @@
 #include "ExplodingAsset.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionComponent.h"
 #include "SkillComponent.h"
 #include "eMissionTaskType.h"
@@ -59,7 +60,12 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	self->SetBoolean(u"bIsHit", true);
 	self->SetOwnerOverride(attacker->GetObjectID());
 
-	GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake", self->GetObjectID(), 16);
+	GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
+	embeddedEffect.target = self->GetObjectID();
+	embeddedEffect.effectName = u"camshake";
+	embeddedEffect.fromObjectID = self->GetObjectID();
+	embeddedEffect.radius = 16;
+	embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	self->Smash(attacker->GetObjectID());
 
 	auto* skillComponent = self->GetComponent<SkillComponent>();
@@ -92,14 +98,14 @@ void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::stri
 
 	if (status == "ENTER") {
 		RenderComponent::PlayAnimation(self, u"bounce");
-		GameMessages::SendPlayFXEffect(self, -1, u"anim", "bouncin", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"anim", "bouncin").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar(u"playersNearChest", self->GetVar<int32_t>(u"playersNearChest") + 1);
 	} else if (status == "LEAVE") {
 		self->SetVar(u"playersNearChest", self->GetVar<int32_t>(u"playersNearChest") - 1);
 
 		if (self->GetVar<int32_t>(u"playersNearChest") < 1) {
 			RenderComponent::PlayAnimation(self, u"idle");
-			GameMessages::SendStopFXEffect(self, true, "bouncin");
+			GameMessages::StopFXEffect(self->GetObjectID(), true, "bouncin").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			self->SetVar<int32_t>(u"playersNearChest", 0);
 		}
 	}

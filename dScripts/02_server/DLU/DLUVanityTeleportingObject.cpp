@@ -1,5 +1,6 @@
 #include "DLUVanityTeleportingObject.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "dServer.h"
 #include "VanityUtilities.h"
 #include "RenderComponent.h"
@@ -17,14 +18,14 @@ void DLUVanityTeleportingObject::OnStartup(Entity* self) {
 void DLUVanityTeleportingObject::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "setupTeleport") {
 		RenderComponent::PlayAnimation(self, u"interact");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings");
+		GameMessages::PlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddTimer("teleport", 2.0f);
 		self->AddTimer("stopFX", 2.0f);
 	} else if (timerName == "stopFX") {
-		GameMessages::SendStopFXEffect(self, true, "teleportBeam");
-		GameMessages::SendStopFXEffect(self, true, "teleportRings");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "teleportBeam").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "teleportRings").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "teleport") {
 		std::vector<VanityObjectLocation>& locations = m_Object->m_Locations[Game::server->GetZoneID()];
 
@@ -37,8 +38,8 @@ void DLUVanityTeleportingObject::OnTimerDone(Entity* self, std::string timerName
 
 		self->SetPosition(newLocation.m_Position);
 		self->SetRotation(newLocation.m_Rotation);
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings");
+		GameMessages::PlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->AddTimer("stopFX", 2.0f);
 		self->AddTimer("setupTeleport", m_TeleportInterval);
 	}

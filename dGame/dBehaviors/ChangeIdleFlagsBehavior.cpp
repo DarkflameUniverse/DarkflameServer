@@ -2,12 +2,17 @@
 #include "ChangeIdleFlagsBehavior.h"
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"
+#include "EffectsMessages.h"
 
 void ChangeIdleFlagsBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
 	if (!target) return;
 
-	GameMessages::SendChangeIdleFlags(target, m_FlagsOn, m_FlagsOff, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::ChangeIdleFlags idleFlags;
+	idleFlags.target = target;
+	idleFlags.flagsOn = m_FlagsOn;
+	idleFlags.flagsOff = m_FlagsOff;
+	idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (branch.duration > 0.0f) {
 		context->RegisterTimerBehavior(this, branch);
@@ -24,7 +29,11 @@ void ChangeIdleFlagsBehavior::End(BehaviorContext* context, BehaviorBranchContex
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
 	if (!target) return;
 	// flip on and off to end behavior
-	GameMessages::SendChangeIdleFlags(target, m_FlagsOff, m_FlagsOn, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::ChangeIdleFlags idleFlags;
+	idleFlags.target = target;
+	idleFlags.flagsOn = m_FlagsOff;
+	idleFlags.flagsOff = m_FlagsOn;
+	idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void ChangeIdleFlagsBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {

@@ -1,6 +1,7 @@
 #include "AgPropguards.h"
 #include "Character.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "eMissionState.h"
@@ -17,7 +18,10 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 	if ((missionState == eMissionState::AVAILABLE || missionState == eMissionState::ACTIVE)
 		&& !character->GetPlayerFlag(flag)) {
 		// If the player just started the mission, play a cinematic highlighting the target
-		GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
+		GameMessages::PlayCinematic cinematic;
+		cinematic.target = target->GetObjectID();
+		cinematic.pathName = u"MissionCam";
+		cinematic.Send(target->GetSystemAddress());
 	} else if (missionState == eMissionState::READY_TO_COMPLETE) {
 		// Makes the guard disappear once the mission has been completed
 		const auto zoneControlID = Game::entityManager->GetZoneControlEntity()->GetObjectID();

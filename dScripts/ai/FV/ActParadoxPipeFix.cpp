@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "QuickBuildComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionComponent.h"
 #include "eEndBehavior.h"
 
@@ -30,7 +31,7 @@ void ActParadoxPipeFix::OnQuickBuildComplete(Entity* self, Entity* target) {
 		const auto refinery = Game::entityManager->GetEntitiesInGroup("Paradox");
 
 		if (!refinery.empty()) {
-			GameMessages::SendPlayFXEffect(refinery[0]->GetObjectID(), 3999, u"create", "pipeFX");
+			GameMessages::PlayFXEffect(refinery[0]->GetObjectID(), 3999, u"create", "pipeFX").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		for (auto* object : groupObjs) {
@@ -43,7 +44,17 @@ void ActParadoxPipeFix::OnQuickBuildComplete(Entity* self, Entity* target) {
 					missionComponent->ForceProgressTaskType(769, 1, 1, false);
 				}
 
-				GameMessages::SendPlayCinematic(player->GetObjectID(), u"ParadoxPipeFinish", player->GetSystemAddress(), true, true, false, false, eEndBehavior::RETURN, false, 2.0f);
+				GameMessages::PlayCinematic cinematic;
+				cinematic.target = player->GetObjectID();
+				cinematic.pathName = u"ParadoxPipeFinish";
+				cinematic.allowGhostUpdates = true;
+				cinematic.bCloseMultiInteract = true;
+				cinematic.bSendServerNotify = false;
+				cinematic.bUseControlledObjectForAudioListener = false;
+				cinematic.endBehavior = eEndBehavior::RETURN;
+				cinematic.hidePlayerDuringCine = false;
+				cinematic.leadIn = 2.0f;
+				cinematic.Send(player->GetSystemAddress());
 			}
 
 			object->SetVar(u"PlayerID", LWOOBJID_EMPTY);
@@ -56,7 +67,7 @@ void ActParadoxPipeFix::OnQuickBuildNotifyState(Entity* self, eQuickBuildState s
 		const auto refinery = Game::entityManager->GetEntitiesInGroup("Paradox");
 
 		if (!refinery.empty()) {
-			GameMessages::SendStopFXEffect(refinery[0], true, "pipeFX");
+			GameMessages::StopFXEffect(refinery[0]->GetObjectID(), true, "pipeFX").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }

@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "BaseCombatAIComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
@@ -265,7 +266,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 					}
 
 					RenderComponent::PlayAnimation(frakjaw, StunnedAnimation);
-					GameMessages::SendPlayNDAudioEmitter(frakjaw, UNASSIGNED_SYSTEM_ADDRESS, CounterSmashAudio);
+					GameMessages::PlayNDAudioEmitter(frakjaw->GetObjectID(), CounterSmashAudio).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 					// Before wave 4 we should lower frakjaw from the ledge
 					if (self->GetVar<uint32_t>(WaveNumberVariable) == 3) {

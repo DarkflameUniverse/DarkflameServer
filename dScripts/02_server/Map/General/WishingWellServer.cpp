@@ -1,6 +1,7 @@
 #include "WishingWellServer.h"
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Loot.h"
 #include "EntityManager.h"
 #include "eTerminateType.h"
@@ -18,7 +19,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 	const auto audio = self->GetVar<std::string>(u"sound1");
 
 	if (!audio.empty()) {
-		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), audio);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), audio).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	Loot::DropActivityLoot(

@@ -2,6 +2,7 @@
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
 #include "QuickBuildComponent.h"
+#include "EffectsMessages.h"
 
 void ActMine::OnStartup(Entity* self) {
 	self->SetVar(u"QuickBuildComplete", false);
@@ -27,7 +28,7 @@ void ActMine::OnProximityUpdate(Entity* self, Entity* entering, std::string name
 	auto* detroyable = self->GetComponent<DestroyableComponent>();
 	if (!detroyable) return;
 	if (status == "ENTER" && self->GetVar<bool>(u"QuickBuildComplete") == true && detroyable->IsEnemy(entering)) {
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 242, u"orange", "sirenlight_B");
+		GameMessages::PlayFXEffect(self->GetObjectID(), 242, u"orange", "sirenlight_B").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->AddTimer("Tick", TICK_TIME);
 	}
 }
@@ -40,7 +41,7 @@ void ActMine::OnTimerDone(Entity* self, std::string timerName) {
 			skill->CalculateBehavior(SKILL_ID, BEHAVIOR_ID, LWOOBJID_EMPTY);
 			self->AddTimer("BlowedUp", BLOWED_UP_TIME);
 		} else {
-			GameMessages::SendPlayFXEffect(self->GetObjectID(), 242, u"orange", "sirenlight_B");
+			GameMessages::PlayFXEffect(self->GetObjectID(), 242, u"orange", "sirenlight_B").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			self->AddTimer("Tick", TICK_TIME);
 			self->SetVar(u"NumWarnings", self->GetVar<int>(u"NumWarnings") + 1);
 		}

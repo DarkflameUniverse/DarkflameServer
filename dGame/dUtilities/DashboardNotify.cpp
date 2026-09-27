@@ -16,6 +16,7 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "ChatPackets.h"
 #include "Amf3.h"
 #include "GeneralUtils.h"
@@ -87,7 +88,10 @@ namespace DashboardNotify {
 		AMFArrayValue args;
 		args.Insert("title", title);
 		args.Insert("message", message);
-		GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+		GameMessages::UIMessageServerToAllClients uiMessage;
+		uiMessage.strMessageName = "ToggleAnnounce";
+		uiMessage.args = std::move(args);
+		uiMessage.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		// Also in chat, for anyone who closes the popup without reading it
 		const auto text = GeneralUtils::UTF8ToUTF16(ChatLine(title, message));
 		for (const auto* player : PlayerManager::GetAllPlayers()) {

@@ -12,6 +12,7 @@
 #include <sstream>
 #include "dServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Zone.h"
@@ -2265,7 +2266,12 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfoEve
 	HandleMsg(info);
 
 	auto* client = Game::entityManager->GetEntity(requestInfo.clientId);
-	if (client) GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, client->GetSystemAddress());
+	if (client) {
+		GameMessages::UIMessageServerToAllClients uiMessage;
+		uiMessage.strMessageName = "ToggleObjectDebugger";
+		uiMessage.args = std::move(response);
+		uiMessage.SendToClient(client->GetSystemAddress());
+	}
 	return true;
 }
 

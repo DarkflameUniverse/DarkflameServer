@@ -3,6 +3,7 @@
 #include "dZoneManager.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "InventoryComponent.h"
@@ -62,8 +63,8 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 			const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 			if (!facility.empty()) {
-				GameMessages::SendStopFXEffect(facility[0], true, location + "PipeEnergy");
-				GameMessages::SendPlayFXEffect(facility[0]->GetObjectID(), onFX, u"create", location + "PipeOn");
+				GameMessages::StopFXEffect(facility[0]->GetObjectID(), true, location + "PipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::PlayFXEffect(facility[0]->GetObjectID(), onFX, u"create", location + "PipeOn").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			}
 		}
 
@@ -108,8 +109,8 @@ void ImgBrickConsoleQB::SpawnBrick(Entity* self) {
 void ImgBrickConsoleQB::SmashCanister(Entity* self) {
 	const auto brick = Game::entityManager->GetEntitiesInGroup("Imagination");
 	if (!brick.empty()) {
-		GameMessages::SendPlayFXEffect(brick[0]->GetObjectID(), 122, u"create", "bluebrick");
-		GameMessages::SendPlayFXEffect(brick[0]->GetObjectID(), 1034, u"cast", "imaginationexplosion");
+		GameMessages::PlayFXEffect(brick[0]->GetObjectID(), 122, u"create", "bluebrick").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(brick[0]->GetObjectID(), 1034, u"cast", "imaginationexplosion").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	const auto canisters = Game::entityManager->GetEntitiesInGroup("Canister");
@@ -138,8 +139,8 @@ void ImgBrickConsoleQB::OnQuickBuildComplete(Entity* self, Entity* target) {
 	const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 	if (!facility.empty()) {
-		GameMessages::SendStopFXEffect(facility[0], true, location + "PipeOff");
-		GameMessages::SendPlayFXEffect(facility[0]->GetObjectID(), energyFX, u"create", location + "PipeEnergy");
+		GameMessages::StopFXEffect(facility[0]->GetObjectID(), true, location + "PipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(facility[0]->GetObjectID(), energyFX, u"create", location + "PipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
@@ -182,10 +183,10 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 		const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 		if (!facility.empty()) {
-			GameMessages::SendStopFXEffect(facility[0], true, location + "PipeEnergy");
-			GameMessages::SendStopFXEffect(facility[0], true, location + "PipeOn");
-			GameMessages::SendPlayFXEffect(facility[0]->GetObjectID(), offFX, u"create", location + "PipeOff");
-			GameMessages::SendPlayFXEffect(facility[0]->GetObjectID(), 2750, u"create", location + "imagination_canister");
+			GameMessages::StopFXEffect(facility[0]->GetObjectID(), true, location + "PipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::StopFXEffect(facility[0]->GetObjectID(), true, location + "PipeOn").Send(UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::PlayFXEffect(facility[0]->GetObjectID(), offFX, u"create", location + "PipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::PlayFXEffect(facility[0]->GetObjectID(), 2750, u"create", location + "imagination_canister").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 

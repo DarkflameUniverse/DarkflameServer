@@ -1,5 +1,6 @@
 #include "BaseConsoleTeleportServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "CharacterComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
@@ -11,7 +12,15 @@ void BaseConsoleTeleportServer::BaseOnUse(Entity* self, Entity* user) {
 
 	const auto& teleportLocString = self->GetVar<std::u16string>(u"teleportString");
 
-	GameMessages::SendDisplayMessageBox(player->GetObjectID(), true, self->GetObjectID(), u"TransferBox", 0, teleportLocString, u"", player->GetSystemAddress());
+	GameMessages::DisplayMessageBox messageBox;
+	messageBox.target = player->GetObjectID();
+	messageBox.bShow = true;
+	messageBox.callbackClient = self->GetObjectID();
+	messageBox.identifier = u"TransferBox";
+	messageBox.imageID = 0;
+	messageBox.text = teleportLocString;
+	messageBox.userData = u"";
+	messageBox.Send(player->GetSystemAddress());
 }
 
 void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
@@ -30,7 +39,7 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 			const auto& teleportFXs = self->GetVar<std::vector<std::u16string>>(u"teleportEffectTypes");
 
 			for (const auto& type : teleportFXs) {
-				GameMessages::SendPlayFXEffect(player->GetObjectID(), teleportFXID, type, "FX" + GeneralUtils::UTF16ToWTF8(type));
+				GameMessages::PlayFXEffect(player->GetObjectID(), teleportFXID, type, "FX" + GeneralUtils::UTF16ToWTF8(type)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 			}
 		}
 

@@ -11,6 +11,7 @@
 #include "Amf3.h"
 #include "AmfSerialize.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "User.h"
 #include "CDClientManager.h"
 #include "CDDestructibleComponentTable.h"
@@ -272,7 +273,11 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "health");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = m_Parent->GetObjectID();
+		uiMessage.strMessageName = "MaxPlayerBarUpdate";
+		uiMessage.args = std::move(args);
+		uiMessage.SendToClient(characterComponent->GetSystemAddress());
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -314,7 +319,11 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		args.Insert("amount", std::to_string(value));
 		args.Insert("type", "armor");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = m_Parent->GetObjectID();
+		uiMessage.strMessageName = "MaxPlayerBarUpdate";
+		uiMessage.args = std::move(args);
+		uiMessage.SendToClient(characterComponent->GetSystemAddress());
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -355,7 +364,11 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "imagination");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = m_Parent->GetObjectID();
+		uiMessage.strMessageName = "MaxPlayerBarUpdate";
+		uiMessage.args = std::move(args);
+		uiMessage.SendToClient(characterComponent->GetSystemAddress());
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
 }

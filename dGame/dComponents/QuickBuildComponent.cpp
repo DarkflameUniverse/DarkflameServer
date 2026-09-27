@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
 #include "Logger.h"
@@ -425,7 +426,9 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	Game::entityManager->SerializeEntity(user);
 
 	GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::COMPLETED, user->GetObjectID());
-	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
+	GameMessages::PlayFXEffect fx(m_Parent->GetObjectID(), 507, u"create", "BrickFadeUpVisCompleteEffect");
+	fx.priority = 0.4f;
+	fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::SendEnableQuickBuild(m_Parent, false, false, true, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, user->GetObjectID());
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 

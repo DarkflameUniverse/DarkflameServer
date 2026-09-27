@@ -3,6 +3,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "SkillComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "EntityInfo.h"
@@ -36,7 +37,7 @@ void AmDarklingDragon::OnDie(Entity* self, Entity* killer) {
 }
 
 void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {
-	GameMessages::SendPlayFXEffect(self, -1, u"gothit", "", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"gothit", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (true) {
 		auto weakpoint = self->GetVar<int32_t>(u"weakspot");
@@ -70,7 +71,11 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 			}
 
 			self->SetVar<int32_t>(u"weakpoint", 2);
-			GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_NONE, eAnimationFlags::IDLE_COMBAT, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::ChangeIdleFlags idleFlags;
+			idleFlags.target = self->GetObjectID();
+			idleFlags.flagsOn = eAnimationFlags::IDLE_NONE;
+			idleFlags.flagsOff = eAnimationFlags::IDLE_COMBAT;
+			idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 			float animationTime = RenderComponent::PlayAnimation(self, u"stunstart", 1.7f);
 
 			self->AddTimer("timeToStunLoop", 1.0f);
@@ -134,7 +139,11 @@ void AmDarklingDragon::OnTimerDone(Entity* self, std::string timerName) {
 			skillComponent->Interrupt();
 			skillComponent->Reset();
 		}
-		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_COMBAT, eAnimationFlags::IDLE_NONE, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::ChangeIdleFlags idleFlags;
+		idleFlags.target = self->GetObjectID();
+		idleFlags.flagsOn = eAnimationFlags::IDLE_COMBAT;
+		idleFlags.flagsOff = eAnimationFlags::IDLE_NONE;
+		idleFlags.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar<int32_t>(u"weakspot", -1);
 		GameMessages::SendNotifyObject(self->GetObjectID(), self->GetObjectID(), u"DragonRevive", UNASSIGNED_SYSTEM_ADDRESS);
 	}

@@ -1,6 +1,7 @@
 #include "BaseInteractDropLootServer.h"
 #include "Loot.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 void BaseInteractDropLootServer::OnUse(Entity* self, Entity* user) {
 	BaseUse(self, user);
@@ -17,7 +18,7 @@ void BaseInteractDropLootServer::BaseUse(Entity* self, Entity* user) {
 	auto useSound = self->GetVar<std::string>(u"sound1");
 
 	if (!useSound.empty()) {
-		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), useSound);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), useSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	self->SetNetworkVar(u"bInUse", true);

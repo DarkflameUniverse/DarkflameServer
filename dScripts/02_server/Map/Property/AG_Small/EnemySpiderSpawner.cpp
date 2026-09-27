@@ -1,5 +1,6 @@
 #include "EnemySpiderSpawner.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "DestroyableComponent.h"
@@ -12,7 +13,7 @@ void EnemySpiderSpawner::OnFireEventServerSide(Entity* self, Entity* sender, std
 	int32_t param2, int32_t param3) {
 	if (args == "prepEgg") {
 		// Highlight eggs about to hatch with Maelstrom effect
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2856, u"maelstrom", "test", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2856, u"maelstrom", "test").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		// Make indestructible
 		auto dest = static_cast<DestroyableComponent*>(self->GetComponent(eReplicaComponentType::DESTROYABLE));
@@ -37,7 +38,7 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "StartSpawnTime") {
 		SpawnSpiderling(self);
 	} else if (timerName == "SpawnSpiderling") {
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 644, u"create", "egg_puff_b", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 644, u"create", "egg_puff_b").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		//TODO: set the aggro radius larger
 
@@ -63,6 +64,6 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 //--------------------------------------------------------------
 void EnemySpiderSpawner::SpawnSpiderling(Entity* self) {
 	//Initiate the actual spawning
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), 2260, u"rebuild_medium", "dropdustmedium", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+	GameMessages::PlayFXEffect(self->GetObjectID(), 2260, u"rebuild_medium", "dropdustmedium").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	self->AddTimer("SpawnSpiderling", spawnTime);
 }

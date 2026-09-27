@@ -1,6 +1,7 @@
 #include "StoryBoxInteractServer.h"
 #include "Character.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "dServer.h"
 #include "Amf3.h"
 #include "Entity.h"
@@ -14,7 +15,11 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 
 			args.Insert("state", "Story");
 
-			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = user->GetObjectID();
+			uiMessage.strMessageName = "pushGameState";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(user->GetSystemAddress());
 		}
 
 		user->AddCallbackTimer(0.1f, [user, customText]() {
@@ -23,7 +28,11 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 			args.Insert("visible", true);
 			args.Insert("text", customText);
 
-			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = user->GetObjectID();
+			uiMessage.strMessageName = "ToggleStoryBox";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(user->GetSystemAddress());
 			});
 
 		return;

@@ -1,6 +1,7 @@
 #include "SpecialSpeedBuffSpawner.h"
 
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "SkillComponent.h"
 #include "EntityManager.h"
 #include "eReplicaComponentType.h"
@@ -15,7 +16,7 @@ void SpecialSpeedBuffSpawner::OnProximityUpdate(Entity* self, Entity* entering, 
 	if (!entering->IsPlayer()) return;
 	if (self->GetVar<bool>(u"bIsDead")) return;
 
-	GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"pickup", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto skillComponent = entering->GetComponent<SkillComponent>();
 	if (!skillComponent) return;

@@ -3,6 +3,7 @@
 #include "eTriggerEventType.h"
 #include "RenderComponent.h"
 #include "DestroyableComponent.h"
+#include "EffectsMessages.h"
 
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
@@ -78,7 +79,7 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 		m_Timer = m_ResetTime;
 
 		if (m_PetBouncer != nullptr) {
-			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 2602, u"pettriggeractive", "BounceEffect", LWOOBJID_EMPTY, 1, 1, true);
+			GameMessages::PlayFXEffect(m_Parent->GetObjectID(), 2602, u"pettriggeractive", "BounceEffect").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			RenderComponent::PlayAnimation(m_Parent, u"engaged");
 			m_PetBouncer->SetPetBouncerEnabled(true);
 		} else {

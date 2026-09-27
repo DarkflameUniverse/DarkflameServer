@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
@@ -123,7 +124,10 @@ void BuffComponent::ApplyBuffFx(uint32_t buffId, const BuffParameter& buff) {
 
 	fxToPlay += std::to_string(buffId);
 	LOG_DEBUG("Playing %s %i", fxToPlay.c_str(), buff.effectId);
-	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), buff.effectId, u"cast", fxToPlay, LWOOBJID_EMPTY, 1.07f, 1.0f, false);
+	GameMessages::PlayFXEffect fx(m_Parent->GetObjectID(), buff.effectId, u"cast", fxToPlay);
+	fx.priority = 1.07f;
+	fx.serialize = false;
+	fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void BuffComponent::RemoveBuffFx(uint32_t buffId, const BuffParameter& buff) {
@@ -134,7 +138,7 @@ void BuffComponent::RemoveBuffFx(uint32_t buffId, const BuffParameter& buff) {
 
 	fxToPlay += std::to_string(buffId);
 	LOG_DEBUG("Stopping %s", fxToPlay.c_str());
-	GameMessages::SendStopFXEffect(m_Parent, false, fxToPlay);
+	GameMessages::StopFXEffect(m_Parent->GetObjectID(), false, fxToPlay).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOOBJID source, bool addImmunity,

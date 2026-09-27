@@ -1,6 +1,7 @@
 #include "NsTokenConsoleServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Character.h"
 #include "MissionComponent.h"
 #include "QuickBuildComponent.h"
@@ -39,7 +40,7 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 	const auto useSound = self->GetVar<std::string>(u"sound1");
 
 	if (!useSound.empty()) {
-		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), useSound);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), useSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	// Player must be in faction to interact with this entity.

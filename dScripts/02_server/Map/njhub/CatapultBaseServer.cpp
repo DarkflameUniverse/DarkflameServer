@@ -1,6 +1,7 @@
 #include "CatapultBaseServer.h"
 #include "PetMessages.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "Entity.h"
 #include "RenderComponent.h"
@@ -28,7 +29,7 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		// tell the arm to the play the platform animation, which is just the arm laying there but with bouncer
 		for (auto* obj : arm) {
 			RenderComponent::PlayAnimation(obj, u"idle-platform");
-			GameMessages::SendPlayNDAudioEmitter(obj, UNASSIGNED_SYSTEM_ADDRESS, "{8cccf912-69e3-4041-a20b-63e4afafc993}");
+			GameMessages::PlayNDAudioEmitter(obj->GetObjectID(), "{8cccf912-69e3-4041-a20b-63e4afafc993}").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			// set the art so we can use it again
 			self->SetVar(u"Arm", obj->GetObjectID());
 			break;

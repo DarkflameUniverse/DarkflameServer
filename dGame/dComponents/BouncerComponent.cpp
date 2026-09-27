@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "BitStream.h"
 #include "eTriggerEventType.h"
 #include "Amf3.h"
@@ -67,10 +68,10 @@ void BouncerComponent::SetPetBouncerEnabled(bool value) {
 
 	if (value) {
 		m_Parent->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_Parent);
-		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::PlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else {
 		m_Parent->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_Parent);
-		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
+		GameMessages::StopFXEffect(m_Parent->GetObjectID(), true, "PetOnSwitch").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 }

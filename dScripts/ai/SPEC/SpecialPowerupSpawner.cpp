@@ -1,6 +1,7 @@
 #include "SpecialPowerupSpawner.h"
 
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "SkillComponent.h"
 #include "EntityManager.h"
 #include "eReplicaComponentType.h"
@@ -15,7 +16,7 @@ void SpecialPowerupSpawner::OnProximityUpdate(Entity* self, Entity* entering, co
 	if (!entering->IsPlayer()) return;
 	if (self->GetVar<bool>(u"bIsDead")) return;
 
-	GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"pickup", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto skillComponent = self->GetComponent<SkillComponent>();
 	if (!skillComponent) return;

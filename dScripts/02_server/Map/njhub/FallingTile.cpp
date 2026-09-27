@@ -1,6 +1,7 @@
 #include "FallingTile.h"
 #include "MovingPlatformComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 void FallingTile::OnStartup(Entity* self) {
 	auto* movingPlatfromComponent = self->GetComponent<MovingPlatformComponent>();
@@ -44,12 +45,12 @@ void FallingTile::OnTimerDone(Entity* self, std::string timerName) {
 
 		movingPlatfromComponent->GotoWaypoint(1);
 
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"down", "down");
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"down", "down").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "flipBack") {
 		self->SetVar<bool>(u"AboutToFall", false);
 
 		movingPlatfromComponent->GotoWaypoint(0);
 
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"up", "up");
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"up", "up").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }

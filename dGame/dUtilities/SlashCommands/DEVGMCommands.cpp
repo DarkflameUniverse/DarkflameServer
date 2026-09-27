@@ -57,6 +57,7 @@
 #include "ePlayerFlag.h"
 #include "StringifiedEnum.h"
 #include "BinaryPathFinder.h"
+#include "EffectsMessages.h"
 
 namespace DEVGMCommands {
 	void SetGMLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -64,7 +65,7 @@ namespace DEVGMCommands {
 
 		const auto level_intermed = GeneralUtils::TryParse<uint32_t>(args);
 		if (!level_intermed) {
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Invalid GM level.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Invalid GM level.").SendToClient(entity->GetSystemAddress());
 			return;
 		}
 		eGameMasterLevel level = static_cast<eGameMasterLevel>(level_intermed.value());
@@ -106,7 +107,7 @@ namespace DEVGMCommands {
 			GameMessages::ToggleGMInvisEvent msg;
 			msg.Send(entity->GetObjectID());
 
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Your game master level has been changed, you may not be able to use all commands.").SendToClient(entity->GetSystemAddress());
 		}
 #endif
 	}
@@ -118,10 +119,10 @@ namespace DEVGMCommands {
 		auto* character = entity->GetCharacter();
 		if (character && character->GetBillboardVisible()) {
 			character->SetBillboardVisible(false);
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Your nameplate has been turned off and is not visible to players currently in this zone.").SendToClient(entity->GetSystemAddress());
 		} else {
 			character->SetBillboardVisible(true);
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Your nameplate is now on and visible to all players.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Your nameplate is now on and visible to all players.").SendToClient(entity->GetSystemAddress());
 		}
 	}
 
@@ -132,9 +133,9 @@ namespace DEVGMCommands {
 		bool current = character->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS);
 		character->SetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS, !current);
 		if (!current) {
-			GameMessages::SendSlashCommandFeedbackText(entity, u"You have elected to skip cinematics. Note that not all cinematics can be skipped, but most will be skipped now.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"You have elected to skip cinematics. Note that not all cinematics can be skipped, but most will be skipped now.").SendToClient(entity->GetSystemAddress());
 		} else {
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Cinematics will no longer be skipped.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Cinematics will no longer be skipped.").SendToClient(entity->GetSystemAddress());
 		}
 	}
 
@@ -327,7 +328,11 @@ namespace DEVGMCommands {
 
 		uiState.Insert("state", splitArgs[0]);
 
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", uiState);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = entity->GetObjectID();
+		uiMessage.strMessageName = "pushGameState";
+		uiMessage.args = std::move(uiState);
+		uiMessage.SendToClient(sysAddr);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 	}
@@ -340,7 +345,11 @@ namespace DEVGMCommands {
 
 		amfArgs.Insert("visible", true);
 
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, splitArgs[0], amfArgs);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = entity->GetObjectID();
+		uiMessage.strMessageName = splitArgs[0];
+		uiMessage.args = std::move(amfArgs);
+		uiMessage.SendToClient(sysAddr);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
 	}
@@ -499,14 +508,14 @@ namespace DEVGMCommands {
 		if (!effectID) return;
 
 		// FIXME: use fallible ASCIIToUTF16 conversion, because non-ascii isn't valid anyway
-		GameMessages::SendPlayFXEffect(entity->GetObjectID(), effectID.value(), GeneralUtils::ASCIIToUTF16(splitArgs.at(1)), splitArgs.at(2));
+		GameMessages::PlayFXEffect(entity->GetObjectID(), effectID.value(), GeneralUtils::ASCIIToUTF16(splitArgs.at(1)), splitArgs.at(2)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void StopEffect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
 
-		GameMessages::SendStopFXEffect(entity, true, splitArgs[0]);
+		GameMessages::StopFXEffect(entity->GetObjectID(), true, splitArgs[0]).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void SetAnnTitle(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -739,7 +748,10 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		GameMessages::SendStartCelebrationEffect(entity, entity->GetSystemAddress(), celebration.value());
+		GameMessages::StartCelebrationEffect celebrationEffect;
+		celebrationEffect.target = entity->GetObjectID();
+		celebrationEffect.celebrationID = celebration.value();
+		celebrationEffect.SendToClient(entity->GetSystemAddress());
 	}
 
 	void BuffMed(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -807,7 +819,10 @@ namespace DEVGMCommands {
 			for (const auto& [name, lot] : nameToLot) {
 				auto& entry = nameSort.PushDebug<AMFStringValue>(name) = std::to_string(lot);
 			}
-			GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, sysAddr);
+			GameMessages::UIMessageServerToAllClients uiMessage;
+			uiMessage.strMessageName = "ToggleObjectDebugger";
+			uiMessage.args = std::move(response);
+			uiMessage.SendToClient(sysAddr);
 		}
 	}
 
@@ -1021,11 +1036,11 @@ namespace DEVGMCommands {
 	}
 
 	void PlayLvlFx(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		GameMessages::SendPlayFXEffect(entity, 7074, u"create", "7074", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+		GameMessages::PlayFXEffect(entity->GetObjectID(), 7074, u"create", "7074").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void PlayRebuildFx(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		GameMessages::SendPlayFXEffect(entity, 230, u"rebuild", "230", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+		GameMessages::PlayFXEffect(entity->GetObjectID(), 230, u"rebuild", "230").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	void FreeMoney(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1354,7 +1369,10 @@ namespace DEVGMCommands {
 		processInfo.PushDebug<AMFStringValue>("Peak RSS") = std::to_string(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6) + "MB";
 		processInfo.PushDebug<AMFStringValue>("Current RSS") = std::to_string(static_cast<double>(Metrics::GetCurrentRSS()) / 1.024e6) + "MB";
 		processInfo.PushDebug<AMFIntValue>("Process ID") = Metrics::GetProcessID();
-		GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, sysAddr);
+		GameMessages::UIMessageServerToAllClients uiMessage;
+		uiMessage.strMessageName = "ToggleObjectDebugger";
+		uiMessage.args = std::move(response);
+		uiMessage.SendToClient(sysAddr);
 	}
 
 	void ReloadConfig(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

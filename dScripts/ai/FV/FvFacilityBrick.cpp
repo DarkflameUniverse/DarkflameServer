@@ -1,5 +1,6 @@
 #include "FvFacilityBrick.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
 
@@ -17,43 +18,43 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 	auto* const canisterSpawner = canisterObjs.empty() ? nullptr : canisterObjs[0];
 
 	if (name == "ConsoleLeftUp") {
-		GameMessages::SendStopFXEffect(self, true, "LeftPipeOff");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2775, u"create", "LeftPipeEnergy");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "LeftPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2775, u"create", "LeftPipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (name == "ConsoleLeftDown") {
 		self->SetVar(u"ConsoleLEFTActive", false);
 
-		GameMessages::SendStopFXEffect(self, true, "LeftPipeEnergy");
-		GameMessages::SendStopFXEffect(self, true, "LeftPipeOn");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2774, u"create", "LeftPipeOff");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "LeftPipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "LeftPipeOn").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2774, u"create", "LeftPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (name == "ConsoleLeftActive") {
 		self->SetVar(u"ConsoleLEFTActive", true);
 
-		GameMessages::SendStopFXEffect(self, true, "LeftPipeEnergy");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2776, u"create", "LeftPipeOn");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "LeftPipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2776, u"create", "LeftPipeOn").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	else if (name == "ConsoleRightUp") {
-		GameMessages::SendStopFXEffect(self, true, "RightPipeOff");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2778, u"create", "RightPipeEnergy");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "RightPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2778, u"create", "RightPipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (name == "ConsoleRightDown") {
 		self->SetVar(u"ConsoleRIGHTActive", false);
 
-		GameMessages::SendStopFXEffect(self, true, "RightPipeEnergy");
-		GameMessages::SendStopFXEffect(self, true, "RightPipeOn");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2777, u"create", "RightPipeOff");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "RightPipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "RightPipeOn").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2777, u"create", "RightPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (name == "ConsoleRightActive") {
 		self->SetVar(u"ConsoleRIGHTActive", true);
 
-		GameMessages::SendStopFXEffect(self, true, "RightPipeOff");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2779, u"create", "RightPipeEnergy");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "RightPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 2779, u"create", "RightPipeEnergy").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	if (self->GetVar<bool>(u"ConsoleLEFTActive") && self->GetVar<bool>(u"ConsoleRIGHTActive")) {
 		auto* object = Game::entityManager->GetEntitiesInGroup("Brick")[0];
 
 		if (object != nullptr) {
-			GameMessages::SendPlayFXEffect(object->GetObjectID(), 122, u"create", "bluebrick");
-			GameMessages::SendPlayFXEffect(object->GetObjectID(), 1034, u"cast", "imaginationexplosion");
+			GameMessages::PlayFXEffect(object->GetObjectID(), 122, u"create", "bluebrick").Send(UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::PlayFXEffect(object->GetObjectID(), 1034, u"cast", "imaginationexplosion").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		object = Game::entityManager->GetEntitiesInGroup("Canister")[0];
@@ -70,7 +71,7 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 		auto* object = Game::entityManager->GetEntitiesInGroup("Brick")[0];
 
 		if (object != nullptr) {
-			GameMessages::SendStopFXEffect(object, true, "bluebrick");
+			GameMessages::StopFXEffect(object->GetObjectID(), true, "bluebrick").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (bugSpawner) {
@@ -101,8 +102,8 @@ void FvFacilityBrick::OnFireEventServerSide(Entity* self, Entity* sender, std::s
 		return;
 	}
 
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), 2774, u"create", "LeftPipeOff");
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), 2777, u"create", "RightPipeOff");
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), 2750, u"create", "imagination_canister");
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), 2751, u"create", "canister_light_filler");
+	GameMessages::PlayFXEffect(self->GetObjectID(), 2774, u"create", "LeftPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::PlayFXEffect(self->GetObjectID(), 2777, u"create", "RightPipeOff").Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::PlayFXEffect(self->GetObjectID(), 2750, u"create", "imagination_canister").Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::PlayFXEffect(self->GetObjectID(), 2751, u"create", "canister_light_filler").Send(UNASSIGNED_SYSTEM_ADDRESS);
 }

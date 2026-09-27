@@ -11,6 +11,7 @@
 #include "CharacterComponent.h"
 #include "ChatPackets.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "PlayerManager.h"
 #include "User.h"
 #include "UserManager.h"
@@ -70,7 +71,7 @@ namespace {
 				GameMessages::ToggleGMInvisEvent msg;
 				msg.Send(entity->GetObjectID());
 			}
-			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed.");
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), u"Your game master level has been changed.").SendToClient(entity->GetSystemAddress());
 			LOG("Dashboard lowered GM level of %s to %i", user->GetUsername().c_str(), static_cast<int>(info->maxGmLevel));
 		}
 		return static_cast<uint32_t>(users.size());
@@ -96,7 +97,11 @@ namespace {
 			AMFArrayValue args;
 			args.Insert("title", std::string("Warning from a moderator"));
 			args.Insert("message", text);
-			GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "ToggleAnnounce", args);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = player->GetObjectID();
+			uiMessage.strMessageName = "ToggleAnnounce";
+			uiMessage.args = std::move(args);
+			uiMessage.SendToClient(player->GetSystemAddress());
 			ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"Warning from a moderator: " + GeneralUtils::UTF8ToUTF16(text));
 			affected++;
 		}

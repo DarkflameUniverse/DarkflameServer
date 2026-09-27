@@ -1,5 +1,6 @@
 #include "NsGetFactionMissionServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionComponent.h"
 #include "Character.h"
 #include "eReplicaComponentType.h"
@@ -38,7 +39,10 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 		factionMissions.push_back(778);
 
 		if (celebrationID != -1) {
-			GameMessages::SendStartCelebrationEffect(player, player->GetSystemAddress(), celebrationID);
+			GameMessages::StartCelebrationEffect celebration;
+			celebration.target = player->GetObjectID();
+			celebration.celebrationID = celebrationID;
+			celebration.SendToClient(player->GetSystemAddress());
 		}
 
 		if (flagID != -1) {

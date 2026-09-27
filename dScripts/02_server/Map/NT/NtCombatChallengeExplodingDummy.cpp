@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
+#include "EffectsMessages.h"
 
 void NtCombatChallengeExplodingDummy::OnDie(Entity* self, Entity* killer) {
 	const auto challengeObjectID = self->GetVar<LWOOBJID>(u"challengeObjectID");
@@ -36,6 +37,11 @@ void NtCombatChallengeExplodingDummy::OnHitOrHealResult(Entity* self, Entity* at
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(1338, 30875, attacker->GetObjectID());
 	}
-	GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake", self->GetObjectID(), 16.0f);
+	GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
+	embeddedEffect.target = self->GetObjectID();
+	embeddedEffect.effectName = u"camshake";
+	embeddedEffect.fromObjectID = self->GetObjectID();
+	embeddedEffect.radius = 16.0f;
+	embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	self->Smash(attacker->GetObjectID());
 }

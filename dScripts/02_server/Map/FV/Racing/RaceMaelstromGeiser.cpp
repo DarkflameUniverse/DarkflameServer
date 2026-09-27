@@ -1,5 +1,6 @@
 #include "RaceMaelstromGeiser.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "EntityManager.h"
@@ -68,7 +69,7 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 void RaceMaelstromGeiser::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "downTime") {
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 4048, u"rebuild_medium", "geiser", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 4048, u"rebuild_medium", "geiser").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddTimer("buildUpTime", 1);
 	} else if (timerName == "buildUpTime") {
@@ -76,7 +77,7 @@ void RaceMaelstromGeiser::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("killTime", 1.5f);
 	} else if (timerName == "killTime") {
-		GameMessages::SendStopFXEffect(self, true, "geiser");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "geiser").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->SetVar(u"AmFiring", false);
 

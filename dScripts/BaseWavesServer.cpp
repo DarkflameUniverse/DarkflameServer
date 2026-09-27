@@ -1,5 +1,6 @@
 #include "BaseWavesServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "ActivityMessages.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
@@ -198,7 +199,7 @@ void BaseWavesServer::OnActivityTimerDone(Entity* self, const std::string& name)
 		for (const auto& playerID : state.players) {
 			auto* player = Game::entityManager->GetEntity(playerID);
 			if (player != nullptr) {
-				GameMessages::SendPlayNDAudioEmitter(player, player->GetSystemAddress(), spawnSoundGUID);
+				GameMessages::PlayNDAudioEmitter(player->GetObjectID(), spawnSoundGUID).Send(UNASSIGNED_SYSTEM_ADDRESS);
 			}
 		}
 	} else if (name == NextWaveTickTimer) {

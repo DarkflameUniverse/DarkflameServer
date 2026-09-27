@@ -1,6 +1,7 @@
 #include "MastTeleport.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Preconditions.h"
 #include "eEndBehavior.h"
 #include "DestroyableComponent.h"
@@ -49,12 +50,20 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		const auto leanIn = self->GetVar<float>(u"LeanIn");
 
 		if (!cinematic.empty()) {
-			GameMessages::SendPlayCinematic(playerId, GeneralUtils::ASCIIToUTF16(cinematic), player->GetSystemAddress(),
-				true, true, false, false, eEndBehavior::RETURN, false, leanIn
-			);
+			GameMessages::PlayCinematic playCinematic;
+			playCinematic.target = playerId;
+			playCinematic.pathName = GeneralUtils::ASCIIToUTF16(cinematic);
+			playCinematic.allowGhostUpdates = true;
+			playCinematic.bCloseMultiInteract = true;
+			playCinematic.bSendServerNotify = false;
+			playCinematic.bUseControlledObjectForAudioListener = false;
+			playCinematic.endBehavior = eEndBehavior::RETURN;
+			playCinematic.hidePlayerDuringCine = false;
+			playCinematic.leadIn = leanIn;
+			playCinematic.Send(player->GetSystemAddress());
 		}
 
-		GameMessages::SendPlayFXEffect(playerId, 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::PlayFXEffect(playerId, 6039, u"hook", "hook").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		float animationTime = 6.25f;
 		animationTime = RenderComponent::PlayAnimation(player, "crow-swing-no-equip", 4.0f);
@@ -63,7 +72,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("PlayerAnimDone", animationTime);
 	} else if (timerName == "PlayerAnimDone") {
-		GameMessages::SendStopFXEffect(player, true, "hook");
+		GameMessages::StopFXEffect(player->GetObjectID(), true, "hook").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		auto forward = QuatUtils::Forward(self->GetRotation());
 

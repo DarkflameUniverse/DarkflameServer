@@ -25,6 +25,7 @@
 #include "ChainBehavior.h"
 #include "ChargeUpBehavior.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "HealBehavior.h"
 #include "ImaginationBehavior.h"
 #include "KnockbackBehavior.h"
@@ -326,7 +327,9 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	const auto effectId = this->m_effectId;
 
 	if (effectId == 0) {
-		GameMessages::SendPlayFXEffect(targetEntity, -1, type, "", secondary, 1, 1, true);
+		GameMessages::PlayFXEffect fx(targetEntity->GetObjectID(), -1, type, "");
+		fx.secondary = secondary;
+		fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		return;
 	}
@@ -343,7 +346,9 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 	if (itr != m_effectNames.end()) {
 		if (renderComponent == nullptr) {
-			GameMessages::SendPlayFXEffect(targetEntity, effectId, type, itr->second, secondary, 1, 1, true);
+			GameMessages::PlayFXEffect fx(targetEntity->GetObjectID(), effectId, type, itr->second);
+			fx.secondary = secondary;
+			fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 			return;
 		}
@@ -392,7 +397,9 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	m_effectNames.insert_or_assign(typeString, name);
 
 	if (renderComponent == nullptr) {
-		GameMessages::SendPlayFXEffect(targetEntity, effectId, type, name, secondary, 1, 1, true);
+		GameMessages::PlayFXEffect fx(targetEntity->GetObjectID(), effectId, type, name);
+		fx.secondary = secondary;
+		fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		return;
 	}

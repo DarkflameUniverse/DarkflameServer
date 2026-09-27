@@ -5,6 +5,7 @@
 #include "Character.h"
 #include "Database.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "PropertyManagementComponent.h"
 #include "PropertyMessages.h"
 #include "RocketLaunchpadControlComponent.h"
@@ -42,7 +43,11 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 
 	args.Insert("state", "property_menu");
 
-	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
+	GameMessages::UIMessageServerToSingleClient uiMessage;
+	uiMessage.target = entity->GetObjectID();
+	uiMessage.strMessageName = "pushGameState";
+	uiMessage.args = std::move(args);
+	uiMessage.SendToClient(entity->GetSystemAddress());
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr) {

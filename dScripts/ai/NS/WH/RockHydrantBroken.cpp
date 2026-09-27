@@ -2,6 +2,7 @@
 #include "PetMessages.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 void RockHydrantBroken::OnStartup(Entity* self) {
 	self->AddTimer("playEffect", 1);
@@ -40,6 +41,6 @@ void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->Kill();
 	} else if (timerName == "playEffect") {
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 4737, u"water", "water", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 4737, u"water", "water").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }

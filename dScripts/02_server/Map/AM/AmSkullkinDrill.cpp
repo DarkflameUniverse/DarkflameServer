@@ -1,5 +1,6 @@
 #include "AmSkullkinDrill.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MovingPlatformComponent.h"
 #include "DestroyableComponent.h"
 #include "ProximityMonitorComponent.h"
@@ -12,7 +13,7 @@ void AmSkullkinDrill::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"bIsInUse", false);
 	self->SetVar(u"bActive", true);
 
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"spin", "active");
+	GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"spin", "active").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto* movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
 
@@ -135,8 +136,8 @@ void AmSkullkinDrill::OnUse(Entity* self, Entity* user) {
 
 	self->SetNetworkVar(u"bIsInUse", true);
 
-	GameMessages::SendPlayFXEffect(user->GetObjectID(), 5499, u"on-anim", "tornado");
-	GameMessages::SendPlayFXEffect(user->GetObjectID(), 5502, u"on-anim", "staff");
+	GameMessages::PlayFXEffect(user->GetObjectID(), 5499, u"on-anim", "tornado").Send(UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::PlayFXEffect(user->GetObjectID(), 5502, u"on-anim", "staff").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	const auto userID = user->GetObjectID();
 
@@ -174,8 +175,8 @@ void AmSkullkinDrill::OnArrived(Entity* self, uint32_t waypointIndex) {
 
 	if (waypointIndex == 1) {
 		RenderComponent::PlayAnimation(self, u"no-spin");
-		GameMessages::SendStopFXEffect(self, true, "active");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"indicator", "indicator");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "active").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"indicator", "indicator").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->SetVar(u"bActive", false);
 
@@ -194,8 +195,8 @@ void AmSkullkinDrill::OnArrived(Entity* self, uint32_t waypointIndex) {
 		return;
 	} else {
 		RenderComponent::PlayAnimation(self, u"idle");
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"spin", "active");
-		GameMessages::SendStopFXEffect(self, true, "indicator");
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"spin", "active").Send(UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "indicator").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 
@@ -212,7 +213,10 @@ void AmSkullkinDrill::PlayCinematic(Entity* self) {
 		return;
 	}
 
-	GameMessages::SendPlayCinematic(player->GetObjectID(), cine, player->GetSystemAddress());
+	GameMessages::PlayCinematic cinematic;
+	cinematic.target = player->GetObjectID();
+	cinematic.pathName = cine;
+	cinematic.Send(player->GetSystemAddress());
 }
 
 void AmSkullkinDrill::PlayAnim(Entity* self, Entity* player, const std::string& animName) {
@@ -259,7 +263,7 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 	auto* standObj = GetStandObj(self);
 
 	if (standObj != nullptr) {
-		GameMessages::SendPlayFXEffect(standObj->GetObjectID(), 4946, u"explode", "explode");
+		GameMessages::PlayFXEffect(standObj->GetObjectID(), 4946, u"explode", "explode").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 
@@ -320,8 +324,8 @@ void AmSkullkinDrill::OnTimerDone(Entity* self, std::string timerName) {
 
 			self->SetVar(u"userID", LWOOBJID_EMPTY);
 
-			GameMessages::SendStopFXEffect(player, true, "tornado");
-			GameMessages::SendStopFXEffect(player, true, "staff");
+			GameMessages::StopFXEffect(player->GetObjectID(), true, "tornado").Send(UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::StopFXEffect(player->GetObjectID(), true, "staff").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 	} else if (data[0] == "TryUnFreezeAgain") {

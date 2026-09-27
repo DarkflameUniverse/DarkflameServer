@@ -1,5 +1,6 @@
 #include "NtAssemblyTubeServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -47,9 +48,19 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 
 		if (!teleCinematic.empty()) {
 			const auto teleCinematicUname = teleCinematic;
-			GameMessages::SendPlayCinematic(player->GetObjectID(), teleCinematicUname, player->GetSystemAddress(),
-				true, true, true, false, eEndBehavior::RETURN, false, -1, false, true
-			);
+			GameMessages::PlayCinematic cinematic;
+			cinematic.target = player->GetObjectID();
+			cinematic.pathName = teleCinematicUname;
+			cinematic.allowGhostUpdates = true;
+			cinematic.bCloseMultiInteract = true;
+			cinematic.bSendServerNotify = true;
+			cinematic.bUseControlledObjectForAudioListener = false;
+			cinematic.endBehavior = eEndBehavior::RETURN;
+			cinematic.hidePlayerDuringCine = false;
+			cinematic.leadIn = -1;
+			cinematic.leavePlayerLockedWhenFinished = false;
+			cinematic.lockPlayer = true;
+			cinematic.Send(player->GetSystemAddress());
 		}
 
 		RenderComponent::PlayAnimation(player, u"tube-sucker", 4.0f);
@@ -104,7 +115,7 @@ void NtAssemblyTubeServer::TeleportPlayer(Entity* self, Entity* player) {
 	const auto useSound = self->GetVar<std::string>(u"sound1");
 
 	if (!useSound.empty()) {
-		GameMessages::SendPlayNDAudioEmitter(player, player->GetSystemAddress(), useSound);
+		GameMessages::PlayNDAudioEmitter(player->GetObjectID(), useSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 

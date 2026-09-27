@@ -31,6 +31,7 @@
 #include "PlayerManager.h"
 #include "User.h"
 #include "eObjectBits.h"
+#include "EffectsMessages.h"
 
 namespace {
 	// Each command once, by the first alias it got
@@ -259,7 +260,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	}
 
 	if (!error.empty()) {
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
+		GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), GeneralUtils::ASCIIToUTF16(error)).SendToClient(entity->GetSystemAddress());
 	}
 }
 
@@ -290,7 +291,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 		if (page < 1 || page > totalPages) {
 			feedback << "Invalid page number. Total pages: " << totalPages;
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), GeneralUtils::ASCIIToUTF16(feedback.str())).SendToClient(entity->GetSystemAddress());
 			return;
 		}
 
@@ -305,7 +306,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 		const auto feedbackStr = feedback.str();
 		if (!feedbackStr.empty()) {
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+			GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), GeneralUtils::ASCIIToUTF16(feedbackStr)).SendToClient(entity->GetSystemAddress());
 		}
 		return;
 	}
@@ -328,7 +329,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 	const auto feedbackStr = feedback.str();
 	if (!feedbackStr.empty()) {
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+		GameMessages::SlashCommandTextFeedback(entity->GetObjectID(), GeneralUtils::ASCIIToUTF16(feedbackStr)).SendToClient(entity->GetSystemAddress());
 	}
 }
 
@@ -338,7 +339,10 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	args.Insert("title", title);
 	args.Insert("message", message);
 
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+	GameMessages::UIMessageServerToAllClients uiMessage;
+	uiMessage.strMessageName = "ToggleAnnounce";
+	uiMessage.args = std::move(args);
+	uiMessage.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	//Notify chat about it
 	ChatPackets::Announcement announcement;

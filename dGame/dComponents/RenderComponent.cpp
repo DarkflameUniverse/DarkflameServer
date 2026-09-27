@@ -10,6 +10,7 @@
 
 #include "CDClientManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Game.h"
 #include "Logger.h"
 #include "CDAnimationsTable.h"
@@ -96,7 +97,12 @@ void RenderComponent::Update(const float deltaTime) {
 void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& effectType, const std::string& name, const LWOOBJID secondary, const float priority, const float scale, const bool serialize) {
 	RemoveEffect(name);
 
-	GameMessages::SendPlayFXEffect(m_Parent, effectId, effectType, name, secondary, priority, scale, serialize);
+	GameMessages::PlayFXEffect fx(m_Parent->GetObjectID(), effectId, effectType, name);
+	fx.secondary = secondary;
+	fx.priority = priority;
+	fx.scale = scale;
+	fx.serialize = serialize;
+	fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	auto& effect = AddEffect(effectId, name, effectType, priority);
 
@@ -135,7 +141,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 }
 
 void RenderComponent::StopEffect(const std::string& name, const bool killImmediate) {
-	GameMessages::SendStopFXEffect(m_Parent, killImmediate, name);
+	GameMessages::StopFXEffect(m_Parent->GetObjectID(), killImmediate, name).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	RemoveEffect(name);
 }
@@ -175,7 +181,12 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 			returnlength = animationGroup->animation_length;
 		}
 	}
-	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
+	if (sendAnimation) {
+		GameMessages::PlayAnimation playAnimation(self->GetObjectID(), GeneralUtils::ASCIIToUTF16(animation));
+		playAnimation.fPriority = priority;
+		playAnimation.fScale = scale;
+		playAnimation.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
 	if (returnlength == 0.0f) LOG("WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
 	return returnlength;
 }

@@ -1,5 +1,6 @@
 #include "GfCaptainsCannon.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
@@ -32,7 +33,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 
 	RenderComponent::PlayAnimation(user, u"cannon-strike-no-equip");
 
-	GameMessages::SendPlayFXEffect(user->GetObjectID(), 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(user->GetObjectID(), 6039, u"hook", "hook").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->AddTimer("FireCannon", 1.667f);
 }
@@ -52,7 +53,10 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "FireCannon") {
 		float cinematicTime = 6.3f;
 
-		GameMessages::SendPlayCinematic(playerId, u"Cannon_Cam", player->GetSystemAddress());
+		GameMessages::PlayCinematic cinematic;
+		cinematic.target = playerId;
+		cinematic.pathName = u"Cannon_Cam";
+		cinematic.Send(player->GetSystemAddress());
 
 		self->AddTimer("cinematicTimer", cinematicTime);
 
@@ -64,7 +68,10 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 			RenderComponent::PlayAnimation(shark, u"cannon");
 		}
 
-		GameMessages::SendPlay2DAmbientSound(player, "{7457d85c-4537-4317-ac9d-2f549219ea87}");
+		GameMessages::Play2DAmbientSound ambientSound;
+		ambientSound.target = player->GetObjectID();
+		ambientSound.audioGUID = "{7457d85c-4537-4317-ac9d-2f549219ea87}";
+		ambientSound.SendToClient(player->GetSystemAddress());
 	} else if (timerName == "cinematicTimer") {
 		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true, true
@@ -73,7 +80,7 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 		self->SetVar<bool>(u"bIsInUse", false);
 		self->SetNetworkVar<bool>(u"bIsInUse", false);
 
-		GameMessages::SendStopFXEffect(player, true, "hook");
+		GameMessages::StopFXEffect(player->GetObjectID(), true, "hook").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 

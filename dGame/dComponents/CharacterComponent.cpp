@@ -12,6 +12,7 @@
 #include "EntityManager.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Item.h"
 #include "Amf3.h"
 #include "eGameMasterLevel.h"
@@ -844,7 +845,11 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
 	arrayToSend.Insert(ventureVisionType, showFaction);
-	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
+	GameMessages::UIMessageServerToSingleClient uiMessage;
+	uiMessage.target = m_Parent->GetObjectID();
+	uiMessage.strMessageName = "SetFactionVisibility";
+	uiMessage.args = std::move(arrayToSend);
+	uiMessage.SendToClient(m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void CharacterComponent::AwardClaimCodes() {

@@ -1,6 +1,7 @@
 #include "NsLupTeleport.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Amf3.h"
 
 void NsLupTeleport::OnStartup(Entity* self) {
@@ -41,7 +42,11 @@ void NsLupTeleport::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
 
 	if (CheckChoice(self, player)) {
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", args);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = player->GetObjectID();
+		uiMessage.strMessageName = "QueueChoiceBox";
+		uiMessage.args = std::move(args);
+		uiMessage.SendToClient(player->GetSystemAddress());
 	} else {
 		BaseOnUse(self, player);
 	}

@@ -3,6 +3,7 @@ set(DGAME_DGAMEMESSAGES_SOURCES
 	"BuildingMessages.cpp"
 	"GameMessageDecoder.cpp"
 	"GameMessageHandler.cpp"
+	"EffectsMessages.cpp"
 	"GameMessages.cpp"
 	"MissionMessages.cpp"
 	"PetMessages.cpp"

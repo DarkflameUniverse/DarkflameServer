@@ -1,6 +1,7 @@
 #include "NsLegoClubDoor.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Amf3.h"
 
 void NsLegoClubDoor::OnStartup(Entity* self) {
@@ -41,7 +42,11 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
 
 	if (CheckChoice(self, player)) {
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", teleportArgs);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = player->GetObjectID();
+		uiMessage.strMessageName = "QueueChoiceBox";
+		uiMessage.args = std::move(teleportArgs);
+		uiMessage.SendToClient(player->GetSystemAddress());
 	} else if (self->GetVar<int32_t>(u"currentZone") != m_ChoiceZoneID) {
 		AMFArrayValue multiArgs;
 		multiArgs.Insert("state", "Lobby");
@@ -52,7 +57,11 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user) {
 		context->Insert("HelpVisible", "show");
 		context->Insert("type", "Lego_Club_Valid");
 
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "pushGameState", multiArgs);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = player->GetObjectID();
+		uiMessage.strMessageName = "pushGameState";
+		uiMessage.args = std::move(multiArgs);
+		uiMessage.SendToClient(player->GetSystemAddress());
 	} else {
 		BaseOnUse(self, player);
 	}

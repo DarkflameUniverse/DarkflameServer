@@ -3,6 +3,7 @@
 #include "ProximityMonitorComponent.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eReplicaComponentType.h"
@@ -41,8 +42,13 @@ void NtFactionSpyServer::OnProximityUpdate(Entity* self, Entity* entering, std::
 				self->SetVar<std::u16string>(m_CinematicRootVariable, cinematicSplit.at(0));
 			}
 
-			GameMessages::SendPlayCinematic(entering->GetObjectID(), cinematic, entering->GetSystemAddress(),
-				true, true, true);
+			GameMessages::PlayCinematic playCinematic;
+			playCinematic.target = entering->GetObjectID();
+			playCinematic.pathName = cinematic;
+			playCinematic.allowGhostUpdates = true;
+			playCinematic.bCloseMultiInteract = true;
+			playCinematic.bSendServerNotify = true;
+			playCinematic.Send(entering->GetSystemAddress());
 		}
 	}
 }

@@ -1,6 +1,7 @@
 #include "ChooseYourDestinationNsToNt.h"
 #include "Character.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "eTerminateType.h"
 
 bool ChooseYourDestinationNsToNt::CheckChoice(Entity* self, Entity* player) {
@@ -56,7 +57,15 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
 		self->SetVar(u"teleportString", strText);
 		self->SetVar(u"transferZoneID", GeneralUtils::to_u16string(newMap.value()));
 
-		GameMessages::SendDisplayMessageBox(sender->GetObjectID(), true, self->GetObjectID(), u"TransferBox", 0, strText, u"", sender->GetSystemAddress());
+		GameMessages::DisplayMessageBox messageBox;
+		messageBox.target = sender->GetObjectID();
+		messageBox.bShow = true;
+		messageBox.callbackClient = self->GetObjectID();
+		messageBox.identifier = u"TransferBox";
+		messageBox.imageID = 0;
+		messageBox.text = strText;
+		messageBox.userData = u"";
+		messageBox.Send(sender->GetSystemAddress());
 	} else {
 		GameMessages::SendTerminateInteraction(sender->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 	}

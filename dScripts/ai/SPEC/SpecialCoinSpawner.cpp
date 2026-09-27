@@ -1,5 +1,6 @@
 #include "SpecialCoinSpawner.h"
 #include "CharacterComponent.h"
+#include "EffectsMessages.h"
 
 void SpecialCoinSpawner::OnStartup(Entity* self) {
 	self->SetProximityRadius(1.5f, "powerupEnter");
@@ -10,7 +11,7 @@ void SpecialCoinSpawner::OnProximityUpdate(Entity* self, Entity* entering, const
 	if (!entering->IsPlayer()) return;
 	auto character = entering->GetCharacter();
 	if (!character) return;
-	GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"pickup", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	character->SetCoins(character->GetCoins() + this->m_CurrencyDenomination, eLootSourceType::CURRENCY);
 	self->Smash(entering->GetObjectID(), eKillType::SILENT);
 }

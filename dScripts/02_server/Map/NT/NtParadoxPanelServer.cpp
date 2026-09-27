@@ -1,5 +1,6 @@
 #include "NtParadoxPanelServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -53,7 +54,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 	GameMessages::SendKnockback(user->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 0, { dir.x * 15, 5, dir.z * 15 });
 
-	GameMessages::SendPlayFXEffect(self, 6432, u"create", "console_sparks", LWOOBJID_EMPTY, 1.0, 1.0, true);
+	GameMessages::PlayFXEffect(self->GetObjectID(), 6432, u"create", "console_sparks").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->AddCallbackTimer(2, [this, self, playerID]() {
 		auto* player = Game::entityManager->GetEntity(playerID);
@@ -64,7 +65,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"bActive", 0, 0, player->GetObjectID(), "", player->GetSystemAddress());
 
-		GameMessages::SendStopFXEffect(self, true, "console_sparks");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "console_sparks").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->SetVar(u"bActive", false);
 		});

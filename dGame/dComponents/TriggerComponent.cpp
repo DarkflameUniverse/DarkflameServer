@@ -18,6 +18,7 @@
 #include "MovementAIComponent.h"
 
 #include <glm/gtc/quaternion.hpp>
+#include "EffectsMessages.h"
 
 TriggerComponent::TriggerComponent(Entity* parent, const int32_t componentID, const std::string triggerInfo) : Component(parent, componentID) {
 	m_Parent = parent;
@@ -124,7 +125,7 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			HandlePlayEffect(targetEntity, argArray);
 			break;
 		case eTriggerCommandType::STOP_EFFECT:
-			GameMessages::SendStopFXEffect(targetEntity, true, command->args);
+			GameMessages::StopFXEffect(targetEntity->GetObjectID(), true, command->args).Send(UNASSIGNED_SYSTEM_ADDRESS);
 			break;
 		case eTriggerCommandType::CAST_SKILL:
 			HandleCastSkill(targetEntity, command->args);
@@ -327,7 +328,19 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 		}
 	}
 
-	GameMessages::SendPlayCinematic(targetEntity->GetObjectID(), GeneralUtils::UTF8ToUTF16(argArray.at(0)), targetEntity->GetSystemAddress(), true, true, false, false, wait, hidePlayer, leadIn, leaveLocked, unlock);
+	GameMessages::PlayCinematic cinematic;
+	cinematic.target = targetEntity->GetObjectID();
+	cinematic.pathName = GeneralUtils::UTF8ToUTF16(argArray.at(0));
+	cinematic.allowGhostUpdates = true;
+	cinematic.bCloseMultiInteract = true;
+	cinematic.bSendServerNotify = false;
+	cinematic.bUseControlledObjectForAudioListener = false;
+	cinematic.endBehavior = wait;
+	cinematic.hidePlayerDuringCine = hidePlayer;
+	cinematic.leadIn = leadIn;
+	cinematic.leavePlayerLockedWhenFinished = leaveLocked;
+	cinematic.lockPlayer = unlock;
+	cinematic.Send(targetEntity->GetSystemAddress());
 }
 
 void TriggerComponent::HandleToggleBBB(Entity* targetEntity, std::string args) {
@@ -366,7 +379,9 @@ void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::s
 		priority = GeneralUtils::TryParse<float>(argArray.at(3)).value_or(priority);
 	}
 
-	GameMessages::SendPlayFXEffect(targetEntity, effectID.value(), effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
+	GameMessages::PlayFXEffect fx(targetEntity->GetObjectID(), effectID.value(), effectType, argArray.at(0));
+	fx.priority = priority;
+	fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args) {

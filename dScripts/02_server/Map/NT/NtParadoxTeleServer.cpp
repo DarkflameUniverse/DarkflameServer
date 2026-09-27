@@ -1,5 +1,6 @@
 #include "NtParadoxTeleServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -69,7 +70,10 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 
 	if (!teleCinematic.empty()) {
 		const auto teleCinematicUname = teleCinematic;
-		GameMessages::SendPlayCinematic(player->GetObjectID(), teleCinematicUname, player->GetSystemAddress());
+		GameMessages::PlayCinematic cinematic;
+		cinematic.target = player->GetObjectID();
+		cinematic.pathName = teleCinematicUname;
+		cinematic.Send(player->GetSystemAddress());
 	}
 
 	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
@@ -93,7 +97,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 	const auto useSound = self->GetVar<std::string>(u"sound1");
 
 	if (!useSound.empty()) {
-		GameMessages::SendPlayNDAudioEmitter(player, player->GetSystemAddress(), useSound);
+		GameMessages::PlayNDAudioEmitter(player->GetObjectID(), useSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 
@@ -110,6 +114,9 @@ void NtParadoxTeleServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	if (!teleCinematic.empty()) {
 		const auto teleCinematicUname = teleCinematic;
-		GameMessages::SendEndCinematic(player->GetObjectID(), teleCinematicUname, player->GetSystemAddress());
+		GameMessages::EndCinematic endCinematic;
+		endCinematic.target = player->GetObjectID();
+		endCinematic.pathName = teleCinematicUname;
+		endCinematic.Send(player->GetSystemAddress());
 	}
 }

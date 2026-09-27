@@ -99,6 +99,7 @@
 #include "Item.h"
 #include "eFunnessTypes.h"
 #include "WorldMigration.h"
+#include "EffectsMessages.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -621,7 +622,10 @@ namespace {
 				args.Insert("title", announcement.title);
 				args.Insert("message", announcement.message);
 
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+				GameMessages::UIMessageServerToAllClients uiMessage;
+				uiMessage.strMessageName = "ToggleAnnounce";
+				uiMessage.args = std::move(args);
+				uiMessage.Send(UNASSIGNED_SYSTEM_ADDRESS);
 			});
 
 			handlers.On<ChatPackets::GMMute>(MessageType::Chat::GM_MUTE, [](const ChatPackets::GMMute& mute, const SystemAddress&) {
@@ -1153,7 +1157,10 @@ namespace {
 						args.Insert("title", Game::config->GetValue("cdclient_mismatch_title"));
 						args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
 
-						GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, sysAddr);
+						GameMessages::UIMessageServerToAllClients uiMessage;
+						uiMessage.strMessageName = "ToggleAnnounce";
+						uiMessage.args = std::move(args);
+						uiMessage.SendToClient(sysAddr);
 						LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
 							, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
 					}
@@ -1555,7 +1562,11 @@ namespace {
 			data.Insert("Description3", Game::config->GetValue("help_3_description"));
 			data.Insert("Description4", Game::config->GetValue("help_4_description"));
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "UIHelpTop5", data);
+			GameMessages::UIMessageServerToSingleClient uiMessage;
+			uiMessage.target = entity->GetObjectID();
+			uiMessage.strMessageName = "UIHelpTop5";
+			uiMessage.args = std::move(data);
+			uiMessage.SendToClient(sysAddr);
 		}
 	};
 

@@ -2,6 +2,7 @@
 #include "EntityInfo.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "Entity.h"
@@ -39,18 +40,24 @@ void AgShipShake::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("ShipShakeIdle", static_cast<float>(time));
 
-		if (ref)
-			GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(ref, FXName, ref->GetObjectID(), 500.0f);
+		if (ref) {
+			GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
+			embeddedEffect.target = ref->GetObjectID();
+			embeddedEffect.effectName = FXName;
+			embeddedEffect.fromObjectID = ref->GetObjectID();
+			embeddedEffect.radius = 500.0f;
+			embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		}
 
 
 		if (debrisObject)
-			GameMessages::SendPlayFXEffect(debrisObject, -1, u"DebrisFall", "Debris", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+			GameMessages::PlayFXEffect(debrisObject->GetObjectID(), -1, u"DebrisFall", "Debris").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		const auto randomFx = GeneralUtils::GenerateRandomNumber<int>(0, 3);
 
 		if (shipFxObject) {
 			std::string effectType = "shipboom" + std::to_string(randomFx);
-			GameMessages::SendPlayFXEffect(shipFxObject, 559, GeneralUtils::ASCIIToUTF16(effectType), "FX", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+			GameMessages::PlayFXEffect(shipFxObject->GetObjectID(), 559, GeneralUtils::ASCIIToUTF16(effectType), "FX").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		self->AddTimer("ShipShakeExplode", 5.0f);

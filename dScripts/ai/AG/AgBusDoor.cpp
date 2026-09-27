@@ -1,6 +1,7 @@
 #include "AgBusDoor.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "ProximityMonitorComponent.h"
 
 void AgBusDoor::OnStartup(Entity* self) {
@@ -55,11 +56,11 @@ void AgBusDoor::MoveDoor(Entity* self, bool bOpen) {
 	}
 
 	//This is currently commented out because it might be the reason that people's audio is cutting out.
-	GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, "{9a24f1fa-3177-4745-a2df-fbd996d6e1e3}");
+	GameMessages::PlayNDAudioEmitter(self->GetObjectID(), "{9a24f1fa-3177-4745-a2df-fbd996d6e1e3}").Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void AgBusDoor::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "dustTimer") {
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 642, u"create", "busDust", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+		GameMessages::PlayFXEffect(self->GetObjectID(), 642, u"create", "busDust").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }

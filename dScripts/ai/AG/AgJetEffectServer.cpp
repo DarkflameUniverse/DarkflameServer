@@ -1,5 +1,6 @@
 #include "AgJetEffectServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
@@ -14,7 +15,7 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 
 	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;
-	GameMessages::SendPlayFXEffect(entities.at(0), 641, u"create", "radarDish", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(entities.at(0)->GetObjectID(), 641, u"create", "radarDish").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	self->AddTimer("radarDish", 2.0f);
 	self->AddTimer("PlayEffect", 2.5f);
 	self->AddTimer("CineDone", 7.5f + 5.0f); // 7.5f is time the cinematic takes to play
@@ -38,7 +39,7 @@ void AgJetEffectServer::OnQuickBuildComplete(Entity* self, Entity* target) {
 
 void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "radarDish") {
-		GameMessages::SendStopFXEffect(self, true, "radarDish");
+		GameMessages::StopFXEffect(self->GetObjectID(), true, "radarDish").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "PlayEffect") {
 		auto entities = Game::entityManager->GetEntitiesInGroup("mortarMain");
 		if (entities.empty()) return;

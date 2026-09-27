@@ -1,5 +1,6 @@
 #include "BasePropertyServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Character.h"
@@ -106,8 +107,15 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 			}
 		}
 
-		GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
-		GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
+		GameMessages::Stop2DAmbientSound stopAmbientSound;
+		stopAmbientSound.target = player->GetObjectID();
+		stopAmbientSound.force = true;
+		stopAmbientSound.audioGUID = GUIDMaelstrom;
+		stopAmbientSound.SendToClient(player->GetSystemAddress());
+		GameMessages::Play2DAmbientSound ambientSound;
+		ambientSound.target = player->GetObjectID();
+		ambientSound.audioGUID = GUIDPeaceful;
+		ambientSound.SendToClient(player->GetSystemAddress());
 
 		self->AddTimer(TurnSkyOffTimer, 1.5f);
 
@@ -116,7 +124,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 			self->AddTimer(KillFXObjectTimer, 1.0f);
 		}
 
-		GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
+		ambientSound.SendToClient(player->GetSystemAddress());
 
 		// activate property safe spawner network
 		ActivateSpawner(self->GetVar<std::string>(PropObjsSpawner));
@@ -138,10 +146,20 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 		if (!flagMsg.flag) {
 			StartMaelstrom(self, player);
 			SpawnSpots(self);
-			GameMessages::SendPlay2DAmbientSound(player, GUIDMaelstrom);
+			GameMessages::Play2DAmbientSound ambientSound;
+			ambientSound.target = player->GetObjectID();
+			ambientSound.audioGUID = GUIDMaelstrom;
+			ambientSound.SendToClient(player->GetSystemAddress());
 		} else {
-			GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
-			GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
+			GameMessages::Stop2DAmbientSound stopAmbientSound;
+			stopAmbientSound.target = player->GetObjectID();
+			stopAmbientSound.force = true;
+			stopAmbientSound.audioGUID = GUIDMaelstrom;
+			stopAmbientSound.SendToClient(player->GetSystemAddress());
+			GameMessages::Play2DAmbientSound ambientSound;
+			ambientSound.target = player->GetObjectID();
+			ambientSound.audioGUID = GUIDPeaceful;
+			ambientSound.SendToClient(player->GetSystemAddress());
 
 			self->AddTimer(TurnSkyOffTimer, 1.5f);
 			self->AddTimer(KillFXObjectTimer, 1.0f);
@@ -385,8 +403,15 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 		if (player == nullptr)
 			return;
 
-		GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
-		GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
+		GameMessages::Stop2DAmbientSound stopAmbientSound;
+		stopAmbientSound.target = player->GetObjectID();
+		stopAmbientSound.force = true;
+		stopAmbientSound.audioGUID = GUIDMaelstrom;
+		stopAmbientSound.SendToClient(player->GetSystemAddress());
+		GameMessages::Play2DAmbientSound ambientSound;
+		ambientSound.target = player->GetObjectID();
+		ambientSound.audioGUID = GUIDPeaceful;
+		ambientSound.SendToClient(player->GetSystemAddress());
 
 		self->AddTimer(ShowVendorTimer, 5.0f);
 	} else if (timerName == KillMarkerTimer) {

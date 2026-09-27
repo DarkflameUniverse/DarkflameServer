@@ -1,6 +1,7 @@
 #include "SGCannon.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "ActivityMessages.h"
 #include "dZoneManager.h"
 #include "Character.h"
@@ -132,10 +133,15 @@ void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button
 	if (!player) return;
 
 	if (identifier == u"Scoreboardinfo") {
-		GameMessages::SendDisplayMessageBox(player->GetObjectID(), true,
-			Game::zoneManager->GetZoneControlObject()->GetObjectID(),
-			u"Shooting_Gallery_Retry", 2, u"Retry?",
-			u"", player->GetSystemAddress());
+		GameMessages::DisplayMessageBox messageBox;
+		messageBox.target = player->GetObjectID();
+		messageBox.bShow = true;
+		messageBox.callbackClient = Game::zoneManager->GetZoneControlObject()->GetObjectID();
+		messageBox.identifier = u"Shooting_Gallery_Retry";
+		messageBox.imageID = 2;
+		messageBox.text = u"Retry?";
+		messageBox.userData = u"";
+		messageBox.Send(player->GetSystemAddress());
 	} else {
 		if ((button == 1 && (identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay")) || identifier == u"SG1" || button == 0) {
 			if (IsPlayerInActivity(self, player->GetObjectID())) return;
@@ -187,7 +193,7 @@ void SGCannon::SpawnWaveTimerFunc(Entity* self) {
 
 		const auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
-			GameMessages::SendPlayFXEffect(player->GetObjectID(), -1, u"SG-start", "");
+			GameMessages::PlayFXEffect(player->GetObjectID(), -1, u"SG-start", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 			GameMessages::StartActivityTime startActivityTime;
 			startActivityTime.target = self->GetObjectID();
@@ -362,7 +368,7 @@ void SGCannon::StartGame(Entity* self) {
 		activityStart.target = self->GetObjectID();
 		activityStart.Send(player->GetSystemAddress());
 
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"start", "");
+		GameMessages::PlayFXEffect(self->GetObjectID(), -1, u"start", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->SetNetworkVar<bool>(ClearVariable, true);
 		DoGameStartup(self);

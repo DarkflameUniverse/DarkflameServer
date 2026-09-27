@@ -1,6 +1,7 @@
 #include "TokenConsoleServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Character.h"
 #include "eReplicaComponentType.h"
 #include "eTerminateType.h"
@@ -18,7 +19,7 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 
 		//play sound
 		if (self->HasVar(u"sound1")) {
-			GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), self->GetVarAsString(u"sound1"));
+			GameMessages::PlayNDAudioEmitter(self->GetObjectID(), self->GetVarAsString(u"sound1")).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		//figure out which faction the player belongs to:

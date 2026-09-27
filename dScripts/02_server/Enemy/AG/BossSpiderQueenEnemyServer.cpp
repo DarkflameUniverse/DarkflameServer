@@ -12,6 +12,7 @@
 #include "BaseCombatAIComponent.h"
 
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
@@ -527,7 +528,12 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 			}
 		}
 
-		GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake-bridge", self->GetObjectID(), 100.0f);
+		GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
+		embeddedEffect.target = self->GetObjectID();
+		embeddedEffect.effectName = u"camshake-bridge";
+		embeddedEffect.fromObjectID = self->GetObjectID();
+		embeddedEffect.radius = 100.0f;
+		embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	} else if (timerName == "AdvanceComplete") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 11, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);

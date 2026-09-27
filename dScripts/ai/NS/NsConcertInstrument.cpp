@@ -1,5 +1,6 @@
 #include "NsConcertInstrument.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "Item.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
@@ -121,7 +122,10 @@ void NsConcertInstrument::StartPlayingInstrument(Entity* self, Entity* player) {
 	EquipInstruments(self, player);
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"startPlaying", 0, 0,
 		player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendPlayCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::PlayCinematic cinematic;
+	cinematic.target = player->GetObjectID();
+	cinematic.pathName = cinematics.at(instrumentLot);
+	cinematic.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	self->AddCallbackTimer(1.0f, [player, instrumentLot]() {
 		RenderComponent::PlayAnimation(player, animations.at(instrumentLot), 2.0f);
 		});
@@ -153,7 +157,11 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 			missions->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 		}
 
-		GameMessages::SendEndCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS, 1.0f);
+		GameMessages::EndCinematic endCinematic;
+		endCinematic.target = player->GetObjectID();
+		endCinematic.pathName = cinematics.at(instrumentLot);
+		endCinematic.leadOut = 1.0f;
+		endCinematic.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		RenderComponent::PlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stopCheckingMovement", 0, 0,
 			player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);

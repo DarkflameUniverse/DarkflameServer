@@ -1,5 +1,6 @@
 #include "AmSkullkinDrillStand.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "dpEntity.h"
 #include "Entity.h"
 #include "RenderComponent.h"
@@ -31,7 +32,7 @@ void AmSkullkinDrillStand::OnProximityUpdate(Entity* self, Entity* entering, std
 
 	GameMessages::SendKnockback(entering->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 0, newVec);
 
-	GameMessages::SendPlayFXEffect(entering->GetObjectID(), 1378, u"create", "pushBack");
+	GameMessages::PlayFXEffect(entering->GetObjectID(), 1378, u"create", "pushBack").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	RenderComponent::PlayAnimation(entering, u"knockback-recovery");
 }

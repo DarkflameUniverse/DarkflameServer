@@ -1,5 +1,6 @@
 #include "InstanceExitTransferPlayerToLastNonInstance.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "CharacterComponent.h"
 #include "Character.h"
 #include "dServer.h"
@@ -10,16 +11,15 @@ void InstanceExitTransferPlayerToLastNonInstance::OnUse(Entity* self, Entity* us
 	if (transferText.empty())
 		transferText = u"DRAGON_EXIT_QUESTION";
 
-	GameMessages::SendDisplayMessageBox(
-		user->GetObjectID(),
-		true,
-		self->GetObjectID(),
-		u"Instance_Exit",
-		1,
-		transferText,
-		u"",
-		user->GetSystemAddress()
-	);
+	GameMessages::DisplayMessageBox messageBox;
+	messageBox.target = user->GetObjectID();
+	messageBox.bShow = true;
+	messageBox.callbackClient = self->GetObjectID();
+	messageBox.identifier = u"Instance_Exit";
+	messageBox.imageID = 1;
+	messageBox.text = transferText;
+	messageBox.userData = u"";
+	messageBox.Send(user->GetSystemAddress());
 }
 
 void InstanceExitTransferPlayerToLastNonInstance::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {

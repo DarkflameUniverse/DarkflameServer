@@ -2,6 +2,7 @@
 #include "DashboardNotify.h"
 #include "GameMessages.h"
 #include "PetMessages.h"
+#include "EffectsMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
 #include "CDTamingBuildPuzzleTable.h"
@@ -469,7 +470,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
 	if (!entry) return;
 
-	GameMessages::SendPlayFXEffect(tamer, -1, u"petceleb", "", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(tamer->GetObjectID(), -1, u"petceleb", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	RenderComponent::PlayAnimation(tamer, u"rebuild-celebrate");
 
 	EntityInfo info{};
@@ -1036,7 +1037,7 @@ void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 }
 
 void PetComponent::Deactivate() {
-	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "", LWOOBJID_EMPTY, 1, 1, true);
+	GameMessages::PlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	activePets.erase(m_Owner);
 
@@ -1105,7 +1106,11 @@ void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, cons
 
 	if (commandType == 1) {
 		// Emotes
-		GameMessages::SendPlayEmote(m_Parent->GetObjectID(), typeId, owner->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayEmote playEmote;
+		playEmote.target = m_Parent->GetObjectID();
+		playEmote.emoteID = typeId;
+		playEmote.targetID = owner->GetObjectID();
+		playEmote.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		GameMessages::EmotePlayed msg;
 		msg.target = owner->GetObjectID();
 		msg.emoteID = typeId;

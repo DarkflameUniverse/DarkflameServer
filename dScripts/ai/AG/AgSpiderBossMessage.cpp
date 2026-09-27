@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 #include "RenderComponent.h"
 
@@ -38,7 +39,7 @@ void AgSpiderBossMessage::OnCollisionPhantom(Entity* self, Entity* target) {
 	// knockback the target
 	auto forward = QuatUtils::Forward(self->GetRotation());
 	box.boxTarget = target->GetObjectID();
-	GameMessages::SendPlayFXEffect(target->GetObjectID(), 1378, u"create", "pushBack");
+	GameMessages::PlayFXEffect(target->GetObjectID(), 1378, u"create", "pushBack").Send(UNASSIGNED_SYSTEM_ADDRESS);
 	RenderComponent::PlayAnimation(target, "knockback-recovery");
 	forward.y += 15;
 	forward.x *= 100;

@@ -1,5 +1,6 @@
 #include "NtCombatChallengeServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "ActivityMessages.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
@@ -33,7 +34,7 @@ void NtCombatChallengeServer::OnHitOrHealResult(Entity* self, Entity* attacker, 
 	self->SetVar(u"totalDmg", totalDmg);
 	self->SetNetworkVar(u"totalDmg", totalDmg);
 
-	GameMessages::SendPlayNDAudioEmitter(self, attacker->GetSystemAddress(), scoreSound);
+	GameMessages::PlayNDAudioEmitter(self->GetObjectID(), scoreSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 
@@ -55,7 +56,7 @@ void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender,
 			inventoryComponent->RemoveItem(3039, 1, eInventoryType::ALL);
 		}
 
-		GameMessages::SendPlayNDAudioEmitter(self, sender->GetSystemAddress(), startSound);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), startSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		self->AddTimer("start_delay", 2.0f);
 
@@ -164,9 +165,9 @@ void NtCombatChallengeServer::OnActivityTimerUpdate(Entity* self, float timeRema
 	self->SetNetworkVar(u"update_time", std::ceil(timeRemaining));
 
 	if (timeRemaining <= 3) {
-		GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, timerLowSound);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), timerLowSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else {
-		GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, timerSound);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), timerSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 }
 
@@ -189,7 +190,7 @@ void NtCombatChallengeServer::OnTimerDone(Entity* self, std::string timerName) {
 		if (gameTick <= 0) {
 			ResetGame(self);
 
-			GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, stopSound);
+			GameMessages::PlayNDAudioEmitter(self->GetObjectID(), stopSound).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 			self->AddTimer("reset_tick", 5);
 		} else {

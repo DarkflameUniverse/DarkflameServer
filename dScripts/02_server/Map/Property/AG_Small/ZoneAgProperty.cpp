@@ -3,6 +3,7 @@
 #include "Character.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "dZoneManager.h"
 #include "RenderComponent.h"
 #include "MissionComponent.h"
@@ -62,7 +63,10 @@ void ZoneAgProperty::OnPlayerLoaded(Entity* self, Entity* player) {
 	}
 
 	if (Game::zoneManager->GetZone()->GetZoneID().GetMapID() == 1102) {
-		GameMessages::SendPlay2DAmbientSound(player, GUIDMaelstrom);
+		GameMessages::Play2DAmbientSound ambientSound;
+		ambientSound.target = player->GetObjectID();
+		ambientSound.audioGUID = GUIDMaelstrom;
+		ambientSound.SendToClient(player->GetSystemAddress());
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0,
 			LWOOBJID_EMPTY, "", player->GetSystemAddress());
 
@@ -256,8 +260,15 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		DestroySpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 
 		for (auto* player : Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER)) {
-			GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
-			GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
+			GameMessages::Stop2DAmbientSound stopAmbientSound;
+			stopAmbientSound.target = player->GetObjectID();
+			stopAmbientSound.force = true;
+			stopAmbientSound.audioGUID = GUIDMaelstrom;
+			stopAmbientSound.SendToClient(player->GetSystemAddress());
+			GameMessages::Play2DAmbientSound ambientSound;
+			ambientSound.target = player->GetObjectID();
+			ambientSound.audioGUID = GUIDPeaceful;
+			ambientSound.SendToClient(player->GetSystemAddress());
 		}
 	} else if (timerName == "ShowVendor") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"vendorOn", 0, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);

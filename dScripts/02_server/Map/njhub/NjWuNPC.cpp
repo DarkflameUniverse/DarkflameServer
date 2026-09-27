@@ -3,6 +3,7 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "eMissionState.h"
 #include "ePlayerFlag.h"
 
@@ -54,7 +55,7 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 
 				// Stop the dragon effects
 				for (auto* dragon : Game::entityManager->GetEntitiesInGroup(m_DragonStatueGroup)) {
-					GameMessages::SendStopFXEffect(dragon, true, "on");
+					GameMessages::StopFXEffect(dragon->GetObjectID(), true, "on").Send(UNASSIGNED_SYSTEM_ADDRESS);
 				}
 				});
 		}

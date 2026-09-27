@@ -33,8 +33,10 @@ namespace GameMessageTestUtils {
 	}
 
 	// How the struct is sent in a comparison: Send (UNASSIGNED broadcasts; legacy functions that did
-	// "if (UNASSIGNED) SEND_PACKET_BROADCAST; SEND_PACKET;") or SendToClient (legacy functions with only SEND_PACKET).
-	enum class SendMode { Send, SendToClient };
+	// "if (UNASSIGNED) SEND_PACKET_BROADCAST; SEND_PACKET;"), SendToClient (legacy functions with only SEND_PACKET)
+	// or Broadcast (legacy functions with only SEND_PACKET_BROADCAST, whatever address they were given: the struct is
+	// sent with Send(UNASSIGNED_SYSTEM_ADDRESS)).
+	enum class SendMode { Send, SendToClient, Broadcast };
 
 	// Sends the same message through the frozen legacy function and through the struct, to one client and to
 	// UNASSIGNED_SYSTEM_ADDRESS, and requires identical bytes and the same effective destination.
@@ -43,7 +45,11 @@ namespace GameMessageTestUtils {
 		for (const auto& address : g_Addresses) {
 			SCOPED_TRACE(address == UNASSIGNED_SYSTEM_ADDRESS ? "unassigned address" : "single client");
 			const auto legacyPackets = Capture([&] { legacySend(address); });
-			const auto newPackets = Capture([&] { mode == SendMode::Send ? msg.Send(address) : msg.SendToClient(address); });
+			const auto newPackets = Capture([&] {
+				if (mode == SendMode::Send) msg.Send(address);
+				else if (mode == SendMode::SendToClient) msg.SendToClient(address);
+				else msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+				});
 
 			ASSERT_FALSE(legacyPackets.empty());
 			ASSERT_EQ(newPackets.size(), 1);

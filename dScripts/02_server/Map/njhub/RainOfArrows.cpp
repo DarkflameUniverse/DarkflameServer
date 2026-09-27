@@ -3,6 +3,7 @@
 #include "SkillComponent.h"
 #include "EntityInfo.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 void RainOfArrows::OnStartup(Entity* self) {
 
@@ -60,7 +61,7 @@ void RainOfArrows::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("FireSkill", 0.7f);
 	} else if (timerName == "PlayArrowSound") {
-		GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, m_ArrowsGUID);
+		GameMessages::PlayNDAudioEmitter(self->GetObjectID(), m_ArrowsGUID).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "FireSkill") {
 		if (child != nullptr) {
 			child->Smash();

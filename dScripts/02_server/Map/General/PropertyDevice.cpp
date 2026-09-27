@@ -1,5 +1,6 @@
 #include "PropertyDevice.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
@@ -19,7 +20,7 @@ void PropertyDevice::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto* missionComponent = target->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) {
 		if (missionComponent->GetMissionState(m_PropertyMissionID) == eMissionState::ACTIVE) {
-			GameMessages::SendPlayFXEffect(self->GetObjectID(), 641, u"create", "callhome");
+			GameMessages::PlayFXEffect(self->GetObjectID(), 641, u"create", "callhome").Send(UNASSIGNED_SYSTEM_ADDRESS);
 			missionComponent->ForceProgress(m_PropertyMissionID, 1793, self->GetLOT());
 		}
 	}

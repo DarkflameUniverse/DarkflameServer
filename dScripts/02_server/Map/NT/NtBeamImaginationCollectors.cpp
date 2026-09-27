@@ -1,6 +1,7 @@
 #include "NtBeamImaginationCollectors.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 
 void NtBeamImaginationCollectors::OnStartup(Entity* self) {
 	self->AddTimer("PlayFX", GetRandomNum());
@@ -23,7 +24,7 @@ void NtBeamImaginationCollectors::OnTimerDone(Entity* self, std::string timerNam
 		return;
 	}
 
-	GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, m_FxName, "Beam");
+	GameMessages::PlayFXEffect(self->GetObjectID(), -1, m_FxName, "Beam").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->AddTimer("PlayFX", GetRandomNum());
 }

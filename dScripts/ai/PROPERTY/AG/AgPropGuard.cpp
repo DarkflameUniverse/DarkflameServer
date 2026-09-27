@@ -7,6 +7,7 @@
 #include "MissionComponent.h"
 #include "Item.h"
 #include "eMissionState.h"
+#include "EffectsMessages.h"
 
 void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	auto* character = target->GetCharacter();
@@ -17,7 +18,10 @@ void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionI
 	if (missionID == 768 && missionState == eMissionState::AVAILABLE) {
 		// Players who have not touched the orb yet get a camera pan showing where it is.
 		if (character && !character->GetPlayerFlag(71)) {
-			GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
+			GameMessages::PlayCinematic cinematic;
+			cinematic.target = target->GetObjectID();
+			cinematic.pathName = u"MissionCam";
+			cinematic.Send(target->GetSystemAddress());
 		}
 	} else if (missionID == 768 && missionState >= eMissionState::READY_TO_COMPLETE) {
 		//remove the inventory items

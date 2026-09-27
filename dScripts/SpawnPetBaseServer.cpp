@@ -1,5 +1,6 @@
 #include "SpawnPetBaseServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "PetComponent.h"
 #include "EntityInfo.h"
@@ -39,7 +40,10 @@ void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
 
 	auto spawnCinematic = self->GetVar<std::u16string>(u"spawnCinematic");
 	if (!spawnCinematic.empty()) {
-		GameMessages::SendPlayCinematic(user->GetObjectID(), spawnCinematic, UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::PlayCinematic cinematic;
+		cinematic.target = user->GetObjectID();
+		cinematic.pathName = spawnCinematic;
+		cinematic.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());

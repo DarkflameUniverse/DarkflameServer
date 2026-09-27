@@ -8,6 +8,7 @@
 #include "dpWorld.h"
 
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "dServer.h"
 #include "Game.h"
 
@@ -163,7 +164,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		m_TetherTime -= deltaTime;
 		m_ForcedTetherTime -= deltaTime;
 		if (m_ForcedTetherTime >= 0) return;
-		GameMessages::SendStopFXEffect(m_Parent, true, "tether");
+		GameMessages::StopFXEffect(m_Parent->GetObjectID(), true, "tether").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		m_TetherEffectActive = false;
 	}
 
@@ -836,7 +837,7 @@ void BaseCombatAIComponent::TetherLogic() {
 			Game::entityManager->SerializeEntity(m_Parent);
 		}
 
-		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
+		GameMessages::PlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		m_TetherEffectActive = true;
 	}

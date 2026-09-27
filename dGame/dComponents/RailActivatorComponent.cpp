@@ -4,6 +4,7 @@
 #include "CDRailActivatorComponent.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "QuickBuildComponent.h"
 #include "Game.h"
 #include "Logger.h"
@@ -55,8 +56,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 	// Start the initial effects
 	if (!m_StartEffect.second.empty()) {
-		GameMessages::SendPlayFXEffect(originator->GetObjectID(), m_StartEffect.first, m_StartEffect.second,
-			std::to_string(m_StartEffect.first));
+		GameMessages::PlayFXEffect(originator->GetObjectID(), m_StartEffect.first, m_StartEffect.second, std::to_string(m_StartEffect.first)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 	
 	float animationLength = 0.5f;
@@ -90,13 +90,12 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 	if (std::find(m_EntitiesOnRail.begin(), m_EntitiesOnRail.end(), originator->GetObjectID()) != m_EntitiesOnRail.end()) {
 		// Stop the initial effects
 		if (!m_StartEffect.second.empty()) {
-			GameMessages::SendStopFXEffect(originator, false, std::to_string(m_StartEffect.first));
+			GameMessages::StopFXEffect(originator->GetObjectID(), false, std::to_string(m_StartEffect.first)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		// Start the looping effects
 		if (!m_LoopEffect.second.empty()) {
-			GameMessages::SendPlayFXEffect(originator->GetObjectID(), m_LoopEffect.first, m_LoopEffect.second,
-				std::to_string(m_LoopEffect.first));
+			GameMessages::PlayFXEffect(originator->GetObjectID(), m_LoopEffect.first, m_LoopEffect.second, std::to_string(m_LoopEffect.first)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (!m_LoopAnimation.empty()) {
@@ -125,13 +124,12 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 	if (std::find(m_EntitiesOnRail.begin(), m_EntitiesOnRail.end(), originator->GetObjectID()) != m_EntitiesOnRail.end()) {
 		// Stop the looping effects
 		if (!m_LoopEffect.second.empty()) {
-			GameMessages::SendStopFXEffect(originator, false, std::to_string(m_LoopEffect.first));
+			GameMessages::StopFXEffect(originator->GetObjectID(), false, std::to_string(m_LoopEffect.first)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		// Start the end effects
 		if (!m_StopEffect.second.empty()) {
-			GameMessages::SendPlayFXEffect(originator->GetObjectID(), m_StopEffect.first, m_StopEffect.second,
-				std::to_string(m_StopEffect.first));
+			GameMessages::PlayFXEffect(originator->GetObjectID(), m_StopEffect.first, m_StopEffect.second, std::to_string(m_StopEffect.first)).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (!m_StopAnimation.empty()) {

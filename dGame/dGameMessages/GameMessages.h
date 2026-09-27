@@ -127,15 +127,12 @@ namespace GameMessages {
 
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
 	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
-	void SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority = 0.0f, float fScale = 1.0f);
 	void SendPlayerReady(Entity* entity, const SystemAddress& sysAddr);
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
 	void SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector);
 
 	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr, bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = eCyclingMode::ALLOW_CYCLE_TEAMMATES);
-
-	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
 	void SendStartPathing(Entity* entity);
 
@@ -153,17 +150,7 @@ namespace GameMessages {
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
-	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
 
-	// Specify sysAddr if you need to send a flash message to a client who you dont know the objectID of.
-	void SendUIMessageServerToSingleClient(const std::string& message, AMFBaseValue& args, const SystemAddress& sysAddr);
-	void SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args);
-
-	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
-	void SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority = 1, float scale = 1, bool serialize = true);
-	void SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary = LWOOBJID_EMPTY, float priority = 1, float scale = 1, bool serialize = true);
-	void SendStopFXEffect(Entity* entity, bool killImmediate, std::string name);
-	void SendBroadcastTextToChatbox(Entity* entity, const SystemAddress& sysAddr, const std::u16string& attrs, const std::u16string& wsText);
 	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
 
 	void SendQuickBuildNotifyState(Entity* entity, eQuickBuildState prevState, eQuickBuildState state, const LWOOBJID& playerID);
@@ -178,11 +165,8 @@ namespace GameMessages {
 
 	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
 
-	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
 	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
-	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
-	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
@@ -202,8 +186,6 @@ namespace GameMessages {
 
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
-
-	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
 	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
 	void SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore);
@@ -259,15 +241,6 @@ namespace GameMessages {
 	void SendLockNodeRotation(Entity* entity, std::string nodeName);
 
 	void HandleSetConsumableItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
-		bool allowGhostUpdates = true, bool bCloseMultiInteract = true, bool bSendServerNotify = false, bool bUseControlledObjectForAudioListener = false,
-		eEndBehavior endBehavior = eEndBehavior::RETURN, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
-		bool lockPlayer = true, bool result = false, bool skipIfSamePath = false, float startTimeAdvance = 0);
-
-	void SendEndCinematic(LWOOBJID objectID, std::u16string pathName, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
-		float leadOut = -1.0f, bool leavePlayerLocked = false);
-	void HandleCinematicUpdate(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 		LWOOBJID originator = LWOOBJID_EMPTY, bool bCantAttack = false, bool bCantEquip = false,
@@ -343,29 +316,10 @@ namespace GameMessages {
 	//Pets:
 	void SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr);
 
-	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
-
-	void HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-
 	void SendDisplayZoneSummary(LWOOBJID objectId, const SystemAddress& sysAddr, bool isPropertyMap = false, bool isZoneStart = false, LWOOBJID sender = LWOOBJID_EMPTY);
 
 	//UI:
 	void SendNotifyNotEnoughInvSpace(LWOOBJID objectId, uint32_t freeSlotsNeeded, eInventoryType inventoryType, const SystemAddress& sysAddr);
-
-	void SendDisplayMessageBox(LWOOBJID objectId, bool bShow, LWOOBJID callbackClient, const std::u16string& identifier, int32_t imageID, const std::u16string& text, const std::u16string& userData, const SystemAddress& sysAddr);
-
-	void SendDisplayChatBubble(LWOOBJID objectId, const std::u16string& text, const SystemAddress& sysAddr);
-
-	/**
-	 * @brief
-	 *
-	 * @param objectId ID of the entity to set idle flags
-	 * @param FlagsOn Flag to turn on
-	 * @param FlagsOff Flag to turn off
-	 */
-	void SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags FlagsOn, eAnimationFlags FlagsOff, const SystemAddress& sysAddr);
 
 	// Mounts
 	/**
@@ -445,8 +399,6 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
-	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void HandleBuyFromVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSellToVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -456,7 +408,6 @@ namespace GameMessages {
 	void HandleFireEventServerSide(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleRequestPlatformResync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
-	void HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity);
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
 	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity);
@@ -500,8 +451,6 @@ namespace GameMessages {
 	void HandleRemoveDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
-
-	void SendSlashCommandFeedbackText(Entity* entity, std::u16string text);
 
 	void HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);

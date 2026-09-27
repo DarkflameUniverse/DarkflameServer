@@ -10,6 +10,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MissionMessages.h"
 #include "MissionComponent.h"
 #include "dZoneManager.h"
@@ -239,7 +240,12 @@ void Character::DoQuickXMLDataParse() {
 
 void Character::UnlockEmote(int emoteID) {
 	m_UnlockedEmotes.push_back(emoteID);
-	GameMessages::SendSetEmoteLockState(Game::entityManager->GetEntity(m_ObjectID), false, emoteID);
+	auto* const entity = Game::entityManager->GetEntity(m_ObjectID);
+	GameMessages::SetEmoteLockState lockState;
+	lockState.target = entity->GetObjectID();
+	lockState.bLock = false;
+	lockState.emoteID = emoteID;
+	lockState.SendToClient(entity->GetSystemAddress());
 }
 
 void Character::SetBuildMode(bool buildMode) {
@@ -590,7 +596,9 @@ void Character::SetBillboardVisible(bool visible) {
 	if (m_BillboardVisible == visible) return;
 	m_BillboardVisible = visible;
 
-	GameMessages::SendSetNamebillboardState(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
+	GameMessages::SetNameBillboardState billboardState;
+	billboardState.target = m_OurEntity->GetObjectID();
+	billboardState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (!visible) return;
 
@@ -598,8 +606,12 @@ void Character::SetBillboardVisible(bool visible) {
 	// Because that same message does not allow for custom parameters, we need to create the BillboardSubcomponent a different way
 	// This workaround involves sending an unrelated GameMessage that does not apply to player entites,
 	// but forces the client to create the necessary SubComponent that controls the billboard.
-	GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
+	GameMessages::ShowBillboardInteractIcon interactIcon;
+	interactIcon.target = m_OurEntity->GetObjectID();
+	interactIcon.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Now turn off the billboard for the owner.
-	GameMessages::SendSetNamebillboardState(m_OurEntity->GetSystemAddress(), m_OurEntity->GetObjectID());
+	GameMessages::SetNameBillboardState ownerBillboardState;
+	ownerBillboardState.target = m_OurEntity->GetObjectID();
+	ownerBillboardState.Send(m_OurEntity->GetSystemAddress());
 }

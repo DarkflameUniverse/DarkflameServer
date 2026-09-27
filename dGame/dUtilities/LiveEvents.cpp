@@ -27,6 +27,7 @@
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "ChatPackets.h"
 #include "DashboardNotify.h"
 #include "CDClientManager.h"
@@ -218,7 +219,7 @@ namespace {
 		const auto itemCount = std::clamp<uint32_t>(event.config.value("itemCount", 1u), 1, 999);
 		if (auto* inventory = player->GetComponent<InventoryComponent>(); inventory && item > 0) inventory->AddItem(item, itemCount, eLootSourceType::ACTIVITY);
 		if (const auto effect = event.config.value("foundEffectId", 0); effect > 0) {
-			GameMessages::SendPlayFXEffect(player->GetObjectID(), effect, GeneralUtils::UTF8ToUTF16(event.config.value("foundEffectType", std::string{})), "live_event_found");
+			GameMessages::PlayFXEffect(player->GetObjectID(), effect, GeneralUtils::UTF8ToUTF16(event.config.value("foundEffectType", std::string{})), "live_event_found").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 		const auto left = std::ranges::count_if(event.treasures, [](const Treasure& t) { return !t.gone; });
 		TellAll(PlayerName(player) + " found a treasure! " + (left == 0 ? "That was the last one." : std::to_string(left) + " left to find."));
@@ -353,7 +354,7 @@ namespace {
 		if (effect <= 0) return;
 		const auto name = "live_event_" + std::to_string(event.row.id);
 		for (auto* player : PlayerManager::GetAllPlayers()) {
-			if (player) GameMessages::SendPlayFXEffect(player->GetObjectID(), effect, type, name);
+			if (player) GameMessages::PlayFXEffect(player->GetObjectID(), effect, type, name).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 		event.bursts++;
 		event.dirty = true;
@@ -458,7 +459,7 @@ namespace {
 		event.alive.clear();
 		if (event.type == eEventType::CELEBRATION) {
 			const auto name = "live_event_" + std::to_string(event.row.id);
-			for (auto* player : PlayerManager::GetAllPlayers()) if (player) GameMessages::SendStopFXEffect(player, true, name);
+			for (auto* player : PlayerManager::GetAllPlayers()) if (player) GameMessages::StopFXEffect(player->GetObjectID(), true, name).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 		FlushScores(event);
 		WriteStatus(event, true);

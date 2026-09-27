@@ -3,6 +3,7 @@
 #include "NsConcertChoiceBuildManager.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "MovingPlatformComponent.h"
 #include "MissionComponent.h"
 
@@ -206,8 +207,7 @@ void NsConcertQuickBuild::UpdateEffects(Entity* self) {
 	for (const auto& effectName : setIterator->second.effects) {
 		const auto effectObjects = Game::entityManager->GetEntitiesInGroup(quickBuildFX.at(effectName));
 		for (auto* effectObject : effectObjects) {
-			GameMessages::SendPlayFXEffect(effectObject, 0, GeneralUtils::ASCIIToUTF16(effectName),
-				effectName + "Effect", LWOOBJID_EMPTY, 1, 1, true);
+			GameMessages::PlayFXEffect(effectObject->GetObjectID(), 0, GeneralUtils::ASCIIToUTF16(effectName), effectName + "Effect").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }
@@ -220,7 +220,7 @@ void NsConcertQuickBuild::CancelEffects(Entity* self) {
 	for (const auto& effectName : setIterator->second.effects) {
 		const auto effectObjects = Game::entityManager->GetEntitiesInGroup(quickBuildFX.at(effectName));
 		for (auto* effectObject : effectObjects) {
-			GameMessages::SendStopFXEffect(effectObject, true, effectName + "Effect");
+			GameMessages::StopFXEffect(effectObject->GetObjectID(), true, effectName + "Effect").Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }

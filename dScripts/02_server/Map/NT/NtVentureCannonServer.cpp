@@ -1,5 +1,6 @@
 #include "NtVentureCannonServer.h"
 #include "GameMessages.h"
+#include "EffectsMessages.h"
 #include "EntityManager.h"
 #include "Entity.h"
 #include "GeneralUtils.h"
@@ -35,9 +36,12 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 	RenderComponent::PlayAnimation(player, u"scale-down", 4.0f);
 
 	const auto enterCinematicUname = enterCinematic;
-	GameMessages::SendPlayCinematic(player->GetObjectID(), enterCinematicUname, player->GetSystemAddress());
+	GameMessages::PlayCinematic cinematic;
+	cinematic.target = player->GetObjectID();
+	cinematic.pathName = enterCinematicUname;
+	cinematic.Send(player->GetSystemAddress());
 
-	GameMessages::SendPlayNDAudioEmitter(player, player->GetSystemAddress(), "{e8bf79ce-7453-4a7d-b872-fee65e97ff15}");
+	GameMessages::PlayNDAudioEmitter(player->GetObjectID(), "{e8bf79ce-7453-4a7d-b872-fee65e97ff15}").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->AddCallbackTimer(3, [this, self]() {
 		self->SetNetworkVar(u"bIsInUse", false);
@@ -62,9 +66,14 @@ void NtVentureCannonServer::EnterCannonEnded(Entity* self, Entity* player) {
 	if (!cannonEffectGroup.empty()) {
 		auto* cannonEffect = cannonEffectGroup[0];
 
-		GameMessages::SendPlayFXEffect(cannonEffect, 6036, u"create", "cannon_blast", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::PlayFXEffect(cannonEffect->GetObjectID(), 6036, u"create", "cannon_blast").Send(UNASSIGNED_SYSTEM_ADDRESS);
 
-		GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(cannonEffect, u"camshake-bridge", cannonEffect->GetObjectID(), 100);
+		GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
+		embeddedEffect.target = cannonEffect->GetObjectID();
+		embeddedEffect.effectName = u"camshake-bridge";
+		embeddedEffect.fromObjectID = cannonEffect->GetObjectID();
+		embeddedEffect.radius = 100;
+		embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	FirePlayer(self, player);
@@ -78,9 +87,19 @@ void NtVentureCannonServer::EnterCannonEnded(Entity* self, Entity* player) {
 	}
 
 	const auto exitCinematicUname = exitCinematic;
-	GameMessages::SendPlayCinematic(player->GetObjectID(), exitCinematicUname, player->GetSystemAddress(),
-		true, true, true, false, eEndBehavior::RETURN, false, 0, false, false
-	);
+	GameMessages::PlayCinematic cinematic;
+	cinematic.target = player->GetObjectID();
+	cinematic.pathName = exitCinematicUname;
+	cinematic.allowGhostUpdates = true;
+	cinematic.bCloseMultiInteract = true;
+	cinematic.bSendServerNotify = true;
+	cinematic.bUseControlledObjectForAudioListener = false;
+	cinematic.endBehavior = eEndBehavior::RETURN;
+	cinematic.hidePlayerDuringCine = false;
+	cinematic.leadIn = 0;
+	cinematic.leavePlayerLockedWhenFinished = false;
+	cinematic.lockPlayer = false;
+	cinematic.Send(player->GetSystemAddress());
 
 	self->AddCallbackTimer(1.5f, [this, self, playerID]() {
 		auto* player = Game::entityManager->GetEntity(playerID);
