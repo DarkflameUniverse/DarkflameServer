@@ -206,4 +206,12 @@ namespace GameMessages {
 		VALIDATE_READ(BitStreamUtils::ReadOptional<uint32_t>(bitStream, uiHandle, 0));
 		return true;
 	}
+
+	void Help::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(helpId);
+	}
+
+	bool Help::Deserialize(RakNet::BitStream& bitStream) {
+		return bitStream.Read(helpId);
+	}
 }

@@ -3,6 +3,7 @@
 
 #include "GameMessages.h"
 #include "eGameMasterLevel.h"
+#include "eHelpType.h"
 #include "eLootSourceType.h"
 
 #include <string>
@@ -143,6 +144,17 @@ namespace GameMessages {
 		bool bDifferent{ false };
 		std::string sBitStream{};
 		uint32_t uiHandle{ 0 }; // optional
+	};
+
+	// Server -> client, to the player. Shows a one-time tutorial tooltip (LWOCharacterComponent::ShowHelp); the
+	// client skips it once the player flag with the same ID is set, and sets that flag itself.
+	// Serialize 0x00dc51e0 / Deserialize 0x00dc5220: a single int32.
+	struct Help : public NetGameMsg {
+		Help() : NetGameMsg(MessageType::Game::HELP) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		eHelpType helpId{ eHelpType::NONE };
 	};
 }
 
