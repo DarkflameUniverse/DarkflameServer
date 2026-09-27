@@ -58,6 +58,11 @@ public:
 	// Main thread: what the server is doing, for /status
 	nlohmann::json Status() const;
 
+	// Any thread: jobs waiting for a worker, and workers busy (traffic diagnostics)
+	size_t Queued() const { std::lock_guard lock(m_Mutex); return m_Jobs.size(); }
+	size_t Busy() const { std::lock_guard lock(m_Mutex); return m_Active; }
+	size_t Threads() const { return m_Config.threads; }
+
 private:
 	struct Job {
 		Kind kind{};

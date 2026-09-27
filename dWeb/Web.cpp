@@ -13,6 +13,9 @@
 #include <vector>
 #include <cctype>
 #include <chrono>
+#include <filesystem>
+#include <unordered_map>
+#include "TrafficStats.h"
 
 namespace Game {
 	Web web;
@@ -231,10 +234,39 @@ static void SendReply(mg_connection* connection, const HTTPReply& reply, const m
 	connection->is_resp = 0;
 }
 
+namespace {
+	using TrafficClock = std::chrono::steady_clock;
+
+	// Deferred requests' route and start, so their latency counts once the answer goes out
+	struct DeferredTiming {
+		std::string route;
+		TrafficClock::time_point started;
+	};
+	std::unordered_map<unsigned long, DeferredTiming> g_DeferredTiming;
+
+	// The bytes a reply puts on the wire besides its headers (a served file: its size)
+	uint64_t ReplyBytes(const HTTPReply& reply) {
+		if (!reply.file.empty() && reply.status == eHTTPStatusCode::OK) {
+			std::error_code ec;
+			const auto size = std::filesystem::file_size(reply.file, ec);
+			return ec ? 0 : size;
+		}
+		return reply.message.size();
+	}
+
+	void CountRequest(const std::string& route, uint16_t status, TrafficClock::time_point started, uint64_t bytes) {
+		const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(TrafficClock::now() - started).count();
+		TrafficStats::Local().Http(TrafficStats::Now(), route, status, static_cast<uint64_t>(std::max<int64_t>(micros, 0)), bytes);
+	}
+}
+
 void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_msg) {
 	if (g_HTTPRoutes.empty()) return;
 
 	HTTPReply reply;
+	const auto started = TrafficClock::now();
+	// The route's pattern, not the path, so traffic diagnostics have one entry per route
+	std::string trafficRoute = "(no route)";
 	
 	if (!http_msg) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
@@ -321,6 +353,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 				}
 			}
 			
+			CountRequest("GET /ws", level ? 101 : 401, started, 0);
 			if (level) {
 				mg_ws_upgrade(connection, const_cast<mg_http_message*>(http_msg), NULL);
 				g_AuthenticatedWSConnections[connection] = { level->level, level->accountId, connectToken, apiToken,
@@ -403,6 +436,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		
 		if (routeItr != g_HTTPRoutes.end()) {
 			const auto& route = routeItr->second;
+			trafficRoute = method_string + " " + routeItr->first.second;
 
 			// Create HTTP context from request
 			HTTPContext context;
@@ -449,12 +483,16 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		// Answered later (Web::Defer): the connection keeps is_resp set, so mongoose reads no further request on it
 		const auto* cc = http_msg ? mg_http_get_header(const_cast<mg_http_message*>(http_msg), "Connection") : nullptr;
 		g_Deferred.SetReplyOptions(connection->id, reply.headers, cc && mg_strcasecmp(*cc, mg_str("close")) == 0);
+		// Requests the answers never came for (the client left) are forgotten now and then
+		if (g_DeferredTiming.size() > 10000) g_DeferredTiming.clear();
+		g_DeferredTiming[connection->id] = { std::move(trafficRoute), started };
 		return;
 	}
 	// The handler deferred and then failed: its late answer is dropped
 	if (g_Deferred.IsPending(connection->id)) g_Deferred.Close(connection->id);
 
 	SendReply(connection, reply, http_msg);
+	CountRequest(trafficRoute, static_cast<uint16_t>(reply.status), started, ReplyBytes(reply));
 }
 
 
@@ -708,6 +746,10 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 		.handle = HandleWSGetSubscriptions
 	});
 
+	// Sent with the traffic reports (dServer)
+	TrafficStats::Local().SetGauge("http_deferred_pending", [] { return static_cast<double>(g_Deferred.Pending()); });
+	TrafficStats::Local().SetGauge("websocket_clients", [] { return static_cast<double>(g_AuthenticatedWSConnections.size()); });
+
 	return true;
 }
 
@@ -724,6 +766,10 @@ void Web::SendDeferredReplies() {
 		if (!connection || connection->is_closing) continue;
 		// Clears is_resp once the reply is out, so mongoose reads the connection's next request again
 		SendReply(connection, finished.reply, nullptr);
+		if (const auto timing = g_DeferredTiming.find(finished.connection); timing != g_DeferredTiming.end()) {
+			CountRequest(timing->second.route, static_cast<uint16_t>(finished.reply.status), timing->second.started, ReplyBytes(finished.reply));
+			g_DeferredTiming.erase(timing);
+		}
 		if (finished.close) connection->is_draining = 1;
 	}
 }

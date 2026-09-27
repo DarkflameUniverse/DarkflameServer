@@ -23,6 +23,7 @@
 #include "Web.h"
 #include "dConfig.h"
 #include "dServer.h"
+#include "TrafficStats.h"
 #include "eHTTPMethod.h"
 #include "json.hpp"
 
@@ -317,6 +318,10 @@ int main(int argc, char** argv) {
 	processorConfig.threads = threads > 0 ? threads : std::max<size_t>(std::thread::hardware_concurrency() / 2, 1);
 	UgcProcessor processor(processorConfig, storage, library, ReadSettings());
 	g_Processor = &processor;
+	// Sent with the traffic reports to the dashboard (Diagnostics)
+	TrafficStats::Local().SetGauge("workers_busy", [&processor] { return static_cast<double>(processor.Busy()); });
+	TrafficStats::Local().SetGauge("workers_queued", [&processor] { return static_cast<double>(processor.Queued()); });
+	TrafficStats::Local().SetGauge("workers_threads", [&processor] { return static_cast<double>(processor.Threads()); });
 
 	const auto listenIp = Game::config->GetValue("listen_ip").empty() ? std::string("0.0.0.0") : Game::config->GetValue("listen_ip");
 	const auto port = Setting<uint32_t>("port", 2008);
@@ -346,6 +351,9 @@ int main(int argc, char** argv) {
 
 	LOG("Stopping the UGC server");
 	processor.Stop();
+	TrafficStats::Local().SetGauge("workers_busy", nullptr);
+	TrafficStats::Local().SetGauge("workers_queued", nullptr);
+	TrafficStats::Local().SetGauge("workers_threads", nullptr);
 	Game::web.Shutdown();
 	g_Processor = nullptr;
 	Database::Destroy("UgcServer");
