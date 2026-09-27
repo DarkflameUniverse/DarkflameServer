@@ -1045,6 +1045,9 @@ void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 		const auto* playerDestroyableComponent = owner->GetComponent<DestroyableComponent>();
 		if (!playerDestroyableComponent) return;
 
+		// Already going back to the backpack
+		if (m_Despawning) return;
+
 		// If we are out of imagination despawn the pet.
 		if (playerDestroyableComponent->GetImagination() == 0) {
 			this->Deactivate();
@@ -1055,6 +1058,8 @@ void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 			requirementsResponse.target = playerEntity->GetObjectID();
 			requirementsResponse.eUseResponse = eUseItemResponse::NoImaginationForPet;
 			requirementsResponse.SendToClient(playerEntity->GetSystemAddress());
+			// The pet is gone: no more draining
+			return;
 		}
 
 		this->AddDrainImaginationTimer();
@@ -1081,22 +1086,17 @@ void PetComponent::Deactivate() {
 
 	if (owner == nullptr) return;
 
+	// The client looks the item up by this ID to grey it out again (LWOInventoryComponent_Common::SendMessage), and
+	// items get new IDs when they move, so use the ID the pet's item has now
+	auto* const inventoryComponent = owner->GetComponent<InventoryComponent>();
+	const auto* const item = inventoryComponent ? inventoryComponent->FindItemBySubKey(m_DatabaseId) : nullptr;
+
 	GameMessages::MarkInventoryItemAsActive markActive;
 	markActive.target = m_Owner;
 	markActive.bActive = false;
 	markActive.iType = eUnequippableActiveType::PET;
-	markActive.itemID = m_ItemId;
+	markActive.itemID = item ? item->GetId() : m_ItemId;
 	markActive.Send(owner->GetSystemAddress());
-
-	{
-		GameMessages::AddPetToPlayer msg;
-		msg.target = m_Owner;
-		msg.iElementalType = 0;
-		msg.name = u"";
-		msg.petDBID = LWOOBJID_EMPTY;
-		msg.petLOT = LOT_NULL;
-		msg.Send(owner->GetSystemAddress());
-	}
 
 	{
 		GameMessages::RegisterPetID msg;
