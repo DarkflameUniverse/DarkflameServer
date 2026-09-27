@@ -202,7 +202,16 @@ TEST_F(InventoryMessagesTests, SmallMessagesMatchLegacy) {
 				msg.target = target;
 				msg.freeSlotsNeeded = slots;
 				msg.inventoryType = type;
-				ExpectSameAsLegacy([&](const SystemAddress& a) { LegacyGameMessages::SendNotifyNotEnoughInvSpace(target, slots, type, a); }, msg);
+				// WIRE FIX: the legacy bytes carry VEHICLE_NOTIFY_FINISHED_RACE (1396) as the message ID; everything
+				// else is unchanged, so compare against them with the ID (bytes 16-17, after the header and object ID)
+				// swapped for NOTIFY_NOT_ENOUGH_INV_SPACE (1516).
+				const auto legacy = Capture([&] { LegacyGameMessages::SendNotifyNotEnoughInvSpace(target, slots, type, ClientAddress()); });
+				ASSERT_FALSE(legacy.empty());
+				auto expected = FromCapture(legacy[0]);
+				ASSERT_EQ(expected.bytes[16] | (expected.bytes[17] << 8), 1396);
+				expected.bytes[16] = 1516 & 0xFF;
+				expected.bytes[17] = 1516 >> 8;
+				EXPECT_PACKET_EQ(expected, StructPacket(msg));
 				const auto copy = RoundTrip(msg);
 				EXPECT_EQ(copy.freeSlotsNeeded, slots);
 				EXPECT_EQ(copy.inventoryType, type);

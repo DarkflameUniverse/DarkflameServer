@@ -187,11 +187,11 @@ namespace GameMessages {
 		LWOOBJID startObjectID{ LWOOBJID_EMPTY }; // optional
 	};
 
-	// Server -> client. DLU sends this with the message ID of VehicleNotifyFinishedRace, not
-	// NOTIFY_NOT_ENOUGH_INV_SPACE; kept as it has always been sent (see docs/PacketArchitecture.md: wire fixes
-	// are separate changes).
+	// Server -> client. WIRE FIX: DLU used to send this with the ID of VehicleNotifyFinishedRace (1396); the client
+	// registers it as NOTIFY_NOT_ENOUGH_INV_SPACE (1516, msgNotifyNotEnoughInvSpace::GetMsgID @ 00545c90 in 1.10.64)
+	// and reads freeSlotsNeeded then the optional inventoryType (00d8b850).
 	struct NotifyNotEnoughInvSpace : public NetGameMsg {
-		NotifyNotEnoughInvSpace() : NetGameMsg(MessageType::Game::VEHICLE_NOTIFY_FINISHED_RACE) {}
+		NotifyNotEnoughInvSpace() : NetGameMsg(MessageType::Game::NOTIFY_NOT_ENOUGH_INV_SPACE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 
