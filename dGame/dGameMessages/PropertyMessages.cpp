@@ -405,13 +405,17 @@ namespace GameMessages {
 	}
 
 	void PropertyEditorBegin::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		PropertyManagementComponent::Instance()->OnStartBuilding();
+		auto* property = PropertyManagementComponent::Instance();
+		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
+		property->OnStartBuilding();
 
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditBegin();
 	}
 
 	void PropertyEditorEnd::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		PropertyManagementComponent::Instance()->OnFinishBuilding();
+		auto* property = PropertyManagementComponent::Instance();
+		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
+		property->OnFinishBuilding();
 
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditEnd();
 	}
@@ -479,7 +483,9 @@ namespace GameMessages {
 	}
 
 	void PlacePropertyModel::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		PropertyManagementComponent::Instance()->UpdateModelPosition(modelID, NiPoint3Constant::ZERO, QuatUtils::IDENTITY);
+		// The client sends this with no model and then places the model with UpdateModelFromClient (live capture);
+		// there is nothing to do here.
+		LOG_DEBUG("PlacePropertyModel (%llu) from %llu", modelID, entity.GetObjectID());
 	}
 
 	void UpdateModelFromClient::Serialize(RakNet::BitStream& bitStream) const {
@@ -496,7 +502,10 @@ namespace GameMessages {
 	}
 
 	void UpdateModelFromClient::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		PropertyManagementComponent::Instance()->UpdateModelPosition(modelID, position, rotation);
+		auto* property = PropertyManagementComponent::Instance();
+		// Only the owner edits their property; the model comes from the owner's inventory
+		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
+		property->UpdateModelPosition(modelID, position, rotation);
 	}
 
 	void DeleteModelFromClient::Serialize(RakNet::BitStream& bitStream) const {
@@ -511,7 +520,9 @@ namespace GameMessages {
 	}
 
 	void DeleteModelFromClient::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		PropertyManagementComponent::Instance()->DeleteModel(modelID, reason);
+		auto* property = PropertyManagementComponent::Instance();
+		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
+		property->DeleteModel(modelID, reason);
 	}
 
 	void PropertyEntranceSync::Serialize(RakNet::BitStream& bitStream) const {
