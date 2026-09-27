@@ -27,8 +27,9 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 	m_ProximitiesData.clear();
 }
 
-void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name) {
+void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name, const uint32_t collisionGroup) {
 	dpEntity* en = new dpEntity(m_Parent->GetObjectID(), proxRadius);
+	en->SetCollisionGroup(collisionGroup);
 	en->SetPosition(m_Parent->GetPosition());
 
 	dpWorld::AddEntity(en);

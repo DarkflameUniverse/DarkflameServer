@@ -196,7 +196,7 @@ public:
 	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
 	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
 
-	void SetProximityRadius(float proxRadius, std::string name);
+	void SetProximityRadius(float proxRadius, std::string name, uint32_t collisionGroup = 0);
 	void SetProximityRadius(dpEntity* entity, std::string name);
 
 	void AddChild(Entity* child);

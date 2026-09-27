@@ -8,6 +8,7 @@ set(DGAMETEST_SOURCES
 	"StaleSaveGuardTests.cpp"
 	"ContrabandTests.cpp"
 	"KnockbackTests.cpp"
+	"CollisionFilterTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

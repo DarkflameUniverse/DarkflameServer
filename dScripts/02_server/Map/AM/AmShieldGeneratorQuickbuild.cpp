@@ -11,8 +11,9 @@
 #include "MissionComponent.h"
 
 void AmShieldGeneratorQuickbuild::OnStartup(Entity* self) {
-	self->SetProximityRadius(20, "shield");
-	self->SetProximityRadius(21, "buffer");
+	// Enemies (the client group table: 10 sees group 12) and players (1 sees group 10), like live
+	self->SetProximityRadius(20, "shield", 10);
+	self->SetProximityRadius(21, "buffer", 1);
 }
 
 void AmShieldGeneratorQuickbuild::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {

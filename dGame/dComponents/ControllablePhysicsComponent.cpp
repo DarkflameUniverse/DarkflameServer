@@ -58,7 +58,8 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, const
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
-		m_dpEntity->SetCollisionGroup(COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_FRIENDLY);
+		// The player's group from its physics component (10), which trigger volumes filter on
+		m_dpEntity->SetCollisionGroup(static_cast<uint32_t>(m_CollisionGroup));
 		dpWorld::AddEntity(m_dpEntity);
 	}
 }

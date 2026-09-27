@@ -923,10 +923,10 @@ void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationNa
 	}
 }
 
-void Entity::SetProximityRadius(float proxRadius, std::string name) {
+void Entity::SetProximityRadius(float proxRadius, std::string name, uint32_t collisionGroup) {
 	auto* proxMon = GetComponent<ProximityMonitorComponent>();
 	if (!proxMon) proxMon = AddComponent<ProximityMonitorComponent>(-1);
-	proxMon->SetProximityRadius(proxRadius, name);
+	proxMon->SetProximityRadius(proxRadius, name, collisionGroup);
 }
 
 void Entity::SetProximityRadius(dpEntity* entity, std::string name) {

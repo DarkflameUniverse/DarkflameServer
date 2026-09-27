@@ -1,5 +1,6 @@
 set(DPHYSICS_SOURCES "dpCollisionChecks.cpp"
 	"dpEntity.cpp"
+	"dpCollisionFilter.cpp"
 	"dpGrid.cpp"
 	"dpKnockback.cpp"
 	"dpShapeBase.cpp"

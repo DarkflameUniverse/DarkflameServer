@@ -30,6 +30,15 @@
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
 #include "Amf3.h"
+#include "dpCollisionFilter.h"
+
+namespace {
+	// The collision groups of players and enemies in PhysicsComponent
+	constexpr uint32_t PLAYER_COLLISION_GROUP = 10;
+	constexpr uint32_t ENEMY_COLLISION_GROUP = 12;
+	// standard_enemy.hkx's radius
+	constexpr float DEFAULT_BODY_RADIUS = 1.7f;
+}
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&BaseCombatAIComponent::MsgGetObjectReportInfo);
@@ -105,7 +114,11 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 	 * Add physics
 	 */
 
-	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
+	// The enemy's own body, which other volumes (triggers, damage volumes, proximity monitors) see: its group and
+	// radius from its physics component, like its character controller in the client. It used to be a sphere of
+	// the aggro radius, so volumes caught enemies from far away (e.g. the Cavalry Hill damage volumes, #1127).
+	uint32_t collisionGroup = ENEMY_COLLISION_GROUP;
+	float bodyRadius = DEFAULT_BODY_RADIUS;
 
 	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	const auto controllablePhysicsID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
@@ -115,15 +128,16 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 	if (physicsComponentTable != nullptr) {
 		auto* info = physicsComponentTable->GetByID(controllablePhysicsID);
 		if (info != nullptr) {
-			collisionGroup = info->bStatic ? COLLISION_GROUP_NEUTRAL : info->collisionGroup;
+			collisionGroup = static_cast<uint32_t>(info->collisionGroup);
+			if (info->playerRadius > 0.0f) bodyRadius = info->playerRadius;
 		}
 	}
 
-	//Create a phantom physics volume so we can detect when we're aggro'd.
+	// The aggro sensor only needs to see players, as before; targets are picked by faction afterwards
 	m_dpEntity = new dpEntity(m_Parent->GetObjectID(), m_AggroRadius);
-	m_dpEntityEnemy = new dpEntity(m_Parent->GetObjectID(), m_AggroRadius, false);
+	m_dpEntityEnemy = new dpEntity(m_Parent->GetObjectID(), bodyRadius, false);
 
-	m_dpEntity->SetCollisionGroup(collisionGroup);
+	m_dpEntity->SetCollisionGroup(dpCollisionFilter::GROUP_MASK | (1u << (PLAYER_COLLISION_GROUP - 1)));
 	m_dpEntityEnemy->SetCollisionGroup(collisionGroup);
 
 	m_dpEntity->SetPosition(m_Parent->GetPosition());

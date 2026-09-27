@@ -33,6 +33,12 @@ public:
 
 	bool IsVertInBox(const NiPoint3& vert);
 
+	/**
+	 * The squared distance from a point to the box, measured along the box's own (rotated) axes. The m_Min/m_Max
+	 * bounds are the axis aligned box around the rotated one, which for a rotated wall is far bigger than the wall.
+	 */
+	float SquaredDistanceTo(const NiPoint3& point) const;
+
 	void InitVertices();
 
 	void SetPosition(const NiPoint3& position);
@@ -63,6 +69,10 @@ private:
 	NiPoint3 m_BottomMaxRight;
 
 	float m_Scale;
+
+	// Where the box was placed and how it was turned, to test against its real shape
+	NiPoint3 m_Origin{};
+	NiQuaternion m_Orientation = QuatUtils::IDENTITY;
 
 	bool m_HasBeenRotated = false;
 	bool isScaled = false;

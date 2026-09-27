@@ -8,7 +8,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStati
 	m_IsStatic = isStatic;
 	m_CollisionShape = nullptr;
 	m_Scale = 1.0f;
-	m_CollisionGroup = COLLISION_GROUP_ALL;
+	m_CollisionGroup = 0;
 
 	switch (shapeType) {
 	case dpShapeType::Sphere:
@@ -29,7 +29,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, NiPoint3 boxDimensions, bool isStat
 	m_IsStatic = isStatic;
 	m_CollisionShape = nullptr;
 	m_Scale = 1.0f;
-	m_CollisionGroup = COLLISION_GROUP_ALL;
+	m_CollisionGroup = 0;
 
 	m_CollisionShape = new dpShapeBox(this, boxDimensions.x, boxDimensions.y, boxDimensions.z);
 }
@@ -39,7 +39,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, float width, float height, float de
 	m_IsStatic = isStatic;
 	m_CollisionShape = nullptr;
 	m_Scale = 1.0f;
-	m_CollisionGroup = COLLISION_GROUP_ALL;
+	m_CollisionGroup = 0;
 
 	m_CollisionShape = new dpShapeBox(this, width, height, depth);
 }
@@ -49,7 +49,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, float radius, bool isStatic) {
 	m_IsStatic = isStatic;
 	m_CollisionShape = nullptr;
 	m_Scale = 1.0f;
-	m_CollisionGroup = COLLISION_GROUP_ALL;
+	m_CollisionGroup = 0;
 
 	m_CollisionShape = new dpShapeSphere(this, radius);
 }
@@ -70,9 +70,7 @@ void dpEntity::Update(float deltaTime) {
 void dpEntity::CheckCollision(dpEntity* other) {
 	if (!m_CollisionShape) return;
 
-	if ((m_CollisionGroup & other->m_CollisionGroup) & (~COLLISION_GROUP_DYNAMIC)) {
-		return;
-	}
+	if (!dpCollisionFilter::ShouldCollide(m_CollisionGroup, other->m_CollisionGroup)) return;
 
 	const auto objId = other->GetObjectID();
 	const auto objItr = m_CurrentlyCollidingObjects.find(objId);

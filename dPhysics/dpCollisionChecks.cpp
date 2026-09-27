@@ -100,16 +100,7 @@ bool dpCollisionChecks::CheckSphereBox(dpEntity* a, dpEntity* b) {
 		spherePos = a->GetPosition();
 	}
 
-	//Get closest point from the box to the sphere center by clamping
-	float x = std::max(box->m_MinX, std::min(spherePos.x, box->m_MaxX));
-	float y = std::max(box->m_MinY, std::min(spherePos.y, box->m_MaxY));
-	float z = std::max(box->m_MinZ, std::min(spherePos.z, box->m_MaxZ));
-
-	//Check the distance between that point & our sphere
-	float dX = x - spherePos.x;
-	float dY = y - spherePos.y;
-	float dZ = z - spherePos.z;
-	float distanceSquared = (dX * dX) + (dY * dY) + (dZ * dZ);
+	const float distanceSquared = box->SquaredDistanceTo(spherePos);
 	const float radius = sphere->GetRadius();
 
 	return distanceSquared < radius* radius;

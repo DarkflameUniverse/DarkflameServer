@@ -32,7 +32,11 @@ public:
 	 * @param proxRadius the radius to use for the physics entity we use to detect proximity
 	 * @param name the name of this check
 	 */
-	void SetProximityRadius(float proxRadius, const std::string& name);
+	/**
+	 * Adds a sphere that reports what enters and leaves it
+	 * @param collisionGroup the collision group it filters on like the client's (see dpCollisionFilter), 0 for everything
+	 */
+	void SetProximityRadius(float proxRadius, const std::string& name, uint32_t collisionGroup = 0);
 
 	/**
 	 * Creates an entry to check proximity for, given a name

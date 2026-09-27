@@ -8,7 +8,7 @@
 #include "dCommonVars.h"
 #include "dpCommon.h"
 #include "dpShapeBase.h"
-#include "dpCollisionGroups.h"
+#include "dpCollisionFilter.h"
 #include "dpGrid.h"
 
 class dpEntity {
@@ -44,8 +44,9 @@ public:
 
 	bool GetIsStatic() const { return m_IsStatic; }
 
-	uint8_t GetCollisionGroup() const { return m_CollisionGroup; }
-	void SetCollisionGroup(uint8_t value) { m_CollisionGroup = value; }
+	// The collision filter value (see dpCollisionFilter): the client's collision group, 0 touches everything
+	uint32_t GetCollisionGroup() const { return m_CollisionGroup; }
+	void SetCollisionGroup(uint32_t value) { m_CollisionGroup = value; }
 
 	bool GetSleeping() const { return m_Sleeping; }
 	void SetSleeping(bool value) { m_Sleeping = value; }
@@ -76,7 +77,7 @@ private:
 
 	dpGrid* m_Grid = nullptr;
 
-	uint8_t m_CollisionGroup;
+	uint32_t m_CollisionGroup;
 	bool m_Sleeping = false;
 
 	bool m_IsGargantuan = false;

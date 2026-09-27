@@ -7,6 +7,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 
+#include <algorithm>
 #include <iostream>
 
 dpShapeBox::dpShapeBox(dpEntity* parentEntity, float width, float height, float depth) :
@@ -78,6 +79,7 @@ void dpShapeBox::SetScale(float scale) {
 void dpShapeBox::SetRotation(const NiQuaternion& rotation) {
 	if (m_HasBeenRotated) return; //Boxes cannot be rotated more than once.
 	m_HasBeenRotated = true;
+	m_Orientation = rotation;
 
 	m_TopMinLeft = m_TopMinLeft.RotateByQuaternion(rotation);
 	m_TopMaxLeft = m_TopMaxLeft.RotateByQuaternion(rotation);
@@ -93,19 +95,17 @@ void dpShapeBox::SetRotation(const NiQuaternion& rotation) {
 }
 
 bool dpShapeBox::IsVertInBox(const NiPoint3& vert) {
-	//if we are in the correct height
-	if (vert.y >= m_MinY && vert.y <= m_MaxY) {
+	return SquaredDistanceTo(vert) <= 0.0f;
+}
 
-		//if we're inside the x bounds
-		if (vert.x >= m_MinX && vert.x <= m_MaxX) {
+float dpShapeBox::SquaredDistanceTo(const NiPoint3& point) const {
+	// Into the box's frame: its origin is the middle of its bottom face
+	const auto local = (point - m_Origin).RotateByQuaternion(glm::conjugate(m_Orientation));
 
-			//if we're inside the z bounds
-			if (vert.z >= m_MinZ && vert.z <= m_MaxZ)
-				return true;
-		}
-	}
-
-	return false;
+	const float dX = local.x - std::clamp(local.x, -m_Width, m_Width);
+	const float dY = local.y - std::clamp(local.y, 0.0f, m_Height * 2.0f);
+	const float dZ = local.z - std::clamp(local.z, -m_Depth, m_Depth);
+	return dX * dX + dY * dY + dZ * dZ;
 }
 
 void dpShapeBox::InitVertices() {
@@ -129,6 +129,7 @@ void dpShapeBox::InitVertices() {
 void dpShapeBox::SetPosition(const NiPoint3& position) {
 	if (isTransformed) return;
 	isTransformed = true;
+	m_Origin = position;
 
 	for (auto& vert : m_Vertices) {
 		vert.x += position.x;

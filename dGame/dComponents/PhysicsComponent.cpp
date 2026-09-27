@@ -103,6 +103,8 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	//add fallback cube:
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
 	}
+	// Only touch what the client lets this group touch (e.g. POI walls ignore enemies, threat clearing walls ignore players)
+	toReturn->SetCollisionGroup(static_cast<uint32_t>(m_CollisionGroup));
 	return toReturn;
 }
 
@@ -174,7 +176,10 @@ dpEntity* PhysicsComponent::CreatePhysicsLnv(const float scale, const eReplicaCo
 	}
 	}
 
-	if (toReturn) dpWorld::AddEntity(toReturn);
+	if (toReturn) {
+		toReturn->SetCollisionGroup(static_cast<uint32_t>(m_CollisionGroup));
+		dpWorld::AddEntity(toReturn);
+	}
 
 	return toReturn;
 }
