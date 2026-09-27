@@ -94,7 +94,57 @@
 		if (state.filter === 'changed' && !isChanged(s) && !isPending(s)) return false;
 		if (state.filter === 'restart' && !s.restart) return false;
 		if (!state.query) return true;
-		return (s.name + ' ' + s.title + ' ' + s.description + ' ' + s.section + ' ' + s.file).toLowerCase().indexOf(state.query) !== -1;
+		return queryMatches(s.name + ' ' + s.title + ' ' + s.description + ' ' + s.section + ' ' + s.file);
+	}
+
+	// ---------------------------------------------------------------- fuzzy search
+	// "rent, ugc icon": commas (or |) separate searches, any of which may match; within one search every word must
+	// match somewhere, in any order. A word matches a word of the setting when it is part of it, when its letters
+	// appear in it in order (e.g. "dbnc" -> "debounce"), or with one typo (words of 4+ letters).
+
+	function searchGroups(query) {
+		return query.split(/[,|]/).map(function (group) {
+			return group.split(/[\s_.\-/]+/).filter(Boolean);
+		}).filter(function (words) { return words.length; });
+	}
+
+	function isSubsequence(needle, word) {
+		var i = 0;
+		for (var j = 0; j < word.length && i < needle.length; j++) if (word[j] === needle[i]) i++;
+		return i === needle.length;
+	}
+
+	// At most one insertion, deletion or substitution between needle and the start of word (so "unsed" finds "unused").
+	function withinOneEdit(needle, word) {
+		var candidates = [word.slice(0, needle.length - 1), word.slice(0, needle.length), word.slice(0, needle.length + 1)];
+		return candidates.some(function (c) {
+			var a = needle, b = c, edits = 0, i = 0, j = 0;
+			while (i < a.length && j < b.length) {
+				if (a[i] === b[j]) { i++; j++; continue; }
+				if (++edits > 1) return false;
+				if (a[i] === b[j + 1] && a[i + 1] === b[j]) { i += 2; j += 2; } // two letters swapped
+				else if (a.length > b.length) i++;
+				else if (b.length > a.length) j++;
+				else { i++; j++; }
+			}
+			return edits + (a.length - i) + (b.length - j) <= 1;
+		});
+	}
+
+	function wordMatches(needle, text, words) {
+		if (text.indexOf(needle) !== -1) return true;
+		return words.some(function (w) {
+			if (needle.length >= 3 && needle[0] === w[0] && isSubsequence(needle, w)) return true;
+			return needle.length >= 4 && withinOneEdit(needle, w);
+		});
+	}
+
+	function queryMatches(haystack) {
+		var text = haystack.toLowerCase().replace(/[_.\-/]+/g, ' ');
+		var words = text.split(/\s+/).filter(Boolean);
+		return searchGroups(state.query).some(function (group) {
+			return group.every(function (needle) { return wordMatches(needle, text, words); });
+		});
 	}
 
 	// ---------------------------------------------------------------- controls, one per setting type
