@@ -237,8 +237,7 @@
 		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', !model); });
 		$('statsBox').innerHTML = model ? '' : '<div class="small">Modules: <code>' + esc(item.modules || '') + '</code> (combination <code>' + esc(item.combination || '') +
 			'</code>). The game client puts cars and rockets together itself; only the icon is made, once per combination of modules.</div>';
-		$('framingCard').classList.toggle('d-none', !canManage);
-		if (canManage) openFraming(item, model);
+		UgcIconEditor.open(model ? { model: true, id: id } : { model: false, modules: item.modules || '', label: item.combination });
 		bootstrap.Modal.getOrCreateInstance($('previewModal')).show();
 		if (!model) return;
 
@@ -319,6 +318,7 @@
 	$('reframeButton').addEventListener('click', function () { if (nifViewer) nifViewer.frame(); });
 	$('previewModal').addEventListener('hidden.bs.modal', function () {
 		current = null;
+		UgcIconEditor.close();
 		if (lxfmlViewer && lxfmlViewer.dispose) lxfmlViewer.dispose();
 		lxfmlViewer = null;
 		// Closed here rather than with Back: take the item out of the address too
@@ -368,105 +368,30 @@
 	$('purgeButton').addEventListener('click', function () { purge(false); });
 	$('purgeAllButton').addEventListener('click', function () { purge(true); });
 
-	// ---- icon framing and light, for any item; the controls come from the server's list of parameters ----
+	// ---- icon presets per type (the editor is ugc-icon-editor.js) ----
 
-	var PARAMS = [], framingItem = null, framingKind = '', previewTimer = null, previewUrl = null;
-	function stepDigits(step) { return step >= 1 ? 0 : 2; }
-	function buildControls(params) {
-		PARAMS = params;
-		$('framingControls').innerHTML = params.map(function (p) {
-			return '<div class="col-sm-6"><label class="d-flex justify-content-between" for="icon_' + esc(p.key) + '" title="' + esc(p.description || '') + '"><span>' + esc(p.label) +
-				'</span><span id="icon_' + esc(p.key) + '_value"></span></label><input type="range" class="form-range" id="icon_' + esc(p.key) + '" min="' + p.min + '" max="' + p.max + '" step="' + p.step + '"></div>';
-		}).join('');
+	function loadPresets() {
+		UgcIconEditor.kinds().then(function (kinds) {
+			$('presetsList').innerHTML = kinds.map(function (k) {
+				var sample = k.sample ? (k.kind === 'model' ? 'model ' + k.sample : 'modules ' + k.sample + (k.sampleBuilds ? ' (' + k.sampleBuilds + ' builds)' : '')) : 'nothing made yet';
+				return '<button type="button" class="btn btn-sm btn-outline-primary text-start" data-preset="' + esc(k.kind) + '"' + (k.sample ? '' : ' disabled') + '>' +
+					'<span class="fw-semibold">' + esc(k.label) + '</span><br><span class="small text-body-secondary">on ' + esc(sample) + '</span></button>';
+			}).join('');
+			$('presetsList').onclick = function (e) {
+				var button = e.target.closest('[data-preset]');
+				var entry = button && kinds.find(function (k) { return k.kind === button.dataset.preset; });
+				if (!entry || !entry.sample) return;
+				if (entry.kind === 'model') {
+					setKind('model');
+					preview(String(entry.sample));
+				} else {
+					setKind('modular');
+					preview(entry.sample, { id: entry.sample, modules: entry.sample.replace(/-/g, '+'), combination: entry.sample, state: 'done', sharedBy: entry.sampleBuilds });
+				}
+			};
+		}).catch(function (e) { $('presetsList').textContent = 'Could not load the icon types: ' + e.message; });
 	}
-	function framingValues() {
-		var out = {};
-		PARAMS.forEach(function (p) { out[p.key] = parseFloat($('icon_' + p.key).value); });
-		return out;
-	}
-	function setValues(values) {
-		if (!values) return;
-		PARAMS.forEach(function (p) {
-			if (values[p.key] === undefined || values[p.key] === null) return;
-			$('icon_' + p.key).value = values[p.key];
-			$('icon_' + p.key + '_value').textContent = (+values[p.key]).toFixed(stepDigits(p.step)) + (p.unit === 'degrees' ? '\u00b0' : '');
-		});
-	}
-	function itemQuery() {
-		return framingItem.model ? 'kind=model&id=' + encodeURIComponent(framingItem.id) : 'kind=modular&modules=' + encodeURIComponent(framingItem.modules || '');
-	}
-	function itemBody(extra) {
-		var body = framingItem.model ? { kind: 'model', id: framingItem.id } : { kind: 'modular', modules: framingItem.modules };
-		for (var k in extra) body[k] = extra[k];
-		return body;
-	}
-	function loadValues() {
-		return api.get('/api/ugc/icon/settings?' + itemQuery()).then(function (d) {
-			if (!d.success) { $('framingState').textContent = d.error || 'Failed'; return; }
-			framingKind = d.kind;
-			setValues(d.settings);
-			setValues(d.preset);
-			setValues(d.own);
-			$('framingState').textContent = d.own ? 'This item has its own values.' : d.preset ? 'The kind\'s preset.' : 'The default settings.';
-			renderPreview();
-		});
-	}
-	function openFraming(item, model) {
-		framingItem = { id: item.id, modules: item.modules, model: model };
-		var start = PARAMS.length ? Promise.resolve() : api.get('/api/ugc/icon/params').then(function (d) {
-			if (!d.success) return;
-			buildControls(d.params);
-			window.ugcIconKinds = d.kinds;
-		});
-		start.then(loadValues).then(function () {
-			var label = (window.ugcIconKinds || []).find(function (k) { return k.kind === framingKind; });
-			$('framingKind').textContent = label ? label.label : framingKind;
-		});
-	}
-	function renderPreview() {
-		if (!framingItem) return;
-		var img = $('framingPreview');
-		img.style.opacity = 0.5;
-		fetch('/api/ugc/icon/preview', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-			body: JSON.stringify(itemBody({ values: framingValues() })) }).then(function (r) {
-			if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'HTTP ' + r.status); });
-			return r.blob();
-		}).then(function (blob) {
-			if (previewUrl) URL.revokeObjectURL(previewUrl);
-			previewUrl = URL.createObjectURL(blob);
-			img.src = previewUrl;
-			img.style.opacity = 1;
-		}).catch(function (e) { img.style.opacity = 1; $('framingState').textContent = 'No preview: ' + e.message; });
-	}
-	function saved(d) { toast(d.success ? d.message : (d.error || 'Failed'), d.success ? 'success' : 'danger'); }
-	$('framingControls').addEventListener('input', function (e) {
-		var p = PARAMS.find(function (x) { return 'icon_' + x.key === e.target.id; });
-		if (p) $('icon_' + p.key + '_value').textContent = (+e.target.value).toFixed(stepDigits(p.step)) + (p.unit === 'degrees' ? '\u00b0' : '');
-		clearTimeout(previewTimer);
-		previewTimer = setTimeout(renderPreview, 350);
-	});
-	$('framingPreviewButton').addEventListener('click', renderPreview);
-	$('framingReset').addEventListener('click', function () {
-		if (!framingItem || !confirm('Remove this item\'s own values and go back to its kind\'s?')) return;
-		api.post('/api/ugc/icon/save', itemBody({ scope: 'item', values: null })).then(function (d) { saved(d); loadValues(); });
-	});
-	$('framingSaveType').addEventListener('click', function () {
-		if (!confirm('Use these values for every icon of this kind? Icons already made keep theirs until they are drawn again.')) return;
-		api.post('/api/ugc/icon/save', { scope: 'kind', kind: framingKind, values: framingValues() }).then(saved);
-	});
-	$('framingSaveCombo').addEventListener('click', function () {
-		if (!framingItem) return;
-		api.post('/api/ugc/icon/save', itemBody({ scope: 'item', values: framingValues() })).then(function (d) {
-			saved(d);
-			if (d.success) $('framingState').textContent = 'This item has its own values.';
-		});
-	});
-	$('framingRegenerate').addEventListener('click', function () {
-		if (!confirm('Draw every stored icon of this kind again with the saved values? (Only icons are drawn.)')) return;
-		api.post('/api/ugc/icon/regenerate', { kind: framingKind }).then(function (d) {
-			toast(d.success ? d.queued + ' icon' + (d.queued === 1 ? '' : 's') + ' queued' : (d.error || 'Failed'), d.success ? 'success' : 'danger');
-		});
-	});
+	loadPresets();
 
 	if (window.Live) Live.on('ugc', load);
 

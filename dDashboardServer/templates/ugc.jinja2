@@ -17,6 +17,15 @@
 		<div class="card-body py-2 small" id="serverStatus">Asking the UGC server…</div>
 	</div>
 
+	<details class="card mb-3" id="presetsCard">
+		<summary class="card-header py-2 small fw-semibold">Icon presets per type</summary>
+		<div class="card-body py-2 small">
+			<p class="text-body-secondary mb-2">Each type of icon (player models, and each car or rocket build type in the client's data) has a preset over the
+				default settings. Open one to set its camera, the model's turn, the light and the border on an example.</p>
+			<div class="d-flex flex-wrap gap-2" id="presetsList">Loading…</div>
+		</div>
+	</details>
+
 	<details class="card mb-3 d-none" id="cacheCard">
 		<summary class="card-header py-2 small fw-semibold">Stored files: delete and purge</summary>
 		<div class="card-body py-2 small">
@@ -109,21 +118,42 @@
 				</div>
 				<div class="mt-3" id="statsBox"></div>
 				<div class="card mt-3 d-none" id="framingCard">
-					<div class="card-header py-2 small fw-semibold d-flex align-items-center gap-2">Icon framing and light
-						<span class="ms-auto text-body-secondary fw-normal" id="framingKind"></span></div>
+					<div class="card-header py-2 small fw-semibold d-flex flex-wrap align-items-center gap-2">Icon editor
+						<span class="text-body-secondary fw-normal" id="framingKind"></span>
+						<span class="ms-auto text-body-secondary fw-normal" id="framingState">Preview drawn by the UGC server, not stored.</span></div>
 					<div class="card-body py-2 small">
 						<div class="row g-3">
-							<div class="col-md-8"><div class="row g-2" id="framingControls"></div></div>
-							<div class="col-md-4 text-center"><img id="framingPreview" alt="Preview" class="border rounded ugc-checker" width="128" height="128">
-								<div class="text-body-secondary" id="framingState">Preview drawn by the UGC server, not stored.</div></div>
+							<div class="col-lg-8">
+								<div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+									<div class="btn-group btn-group-sm" role="group" aria-label="What dragging changes" id="poseModes">
+										<button type="button" class="btn btn-outline-secondary active" data-mode="camera" title="Drag: the camera around the model">Camera</button>
+										<button type="button" class="btn btn-outline-secondary" data-mode="model" title="Drag: turn the model (Ctrl+drag in any mode; Alt+wheel rolls it)">Turn model</button>
+										<button type="button" class="btn btn-outline-secondary" data-mode="sun" title="Drag: the sun's direction (Alt+drag in any mode)">Sun</button>
+										<button type="button" class="btn btn-outline-secondary" data-mode="shift" title="Drag: move the model in the icon (Shift+drag or right drag in any mode)">Shift</button>
+									</div>
+									<div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="sunArrowSwitch" checked><label class="form-check-label" for="sunArrowSwitch">Sun arrow</label></div>
+									<span class="text-body-secondary">Wheel: border. The dashed square is the icon.</span>
+								</div>
+								<div id="poseView" class="rounded border" style="height: 420px"></div>
+								<div class="text-body-secondary mt-1" id="poseStats"></div>
+							</div>
+							<div class="col-lg-4 text-center">
+								<div class="d-flex justify-content-center gap-2 flex-wrap">
+									<figure class="mb-0"><img id="framingPreview" alt="Icon preview" class="border rounded ugc-checker" width="256" height="256" style="image-rendering: pixelated">
+										<figcaption class="text-body-secondary">Preview</figcaption></figure>
+								</div>
+								<div class="d-flex flex-column gap-1 mt-2">
+									<button type="button" class="btn btn-sm btn-outline-secondary" id="framingPreviewButton">Draw the preview again</button>
+									<button type="button" class="btn btn-sm btn-outline-primary ugc-manage" id="framingSaveType">Save as the preset for this type</button>
+									<button type="button" class="btn btn-sm btn-outline-primary ugc-manage" id="framingSaveCombo">Save for this item</button>
+									<button type="button" class="btn btn-sm btn-outline-secondary" id="framingResetType">Back to the type's preset</button>
+									<button type="button" class="btn btn-sm btn-outline-secondary" id="framingResetDefaults">Back to the default settings</button>
+									<button type="button" class="btn btn-sm btn-outline-danger ugc-manage" id="framingReset">Remove this item's own values</button>
+									<button type="button" class="btn btn-sm btn-outline-warning ugc-manage" id="framingRegenerate">Draw all icons of this type again</button>
+								</div>
+							</div>
 						</div>
-						<div class="d-flex flex-wrap gap-2 mt-2">
-							<button type="button" class="btn btn-sm btn-outline-secondary" id="framingPreviewButton">Preview</button>
-							<button type="button" class="btn btn-sm btn-outline-primary" id="framingSaveType">Save as the preset for this kind</button>
-							<button type="button" class="btn btn-sm btn-outline-primary" id="framingSaveCombo">Save for this item</button>
-							<button type="button" class="btn btn-sm btn-outline-secondary" id="framingReset">Reset</button>
-							<button type="button" class="btn btn-sm btn-outline-warning ms-auto" id="framingRegenerate">Draw all icons of this kind again</button>
-						</div>
+						<div class="row g-2 mt-1" id="framingControls"></div>
 					</div>
 				</div>
 			</div>
@@ -158,5 +188,6 @@
 }
 </script>
 <script src="/js/ldd-materials.js"></script>
+<script src="/js/ugc-icon-editor.js"></script>
 <script src="/js/ugc.js"></script>
 {% endblock %}
