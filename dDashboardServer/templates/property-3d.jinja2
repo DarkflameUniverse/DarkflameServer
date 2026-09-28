@@ -33,6 +33,7 @@
 		</div>
 		<span class="small text-body-secondary" id="viewerProgress"></span>
 		<button class="btn btn-sm btn-outline-secondary" id="resetViewBtn">Reset view</button>
+		<button class="btn btn-sm btn-outline-secondary" id="resetPropertyBtn" title="Start the property over as it's saved: every model back in its place and not smashed, behaviors stopped, the log and selection cleared, the view framed on the plot">Reset property</button>
 		<button class="btn btn-sm btn-outline-secondary" id="fullscreenBtn">Full screen</button>
 		<button class="btn btn-sm btn-outline-primary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#viewerPanel" aria-controls="viewerPanel">Panel</button>
 	</div>
@@ -467,6 +468,14 @@ document.getElementById('modelsToggle').addEventListener('change', (e) => viewer
 if (document.getElementById('generatedToggle')) document.getElementById('generatedToggle').addEventListener('change', () => { loadedLod = null; loadScene(); });
 document.getElementById('shadowToggle').addEventListener('change', (e) => viewer.setShadows(e.target.checked));
 document.getElementById('resetViewBtn').addEventListener('click', () => viewer.resetView());
+// The whole property as saved, fetched again: models placed as stored, behaviors from the start, nothing selected
+document.getElementById('resetPropertyBtn').addEventListener('click', () => {
+	if (/model=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+	viewer.select(null);
+	player.reset();
+	document.getElementById('behaviorLog').innerHTML = '<li class="text-body-secondary">Select a model with behaviors and trigger it.</li>';
+	load();
+});
 document.getElementById('fullscreenBtn').addEventListener('click', () => {
 	const wrap = document.getElementById('viewerWrap');
 	if (document.fullscreenElement) document.exitFullscreen();
