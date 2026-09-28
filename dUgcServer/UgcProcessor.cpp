@@ -300,11 +300,16 @@ void UgcProcessor::Poll() {
 	if (m_Paused) return;
 	// Enough to keep every worker busy until the next poll
 	const size_t wanted = std::max<size_t>(m_Threads.size() * 2, m_Config.pollBatch);
-	if (queued + active >= wanted) return;
-	const auto limit = static_cast<uint32_t>(wanted - queued - active + m_InFlight.size());
+	// Cars and rockets come first: the game client asks for their icons as soon as they're built. So a few are polled
+	// even when the queue is full of models, and they go to the front of the queue.
+	const bool full = queued + active >= wanted;
+	const auto limit = full ? 0u : static_cast<uint32_t>(wanted - queued - active + m_InFlight.size());
+	const auto buildLimit = std::max<uint32_t>(limit, static_cast<uint32_t>(m_Threads.size() + m_InFlight.size()));
 
 	std::vector<Job> jobs;
-	for (auto& model : Database::Get()->GetUgcModelsToProcess(limit)) {
+	std::vector<IUgc::PendingModel> models;
+	if (limit > 0) models = Database::Get()->GetUgcModelsToProcess(limit);
+	for (auto& model : models) {
 		if (m_InFlight.contains({ Kind::MODEL, model.id })) continue;
 		Job job{ Kind::MODEL, model.id, model.attempts, UgcJobs::LxfmlFromBlob(model.lxfml) };
 		if (job.blob.empty()) job.blob = std::move(model.lxfml); // the worker reports it can't be read
@@ -314,7 +319,7 @@ void UgcProcessor::Poll() {
 		jobs.push_back(std::move(job));
 	}
 	// Cars and rockets: one icon per combination of modules, shared by every build of it
-	for (auto& build : Database::Get()->GetModularBuildsToProcess(limit)) {
+	for (auto& build : Database::Get()->GetModularBuildsToProcess(buildLimit)) {
 		if (m_InFlight.contains({ Kind::MODULAR, build.id })) continue;
 		const auto key = UgcModularKey::Normalize(build.modules);
 		if (key.empty()) {
@@ -354,7 +359,8 @@ void UgcProcessor::Poll() {
 		std::lock_guard lock(m_Mutex);
 		for (auto& job : jobs) {
 			if (job.kind == Kind::MODEL) m_InFlight.insert({ job.kind, job.id });
-			m_Jobs.push_back(std::move(job));
+			if (job.kind == Kind::MODULAR) m_Jobs.push_front(std::move(job));
+			else m_Jobs.push_back(std::move(job));
 		}
 	}
 	m_Wake.notify_all();
