@@ -75,6 +75,8 @@
 		UgcLinks.details(box.dataset.ugcDetails, box.dataset.via, box.dataset.model).then(function (html) { body.innerHTML = html; });
 	}, true);
 
+	var linkCache = {}; // character id -> promise of its item links
+
 	window.UgcLinks = {
 		// A badge for the UGC server's state; a failure's reason as its tooltip
 		state: function (item) {
@@ -108,32 +110,49 @@
 			}).catch(function () { return {}; });
 		},
 		// Shows the creations among a character page's items (.inv-item[data-id]) with their own icon and a link
+		// Itemid -> the UGC link of each of a character's player-built items (fetched once per character)
+		inventoryLinks: function (characterId) {
+			if (!linkCache[characterId]) {
+				linkCache[characterId] = api.get('/api/ugc_links/character/' + characterId).then(function (d) {
+					var map = {};
+					((d && d.items) || []).forEach(function (item) { map[item.itemId] = item; });
+					return map;
+				});
+			}
+			return linkCache[characterId];
+		},
+
+		// Shows a player-built item's UGC icon and a link to the UGC viewer on one inventory item element
+		decorateItem: function (el, item) {
+			var img = el.querySelector('img');
+			if (img) {
+				var own = img.src;
+				img.onerror = function () { img.onerror = null; img.src = own; };
+				img.src = item.icon;
+			}
+			el.classList.add('inv-ugc');
+			el.title = (el.title ? el.title + ' - ' : '') + 'Player-built ' + (item.kind === 'modular' ? 'car or rocket' : 'model') + ' (UGC ' + item.ugcId + ', ' + item.state + ')';
+			if (item.link && !el.querySelector('.inv-ugc-link')) {
+				// Items may sit inside a link already (the item trace), so this is a button, not a nested link
+				var a = document.createElement('span');
+				a.className = 'inv-ugc-link';
+				a.setAttribute('role', 'link');
+				a.tabIndex = 0;
+				a.textContent = 'UGC';
+				a.title = 'Open in the UGC viewer';
+				var open = function (e) { e.preventDefault(); e.stopPropagation(); window.location.href = item.link; };
+				a.addEventListener('click', open);
+				a.addEventListener('keydown', function (e) { if (e.key === 'Enter') open(e); });
+				el.appendChild(a);
+			}
+		},
+
+		// Decorates the inventory items already on the page
 		decorateInventory: function (characterId, root) {
-			return api.get('/api/ugc_links/character/' + characterId).then(function (d) {
-				((d && d.items) || []).forEach(function (item) {
-					(root || document).querySelectorAll('.inv-item[data-id="' + item.itemId + '"]').forEach(function (el) {
-						var img = el.querySelector('img');
-						if (img) {
-							var own = img.src;
-							img.onerror = function () { img.onerror = null; img.src = own; };
-							img.src = item.icon;
-						}
-						el.classList.add('inv-ugc');
-						el.title = (el.title ? el.title + ' - ' : '') + 'Player-built ' + (item.kind === 'modular' ? 'car or rocket' : 'model') + ' (UGC ' + item.ugcId + ', ' + item.state + ')';
-						if (item.link && !el.querySelector('.inv-ugc-link')) {
-							// Items may sit inside a link already (the item trace), so this is a button, not a nested link
-							var a = document.createElement('span');
-							a.className = 'inv-ugc-link';
-							a.setAttribute('role', 'link');
-							a.tabIndex = 0;
-							a.textContent = 'UGC';
-							a.title = 'Open in the UGC viewer';
-							var open = function (e) { e.preventDefault(); e.stopPropagation(); window.location.href = item.link; };
-							a.addEventListener('click', open);
-							a.addEventListener('keydown', function (e) { if (e.key === 'Enter') open(e); });
-							el.appendChild(a);
-						}
-					});
+			var self = this;
+			return this.inventoryLinks(characterId).then(function (map) {
+				Object.keys(map).forEach(function (id) {
+					(root || document).querySelectorAll('.inv-item[data-id="' + id + '"]').forEach(function (el) { self.decorateItem(el, map[id]); });
 				});
 			}).catch(function () {});
 		}

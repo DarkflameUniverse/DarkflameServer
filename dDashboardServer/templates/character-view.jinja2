@@ -267,20 +267,11 @@
 					</li>
 					{% endfor %}
 				</ul>
+				<input type="search" class="form-control form-control-sm mt-2" id="inventoryFilter" placeholder="Filter by name or LOT" aria-label="Filter the items">
 				<div class="tab-content mt-3">
 					{% for inv in character.stats.inventories %}
-					<div class="tab-pane fade{% if loop.is_first %}{{ " show active" }}{% endif %}" id="inv-{{ inv.type_id }}">
-						<div class="d-flex flex-wrap">
-							{% for item in inv.items %}
-							{% if can.reports_view and item.id != "" %}<a href="/reports?object={{ item.id }}" class="text-reset text-decoration-none" aria-label="Trace {{ item.name }}">{% endif %}
-							<div class="inv-item{% if item.equipped %}{{ " equipped" }}{% endif %}" data-id="{{ item.id }}" data-lot="{{ item.lot }}" data-count="{{ item.count }}" data-equipped="{% if item.equipped %}1{% endif %}" data-bound="{% if item.bound %}1{% endif %}" title="{{ item.name }}">
-								<img src="/api/icon/{{ item.lot }}" alt="{{ item.name }}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22><rect fill=%22%23333%22 width=%2264%22 height=%2264%22/><text x=%2232%22 y=%2236%22 fill=%22%23888%22 text-anchor=%22middle%22 font-size=%2210%22>{{ item.lot }}</text></svg>'">
-								{% if item.count > 1 %}<span class="inv-count">{% if item.count > 999 %}999+{% else %}{{ item.count }}{% endif %}</span>{% endif %}
-								{% if item.bound %}<span class="inv-lock">L</span>{% endif %}
-							</div>
-							{% if can.reports_view and item.id != "" %}</a>{% endif %}
-							{% endfor %}
-						</div>
+					<div class="tab-pane fade{% if loop.is_first %}{{ " show active" }}{% endif %}" id="inv-{{ inv.type_id }}" data-inventory="{{ inv.type_id }}">
+						<div class="d-flex flex-wrap" data-items><span class="text-body-secondary small">Loading&hellip;</span></div>
 					</div>
 					{% endfor %}
 				</div>
@@ -492,9 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		el.textContent = ts > 0 ? new Date(ts * 1000).toLocaleString() : 'Never';
 	}
 	var inventory = document.getElementById('inventoryModal');
-	if (inventory) inventory.addEventListener('show.bs.modal', loadItemTooltips, { once: true });
-	// Models, cars and rockets the player built show the UGC server's icon of them
-	if (inventory) inventory.addEventListener('show.bs.modal', function () { UgcLinks.decorateInventory(characterId, inventory); }, { once: true });
+	if (inventory) inventory.addEventListener('show.bs.modal', InventoryView.open, { once: true });
 });
 
 var characterId = document.getElementById('restrictions').getAttribute('data-character-id');
@@ -548,19 +537,142 @@ function tooltipHtml(info, el) {
 	return html;
 }
 
-function loadItemTooltips() {
-	var items = Array.prototype.slice.call(document.querySelectorAll('.inv-item[data-lot]'));
-	var lots = Array.from(new Set(items.map(function (el) { return parseInt(el.getAttribute('data-lot'), 10); })));
-	if (!lots.length) return;
-	api.post('/api/items/info', { lots: lots }).then(function (info) {
-		items.forEach(function (el) {
-			var item = info[el.getAttribute('data-lot')];
-			if (!item) return;
-			el.removeAttribute('title');
-			new bootstrap.Tooltip(el, { html: true, title: tooltipHtml(item, el), placement: 'right', fallbackPlacements: ['left', 'bottom', 'top'], customClass: 'item-tooltip' });
-		});
+/**
+ * The inventory modal. Characters can own thousands of kinds of item (every brick), so the items are drawn from the
+ * summary API one tab at a time and in chunks as the tab scrolls, with a filter; each chunk's item details (for the
+ * tooltips, at most 500 per request) and UGC icons are fetched as it's drawn, and a tooltip is made on first hover.
+ */
+var InventoryView = (function () {
+	var CHUNK = 240;
+	var inventories = {}, shown = {}, info = {}, ugcLinks = null, filter = '';
+	var canTrace = DASH.can('reports_view');
+	var modal = document.getElementById('inventoryModal');
+
+	function fallbackIcon(lot) {
+		return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect fill="#333" width="64" height="64"/><text x="32" y="36" fill="#888" text-anchor="middle" font-size="10">' + lot + '</text></svg>');
+	}
+	function itemEl(item) {
+		var div = document.createElement('div');
+		div.className = 'inv-item' + (item.equipped ? ' equipped' : '');
+		div.dataset.id = item.id || '';
+		div.dataset.lot = item.lot;
+		div.dataset.count = item.count;
+		if (item.equipped) div.dataset.equipped = '1';
+		if (item.bound) div.dataset.bound = '1';
+		div.title = item.name || ('LOT ' + item.lot);
+		var img = document.createElement('img');
+		img.loading = 'lazy';
+		img.alt = item.name || '';
+		img.src = '/api/icon/' + item.lot;
+		img.onerror = function () { img.onerror = null; img.src = fallbackIcon(item.lot); };
+		div.appendChild(img);
+		if (item.count > 1) { var c = document.createElement('span'); c.className = 'inv-count'; c.textContent = item.count > 999 ? '999+' : item.count; div.appendChild(c); }
+		if (item.bound) { var l = document.createElement('span'); l.className = 'inv-lock'; l.textContent = 'L'; div.appendChild(l); }
+		if (ugcLinks && item.id && ugcLinks[item.id]) UgcLinks.decorateItem(div, ugcLinks[item.id]);
+		if (!canTrace || !item.id) return div;
+		var a = document.createElement('a');
+		a.href = '/reports?object=' + encodeURIComponent(item.id);
+		a.className = 'text-reset text-decoration-none';
+		a.setAttribute('aria-label', 'Trace ' + (item.name || item.lot));
+		a.appendChild(div);
+		return a;
+	}
+	function matches(item) {
+		return !filter || String(item.lot).indexOf(filter) === 0 || (item.name || '').toLowerCase().indexOf(filter) !== -1;
+	}
+	// Item details for the tooltips of the lots just drawn, at most 500 a request
+	function loadInfo(items) {
+		var lots = Array.from(new Set(items.map(function (i) { return i.lot; }).filter(function (lot) { return !(lot in info); })));
+		for (var i = 0; i < lots.length; i += 500) {
+			var batch = lots.slice(i, i + 500);
+			batch.forEach(function (lot) { info[lot] = null; });
+			api.post('/api/items/info', { lots: batch }).then(function (d) {
+				Object.keys(d || {}).forEach(function (lot) { info[lot] = d[lot]; });
+			}).catch(function () {});
+		}
+	}
+	// Draws the next chunk of a tab; a sentinel at the end draws the one after when it scrolls into view
+	function drawMore(type) {
+		var pane = document.getElementById('inv-' + type);
+		var box = pane && pane.querySelector('[data-items]');
+		if (!box) return;
+		var state = shown[type];
+		var chunk = state.items.slice(state.count, state.count + CHUNK);
+		var old = box.querySelector('.inv-more');
+		if (old) old.remove();
+		var frag = document.createDocumentFragment();
+		chunk.forEach(function (item) { frag.appendChild(itemEl(item)); });
+		box.appendChild(frag);
+		state.count += chunk.length;
+		loadInfo(chunk);
+		if (!state.items.length) box.innerHTML = '<span class="text-body-secondary small">' + (filter ? 'Nothing matches.' : 'Empty.') + '</span>';
+		if (state.count < state.items.length) {
+			var more = document.createElement('div');
+			more.className = 'inv-more w-100 text-center small text-body-secondary py-2';
+			more.textContent = (state.items.length - state.count).toLocaleString() + ' more…';
+			box.appendChild(more);
+			var observer = new IntersectionObserver(function (entries) {
+				if (!entries.some(function (e) { return e.isIntersecting; })) return;
+				observer.disconnect();
+				drawMore(type);
+			}, { root: modal.querySelector('.modal-body') });
+			observer.observe(more);
+		}
+	}
+	function drawTab(type) {
+		var inv = inventories[type];
+		var box = document.querySelector('#inv-' + type + ' [data-items]');
+		if (!inv || !box) return;
+		box.innerHTML = '';
+		shown[type] = { items: inv.items.filter(matches), count: 0 };
+		drawMore(type);
+	}
+	function activeType() {
+		var pane = modal.querySelector('.tab-pane.active');
+		return pane ? pane.dataset.inventory : null;
+	}
+
+	// Tooltips: made when an item is first hovered, from the details loaded with its chunk
+	modal.addEventListener('mouseover', function (e) {
+		var el = e.target.closest('.inv-item[data-lot]');
+		if (!el || el.dataset.tip) return;
+		var item = info[el.dataset.lot];
+		if (!item) return;
+		el.dataset.tip = '1';
+		el.removeAttribute('title');
+		bootstrap.Tooltip.getOrCreateInstance(el, { html: true, title: tooltipHtml(item, el), placement: 'right', fallbackPlacements: ['left', 'bottom', 'top'], customClass: 'item-tooltip' }).show();
 	});
-}
+	modal.addEventListener('shown.bs.tab', function (e) {
+		var type = (e.target.dataset.bsTarget || '').replace('#inv-', '');
+		if (inventories[type] && !shown[type]) drawTab(type);
+	});
+	var filterTimer = null;
+	var filterInput = document.getElementById('inventoryFilter');
+	if (filterInput) filterInput.addEventListener('input', function () {
+		clearTimeout(filterTimer);
+		filterTimer = setTimeout(function () {
+			filter = filterInput.value.trim().toLowerCase();
+			shown = {};
+			var type = activeType();
+			if (type) drawTab(type);
+		}, 200);
+	});
+
+	return {
+		open: function () {
+			// Models, cars and rockets the player built show the UGC server's icon of them
+			var links = UgcLinks.inventoryLinks(characterId).then(function (map) { ugcLinks = map; }).catch(function () { ugcLinks = {}; });
+			var summary = api.get('/api/characters/' + characterId + '/summary');
+			Promise.all([summary, links]).then(function (r) {
+				var d = r[0];
+				if (!d || !d.success) { modal.querySelectorAll('[data-items]').forEach(function (b) { b.textContent = (d && d.error) || 'Could not load the inventory'; }); return; }
+				(d.summary.inventories || []).forEach(function (inv) { inventories[inv.type] = inv; });
+				var type = activeType();
+				if (type) drawTab(type);
+			}).catch(function () {});
+		}
+	};
+})();
 
 function openMailbox() {
 	var list = document.getElementById('mailList');
