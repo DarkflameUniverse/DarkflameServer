@@ -452,7 +452,10 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	Game::server->Send(stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
+	// Players still loading were to get it once loaded: only the ones it was taken down for (all of them, or the one
+	// player; taking it down for one player, e.g. out of their ghosting range, leaves the others' queue alone)
 	for (auto* player : PlayerManager::GetAllPlayers()) {
+		if (sysAddr != UNASSIGNED_SYSTEM_ADDRESS && player->GetSystemAddress() != sysAddr) continue;
 		if (!player->GetPlayerReadyForUpdates()) {
 			auto* ghostComponent = player->GetComponent<GhostComponent>();
 			if (ghostComponent) ghostComponent->RemoveLimboConstruction(entity->GetObjectID());
