@@ -121,7 +121,7 @@ namespace {
 		settings.shaders.glitter = std::min(Setting<uint32_t>("shader_glitter", 21), 9999u);
 		settings.shaders.glitterParams.tile = std::clamp(Setting<float>("glitter_size", 1.6f), 0.1f, 100.0f);
 		settings.shaders.glitterParams.flecks = std::min(Setting<uint32_t>("glitter_density", 50), 2000u);
-		settings.shaders.glitterParams.speed = std::clamp(Setting<float>("glitter_speed", 0.0f), 0.0f, 100.0f);
+		settings.shaders.glitterParams.speed = std::clamp(Setting<float>("glitter_speed", 1.0f), 0.0f, 100.0f);
 		// Which Materials.xml MaterialTypes are metal, brushed steel and glitter
 		for (const auto& [key, look] : { std::pair{ "metal_material_types", UgcModel::eLook::METAL }, std::pair{ "brushed_material_types", UgcModel::eLook::BRUSHED },
 			std::pair{ "glitter_material_types", UgcModel::eLook::GLITTER } }) {
