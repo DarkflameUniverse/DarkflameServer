@@ -368,6 +368,7 @@ void UgcProcessor::Record(const Done& done) {
 		: attempts >= m_Config.maxAttempts ? IUgc::eProcessState::FAILED : IUgc::eProcessState::PENDING;
 	if (done.kind == Kind::MODEL) {
 		Database::Get()->SetUgcModelProcessed(done.id, state, attempts, error, done.outcome.ok && done.outcome.aoBaked);
+		if (done.outcome.ok) Database::Get()->SetUgcModelProcessMs(done.id, static_cast<uint32_t>(done.milliseconds));
 		// What it counted (stats.json), for sorting on the dashboard
 		const auto stats = done.outcome.ok && !done.outcome.stats.empty() ? nlohmann::json::parse(done.outcome.stats, nullptr, false) : nlohmann::json();
 		if (stats.is_object()) {
@@ -377,6 +378,7 @@ void UgcProcessor::Record(const Done& done) {
 		}
 	} else {
 		Database::Get()->SetModularBuildProcessed(done.id, state, attempts, error);
+		if (done.outcome.ok) Database::Get()->SetModularBuildProcessMs(done.id, static_cast<uint32_t>(done.milliseconds));
 		// Which combination's files it shares, for the worlds' manifest answers
 		if (const auto combo = m_ComboOf.find(done.id); combo != m_ComboOf.end()) Database::Get()->SetModularBuildCombination(done.id, combo->second);
 	}

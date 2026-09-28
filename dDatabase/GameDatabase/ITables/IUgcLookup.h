@@ -36,6 +36,7 @@ public:
 		bool bakeAo{};
 		uint32_t bricks{};          // models: counted by the UGC server when it made them (0: not yet)
 		uint32_t triangles{};       // models: of the made mesh's most detailed level (0: not yet)
+		uint32_t processMs{};       // how long the last successful make took (0: not made, or made before it was timed)
 	};
 
 	// What SearchUgc matches. A number (when set) is matched against ids; text against names
@@ -60,6 +61,7 @@ public:
 		NAME,      // models: the upload's file name; modular builds: the modules
 		BRICKS,    // models: the most bricks first
 		TRIANGLES, // models: the most triangles first
+		SLOWEST,   // the longest last make first (process_ms)
 	};
 
 	// A page of one kind: all of them or those matching the search (the same matching as SearchUgc), in a state or any

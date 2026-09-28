@@ -20,6 +20,7 @@ namespace {
 		entry.bakeAo = result->getInt("bake_ao") != 0;
 		entry.bricks = static_cast<uint32_t>(result->getInt64("brick_count"));
 		entry.triangles = static_cast<uint32_t>(result->getInt64("triangle_count"));
+		entry.processMs = static_cast<uint32_t>(result->getInt64("process_ms"));
 		return entry;
 	}
 }

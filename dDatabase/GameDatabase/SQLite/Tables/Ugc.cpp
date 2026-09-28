@@ -197,3 +197,7 @@ std::optional<IUgc::FileChecksum> SQLiteDatabase::GetUgcFileChecksum(const LWOOB
 	if (result.eof()) return std::nullopt;
 	return IUgc::FileChecksum{ std::string(result.getStringField("md5", "")), static_cast<uint32_t>(result.getInt64Field("size")) };
 }
+
+void SQLiteDatabase::SetUgcModelProcessMs(const LWOOBJID id, const uint32_t milliseconds) {
+	ExecuteUpdate("UPDATE ugc SET process_ms = ? WHERE id = ?;", milliseconds, id);
+}

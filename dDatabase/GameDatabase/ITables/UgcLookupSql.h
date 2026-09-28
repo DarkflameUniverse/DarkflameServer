@@ -31,10 +31,10 @@ namespace UgcLookupSql {
 		return (modular
 			? "SELECT b.ugc_id AS id, b.character_id, c.name AS character_name, COALESCE(c.account_id, 0) AS account_id, a.name AS account_name, "
 			  "b.is_optimized, b.process_error, b.ldf_config AS detail, b.process_attempts, b.processed_at, 0 AS process_after, 0 AS bake_ao, "
-			  "0 AS brick_count, 0 AS triangle_count "
+			  "0 AS brick_count, 0 AS triangle_count, b.process_ms "
 			: "SELECT u.id, u.character_id, c.name AS character_name, u.account_id, a.name AS account_name, "
 			  "u.is_optimized, u.process_error, u.filename AS detail, u.process_attempts, u.processed_at, u.process_after, u.bake_ao, "
-			  "u.brick_count, u.triangle_count ") + From(modular);
+			  "u.brick_count, u.triangle_count, u.process_ms ") + From(modular);
 	}
 
 	// Whether a search has anything to match (else a list is of everything)
@@ -58,6 +58,7 @@ namespace UgcLookupSql {
 		case eSort::NAME: return std::string("ORDER BY ") + (modular ? "b.ldf_config" : "u.filename") + dir(false) + ", " + id + " DESC ";
 		case eSort::BRICKS: return modular ? "ORDER BY " + id + dir(true) + " " : "ORDER BY u.brick_count" + std::string(dir(true)) + ", u.id DESC ";
 		case eSort::TRIANGLES: return modular ? "ORDER BY " + id + dir(true) + " " : "ORDER BY u.triangle_count" + std::string(dir(true)) + ", u.id DESC ";
+		case eSort::SLOWEST: return "ORDER BY " + std::string(modular ? "b" : "u") + ".process_ms" + dir(true) + ", " + id + " DESC ";
 		default: return "ORDER BY " + id + dir(true) + " ";
 		}
 	}

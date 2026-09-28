@@ -95,6 +95,9 @@ public:
 	// What the UGC server counted when it made a model: its bricks and the most detailed mesh's triangles
 	virtual void SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles) = 0;
 
+	// How long the last successful make of a model took (process_ms), for the dashboard
+	virtual void SetUgcModelProcessMs(const LWOOBJID id, const uint32_t milliseconds) = 0;
+
 	virtual std::optional<ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) = 0;
 
 	// Sets models back to pending with no attempts: one (`id`), or all of them (`id` nullopt; only the failed ones

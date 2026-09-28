@@ -119,3 +119,7 @@ std::vector<IUgcModularBuild::PendingBuild> MySQLDatabase::GetModularBuildsWitho
 	}
 	return builds;
 }
+
+void MySQLDatabase::SetModularBuildProcessMs(const LWOOBJID id, const uint32_t milliseconds) {
+	ExecuteUpdate("UPDATE ugc_modular_build SET process_ms = ? WHERE ugc_id = ?;", milliseconds, id);
+}

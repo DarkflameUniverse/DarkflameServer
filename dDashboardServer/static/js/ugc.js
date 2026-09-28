@@ -11,7 +11,7 @@
 
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
 	var SORTS = {
-		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['owner', 'Owner'], ['name', 'File name']],
+		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['slowest', 'Slowest to make'], ['owner', 'Owner'], ['name', 'File name']],
 		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['name', 'Name']]
 	};
 	// The list's state, as in the address: ?kind=&q=&state=&type=&sort=&page= (from 1)&view=, and the open item (&item=, &build=)
@@ -89,6 +89,17 @@
 		return '<img src="' + esc(fileUrl(list.kind, iconId(i), 'icon.png')) + '" width="' + size + '" height="' + size + '" loading="lazy" alt="" class="ugc-checker rounded" onerror="this.style.visibility=\'hidden\'">';
 	}
 	function moduleNames(i) { return (i.moduleList || []).map(function (m) { return m.name || m.lot; }).join(', '); }
+	// How long a make took: "850 ms", "12.4 s", "2 min 5 s"
+	function duration(ms) {
+		if (ms < 1000) return ms + ' ms';
+		if (ms < 60000) return (ms / 1000).toFixed(1) + ' s';
+		return Math.floor(ms / 60000) + ' min ' + Math.round((ms % 60000) / 1000) + ' s';
+	}
+	// When it was made and how long that took (the time is only known for makes since it was recorded)
+	function madeText(i) {
+		if (!i.processedAt) return '';
+		return fmt.unix(i.processedAt) + (i.processMs ? ' \u00b7 took ' + duration(i.processMs) : '');
+	}
 	function waitBadge(i) {
 		return i.state === 'pending' && i.processAfter > Date.now() / 1000 ? ' <span class="small text-body-secondary" title="Waits for the owner to stop saving">after ' + esc(fmt.unix(i.processAfter)) + '</span>' : '';
 	}
@@ -96,7 +107,8 @@
 		var title = list.kind === 'modular' ? esc(i.kindLabel || 'Build type ' + i.buildType) : (i.characterName ? esc(i.characterName) : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>');
 		var sub = list.kind === 'modular' ? esc(moduleNames(i)) : esc(i.id);
 		var extra = list.kind === 'modular' ? ' ' + fmt.badge(i.uses + ' build' + (i.uses === 1 ? '' : 's'), 'info') : waitBadge(i);
-		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(i.error || sub) + '">' + iconImg(i, 128) +
+		var tip = i.error || (list.kind === 'modular' ? moduleNames(i) : i.id) + (madeText(i) ? '\nMade ' + madeText(i) : '');
+		return '<div class="card ugc-tile p-2" tabindex="0" role="button" data-preview="' + esc(i.id) + '" title="' + esc(tip) + '">' + iconImg(i, 128) +
 			'<div class="small text-truncate mt-1">' + title + '</div><div class="small text-body-secondary text-truncate">' + sub + '</div><div>' + badge(i.state) + extra + '</div></div>';
 	}
 	function actions(i, remakeId) {
@@ -119,7 +131,7 @@
 			column('State', function (i) {
 				return badge(i.state) + (i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i);
 			}),
-			column('Made', function (i) { return '<span class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</span>'; }),
+			column('Made', function (i) { return '<span class="small">' + esc(madeText(i)) + '</span>'; }, 'slowest', true),
 			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
 			column('File', function (i) { return '<span class="small">' + esc(i.detail || '') + '</span>' + errorText(i); }, 'name'),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })
@@ -381,7 +393,7 @@
 				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="gone">Delete files, leave deleted</button></div>';
 		}
 		if (item.error) links += '<div class="text-danger mt-2">' + esc(item.error) + '</div>';
-		$('previewLinks').innerHTML = links;
+		$('previewLinks').innerHTML = (!modular && madeText(item) ? '<div class="small text-body-secondary mb-1">Made ' + esc(madeText(item)) + '</div>' : '') + links;
 		['nifColumn', 'lxfmlColumn', 'meshControls'].forEach(function (x) { $(x).classList.toggle('d-none', modular); });
 		$('statsBox').innerHTML = modular ? '<div class="small mb-1">Modules (combination <code>' + esc(item.key) + '</code>, used by ' + esc(item.uses) + ' build' + (item.uses === 1 ? '' : 's') +
 			'). The game client puts cars and rockets together itself; the UGC server only draws the icon, once per combination.</div>' + modulesHtml(item) : '';
@@ -448,6 +460,7 @@
 		column('Owner', owner, 'owner'),
 		column('Account', function (b) { return b.accountId ? '<a href="/accounts/' + esc(b.accountId) + '">' + esc(b.accountName || b.accountId) + '</a>' : ''; }, 'account'),
 		column('State', function (b) { return badge(b.state) + errorText(b); }, 'state'),
+		column('Made', function (b) { return '<span class="small">' + esc(madeText(b)) + '</span>'; }),
 		column('Where it is', function (b) { return whereText(b.where); }),
 		column('', function (b) { return '<div class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/ugc_search?q=' + encodeURIComponent('id:' + b.id) + '">Find</a></div>'; })
 	];

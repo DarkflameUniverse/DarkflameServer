@@ -32,6 +32,9 @@ public:
 	// The combination of modules a build was made as (UgcModularKey::StorageId of its modules), whose files it shares
 	virtual void SetModularBuildCombination(const LWOOBJID id, const LWOOBJID combinationId) = 0;
 
+	// How long the last successful make of a build's icon took (process_ms), for the dashboard
+	virtual void SetModularBuildProcessMs(const LWOOBJID id, const uint32_t milliseconds) = 0;
+
 	// Up to `limit` builds whose combination isn't recorded yet (combination_id 0): their ids and modules
 	virtual std::vector<PendingBuild> GetModularBuildsWithoutCombination(const uint32_t limit) = 0;
 
