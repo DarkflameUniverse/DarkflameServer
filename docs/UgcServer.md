@@ -225,7 +225,7 @@ all of its levels, so each look needs a group of its own.
 | Setting (`ugcconfig.ini`, dashboard: UGC models) | Default | What it writes |
 | --- | --- | --- |
 | `shader_metal` | 0 (off) | `S<id>_Metal_Model` for metal colors: 88 is Polished Metal (gameValue 98). The client loads `textures/metal/metal_reflection_polished.dds` itself and tints it by the vertex color (`Metallic.fx`, `Technique_Lighting_PolishedMetal_VertColor`). |
-| `shader_brushed` | 0 (off) | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The textures are registered by the client (0x00453730) as global shader textures 6 and 7, so the .nif needs none. The client's Materials.xml has no brushed types, so this needs `brushed_colors` or a Materials.xml that names them. |
+| `shader_brushed` | 0 (off) | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The textures are registered by the client (`RegisterBrushedSteelTextures`, 0x00467090) as global shader textures 6 and 7, so the .nif needs none. The client's Materials.xml has no brushed types, so this needs `brushed_colors` or a Materials.xml that names them. |
 | `shader_glow` | 0 (off) | `S<id>_Glow_Model` for opaque glowing colors: 46 is LEGO-Emissive (gameValue 53), which draws `lerp(lit, vertex color, vertex alpha * material emissive red)`, opaque. |
 | `glow_emissive` | 1 | The glow shapes' `NiMaterialProperty` emissive (grey): how far the shader goes from lit to the plain color. |
 | `metal_material_types` | `shinySteel` | Materials.xml `MaterialType`s that are metal (empty: the default; `none`: none). |
@@ -408,10 +408,12 @@ serving), the worlds:
 * **Property load**: send the LXFML of every model (one `BlueprintSaveResponse`): the client builds each model's NIF
   and HKX (its collision; the UGC server makes no physics). For the models whose mesh the UGC server made (a
   `model.nif` in `ugc_file_checksums`), once the client has loaded (`PlayerLoaded`) and 3 seconds after, the world
-  sends it the served NIF's checksum and `NotifyClientUGCModelReady` for each placed copy. The client drops what it
-  cached for the model and asks again: its cache now has the served NIF's checksum, which its own file doesn't match,
-  so it downloads the served mesh, and still has its own HKX's, so it keeps the collision it built. The model shows
-  as the client built it for those few seconds.
+  sends it the served NIF's checksum, `NotifyClientUGCModelReady`, and takes the model down and constructs it again for
+  that client. `NotifyClientUGCModelReady` alone only flushes the client's cached NIF, HKX and LXFML and loads them
+  again as preloads (0x00ca6430): an object already drawn keeps its mesh. The object constructed again loads the NIF,
+  whose cached checksum is now the served one, which the client's own file doesn't match, so it downloads the served
+  mesh; the HKX's is still its own, so it keeps the collision it built. The model shows as the client built it for
+  those few seconds.
 * **NIF** of a made model: the UGC server's checksum; the client downloads `<id>.nif.sd0` from the UGC server.
 * **LXFML** of a made model: the MD5 and size of the stored LXFML inflated (what the UGC server serves as
   `<id>.lxfml.sd0`), worked out once per model and kept.
@@ -423,8 +425,9 @@ serving), the worlds:
   never left waiting. A blueprint that isn't a player model gets valid 0.
 * **Made again**: when the UGC server writes a model's mesh with a different checksum than before (made for the first
   time, or remade after a change), it sends `UGC_MODELS_MADE` (master message 37, the blueprint ids) to the master,
-  which passes it to every world. A world with that model placed sends every player the new NIF checksum and then
-  `NotifyClientUGCModelReady` to the model, so a client showing the model it built itself switches to the served mesh.
+  which passes it to every world. A world with that model placed sends every player the new NIF checksum, then
+  `NotifyClientUGCModelReady` and the model constructed again to each player it's shown to, so the served mesh
+  replaces what the client showed.
   A model made again unchanged (after eviction) isn't sent. Nothing polls: one message per batch of made models.
 
 ### Waiting while the owner is still building

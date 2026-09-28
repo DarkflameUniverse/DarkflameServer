@@ -14,6 +14,8 @@
 #include "eBlueprintSaveResponseType.h"
 #include "Entity.h"
 #include "EntityManager.h"
+#include "GhostComponent.h"
+#include "Character.h"
 #include "Game.h"
 #include "Logger.h"
 #include "MD5.h"
@@ -240,6 +242,25 @@ void UgcManifest::OnRequest(const SystemAddress& sysAddr, LWOOBJID blueprintId, 
 }
 
 namespace {
+	// Shows a placed model to one client again with the served mesh. NotifyClientUGCModelReady only flushes the
+	// client's cached NIF, HKX and LXFML and loads them again as preloads (LWOBlueprintComponent::
+	// OnNotifyClientUGCModelReady, 0x00ca6430): an object already drawn keeps its mesh. So the object is also taken
+	// down and constructed again for that client, and its new render component loads the NIF, whose cached checksum
+	// is now the served one (sent first). The HKX's is still the one the client built, so it keeps its collision.
+	void ShowServedMesh(Entity& model, Entity& player, const LWOOBJID blueprintId) {
+		const auto sysAddr = player.GetSystemAddress();
+		if (model.GetIsGhostingCandidate()) {
+			auto* const ghost = player.GetComponent<GhostComponent>();
+			if (!ghost || !ghost->IsObserved(model.GetObjectID())) return; // not shown to this client (yet)
+		}
+		GameMessages::NotifyClientUGCModelReady ready;
+		ready.target = model.GetObjectID();
+		ready.blueprintID = blueprintId;
+		ready.Send(sysAddr);
+		Game::entityManager->DestructEntity(&model, sysAddr);
+		Game::entityManager->ConstructEntity(&model, sysAddr);
+	}
+
 	// Switches one client to a model's served mesh; false while the client isn't ready for it yet
 	bool SwitchToServedMesh(Switch& pending, const std::chrono::steady_clock::time_point now) {
 		auto* const player = PlayerManager::GetPlayer(pending.sysAddr);
@@ -255,13 +276,11 @@ namespace {
 		size_t shown = 0;
 		for (auto* const model : Game::entityManager->GetEntitiesByLOT(BrickByBrick::MODEL_OBJECT_LOT)) {
 			if (!model || model->GetVar<LWOOBJID>(u"blueprintid") != pending.blueprintId) continue;
-			GameMessages::NotifyClientUGCModelReady ready;
-			ready.target = model->GetObjectID();
-			ready.blueprintID = pending.blueprintId;
-			ready.Send(pending.sysAddr);
+			ShowServedMesh(*model, *player, pending.blueprintId);
 			shown++;
 		}
-		LOG_DEBUG("Switched a client to the served mesh of %llu (%zu placed)", static_cast<unsigned long long>(pending.blueprintId), shown);
+		LOG("Showed %s the served mesh of model %llu (%zu placed)", player->GetCharacter() ? player->GetCharacter()->GetName().c_str() : "a player",
+			static_cast<unsigned long long>(pending.blueprintId), shown);
 		return true;
 	}
 }
@@ -304,11 +323,9 @@ void UgcManifest::OnModelsMade(const std::vector<LWOOBJID>& blueprintIds) {
 		for (auto* const player : players) {
 			if (player) Send(player->GetSystemAddress(), id, eUgcResourceType::NIF, checksum);
 		}
-		for (auto* const model : shown) {
-			GameMessages::NotifyClientUGCModelReady ready;
-			ready.target = model->GetObjectID();
-			ready.blueprintID = id;
-			ready.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		for (auto* const player : players) {
+			if (!player) continue;
+			for (auto* const model : shown) ShowServedMesh(*model, *player, id);
 		}
 		LOG("The UGC server made model %llu again: told %zu client(s) about %zu placed model(s)", static_cast<unsigned long long>(id), players.size(), shown.size());
 	}
