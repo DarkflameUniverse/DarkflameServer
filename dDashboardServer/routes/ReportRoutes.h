@@ -41,6 +41,9 @@ std::optional<std::string> ZoneLuzPath(uint32_t zoneId);
 // ZoneRaw, shared: the last few zones read are kept, and a zone asked for by several threads at once is read once
 std::shared_ptr<const Raw::Raw> ZoneRawShared(uint32_t zoneId);
 
+// Standard base64 for zone data sent as JSON (plain C++: fine on worker threads)
+std::string ZoneDataBase64(std::string_view bytes);
+
 // A zone's terrain file (.raw) read whole, as its .luz names it; nullopt without client files or when it's damaged
 std::optional<Raw::Raw> ZoneRaw(uint32_t zoneId);
 

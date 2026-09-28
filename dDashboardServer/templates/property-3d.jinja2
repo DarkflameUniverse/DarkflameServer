@@ -88,6 +88,11 @@
 							</select>
 							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="terrainToggle" data-pref="property3d.terrain" checked><label class="form-check-label" for="terrainToggle">Terrain</label></div>
 							<div class="form-check form-switch mb-0 small" id="sceneryWrap" title="Every object of the zone around the property, drawn from the game client's files"><input class="form-check-input" type="checkbox" id="sceneryToggle" data-pref="property3d.scenery" checked><label class="form-check-label" for="sceneryToggle">Scenery</label></div>
+							<label class="visually-hidden" for="sceneMode">Which scenes</label>
+							<select id="sceneMode" class="form-select form-select-sm w-auto" data-pref="property3d.sceneMode" title="Which of the zone's scenes the scenery shows. As the game loads them: the scene under the camera, the scenes connected to it and the global scene">
+								<option value="all" selected>Every scene</option>
+								<option value="game">Scenes as the game loads them</option>
+							</select>
 							<div class="form-check form-switch mb-0 small" id="boundaryWrap"><input class="form-check-input" type="checkbox" id="boundaryToggle" data-pref="property3d.boundary" checked><label class="form-check-label" for="boundaryToggle">Build area</label></div>
 							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="shadowToggle" data-pref="property3d.shadows" checked><label class="form-check-label" for="shadowToggle">Shadows</label></div>
 							<div class="form-check form-switch mb-0 small" title="The zone's sky, as the game draws it (with Scenery on)"><input class="form-check-input" type="checkbox" id="skyToggle" data-pref="property3d.sky" checked><label class="form-check-label" for="skyToggle">Sky</label></div>
@@ -382,8 +387,11 @@ async function showScenery() {
 		toggle.checked = false;
 		toggle.disabled = true;
 		document.getElementById('sceneryWrap').title = 'No scenery for this zone (the server needs client_location)';
+		return;
 	}
+	scenery.setSceneMode(document.getElementById('sceneMode').value);
 }
+document.getElementById('sceneMode').addEventListener('change', (e) => scenery.setSceneMode(e.target.value));
 
 // ---- build area (from the zone file) ----
 let boundaryAreas; // undefined: not fetched yet; null: none

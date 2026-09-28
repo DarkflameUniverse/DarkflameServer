@@ -83,3 +83,18 @@ namespace ZoneScenes {
 		return loaded;
 	}
 }
+
+namespace ZoneScenes {
+	std::string RunLengths(const std::vector<uint8_t>& cells, size_t count) {
+		count = std::min(count, cells.size());
+		std::string runs;
+		for (size_t i = 0; i < count;) {
+			size_t length = 1;
+			while (i + length < count && length < 255 && cells[i + length] == cells[i]) length++;
+			runs.push_back(static_cast<char>(length));
+			runs.push_back(static_cast<char>(cells[i]));
+			i += length;
+		}
+		return runs;
+	}
+}

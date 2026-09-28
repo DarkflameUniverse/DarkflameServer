@@ -595,6 +595,10 @@ std::optional<std::string> ZoneTerrainJson(uint32_t zoneId) {
 namespace {
 }
 
+std::string ZoneDataBase64(std::string_view bytes) {
+	return Base64(bytes);
+}
+
 std::optional<Raw::Raw> ZoneRaw(uint32_t zoneId) {
 	const auto zone = GetZoneInfo(zoneId);
 	return zone ? ReadZoneRaw(*zone) : std::nullopt;

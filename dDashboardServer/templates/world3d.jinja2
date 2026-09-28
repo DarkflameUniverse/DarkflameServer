@@ -153,6 +153,15 @@
 							<div class="form-check form-switch mb-0 small" title="The zone's sky, as the game draws it (with Scenery on)"><input class="form-check-input" type="checkbox" id="skyToggle" data-pref="world3d.sky" checked><label class="form-check-label" for="skyToggle">Sky</label></div>
 							<div class="form-check form-switch mb-0 small" title="Also draw, see-through, the models of objects the game doesn't draw: trigger and blocking volumes (with Scenery on)"><input class="form-check-input" type="checkbox" id="hiddenToggle" data-pref="world3d.hidden"><label class="form-check-label" for="hiddenToggle">Hidden objects</label></div>
 						</div>
+						<div class="fw-semibold mb-1">Scenes</div>
+						<label class="visually-hidden" for="sceneMode">Which scenes</label>
+						<select id="sceneMode" class="form-select form-select-sm mb-1" data-pref="world3d.sceneMode" title="Which of the zone's scenes the scenery shows. As the game loads them: the scene under the camera or the followed player, the scenes connected to it and the global scene, changing as you move">
+							<option value="all" selected>Every scene</option>
+							<option value="game">As the game loads them</option>
+							<option value="manual">Picked scenes</option>
+						</select>
+						<div id="sceneStatus" class="small text-body-secondary mb-1"></div>
+						<div id="sceneList" class="mb-3 small" style="max-height: 12rem; overflow-y: auto"></div>
 						<div class="fw-semibold mb-1">Terrain</div>
 						<div class="form-check" title="The grass, flowers and small rocks the terrain file strews over the ground, drawn near the camera like the game does (with Models on)"><input class="form-check-input" type="checkbox" id="flairToggle" data-pref="world3d.flairs" checked><label class="form-check-label" for="flairToggle">Flairs <span class="text-body-secondary" id="flairCount"></span></label></div>
 						<div id="sceneLegend" class="mt-1 mb-3"></div>

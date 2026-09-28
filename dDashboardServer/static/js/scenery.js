@@ -9,7 +9,7 @@
  * follows the camera, far away, behind everything.
  */
 import * as THREE from 'three';
-import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode, gameLook } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode, gameLook, decodeSceneMap, sceneAt, loadedScenes } from '/js/scenery-core.js';
 
 // Per detail level (the property view's 0 high, 1 medium, 2 low): the model LOD, how far objects are drawn, the
 // largest texture side and a memory budget for geometry and textures
@@ -27,7 +27,7 @@ const UPDATE_SECONDS = 0.5;
  * scene, camera, renderer: the view's; urls: {manifest, mesh(zone, asset, lod), texture(zone, asset, slot, lod)};
  * focus(): where to load around (defaults to the camera); onProgress(loaded, wanted).
  */
-export function createScenery({ scene, camera, renderer, urls, focus, onProgress }) {
+export function createScenery({ scene, camera, renderer, urls, focus, onProgress, onScenes }) {
 	const root = new THREE.Group();
 	root.name = 'scenery';
 	scene.add(root);
@@ -54,6 +54,13 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 	let requests = new AbortController(); // aborted on clear: requests for what's no longer wanted stop
 	let lastUpdate = 0;
 	const focusPoint = new THREE.Vector3();
+	// Scenes: 'all' draws every scene's objects; 'game' the ones the game keeps loaded around the focus (the scene
+	// under it, the scenes connected to it and the global scene); 'manual' the ones picked (setManualScenes)
+	let sceneMode = 'all';
+	let manualScenes = new Set();
+	let sceneMap = null;
+	let focusScene = null;      // the scene under the focus, once known
+	let shownScenes = null;     // Set of scene ids drawn, null: all
 
 	function report() {
 		if (!onProgress) return;
@@ -183,6 +190,28 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		gameLights.gameLightColor.value.fromArray(lighting.light);
 		gameLights.gameAmbient.value.fromArray(lighting.ambient);
 		gameLights.gameLightVec.value.fromArray(lighting.lightVec);
+		lightBlend = null;
+	}
+
+	// A blend from the lights now to `lighting` over a second or two, as the client blends between scenes' lighting
+	const BLEND_SECONDS = 1.5;
+	let lightBlend = null;
+	function blendLightsTo(lighting) {
+		if (!lighting) return;
+		lightBlend = {
+			from: { light: gameLights.gameLightColor.value.clone(), ambient: gameLights.gameAmbient.value.clone(), lightVec: gameLights.gameLightVec.value.clone() },
+			to: { light: new THREE.Vector3().fromArray(lighting.light), ambient: new THREE.Vector3().fromArray(lighting.ambient), lightVec: new THREE.Vector3().fromArray(lighting.lightVec) },
+			t: 0
+		};
+	}
+	function stepLightBlend(dt) {
+		if (!lightBlend) return;
+		lightBlend.t = Math.min(1, lightBlend.t + dt / BLEND_SECONDS);
+		const { from, to, t } = lightBlend;
+		gameLights.gameLightColor.value.lerpVectors(from.light, to.light, t);
+		gameLights.gameAmbient.value.lerpVectors(from.ambient, to.ambient, t);
+		gameLights.gameLightVec.value.lerpVectors(from.lightVec, to.lightVec, t).normalize();
+		if (t >= 1) lightBlend = null;
 	}
 
 	/**
@@ -291,10 +320,19 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), rotation = new THREE.Quaternion(), scale = new THREE.Vector3(), tint = new THREE.Color();
 			// Objects the game doesn't draw (volumes, triggers) get their own cells in a see-through colour, shown on request
 			const cells = [];
-			for (const hidden of [false, true]) {
-				for (const [, list] of cellsOf(instances.filter((i) => !!i.hidden === hidden), CELL)) cells.push({ hidden, list });
+			// A cell holds one scene's objects, so scenes can be shown and hidden like the game streams them
+			const byScene = new Map();
+			for (const instance of instances) {
+				const key = instance.scene === null || instance.scene === undefined ? -1 : instance.scene;
+				if (!byScene.has(key)) byScene.set(key, []);
+				byScene.get(key).push(instance);
 			}
-			for (const { hidden, list: cellInstances } of cells) {
+			for (const [sceneId, sceneInstances] of byScene) {
+				for (const hidden of [false, true]) {
+					for (const [, list] of cellsOf(sceneInstances.filter((i) => !!i.hidden === hidden), CELL)) cells.push({ hidden, list, scene: sceneId });
+				}
+			}
+			for (const { hidden, list: cellInstances, scene: cellScene } of cells) {
 				const group = new THREE.Group();
 				const cellCenter = new THREE.Vector3();
 				let maxScale = 0;
@@ -327,7 +365,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 				// How far past the cell's centre its objects reach
 				let reach = 0;
 				for (const instance of cellInstances) reach = Math.max(reach, position.set(instance.x, instance.y, instance.z).distanceTo(cellCenter));
-				entry.cells.push({ group, center: cellCenter, radius: reach + radius * maxScale, hidden });
+				entry.cells.push({ group, center: cellCenter, radius: reach + radius * maxScale, hidden, scene: cellScene });
 			}
 			entry.parts = parts;
 			entry.bytes = parts.reduce((sum, p) => sum + p.geometry.attributes.position.array.byteLength * 2 + p.geometry.index.array.byteLength, 0);
@@ -377,7 +415,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		const at = focus ? focus(focusPoint) || camera.position : camera.position;
 		for (const [asset, instances] of byAsset) {
 			let best = Infinity;
-			for (const i of instances) if (showHidden || !i.hidden) best = Math.min(best, Math.hypot(i.x - at.x, i.z - at.z));
+			for (const i of instances) if ((showHidden || !i.hidden) && sceneShown(i.scene)) best = Math.min(best, Math.hypot(i.x - at.x, i.z - at.z));
 			nearest.set(asset, best);
 			if (best <= drawDistance() && !assets.has(asset)) assets.set(asset, { state: 'queued', cells: [], bytes: 0 });
 		}
@@ -390,10 +428,35 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		return manifest && manifest.distance ? Math.min(detail.distance, manifest.distance) : detail.distance;
 	}
 
+	// Objects of no known scene (older manifests) are always drawn
+	function sceneShown(id) {
+		return !shownScenes || id === null || id === undefined || id < 0 || shownScenes.has(id);
+	}
+
+	// The scenes to draw and the lighting, from the mode and the scene under the focus; tells onScenes when they change
+	function updateScenes(force = false) {
+		if (!manifest) return;
+		const at = focus ? focus(focusPoint) || camera.position : camera.position;
+		const under = sceneMap ? sceneAt(sceneMap, at.x, at.z) : null;
+		let shown = null;
+		if (sceneMode === 'game' && manifest.scenes) shown = loadedScenes(manifest.scenes, under === null ? 0 : under);
+		else if (sceneMode === 'manual') shown = new Set(manualScenes);
+		const same = (a, b) => (a === b) || (a && b && a.size === b.size && [...a].every((v) => b.has(v)));
+		if (!force && under === focusScene && same(shown, shownScenes)) return;
+		focusScene = under;
+		shownScenes = shown;
+		// The game blends to the lighting of the scene the player walks into
+		const sceneEntry = manifest.scenes && under !== null ? manifest.scenes.find((s) => s.id === under) : null;
+		blendLightsTo(sceneEntry && sceneEntry.lighting ? sceneEntry.lighting : manifest.lighting);
+		want();
+		updateVisibility();
+		if (onScenes) onScenes({ mode: sceneMode, scene: under, shown: shownScenes, scenes: manifest.scenes || [] });
+	}
+
 	function updateVisibility() {
 		const eye = camera.position;
 		for (const entry of assets.values()) {
-			for (const cell of entry.cells) cell.group.visible = enabled && (!cell.hidden || showHidden) && eye.distanceTo(cell.center) - cell.radius < drawDistance();
+			for (const cell of entry.cells) cell.group.visible = enabled && (!cell.hidden || showHidden) && sceneShown(cell.scene) && eye.distanceTo(cell.center) - cell.radius < drawDistance();
 		}
 	}
 
@@ -442,10 +505,13 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 				manifest = loaded;
 				manifest.url = url;
 				setGameLights(manifest.lighting);
+				sceneMap = decodeSceneMap(manifest.sceneMap);
+				focusScene = null;
 				byAsset = groupObjects(manifest.objects);
 				if (manifest.sky >= 0) byAsset.delete(manifest.sky);
 			}
 			loadSky();
+			updateScenes(true);
 			want();
 			return true;
 		},
@@ -479,11 +545,29 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			if (camera.far < far) { camera.far = far; camera.updateProjectionMatrix(); }
 			sky.position.copy(camera.position);
 			sky.scale.setScalar(camera.far * 0.8);
+			stepLightBlend(dt);
 			lastUpdate += dt;
 			if (lastUpdate < UPDATE_SECONDS) return;
 			lastUpdate = 0;
+			updateScenes();
 			want();
 			updateVisibility();
+		},
+		/**
+		 * Which scenes' objects are drawn: 'all', 'game' (as the game streams them around the focus: the scene under
+		 * it, the ones connected to it and the global scene) or 'manual' (setManualScenes).
+		 */
+		setSceneMode(mode) {
+			sceneMode = mode === 'game' || mode === 'manual' ? mode : 'all';
+			updateScenes(true);
+		},
+		setManualScenes(ids) {
+			manualScenes = new Set(ids);
+			if (sceneMode === 'manual') updateScenes(true);
+		},
+		/** {mode, scene (under the focus, null without a scene map), shown (Set, null: all), scenes (manifest.scenes)} */
+		sceneState() {
+			return { mode: sceneMode, scene: focusScene, shown: shownScenes, scenes: manifest && manifest.scenes ? manifest.scenes : [] };
 		},
 		/** How many objects the loaded manifest places. */
 		count() { return manifest ? manifest.objects.asset.length : 0; },
@@ -497,6 +581,8 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			clear();
 			manifest = null;
 			byAsset = new Map();
+			sceneMap = null;
+			focusScene = shownScenes = null;
 		},
 		dispose() {
 			clear();

@@ -303,7 +303,9 @@ export function groupObjects(objects) {
 			// A tint per object ([r, g, b, ...]), for the flairs
 			color: objects.color ? [objects.color[i * 3], objects.color[i * 3 + 1], objects.color[i * 3 + 2]] : null,
 			// The game doesn't draw it (a trigger or blocking volume): only shown on request
-			hidden: !!(objects.hidden && objects.hidden[i])
+			hidden: !!(objects.hidden && objects.hidden[i]),
+			// The zone scene it was placed in (null: the manifest has none), for scenes like the game
+			scene: objects.scene ? objects.scene[i] : null
 		});
 	}
 	return byAsset;
@@ -318,4 +320,65 @@ export function cellsOf(instances, size) {
 		cells.get(key).push(instance);
 	}
 	return cells;
+}
+
+// ---- Scenes, as the game client streams them (ZoneScenes on the server) ----
+
+export const GLOBAL_SCENE = 0;
+const NO_SCENE = 255;
+
+/**
+ * The manifest's terrain scene map (sceneMap: {chunks: [{x, z, maxX, maxZ, size, runs (base64)}]}) ready for
+ * sceneAt, or null without one.
+ */
+export function decodeSceneMap(json) {
+	if (!json || !json.chunks || !json.chunks.length) return null;
+	const chunks = json.chunks.map((c) => {
+		// Runs of [length, scene] (ZoneScenes::RunLengths)
+		const bytes = typeof atob === 'function' ? atob(c.runs) : Buffer.from(c.runs, 'base64').toString('binary');
+		const cells = new Uint8Array(c.size * c.size).fill(NO_SCENE);
+		for (let i = 0, at = 0; i + 1 < bytes.length && at < cells.length; i += 2) {
+			const length = bytes.charCodeAt(i);
+			cells.fill(bytes.charCodeAt(i + 1), at, Math.min(at + length, cells.length));
+			at += length;
+		}
+		// Cells per unit as the client works it out, in 32-bit floats
+		const perX = Math.fround(c.size / Math.fround(c.maxX - c.x)), perZ = Math.fround(c.size / Math.fround(c.maxZ - c.z));
+		return { ...c, cells, perX, perZ };
+	});
+	return {
+		chunks,
+		minX: Math.min(...chunks.map((c) => c.x)), minZ: Math.min(...chunks.map((c) => c.z)),
+		maxX: Math.max(...chunks.map((c) => c.maxX)), maxZ: Math.max(...chunks.map((c) => c.maxZ))
+	};
+}
+
+/**
+ * The scene at (x, z) as the client's TerrainManager::GetSceneAtPos finds it (ZoneScenes::SceneMap::SceneAt): the
+ * nearest cell of the chunk under the point, the point clamped to the terrain; the global scene where there's none.
+ */
+export function sceneAt(map, x, z) {
+	if (!map || !Number.isFinite(x) || !Number.isFinite(z)) return GLOBAL_SCENE;
+	const EDGE = 0.001;
+	x = Math.min(Math.max(x, map.minX), map.maxX);
+	z = Math.min(Math.max(z, map.minZ), map.maxZ);
+	for (const c of map.chunks) {
+		const px = Math.min(x, map.maxX - 1 / c.perX), pz = Math.min(z, map.maxZ - 1 / c.perZ);
+		if (px < c.x - EDGE || px >= c.maxX - EDGE || pz < c.z - EDGE || pz >= c.maxZ - EDGE) continue;
+		const cx = Math.min(Math.max(Math.floor(c.perX * (px - c.x) + 0.5), 0), c.size - 1);
+		const cz = Math.min(Math.max(Math.floor(c.perZ * (pz - c.z) + 0.5), 0), c.size - 1);
+		const scene = c.cells[cx * c.size + cz];
+		return scene === NO_SCENE ? GLOBAL_SCENE : scene;
+	}
+	return GLOBAL_SCENE;
+}
+
+/** The scenes the client keeps loaded with the player in `scene` (manifest.scenes): the global scene, it and its neighbours. */
+export function loadedScenes(scenes, scene) {
+	const loaded = new Set([GLOBAL_SCENE]);
+	if (scene === GLOBAL_SCENE) return loaded;
+	loaded.add(scene);
+	const entry = (scenes || []).find((s) => s.id === scene);
+	if (entry) for (const n of entry.neighbours) loaded.add(n);
+	return loaded;
 }

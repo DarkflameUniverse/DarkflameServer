@@ -63,6 +63,16 @@ TEST(ZoneScenesTests, LoadsTheConnectedScenes) {
 	EXPECT_TRUE(graph.Neighbours(9).empty());
 }
 
+TEST(ZoneScenesTests, SendsSceneMapsAsRuns) {
+	std::vector<uint8_t> cells(300, 4);
+	cells[0] = 1;
+	cells[299] = 2;
+	// 1, then 298 fours (a run is at most 255 long), then 2; only the first `count` cells count
+	EXPECT_EQ(ZoneScenes::RunLengths(cells, 300), std::string("\x01\x01\xFF\x04\x2B\x04\x01\x02", 8));
+	EXPECT_EQ(ZoneScenes::RunLengths(cells, 1), std::string("\x01\x01", 2));
+	EXPECT_EQ(ZoneScenes::RunLengths(cells, 1000).size(), 8u);
+}
+
 TEST(ZoneScenesTests, GhostsObjectsByTheirScene) {
 	const std::set<uint32_t> loaded{ 0, 1, 2 };
 	EXPECT_TRUE(ZoneScenes::InLoadedScene(2, 7, loaded));   // placed in a loaded scene, wherever it is now

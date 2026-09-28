@@ -72,7 +72,43 @@ const scenery = createScenery({
 		texture: (zone, asset, slot, lod) => '/api/scenery/' + zone + '/texture/' + asset + '/' + slot + '?lod=' + lod
 	},
 	focus: (out) => out.copy(controls.target),
-	onProgress: (loaded, wanted) => setStatus(loaded < wanted ? 'Scenery ' + loaded + '/' + wanted + '…' : '')
+	onProgress: (loaded, wanted) => setStatus(loaded < wanted ? 'Scenery ' + loaded + '/' + wanted + '…' : ''),
+	onScenes: renderScenes
+});
+
+// ---- scenes: which of the zone's scenes the scenery shows (scenery.js setSceneMode) ----
+
+function renderScenes(info) {
+	const list = $('sceneList'), status = $('sceneStatus');
+	if (!list) return;
+	const scenes = info.scenes || [];
+	if (!scenes.length) {
+		list.innerHTML = '';
+		status.textContent = 'The zone file lists no scenes.';
+		return;
+	}
+	const current = scenes.find((s) => s.id === info.scene);
+	status.textContent = info.scene === null ? 'No scene map in the terrain file: every object counts as loaded.' :
+		'Under the ' + (state.follow ? 'followed player' : 'camera') + ': ' + (current ? current.name + ' (' + current.id + ')' : 'the global scene');
+	list.innerHTML = scenes.map((s) => {
+		const shown = !info.shown || info.shown.has(s.id);
+		const connected = current && current.neighbours.includes(s.id);
+		return '<div class="form-check mb-0"><input class="form-check-input" type="checkbox" data-scene="' + esc(s.id) + '" id="scene' + esc(s.id) + '"' + (shown ? ' checked' : '') + '>' +
+			'<label class="form-check-label" for="scene' + esc(s.id) + '">' + esc(s.name || 'Scene ' + s.id) + ' <span class="text-body-secondary">' + esc(s.id) +
+			(s.id === info.scene ? ' · here' : connected ? ' · connected' : s.id === 0 ? ' · always' : '') + '</span></label></div>';
+	}).join('');
+}
+
+$('sceneMode').addEventListener('change', () => scenery.setSceneMode($('sceneMode').value));
+$('sceneList').addEventListener('change', (e) => {
+	if (!e.target.dataset.scene) return;
+	// Picking a scene by hand starts from what's shown now
+	const picked = [...$('sceneList').querySelectorAll('input[data-scene]')].filter((i) => i.checked).map((i) => Number(i.dataset.scene));
+	scenery.setManualScenes(picked);
+	if ($('sceneMode').value !== 'manual') {
+		$('sceneMode').value = 'manual';
+		$('sceneMode').dispatchEvent(new Event('change'));
+	}
 });
 // The terrain's flairs (grass, flowers, small rocks): models too, drawn only near the camera as the game does
 const flairs = createScenery({
@@ -96,7 +132,10 @@ function showScenery() {
 	const key = state.zone + '/' + detail;
 	if (on && sceneryShown !== key) {
 		sceneryShown = key;
-		scenery.load('/api/world3d/' + state.zone + '/scenery', detail).then((ok) => { if (!ok) setStatus('No models for this zone'); });
+		scenery.load('/api/world3d/' + state.zone + '/scenery', detail).then((ok) => {
+			if (!ok) return setStatus('No models for this zone');
+			scenery.setSceneMode($('sceneMode').value);
+		});
 	}
 	if (flairsOn && flairsShown !== key) {
 		flairsShown = key;

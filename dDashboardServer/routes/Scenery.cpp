@@ -26,6 +26,7 @@
 #include "Workers.h"
 #include "WorldScene.h"
 #include "ZonePaths.h"
+#include "ZoneScenes.h"
 
 #include "CDClientDatabase.h"
 #include "Game.h"
@@ -279,23 +280,65 @@ namespace {
 
 	std::mutex g_ZoneMutex;
 
+	/**
+	 * The zone's scenes for the viewers' "scenes like the game": each general scene's id, name, the scenes its
+	 * transitions connect it to (ZoneScenes::SceneGraph) and its lighting (null when its file has none).
+	 */
+	nlohmann::json ScenesJson(const ZoneFile& zone, const std::map<uint32_t, nlohmann::json>& lightingOf) {
+		const ZoneScenes::SceneGraph graph(zone.scenes, zone.sceneTransitions);
+		nlohmann::json scenes = nlohmann::json::array();
+		std::set<uint32_t> seen;
+		for (const auto& scene : zone.scenes) {
+			if (!seen.insert(scene.id).second) continue; // the audio layers share their scene's id
+			const auto& neighbours = graph.Neighbours(scene.id);
+			const auto lighting = lightingOf.find(scene.id);
+			scenes.push_back({ {"id", scene.id}, {"name", scene.name}, {"neighbours", std::vector<uint32_t>(neighbours.begin(), neighbours.end())},
+				{"lighting", lighting == lightingOf.end() ? nlohmann::json() : lighting->second} });
+		}
+		return scenes;
+	}
+
+	/**
+	 * The terrain's scene map for the viewers to find the scene at a point as the client does (ZoneScenes::SceneMap;
+	 * scenery-core.js sceneAt reads it the same way): per chunk its corner, far corner, cells per side and its cells
+	 * (x major) as ZoneScenes::RunLengths, base64. Null without a terrain file.
+	 */
+	nlohmann::json SceneMapJson(uint32_t zoneId) {
+		const auto raw = ZoneRawShared(zoneId);
+		if (!raw) return nullptr;
+		nlohmann::json chunks = nlohmann::json::array();
+		for (const auto& chunk : raw->chunks) {
+			if (!chunk.IsValidForSceneLookup() || chunk.sceneMap.size() < static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution) continue;
+			chunks.push_back({ {"x", chunk.offsetX}, {"z", chunk.offsetZ},
+				{"maxX", chunk.offsetX + static_cast<float>(chunk.width - 1) * chunk.scaleFactor}, {"maxZ", chunk.offsetZ + static_cast<float>(chunk.height - 1) * chunk.scaleFactor},
+				{"size", chunk.colorMapResolution}, {"runs", ZoneDataBase64(ZoneScenes::RunLengths(chunk.sceneMap, static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution))} });
+		}
+		return chunks.empty() ? nlohmann::json() : nlohmann::json{ {"chunks", chunks} };
+	}
+
 	std::shared_ptr<ZoneScenery> BuildZone(uint32_t zoneId) {
 		const auto luzPath = LuzPath(zoneId);
 		const auto luz = luzPath ? ClientAssets::ReadResFile("maps/" + *luzPath) : std::nullopt;
 		if (!luz) return nullptr;
 		const auto folder = luzPath->substr(0, luzPath->find_last_of('/') + 1);
 
+		std::string error;
+		const auto zoneFile = ZonePaths::Read(*luz, error);
+		if (!zoneFile) return nullptr;
+
 		ZoneScenery scenery;
 		nlohmann::json assetOf = nlohmann::json::array(), positions = nlohmann::json::array(), rotations = nlohmann::json::array(), scales = nlohmann::json::array();
-		nlohmann::json hidden = nlohmann::json::array();
+		nlohmann::json hidden = nlohmann::json::array(), sceneOf = nlohmann::json::array();
 		std::vector<int32_t> assetShaders;
 		int64_t sky = -1;
 		std::vector<std::pair<WorldScene::Lighting, size_t>> sceneLighting; // each scene's, with how many objects it has
-		for (const auto& scene : ZonePaths::ReadSceneFiles(*luz)) {
-			const auto lvl = ClientAssets::ReadResFile("maps/" + folder + scene);
+		std::map<uint32_t, nlohmann::json> lightingOf;                      // scene id -> its general layer's lighting
+		for (const auto& scene : zoneFile->scenes) {
+			const auto lvl = ClientAssets::ReadResFile("maps/" + folder + scene.filename);
 			if (!lvl) continue;
 			const auto objectsBefore = assetOf.size();
 			const auto lighting = WorldScene::ReadLighting(*lvl);
+			if (lighting && scene.sceneType == 0) lightingOf.try_emplace(scene.id, LightingJson(*lighting));
 			if (sky < 0) {
 				const auto skydome = JoinPath("", WorldScene::ReadSkydome(*lvl));
 				if (skydome.ends_with(".nif") && Files().paths.contains(skydome)) sky = static_cast<int64_t>(scenery.IndexOf(skydome));
@@ -312,13 +355,15 @@ namespace {
 				for (const auto value : { object.x, object.y, object.z }) positions.push_back(Round(value, 100.0));
 				for (const auto value : { object.qx, object.qy, object.qz, object.qw }) rotations.push_back(Round(value, 10000.0));
 				scales.push_back(Round(object.scale, 1000.0));
+				sceneOf.push_back(scene.id);
 			}
 			if (lighting) sceneLighting.emplace_back(*lighting, assetOf.size() - objectsBefore);
 		}
 		if (const auto lighting = WorldScene::ZoneLighting(sceneLighting)) scenery.lighting = LightingJson(*lighting);
 		nlohmann::json manifest{
 			{"zone", zoneId}, {"sky", sky}, {"assets", scenery.assets}, {"lighting", scenery.lighting}, {"format", FORMAT_VERSION},
-			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"hidden", hidden} }}
+			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"hidden", hidden}, {"scene", sceneOf} }},
+			{"scenes", ScenesJson(*zoneFile, lightingOf)}, {"sceneMap", SceneMapJson(zoneId)}
 		};
 		assetShaders.resize(scenery.assets.size(), -1);
 		AddShaders(manifest, assetShaders);

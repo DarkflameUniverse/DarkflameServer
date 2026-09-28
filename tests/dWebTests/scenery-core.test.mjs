@@ -43,6 +43,20 @@ same(S.gameLook(manifest, 2, { ...colored, vertexColors: 0 }), { lit: true, text
 // Without the zone's lighting the viewer lights scenery itself
 same(S.gameLook({ ...manifest, lighting: null }, 0, colored), null, 'no lighting');
 
+// Scene maps: the same terrain as ZoneScenesTests.FindsTheSceneUnderAPosition, as runs of [length, scene]
+const runs = (bytes) => Buffer.from(bytes).toString('base64');
+const map = S.decodeSceneMap({ chunks: [
+	{ x: 0, z: 0, maxX: 64, maxZ: 64, size: 2, runs: runs([1, 1, 1, 2, 1, 3, 1, 255]) },
+	{ x: 64, z: 0, maxX: 128, maxZ: 64, size: 1, runs: runs([1, 7]) }
+] });
+same([[1, 1], [1, 17], [17, 1], [17, 17], [100, 10], [-50, -50], [500, 10]].map(([x, z]) => S.sceneAt(map, x, z)), [1, 2, 3, 0, 7, 1, 7], 'scene at');
+same(S.sceneAt(null, 1, 1), S.GLOBAL_SCENE, 'no scene map');
+const scenes = [{ id: 0, neighbours: [] }, { id: 1, neighbours: [2] }, { id: 2, neighbours: [1, 3] }, { id: 3, neighbours: [2] }];
+same([...S.loadedScenes(scenes, 2)].sort(), [0, 1, 2, 3], 'loaded around 2');
+same([...S.loadedScenes(scenes, 0)], [0], 'loaded in the global scene');
+// A run longer than the map stops at its end
+same(S.decodeSceneMap({ chunks: [{ x: 0, z: 0, maxX: 1, maxZ: 1, size: 1, runs: runs([9, 4]) }] }).chunks[0].cells.length, 1, 'runs clipped');
+
 if (failures) {
 	console.error(`${failures} failed`);
 	process.exit(1);

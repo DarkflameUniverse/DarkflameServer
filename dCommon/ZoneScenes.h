@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "Raw.h"
@@ -64,6 +65,12 @@ namespace ZoneScenes {
 		std::set<uint32_t> m_Scenes;
 		std::vector<std::pair<uint32_t, std::set<uint32_t>>> m_Neighbours;
 	};
+
+	/**
+	 * The first `count` cells of a scene map as runs, for sending: a run is a byte with its length (1 to 255) then the
+	 * scene id. Scene maps are large areas of one scene, so this is a small fraction of the cells.
+	 */
+	std::string RunLengths(const std::vector<uint8_t>& cells, size_t count);
 
 	/**
 	 * Whether a player with `loaded` scenes (SceneGraph::Loaded of the scene under them) gets an object: when its scene
