@@ -52,6 +52,7 @@
 #include "master/MessageCapture.h"
 #include "master/InstanceMigration.h"
 #include "master/ServerTraffic.h"
+#include "master/UgcModelsMade.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
 
@@ -925,6 +926,15 @@ namespace {
 		LOG("Dashboard announcement sent to %u world(s)", worlds);
 	}
 
+	// The UGC server made models' meshes: every world hears of it, and those showing the models tell their clients
+	void OnUgcModelsMade(const UgcModelsMade& made, const SystemAddress& sysAddr) {
+		if (sysAddr != ugcServerMasterPeerSysAddr) return;
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (!instance || !instance->GetIsReady() || instance->GetIsShuttingDown()) continue;
+			MasterPackets::SendTo(instance->GetSysAddr(), made);
+		}
+	}
+
 	void OnConfigReload(const ConfigReload& reload, const SystemAddress& sysAddr) {
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
 			LOG("Ignoring config reload from a server that is not the dashboard");
@@ -1017,6 +1027,7 @@ namespace {
 			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, ForwardWorldToDashboard<MessageCaptureData>);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
+			handlers.On<UgcModelsMade>(Master::UGC_MODELS_MADE, OnUgcModelsMade);
 			return handlers;
 		}();
 		return handlers;

@@ -140,6 +140,10 @@ public:
 	uint64_t StoredBytes() const { return m_StoredBytes; }
 	uint64_t MaxStorageBytes() const { return m_Config.maxStorageBytes; }
 
+	// Main thread: the models whose mesh (model.nif) was written with a different checksum than before since the last
+	// call, for the worlds (UGC_MODELS_MADE); a model made again unchanged (e.g. after eviction) isn't listed
+	std::vector<LWOOBJID> TakeChangedMeshes() { std::vector<LWOOBJID> ids; ids.swap(m_ChangedMeshes); return ids; }
+
 private:
 	struct Job {
 		Kind kind{};
@@ -223,6 +227,7 @@ private:
 	std::chrono::steady_clock::time_point m_NextEviction{};
 	std::map<std::pair<Kind, LWOOBJID>, std::pair<std::chrono::steady_clock::time_point, Availability>> m_Recent; // answers for missing files
 	uint64_t m_StoredBytes{};
+	std::vector<LWOOBJID> m_ChangedMeshes; // TakeChangedMeshes
 	uint64_t m_Made{};
 	uint64_t m_Failed{};
 	uint64_t m_Evicted{};

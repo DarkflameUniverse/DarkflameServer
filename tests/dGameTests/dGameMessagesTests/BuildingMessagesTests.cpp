@@ -490,3 +490,19 @@ TEST_F(BuildingMessagesTests, FetchModelMetadataWire) {
 	EXPECT_TRUE(copy.bpData.neverFalseIfPresentInCaps);
 	ExpectTruncatedFails(full);
 }
+
+// NotifyClientUGCModelReady (909): the blueprint id only (GameMessage::NotifyClientUGCIconReady::Serialize, 0x00daae30,
+// which the client shares with it; read by LWOBlueprintComponent::OnNotifyClientUGCModelReady, 0x00ca6430)
+TEST_F(BuildingMessagesTests, NotifyClientUGCModelReadyWire) {
+	GameMessages::NotifyClientUGCModelReady ready;
+	ready.target = 0x1122334455667788;
+	ready.blueprintID = 0x0102030405060708;
+	EXPECT_PACKET_EQ(FromHex("08 07 06 05 04 03 02 01"), Payload(ready));
+	EXPECT_EQ(RoundTrip(ready).blueprintID, ready.blueprintID);
+	ExpectTruncatedFails(ready);
+
+	// The whole packet: the model's object id, then the message id 909
+	RakNet::BitStream bitStream;
+	ready.WritePacket(bitStream);
+	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 88 77 66 55 44 33 22 11 8d 03 08 07 06 05 04 03 02 01"), FromBitStream(bitStream));
+}

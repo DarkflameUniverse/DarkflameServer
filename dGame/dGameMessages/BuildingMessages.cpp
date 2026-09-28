@@ -603,6 +603,15 @@ namespace GameMessages {
 		return true;
 	}
 
+	void NotifyClientUGCModelReady::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(blueprintID);
+	}
+
+	bool NotifyClientUGCModelReady::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(blueprintID));
+		return true;
+	}
+
 	void UGObjectMetadata::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(userModelID);
 		bitStream.Write(blueprintID);

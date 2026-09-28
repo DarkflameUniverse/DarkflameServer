@@ -403,6 +403,10 @@ TEST(MasterPacketsTests, DashboardAndMigrationStructsKeepTheirBytes) {
 	changed.entries.push_back({ "characters", 42 });
 	ExpectHeaderThenSerialize(changed, MessageType::Master::DATA_CHANGED);
 
+	UgcModelsMade made;
+	made.blueprintIds = { 1152921510436831123, 42 };
+	ExpectHeaderThenSerialize(made, MessageType::Master::UGC_MODELS_MADE);
+
 	PlayerPositions positions;
 	positions.zoneId = 1100;
 	positions.players.push_back({ 42, 1.0f, 2.0f, 3.0f });
@@ -484,4 +488,21 @@ TEST(MasterPacketsTests, DispatcherRoutesAndDropsBadPackets) {
 
 	delete Game::logger;
 	Game::logger = previousLogger;
+}
+
+// UGC server -> master -> worlds: a u16 count, then each blueprint id
+TEST(MasterPacketsTests, UgcModelsMadeBytes) {
+	UgcModelsMade made;
+	made.blueprintIds = { 0x0102030405060708, 9 };
+	EXPECT_PACKET_EQ(FromHex("53 06 00 25 00 00 00 00 02 00 08 07 06 05 04 03 02 01 09 00 00 00 00 00 00 00"), StructPacket(made));
+
+	RakNet::BitStream tooMany;
+	tooMany.Write<uint16_t>(UgcModelsMade::MAX_MODELS + 1);
+	UgcModelsMade read;
+	EXPECT_FALSE(read.Deserialize(tooMany));
+
+	RakNet::BitStream truncated;
+	truncated.Write<uint16_t>(2);
+	truncated.Write<LWOOBJID>(1);
+	EXPECT_FALSE(read.Deserialize(truncated));
 }

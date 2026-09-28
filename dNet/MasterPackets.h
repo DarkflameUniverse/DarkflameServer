@@ -15,6 +15,7 @@
 #include "master/InstanceMigration.h"
 #include "master/MessageCapture.h"
 #include "master/PlayerAction.h"
+#include "master/UgcModelsMade.h"
 
 class dServer;
 
@@ -22,7 +23,8 @@ class dServer;
  * Packets between master and the other servers (MessageType::Master). None of them reach a client.
  *
  * The dashboard's messages and instance migration are MASTER packets too; they live in per-topic headers under
- * dNet/master/ (PlayerAction.h, DataChanged.h, DashboardMessages.h, MessageCapture.h, InstanceMigration.h), which
+ * dNet/master/ (PlayerAction.h, DataChanged.h, DashboardMessages.h, MessageCapture.h, InstanceMigration.h,
+ * UgcModelsMade.h), which
  * this header includes, so including MasterPackets.h gives every MASTER struct.
  */
 namespace MasterPackets {

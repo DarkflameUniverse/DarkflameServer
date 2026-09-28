@@ -66,5 +66,9 @@ namespace MessageType {
 
 		// Any server -> master -> dashboard: traffic counters of the last few seconds (see ServerTraffic.h)
 		SERVER_TRAFFIC,
+
+		// UGC server -> master -> every world: player models whose mesh (model.nif) was just made or made again (see
+		// UgcModelsMade.h), so worlds showing them tell their clients (NotifyClientUGCModelReady)
+		UGC_MODELS_MADE,
 	};
 }

@@ -242,6 +242,19 @@ namespace GameMessages {
 		int32_t count{};
 	};
 
+	// Server -> client, to a placed model. Its blueprint's files were made (again) on the UGC server: the client's
+	// BlueprintComponent with that blueprint flushes its cached NIF, HKX and LXFML and requests the NIF and HKX again
+	// (LWOBlueprintComponent::OnNotifyClientUGCModelReady, 0x00ca6430; the payload is the blueprint id only,
+	// GameMessage::NotifyClientUGCIconReady::Serialize 0x00daae30 is shared with it). The client keeps using its
+	// cached manifest entry, so the new checksum is sent first (UgcManifestResponse). See docs/UgcServer.md.
+	struct NotifyClientUGCModelReady : public NetGameMsg {
+		NotifyClientUGCModelReady() : NetGameMsg(MessageType::Game::NOTIFY_CLIENT_UGC_MODEL_READY) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		LWOOBJID blueprintID{};
+	};
+
 	// A model's user generated data (UGObjectMetadata::Serialize, 0x00f5f590)
 	struct UGObjectMetadata {
 		LWOOBJID userModelID{};

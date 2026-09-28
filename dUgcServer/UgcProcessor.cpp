@@ -441,7 +441,14 @@ void UgcProcessor::Collect() {
 
 void UgcProcessor::StoreChecksums(Kind kind, LWOOBJID storageId, const std::vector<Checksum>& checksums) {
 	const auto owner = kind == Kind::MODEL ? IUgc::eFileOwner::MODEL : IUgc::eFileOwner::COMBINATION;
-	for (const auto& checksum : checksums) Database::Get()->SetUgcFileChecksum(owner, storageId, checksum.file, checksum.md5, checksum.size);
+	for (const auto& checksum : checksums) {
+		// A player model's mesh that changed: the worlds showing it tell their clients (UGC_MODELS_MADE)
+		if (kind == Kind::MODEL && checksum.file == "model.nif") {
+			const auto before = Database::Get()->GetUgcFileChecksum(storageId, checksum.file);
+			if (!before || before->md5 != checksum.md5 || before->size != checksum.size) m_ChangedMeshes.push_back(storageId);
+		}
+		Database::Get()->SetUgcFileChecksum(owner, storageId, checksum.file, checksum.md5, checksum.size);
+	}
 }
 
 void UgcProcessor::Backfill() {

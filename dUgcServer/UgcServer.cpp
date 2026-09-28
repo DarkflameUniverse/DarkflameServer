@@ -21,6 +21,7 @@
 #include "Game.h"
 #include "GeneralUtils.h"
 #include "Logger.h"
+#include "MasterPackets.h"
 #include "Server.h"
 #include "ServiceType.h"
 #include "Web.h"
@@ -642,6 +643,14 @@ int main(int argc, char** argv) {
 			packet = g_Server->ReceiveFromMaster();
 		}
 		processor.Update();
+		// Worlds showing a model whose mesh changed tell their clients (docs/UgcServer.md, "Models without 3D services")
+		if (auto changed = processor.TakeChangedMeshes(); !changed.empty()) {
+			for (size_t start = 0; start < changed.size(); start += UgcModelsMade::MAX_MODELS) {
+				UgcModelsMade made;
+				made.blueprintIds.assign(changed.begin() + start, changed.begin() + std::min(changed.size(), start + UgcModelsMade::MAX_MODELS));
+				MasterPackets::SendToMaster(made, g_Server);
+			}
+		}
 		// Settings the dashboard changed arrive as a config reload; pick them up
 		if (now - lastConfigure >= std::chrono::seconds(5)) {
 			lastConfigure = now;

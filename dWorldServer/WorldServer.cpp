@@ -836,6 +836,7 @@ namespace {
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, [](const MessageCaptureControl& control, const SystemAddress&) { MessageInspector::Control(control); });
 			handlers.On<Announcement>(Master::ANNOUNCE, [](const Announcement& announcement, const SystemAddress&) { DashboardNotify::Announce(announcement.title, announcement.message); });
 			handlers.On<MasterPackets::NewSessionAlert>(Master::NEW_SESSION_ALERT, OnNewSessionAlert);
+			handlers.On<UgcModelsMade>(Master::UGC_MODELS_MADE, [](const UgcModelsMade& made, const SystemAddress&) { UgcManifest::OnModelsMade(made.blueprintIds); });
 			return handlers;
 		}();
 		return handlers;
@@ -1031,8 +1032,9 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 					goto noBBB;
 				}
 
-				// Workaround for not having a UGC server to get model LXFML onto the client so it
-				// can generate the physics and nif for the object.
+				// The models' LXFML, for the client to build each model's NIF and HKX itself. With ugc_manifest_models
+				// the models whose mesh the UGC server made are left out: the client asks for their files and downloads
+				// the mesh (UgcManifest, docs/UgcServer.md).
 
 				auto bbbModels = Database::Get()->GetUgcModels(propertyId);
 				if (bbbModels.empty()) {
@@ -1043,7 +1045,12 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				ClientPackets::BlueprintSaveResponse response;
 				response.localId = LWOOBJID_EMPTY; //always zero so that a check on the client passes
 				response.reasonCode = eBlueprintSaveResponseType::EverythingWorked;
+				size_t served = 0;
 				for (auto& bbbModel : bbbModels) {
+					if (!UgcManifest::ClientBuildsModel(bbbModel.id)) {
+						served++;
+						continue;
+					}
 					LOG("Getting lxfml ugcID: %llu", bbbModel.id);
 
 					bbbModel.lxfmlData.seekg(0, std::ios::end);
@@ -1055,7 +1062,8 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 					model.blueprintId = bbbModel.id;
 					model.data = bbbModel.lxfmlData.str().substr(0, lxfmlSize);
 				}
-				response.Send(sysAddr);
+				if (served > 0) LOG("%zu of the property's %zu models come from the UGC server", served, bbbModels.size());
+				if (!response.models.empty()) response.Send(sysAddr);
 			}
 
 		noBBB:
