@@ -237,7 +237,7 @@ all of its levels, so each look needs a group of its own.
 | `glitter_colors` | 114,117 | LEGO color ids that are glitter whatever their type (as `brushed_colors`). The default: the two colors LEGO's own color data (Studio's color categories, "Glitter Colors") files as glitter that the client's Materials.xml types `shinyPlastic` (114 Tr. Medium Reddish-Violet w. Glitter, 117 Transparent Glitter). |
 | `glitter_size` | 1.6 | The glitter texture's tile, in model units (a stud is 0.8): the flecks' spacing, the same on every brick. |
 | `glitter_density` | 50 | Flecks in one tile. |
-| `glitter_speed` | 1 | How fast the flecks drift: a tile in U in 7 s and in V in 11 s at 1; 0 keeps them still (no controllers). |
+| `glitter_speed` | 0 | How fast the flecks drift: 0 keeps them still (no controllers), like the flecks set in glitter plastic (the shader can't make them catch the light by view angle); 1 moves them a tile in U in 7 s and in V in 11 s. |
 | `satin_colors` | 360,362,363,364,365,366,367,376 | Satin (opal) colors, see Satin below. The default: LEGO's color data's "Satin Colors" category (the Transparent ... Opal colors). Empty: the default; `none`: off. |
 | `satin_opacity` | 75 | Percent: the vertex alpha of transparent satin bricks, instead of `transparent_opacity` or the Materials.xml alpha. |
 | `satin_whiten` | 20 | Percent: how far satin colors are moved towards white (in linear RGB, after the color variation). |
