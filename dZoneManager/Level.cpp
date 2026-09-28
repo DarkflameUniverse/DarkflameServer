@@ -19,8 +19,9 @@
 #include "dConfig.h"
 #include <ranges>
 
-Level::Level(Zone* parentZone, const std::string& filepath) {
+Level::Level(Zone* parentZone, const std::string& filepath, int32_t sceneID) {
 	m_ParentZone = parentZone;
+	m_SceneID = sceneID;
 
 	auto stream = Game::assetManager->GetFile(filepath.c_str());
 
@@ -40,8 +41,9 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 	LoadSceneObjects(levelFile.objects);
 }
 
-void Level::MakeSpawner(const SceneObject& obj) {
+void Level::MakeSpawner(const SceneObject& obj, int32_t sceneID) {
 	SpawnerInfo spawnInfo = SpawnerInfo();
+	spawnInfo.scene = sceneID;
 	SpawnerNode* node = new SpawnerNode();
 	spawnInfo.templateID = obj.lot;
 	spawnInfo.spawnerID = obj.id;
@@ -162,7 +164,7 @@ void Level::LoadSceneObjects(const std::vector<SceneObject>& objects) {
 		}
 
 		if (obj.lot == 176) { //Spawner
-			MakeSpawner(obj);
+			MakeSpawner(obj, m_SceneID);
 		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
@@ -172,6 +174,7 @@ void Level::LoadSceneObjects(const std::vector<SceneObject>& objects) {
 			info.rot = obj.rotation;
 			info.settings = obj.settings;
 			info.scale = obj.scale;
+			info.scene = m_SceneID;
 			Game::entityManager->CreateEntity(info);
 		}
 	}

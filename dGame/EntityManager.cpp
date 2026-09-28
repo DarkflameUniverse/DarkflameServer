@@ -11,6 +11,8 @@
 #include "SwitchComponent.h"
 #include "UserManager.h"
 #include "dZoneManager.h"
+#include "Zone.h"
+#include "ZoneScenes.h"
 #include "MissionComponent.h"
 #include "Game.h"
 #include "Logger.h"
@@ -97,6 +99,13 @@ void EntityManager::Initialize() {
 		m_GhostingExcludedZones.end(),
 		Game::zoneManager->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
+
+	// Scene ghosting needs the terrain's scene map; without one it stays off
+	if (m_GhostingEnabled && GeneralUtils::TryParse<bool>(Game::config->GetValue("ghosting_scenes")).value_or(false)) {
+		auto* zone = Game::zoneManager->GetZoneMut();
+		m_SceneGhosting = zone && zone->LoadSceneMap();
+		LOG("Scene ghosting is %s", m_SceneGhosting ? "on" : "off: the zone has no scene map");
+	}
 
 	// grab hardcore mode settings and load them with sane defaults
 	Game::config->AddConfigHandler([]() {Game::entityManager->ReloadConfig();});
@@ -505,6 +514,8 @@ void EntityManager::UpdateGhosting(Entity* player) {
 
 	const auto& referencePoint = ghostComponent->GetGhostReferencePoint();
 	const auto isOverride = ghostComponent->GetGhostOverride();
+	const auto* zone = m_SceneGhosting ? Game::zoneManager->GetZone() : nullptr;
+	const auto loaded = zone ? zone->GetSceneGraph().Loaded(zone->GetSceneMap().SceneAt(referencePoint.x, referencePoint.z)) : std::set<uint32_t>{};
 
 	for (auto* entity : m_EntitiesToGhost) {
 		const auto& entityPoint = entity->GetPosition();
@@ -513,24 +524,32 @@ void EntityManager::UpdateGhosting(Entity* player) {
 
 		const auto observed = ghostComponent->IsObserved(id);
 
-		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
+		bool tooFar = false, nearEnough = false;
+		if (zone) {
+			// As the client streams scenes: the objects of the scenes loaded around the player
+			nearEnough = ZoneScenes::InLoadedScene(entity->GetScene(), zone->GetSceneMap().SceneAt(entityPoint.x, entityPoint.z), loaded);
+			tooFar = !nearEnough;
+		} else {
+			const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
+			auto ghostingDistanceMax = m_GhostDistanceMaxSquared;
+			auto ghostingDistanceMin = m_GhostDistanceMinSqaured;
 
-		auto ghostingDistanceMax = m_GhostDistanceMaxSquared;
-		auto ghostingDistanceMin = m_GhostDistanceMinSqaured;
-
-		const auto isAudioEmitter = entity->GetLOT() == 6368; // https://explorer.lu/objects/6368
-		if (isAudioEmitter) {
-			ghostingDistanceMax = ghostingDistanceMin;
+			const auto isAudioEmitter = entity->GetLOT() == 6368; // https://explorer.lu/objects/6368
+			if (isAudioEmitter) {
+				ghostingDistanceMax = ghostingDistanceMin;
+			}
+			tooFar = distance > ghostingDistanceMax;
+			nearEnough = ghostingDistanceMin > distance;
 		}
 
-		if (observed && distance > ghostingDistanceMax && !isOverride) {
+		if (observed && tooFar && !isOverride) {
 			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
-		} else if (!observed && ghostingDistanceMin > distance) {
+		} else if (!observed && nearEnough) {
 			// Check collectables, don't construct if it has been collected
 			uint32_t collectionId = entity->GetCollectibleID();
 
@@ -555,6 +574,8 @@ void EntityManager::CheckGhosting(Entity* entity) {
 	if (!entity) return;
 
 	const auto& referencePoint = entity->GetPosition();
+	const auto* zone = m_SceneGhosting ? Game::zoneManager->GetZone() : nullptr;
+	const auto entityScene = zone ? zone->GetSceneMap().SceneAt(referencePoint.x, referencePoint.z) : 0;
 	for (auto* player : PlayerManager::GetAllPlayers()) {
 		auto* ghostComponent = player->GetComponent<GhostComponent>();
 		if (!ghostComponent) continue;
@@ -562,13 +583,22 @@ void EntityManager::CheckGhosting(Entity* entity) {
 		const auto& entityPoint = ghostComponent->GetGhostReferencePoint();
 		const auto id = entity->GetObjectID();
 		const auto observed = ghostComponent->IsObserved(id);
-		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
+		bool tooFar = false, nearEnough = false;
+		if (zone) {
+			const auto loaded = zone->GetSceneGraph().Loaded(zone->GetSceneMap().SceneAt(entityPoint.x, entityPoint.z));
+			nearEnough = ZoneScenes::InLoadedScene(entity->GetScene(), entityScene, loaded);
+			tooFar = !nearEnough;
+		} else {
+			const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
+			tooFar = distance > m_GhostDistanceMaxSquared;
+			nearEnough = m_GhostDistanceMinSqaured > distance;
+		}
 
-		if (observed && distance > m_GhostDistanceMaxSquared) {
+		if (observed && tooFar) {
 			ghostComponent->GhostEntity(id);
 			DestructEntity(entity, player->GetSystemAddress());
 			entity->SetObservers(entity->GetObservers() - 1);
-		} else if (!observed && m_GhostDistanceMinSqaured > distance) {
+		} else if (!observed && nearEnough) {
 			ghostComponent->ObserveEntity(id);
 			ConstructEntity(entity, player->GetSystemAddress());
 			entity->SetObservers(entity->GetObservers() + 1);

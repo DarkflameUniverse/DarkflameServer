@@ -70,6 +70,7 @@ struct SpawnerInfo {
 
 	bool emulated = false;
 	LWOOBJID emulator = LWOOBJID_EMPTY;
+	int32_t scene = -1; // the zone scene the spawner was placed in, passed to what it spawns (EntityInfo::scene)
 };
 
 class Spawner {

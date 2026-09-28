@@ -66,6 +66,7 @@ void Zone::LoadZoneIntoMemory() {
 		m_SpawnpointRotation = zoneFile.spawnpointRotation;
 
 		m_SceneCount = zoneFile.scenes.size();
+		m_SceneGraph = ZoneScenes::SceneGraph(zoneFile.scenes, zoneFile.sceneTransitions);
 		for (auto& scene : zoneFile.scenes) {
 			LoadScene(std::move(scene));
 		}
@@ -198,13 +199,29 @@ uint32_t Zone::CalculateChecksum() const {
 void Zone::LoadLevelsIntoMemory() {
 	for (auto& [sceneID, scene] : m_Scenes) {
 		if (scene.level) continue;
-		scene.level = std::make_unique<Level>(this, m_ZonePath + scene.filename);
+		scene.level = std::make_unique<Level>(this, m_ZonePath + scene.filename, sceneID.GetSceneID());
 
 		if (scene.level->m_ChunkHeaders.empty()) continue;
 
 		scene.level->m_ChunkHeaders.begin()->second.lwoSceneID = sceneID;
 		AddRevision(scene.level->m_ChunkHeaders.begin()->second.lwoSceneID, scene.level->m_ChunkHeaders.begin()->second.fileInfo.revision);
 	}
+}
+
+bool Zone::LoadSceneMap() {
+	if (m_ZoneRawPath.empty()) return false;
+	auto file = Game::assetManager->GetFile((m_ZonePath + m_ZoneRawPath).c_str());
+	if (!file) {
+		LOG("Could not open the terrain file %s for its scene map", (m_ZonePath + m_ZoneRawPath).c_str());
+		return false;
+	}
+	Raw::Raw raw;
+	if (!Raw::ReadRaw(file, raw)) {
+		LOG("Could not read the terrain file %s for its scene map", (m_ZonePath + m_ZoneRawPath).c_str());
+		return false;
+	}
+	m_SceneMap = ZoneScenes::SceneMap(raw);
+	return !m_SceneMap.Empty();
 }
 
 void Zone::AddRevision(LWOSCENEID sceneID, uint32_t revision) {

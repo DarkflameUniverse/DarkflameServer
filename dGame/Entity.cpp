@@ -138,6 +138,7 @@ Entity::Entity(const LWOOBJID& objectID, const EntityInfo& info, User* parentUse
 	m_DefaultPosition = info.pos;
 	m_DefaultRotation = info.rot;
 	m_Scale = info.scale;
+	m_Scene = info.scene;
 	m_Spawner = info.spawner;
 	m_SpawnerID = info.spawnerID;
 	m_HasSpawnerNodeID = info.hasSpawnerNodeID;

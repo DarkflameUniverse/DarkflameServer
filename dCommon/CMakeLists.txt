@@ -30,6 +30,7 @@ set(DCOMMON_SOURCES
 		"ZoneFile.cpp"
 		"LevelFile.cpp"
 		"Raw.cpp"
+		"ZoneScenes.cpp"
 		"Process.cpp"
 		"Permissions.cpp"
 		"NifFile.cpp"

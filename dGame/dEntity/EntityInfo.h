@@ -37,4 +37,6 @@ struct EntityInfo {
 	LwoNameValue settings;
 	LwoNameValue networkSettings;
 	float scale;
+	// The zone scene (its scene id) the object was placed in, for scene ghosting; -1: none (spawned at run time)
+	int32_t scene = -1;
 };

@@ -62,6 +62,7 @@ public:
 	void CheckGhosting(Entity* entity);
 	Entity* GetGhostCandidate(LWOOBJID id) const;
 	bool GetGhostingEnabled() const;
+	bool GetSceneGhosting() const { return m_SceneGhosting; }
 
 	void ScheduleForKill(Entity* entity);
 
@@ -109,6 +110,9 @@ private:
 	float m_GhostDistanceMinSqaured = 100 * 100;
 	float m_GhostDistanceMaxSquared = 150 * 150;
 	bool m_GhostingEnabled = true;
+	// ghosting_scenes: players get the objects of the scenes their client keeps loaded (ZoneScenes) instead of the
+	// ones within the ghosting distances
+	bool m_SceneGhosting = false;
 
 	std::stack<uint16_t> m_LostNetworkIds;
 

@@ -14,6 +14,7 @@ set(DGAMETEST_SOURCES
 	"BrickByBrickTests.cpp"
 	"ModularBuildTableTests.cpp"
 	"UgcManifestTests.cpp"
+	"SceneGhostingTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

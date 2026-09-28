@@ -24,6 +24,7 @@ Spawner::Spawner(const SpawnerInfo& info) {
 
 	m_EntityInfo.lot = m_Info.templateID;
 	m_EntityInfo.scale = m_Info.templateScale;
+	m_EntityInfo.scene = m_Info.scene;
 
 	m_Start = m_Info.noTimedSpawn;
 

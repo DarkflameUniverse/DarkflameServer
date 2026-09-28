@@ -3,6 +3,7 @@
 #include "dZMCommon.h"
 #include "LDFFormat.h"
 #include "ZoneFile.h"
+#include "ZoneScenes.h"
 #include "tinyxml2.h"
 #include <string>
 #include <vector>
@@ -48,6 +49,12 @@ public:
 	const NiPoint3& GetSpawnPos() const { return m_Spawnpoint; }
 	const NiQuaternion& GetSpawnRot() const { return m_SpawnpointRotation; }
 
+	// Which scenes the client keeps loaded where (ZoneScenes); the scene map is empty unless LoadSceneMap read it
+	const ZoneScenes::SceneGraph& GetSceneGraph() const { return m_SceneGraph; }
+	const ZoneScenes::SceneMap& GetSceneMap() const { return m_SceneMap; }
+	// Reads the terrain file's scene map (for scene ghosting); false when the zone has none
+	bool LoadSceneMap();
+
 	void SetSpawnPos(const NiPoint3& pos) { m_Spawnpoint = pos; }
 	void SetSpawnRot(const NiQuaternion& rot) { m_SpawnpointRotation = rot; }
 
@@ -70,6 +77,8 @@ private:
 
 	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
+	ZoneScenes::SceneGraph m_SceneGraph;
+	ZoneScenes::SceneMap m_SceneMap;
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;

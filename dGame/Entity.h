@@ -349,6 +349,9 @@ public:
 	// Scale will only be communicated to the client when the construction packet is sent
 	void SetScale(const float scale) { m_Scale = scale; };
 
+	// The zone scene the object was placed in (EntityInfo::scene), -1 when it came from none
+	int32_t GetScene() const { return m_Scene; }
+
 	void RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler);
 
 	bool HandleMsg(GameMessages::GameMsg& msg) const;
@@ -392,6 +395,7 @@ private:
 	NiPoint3 m_DefaultPosition;
 	NiQuaternion m_DefaultRotation = QuatUtils::IDENTITY;
 	float m_Scale;
+	int32_t m_Scene = -1;
 
 	Spawner* m_Spawner;
 	LWOOBJID m_SpawnerID;
