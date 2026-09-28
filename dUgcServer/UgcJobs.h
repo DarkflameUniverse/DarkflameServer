@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "UgcBricks.h"
+#include "UgcHsr.h"
 #include "UgcIconParams.h"
 #include "UgcRender.h"
 #include "UgcStorage.h"
@@ -50,7 +51,7 @@ namespace UgcJobs {
 		std::string shaderOpaque{ "01" };      // S<shader>_Opaque_...; transparent shapes are always S01
 		bool combineTransparent{ false };      // one shape for all transparent bricks, else one per brick (Combine Transparent)
 		Shaders shaders;                       // metal and glow groups (all off by default)
-		UgcRender::OptimizeOptions optimize;   // hidden surface removal
+		UgcHsr::Options hsr;                   // hidden surface removal (Remove Hidden Faces)
 		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
 		UgcRender::IconOptions icon;           // from the icon_* settings (UgcIconParams); presets and overrides go over it
 		uint32_t maxBricks{};                  // a model with more fails; 0: no limit

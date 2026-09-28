@@ -52,12 +52,12 @@ namespace UgcJobs {
 	}
 
 	uint64_t EstimateMemory(size_t parts, const Settings& settings) {
-		// Measured: the renders' buffers, and per brick its mesh in each LOD (positions, normals, colors, indices,
-		// the occlusion tree and copies made along the way), about 40 KB at LOD 0
-		const uint64_t resolution = static_cast<uint64_t>(std::clamp(settings.optimize.resolution, 64, 4096));
+		// Measured: the icon's buffers, and per brick its mesh in each LOD (positions, normals, colors, indices,
+		// the occlusion tree and copies made along the way), about 40 KB at LOD 0, and the hidden faces' ray tree
+		// (about 60 bytes a triangle, one LOD at a time)
 		const uint64_t icon = static_cast<uint64_t>(settings.icon.size) * settings.icon.supersample;
-		const uint64_t fixed = resolution * resolution * 8 + icon * icon * 20 + 1024 * 1024 * 4 + 16 * 1024 * 1024;
-		return fixed + static_cast<uint64_t>(parts) * 40 * 1024 * (1 + settings.lods.size());
+		const uint64_t fixed = icon * icon * 20 + 1024 * 1024 * 4 + 16 * 1024 * 1024;
+		return fixed + static_cast<uint64_t>(parts) * (40 * 1024 * (1 + settings.lods.size()) + 16 * 1024);
 	}
 
 	namespace {
@@ -212,7 +212,9 @@ namespace UgcJobs {
 			nlohmann::json entry{ { "lod", lods[i] }, { "near", ranges[i].first }, { "far", ranges[i].second },
 				{ "opaqueBefore", model.opaque.TriangleCount() }, { "transparent", model.transparent.TriangleCount() } };
 			step = std::chrono::steady_clock::now();
-			const auto optimized = UgcRender::Optimize(model, settings.optimize);
+			auto hsr = settings.hsr;
+			hsr.seed = seed;
+			const auto optimized = UgcHsr::RemoveHiddenFaces(model, hsr);
 			hsrMs += Since(step);
 			if (i == 0 && optimized.trianglesRemoved > 0) {
 				if (!outcome.note.empty()) outcome.note += "; ";
@@ -303,7 +305,8 @@ namespace UgcJobs {
 			{ "icon", std::lround(iconMs) }, { "total", std::lround(Since(started)) } };
 		stats["settings"] = { { "palette", settings.build.palette == UgcModel::ePalette::LU_TOOLBOX ? "lu_toolbox" : "brickdb" },
 			{ "colorVariation", settings.build.colorVariation }, { "transparentOpacity", settings.build.transparentOpacity },
-			{ "removeHiddenFaces", settings.optimize.removeHidden }, { "groundPlane", settings.optimize.groundPlane },
+			{ "removeHiddenFaces", settings.hsr.enabled }, { "groundPlane", settings.hsr.groundPlane }, { "hsrSamples", settings.hsr.samples },
+			{ "hsrBounces", settings.hsr.bounces }, { "hsrSampleSpacing", settings.hsr.spacing }, { "hsrMinPoints", settings.hsr.minPoints },
 			{ "ao", settings.ao.enabled }, { "aoDistance", settings.ao.distance }, { "aoSamples", settings.ao.samples }, { "aoStrength", settings.ao.strength } };
 		outcome.stats = stats.dump();
 		outcome.files["stats.json"] = outcome.stats;

@@ -9,8 +9,8 @@
 #include "UgcModel.h"
 
 /**
- * A small software rasterizer (no GPU or display needed) for what the UGC server draws: the icons, and the renders
- * from many directions that find the faces nobody can see and bake ambient occlusion into the vertex colors.
+ * A small software rasterizer (no GPU or display needed) for what the UGC server draws: the icons, and the occlusion
+ * rays that bake ambient occlusion into the vertex colors.
  */
 namespace UgcRender {
 	// 8-bit RGBA, rows top to bottom, not premultiplied
@@ -69,25 +69,6 @@ namespace UgcRender {
 	// transparent) get the glitter texture's white flecks over their color before the light (LEGO-AnimUV), still.
 	Image RenderIcon(const UgcModel::Model& model, const IconOptions& options, const std::vector<float>* opaqueAo = nullptr);
 
-	struct OptimizeOptions {
-		int resolution{ 1024 };   // of each direction's render
-		bool removeHidden{ true };
-		bool groundPlane{ false }; // LU Toolbox's Use Ground Plane: nothing is seen from below the model
-	};
-
-	struct OptimizeResult {
-		size_t trianglesBefore{};
-		size_t trianglesRemoved{};
-		std::vector<bool> kept; // per opaque triangle before: whether it stayed (for UgcModel::KeepTriangles)
-	};
-
-	/**
-	 * Hidden surface removal: renders the opaque mesh from 42 directions around it and removes the triangles that show
-	 * in none of them (with a conservative test, so small visible ones stay). Transparent bricks hide nothing and
-	 * aren't touched, as in LU Toolbox.
-	 */
-	OptimizeResult Optimize(UgcModel::Model& model, const OptimizeOptions& options);
-
 	/**
 	 * Ambient occlusion of each vertex of `mesh`: the share of `samples` rays (cosine weighted around the vertex
 	 * normal, the same pattern every time) that leave without hitting a triangle of `occluders` within `distance`.
@@ -100,7 +81,4 @@ namespace UgcRender {
 	 * while baking and not baked) plus the glow colors, multiplied into the vertex colors.
 	 */
 	std::vector<float> BakeAo(UgcModel::Model& model, const AoOptions& options); // the occlusion used, per opaque vertex
-
-	// The 42 directions Optimize renders from (an icosahedron's corners and edge centres), unit length
-	std::vector<glm::vec3> SphereDirections();
 }

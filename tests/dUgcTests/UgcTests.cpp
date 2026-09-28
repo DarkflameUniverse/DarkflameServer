@@ -223,7 +223,7 @@ TEST(UgcRender, RemovesWhatIsInsideAndDrawsIcons) {
 		</Bricks></LXFML>)", error);
 	auto model = UgcModel::Build(parts, library);
 	ASSERT_EQ(model.opaque.TriangleCount(), 24u);
-	const auto result = UgcRender::Optimize(model, UgcRender::OptimizeOptions{ 256, true });
+	const auto result = UgcHsr::RemoveHiddenFaces(model, UgcHsr::Options{});
 	EXPECT_EQ(result.trianglesRemoved, 12u);
 	EXPECT_EQ(model.opaque.TriangleCount(), 12u);
 	EXPECT_EQ(model.opaque.positions.size(), 8u);
@@ -233,7 +233,6 @@ TEST(UgcRender, RemovesWhatIsInsideAndDrawsIcons) {
 	EXPECT_EQ(icon.rgba[3], 0);                        // a corner is background
 	EXPECT_EQ(icon.rgba[(16 * 32 + 16) * 4 + 3], 255); // the middle is the box
 	EXPECT_GT(icon.rgba[(16 * 32 + 16) * 4], icon.rgba[(16 * 32 + 16) * 4 + 1]); // red
-	EXPECT_EQ(UgcRender::SphereDirections().size(), 42u);
 }
 
 TEST(UgcFormats, NifReadsBack) {
@@ -693,7 +692,6 @@ TEST(UgcThrottle, KeepsUnderTheBudget) {
 TEST(UgcJobs, MakesLodsStatsAndIcons) {
 	UgcBricks::BrickLibrary library(MakeRes(), 0);
 	UgcJobs::Settings settings;
-	settings.optimize.resolution = 128;
 	settings.ao.samples = 8;
 	settings.icon.size = 32;
 	settings.icon.supersample = 1;
@@ -1076,7 +1074,6 @@ namespace {
 
 	UgcJobs::Settings SmallSettings() {
 		UgcJobs::Settings settings;
-		settings.optimize.resolution = 128;
 		settings.ao.samples = 8;
 		settings.icon.size = 32;
 		settings.icon.supersample = 1;
@@ -1614,4 +1611,147 @@ TEST(UgcModel, SatinColors) {
 	EXPECT_EQ(satin.transparent.colors[8], before.transparent.colors[8]);
 	// Satin's own group is the transparent one: no look
 	EXPECT_TRUE(satin.transparent.looks.empty());
+}
+
+TEST(UgcHsr, OffIsByteIdenticalToBefore) {
+	// remove_hidden_faces=0 makes exactly the files made before the path traced hidden faces replaced the renders.
+	// The hashes were taken with GCC on x86-64 Linux.
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	auto settings = SmallSettings();
+	settings.hsr.enabled = false;
+	const auto outcome = UgcJobs::ProcessModel(LOOKS_LXFML, library, settings, 7);
+	ASSERT_TRUE(outcome.ok) << outcome.error;
+	const auto other = UgcJobs::ProcessModel(LXFML5, library, settings, 99);
+	ASSERT_TRUE(other.ok) << other.error;
+#if defined(__linux__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.nif.gz"))), "f91b88e46a92e9472710854902b25c9a");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz"))), "58a779933695da04bf9b3459c8369528");
+	EXPECT_EQ(UgcFormats::Md5Hex(outcome.files.at("icon.png")), "032ff7df236a636a4c609071d9b46181");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(other.files.at("model.nif.gz"))), "7eddc020a3e4bf22ed1df0183b042ced");
+#endif
+}
+
+namespace {
+	// A quad a b c d (in order around it) facing `normal`, as two triangles wound to face it
+	void AddQuad(UgcModel::Mesh& mesh, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d, glm::vec3 normal) {
+		const auto base = static_cast<uint32_t>(mesh.positions.size());
+		for (const auto& p : { a, b, c, d }) {
+			mesh.positions.push_back(p);
+			mesh.normals.push_back(normal);
+			mesh.colors.push_back(glm::vec4(1.0f));
+		}
+		if (glm::dot(glm::cross(b - a, c - a), normal) >= 0.0f) mesh.indices.insert(mesh.indices.end(), { base, base + 1, base + 2, base, base + 2, base + 3 });
+		else mesh.indices.insert(mesh.indices.end(), { base, base + 2, base + 1, base, base + 3, base + 2 });
+	}
+
+	// An axis aligned box [min, max], faces outwards (or inwards)
+	void AddBox(UgcModel::Mesh& mesh, glm::vec3 lo, glm::vec3 hi, bool inwards = false) {
+		const float s = inwards ? -1.0f : 1.0f;
+		AddQuad(mesh, { lo.x, lo.y, lo.z }, { lo.x, hi.y, lo.z }, { lo.x, hi.y, hi.z }, { lo.x, lo.y, hi.z }, { -s, 0, 0 });
+		AddQuad(mesh, { hi.x, lo.y, lo.z }, { hi.x, hi.y, lo.z }, { hi.x, hi.y, hi.z }, { hi.x, lo.y, hi.z }, { s, 0, 0 });
+		AddQuad(mesh, { lo.x, lo.y, lo.z }, { hi.x, lo.y, lo.z }, { hi.x, lo.y, hi.z }, { lo.x, lo.y, hi.z }, { 0, -s, 0 });
+		AddQuad(mesh, { lo.x, hi.y, lo.z }, { hi.x, hi.y, lo.z }, { hi.x, hi.y, hi.z }, { lo.x, hi.y, hi.z }, { 0, s, 0 });
+		AddQuad(mesh, { lo.x, lo.y, lo.z }, { hi.x, lo.y, lo.z }, { hi.x, hi.y, lo.z }, { lo.x, hi.y, lo.z }, { 0, 0, -s });
+		AddQuad(mesh, { lo.x, lo.y, hi.z }, { hi.x, lo.y, hi.z }, { hi.x, hi.y, hi.z }, { lo.x, hi.y, hi.z }, { 0, 0, s });
+	}
+
+	// A room [-2, 2]^3 seen from inside (its walls face inwards), with a doorway in its +Z wall unless `closed`, and a
+	// small box in the middle of it (triangles from 0 to 11, the room's after)
+	UgcModel::Mesh Room(bool closed) {
+		UgcModel::Mesh mesh;
+		AddBox(mesh, glm::vec3(-0.3f), glm::vec3(0.3f));
+		const float w = 2.0f;
+		const glm::vec3 in(0, 0, -1);
+		AddQuad(mesh, { -w, -w, -w }, { w, -w, -w }, { w, w, -w }, { -w, w, -w }, { 0, 0, 1 });
+		AddQuad(mesh, { -w, -w, -w }, { -w, w, -w }, { -w, w, w }, { -w, -w, w }, { 1, 0, 0 });
+		AddQuad(mesh, { w, -w, -w }, { w, w, -w }, { w, w, w }, { w, -w, w }, { -1, 0, 0 });
+		AddQuad(mesh, { -w, -w, -w }, { w, -w, -w }, { w, -w, w }, { -w, -w, w }, { 0, 1, 0 });
+		AddQuad(mesh, { -w, w, -w }, { w, w, -w }, { w, w, w }, { -w, w, w }, { 0, -1, 0 });
+		// The +Z wall around a doorway x -0.5..0.5, y -2..0
+		AddQuad(mesh, { -w, -w, w }, { -0.5f, -w, w }, { -0.5f, w, w }, { -w, w, w }, in);
+		AddQuad(mesh, { 0.5f, -w, w }, { w, -w, w }, { w, w, w }, { 0.5f, w, w }, in);
+		AddQuad(mesh, { -0.5f, 0, w }, { 0.5f, 0, w }, { 0.5f, w, w }, { -0.5f, w, w }, in);
+		if (closed) AddQuad(mesh, { -0.5f, -w, w }, { 0.5f, -w, w }, { 0.5f, 0, w }, { -0.5f, 0, w }, in);
+		return mesh;
+	}
+}
+
+TEST(UgcHsr, KeepsWhatIsSeenThroughADoorwayOrOnlyByBouncedLight) {
+	const auto open = UgcHsr::Visible(Room(false), UgcHsr::Options{});
+	// Every face of the box in the room, the one turned away from the doorway too (only light bounced off the back
+	// wall reaches it), and every wall
+	for (size_t t = 0; t < open.size(); t++) EXPECT_TRUE(open[t]) << t;
+	const auto closed = UgcHsr::Visible(Room(true), UgcHsr::Options{});
+	for (size_t t = 0; t < 12; t++) EXPECT_FALSE(closed[t]) << t;
+}
+
+TEST(UgcHsr, IsTheSameEveryTime) {
+	auto options = UgcHsr::Options{};
+	options.seed = 1234;
+	options.samples = 1; // few paths, so chance matters
+	options.bounces = 3;
+	const auto mesh = Room(false);
+	const auto first = UgcHsr::Visible(mesh, options);
+	EXPECT_EQ(UgcHsr::Visible(mesh, options), first);
+	uint64_t points = 0, paths = 0;
+	UgcHsr::Visible(mesh, options, &points, &paths);
+	EXPECT_GT(points, 0u);
+	EXPECT_GT(paths, 0u);
+}
+
+TEST(UgcHsr, GroundPlaneHidesTheUnderside) {
+	UgcModel::Mesh mesh;
+	AddBox(mesh, glm::vec3(0.0f), glm::vec3(0.8f, 0.96f, 0.8f)); // a brick on LDD's floor
+	auto options = UgcHsr::Options{};
+	const auto without = UgcHsr::Visible(mesh, options);
+	for (size_t t = 0; t < without.size(); t++) EXPECT_TRUE(without[t]) << t;
+	options.groundPlane = true;
+	const auto with = UgcHsr::Visible(mesh, options);
+	for (size_t t = 0; t < with.size(); t++) EXPECT_EQ(with[t], t != 4 && t != 5) << t; // triangles 4 and 5: the bottom
+}
+
+TEST(UgcHsr, RemovesTrianglesWithoutArea) {
+	UgcModel::Mesh mesh;
+	AddBox(mesh, glm::vec3(0.0f), glm::vec3(0.8f));
+	const auto base = static_cast<uint32_t>(mesh.positions.size());
+	for (int i = 0; i < 3; i++) {
+		mesh.positions.push_back(glm::vec3(5.0f));
+		mesh.normals.push_back(glm::vec3(0, 1, 0));
+	}
+	mesh.indices.insert(mesh.indices.end(), { base, base + 1, base + 2 });
+	const auto visible = UgcHsr::Visible(mesh, UgcHsr::Options{});
+	ASSERT_EQ(visible.size(), 13u);
+	for (size_t t = 0; t < 12; t++) EXPECT_TRUE(visible[t]) << t;
+	EXPECT_FALSE(visible[12]);
+}
+
+TEST(UgcHsr, SamplePointsFollowTheTrianglesSize) {
+	const auto check = [](const std::vector<glm::vec3>& points) {
+		for (const auto& w : points) {
+			EXPECT_NEAR(w.x + w.y + w.z, 1.0f, 1e-5f);
+			EXPECT_GT(std::min({ w.x, w.y, w.z }), 0.0f);
+		}
+	};
+	// Half a stud-sized square: 7 x 7 points on the square
+	const auto half = UgcHsr::SamplePoints({ 0, 0, 0 }, { 0.8f, 0, 0 }, { 0.8f, 0, 0.8f }, 0.1143f);
+	check(half);
+	EXPECT_EQ(half.size(), 25u);
+	// Four times the area, about four times the points
+	const auto big = UgcHsr::SamplePoints({ 0, 0, 0 }, { 1.6f, 0, 0 }, { 1.6f, 0, 1.6f }, 0.1143f);
+	check(big);
+	EXPECT_EQ(big.size(), 100u);
+	// A tiny triangle: its centre and one towards each corner
+	const auto tiny = UgcHsr::SamplePoints({ 0, 0, 0 }, { 0.01f, 0, 0 }, { 0, 0.01f, 0 }, 0.1143f);
+	check(tiny);
+	EXPECT_EQ(tiny.size(), 4u);
+	// A long sliver: points along its length
+	const auto sliver = UgcHsr::SamplePoints({ 0, 0, 0 }, { 3.2f, 0, 0 }, { 1.6f, 0.01f, 0 }, 0.1143f);
+	check(sliver);
+	EXPECT_EQ(sliver.size(), 14u);
+	// With a minimum (LU Toolbox's 28 texels a triangle) small triangles get their points closer together
+	const auto dense = UgcHsr::SamplePoints({ 0, 0, 0 }, { 0.01f, 0, 0 }, { 0, 0.01f, 0 }, 0.1143f, 28);
+	check(dense);
+	EXPECT_GE(dense.size(), 28u);
+	EXPECT_LE(dense.size(), 40u);
+	EXPECT_EQ(UgcHsr::SamplePoints({ 0, 0, 0 }, { 1.6f, 0, 0 }, { 1.6f, 0, 1.6f }, 0.1143f, 28).size(), 100u); // bigger ones as before
 }

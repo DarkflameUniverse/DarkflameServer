@@ -483,9 +483,12 @@ namespace {
 		c.Add(Text(UGC, "satin_colors", "Satin colors", "Satin (opal) color ids, comma separated: they stay transparent plastic (the client has no satin shader) but are made milky and less see-through. By default LEGO's satin colors 360,362,363,364,365,366,367,376 (none: off)." + notLive, "360,362,363,364,365,366,367,376"));
 		c.Add(Float(UGC, "satin_opacity", "Satin opacity", "Percent: the opacity of transparent satin bricks, instead of the transparent opacity.", "75", 0, 100));
 		c.Add(Float(UGC, "satin_whiten", "Satin whitening", "Percent: how far satin colors go towards white.", "20", 0, 100));
-		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "", true));
-		c.Add(Bool(UGC, "hsr_ground_plane", "Nothing seen from below", "Also removes what can only be seen from under the model.", false));
-		c.Add(Unit(Int(UGC, "optimize_resolution", "Detail of the visibility renders", "", "1024", 64, 4096), "pixels"));
+		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "LU Toolbox's Remove Hidden Faces: paths are traced from points on each opaque triangle, bouncing off the model; a triangle none of whose paths reaches the sky is removed.", true));
+		c.Add(Bool(UGC, "hsr_ground_plane", "Nothing seen from below", "Also removes what can only be seen from under the model (a black ground under LDD's floor).", false));
+		c.Add(Int(UGC, "hsr_samples", "Paths per point", "Paths traced from each point on a triangle (LU Toolbox's Samples). More finds more faces seen only through small gaps; slower.", "8", 1, 256));
+		c.Add(Int(UGC, "hsr_bounces", "Path bounces", "Bounces a path may take off the model before it gives up (Cycles' Max Bounces in LU Toolbox's bake).", "8", 0, 64));
+		c.Add(Float(UGC, "hsr_sample_spacing", "Point spacing", "Distance between the points paths start from, in LDD units (a stud is 0.8; 0.1143 puts 7 x 7 points on a stud-sized square). Smaller finds smaller visible parts of big faces; slower.", "0.1143", 0.01, 10));
+		c.Add(Int(UGC, "hsr_min_points", "Points per triangle at least", "Small triangles get this many points however close together (LU Toolbox bakes 28 texels for every triangle). Lower is faster but removes more faces that are only just seen.", "28", 1, 4096));
 		c.Add(Bool(UGC, "bake_ao", "Darken hidden corners", "Ambient occlusion baked into the vertex colors.", true));
 		c.Add(Int(UGC, "ao_samples", "Occlusion rays per vertex", "", "64", 1, 1024));
 		c.Add(Float(UGC, "ao_distance", "Occlusion distance", "", "5", 0, 1000));

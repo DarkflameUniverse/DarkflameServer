@@ -3,6 +3,7 @@ set(DUGC_SOURCES
 	"UgcBricks.cpp"
 	"UgcFormats.cpp"
 	"UgcGlitter.cpp"
+	"UgcHsr.cpp"
 	"UgcIconParams.cpp"
 	"UgcIconPose.cpp"
 	"UgcJobs.cpp"
@@ -41,5 +42,5 @@ target_link_libraries(UgcServer ${COMMON_LIBRARIES} dWeb dServer dUgc)
 
 # Rendering is far too slow unoptimized (minutes a model instead of seconds), so it is optimized in every build type
 if(NOT MSVC)
-	set_source_files_properties("UgcRender.cpp" "UgcModel.cpp" "UgcPalette.cpp" "UgcGlitter.cpp" PROPERTIES COMPILE_OPTIONS "-O2")
+	set_source_files_properties("UgcRender.cpp" "UgcHsr.cpp" "UgcModel.cpp" "UgcPalette.cpp" "UgcGlitter.cpp" PROPERTIES COMPILE_OPTIONS "-O2")
 endif()

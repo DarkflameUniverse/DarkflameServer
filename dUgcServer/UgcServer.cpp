@@ -144,9 +144,12 @@ namespace {
 		settings.build.satinColors = ColorList("satin_colors", "360,362,363,364,365,366,367,376");
 		settings.build.satinOpacity = std::clamp(Setting<float>("satin_opacity", 75.0f), 0.0f, 100.0f);
 		settings.build.satinWhiten = std::clamp(Setting<float>("satin_whiten", 20.0f), 0.0f, 100.0f);
-		settings.optimize.removeHidden = Setting<int32_t>("remove_hidden_faces", 1) != 0;
-		settings.optimize.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
-		settings.optimize.resolution = Setting<int32_t>("optimize_resolution", 1024);
+		settings.hsr.enabled = Setting<int32_t>("remove_hidden_faces", 1) != 0;
+		settings.hsr.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
+		settings.hsr.samples = std::clamp(Setting<int32_t>("hsr_samples", 8), 1, 256);
+		settings.hsr.bounces = std::clamp(Setting<int32_t>("hsr_bounces", 8), 0, 64);
+		settings.hsr.spacing = std::clamp(Setting<float>("hsr_sample_spacing", 0.1143f), 0.01f, 10.0f);
+		settings.hsr.minPoints = std::clamp(Setting<int32_t>("hsr_min_points", 28), 1, 4096);
 		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
 		settings.ao.distance = Setting<float>("ao_distance", 5.0f);
 		settings.ao.samples = std::clamp(Setting<int32_t>("ao_samples", 64), 1, 1024);
