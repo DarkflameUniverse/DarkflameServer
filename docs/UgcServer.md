@@ -108,6 +108,14 @@ Player models (`ugc` rows) are made the way LU Toolbox (the Blender add-on the c
 them: its importer, Process Model, Bake Lighting (AO only) and its icon renderer, with its defaults as the settings'
 defaults. The table below goes through it step by step.
 
+At a glance, one model: queued in the database (after the owner's quiet period, staff requests first) -> read the
+LXFML -> build each level of detail from the client's brick primitives -> colors, transparency and variation ->
+remove faces nobody can see -> bake ambient occlusion into the vertex colors -> sort bricks into shader groups
+(plastic, transparent, metal, brushed steel, glow, glitter) -> write the NIF -> draw the icon from that NIF -> store
+the files (`.gz`/`.checksum` and `.sd0`), their checksums and the stats -> tell the worlds (`UGC_MODELS_MADE`), which
+tell the clients showing the model. A worker thread does steps 1 to 7; the main thread does the queue, the database
+and the notices (see Threads). Cars and rockets are made once per combination of modules (icon only).
+
 1. The LXFML is read from `ugc.lxfml` (an sd0 stream). Parts come from `Bricks/Brick/Part` (LXFML 5: row-major
    rotation and translation per bone) or `Scene/Model/Group/Part` (LXFML 4: axis angle).
 2. Each level of detail in `lods` (default `0,2`, as LU Toolbox imports) is built from the client's LDD primitives,
@@ -130,16 +138,23 @@ defaults. The table below goes through it step by step.
 4. Faces nobody can see are removed from the opaque bricks (they're rendered from 42 directions and triangles that
    never show are dropped; transparent bricks hide nothing and aren't touched). `hsr_ground_plane=1` also drops what
    can only be seen from below.
-5. Ambient occlusion is baked like LU Toolbox's Bake Lighting with AO Only: 64 rays per vertex (`ao_samples`) that count
-   as blocked when they hit an opaque triangle within 5 (`ao_distance`); transparent bricks are neither baked nor
-   occlude; glowing colors add their glow times 6 (Glow Strength 3 x Glow Multiplier 2). The light is multiplied into
+5. Ambient occlusion is baked like LU Toolbox's Bake Lighting with AO Only: 64 rays per vertex (`ao_samples`) over
+   the hemisphere around the vertex normal (cosine weighted, the same pattern every time, so a model made again comes
+   out the same), each blocked when it hits an opaque triangle within 5 (`ao_distance`); the vertex's occlusion is the
+   share of rays that get out, and its light `1 - ao_strength * (1 - occlusion)` (default strength 1), multiplied into
+   the vertex color in linear space (`UgcRender::BakeAo`). It is ray-cast visibility, not path
+   tracing: no light bounces, no color bleeding, as Cycles' AO-only bake. Transparent bricks are neither baked nor
+   occlude; glowing colors add their glow times 6 (Glow Strength 3 x Glow Multiplier 2). The model alone is used: other
+   models on the property and the terrain don't occlude it. The light is multiplied into
    the vertex colors (the NIF has one color set; LU Toolbox keeps it in a "Lit" layer beside "Col").
 6. The meshes are written as a Gamebryo 20.3.0.9 NIF (user version 0, the client's own version) laid out like LU
    Toolbox's exports and the game's own brick models (`res/BrickModels/ndmade`): the root `SceneNode_Model`, an
    `NiLODNode` `S01_Opaque_Model` (and `S01_Alpha_Model` for transparent bricks) with `NiRangeLODData` holding each
    level's distances (LU Toolbox's: with LODs 0 and 2, 0-100 and 100-10000), a node `LOD_<n>` per level and its
-   shapes under it, named like the group. Shapes have vertex colors, a white material and, when transparent, alpha
-   blending. Opaque shapes are divided at 65535 vertices along their longest side (LU Toolbox's divide_mesh);
+   shapes under it, named like the group. Bricks with another look get groups of their own, drawn with the client's
+   shaders (`S<id>_Metal_Model`, `_Brushed_Model`, `_Glow_Model`, `_Glitter_Model`, `_GlitterAlpha_Model`; satin
+   stays in `S01_Alpha` with its own opacity and whitening): see "Metal and glow", "Glitter" and "Satin" below. Shapes
+   have vertex colors, a white material and, when transparent, alpha blending. Opaque shapes are divided at 65535 vertices along their longest side (LU Toolbox's divide_mesh);
    transparent bricks are one shape each unless `combine_transparent=1`. Vertices are in LDD's Y-up space with
    identity transforms, like the game's own brick models.
 7. The icon is drawn from the finished `.nif`: it is read back with the same reader as the client's files (NifFile,
@@ -422,6 +437,17 @@ build shares its files with (0 until the UGC server has seen the build: it fills
 starts, -1 when the modules can't be told). `IUgc::GetUgcFileChecksum(blueprint, file)` looks a blueprint up as a model
 first, then as a build through its combination.
 
+Migrations `dlu/mysql/90_ugc_process_time.sql`, `91_ugc_process_diagnostics.sql` and `dlu/sqlite/73`, `74`:
+`ugc.process_ms` (wall time of the last make), `ugc.process_cpu_ms` (the worker thread's CPU time) and
+`ugc.process_memory_kb` (the estimated memory it needed), and the same on `ugc_modular_build`; the dashboard's Took,
+CPU and RAM (est.) columns.
+
+Migrations `dlu/mysql/92_ugc_triangles_before.sql` and `dlu/sqlite/75_ugc_triangles_before.sql`:
+`ugc.triangle_count_before`, LOD 0's triangles before hidden faces were removed (the dashboard's Saved column).
+
+Migrations `dlu/mysql/94_ugc_priority.sql` and `dlu/sqlite/77_ugc_priority.sql`: `ugc.priority`, 1 for models staff
+asked to be made again (made before any other, cleared once made).
+
 ## Without 3D services (`UGCUSE3DSERVICES=7:0`)
 
 `UgcManifest` (dGame/dUtilities) answers `REQUEST_UGC_MANIFEST_INFO` when `ugc_manifest=1` (`sharedconfig.ini`,
@@ -518,7 +544,10 @@ a game client asks for the model's files, when the owner leaves the world or log
 the dashboard. Every save is a new blueprint: versions deleted during the wait are never made. It survives restarts.
 
 The database is the queue: the UGC server looks for rows with `is_optimized = 0` every `poll_interval_ms` (default
-2000), newest first, so worlds need no change to have new models processed. Rows that failed are tried again up to
+2000), `poll_batch` (32) or enough to keep every worker busy at a time: priority rows first (`ugc.priority`, set when
+staff reprocess a property: `/reprocessproperty` or the dashboard's Reprocess all models), then the least tried, then
+the newest. Cars and rockets and priority models are polled even when the queue is full and go to its front. Worlds
+need no change to have new models processed. Rows that failed are tried again up to
 `max_attempts` (default 3) times. Reprocessing (dashboard) sets rows back to `is_optimized = 0, process_attempts = 0`.
 No master messages are needed for any of it.
 
