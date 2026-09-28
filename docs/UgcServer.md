@@ -117,8 +117,9 @@ defaults. The table below goes through it step by step.
    `Materials.xml`): LU's colors, the LDD colors LU doesn't have mapped onto the nearest LU one, colors LU Toolbox doesn't know but the
    client's `Materials.xml` has (colors added to the brick database) from `Materials.xml`, unknown ones black. A
    brick is transparent only when all of its materials are; transparent bricks get `transparent_opacity` (58.82%).
-   `transparent_colors` names colors that are transparent whatever `Materials.xml` says (129, "Tr. Bright Bluish
-   Violet with Glitter", has alpha 255 there); an opaque-listed color named there gets `transparent_opacity`.
+   `transparent_colors` (default 129; `none`: no colors) names colors that are transparent whatever `Materials.xml`
+   says (129, "Tr. Bright Bluish Violet with Glitter", has alpha 255 there); a color named there gets
+   `transparent_opacity`.
    `color_brightness` (percent, default 100: unchanged) scales the models' colors after the variation below, not
    the icons'.
 3. Color variation: each material of each brick has its brightness shifted like LU Toolbox's "Apply Color Variation":
@@ -206,13 +207,13 @@ defaults. The table below goes through it step by step.
 | Icon scene BrickBuild / Car: 50 mm lens, camera 53.4 / 19.5 degrees, sun at 21 / 50.3, 128 px, framing 1.03, transparent film | Same framing (`icon_*`); the light is brighter, to match the game's icons |
 | Icon scene Rocket: 35 mm lens, other angles, two suns | Not built in; a preset for the rocket build type can be set in the icon editor |
 
-### Metal and glow (opt in, not how live looked)
+### Metal and glow (on by default, not how live looked)
 
 Live's models, LU Toolbox's exports and the client's own builder (`LUNifBuilder_BK`, which writes only `S01_Opaque`
 and `S01_Alpha`) all draw every brick with the LEGO shader, so metal colors look like grey plastic and glowing colors
-like bright plastic. The UGC server can instead give them the client's metal and emissive shaders. Everything is off
-by default, and off writes exactly the files it wrote before these settings existed (the same bytes, tested), so
-nothing is made again needlessly.
+like bright plastic. The UGC server gives them the client's metal and emissive shaders by default. Set the three
+shader ids to 0 for live's look: off writes exactly the files it wrote before these settings existed (the same bytes,
+tested).
 
 How the client picks the shader (checked in the 1.10.64 client; Ghidra bookmarks under "UGCShaders"): player models
 (LOT 14, and 6662) have RenderComponent shader 100, mapShaders "Multishader" (gameValue 9999). For a downloaded model
@@ -224,13 +225,13 @@ all of its levels, so each look needs a group of its own.
 
 | Setting (`ugcconfig.ini`, dashboard: UGC models) | Default | What it writes |
 | --- | --- | --- |
-| `shader_metal` | 0 (off) | `S<id>_Metal_Model` for metal colors: 88 is Polished Metal (gameValue 98). The client loads `textures/metal/metal_reflection_polished.dds` itself and tints it by the vertex color (`Metallic.fx`, `Technique_Lighting_PolishedMetal_VertColor`). |
-| `shader_brushed` | 0 (off) | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The textures are registered by the client (`RegisterBrushedSteelTextures`, 0x00467090) as global shader textures 6 and 7, so the .nif needs none. The client's Materials.xml has no brushed types, so this needs `brushed_colors` or a Materials.xml that names them. |
-| `shader_glow` | 0 (off) | `S<id>_Glow_Model` for opaque glowing colors: 46 is LEGO-Emissive (gameValue 53), which draws `lerp(lit, vertex color, vertex alpha * material emissive red)`, opaque. |
+| `shader_metal` | 88 | `S<id>_Metal_Model` for metal colors: 88 is Polished Metal (gameValue 98). The client loads `textures/metal/metal_reflection_polished.dds` itself and tints it by the vertex color (`Metallic.fx`, `Technique_Lighting_PolishedMetal_VertColor`). |
+| `shader_brushed` | 89 | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The textures are registered by the client (`RegisterBrushedSteelTextures`, 0x00467090) as global shader textures 6 and 7, so the .nif needs none. The client's Materials.xml has no brushed types, so this needs `brushed_colors` or a Materials.xml that names them. |
+| `shader_glow` | 46 | `S<id>_Glow_Model` for opaque glowing colors: 46 is LEGO-Emissive (gameValue 53), which draws `lerp(lit, vertex color, vertex alpha * material emissive red)`, opaque. |
 | `glow_emissive` | 1 | The glow shapes' `NiMaterialProperty` emissive (grey): how far the shader goes from lit to the plain color. |
 | `metal_material_types` | `shinySteel` | Materials.xml `MaterialType`s that are metal (empty: the default; `none`: none). |
 | `brushed_material_types` | `brushedSteel,matteSteel` | Materials.xml `MaterialType`s that are brushed steel. |
-| `brushed_colors` | empty | LEGO color ids that are brushed steel whatever their type (e.g. the drum lacquered 298, 300, 1002, 1004); they win over the metal and glow colors. |
+| `brushed_colors` | 298,300,1002,1004 (the drum lacquered colors) | LEGO color ids that are brushed steel whatever their type; they win over the metal and glow colors. Empty: the default; `none`: no colors. |
 
 Which color has which look is data, not a list in the code (`UgcModel::LookOf`): glow is LU Toolbox's glow table
 (`UgcPalette::Glow`: 50, 294, 329, 9000-9027), metal is LU Toolbox's metallic table (`UgcPalette::IsMetallic`) plus

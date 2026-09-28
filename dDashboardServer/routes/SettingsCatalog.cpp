@@ -444,7 +444,7 @@ namespace {
 		c.Add(Unit(Float(UGC, "color_variation", "Color variation", "Each brick's brightness is shifted by up to this much (the same every time the model is made). 0: none.", "5", 0, 100), "%"));
 		c.Add(Unit(Float(UGC, "transparent_opacity", "Transparent opacity", "", "58.82", 0, 100), "%"));
 		c.Add(Unit(Float(UGC, "color_brightness", "Model color brightness", "The models' vertex colors (not the icons'). 100: as the palette has them; lower is darker. Models already made keep theirs until they are made again.", "100", 0, 200), "%"));
-		c.Add(Text(UGC, "transparent_colors", "Always transparent colors", "LEGO color ids drawn transparent whatever Materials.xml says, comma separated (e.g. 129, the transparent glitter violet, which Materials.xml has opaque). Their opacity is Transparent opacity.", ""));
+		c.Add(Text(UGC, "transparent_colors", "Always transparent colors", "LEGO color ids drawn transparent whatever Materials.xml says, comma separated: by default 129, the transparent glitter violet, which Materials.xml has opaque (none: no colors). Their opacity is Transparent opacity.", "129"));
 		c.Add(Text(UGC, "lods", "Levels of detail", "brickprimitives levels made, 0 (most detailed) to 2, e.g. 0,2.", "0,2"));
 		c.Add(Float(UGC, "lod_distance_0", "LOD 0 distance", "", "0", 0, 100000));
 		c.Add(Float(UGC, "lod_distance_1", "LOD 1 distance", "", "50", 0, 100000));
@@ -455,13 +455,13 @@ namespace {
 		c.Add(Bool(UGC, "combine_transparent", "One shape for all transparent bricks", "Off: each transparent brick is its own shape, so the client can sort them.", false));
 		// Metal and glow groups (UgcJobs::Shaders): off keeps the files exactly as before, as live made them
 		const std::string notLive = " Not how live looked: live's models were all LEGO plastic (S01). Models already made keep their look until they are made again (Make everything again, or Reprocess).";
-		c.Add(Int(UGC, "shader_metal", "Metal shader", "mapShaders id for metal colors (Materials.xml shinySteel and LU Toolbox's metallic ones), in a group S<id>_Metal_Model: 88 is Polished Metal. 0: off, they stay LEGO plastic." + notLive, "0", 0, 9999));
-		c.Add(Int(UGC, "shader_brushed", "Brushed steel shader", "mapShaders id for brushed steel colors (Materials.xml brushedSteel and matteSteel; the client's has none) in S<id>_Brushed_Model: 89 is Brushed Steel. 0: off." + notLive, "0", 0, 9999));
-		c.Add(Int(UGC, "shader_glow", "Glow shader", "mapShaders id for opaque glowing colors (LU Toolbox's glow colors) in S<id>_Glow_Model, with their plain color and an emissive material: 46 is LEGO-Emissive. Transparent glow stays with the transparent bricks. 0: off." + notLive, "0", 0, 9999));
+		c.Add(Int(UGC, "shader_metal", "Metal shader", "mapShaders id for metal colors (Materials.xml shinySteel and LU Toolbox's metallic ones), in a group S<id>_Metal_Model: 88 is Polished Metal. 0: off, they stay LEGO plastic." + notLive, "88", 0, 9999));
+		c.Add(Int(UGC, "shader_brushed", "Brushed steel shader", "mapShaders id for brushed steel colors (Materials.xml brushedSteel and matteSteel; the client's has none) in S<id>_Brushed_Model: 89 is Brushed Steel. 0: off." + notLive, "89", 0, 9999));
+		c.Add(Int(UGC, "shader_glow", "Glow shader", "mapShaders id for opaque glowing colors (LU Toolbox's glow colors) in S<id>_Glow_Model, with their plain color and an emissive material: 46 is LEGO-Emissive. Transparent glow stays with the transparent bricks. 0: off." + notLive, "46", 0, 9999));
 		c.Add(Float(UGC, "glow_emissive", "Glow emissive strength", "With the glow shader on: the glow shapes' material emissive, how far the emissive shader goes from lit to the plain color (1: fully).", "1", 0, 10));
 		c.Add(Text(UGC, "metal_material_types", "Metal material types", "Materials.xml MaterialTypes drawn as metal, comma separated (none: only LU Toolbox's metallic colors).", "shinySteel"));
 		c.Add(Text(UGC, "brushed_material_types", "Brushed steel material types", "Materials.xml MaterialTypes drawn as brushed steel, comma separated (none: no such colors).", "brushedSteel,matteSteel"));
-		c.Add(Text(UGC, "brushed_colors", "Brushed steel colors", "LEGO color ids drawn as brushed steel whatever their Materials.xml type, comma separated (e.g. the drum lacquered 298,300,1002,1004). Empty: none.", ""));
+		c.Add(Text(UGC, "brushed_colors", "Brushed steel colors", "LEGO color ids drawn as brushed steel whatever their Materials.xml type, comma separated: by default the drum lacquered 298,300,1002,1004 (none: no colors).", "298,300,1002,1004"));
 		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "", true));
 		c.Add(Bool(UGC, "hsr_ground_plane", "Nothing seen from below", "Also removes what can only be seen from under the model.", false));
 		c.Add(Unit(Int(UGC, "optimize_resolution", "Detail of the visibility renders", "", "1024", 64, 4096), "pixels"));

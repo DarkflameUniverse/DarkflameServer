@@ -81,7 +81,9 @@ namespace {
 		settings.build.transparentOpacity = std::clamp(Setting<float>("transparent_opacity", 58.82f), 0.0f, 100.0f);
 		settings.build.brightness = std::clamp(Setting<float>("color_brightness", 100.0f), 0.0f, 200.0f);
 		{
-			std::stringstream stream(Game::config->GetValue("transparent_colors"));
+			// Empty: the default (129); none: no colors
+			const auto value = Game::config->GetValue("transparent_colors");
+			std::stringstream stream(value.empty() ? "129" : value);
 			std::string id;
 			while (std::getline(stream, id, ',')) {
 				std::erase_if(id, [](unsigned char c) { return std::isspace(c); });
@@ -98,9 +100,9 @@ namespace {
 		if (!Game::config->GetValue("shader_opaque").empty()) settings.shaderOpaque = Game::config->GetValue("shader_opaque");
 		settings.combineTransparent = Setting<int32_t>("combine_transparent", 0) != 0;
 		// Metal and glow colors in NiLODNodes of their own, drawn with those shaders (off by default: not how live looked)
-		settings.shaders.metal = std::min(Setting<uint32_t>("shader_metal", 0), 9999u);
-		settings.shaders.brushed = std::min(Setting<uint32_t>("shader_brushed", 0), 9999u);
-		settings.shaders.glow = std::min(Setting<uint32_t>("shader_glow", 0), 9999u);
+		settings.shaders.metal = std::min(Setting<uint32_t>("shader_metal", 88), 9999u);
+		settings.shaders.brushed = std::min(Setting<uint32_t>("shader_brushed", 89), 9999u);
+		settings.shaders.glow = std::min(Setting<uint32_t>("shader_glow", 46), 9999u);
 		settings.shaders.glowEmissive = std::clamp(Setting<float>("glow_emissive", 1.0f), 0.0f, 10.0f);
 		settings.icon.glowEmissive = settings.shaders.glowEmissive;
 		// Which Materials.xml MaterialTypes are metal and brushed steel
@@ -117,7 +119,9 @@ namespace {
 		}
 		// LEGO color ids drawn as brushed steel whatever their Materials.xml type
 		{
-			std::stringstream stream(Game::config->GetValue("brushed_colors"));
+			// Empty: the default (the drum lacquered colors); none: no colors
+			const auto value = Game::config->GetValue("brushed_colors");
+			std::stringstream stream(value.empty() ? "298,300,1002,1004" : value);
 			std::string id;
 			while (std::getline(stream, id, ',')) {
 				std::erase_if(id, [](unsigned char c) { return std::isspace(c); });
