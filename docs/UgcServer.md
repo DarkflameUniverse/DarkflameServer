@@ -401,14 +401,19 @@ What the 1.10.64 client does with a placed player model (LOT 14, spawned with `b
 With `ugc_manifest=1` and `ugc_manifest_models=1` (`sharedconfig.ini`, default 0; the dashboard shows it under UGC
 serving), the worlds:
 
-* **Property load**: send the LXFML (one `BlueprintSaveResponse`) only for the models whose mesh the UGC server hasn't
-  made (no `model.nif` in `ugc_file_checksums`: pending, failed, empty or the UGC server not running). Made ones are
-  left out; the client asks for their files.
+* **Property load**: send the LXFML of every model (one `BlueprintSaveResponse`): the client builds each model's NIF
+  and HKX (its collision; the UGC server makes no physics). For the models whose mesh the UGC server made (a
+  `model.nif` in `ugc_file_checksums`), once the client has loaded (`PlayerLoaded`) and 3 seconds after, the world
+  sends it the served NIF's checksum and `NotifyClientUGCModelReady` for each placed copy. The client drops what it
+  cached for the model and asks again: its cache now has the served NIF's checksum, which its own file doesn't match,
+  so it downloads the served mesh, and still has its own HKX's, so it keeps the collision it built. The model shows
+  as the client built it for those few seconds.
 * **NIF** of a made model: the UGC server's checksum; the client downloads `<id>.nif.sd0` from the UGC server.
 * **LXFML** of a made model: the MD5 and size of the stored LXFML inflated (what the UGC server serves as
   `<id>.lxfml.sd0`), worked out once per model and kept.
-* **HKX** of a made model: valid 0. The UGC server makes no physics: a client that built the model itself before keeps
-  using its HKX; others ask the UGC server, get 404 (not a logout) and have no collision for that model.
+* **HKX** of any model: the model's LXFML (the UGC server makes no physics), and for a made model the same switch to
+  the served mesh afterwards. At most 3 switches per client and model, so a client that keeps asking isn't switched
+  back and forth for ever.
 * **Any model file of a model that isn't made** (e.g. a model someone else just placed, or `ugc_manifest_models=0`):
   the model's LXFML to that client (once per 10 seconds for the three requests), which builds it itself, so a model is
   never left waiting. A blueprint that isn't a player model gets valid 0.

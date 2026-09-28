@@ -29,6 +29,10 @@ namespace {
 	constexpr auto LXFML_RESEND_AFTER = std::chrono::seconds(10);
 	// LXFML checksums worked out, kept for the next clients (a model's LXFML only changes with a new save)
 	constexpr size_t MAX_LXFML_CHECKSUMS = 4096;
+	// How long after a client has loaded it is switched to a served mesh (it builds the model from the LXFML first)
+	constexpr auto SERVED_MESH_DELAY = std::chrono::seconds(3);
+	constexpr size_t MAX_SWITCHES = 4096;
+	constexpr int MAX_SWITCHES_PER_MODEL = 3;
 
 	struct Waiting {
 		SystemAddress sysAddr;
@@ -41,6 +45,17 @@ namespace {
 	std::chrono::steady_clock::time_point g_NextRetry{};
 	std::map<std::pair<SystemAddress, LWOOBJID>, std::chrono::steady_clock::time_point> g_LxfmlSent;
 	std::map<LWOOBJID, IUgc::FileChecksum> g_LxfmlChecksums;
+
+	// Clients given a served model's LXFML, to be switched to its served mesh: since when the client is loaded (unset
+	// while it isn't)
+	struct Switch {
+		SystemAddress sysAddr;
+		LWOOBJID blueprintId{};
+		std::chrono::steady_clock::time_point since;
+		std::optional<std::chrono::steady_clock::time_point> loadedAt;
+	};
+	std::vector<Switch> g_Switches;
+	std::map<std::pair<SystemAddress, LWOOBJID>, int> g_SwitchCount;
 
 	bool ManifestOn() {
 		// Off unless set: a client whose boot.cfg doesn't point it at the UGC server downloads from its built-in
@@ -122,6 +137,7 @@ namespace {
 		response.models.push_back({ blueprintId, model->lxfmlData.str() });
 		response.Send(sysAddr);
 		g_LxfmlSent[{ sysAddr, blueprintId }] = now;
+		UgcManifest::ScheduleServedMesh(sysAddr, blueprintId);
 		// Its mesh is wanted: a model still in its quiet period after a save is made now
 		Database::Get()->ExpediteUgcModel(blueprintId);
 		LOG_DEBUG("Sent the LXFML of %llu for the client to build", static_cast<unsigned long long>(blueprintId));
@@ -137,8 +153,8 @@ UgcManifest::eAction UgcManifest::Decide(const eUgcResourceType type, const bool
 	case eUgcResourceType::LXFML:
 		return modelsOn && meshMade ? eAction::ANSWER : eAction::SEND_LXFML;
 	case eUgcResourceType::HKX:
-		// The UGC server makes no physics: the client uses an HKX it built before, else it asks and gets 404
-		return modelsOn && meshMade ? eAction::ANSWER_UNKNOWN : eAction::SEND_LXFML;
+		// The UGC server makes no physics: the client builds it from the LXFML (and is then switched to a served mesh)
+		return eAction::SEND_LXFML;
 	default: return eAction::NONE;
 	}
 }
@@ -167,8 +183,25 @@ bool UgcManifest::ServesModels() {
 	return ManifestOn() && ModelsOn();
 }
 
-bool UgcManifest::ClientBuildsModel(const LWOOBJID blueprintId) {
-	return !ServesModels() || !MeshMade(blueprintId);
+bool UgcManifest::ServesMesh(const LWOOBJID blueprintId) {
+	return ServesModels() && MeshMade(blueprintId);
+}
+
+bool UgcManifest::ScheduleServedMesh(const SystemAddress& sysAddr, const LWOOBJID blueprintId) {
+	if (!ServesMesh(blueprintId)) return false;
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return true;
+	for (auto& pending : g_Switches) {
+		// Sent again (built again): the switch waits for the new build
+		if (pending.sysAddr == sysAddr && pending.blueprintId == blueprintId) {
+			pending.since = std::chrono::steady_clock::now();
+			pending.loadedAt.reset();
+			return true;
+		}
+	}
+	if (++g_SwitchCount[{ sysAddr, blueprintId }] > MAX_SWITCHES_PER_MODEL) return true;
+	if (g_Switches.size() >= MAX_SWITCHES) g_Switches.erase(g_Switches.begin());
+	g_Switches.push_back({ sysAddr, blueprintId, std::chrono::steady_clock::now(), std::nullopt });
+	return true;
 }
 
 void UgcManifest::OnRequest(const SystemAddress& sysAddr, LWOOBJID blueprintId, eUgcResourceType resourceType) {
@@ -206,10 +239,38 @@ void UgcManifest::OnRequest(const SystemAddress& sysAddr, LWOOBJID blueprintId, 
 	g_Waiting.push_back({ sysAddr, blueprintId, resourceType, std::chrono::steady_clock::now() });
 }
 
+namespace {
+	// Switches one client to a model's served mesh; false while the client isn't ready for it yet
+	bool SwitchToServedMesh(Switch& pending, const std::chrono::steady_clock::time_point now) {
+		auto* const player = PlayerManager::GetPlayer(pending.sysAddr);
+		if (!player) return true; // gone
+		if (!player->GetPlayerReadyForUpdates()) return false;
+		if (!pending.loadedAt) pending.loadedAt = now;
+		if (now - *pending.loadedAt < SERVED_MESH_DELAY) return false;
+
+		const auto checksum = Database::Get()->GetUgcFileChecksum(pending.blueprintId, "model.nif");
+		if (!checksum || checksum->md5.size() != 32 || !Game::entityManager) return true;
+		// The served checksum first: NotifyClientUGCModelReady has the client ask again, and its cache answers
+		Send(pending.sysAddr, pending.blueprintId, eUgcResourceType::NIF, checksum);
+		size_t shown = 0;
+		for (auto* const model : Game::entityManager->GetEntitiesByLOT(BrickByBrick::MODEL_OBJECT_LOT)) {
+			if (!model || model->GetVar<LWOOBJID>(u"blueprintid") != pending.blueprintId) continue;
+			GameMessages::NotifyClientUGCModelReady ready;
+			ready.target = model->GetObjectID();
+			ready.blueprintID = pending.blueprintId;
+			ready.Send(pending.sysAddr);
+			shown++;
+		}
+		LOG_DEBUG("Switched a client to the served mesh of %llu (%zu placed)", static_cast<unsigned long long>(pending.blueprintId), shown);
+		return true;
+	}
+}
+
 void UgcManifest::Update() {
-	if (g_Waiting.empty()) return;
 	const auto now = std::chrono::steady_clock::now();
-	if (now < g_NextRetry) return;
+	std::erase_if(g_Switches, [now](Switch& pending) { return now - pending.since > MAX_WAIT || SwitchToServedMesh(pending, now); });
+
+	if (g_Waiting.empty() || now < g_NextRetry) return;
 	g_NextRetry = now + RETRY_INTERVAL;
 	std::erase_if(g_Waiting, [now](const Waiting& waiting) {
 		return now - waiting.since > MAX_WAIT || TryAnswerIcon(waiting.sysAddr, waiting.blueprintId, waiting.resourceType);
@@ -219,6 +280,8 @@ void UgcManifest::Update() {
 void UgcManifest::OnDisconnect(const SystemAddress& sysAddr) {
 	std::erase_if(g_Waiting, [&sysAddr](const Waiting& waiting) { return waiting.sysAddr == sysAddr; });
 	std::erase_if(g_LxfmlSent, [&sysAddr](const auto& sent) { return sent.first.first == sysAddr; });
+	std::erase_if(g_Switches, [&sysAddr](const Switch& pending) { return pending.sysAddr == sysAddr; });
+	std::erase_if(g_SwitchCount, [&sysAddr](const auto& count) { return count.first.first == sysAddr; });
 }
 
 void UgcManifest::OnModelsMade(const std::vector<LWOOBJID>& blueprintIds) {

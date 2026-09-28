@@ -20,10 +20,13 @@
  * * Player models (NIF, HKX, LXFML): a placed model's client always asks for all three (its BlueprintComponent loads the
  *   blueprint's NIF and HKX, its ModelBehaviorComponent the LXFML) and waits for the answers without a timeout. With
  *   `ugc_manifest_models` 1 and the model's mesh made, the NIF is answered with the UGC server's checksum (the client
- *   downloads the served mesh), the LXFML with the stored LXFML's and the HKX as not known (valid 0: the client uses
- *   one it has, else asks the UGC server, which answers 404). Otherwise the world sends that client the model's LXFML
- *   (BlueprintSaveResponse), the client builds the NIF and HKX itself and caches their checksums, which answers its
- *   own requests: a model is never left waiting.
+ *   downloads the served mesh) and the LXFML with the stored LXFML's. Otherwise, and always for the HKX (the UGC server
+ *   makes no physics), the world sends that client the model's LXFML (BlueprintSaveResponse): the client builds the NIF
+ *   and HKX itself and caches their checksums, which answers its own requests, so a model is never left waiting.
+ * * Served meshes with the client's own physics: a client given the LXFML of a model whose mesh is served builds its
+ *   own NIF and HKX, then (once it has loaded and a moment after) gets the served NIF's checksum and
+ *   NotifyClientUGCModelReady for that model. It drops what it cached for the model and asks again: the NIF's checksum
+ *   is now the served one, so it downloads the served mesh; the HKX's is still its own, so it keeps its collision.
  *
  * Main thread only: each lookup is one indexed query and the answers are sent from here. See docs/UgcServer.md.
  */
@@ -47,13 +50,20 @@ namespace UgcManifest {
 	// ugc_manifest=1 and ugc_manifest_models=1: placed models' meshes come from the UGC server when made
 	bool ServesModels();
 
-	// Whether the client should get this model's LXFML when a property loads (it builds the model itself): not when
-	// ServesModels() and the UGC server made its mesh
-	bool ClientBuildsModel(LWOOBJID blueprintId);
+	// ServesModels() and the UGC server made this model's mesh: a client that built the model from its LXFML (for its
+	// physics) is then switched to the served mesh (ScheduleServedMesh)
+	bool ServesMesh(LWOOBJID blueprintId);
+
+	// The client was sent this model's LXFML: when the mesh is served, once the client has loaded (and a moment after,
+	// for it to build the model) it gets the served NIF's checksum and NotifyClientUGCModelReady. At most a few times
+	// per client and model (a client that keeps asking for the HKX isn't switched back and forth for ever). Returns
+	// whether the mesh is served.
+	bool ScheduleServedMesh(const SystemAddress& sysAddr, LWOOBJID blueprintId);
 
 	void OnRequest(const SystemAddress& sysAddr, LWOOBJID blueprintId, eUgcResourceType resourceType);
 
-	// Answers the waiting requests whose files have been made since, and forgets the ones waited on too long
+	// Answers the waiting requests whose files have been made since, forgets the ones waited on too long, and switches
+	// clients to served meshes that are due
 	void Update();
 
 	// A client left: its waiting requests are dropped

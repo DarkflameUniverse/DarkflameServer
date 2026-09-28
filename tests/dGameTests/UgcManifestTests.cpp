@@ -23,7 +23,8 @@ namespace {
 
 // What each request gets. A placed model's client asks for its NIF, HKX and LXFML and waits for every answer without a
 // timeout (LWOResMgr2Interface::RequestBlueprintManifestThenLoad, 0x0105a910), so model files are always answered:
-// from the UGC server when it made the mesh and models are served, else with the LXFML for the client to build.
+// from the UGC server when it made the mesh and models are served, else with the LXFML for the client to build. The HKX
+// always gets the LXFML: the UGC server makes no physics, the client builds its own (then gets the served mesh).
 TEST(UgcManifestTests, DecideCoversEveryType) {
 	using T = eUgcResourceType;
 	for (const auto type : { T::LXFML, T::NIF, T::HKX, T::DDS }) {
@@ -34,7 +35,7 @@ TEST(UgcManifestTests, DecideCoversEveryType) {
 
 	EXPECT_EQ(UgcManifest::Decide(T::NIF, true, true, true), eAction::ANSWER);
 	EXPECT_EQ(UgcManifest::Decide(T::LXFML, true, true, true), eAction::ANSWER);
-	EXPECT_EQ(UgcManifest::Decide(T::HKX, true, true, true), eAction::ANSWER_UNKNOWN);
+	EXPECT_EQ(UgcManifest::Decide(T::HKX, true, true, true), eAction::SEND_LXFML);
 
 	for (const auto type : { T::LXFML, T::NIF, T::HKX }) {
 		EXPECT_EQ(UgcManifest::Decide(type, true, true, false), eAction::SEND_LXFML);  // not made yet
@@ -70,14 +71,16 @@ TEST_F(UgcManifestRequestTests, NothingWhenOff) {
 	const auto sent = Capture([] { UgcManifest::OnRequest(Client(), 1234, eUgcResourceType::NIF); });
 	EXPECT_TRUE(sent.empty());
 	EXPECT_FALSE(UgcManifest::ServesModels());
-	EXPECT_TRUE(UgcManifest::ClientBuildsModel(1234));
+	EXPECT_FALSE(UgcManifest::ServesMesh(1234));
+	EXPECT_FALSE(UgcManifest::ScheduleServedMesh(Client(), 1234));
 }
 
 // A model file of a blueprint that isn't a player model: answered as not known (37 bytes, valid 0), never left waiting
 TEST_F(UgcManifestRequestTests, UnknownModelFilesAreAnsweredNotKnown) {
 	Settings("1", "1");
 	EXPECT_TRUE(UgcManifest::ServesModels());
-	EXPECT_TRUE(UgcManifest::ClientBuildsModel(1234)); // its mesh isn't made
+	EXPECT_FALSE(UgcManifest::ServesMesh(1234)); // its mesh isn't made
+	EXPECT_FALSE(UgcManifest::ScheduleServedMesh(Client(), 1234));
 	for (const auto type : { eUgcResourceType::NIF, eUgcResourceType::HKX, eUgcResourceType::LXFML }) {
 		const auto sent = Capture([type] { UgcManifest::OnRequest(Client(), 0x0102030405060708, type); });
 		ASSERT_EQ(sent.size(), 1);
