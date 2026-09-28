@@ -151,6 +151,7 @@ namespace {
 		c.Add(Bool(WORLD, "generate_dump", "Crash dumps from world servers", "Write a dump when a world server crashes (needs the crash dump folder).", false, true));
 		c.Add(Bool(WORLD, "save_lxfmls", "Save model files", "Save players' models (LXFML) to disk before they are split, for debugging.", false));
 		c.Add(Bool(WORLD, "ghosting_scenes", "Scene ghosting", "Players get the objects of the scenes their game keeps loaded (the scene under them, the scenes connected to it and the global scene), as the client streams scenes, instead of the ones within 100 to 150 units. Needs the zone's terrain scene map; zones without one keep distance ghosting.", false, true));
+		c.Add(Bool(WORLD, "save_property_location", "Log back in on properties", "Logging out on a property and back in returns to that property. Off (as live): to the last world before it.", false));
 		c.Add(Bool(WORLD, "bbb_consume_bricks", "Brick building uses bricks", "Saving a brick by brick model uses up the bricks in it, as live did. Off: the bricks go back to the backpack.", false));
 		c.Add(Bool(SHARED, "dont_generate_dcf", "Don't build the chat filter file", "Skip compiling the chat word list to a file.", false, true));
 

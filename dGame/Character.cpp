@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "BitStream.h"
 #include "Game.h"
+#include "dConfig.h"
 #include <chrono>
 #include "Entity.h"
 #include "EntityManager.h"
@@ -282,8 +283,11 @@ void Character::SaveXMLToDatabase() {
 		character->SetAttribute("cc", m_Coins);
 
 		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
+		// Where the character logs back in. Not a property (a clone) unless save_property_location is 1: by default
+		// logging in from a property goes to the last world before it.
+		const bool savesHere = zoneInfo.GetCloneID() == 0 || (Game::config && Game::config->GetValue("save_property_location") == "1");
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
+		if (zoneInfo.GetMapID() != 0 && savesHere && !Game::zoneManager->GetDisableSaveLocation()) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
