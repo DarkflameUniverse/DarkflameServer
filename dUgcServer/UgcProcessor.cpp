@@ -31,6 +31,22 @@ namespace {
 	constexpr auto RECENT_ANSWER_TIME = std::chrono::seconds(10);
 	// In the storage folder once every item stored has its sd0 icon and checksums (Backfill)
 	constexpr auto BACKFILL_MARKER = ".checksums-stored";
+	constexpr auto STATS_BACKFILL_MARKER = ".stats-stored";
+
+	// What a model's stats.json counted: bricks, and the most detailed level's triangles after and before the faces that
+	// can't be seen were removed (the transparent ones are kept as they are)
+	struct ModelCounts {
+		uint32_t bricks{};
+		uint32_t triangles{};
+		uint32_t trianglesBefore{};
+	};
+	std::optional<ModelCounts> CountsOf(const nlohmann::json& stats) {
+		if (!stats.is_object()) return std::nullopt;
+		const auto& lods = stats.value("lods", nlohmann::json::array());
+		const auto& first = lods.is_array() && !lods.empty() ? lods.front() : nlohmann::json::object();
+		const auto transparent = first.value("transparent", 0u);
+		return ModelCounts{ stats.value("bricks", 0u), first.value("opaqueAfter", 0u) + transparent, first.value("opaqueBefore", 0u) + transparent };
+	}
 	constexpr size_t BACKFILL_ITEMS_PER_UPDATE = 16;
 	constexpr uint32_t BACKFILL_BUILDS_PER_UPDATE = 200;
 	// Combination id of a build whose modules can't be told (so it isn't looked at again)
@@ -110,6 +126,11 @@ void UgcProcessor::Start() {
 	std::error_code error;
 	m_BackfillItemsDone = std::filesystem::exists(m_Storage.GetRoot() / BACKFILL_MARKER, error);
 	if (!m_BackfillItemsDone) m_BackfillItems.assign(stored.begin(), stored.end());
+	// Models made before the triangles before hidden-face removal were stored get them from their stats.json once
+	m_StatsBackfillDone = std::filesystem::exists(m_Storage.GetRoot() / STATS_BACKFILL_MARKER, error);
+	if (!m_StatsBackfillDone) {
+		for (const auto& entry : stored) if (entry.kind == Kind::MODEL) m_StatsBackfill.push_back(entry.id);
+	}
 	m_NextEviction = std::chrono::steady_clock::now();
 	m_Stopping = false;
 	for (size_t i = 0; i < std::max<size_t>(m_Config.threads, 1); i++) m_Threads.emplace_back(&UgcProcessor::Worker, this);
@@ -382,11 +403,7 @@ void UgcProcessor::Record(const Done& done) {
 		if (done.outcome.ok) Database::Get()->SetUgcModelProcessStats(done.id, cost);
 		// What it counted (stats.json), for sorting on the dashboard
 		const auto stats = done.outcome.ok && !done.outcome.stats.empty() ? nlohmann::json::parse(done.outcome.stats, nullptr, false) : nlohmann::json();
-		if (stats.is_object()) {
-			const auto& lods = stats.value("lods", nlohmann::json::array());
-			const auto& first = lods.is_array() && !lods.empty() ? lods.front() : nlohmann::json::object();
-			Database::Get()->SetUgcModelStats(done.id, stats.value("bricks", 0u), first.value("opaqueAfter", 0u) + first.value("transparent", 0u));
-		}
+		if (const auto counts = CountsOf(stats)) Database::Get()->SetUgcModelStats(done.id, counts->bricks, counts->triangles, counts->trianglesBefore);
 	} else {
 		Database::Get()->SetModularBuildProcessed(done.id, state, attempts, error);
 		if (done.outcome.ok) Database::Get()->SetModularBuildProcessStats(done.id, cost);
@@ -474,6 +491,22 @@ void UgcProcessor::Backfill() {
 			Database::Get()->SetModularBuildCombination(build.id, combo);
 		}
 		if (builds.size() < BACKFILL_BUILDS_PER_UPDATE) m_BackfillBuildsDone = true;
+	}
+	if (!m_StatsBackfillDone) {
+		for (size_t i = 0; i < BACKFILL_ITEMS_PER_UPDATE && !m_StatsBackfill.empty(); i++) {
+			const auto id = m_StatsBackfill.front();
+			m_StatsBackfill.pop_front();
+			const auto file = m_Storage.File(Kind::MODEL, id, "stats.json");
+			if (!file) continue;
+			std::ifstream in(*file, std::ios::binary);
+			const auto counts = CountsOf(nlohmann::json::parse(std::string(std::istreambuf_iterator<char>(in), {}), nullptr, false));
+			if (counts) Database::Get()->SetUgcModelStats(id, counts->bricks, counts->triangles, counts->trianglesBefore);
+		}
+		if (m_StatsBackfill.empty()) {
+			m_StatsBackfillDone = true;
+			std::ofstream(m_Storage.GetRoot() / STATS_BACKFILL_MARKER) << "1\n";
+			LOG("Stored the triangle counts of the models made before");
+		}
 	}
 	if (m_BackfillItemsDone) return;
 	const auto read = [](const std::filesystem::path& path) {

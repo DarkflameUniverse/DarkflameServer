@@ -105,15 +105,15 @@ namespace {
 				"CREATE TABLE charinfo (id BIGINT PRIMARY KEY, account_id INTEGER, name TEXT);"
 				"CREATE TABLE properties (id BIGINT PRIMARY KEY, owner_id BIGINT, name TEXT, zone_id INTEGER);"
 				"CREATE TABLE ugc (id INTEGER PRIMARY KEY, account_id INTEGER, character_id BIGINT, is_optimized INTEGER, filename TEXT, process_error TEXT DEFAULT '', "
-				"process_attempts INTEGER DEFAULT 0, processed_at BIGINT DEFAULT 0, process_after BIGINT DEFAULT 0, bake_ao INTEGER DEFAULT 0, brick_count INTEGER DEFAULT 0, triangle_count INTEGER DEFAULT 0, process_ms INTEGER DEFAULT 0, process_cpu_ms INTEGER DEFAULT 0, process_memory_kb INTEGER DEFAULT 0);"
+				"process_attempts INTEGER DEFAULT 0, processed_at BIGINT DEFAULT 0, process_after BIGINT DEFAULT 0, bake_ao INTEGER DEFAULT 0, brick_count INTEGER DEFAULT 0, triangle_count INTEGER DEFAULT 0, process_ms INTEGER DEFAULT 0, process_cpu_ms INTEGER DEFAULT 0, process_memory_kb INTEGER DEFAULT 0, triangle_count_before INTEGER DEFAULT 0);"
 				"CREATE TABLE ugc_modular_build (ugc_id BIGINT PRIMARY KEY, character_id BIGINT, ldf_config TEXT, is_optimized INTEGER DEFAULT 0, process_error TEXT DEFAULT '', "
 				"process_attempts INTEGER DEFAULT 0, processed_at BIGINT DEFAULT 0, process_ms INTEGER DEFAULT 0, process_cpu_ms INTEGER DEFAULT 0, process_memory_kb INTEGER DEFAULT 0);"
 				"CREATE TABLE properties_contents (id BIGINT PRIMARY KEY, property_id BIGINT, ugc_id BIGINT, lot INTEGER, model_name TEXT DEFAULT '', model_description TEXT DEFAULT '');"
 				"INSERT INTO accounts VALUES (1, 'builder'), (2, 'racer');"
 				"INSERT INTO charinfo VALUES (10, 1, 'Bricky'), (20, 2, 'Speedy');"
 				"INSERT INTO properties VALUES (500, 10, 'Castle Hill', 1150);"
-				"INSERT INTO ugc (id, account_id, character_id, is_optimized, filename, process_error, brick_count, triangle_count, process_ms) VALUES "
-				"(1000, 1, 10, 1, 'tower.lxfml', '', 40, 900, 5200), (1001, 1, 10, 0, 'boat.lxfml', '', 0, 0, 0);"
+				"INSERT INTO ugc (id, account_id, character_id, is_optimized, filename, process_error, brick_count, triangle_count, process_ms, triangle_count_before) VALUES "
+				"(1000, 1, 10, 1, 'tower.lxfml', '', 40, 900, 5200, 1500), (1001, 1, 10, 0, 'boat.lxfml', '', 0, 0, 0, 0);"
 				"INSERT INTO ugc_modular_build (ugc_id, character_id, ldf_config, is_optimized, process_error) VALUES (2000, 20, '1:8129+1:8130+1:9330', 1, '');"
 				"INSERT INTO properties_contents VALUES (7000, 500, 1000, 14, 'Big tower', 'the tallest');");
 		}
@@ -182,6 +182,8 @@ TEST_F(UgcLookupSqlTests, ListsPagesWithCounts) {
 	query.reverse = true; // the oldest first
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
 	query.reverse = false;
+	query.sort = IUgcLookup::eSort::SAVINGS; // the tower lost 40% of its triangles; the boat isn't known
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
 	query.sort = IUgcLookup::eSort::CPU; // none recorded: ties go newest first
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
 	query.sort = IUgcLookup::eSort::MEMORY;

@@ -428,7 +428,7 @@ public:
 	void SetUgcIconSettings(const std::string_view target, const std::string_view params) override;
 	void DeleteUgcIconSettings(const std::string_view target) override;
 	void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) override;
-	void SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles) override;
+	void SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles, const uint32_t trianglesBefore) override;
 	void SetUgcFileChecksum(const eFileOwner owner, const LWOOBJID storageId, const std::string_view file, const std::string_view md5, const uint32_t size) override;
 	std::optional<IUgc::FileChecksum> GetUgcFileChecksum(const LWOOBJID blueprintId, const std::string_view file) override;
 	void SetModularBuildCombination(const LWOOBJID id, const LWOOBJID combinationId) override;

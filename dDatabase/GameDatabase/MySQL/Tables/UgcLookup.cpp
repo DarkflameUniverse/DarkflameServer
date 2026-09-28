@@ -24,6 +24,7 @@ namespace {
 		entry.processCpuMs = static_cast<uint32_t>(result->getInt64("process_cpu_ms"));
 		entry.processMemoryKb = static_cast<uint32_t>(result->getInt64("process_memory_kb"));
 		entry.modelName = result->getString("model_name").c_str();
+		entry.trianglesBefore = static_cast<uint32_t>(result->getInt64("triangle_count_before"));
 		return entry;
 	}
 }

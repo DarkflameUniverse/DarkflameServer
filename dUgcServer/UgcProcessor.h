@@ -187,6 +187,8 @@ private:
 	void Backfill();
 	std::deque<UgcStorage::Entry> m_BackfillItems;
 	bool m_BackfillItemsDone{ true };
+	std::deque<LWOOBJID> m_StatsBackfill; // models whose triangle counts are read from their stats.json once
+	bool m_StatsBackfillDone{ true };
 	bool m_BackfillBuildsDone{ false };
 
 	void Poll();

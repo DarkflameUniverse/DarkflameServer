@@ -11,7 +11,7 @@
 
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
 	var SORTS = {
-		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['cpu', 'Most CPU'], ['memory', 'Most RAM'], ['owner', 'Owner'], ['name', 'File name']],
+		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['cpu', 'Most CPU'], ['memory', 'Most RAM'], ['savings', 'Most triangles saved'], ['owner', 'Owner'], ['name', 'File name']],
 		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['name', 'Name']]
 	};
 	// The list's state, as in the address: ?kind=&q=&state=&type=&sort=&page= (from 1)&view=, and the open item (&item=, &build=)
@@ -152,6 +152,12 @@
 			column('Took', function (i) { return '<span class="small">' + (i.processMs ? esc(duration(i.processMs)) : '') + '</span>'; }, 'slowest', true),
 			column('CPU', function (i) { return '<span class="small">' + (i.processCpuMs ? esc(duration(i.processCpuMs)) : '') + '</span>'; }, 'cpu', true),
 			column('RAM (est.)', function (i) { return '<span class="small">' + (i.processMemoryKb ? '~' + esc(megabytes(i.processMemoryKb)) : '') + '</span>'; }, 'memory', true),
+			column('Saved', function (i) {
+				if (!i.trianglesBefore) return '';
+				var removed = i.trianglesBefore - i.triangles, share = removed / i.trianglesBefore * 100;
+				return '<span class="small" title="' + esc(i.trianglesBefore.toLocaleString()) + ' triangles before, ' + esc(i.triangles.toLocaleString()) + ' after">' +
+					esc(share.toFixed(share < 10 ? 1 : 0)) + '%<br><span class="text-body-secondary">' + esc(removed.toLocaleString()) + ' tris</span></span>';
+			}, 'savings', true),
 			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
 			column('File', function (i) { return '<span class="small" title="' + esc(i.detail || '') + '">' + esc(fileName(i)) + '</span>' + errorText(i); }, 'name'),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })

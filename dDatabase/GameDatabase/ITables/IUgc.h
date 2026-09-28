@@ -92,8 +92,9 @@ public:
 	// whether lighting was baked in; processed_at becomes now
 	virtual void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) = 0;
 
-	// What the UGC server counted when it made a model: its bricks and the most detailed mesh's triangles
-	virtual void SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles) = 0;
+	// What the UGC server counted when it made a model: its bricks and the most detailed mesh's triangles, after and
+	// before it removed the faces that can't be seen
+	virtual void SetUgcModelStats(const LWOOBJID id, const uint32_t bricks, const uint32_t triangles, const uint32_t trianglesBefore) = 0;
 
 	// The last successful make of a model: how long it took, the worker's CPU time and the estimated memory
 	struct ProcessStats {
