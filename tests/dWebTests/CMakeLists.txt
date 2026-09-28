@@ -87,5 +87,6 @@ target_compile_definitions(dWebTests PRIVATE DLU_SOURCE_DIR="${PROJECT_SOURCE_DI
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
 	add_test(NAME SceneryCoreJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scenery-core.test.mjs"
-		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/scenery-core.js" "${PROJECT_SOURCE_DIR}/dCommon/NifFile.h")
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/scenery-core.js" "${PROJECT_SOURCE_DIR}/dCommon/NifFile.h"
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/Scenery.cpp")
 endif()

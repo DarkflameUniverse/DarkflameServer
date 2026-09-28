@@ -274,11 +274,13 @@ namespace {
 	/**
 	 * Bump when NifFile's output changes: converted models kept on disk are made again, and the manifests' "format"
 	 * goes into the viewers' model and texture URLs so browsers don't keep drawing the old ones (they're cached for
-	 * a week). 2: meshes carry their multishader tag; conversions without it drew glom parts with the LEGO shader.
-	 * 3: dark textures and the UV set each texture names. 4: the game's shaders draw the models (manifest
-	 * "techniques"), vertex colors go to them as stored.
+	 * a week). The viewers ask for manifests with the format they're written for (scenery-core.js SCENERY_FORMAT,
+	 * which must follow this; SceneryCoreJs checks), so a manifest a browser kept for a day from an older server
+	 * isn't drawn with newer code. 2: meshes carry their multishader tag; conversions without it drew glom parts with
+	 * the LEGO shader. 3: dark textures and the UV set each texture names. 4: the game's shaders draw the models
+	 * (manifest "techniques"), vertex colors go to them as stored. 5: an animated material alpha is its highest key.
 	 */
-	constexpr uint32_t FORMAT_VERSION = 4;
+	constexpr uint32_t FORMAT_VERSION = 5;
 
 	// A zone's lighting (WorldScene::Lighting) for the viewers' shaders
 	nlohmann::json LightingJson(const WorldScene::Lighting& lighting) {

@@ -107,6 +107,26 @@ export const TECHNIQUE = {
 	DIFFUSE_ONLY: 32768, ANIM_ALPHA: 65536, BASIC_EMISSIVE: 131072, NO_FOG: 262144, NOT_DRAWN: 524288, NO_BLEND: 1048576
 };
 
+/**
+ * The conversion format (Scenery.cpp FORMAT_VERSION) these views are written for. Manifest URLs carry it, so a
+ * browser never draws with a manifest it kept from an older server (they are cached for up to a day).
+ */
+export const SCENERY_FORMAT = 5;
+
+/** A manifest URL asking for SCENERY_FORMAT's manifest (the server ignores the parameter; browsers cache by it). */
+export function manifestUrl(url) {
+	return url + (url.includes('?') ? '&' : '?') + 'format=' + SCENERY_FORMAT;
+}
+
+/**
+ * Whether a manifest's models are drawn with the game's shaders: it has the zone's lighting and says which technique
+ * each shader is (format 4 on). Older manifests have neither all shaders' techniques nor the looks the shaders need,
+ * so they are drawn with the viewer's own lights rather than every shader guessed as LEGO.
+ */
+export function gameShaded(manifest) {
+	return !!(manifest && manifest.lighting && (manifest.techniques || manifest.technique));
+}
+
 // A technique the manifest doesn't name: the LEGO shader's, as the client falls back to it
 const LEGO_TECHNIQUE = { family: 'lego', look: 0, alpha: 'decal', flags: 0 };
 const FIXED_TECHNIQUE = { family: 'fixed', look: 0, alpha: 'opacity', flags: 0 };
@@ -129,6 +149,11 @@ export function techniqueOf(manifest, asset, mesh) {
  * alpha is; 'decal' the texture is laid over the vertex colors by its alpha (LEGO shaders); 'ignored' it does nothing.
  */
 export function textureAlphaMode(manifest, asset, mesh) {
+	if (!manifest || (!manifest.techniques && !manifest.technique)) {
+		// A manifest from before the techniques (format 3 and older) names only the shaders whose alpha isn't opacity
+		const shader = shaderOf(manifest, asset, mesh);
+		return (shader !== null && manifest && manifest.textureAlpha && manifest.textureAlpha[shader]) || 'opacity';
+	}
 	return techniqueOf(manifest, asset, mesh).alpha || 'opacity';
 }
 
@@ -141,10 +166,11 @@ export function textureAlphaMode(manifest, asset, mesh) {
  * whether it glows (LEGO-Emissive: the vertex alpha is then no opacity), whether its texture moves as the .nif's
  * texture transform says, its blending ('nif': as NiAlphaProperty says; 'blend': see-through without depth writes;
  * 'test': cut out; 'additive'; 'opaque') and whether the game draws it in the world at all (hidden: post-processing
- * and shadow shaders). Null without lighting in the manifest (older servers), for the viewer's own lights.
+ * and shadow shaders). Null without lighting or techniques in the manifest (older servers, gameShaded), for the
+ * viewer's own lights.
  */
 export function gameLook(manifest, asset, mesh) {
-	if (!manifest || !manifest.lighting) return null;
+	if (!gameShaded(manifest)) return null;
 	const technique = techniqueOf(manifest, asset, mesh);
 	const fixedFunction = technique.family === 'fixed';
 	const bits = technique.look || 0;

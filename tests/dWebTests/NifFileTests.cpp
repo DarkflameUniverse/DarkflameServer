@@ -213,6 +213,36 @@ TEST(NifFileTests, PassesPropertiesDownTheTree) {
 	EXPECT_TRUE(m.doubleSided);
 }
 
+// A material whose NiAlphaController animates its alpha (flickering effects that rest at 0 in the file) is drawn at
+// its highest key; one without keeps its own alpha
+TEST(NifFileTests, DrawsAnAnimatedAlphaAtItsHighest) {
+	for (const bool animated : { true, false }) {
+		NifBuilder nif;
+		const auto root = nif.Add("NiNode", {});
+		const auto material = nif.Add("NiMaterialProperty", {});
+		const auto controller = nif.Add("NiAlphaController", {});
+		const auto interpolator = nif.Add("NiFloatInterpolator", {});
+		const auto keys = nif.Add("NiFloatData", Bytes().Put<uint32_t>(3).Put<uint32_t>(1).Floats({ 0.0f, 0.0f, 0.5f, 0.8f, 1.0f, 0.0f }));
+		// NiObjectNET with the controller, ambient, diffuse, specular, emissive, glossiness, alpha 0
+		Bytes body;
+		body.Put<uint32_t>(0xFFFFFFFF).Put<uint32_t>(0).Put<int32_t>(animated ? controller : -1);
+		body.Floats({ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 10.0f, 0.0f });
+		nif.Set(material, body);
+		// NiTimeController: next, flags, frequency, phase, start, stop, target; the interpolator
+		nif.Set(controller, Bytes().Put<int32_t>(-1).Put<uint16_t>(8).Floats({ 1, 0, 0, 1 }).Put<int32_t>(material).Put<int32_t>(interpolator));
+		nif.Set(interpolator, Bytes().Put(0.0f).Put<int32_t>(keys));
+		const auto shape = nif.Add("NiTriShape", {});
+		const auto data = nif.Add("NiTriShapeData", TriShapeData());
+		nif.Set(root, Node(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, { material }), { shape }));
+		nif.Set(shape, Geometry(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {}), data));
+		std::string error;
+		const auto model = NifFile::Parse(nif.Build({ root }), 0, error);
+		ASSERT_TRUE(model) << error;
+		ASSERT_EQ(model->meshes.size(), 1u);
+		EXPECT_FLOAT_EQ(model->meshes[0].material.alpha, animated ? 0.8f : 0.0f);
+	}
+}
+
 // Two layer shaders use NiTexturingProperty's dark texture too, each texture on the UV set its flags name
 TEST(NifFileTests, ReadsTheDarkTextureAndEachTexturesUvSet) {
 	NifBuilder nif;

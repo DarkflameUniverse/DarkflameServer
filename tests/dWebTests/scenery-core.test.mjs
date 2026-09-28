@@ -1,9 +1,9 @@
 // The 3D views' shader lookups (static/js/scenery-core.js): which technique draws a mesh and what it uses.
-// Run by ctest: node scenery-core.test.mjs <scenery-core.js> [NifFile.h]
+// Run by ctest: node scenery-core.test.mjs <scenery-core.js> [NifFile.h] [Scenery.cpp]
 import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 
-const [modulePath, nifHeader] = process.argv.slice(2);
+const [modulePath, nifHeader, sceneryRoutes] = process.argv.slice(2);
 const S = await import(pathToFileURL(modulePath).href);
 let failures = 0;
 const same = (actual, expected, what) => {
@@ -57,6 +57,19 @@ same(pick(S.gameLook(manifest, 3, colored), BASICS), { family: 'basic', lit: fal
 same(pick(S.gameLook(manifest, 2, { ...colored, vertexColors: 0 }), BASICS), { family: 'fixed', lit: true, texture: true, vertexColors: false, material: true, layers: null, metal: null, emissive: false }, 'fixed function');
 // Without the zone's lighting the viewer lights scenery itself
 same(S.gameLook({ ...manifest, lighting: null }, 0, colored), null, 'no lighting');
+
+// A manifest from before the techniques (format 3, or one a browser kept): no shader is guessed as LEGO. The views
+// light it themselves and its textureAlpha table says what texture alpha does, so a Basic tree's see-through leaves
+// aren't laid over its white vertex colors
+const format3 = { ...manifest, format: 3, techniques: undefined, textureAlpha: { 5: 'decal' } };
+same(S.gameShaded(format3), false, 'format 3 manifest is not game shaded');
+same(S.gameShaded(manifest), true, 'manifest with techniques is game shaded');
+same(S.gameLook(format3, 0, colored), null, 'format 3 manifest: viewer lights');
+same(S.textureAlphaMode(format3, 0, {}), 'opacity', 'format 3 manifest: Basic VC texture alpha');
+same(S.textureAlphaMode(format3, 1, { shaderTag: 1 }), 'decal', 'format 3 manifest: LEGO texture alpha');
+// Manifest URLs name the format the views are written for, so an older manifest a browser kept isn't used
+same(S.manifestUrl('/api/world3d/1200/scenery'), '/api/world3d/1200/scenery?format=' + S.SCENERY_FORMAT, 'manifest URL');
+same(S.manifestUrl('/a?b=1'), '/a?b=1&format=' + S.SCENERY_FORMAT, 'manifest URL with a query');
 
 // What the flags turn into: moving textures, both sides, blending, not drawn
 const flagged = (flags, family = 'basic') => S.gameLook({ ...manifest, shaders: [1], techniques: { 1: { family, look: 0, alpha: 'opacity', flags } } }, 0, colored);
@@ -135,6 +148,12 @@ if (nifHeader) {
 	};
 	same(bitsOf('eTechniqueFlag'), T, 'TECHNIQUE matches eTechniqueFlag');
 	same(bitsOf('eShaderLook'), L, 'SHADER_LOOK matches eShaderLook');
+}
+
+// The format the views are written for is the server's conversion format (Scenery.cpp FORMAT_VERSION)
+if (sceneryRoutes) {
+	const format = readFileSync(sceneryRoutes, 'utf8').match(/constexpr uint32_t FORMAT_VERSION = (\d+);/);
+	same(format && Number(format[1]), S.SCENERY_FORMAT, 'SCENERY_FORMAT matches FORMAT_VERSION');
 }
 
 // The near plane grows with the distance, within limits

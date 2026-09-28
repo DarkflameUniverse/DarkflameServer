@@ -1118,6 +1118,12 @@ Powerups, Orb, TV Screen and Head Icon effects (drawn as LEGO or unlit), Flair's
 client's environment textures come from `/api/scenery/env/:name` (`reflection`, `polished`, `brushed`,
 `brushedNoise`). Placed player models are drawn by the viewer's own lighting.
 
+The views ask for a zone's manifest with the conversion format they're written for (`?format=5`,
+`scenery-core.js` `SCENERY_FORMAT`, which follows `Scenery.cpp` `FORMAT_VERSION`), since browsers keep manifests for up
+to a day. A manifest without `techniques` (an older server's) is drawn with the viewer's own lights and its
+`textureAlpha` table instead of guessing every shader as LEGO, which laid see-through textures over white vertex
+colors (white trees, rocks and water).
+
 Converting a model the caches don't have yet (a big "glom" file takes a moment) happens on a few worker threads, so
 the dashboard keeps answering everything else meanwhile: the route hands the request to a worker (`Web::Defer`) and
 the web thread sends the answer when it is ready. Flairs and small models (up to 256 KB) go first, and one of the

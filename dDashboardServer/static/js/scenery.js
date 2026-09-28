@@ -9,7 +9,7 @@
  * follows the camera, far away, behind everything.
  */
 import * as THREE from 'three';
-import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode, gameLook, blendingOf, TECHNIQUE, decodeSceneMap, sceneAt, loadedScenes } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode, gameLook, gameShaded, manifestUrl, blendingOf, TECHNIQUE, decodeSceneMap, sceneAt, loadedScenes } from '/js/scenery-core.js';
 import { createGameShading } from '/js/game-shaders.js';
 
 // Per detail level (the property view's 0 high, 1 medium, 2 low): the model LOD, how far objects are drawn, the
@@ -276,7 +276,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		// The sky's layers keep their order; everything else has its look-alike pieces joined
 		for (const mesh of forSky ? model.meshes : mergeMeshes(model.meshes)) {
 			if (!mesh.vertices || !mesh.indices.length) continue;
-			const look = forSky ? (manifest.lighting ? skyLook(mesh) : null) : gameLook(manifest, asset, mesh);
+			const look = forSky ? (gameShaded(manifest) ? skyLook(mesh) : null) : gameLook(manifest, asset, mesh);
 			// Post-processing and shadow shaders: the game draws nothing of these in the world
 			if (look && look.hidden) continue;
 			const textureOf = async (slot, clampU, clampV) => {
@@ -490,7 +490,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 				manifest = null;
 				let loaded = null;
 				try {
-					const response = await fetch(url, { credentials: 'same-origin', signal: requests.signal });
+					const response = await fetch(manifestUrl(url), { credentials: 'same-origin', signal: requests.signal });
 					if (response.ok) loaded = await response.json();
 				} catch (error) {
 					// Aborted by a newer load or clear, or the network failed

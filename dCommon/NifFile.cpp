@@ -555,6 +555,56 @@ namespace {
 			}
 		}
 
+		// An NiFloatInterpolator's keys (its NiFloatData's) as time, value pairs; empty without data
+		std::vector<std::array<float, 2>> FloatKeys(int32_t interpolator) {
+			std::vector<std::array<float, 2>> out;
+			const auto* interpolatorType = TypeOf(interpolator);
+			if (!interpolatorType || *interpolatorType != "NiFloatInterpolator") return out;
+			m_Used.insert(interpolator);
+			auto value = BlockReader(interpolator);
+			value.Float();
+			const auto data = value.I32();
+			const auto* dataType = TypeOf(data);
+			if (!value.Ok() || !dataType || *dataType != "NiFloatData") return out;
+			m_Used.insert(data);
+			auto keys = BlockReader(data);
+			const auto count = keys.U32();
+			const auto keyType = count > 0 ? keys.U32() : 0;
+			// Linear keys are time and value; quadratic add two tangents; TBC three floats
+			const uint32_t floats = keyType == 1 ? 2 : keyType == 2 ? 4 : keyType == 3 ? 5 : 0;
+			if (count == 0 || floats == 0 || count > 100000) return out;
+			const auto values = keys.Array<float>(static_cast<uint64_t>(count) * floats);
+			if (!keys.Ok()) return out;
+			for (uint32_t key = 0; key < count; key++) out.push_back({ values[key * floats], values[key * floats + 1] });
+			return out;
+		}
+
+		// The highest alpha an NiAlphaController among the controllers from `first` on (an NiMaterialProperty's) gives
+		// the material: flickering and fading effects often rest at 0 in the file and only show while animated
+		std::optional<float> AnimatedAlpha(int32_t first) {
+			std::optional<float> highest;
+			std::set<int32_t> seen;
+			for (int32_t index = first; index >= 0 && !seen.contains(index);) {
+				seen.insert(index);
+				const auto* type = TypeOf(index);
+				if (!type) break;
+				auto reader = BlockReader(index);
+				const auto next = reader.I32();
+				if (*type == "NiAlphaController") {
+					m_Used.insert(index);
+					reader.Skip(2 + 16); // flags, frequency, phase, start, stop
+					reader.I32(); // target
+					const auto interpolator = reader.I32();
+					if (reader.Ok()) {
+						for (const auto& [time, value] : FloatKeys(interpolator)) highest = std::max(highest.value_or(value), value);
+					}
+				}
+				if (!reader.Ok()) break;
+				index = next;
+			}
+			return highest;
+		}
+
 		// Tiles a second the controllers from `first` on (an NiTexturingProperty's) move its base map in U and V: each
 		// NiTextureTransformController translating the base map, from its NiFloatInterpolator's NiFloatData's first key
 		// to its last, times its frequency
@@ -576,27 +626,11 @@ namespace {
 				const auto shaderMap = reader.U8();
 				const auto slot = reader.U32();
 				const auto operation = reader.U32();
-				const auto* interpolatorType = TypeOf(interpolator);
-				if (reader.Ok() && !shaderMap && slot == 0 && operation <= 1 && interpolatorType && *interpolatorType == "NiFloatInterpolator") {
-					m_Used.insert(interpolator);
-					auto value = BlockReader(interpolator);
-					value.Float();
-					const auto data = value.I32();
-					const auto* dataType = TypeOf(data);
-					if (value.Ok() && dataType && *dataType == "NiFloatData") {
-						m_Used.insert(data);
-						auto keys = BlockReader(data);
-						const auto count = keys.U32();
-						const auto keyType = count > 0 ? keys.U32() : 0;
-						// Linear keys are time and value; quadratic add two tangents; TBC three floats
-						const uint32_t floats = keyType == 1 ? 2 : keyType == 2 ? 4 : keyType == 3 ? 5 : 0;
-						if (count >= 2 && floats > 0 && count <= 100000) {
-							const auto values = keys.Array<float>(static_cast<uint64_t>(count) * floats);
-							if (keys.Ok()) {
-								const float duration = values[(count - 1) * floats] - values[0];
-								if (duration > 0.0f) scroll[operation] = (values[(count - 1) * floats + 1] - values[1]) / duration * frequency;
-							}
-						}
+				if (reader.Ok() && !shaderMap && slot == 0 && operation <= 1) {
+					const auto keys = FloatKeys(interpolator);
+					if (keys.size() >= 2) {
+						const float duration = keys.back()[0] - keys.front()[0];
+						if (duration > 0.0f) scroll[operation] = (keys.back()[1] - keys.front()[1]) / duration * frequency;
 					}
 				}
 				index = next;
@@ -608,7 +642,7 @@ namespace {
 			NifFile::Material material;
 			if (properties.material >= 0) {
 				auto reader = BlockReader(properties.material);
-				ReadNet(reader);
+				const auto controller = ReadNet(reader).controller;
 				reader.Skip(12); // ambient
 				std::array<float, 3> diffuse{}, emissive{};
 				for (auto& value : diffuse) value = reader.Float();
@@ -621,6 +655,8 @@ namespace {
 					material.emissive = emissive;
 					material.alpha = std::clamp(alpha, 0.0f, 1.0f);
 				}
+				// An animated alpha is drawn at its highest (the views don't play the controller)
+				if (const auto animated = AnimatedAlpha(controller)) material.alpha = std::clamp(*animated, 0.0f, 1.0f);
 			}
 			if (properties.alpha >= 0) {
 				auto reader = BlockReader(properties.alpha);
