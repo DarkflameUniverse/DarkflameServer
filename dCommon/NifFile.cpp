@@ -719,79 +719,182 @@ namespace NifFile {
 		return tagShader && *tagShader >= 3 && *tagShader <= 0x6C ? *tagShader : LEGO_SHADER;
 	}
 
-	eTextureAlpha TextureAlphaFor(int32_t shader) {
-		switch (shader) {
+	namespace {
+		using F = eShaderFamily;
+		constexpr auto OPACITY = eTextureAlpha::OPACITY, DECAL = eTextureAlpha::DECAL, IGNORED = eTextureAlpha::IGNORED;
+
+		struct TechniqueRow {
+			int32_t shader;
+			ShaderTechnique technique;
+		};
+
+		/**
+		 * Every mapShaders gameValue, by the technique its shader class sets up (ShaderManager's factory table at
+		 * 0x01889608, indexed by gameValue; the class's technique setup names it) and the client's res/shaders/*.fx.
+		 * Checked in the client: 33 and 82 Technique_Basic_NoLighting_VertColor_NoTexture, 35 and 84
+		 * Technique_Basic_NoLighting_VertColor, 37 Technique_Basic_Lighting_VertColor_NoTexture, 38 and 94
+		 * Technique_Basic_Lighting_VertColor (94 "Basic": the vtable slot at +0x90 of the class made at 0x0045f240 names
+		 * it), 70 Technique_AlphaAsAlpha_UVScrolling_SimpleV_NoLighting_AlphaAnim, 105
+		 * Technique_TwoLayersBlended_NoLighting_VertColor_UVScrolling. The rest follow their mapShaders labels ("NL" no
+		 * lighting, "NT" no texture, "VC" vertex colors, "AnimUV"/"ScrollingUV" the texture transform, "OneSidedAlpha"
+		 * AlphaAsAlpha culled) and the technique of that name in res/shaders.
+		 */
+		constexpr TechniqueRow TECHNIQUES[] = {
+			{ -1, { F::FIXED_FUNCTION, 0, OPACITY, 0 } },
+			// TerrainDiffuse.fx's mesh techniques: the texture times the vertex colors and the light, alpha only the fade
+			{ 2, { F::TERRAIN, 0, OPACITY, NO_BLEND } },                                     // Terrain Mesh
+			{ 3, { F::TERRAIN, 0, IGNORED, RIM_LIGHT | NO_BLEND } },                         // Terrain Mesh Rim Light
+			{ 97, { F::TERRAIN, 0, OPACITY, DIFFUSE_ONLY | NO_BLEND } },                     // Terrain Diffuse Map Only
 			// LEGOPPLighting: textured alone the texture's alpha is forced to 1; with vertex colors it only lays the
 			// texture over them (lerp by its alpha) and the vertex alpha is what shows through
-			case 4: case 5: case 12: case 25: case 27: case 28: case 29: case 30: case 50: case 72: case 88:
-			// Darkling: the same lay-over; alpha from lighting or the fade
-			case 75: case 76: case 77: case 102: case 103: case 104:
-				return eTextureAlpha::DECAL;
+			{ 4, { F::LEGO, 0, DECAL, 0 } },                                               // LEGO (No LOD)
+			{ 5, { F::LEGO, 0, DECAL, 0 } },                                               // LEGO
+			{ 12, { F::LEGO, 0, DECAL, 0 } },                                              // LEGO-Reveal (the reveal mask left out)
+			{ 14, { F::LEGO, 0, OPACITY, NON_DECAL } },                                    // LEGO Masked NonDecal (the specular mask left out)
+			{ 19, { F::LEGO, 0, DECAL, 0 } },                                              // Powerups (their own effect, drawn as LEGO)
+			{ 20, { F::LEGO, 0, DECAL, 0 } },                                              // Orb (Powerups.fx, drawn as LEGO)
+			{ 22, { F::LEGO, EMISSIVE, OPACITY, SUPER_EMISSIVE } },                        // LEGO-SuperEmissive
+			{ 25, { F::LEGO, 0, DECAL, 0 } },                                              // LEGO_FrontEnd
+			{ 26, { F::LEGO, 0, OPACITY, NON_DECAL } },                                    // LEGO_FaceCreate
+			{ 27, { F::LEGO, 0, DECAL, GLOW } },                                           // LEGO-Glow
+			{ 28, { F::LEGO, 0, DECAL, GRAYSCALE } },                                      // LEGO-Grayscale
+			{ 29, { F::LEGO, 0, DECAL, GLOW | IGNORE_VERTEX_ALPHA } },                     // LEGO-Glow-IgnoreVertAlpha
+			{ 30, { F::LEGO, 0, DECAL, UV_ANIM } },                                        // LEGO-AnimUV
 			// LEGOPPLighting_Item: texture alpha forced to 1, multiplied by the vertex colors
-			case 31: case 48:
-			// TerrainMeshLighting_Rim: texture times vertex colors, alpha only the fade
-			case 3:
-				return eTextureAlpha::IGNORED;
-			default:
-				return eTextureAlpha::OPACITY;
+			{ 31, { F::LEGO, 0, IGNORED, NON_DECAL } },                                    // LEGO-Item
+			{ 48, { F::LEGO, 0, IGNORED, NON_DECAL | GLOW } },                             // LEGO-ItemGlow
+			{ 50, { F::LEGO, 0, DECAL, 0 } },                                              // LEGO-FadeUp (as when faded in)
+			{ 53, { F::LEGO, EMISSIVE, OPACITY, 0 } },                                     // LEGO-Emissive
+			{ 72, { F::LEGO, 0, DECAL, SHINY_GLINT } },                                    // ShinyGlint
+			{ 88, { F::LEGO, 0, DECAL, NO_AMBIENT } },                                     // LEGO NoAmbient
+			{ 92, { F::LEGO, 0, DECAL, 0 } },                                              // Pet Taming LEGO In Cloud
+			// LEGOPPLighting's NL pixel shaders: the vertex color or texture as it is
+			{ 52, { F::BASIC, UNLIT, OPACITY, ANIM_ALPHA } },                              // LEGO-No Light
+			// Darkling: the same lay-over; the dark texture on the second UV set through a window of vertex alphas
+			{ 75, { F::DARKLING, 0, DECAL, 0 } },                                          // Darkling
+			{ 76, { F::DARKLING, 0, DECAL, SPECULAR } },                                   // Darkling /w Specular
+			{ 77, { F::DARKLING, 0, DECAL, NON_DECAL } },                                  // Darkling Structure
+			{ 102, { F::DARKLING, 0, DECAL, SHINY_GLINT } },                               // Darking Shiny Glint
+			{ 103, { F::DARKLING, 0, DECAL, SPECULAR | SHINY_GLINT } },                    // Darkling /w Specular Shiny Glint
+			{ 104, { F::DARKLING, 0, DECAL, NON_DECAL | SHINY_GLINT } },                   // Darkling Structure Shiny Glint
+			// AlphaAsAlpha: texture times the (lit) vertex color, both sides
+			{ 7, { F::BASIC, 0, OPACITY, DOUBLE_SIDED } },                                 // VertColor_Alpha
+			{ 8, { F::BASIC, UNLIT, OPACITY, DOUBLE_SIDED | ANIM_ALPHA } },                // VertColor_NoLighting_Alpha
+			{ 9, { F::BASIC, 0, OPACITY, DOUBLE_SIDED } },                                 // VertColor_Alpha_Fade
+			{ 10, { F::BASIC, UNLIT, OPACITY, DOUBLE_SIDED | ANIM_ALPHA | BLEND } },       // VertColorTex_NoLight_AlphaBlend
+			{ 54, { F::BASIC, UNLIT, OPACITY, DOUBLE_SIDED | ANIM_ALPHA | ALPHA_TEST } },  // VertColorTex_NoLight_AlphaTest
+			{ 13, { F::BASIC, 0, OPACITY, UV_ANIM } },                                     // ScrollingUV
+			{ 70, { F::BASIC, UNLIT, OPACITY, UV_ANIM | ANIM_ALPHA } },                    // ScrollingUV_NoLight_AnimAlpha
+			{ 73, { F::BASIC, UNLIT, OPACITY, UV_ANIM | ANIM_ALPHA } },                    // ScrollingUV_NoLight_AimAlpha_Post
+			{ 81, { F::BASIC, UNLIT, OPACITY, UV_ANIM | ANIM_ALPHA | NO_FOG } },           // ScrollingUV NL AnimAlpha NoFog
+			// OneSidedAlpha: the same, culled
+			{ 55, { F::BASIC, 0, OPACITY, 0 } },                                           // OneSidedAlpha VC
+			{ 56, { F::BASIC, UNLIT | NO_VERTEX_COLORS, OPACITY, 0 } },                    // OneSidedAlpha NL
+			{ 57, { F::BASIC, UNLIT, OPACITY, ANIM_ALPHA } },                              // OneSidedAlpha NL VC
+			{ 58, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, ANIM_ALPHA } },                 // OneSidedAlpha NL VC NT
+			{ 59, { F::BASIC, 0, OPACITY, UV_ANIM } },                                     // OneSidedAlpha AnimUV V Skinned
+			{ 60, { F::BASIC, 0, OPACITY, 0 } },                                           // OneSidedAlpha VC Skinned
+			{ 61, { F::BASIC, UNLIT | NO_VERTEX_COLORS, OPACITY, 0 } },                    // OneSidedAlpha NL Skinned
+			{ 62, { F::BASIC, UNLIT, OPACITY, ANIM_ALPHA } },                              // OneSidedAlpha NL VC Skinned
+			{ 63, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, ANIM_ALPHA } },                 // OneSidedAlpha NL VC NT Skinned
+			{ 64, { F::BASIC, 0, OPACITY, UV_ANIM } },                                     // OneSidedAlpha AnimUV V
+			{ 68, { F::BASIC, UNLIT, OPACITY, ANIM_ALPHA } },                              // OneSidedAlpha NL AnimAlpha
+			// BasicShaders
+			{ 11, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, ANIM_ALPHA } },                 // VertColor_NoLight_NoTex_AnimAlpha
+			{ 15, { F::BASIC, UNLIT, OPACITY, 0 } },                                       // VC_NoLighting_2D
+			{ 16, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, 0 } },                          // VC_NL_NoTex_2D
+			{ 17, { F::BASIC, UNLIT, OPACITY, 0 } },                                       // TV Screen (its static and flicker left out)
+			{ 18, { F::BASIC, UNLIT, OPACITY, 0 } },                                       // Head Icon
+			{ 23, { F::BASIC, UNLIT, OPACITY, 0 } },                                       // Over Everything (Unlit)
+			{ 24, { F::BASIC, UNLIT, OPACITY, NO_FOG | BLEND } },                          // Fogless GrayBubble
+			{ 32, { F::BASIC, UNLIT | NO_VERTEX_COLORS | MATERIAL_COLOR, OPACITY, 0 } },   // Basic NL Material
+			{ 33, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, ANIM_ALPHA } },                 // Basic NL VC NT
+			{ 34, { F::BASIC, UNLIT | NO_VERTEX_COLORS, OPACITY, 0 } },                    // Basic NL
+			{ 35, { F::BASIC, UNLIT, OPACITY, 0 } },                                       // Basic NL VC
+			{ 36, { F::BASIC, UNLIT | NO_VERTEX_COLORS, OPACITY, UV_ANIM } },              // Basic NL UVAnim
+			{ 37, { F::BASIC, NO_TEXTURE, OPACITY, 0 } },                                  // Basic VC NT
+			{ 38, { F::BASIC, 0, OPACITY, 0 } },                                           // Basic VC
+			{ 39, { F::BASIC, 0, OPACITY, UV_ANIM } },                                     // Basic VC UVAnim
+			{ 49, { F::BASIC, 0, OPACITY, 0 } },                                           // Experimental Stub
+			{ 65, { F::BASIC, 0, OPACITY, BASIC_EMISSIVE } },                              // VC_Texture_Emissive
+			{ 80, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, 0 } },                          // Basic NL NT
+			{ 82, { F::BASIC, UNLIT | NO_TEXTURE, OPACITY, NO_BLEND | NO_FOG } },            // Opaque NL VC NT NoFog
+			{ 83, { F::BASIC, UNLIT | NO_VERTEX_COLORS, OPACITY, NO_BLEND | NO_FOG } },      // Opaque NL NoFog
+			{ 84, { F::BASIC, UNLIT, OPACITY, NO_BLEND | NO_FOG } },                         // Opaque NL VC NoFog
+			{ 85, { F::BASIC, NO_TEXTURE, OPACITY, NO_BLEND | NO_FOG } },                    // Opaque VC NT NoFog
+			{ 86, { F::BASIC, 0, OPACITY, NO_BLEND | NO_FOG } },                             // Opaque VC NoFog
+			{ 87, { F::BASIC, UNLIT, OPACITY, ADDITIVE } },                                // Additive NoLight VertColor
+			{ 91, { F::BASIC, UNLIT, OPACITY, BLEND } },                                   // Pet Taming Imagination Cloud
+			{ 94, { F::BASIC, 0, OPACITY, 0 } },                                           // Basic
+			{ 108, { F::BASIC, UNLIT | NO_VERTEX_COLORS | MATERIAL_COLOR, OPACITY, 0 } },  // Over Everything Material Unlit
+			// Two layers (TwoLayersAdded_PS in BasicShaders.fx; the client ships no Technique_TwoLayersBlended_* shader,
+			// so the blended ones follow the meshes' data: the dark texture under the base one by the vertex alpha, as
+			// Avant Gardens' snow caps and grass fade into rock by it)
+			{ 93, { F::BASIC, UNLIT | TWO_LAYERS_ADDED, OPACITY, UV_ANIM } },              // Two Textures Added NL VC AnimUV
+			{ 105, { F::BASIC, UNLIT | TWO_LAYERS_BLENDED, OPACITY, UV_ANIM } },           // Two Layers Blended NL VC AnimUV
+			{ 106, { F::BASIC, TWO_LAYERS_BLENDED, OPACITY, UV_ANIM } },                   // Two Layers Blended VC AnimUV
+			{ 107, { F::BASIC, TWO_LAYERS_ADDED, OPACITY, UV_ANIM } },                     // Two Layers Added VC AnimUV
+			// Metallic.fx: both load their reflection cubes themselves (textures/metal)
+			{ 98, { F::METAL, REFLECTIVE, OPACITY, 0 } },                                  // Polished Metal
+			{ 99, { F::METAL, REFLECTIVE | BRUSHED, OPACITY, 0 } },                        // Brushed Steel
+			{ 100, { F::METAL, REFLECTIVE | BRUSHED, OPACITY, 0 } },                       // Brushed Steel Item
+			{ 6, { F::CLEAR_PLASTIC, 0, OPACITY, BLEND } },                                // Clear Plastic
+			{ 51, { F::BRICK_WATER, 0, OPACITY, 0 } },                                     // BrickWater
+			// Ocean.fx
+			{ 69, { F::OCEAN, 0, OPACITY, UV_ANIM } },                                     // Distortion (Ocean)
+			{ 89, { F::OCEAN, 0, OPACITY, UV_ANIM } },                                     // Distortion Directional (Ocean)
+			{ 90, { F::OCEAN, UNLIT, OPACITY, UV_ANIM | OCEAN_FX } },                      // Distortion FX (Ocean)
+			{ 95, { F::OCEAN, 0, OPACITY, UV_ANIM | BLEND } },                             // Distortion NoDepth (Ocean) (Alpha)
+			{ 101, { F::OCEAN, UNLIT, OPACITY, UV_ANIM } },                                // Distortion (Ocean) Unlit
+			{ 78, { F::FLAT_SURF, 0, OPACITY, UV_ANIM } },                                 // Flat Surf
+			// Drawn by other passes, not in the world: footprints, post-processing, drop shadows, Technique_Undefined
+			{ 21, { F::BASIC, 0, OPACITY, NOT_DRAWN } },                                   // Model Footprint
+			{ 71, { F::BASIC, 0, OPACITY, NOT_DRAWN } },                                   // PostProcess Gray Bubble
+			{ 74, { F::BASIC, 0, OPACITY, NOT_DRAWN } },                                   // Drop Shadow
+			{ 79, { F::BASIC, 0, OPACITY, NOT_DRAWN } },                                   // Post Process Gray Bubble Interior Ghost
+			{ 96, { F::BASIC, 0, OPACITY, NOT_DRAWN } },                                   // Undefined
+		};
+	}
+
+	const char* FamilyName(eShaderFamily family) {
+		switch (family) {
+			case eShaderFamily::FIXED_FUNCTION: return "fixed";
+			case eShaderFamily::LEGO: return "lego";
+			case eShaderFamily::BASIC: return "basic";
+			case eShaderFamily::METAL: return "metal";
+			case eShaderFamily::CLEAR_PLASTIC: return "clearPlastic";
+			case eShaderFamily::OCEAN: return "ocean";
+			case eShaderFamily::FLAT_SURF: return "flatSurf";
+			case eShaderFamily::BRICK_WATER: return "brickWater";
+			case eShaderFamily::DARKLING: return "darkling";
+			case eShaderFamily::TERRAIN: return "terrain";
 		}
+		return "lego";
+	}
+
+	ShaderTechnique TechniqueFor(int32_t shader) {
+		for (const auto& row : TECHNIQUES) {
+			if (row.shader == shader) return row.technique;
+		}
+		return ShaderTechnique{}; // the LEGO shader, as the client falls back to
+	}
+
+	std::string TechniquesJson(const std::vector<int32_t>& shaders) {
+		nlohmann::json out = nlohmann::json::object();
+		for (const auto shader : shaders) {
+			const auto technique = TechniqueFor(shader);
+			const char* alpha = technique.textureAlpha == eTextureAlpha::DECAL ? "decal" : technique.textureAlpha == eTextureAlpha::IGNORED ? "ignored" : "opacity";
+			out[std::to_string(shader)] = { {"family", FamilyName(technique.family)}, {"look", technique.look}, {"alpha", alpha}, {"flags", technique.flags} };
+		}
+		return out.dump();
+	}
+
+	eTextureAlpha TextureAlphaFor(int32_t shader) {
+		return TechniqueFor(shader).textureAlpha;
 	}
 
 	uint16_t ShaderLookFor(int32_t shader) {
-		// By the technique each shader class sets up (ShaderManager's factory table at 0x01889608, indexed by gameValue;
-		// the class's technique setup names it). Checked in the client: 33 and 82 Technique_Basic_NoLighting_VertColor_
-		// NoTexture, 35 and 84 Technique_Basic_NoLighting_VertColor, 37 Technique_Basic_Lighting_VertColor_NoTexture,
-		// 38 and 94 Technique_Basic_Lighting_VertColor, 70 Technique_AlphaAsAlpha_UVScrolling_SimpleV_NoLighting_
-		// AlphaAnim, 105 Technique_TwoLayersBlended_NoLighting_VertColor_UVScrolling. The rest follow their mapShaders
-		// labels ("NL" no lighting, "NT" no texture, "VC" vertex colors)
-		switch (shader) {
-			// Basic NL Material, Over Everything Material Unlit
-			case 32: case 108:
-				return UNLIT | NO_VERTEX_COLORS | MATERIAL_COLOR;
-			// Basic NL, Basic NL UVAnim, OneSidedAlpha NL (and skinned), Opaque NL NoFog
-			case 34: case 36: case 56: case 61: case 83:
-				return UNLIT | NO_VERTEX_COLORS;
-			// (94 "Basic" is Technique_Basic_Lighting_VertColor like "Basic VC": its shader's technique setup, the vtable
-			// slot at +0x90 of the class made at 0x0045f240, names that technique, so it's the usual look)
-			// VertColor_NoLight_NoTex_AnimAlpha, VC_NL_NoTex_2D, Basic NL VC NT, OneSidedAlpha NL VC NT (and skinned),
-			// Basic NL NT, Opaque NL VC NT NoFog
-			case 11: case 16: case 33: case 58: case 63: case 80: case 82:
-				return UNLIT | NO_TEXTURE;
-			// Basic VC NT, Opaque VC NT NoFog
-			case 37: case 85:
-				return NO_TEXTURE;
-			// Two Textures Added NL VC AnimUV (TwoLayersAdded_PS in BasicShaders.fx), Two Layers Added VC AnimUV
-			case 93:
-				return UNLIT | TWO_LAYERS_ADDED;
-			case 107:
-				return TWO_LAYERS_ADDED;
-			// Two Layers Blended NL VC AnimUV and Two Layers Blended VC AnimUV. The client names techniques for them
-			// (Technique_TwoLayersBlended_*) that no shader it ships has, so how the game draws them is a guess: the dark
-			// texture under the base one by the vertex alpha, as the meshes' data suggests (Avant Gardens' snow caps
-			// and grass fade into rock by it)
-			case 105:
-				return UNLIT | TWO_LAYERS_BLENDED;
-			case 106:
-				return TWO_LAYERS_BLENDED;
-			// VertColor_NoLighting_Alpha, VertColorTex_NoLight_AlphaBlend and _AlphaTest, VC_NoLighting_2D, Over
-			// Everything (Unlit), Basic NL VC, LEGO-No Light, OneSidedAlpha NL VC (and skinned), OneSidedAlpha NL
-			// AnimAlpha, the NoLight scrolling UVs, Opaque NL VC NoFog, Additive NoLight VertColor, Distortion (Ocean)
-			// Unlit
-			case 8: case 10: case 54: case 15: case 23: case 35: case 52: case 57: case 62: case 68: case 70: case 73: case 81:
-			case 84: case 87: case 101:
-				return UNLIT;
-			// Polished Metal (Technique_Lighting_PolishedMetal_VertColor in Metallic.fx) and Brushed Steel (its noise
-			// in object space); both load their reflection textures themselves
-			case 98:
-				return REFLECTIVE;
-			case 99:
-				return REFLECTIVE | BRUSHED;
-			// LEGO-Emissive
-			case 53:
-				return EMISSIVE;
-			default:
-				return 0;
-		}
+		return TechniqueFor(shader).look;
 	}
 
 	std::optional<Model> Parse(std::string_view data, uint32_t lod, std::string& error) {

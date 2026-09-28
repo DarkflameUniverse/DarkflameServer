@@ -83,9 +83,9 @@ gtest_discover_tests(dWebTests)
 
 target_compile_definitions(dWebTests PRIVATE DLU_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-# The 3D views' shader lookups (static/js/scenery-core.js), when node is there
+# The 3D views' shader lookups (static/js/scenery-core.js) against the server's bits (NifFile.h), when node is there
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
 	add_test(NAME SceneryCoreJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scenery-core.test.mjs"
-		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/scenery-core.js")
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/scenery-core.js" "${PROJECT_SOURCE_DIR}/dCommon/NifFile.h")
 endif()
