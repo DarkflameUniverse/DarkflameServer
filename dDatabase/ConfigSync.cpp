@@ -58,6 +58,16 @@ namespace ConfigSync {
 				Database::Get()->ReportConfigFromFile(setting);
 			}
 
+			// A key taken out of a file this server read is forgotten: its row came from that file (not the environment,
+			// not only the dashboard) and nobody set it on the dashboard
+			std::set<std::string> filesRead;
+			for (const auto& entry : config.GetFileEntries()) filesRead.insert(entry.file);
+			for (const auto& row : Database::Get()->GetServerConfig({ filesRead.begin(), filesRead.end() })) {
+				if (row.fileSource != "file" || row.webValue || setLocally.contains(row.name) || Permissions::IsPermissionSetting(row.name)) continue;
+				LOG("Forgetting the setting %s of %s: it is no longer in the file", row.name.c_str(), row.file.c_str());
+				Database::Get()->DeleteServerConfig(row.file, row.name);
+			}
+
 			const auto rows = Database::Get()->GetServerConfig({ config.GetFileName(), "sharedconfig.ini" });
 			// Keys set only by environment variables count as set locally too
 			for (const auto& row : rows) {

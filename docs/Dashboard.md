@@ -224,6 +224,18 @@ the Settings page by earlier versions are ignored. Programs such as `mysqldump` 
 Secrets (passwords, tokens, keys) from files are never copied into the database; secrets set on the web are stored in
 the database and can't be read back from the page.
 
+Where the rows come from and when they go: every server reports the keys of the files it read when it starts
+(`ConfigSync::Sync`, table `server_config`). A key taken out of a file is forgotten the next time a server that reads
+that file starts: its row is deleted when it came from the file (not an environment variable), has no value set on this
+page, and isn't a permission level. Rows with a value set here stay until that value is removed.
+
+The shipped `resources/*.ini` files list every setting in the catalog (`dDashboardServer/routes/SettingsCatalog.cpp`)
+as `key=default` under a comment with its title and description, or name it in a comment (numbered families such as
+`event_1`...`event_8` and the icon framing keys); the test `SettingsCatalogTests.ShippedFilesListEveryCatalogSetting`
+fails when one is missing, and running it with `DLU_WRITE_INI_TEMPLATES=1` adds the missing ones to the files under
+their section. CMake copies a file that isn't in the build folder yet and appends missing keys (without comments) to
+one that is; values already in a server's files are never changed by it.
+
 ### Setting history
 
 The **History** tab of the Settings page (same `settings` permission) lists every change made on the Settings page, and

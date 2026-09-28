@@ -3,7 +3,10 @@
 #include <filesystem>
 #include <fstream>
 #include <regex>
+#include <cstdlib>
+#include <map>
 #include <set>
+#include <sstream>
 
 #include "SettingsCatalog.h"
 
@@ -169,4 +172,63 @@ TEST(SettingsCatalogTests, CoversEverySettingTheCodeReads) {
 	}
 	EXPECT_GT(found, 100u);
 	for (const auto& key : missing) ADD_FAILURE() << key << " is read by the code but not in SettingsCatalog.cpp";
+}
+
+// Every setting in the catalog is in its shipped .ini (as `key=` or named in a comment), so a server's files list what
+// it reads. With DLU_WRITE_INI_TEMPLATES=1 the missing ones are added to resources/*.ini instead, under their section,
+// with their description and default.
+TEST(SettingsCatalogTests, ShippedFilesListEveryCatalogSetting) {
+	const std::filesystem::path resources = std::filesystem::path(DLU_SOURCE_DIR) / "resources";
+	const bool write = std::getenv("DLU_WRITE_INI_TEMPLATES") && std::string(std::getenv("DLU_WRITE_INI_TEMPLATES")) == "1";
+	const auto mentions = [](const std::string& text, const std::string& key) {
+		const std::regex named("(^|[\\s#,:(])" + key + "(=|[\\s,:.)]|$)", std::regex::multiline);
+		return std::regex_search(text, named);
+	};
+	// file -> section -> the settings missing from it, in catalog order
+	std::map<std::string, std::vector<std::pair<std::string, std::vector<const SettingsCatalog::Setting*>>>> missing;
+	for (const auto& setting : SettingsCatalog::All()) {
+		if (setting.unused || setting.key.ends_with('_')) continue; // old names; numbered families (event_1, help_1...)
+		std::ifstream in(resources / setting.file);
+		const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+		if (mentions(text, setting.key)) continue;
+		auto& sections = missing[setting.file];
+		auto it = std::find_if(sections.begin(), sections.end(), [&](const auto& s) { return s.first == setting.section; });
+		if (it == sections.end()) it = sections.insert(sections.end(), { setting.section, {} });
+		it->second.push_back(&setting);
+	}
+	if (!write) {
+		for (const auto& [file, sections] : missing) {
+			for (const auto& [section, settings] : sections) {
+				for (const auto* setting : settings) ADD_FAILURE() << file << " " << setting->key << " is in SettingsCatalog.cpp but not in resources/" << file << " (run with DLU_WRITE_INI_TEMPLATES=1 to add it)";
+			}
+		}
+		return;
+	}
+	// A comment wrapped to 120 columns
+	const auto comment = [](const std::string& text) {
+		std::string out, line = "#";
+		std::istringstream words(text);
+		std::string word;
+		while (words >> word) {
+			if (line.size() + 1 + word.size() > 120) {
+				out += line + "\n";
+				line = "#";
+			}
+			line += " " + word;
+		}
+		return line == "#" ? out : out + line + "\n";
+	};
+	for (const auto& [file, sections] : missing) {
+		std::ofstream out(resources / file, std::ios::app);
+		for (const auto& [section, settings] : sections) {
+			out << "\n# ---- " << section << " ----\n";
+			for (const auto* setting : settings) {
+				std::string text = setting->title;
+				if (!setting->description.empty()) text += ": " + setting->description;
+				if (!setting->unit.empty()) text += " (" + setting->unit + ")";
+				if (setting->restart) text += " Read when the server starts.";
+				out << comment(text) << setting->key << "=" << (setting->type == SettingsCatalog::eType::SECRET ? "" : setting->defaultValue) << "\n";
+			}
+		}
+	}
 }
