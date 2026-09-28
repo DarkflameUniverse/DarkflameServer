@@ -1033,8 +1033,8 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				}
 
 				// The models' LXFML, for the client to build each model's NIF and HKX itself. With ugc_manifest_models
-				// the models whose mesh the UGC server made are then switched to the served mesh, keeping the client's
-				// own physics (UgcManifest, docs/UgcServer.md).
+				// the models whose mesh the UGC server made are left out: the client downloads their mesh, and gets the
+				// LXFML (for its physics) when it asks for the HKX (UgcManifest, docs/UgcServer.md).
 
 				auto bbbModels = Database::Get()->GetUgcModels(propertyId);
 				if (bbbModels.empty()) {
@@ -1047,7 +1047,11 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				response.reasonCode = eBlueprintSaveResponseType::EverythingWorked;
 				size_t served = 0;
 				for (auto& bbbModel : bbbModels) {
-					if (UgcManifest::ScheduleServedMesh(sysAddr, bbbModel.id)) served++;
+					// Its served mesh is downloaded; its LXFML is sent when the client asks for the HKX (UgcManifest)
+					if (UgcManifest::ServesMesh(bbbModel.id)) {
+						served++;
+						continue;
+					}
 					LOG("Getting lxfml ugcID: %llu", bbbModel.id);
 
 					bbbModel.lxfmlData.seekg(0, std::ios::end);
@@ -1059,7 +1063,7 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 					model.blueprintId = bbbModel.id;
 					model.data = bbbModel.lxfmlData.str().substr(0, lxfmlSize);
 				}
-				if (served > 0) LOG("%zu of the property's %zu models get their mesh from the UGC server once built", served, bbbModels.size());
+				if (served > 0) LOG("%zu of the property's %zu models come from the UGC server", served, bbbModels.size());
 				if (!response.models.empty()) response.Send(sysAddr);
 			}
 

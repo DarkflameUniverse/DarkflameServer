@@ -72,7 +72,6 @@ TEST_F(UgcManifestRequestTests, NothingWhenOff) {
 	EXPECT_TRUE(sent.empty());
 	EXPECT_FALSE(UgcManifest::ServesModels());
 	EXPECT_FALSE(UgcManifest::ServesMesh(1234));
-	EXPECT_FALSE(UgcManifest::ScheduleServedMesh(Client(), 1234));
 }
 
 // A model file of a blueprint that isn't a player model: answered as not known (37 bytes, valid 0), never left waiting
@@ -80,7 +79,6 @@ TEST_F(UgcManifestRequestTests, UnknownModelFilesAreAnsweredNotKnown) {
 	Settings("1", "1");
 	EXPECT_TRUE(UgcManifest::ServesModels());
 	EXPECT_FALSE(UgcManifest::ServesMesh(1234)); // its mesh isn't made
-	EXPECT_FALSE(UgcManifest::ScheduleServedMesh(Client(), 1234));
 	for (const auto type : { eUgcResourceType::NIF, eUgcResourceType::HKX, eUgcResourceType::LXFML }) {
 		const auto sent = Capture([type] { UgcManifest::OnRequest(Client(), 0x0102030405060708, type); });
 		ASSERT_EQ(sent.size(), 1);

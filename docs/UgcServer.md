@@ -405,24 +405,16 @@ What the 1.10.64 client does with a placed player model (LOT 14, spawned with `b
 With `ugc_manifest=1` and `ugc_manifest_models=1` (`sharedconfig.ini`, default 0; the dashboard shows it under UGC
 serving), the worlds:
 
-* **Property load**: send the LXFML of every model (one `BlueprintSaveResponse`): the client builds each model's NIF
-  and HKX (its collision; the UGC server makes no physics). For the models whose mesh the UGC server made (a
-  `model.nif` in `ugc_file_checksums`), once the client has loaded (`PlayerLoaded`) and 3 seconds after, the world
-  sends it the served NIF's checksum, `NotifyClientUGCModelReady`, and takes the model down and constructs it again for
-  that client. `NotifyClientUGCModelReady` alone only flushes the client's cached NIF, HKX and LXFML and loads them
-  again as preloads (0x00ca6430): an object already drawn keeps its mesh. The object is taken down 1.5 seconds
-  later, after the client's load thread has done the flush, and constructed again 1 second after that (the client
-  deletes objects later and drops the construction of an object it still has; in the same batch, most models
-  disappeared). The object constructed again loads the NIF,
-  whose cached checksum is now the served one, which the client's own file doesn't match, so it downloads the served
-  mesh; the HKX's is still its own, so it keeps the collision it built. The model shows as the client built it for
-  those few seconds.
+* **Property load**: send the LXFML (one `BlueprintSaveResponse`) only for the models whose mesh the UGC server hasn't
+  made (no `model.nif` in `ugc_file_checksums`). Made ones are left out: the client asks for their files, downloads
+  the served mesh and draws it. Tried and dropped: sending every model's LXFML (the client builds its own NIF and HKX)
+  and then switching to the served mesh with the served NIF's checksum, `NotifyClientUGCModelReady` and the model
+  constructed again: the client kept drawing its own build.
 * **NIF** of a made model: the UGC server's checksum; the client downloads `<id>.nif.sd0` from the UGC server.
 * **LXFML** of a made model: the MD5 and size of the stored LXFML inflated (what the UGC server serves as
   `<id>.lxfml.sd0`), worked out once per model and kept.
-* **HKX** of any model: the model's LXFML (the UGC server makes no physics), and for a made model the same switch to
-  the served mesh afterwards. At most 3 switches per client and model, so a client that keeps asking isn't switched
-  back and forth for ever.
+* **HKX** of any model: the model's LXFML (the UGC server makes no physics). The client builds the model from it and
+  loads its own HKX, so served models have collision; the mesh already drawn stays the served one.
 * **Any model file of a model that isn't made** (e.g. a model someone else just placed, or `ugc_manifest_models=0`):
   the model's LXFML to that client (once per 10 seconds for the three requests), which builds it itself, so a model is
   never left waiting. A blueprint that isn't a player model gets valid 0.

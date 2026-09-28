@@ -31,10 +31,6 @@ namespace {
 	constexpr auto LXFML_RESEND_AFTER = std::chrono::seconds(10);
 	// LXFML checksums worked out, kept for the next clients (a model's LXFML only changes with a new save)
 	constexpr size_t MAX_LXFML_CHECKSUMS = 4096;
-	// How long after a client has loaded it is switched to a served mesh (it builds the model from the LXFML first)
-	constexpr auto SERVED_MESH_DELAY = std::chrono::seconds(3);
-	constexpr size_t MAX_SWITCHES = 4096;
-	constexpr int MAX_SWITCHES_PER_MODEL = 3;
 	// How long after NotifyClientUGCModelReady the model is constructed again: the client flushes the model's files on
 	// its load thread, and a model constructed before that is done loses the mesh it just loaded
 	constexpr auto RECONSTRUCT_DELAY = std::chrono::milliseconds(1500);
@@ -53,17 +49,6 @@ namespace {
 	std::chrono::steady_clock::time_point g_NextRetry{};
 	std::map<std::pair<SystemAddress, LWOOBJID>, std::chrono::steady_clock::time_point> g_LxfmlSent;
 	std::map<LWOOBJID, IUgc::FileChecksum> g_LxfmlChecksums;
-
-	// Clients given a served model's LXFML, to be switched to its served mesh: since when the client is loaded (unset
-	// while it isn't)
-	struct Switch {
-		SystemAddress sysAddr;
-		LWOOBJID blueprintId{};
-		std::chrono::steady_clock::time_point since;
-		std::optional<std::chrono::steady_clock::time_point> loadedAt;
-	};
-	std::vector<Switch> g_Switches;
-	std::map<std::pair<SystemAddress, LWOOBJID>, int> g_SwitchCount;
 
 	// Placed models to construct again for a client once its flush is done
 	struct Reconstruct {
@@ -154,7 +139,6 @@ namespace {
 		response.models.push_back({ blueprintId, model->lxfmlData.str() });
 		response.Send(sysAddr);
 		g_LxfmlSent[{ sysAddr, blueprintId }] = now;
-		UgcManifest::ScheduleServedMesh(sysAddr, blueprintId);
 		// Its mesh is wanted: a model still in its quiet period after a save is made now
 		Database::Get()->ExpediteUgcModel(blueprintId);
 		LOG_DEBUG("Sent the LXFML of %llu for the client to build", static_cast<unsigned long long>(blueprintId));
@@ -202,23 +186,6 @@ bool UgcManifest::ServesModels() {
 
 bool UgcManifest::ServesMesh(const LWOOBJID blueprintId) {
 	return ServesModels() && MeshMade(blueprintId);
-}
-
-bool UgcManifest::ScheduleServedMesh(const SystemAddress& sysAddr, const LWOOBJID blueprintId) {
-	if (!ServesMesh(blueprintId)) return false;
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return true;
-	for (auto& pending : g_Switches) {
-		// Sent again (built again): the switch waits for the new build
-		if (pending.sysAddr == sysAddr && pending.blueprintId == blueprintId) {
-			pending.since = std::chrono::steady_clock::now();
-			pending.loadedAt.reset();
-			return true;
-		}
-	}
-	if (++g_SwitchCount[{ sysAddr, blueprintId }] > MAX_SWITCHES_PER_MODEL) return true;
-	if (g_Switches.size() >= MAX_SWITCHES) g_Switches.erase(g_Switches.begin());
-	g_Switches.push_back({ sysAddr, blueprintId, std::chrono::steady_clock::now(), std::nullopt });
-	return true;
 }
 
 void UgcManifest::OnRequest(const SystemAddress& sysAddr, LWOOBJID blueprintId, eUgcResourceType resourceType) {
@@ -295,33 +262,10 @@ namespace {
 		return true;
 	}
 
-	// Switches one client to a model's served mesh; false while the client isn't ready for it yet
-	bool SwitchToServedMesh(Switch& pending, const std::chrono::steady_clock::time_point now) {
-		auto* const player = PlayerManager::GetPlayer(pending.sysAddr);
-		if (!player) return true; // gone
-		if (!player->GetPlayerReadyForUpdates()) return false;
-		if (!pending.loadedAt) pending.loadedAt = now;
-		if (now - *pending.loadedAt < SERVED_MESH_DELAY) return false;
-
-		const auto checksum = Database::Get()->GetUgcFileChecksum(pending.blueprintId, "model.nif");
-		if (!checksum || checksum->md5.size() != 32 || !Game::entityManager) return true;
-		// The served checksum first: NotifyClientUGCModelReady has the client ask again, and its cache answers
-		Send(pending.sysAddr, pending.blueprintId, eUgcResourceType::NIF, checksum);
-		size_t shown = 0;
-		for (auto* const model : Game::entityManager->GetEntitiesByLOT(BrickByBrick::MODEL_OBJECT_LOT)) {
-			if (!model || model->GetVar<LWOOBJID>(u"blueprintid") != pending.blueprintId) continue;
-			ShowServedMesh(*model, *player, pending.blueprintId);
-			shown++;
-		}
-		LOG("Showed %s the served mesh of model %llu (%zu placed)", player->GetCharacter() ? player->GetCharacter()->GetName().c_str() : "a player",
-			static_cast<unsigned long long>(pending.blueprintId), shown);
-		return true;
-	}
 }
 
 void UgcManifest::Update() {
 	const auto now = std::chrono::steady_clock::now();
-	std::erase_if(g_Switches, [now](Switch& pending) { return now - pending.since > MAX_WAIT || SwitchToServedMesh(pending, now); });
 	std::erase_if(g_Reconstructs, [now](Reconstruct& pending) { return ConstructAgain(pending, now); });
 
 	if (g_Waiting.empty() || now < g_NextRetry) return;
@@ -334,8 +278,6 @@ void UgcManifest::Update() {
 void UgcManifest::OnDisconnect(const SystemAddress& sysAddr) {
 	std::erase_if(g_Waiting, [&sysAddr](const Waiting& waiting) { return waiting.sysAddr == sysAddr; });
 	std::erase_if(g_LxfmlSent, [&sysAddr](const auto& sent) { return sent.first.first == sysAddr; });
-	std::erase_if(g_Switches, [&sysAddr](const Switch& pending) { return pending.sysAddr == sysAddr; });
-	std::erase_if(g_SwitchCount, [&sysAddr](const auto& count) { return count.first.first == sysAddr; });
 	std::erase_if(g_Reconstructs, [&sysAddr](const Reconstruct& pending) { return pending.sysAddr == sysAddr; });
 }
 
