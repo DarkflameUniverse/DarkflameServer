@@ -587,58 +587,6 @@ TEST(NifFileTests, KnowsWhichShadersUseTextureAlphaAsOpacity) {
 	EXPECT_EQ(NifFile::TextureAlphaFor(-1), eTextureAlpha::OPACITY);  // fixed function: NiAlphaProperty as Gamebryo does
 }
 
-TEST(NifFileTests, KnowsEachShadersTechniqueFamily) {
-	using NifFile::eShaderFamily;
-	const auto family = [](int32_t shader) { return NifFile::TechniqueFor(shader).family; };
-	const auto flags = [](int32_t shader) { return NifFile::TechniqueFor(shader).flags; };
-	EXPECT_EQ(family(-1), eShaderFamily::FIXED_FUNCTION);
-	// The ones most of the zones' objects use: LEGO, Basic VC, "Basic", VertColor_Alpha, LEGO NoAmbient
-	EXPECT_EQ(family(NifFile::LEGO_SHADER), eShaderFamily::LEGO);
-	EXPECT_EQ(family(38), eShaderFamily::BASIC);
-	EXPECT_EQ(family(94), eShaderFamily::BASIC);
-	EXPECT_EQ(family(7), eShaderFamily::BASIC);
-	EXPECT_TRUE(flags(7) & NifFile::DOUBLE_SIDED);     // AlphaAsAlpha: Cullmode none
-	EXPECT_EQ(family(88), eShaderFamily::LEGO);
-	EXPECT_TRUE(flags(88) & NifFile::NO_AMBIENT);
-	EXPECT_EQ(family(3), eShaderFamily::TERRAIN);
-	EXPECT_TRUE(flags(3) & NifFile::RIM_LIGHT);
-	// Moving textures, water, metal, glass, darklings
-	EXPECT_TRUE(flags(30) & NifFile::UV_ANIM);          // LEGO-AnimUV
-	EXPECT_TRUE(flags(70) & NifFile::UV_ANIM);          // ScrollingUV_NoLight_AnimAlpha
-	EXPECT_FALSE(flags(38) & NifFile::UV_ANIM);
-	EXPECT_EQ(family(69), eShaderFamily::OCEAN);
-	EXPECT_TRUE(flags(90) & NifFile::OCEAN_FX);
-	EXPECT_EQ(family(98), eShaderFamily::METAL);
-	EXPECT_EQ(family(99), eShaderFamily::METAL);
-	EXPECT_EQ(family(6), eShaderFamily::CLEAR_PLASTIC);
-	EXPECT_TRUE(flags(6) & NifFile::BLEND);
-	EXPECT_EQ(family(75), eShaderFamily::DARKLING);
-	EXPECT_TRUE(flags(76) & NifFile::SPECULAR);
-	EXPECT_TRUE(flags(22) & NifFile::SUPER_EMISSIVE);
-	EXPECT_TRUE(flags(87) & NifFile::ADDITIVE);
-	EXPECT_TRUE(flags(74) & NifFile::NOT_DRAWN);        // Drop Shadow
-	// A value the table lacks is the LEGO shader, as the client falls back to it
-	EXPECT_EQ(family(4242), eShaderFamily::LEGO);
-	EXPECT_EQ(NifFile::TextureAlphaFor(4242), NifFile::eTextureAlpha::DECAL);
-}
-
-TEST(NifFileTests, WritesTechniquesForTheManifest) {
-	const auto json = nlohmann::json::parse(NifFile::TechniquesJson({ -1, 5, 99, 87 }));
-	ASSERT_EQ(json.size(), 4u);
-	EXPECT_EQ(json["-1"]["family"], "fixed");
-	EXPECT_EQ(json["5"]["family"], "lego");
-	EXPECT_EQ(json["5"]["alpha"], "decal");
-	EXPECT_EQ(json["99"]["family"], "metal");
-	EXPECT_EQ(json["99"]["look"], NifFile::REFLECTIVE | NifFile::BRUSHED);
-	EXPECT_EQ(json["87"]["flags"], NifFile::ADDITIVE);
-	EXPECT_EQ(json["87"]["look"], NifFile::UNLIT);
-	for (const auto family : { "fixed", "lego", "basic", "metal", "clearPlastic", "ocean", "flatSurf", "brickWater", "darkling", "terrain" }) {
-		bool named = false;
-		for (int i = 0; i <= static_cast<int>(NifFile::eShaderFamily::TERRAIN); i++) named |= std::string(NifFile::FamilyName(static_cast<NifFile::eShaderFamily>(i))) == family;
-		EXPECT_TRUE(named) << family;
-	}
-}
-
 TEST(NifFileTests, PassesMultishaderTagsDownToMeshes) {
 	NifBuilder nif;
 	auto rootAv = Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {});

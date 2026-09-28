@@ -78,7 +78,7 @@ namespace NifFile {
 	// The shader (gameValue) a multishader part is drawn with, from its tag's gameValue: outside 3..108 the LEGO shader
 	int32_t MultishaderPart(std::optional<int32_t> tagShader);
 
-	// What a texture's alpha does under a shader (mapShaders.gameValue, TechniqueFor); -1 is fixed function (opacity)
+	// What a texture's alpha does under a shader (mapShaders.gameValue); -1 is fixed function (opacity)
 	eTextureAlpha TextureAlphaFor(int32_t shader);
 
 	/**
@@ -111,66 +111,6 @@ namespace NifFile {
 
 	// eShaderLook bits of a shader (mapShaders.gameValue); 0 for the usual lit look and for fixed function
 	uint16_t ShaderLookFor(int32_t shader);
-
-	/**
-	 * The client's shader families (res/shaders/*.fx), each drawn by one program in the dashboard's 3D views
-	 * (static/js/game-shaders.js): FIXED_FUNCTION Gamebryo's own lighting with the material; LEGO LEGOPPLighting (hemisphere
-	 * lit sun, fresnel rim, specular, a faint environment reflection); BASIC BasicShaders and AlphaAsAlpha (sun * N.L +
-	 * ambient per vertex, or unlit, times vertex color and texture); METAL Metallic.fx; CLEAR_PLASTIC ClearPlastic.fx;
-	 * OCEAN Ocean.fx's Distortion techniques (warped texture layers); FLAT_SURF Ocean.fx's Flat Surf; BRICK_WATER
-	 * BrickWater.fx; DARKLING LEGOPPLighting's Darkling techniques (a second, dark texture on its own UV set); TERRAIN
-	 * TerrainDiffuse.fx's mesh techniques.
-	 */
-	enum class eShaderFamily : uint8_t { FIXED_FUNCTION, LEGO, BASIC, METAL, CLEAR_PLASTIC, OCEAN, FLAT_SURF, BRICK_WATER, DARKLING, TERRAIN };
-
-	// Its name in the scenery manifest ("fixed", "lego", "basic", "metal", "clearPlastic", "ocean", "flatSurf", "brickWater", "darkling", "terrain")
-	const char* FamilyName(eShaderFamily family);
-
-	// What a technique does besides its family and eShaderLook bits (static/js/scenery-core.js TECHNIQUE has the same bits)
-	enum eTechniqueFlag : uint32_t {
-		UV_ANIM = 1,                  // the base texture moves by the .nif's texture transform (g_textureMotion)
-		DOUBLE_SIDED = 2,             // Cullmode none (AlphaAsAlpha)
-		BLEND = 4,                    // alpha blended without depth writes
-		ALPHA_TEST = 8,               // cut out by the alpha
-		ADDITIVE = 16,                // added onto what's behind
-		NO_AMBIENT = 32,              // lit as if the ambient light were white
-		GLOW = 64,                    // LEGOPP_ApplyGlow: the glow color by the alpha
-		IGNORE_VERTEX_ALPHA = 128,    // ... with the vertex alpha taken as 1
-		SUPER_EMISSIVE = 256,         // LEGO-Emissive going to ten times the color
-		GRAYSCALE = 512,              // LEGOPP_ApplyGrayscale
-		SHINY_GLINT = 1024,           // a highlight band moving up the object
-		SPECULAR = 2048,              // Darkling with LEGO lighting
-		NON_DECAL = 4096,             // the texture multiplies the vertex colors instead of being laid over them
-		OCEAN_FX = 8192,              // Distortion FX: unlit, the alpha a window set by the material's emissive
-		RIM_LIGHT = 16384,            // Terrain Mesh Rim Light
-		DIFFUSE_ONLY = 32768,         // Terrain Diffuse Map Only: the texture doubled, lit
-		ANIM_ALPHA = 65536,           // NiMaterialProperty's alpha (animated) multiplies the output alpha
-		BASIC_EMISSIVE = 131072,      // Basic_Emissive_PS
-		NO_FOG = 262144,              // the "NoFog" techniques
-		NOT_DRAWN = 524288,           // nothing of it is drawn in the world (post-processing, footprints, drop shadows)
-		NO_BLEND = 1048576              // no alpha blending ("Opaque" techniques, terrain meshes)
-	};
-
-	struct ShaderTechnique {
-		eShaderFamily family{ eShaderFamily::LEGO };
-		uint16_t look{};                                   // eShaderLook bits
-		eTextureAlpha textureAlpha{ eTextureAlpha::DECAL };
-		uint32_t flags{};                                  // eTechniqueFlag bits
-	};
-
-	/**
-	 * How the client draws with a shader (mapShaders.gameValue): the one table of the game's shaders for the views.
-	 * Every mapShaders gameValue has a row; -1 is fixed function; any other value is the LEGO shader, which the client
-	 * falls back to.
-	 */
-	ShaderTechnique TechniqueFor(int32_t shader);
-
-	/**
-	 * The techniques of these shaders (gameValues) as the scenery manifest's "techniques": a JSON object of gameValue ->
-	 * {"family": FamilyName, "look": eShaderLook bits, "alpha": "opacity"|"decal"|"ignored", "flags": eTechniqueFlag
-	 * bits}.
-	 */
-	std::string TechniquesJson(const std::vector<int32_t>& shaders);
 
 	// Where a node is in the model's space: p' = rotation * p + translation (row-major, scale folded in)
 	struct NodeTransform {
