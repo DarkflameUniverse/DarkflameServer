@@ -410,9 +410,10 @@ serving), the worlds:
   `model.nif` in `ugc_file_checksums`), once the client has loaded (`PlayerLoaded`) and 3 seconds after, the world
   sends it the served NIF's checksum, `NotifyClientUGCModelReady`, and takes the model down and constructs it again for
   that client. `NotifyClientUGCModelReady` alone only flushes the client's cached NIF, HKX and LXFML and loads them
-  again as preloads (0x00ca6430): an object already drawn keeps its mesh. The object is constructed again 1.5 seconds
-  later, after the client's load thread has done the flush (constructed at once, the flush can land after the new
-  object loaded its mesh, which then disappears). The object constructed again loads the NIF,
+  again as preloads (0x00ca6430): an object already drawn keeps its mesh. The object is taken down 1.5 seconds
+  later, after the client's load thread has done the flush, and constructed again 1 second after that (the client
+  deletes objects later and drops the construction of an object it still has; in the same batch, most models
+  disappeared). The object constructed again loads the NIF,
   whose cached checksum is now the served one, which the client's own file doesn't match, so it downloads the served
   mesh; the HKX's is still its own, so it keeps the collision it built. The model shows as the client built it for
   those few seconds.

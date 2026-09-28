@@ -38,6 +38,9 @@ namespace {
 	// How long after NotifyClientUGCModelReady the model is constructed again: the client flushes the model's files on
 	// its load thread, and a model constructed before that is done loses the mesh it just loaded
 	constexpr auto RECONSTRUCT_DELAY = std::chrono::milliseconds(1500);
+	// How long after taking the model down it is constructed again: the client deletes objects later, and a
+	// construction of an object it still has is dropped (the model then disappears)
+	constexpr auto CONSTRUCT_AFTER_DESTRUCT = std::chrono::milliseconds(1000);
 
 	struct Waiting {
 		SystemAddress sysAddr;
@@ -67,6 +70,7 @@ namespace {
 		SystemAddress sysAddr;
 		LWOOBJID objectId{};
 		std::chrono::steady_clock::time_point due;
+		bool destructed{}; // taken down; constructed at `due`
 	};
 	std::vector<Reconstruct> g_Reconstructs;
 
@@ -274,13 +278,19 @@ namespace {
 		g_Reconstructs.push_back({ sysAddr, model.GetObjectID(), std::chrono::steady_clock::now() + RECONSTRUCT_DELAY });
 	}
 
-	// Constructs a model again for a client whose flush is done; false while it isn't due
-	bool ConstructAgain(const Reconstruct& pending, const std::chrono::steady_clock::time_point now) {
+	// Takes a model down for a client whose flush is done, then constructs it again a moment later (not in the same
+	// batch: the client would drop the construction of an object it hasn't deleted yet); false until it's done
+	bool ConstructAgain(Reconstruct& pending, const std::chrono::steady_clock::time_point now) {
 		if (now < pending.due) return false;
 		if (!Game::entityManager || !PlayerManager::GetPlayer(pending.sysAddr)) return true;
 		auto* const model = Game::entityManager->GetEntity(pending.objectId);
 		if (!model) return true;
-		Game::entityManager->DestructEntity(model, pending.sysAddr);
+		if (!pending.destructed) {
+			Game::entityManager->DestructEntity(model, pending.sysAddr);
+			pending.destructed = true;
+			pending.due = now + CONSTRUCT_AFTER_DESTRUCT;
+			return false;
+		}
 		Game::entityManager->ConstructEntity(model, pending.sysAddr);
 		return true;
 	}
@@ -312,7 +322,7 @@ namespace {
 void UgcManifest::Update() {
 	const auto now = std::chrono::steady_clock::now();
 	std::erase_if(g_Switches, [now](Switch& pending) { return now - pending.since > MAX_WAIT || SwitchToServedMesh(pending, now); });
-	std::erase_if(g_Reconstructs, [now](const Reconstruct& pending) { return ConstructAgain(pending, now); });
+	std::erase_if(g_Reconstructs, [now](Reconstruct& pending) { return ConstructAgain(pending, now); });
 
 	if (g_Waiting.empty() || now < g_NextRetry) return;
 	g_NextRetry = now + RETRY_INTERVAL;
