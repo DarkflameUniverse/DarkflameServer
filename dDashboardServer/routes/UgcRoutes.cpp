@@ -1,7 +1,9 @@
 #include "UgcRoutes.h"
 
 #include <algorithm>
+#include <chrono>
 #include <memory>
+#include <mutex>
 #include <set>
 
 #include "CDClientDatabase.h"
@@ -70,7 +72,7 @@ namespace {
 
 	// Web thread: the icon kinds: player models, and each car or rocket build type in the client's data
 	// (ModularBuildComponent), named after the object its Assembly LOT is
-	nlohmann::json IconKinds() {
+	nlohmann::json LoadIconKinds() {
 		nlohmann::json kinds = nlohmann::json::array({ { { "kind", UgcIconParams::ModelKind() }, { "label", "Player models" } } });
 		auto result = CDClientDatabase::ExecuteQuery("SELECT buildType, xml FROM ModularBuildComponent GROUP BY buildType ORDER BY buildType;");
 		while (!result.eof()) {
@@ -92,17 +94,24 @@ namespace {
 		return kinds;
 	}
 
-	// Web thread: a car or rocket's kind, from its first module's build type (ModuleComponent)
+	// Client data read once by Preload (main thread), only read after that
+	nlohmann::json g_IconKinds = nlohmann::json::array();
+	std::map<uint32_t, UgcAssemblies::ModuleInfo> g_Modules;
+
+	// The icon kinds: player models, then each car or rocket build type with its name
+	const nlohmann::json& IconKinds() { return g_IconKinds; }
+
+	// Every module in the client's data (ModuleComponent) with its build type and name
+	const std::map<uint32_t, UgcAssemblies::ModuleInfo>& Modules() { return g_Modules; }
+
+	// A car or rocket's kind, from its first module's build type
 	std::optional<std::string> ModularKind(std::string modules) {
 		std::replace(modules.begin(), modules.end(), '-', '+'); // a combination's key too
 		const auto lots = UgcModularKey::Lots(modules);
 		if (lots.empty()) return std::nullopt;
-		auto query = CDClientDatabase::CreatePreppedStmt("SELECT m.buildType FROM ComponentsRegistry cr JOIN ModuleComponent m ON m.id = cr.component_id "
-			"WHERE cr.id = ? AND cr.component_type = 28 LIMIT 1;");
-		query.bind(1, static_cast<int32_t>(lots.front()));
-		auto row = query.execQuery();
-		if (row.eof()) return std::nullopt;
-		return UgcIconParams::BuildKind(row.getIntField("buildType", 0));
+		const auto it = Modules().find(lots.front());
+		if (it == Modules().end() || it->second.buildType < 0) return std::nullopt;
+		return UgcIconParams::BuildKind(it->second.buildType);
 	}
 
 	// Web thread: each kind with something to edit its preset on: the newest made player model, the most used combination of each build type
@@ -132,12 +141,9 @@ namespace {
 		return kinds;
 	}
 
-	// Web thread: every module in the client's data (ModuleComponent) with its build type and name, read once
-	const std::map<uint32_t, UgcAssemblies::ModuleInfo>& Modules() {
-		static std::map<uint32_t, UgcAssemblies::ModuleInfo> modules;
-		static bool loaded = false;
-		if (loaded) return modules;
-		loaded = true;
+	// Main thread (Preload): every module in the client's data (ModuleComponent) with its build type and name
+	std::map<uint32_t, UgcAssemblies::ModuleInfo> LoadModules() {
+		std::map<uint32_t, UgcAssemblies::ModuleInfo> modules;
 		auto result = CDClientDatabase::ExecuteQuery("SELECT cr.id AS lot, m.buildType AS buildType, o.name AS name, o.displayName AS displayName FROM ComponentsRegistry cr "
 			"JOIN ModuleComponent m ON m.id = cr.component_id LEFT JOIN Objects o ON o.id = cr.id WHERE cr.component_type = 28;");
 		while (!result.eof()) {
@@ -194,6 +200,24 @@ namespace {
 			{ "detail", entry.detail }, { "bricks", entry.bricks }, { "triangles", entry.triangles }, { "processMs", entry.processMs }, { "processCpuMs", entry.processCpuMs }, { "processMemoryKb", entry.processMemoryKb }, { "modelName", entry.modelName } };
 	}
 
+	// Web thread: the cars and rockets grouped into assemblies (one per combination of modules), from every build.
+	// Grouping all builds is the slow part of the Cars and rockets list, so the result is kept for a short while and
+	// shared by the requests in that time (it follows new builds and makes within ASSEMBLY_CACHE_TIME).
+	constexpr auto ASSEMBLY_CACHE_TIME = std::chrono::seconds(15);
+	std::vector<IUgcLookup::UgcEntry> AllBuilds(const IUgcLookup::UgcSearch& search);
+	std::shared_ptr<const std::vector<UgcAssemblies::Assembly>> CachedAssemblies() {
+		static std::mutex mutex;
+		static std::shared_ptr<const std::vector<UgcAssemblies::Assembly>> cached;
+		static std::chrono::steady_clock::time_point at;
+		std::lock_guard lock(mutex);
+		const auto now = std::chrono::steady_clock::now();
+		if (!cached || now - at > ASSEMBLY_CACHE_TIME) {
+			cached = std::make_shared<const std::vector<UgcAssemblies::Assembly>>(UgcAssemblies::Group(AllBuilds({}), Modules()));
+			at = now;
+		}
+		return cached;
+	}
+
 	// Web thread: every car and rocket build (the assemblies are made from them)
 	std::vector<IUgcLookup::UgcEntry> AllBuilds(const IUgcLookup::UgcSearch& search = {}) {
 		IUgcLookup::UgcListQuery query;
@@ -233,6 +257,11 @@ namespace {
 }
 
 namespace UgcRoutes {
+	void Preload() {
+		g_Modules = LoadModules();
+		g_IconKinds = LoadIconKinds();
+	}
+
 	void RegisterRoutes() {
 		Route(eHTTPMethod::GET, "/ugc", Perm("properties_view"), "What the UGC server made of players' models",
 			[](HTTPReply& reply, const HTTPContext& context) { RenderPage(reply, context, "ugc.jinja2", "ugc"); });
@@ -294,7 +323,7 @@ namespace UgcRoutes {
 							if (parsed.search.number) filter.moduleLot = static_cast<uint32_t>(*parsed.search.number);
 						}
 					}
-					auto assemblies = UgcAssemblies::Group(AllBuilds(), modules);
+					auto assemblies = *CachedAssemblies();
 					std::erase_if(assemblies, [&](const auto& a) { return !UgcAssemblies::Matches(a, filter, modules); });
 					UgcAssemblies::Sort(assemblies, UgcAssemblies::ParseSort(sortText).value_or(UgcAssemblies::eSort::NEWEST), modules, reverse);
 					total = assemblies.size();

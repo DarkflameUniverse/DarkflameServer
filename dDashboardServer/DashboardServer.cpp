@@ -443,6 +443,7 @@ int main(int argc, char** argv) {
 	{
 		const auto start = std::chrono::steady_clock::now();
 		ClientAssets::Preload();
+		UgcRoutes::Preload();
 		PreloadZoneData();
 		Scenery::Preload();
 		WorldView::Preload();
