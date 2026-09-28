@@ -127,16 +127,14 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 	auto* lxfml = doc.FirstChildElement("LXFML");
 	if (!lxfml) return toReturn;
 
-	// Every bone of every part (flexible parts have several), and every rigid of every rigid system: both are
-	// positioned in the same space, so both move
+	// Every bone of every part (flexible parts have several). Only bones move, as the live server did: the rigids keep
+	// the transformations the client sent.
 	std::vector<tinyxml2::XMLElement*> bones;
 	if (auto* bricks = lxfml->FirstChildElement("Bricks")) {
 		for (auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
 			ForEachGrandchild(brick, "Part", "Bone", [&bones](tinyxml2::XMLElement* bone) { bones.push_back(bone); });
 		}
 	}
-	std::vector<tinyxml2::XMLElement*> rigids;
-	ForEachGrandchild(lxfml->FirstChildElement("RigidSystems"), "RigidSystem", "Rigid", [&rigids](tinyxml2::XMLElement* rigid) { rigids.push_back(rigid); });
 
 	// The new origin: the middle of the bricks' origins, on the floor of the lowest one. x and z are snapped to the
 	// LEGO grid (0.8) so the model's position stays on it; the bricks don't move in the world either way, only the
@@ -166,17 +164,15 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 	rootX = GeneralUtils::RountToNearestEven(rootX, 0.8);
 	rootZ = GeneralUtils::RountToNearestEven(rootZ, 0.8);
 
-	// Everything moves by the same amount: onto the new origin, then by the given position
+	// Every bone moves by the same amount: onto the new origin, then by the given position
 	const double offsetX = curPosition.x - rootX, offsetY = curPosition.y - rootY, offsetZ = curPosition.z - rootZ;
-	for (auto* elements : { &bones, &rigids }) {
-		for (auto* element : *elements) {
-			auto transformation = ParseTransformation(element->Attribute("transformation"));
-			if (!transformation) continue;
-			transformation->x += offsetX;
-			transformation->y += offsetY;
-			transformation->z += offsetZ;
-			element->SetAttribute("transformation", FormatTransformation(*transformation).c_str());
-		}
+	for (auto* bone : bones) {
+		auto transformation = ParseTransformation(bone->Attribute("transformation"));
+		if (!transformation) continue;
+		transformation->x += offsetX;
+		transformation->y += offsetY;
+		transformation->z += offsetZ;
+		bone->SetAttribute("transformation", FormatTransformation(*transformation).c_str());
 	}
 
 	tinyxml2::XMLPrinter printer;

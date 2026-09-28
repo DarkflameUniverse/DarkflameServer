@@ -29,7 +29,7 @@ std::string SerializeElement(tinyxml2::XMLElement* elem) {
 	return std::string(p.CStr());
 };
 
-// A rigid system by what it holds (its rigids' refIDs and boneRefs): splitting moves its transformations
+// A rigid system by what it holds (its rigids' refIDs and boneRefs)
 std::string RigidSystemKey(tinyxml2::XMLElement* rigidSystem) {
 	std::string key;
 	for (auto* rigid = rigidSystem->FirstChildElement("Rigid"); rigid; rigid = rigid->NextSiblingElement("Rigid")) {
@@ -424,25 +424,6 @@ TEST(LxfmlTests, DeepCloneDepthProtection) {
 	}
 }
 
-TEST(LxfmlTests, ReadContentsListsBricksAndTheirBox) {
-	const std::string lxfml = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<LXFML versionMajor="5" versionMinor="0">
-<Bricks>
-<Brick refID="0" designID="3710"><Part refID="0" designID="3710" materials="21"><Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,-1.2,0,0.4"/></Part></Brick>
-<Brick refID="1" designID="3001;A"><Part refID="1" designID="3001" materials="1"><Bone refID="1" transformation="1,0,0,0,1,0,0,0,1,0.8,0.96,-0.4"/></Part></Brick>
-</Bricks>
-</LXFML>)";
-	const auto contents = Lxfml::ReadContents(lxfml);
-	EXPECT_EQ(contents.designIds, (std::vector<uint32_t>{ 3710, 3001 }));
-	EXPECT_EQ(contents.boxMin, NiPoint3(-1.2f, 0.0f, -0.4f));
-	EXPECT_EQ(contents.boxMax, NiPoint3(0.8f, 0.96f, 0.4f));
-
-	const auto nothing = Lxfml::ReadContents("");
-	EXPECT_TRUE(nothing.designIds.empty());
-	EXPECT_EQ(nothing.boxMin, NiPoint3Constant::ZERO);
-	EXPECT_TRUE(Lxfml::ReadContents("<LXFML><Bricks/></LXFML>").designIds.empty());
-}
-
 namespace {
 	const std::string PROBE_HEAD = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta><Bricks>)";
 
@@ -482,15 +463,15 @@ namespace {
 	}
 }
 
-TEST(LxfmlTests, SplitMovesRigidsWithTheirBones) {
+TEST(LxfmlTests, SplitMovesOnlyTheBones) {
 	const auto results = Lxfml::Split(TWO_MODELS);
 	ASSERT_EQ(results.size(), 2);
 	EXPECT_EQ(results[0].center, NiPoint3(100.8f, 433.92f, -62.4f));
 	const auto bones = Transformations(results[0].lxfml, "Bone");
 	EXPECT_EQ(bones.at("0"), "1,0,0,0,1,0,0,0,1,-0.4,0,-0.4");
 	EXPECT_EQ(bones.at("1"), "1,0,0,0,1,0,0,0,1,-0.4,0.96,-0.4");
-	// The rigid system sits where its first bone does, as the game writes it
-	EXPECT_EQ(Transformations(results[0].lxfml, "Rigid").at("0"), bones.at("0"));
+	// The rigid keeps the transformation the client sent, as the live server left it
+	EXPECT_EQ(Transformations(results[0].lxfml, "Rigid").at("0"), "1,0,0,0,1,0,0,0,1,100.4,433.92,-62.8");
 }
 
 TEST(LxfmlTests, SplitMovesEveryBoneOfAFlexiblePart) {
@@ -503,8 +484,8 @@ TEST(LxfmlTests, SplitMovesEveryBoneOfAFlexiblePart) {
 	EXPECT_EQ(bones.at("3"), "1,0,0,0,1,0,0,0,1,13.6,0,0.4");
 	EXPECT_EQ(bones.at("4"), "1,0,0,0,-1,0,0,0,-1,-13.2,0,0.4");
 	const auto rigids = Transformations(results[1].lxfml, "Rigid");
-	EXPECT_EQ(rigids.at("1"), bones.at("2"));
-	EXPECT_EQ(rigids.at("2"), bones.at("4"));
+	EXPECT_EQ(rigids.at("1"), "1,0,0,0,1,0,0,0,1,1234.4,433.92,-10.8");
+	EXPECT_EQ(rigids.at("2"), "1,0,0,0,-1,0,0,0,-1,1210,433.92,-10.8");
 }
 
 TEST(LxfmlTests, SplitKeepsTheFileOrder) {
@@ -532,5 +513,24 @@ TEST(LxfmlTests, NormalizeAtAPositionKeepsTheBricksInPlace) {
 	const auto result = Lxfml::NormalizePosition(lxfml, NiPoint3(10.5f, 5.0f, -3.0f));
 	EXPECT_EQ(result.center, NiPoint3(10.4f, 5.0f, -3.2f));
 	EXPECT_EQ(Transformations(result.lxfml, "Bone").at("0"), "1,0,0,0,1,0,0,0,1,0.1,0,0.2");
-	EXPECT_EQ(Transformations(result.lxfml, "Rigid").at("0"), "1,0,0,0,1,0,0,0,1,0.1,0,0.2");
+	EXPECT_EQ(Transformations(result.lxfml, "Rigid").at("0"), "1,0,0,0,1,0,0,0,1,0,0,0");
+}
+
+TEST(LxfmlTests, ReadContentsListsBricksAndTheirBox) {
+	const std::string lxfml = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<LXFML versionMajor="5" versionMinor="0">
+<Bricks>
+<Brick refID="0" designID="3710"><Part refID="0" designID="3710" materials="21"><Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,-1.2,0,0.4"/></Part></Brick>
+<Brick refID="1" designID="3001;A"><Part refID="1" designID="3001" materials="1"><Bone refID="1" transformation="1,0,0,0,1,0,0,0,1,0.8,0.96,-0.4"/></Part></Brick>
+</Bricks>
+</LXFML>)";
+	const auto contents = Lxfml::ReadContents(lxfml);
+	EXPECT_EQ(contents.designIds, (std::vector<uint32_t>{ 3710, 3001 }));
+	EXPECT_EQ(contents.boxMin, NiPoint3(-1.2f, 0.0f, -0.4f));
+	EXPECT_EQ(contents.boxMax, NiPoint3(0.8f, 0.96f, 0.4f));
+
+	const auto nothing = Lxfml::ReadContents("");
+	EXPECT_TRUE(nothing.designIds.empty());
+	EXPECT_EQ(nothing.boxMin, NiPoint3Constant::ZERO);
+	EXPECT_TRUE(Lxfml::ReadContents("<LXFML><Bricks/></LXFML>").designIds.empty());
 }
