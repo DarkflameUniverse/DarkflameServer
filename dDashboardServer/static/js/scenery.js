@@ -184,8 +184,12 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 	}
 
 	// The zone's lights as the game's shaders get them (manifest.lighting), shared by every lit material
-	const gameLights = { gameLightColor: { value: new THREE.Vector3(1, 1, 1) }, gameAmbient: { value: new THREE.Vector3() }, gameLightVec: { value: new THREE.Vector3(0, 1, 0) } };
+	const gameLights = {
+		gameLightColor: { value: new THREE.Vector3(1, 1, 1) }, gameAmbient: { value: new THREE.Vector3() }, gameLightVec: { value: new THREE.Vector3(0, 1, 0) },
+		gameLightOn: { value: 0 } // 1 once a manifest brought the zone's lighting (the terrain uses its own light until then)
+	};
 	function setGameLights(lighting) {
+		gameLights.gameLightOn.value = lighting ? 1 : 0;
 		if (!lighting) return;
 		gameLights.gameLightColor.value.fromArray(lighting.light);
 		gameLights.gameAmbient.value.fromArray(lighting.ambient);
@@ -569,6 +573,8 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		sceneState() {
 			return { mode: sceneMode, scene: focusScene, shown: shownScenes, scenes: manifest && manifest.scenes ? manifest.scenes : [] };
 		},
+		/** The zone's lights as uniforms (updated in place, blends too), for the terrain to be lit like the scenery. */
+		gameLights() { return gameLights; },
 		/** How many objects the loaded manifest places. */
 		count() { return manifest ? manifest.objects.asset.length : 0; },
 		stats() {

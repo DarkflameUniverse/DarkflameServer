@@ -417,7 +417,7 @@ function showTerrain() {
 		}
 		return textures.get(id);
 	};
-	const built = buildTerrainChunks(terrainData, loadTexture, sun.position.clone().normalize());
+	const built = buildTerrainChunks(terrainData, loadTexture, sun.position.clone().normalize(), scenery.gameLights());
 	// A flat plane far from every object is a placeholder the game never shows: leave it out, and don't put heat
 	// cells or players on it
 	const terrainBox = new THREE.Box3().setFromObject(built.group);

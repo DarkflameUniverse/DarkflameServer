@@ -304,6 +304,9 @@ void main() {
 const TERRAIN_FRAGMENT = `
 uniform sampler2D texture1, texture2, texture3, texture4, blendMap, colorMap, sceneMap, scenePalette;
 uniform vec3 lightDirection;
+// The zone's lights as the game's TerrainDiffuse.fx gets them (scenery.js gameLights), when gameLightOn
+uniform vec3 gameLightColor, gameAmbient, gameLightVec;
+uniform float gameLightOn;
 uniform int look;
 uniform float sceneSize;
 varying vec2 vUv;
@@ -327,6 +330,12 @@ void main() {
 	color = mix(color, texture2D(texture2, tiled), blend.r);
 	color = mix(color, texture2D(texture3, tiled), blend.g);
 	color = mix(color, texture2D(texture4, tiled), blend.b);
+	if (gameLightOn > 0.5) {
+		// TiledDetailDiffuse_4_PS: textures * diffuse map * 2 * (sun * N.L + ambient, clamped as a vertex color), * blend alpha
+		vec3 lit = clamp(gameLightColor * max(0.0, dot(normalize(vNormal), gameLightVec)) + gameAmbient, 0.0, 1.0);
+		gl_FragColor = vec4(min(color.rgb * tint * lit * blend.a, 1.0), 1.0);
+		return;
+	}
 	gl_FragColor = vec4(min(color.rgb * tint, 1.0) * light * blend.a, 1.0);
 }`;
 
@@ -345,7 +354,7 @@ function sceneTexture(base64, size) {
  * Returns the group, a function giving the ground height at (x, z), and setLook(look, layers): switch to one of
  * TERRAIN_LOOKS; the scene look needs the zone's terrain layers (/api/world3d/:zone/terrain_layers).
  */
-export function buildTerrainChunks(data, loadTexture, lightDirection) {
+export function buildTerrainChunks(data, loadTexture, lightDirection, gameLights = null) {
 	const group = new THREE.Group();
 	const grids = [];
 	const materials = [];
@@ -380,7 +389,12 @@ export function buildTerrainChunks(data, loadTexture, lightDirection) {
 				texture3: { value: loadTexture(chunk.textures[2]) }, texture4: { value: loadTexture(chunk.textures[3]) },
 				blendMap: { value: bgraTexture(chunk.blend, chunk.blendSize) }, colorMap: { value: bgraTexture(chunk.color, chunk.colorSize) },
 				sceneMap: { value: null }, scenePalette: { value: null }, sceneSize: { value: 1 },
-				lightDirection: { value: lightDirection }, look: { value: 0 }
+				lightDirection: { value: lightDirection }, look: { value: 0 },
+				// Shared with the scenery, so the terrain follows its lighting (and its blends between scenes)
+				gameLightColor: gameLights ? gameLights.gameLightColor : { value: new THREE.Vector3() },
+				gameAmbient: gameLights ? gameLights.gameAmbient : { value: new THREE.Vector3() },
+				gameLightVec: gameLights ? gameLights.gameLightVec : { value: new THREE.Vector3(0, 1, 0) },
+				gameLightOn: gameLights ? gameLights.gameLightOn : { value: 0 }
 			}
 		});
 		const mesh = new THREE.Mesh(geometry, material);
@@ -772,7 +786,7 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 		 * The zone's whole terrain as the game draws it (null removes it): data from /api/properties/:id/terrain_chunks,
 		 * textures from textureUrl(id).
 		 */
-		setTerrainChunks(data, textureUrl) {
+		setTerrainChunks(data, textureUrl, gameLights = null) {
 			removeTerrain();
 			if (data && data.chunks && data.chunks.length) {
 				const loader = new THREE.TextureLoader();
@@ -788,7 +802,7 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 					return textures.get(id);
 				};
 				const sunDirection = sun.position.clone().sub(sun.target.position).normalize();
-				const built = buildTerrainChunks(data, loadTexture, sunDirection);
+				const built = buildTerrainChunks(data, loadTexture, sunDirection, gameLights);
 				terrain = built.group;
 				groundHeight = built.heightAt;
 				scene.add(terrain);

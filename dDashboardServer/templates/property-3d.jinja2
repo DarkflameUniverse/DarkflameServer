@@ -357,7 +357,7 @@ async function showTerrain() {
 		chunkTerrain = t && t.chunks ? t : null;
 	}
 	if (chunkTerrain) {
-		viewer.setTerrainChunks(chunkTerrain, (id) => assetApi + '/terrain_textures/' + id);
+		viewer.setTerrainChunks(chunkTerrain, (id) => assetApi + '/terrain_textures/' + id, scenery.gameLights());
 		return;
 	}
 	if (terrainData === undefined) {
