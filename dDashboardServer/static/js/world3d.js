@@ -133,8 +133,6 @@ function showScenery() {
 	const on = $('sceneryToggle').checked, flairsOn = on && $('flairToggle').checked;
 	scenery.setEnabled(on);
 	scenery.setSky($('skyToggle').checked);
-	scenery.setFog($('fogToggle').checked);
-	flairs.setFog($('fogToggle').checked);
 	scenery.setShowHidden($('hiddenToggle').checked);
 	flairs.setEnabled(flairsOn);
 	applyMarkers();
@@ -723,7 +721,6 @@ $('sceneryToggle').addEventListener('change', showScenery);
 $('sceneryDetail').addEventListener('change', showScenery);
 $('flairToggle').addEventListener('change', showScenery);
 $('skyToggle').addEventListener('change', showScenery);
-$('fogToggle').addEventListener('change', showScenery);
 $('hiddenToggle').addEventListener('change', showScenery);
 $('modelMarkersToggle').addEventListener('change', applyMarkers);
 $('pathsToggle').addEventListener('change', showPaths);

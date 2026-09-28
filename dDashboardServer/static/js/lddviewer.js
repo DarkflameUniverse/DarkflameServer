@@ -305,11 +305,9 @@ export const TERRAIN_LOOKS = { textured: 0, colorMap: 1, blendMap: 2, scenes: 3 
 const TERRAIN_VERTEX = `
 varying vec2 vUv;
 varying vec3 vNormal;
-varying vec3 vWorld;
 void main() {
 	vUv = uv;
 	vNormal = normal;
-	vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
 	gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
 const TERRAIN_FRAGMENT = `
@@ -318,10 +316,6 @@ uniform vec3 lightDirection;
 // The zone's lights as the game's TerrainDiffuse.fx gets them (scenery.js gameLights), when gameLightOn
 uniform vec3 gameLightColor, gameAmbient, gameLightVec;
 uniform float gameLightOn;
-// ... and its fog, when the view turns it on (game-shaders.js)
-uniform vec3 gameFogColor;
-uniform float gameFogNear, gameFogFar, gameFogOn;
-varying vec3 vWorld;
 uniform int look;
 uniform float sceneSize;
 varying vec2 vUv;
@@ -348,9 +342,7 @@ void main() {
 	if (gameLightOn > 0.5) {
 		// TiledDetailDiffuse_4_PS: textures * diffuse map * 2 * (sun * N.L + ambient, clamped as a vertex color), * blend alpha
 		vec3 lit = clamp(gameLightColor * max(0.0, dot(normalize(vNormal), gameLightVec)) + gameAmbient, 0.0, 1.0);
-		vec3 terrain = min(color.rgb * tint * lit * blend.a, 1.0);
-		float fog = gameFogOn * clamp((length(vWorld - cameraPosition) - gameFogNear) / max(1.0, gameFogFar - gameFogNear), 0.0, 1.0);
-		gl_FragColor = vec4(mix(terrain, gameFogColor, fog), 1.0);
+		gl_FragColor = vec4(min(color.rgb * tint * lit * blend.a, 1.0), 1.0);
 		return;
 	}
 	gl_FragColor = vec4(min(color.rgb * tint, 1.0) * light * blend.a, 1.0);
@@ -411,10 +403,7 @@ export function buildTerrainChunks(data, loadTexture, lightDirection, gameLights
 				gameLightColor: gameLights ? gameLights.gameLightColor : { value: new THREE.Vector3() },
 				gameAmbient: gameLights ? gameLights.gameAmbient : { value: new THREE.Vector3() },
 				gameLightVec: gameLights ? gameLights.gameLightVec : { value: new THREE.Vector3(0, 1, 0) },
-				gameLightOn: gameLights ? gameLights.gameLightOn : { value: 0 },
-				gameFogColor: gameLights ? gameLights.gameFogColor : { value: new THREE.Vector3(1, 1, 1) },
-				gameFogNear: gameLights ? gameLights.gameFogNear : { value: 0 }, gameFogFar: gameLights ? gameLights.gameFogFar : { value: 0 },
-				gameFogOn: gameLights ? gameLights.gameFogOn : { value: 0 }
+				gameLightOn: gameLights ? gameLights.gameLightOn : { value: 0 }
 			}
 		});
 		const mesh = new THREE.Mesh(geometry, material);
