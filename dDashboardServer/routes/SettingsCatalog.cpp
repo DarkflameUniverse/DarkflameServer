@@ -450,6 +450,14 @@ namespace {
 		c.Add(Float(UGC, "lod_cull", "Drawn up to", "", "10000", 0, 1000000));
 		c.Add(Text(UGC, "shader_opaque", "Opaque shader", "S<shader>_Opaque_Model.", "01"));
 		c.Add(Bool(UGC, "combine_transparent", "One shape for all transparent bricks", "Off: each transparent brick is its own shape, so the client can sort them.", false));
+		// Metal and glow groups (UgcJobs::Shaders): off keeps the files exactly as before, as live made them
+		const std::string notLive = " Not how live looked: live's models were all LEGO plastic (S01). Models already made keep their look until they are made again (Make everything again, or Reprocess).";
+		c.Add(Int(UGC, "shader_metal", "Metal shader", "mapShaders id for metal colors (Materials.xml shinySteel and LU Toolbox's metallic ones), in a group S<id>_Metal_Model: 88 is Polished Metal. 0: off, they stay LEGO plastic." + notLive, "0", 0, 9999));
+		c.Add(Int(UGC, "shader_brushed", "Brushed steel shader", "mapShaders id for brushed steel colors (Materials.xml brushedSteel and matteSteel; the client's has none) in S<id>_Brushed_Model: 89 is Brushed Steel. 0: off." + notLive, "0", 0, 9999));
+		c.Add(Int(UGC, "shader_glow", "Glow shader", "mapShaders id for opaque glowing colors (LU Toolbox's glow colors) in S<id>_Glow_Model, with their plain color and an emissive material: 46 is LEGO-Emissive. Transparent glow stays with the transparent bricks. 0: off." + notLive, "0", 0, 9999));
+		c.Add(Float(UGC, "glow_emissive", "Glow emissive strength", "With the glow shader on: the glow shapes' material emissive, how far the emissive shader goes from lit to the plain color (1: fully).", "1", 0, 10));
+		c.Add(Text(UGC, "metal_material_types", "Metal material types", "Materials.xml MaterialTypes drawn as metal, comma separated (none: only LU Toolbox's metallic colors).", "shinySteel"));
+		c.Add(Text(UGC, "brushed_material_types", "Brushed steel material types", "Materials.xml MaterialTypes drawn as brushed steel, comma separated (none: no such colors).", "brushedSteel,matteSteel"));
 		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "", true));
 		c.Add(Bool(UGC, "hsr_ground_plane", "Nothing seen from below", "Also removes what can only be seen from under the model.", false));
 		c.Add(Unit(Int(UGC, "optimize_resolution", "Detail of the visibility renders", "", "1024", 64, 4096), "pixels"));

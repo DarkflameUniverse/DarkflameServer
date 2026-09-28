@@ -22,12 +22,31 @@ namespace UgcJobs {
 	 * How models are made. The defaults are LU Toolbox's (Process Model, Bake Lighting and the icon renderer), see the
 	 * parity table in docs/UgcServer.md.
 	 */
+	/**
+	 * The shaders of the metal and glow colors (UgcModel::eLook): the mapShaders id each look's own NiLODNode names
+	 * (S88_Metal_Model, ...), 0 for none (the colors stay in S01_Opaque_Model, as on live). Not what live did: live's
+	 * models are all S01 (docs/UgcServer.md, "Metal and glow").
+	 */
+	struct Shaders {
+		uint32_t metal{};        // shader_metal: 88 Polished Metal
+		uint32_t brushed{};      // shader_brushed: 89 Brushed Steel
+		uint32_t glow{};         // shader_glow: 46 LEGO-Emissive
+		float glowEmissive{ 1.0f }; // glow_emissive: the glow shapes' NiMaterialProperty emissive (how much the vertex color shows unlit)
+
+		// The mapShaders id of a look's group, 0 for the plastic S01_Opaque_Model
+		uint32_t TagOf(UgcModel::eLook look) const;
+		// Multishader tag -> look, for reading the looks back out of a .nif (the icon): these settings' ids, and the
+		// client's Polished Metal (88), Brushed Steel (89) and LEGO-Emissive (46) for .nifs made with other settings
+		std::map<int32_t, UgcModel::eLook> TagLooks() const;
+	};
+
 	struct Settings {
 		UgcModel::BuildOptions build;          // palette, color variation, transparent opacity
 		std::vector<uint32_t> lods{ 0, 2 };    // brickprimitives levels made (LU Toolbox imports LOD 0 and 2; the client has no 3)
 		UgcModel::LodDistances lodDistances;
 		std::string shaderOpaque{ "01" };      // S<shader>_Opaque_...; transparent shapes are always S01
 		bool combineTransparent{ false };      // one shape for all transparent bricks, else one per brick (Combine Transparent)
+		Shaders shaders;                       // metal and glow groups (all off by default)
 		UgcRender::OptimizeOptions optimize;   // hidden surface removal
 		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
 		UgcRender::IconOptions icon;           // from the icon_* settings (UgcIconParams); presets and overrides go over it
@@ -56,9 +75,14 @@ namespace UgcJobs {
 	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed = 0,
 		const UgcIconParams::Values& iconValues = {});
 
-	// A model's icon files (icon.png, icon.dds download) drawn from its .nif (LOD 0); false (and `error`) when the .nif
-	// can't be read
-	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error);
+	// A model's icon files (icon.png, icon.dds download) drawn from its .nif (LOD 0), its metal and glow groups by
+	// `tagLooks` (Shaders::TagLooks); false (and `error`) when the .nif can't be read
+	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error,
+		const std::map<int32_t, UgcModel::eLook>& tagLooks = {});
+
+	// The name of a group of shapes (its NiLODNode and shapes): S01_Opaque_Model, S01_Alpha_Model, S88_Metal_Model,
+	// S89_Brushed_Model, S46_Glow_Model (the ids from the settings), at most 60 characters as LU Toolbox cuts them
+	std::string ShapeName(const Settings& settings, UgcModel::eLook look, bool transparent);
 
 	// How many bricks (parts) an LXFML has, counted cheaply (for the memory estimate before a job starts)
 	size_t CountParts(std::string_view lxfml);

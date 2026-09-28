@@ -40,12 +40,16 @@ namespace UgcFormats {
 		std::string name; // S01_Opaque_Model: the NiLODNode and its shapes
 		bool transparent{};
 		std::vector<NifLod> lods;
+		// NiMaterialProperty's emissive color (grey) of the group's shapes; 0 the shared white material with none.
+		// The client's emissive shader (S46) lerps from the lit color to the vertex color by vertex alpha times its red.
+		float emissive{};
 	};
 
 	/**
 	 * The layout LU Toolbox exports (setup_lod_data) and the game's own brick models (res/BrickModels/ndmade) have:
 	 * the root node, an NiLODNode per group with NiRangeLODData holding each level's distances, a node per level and
-	 * the level's shapes under it, named like the group. Properties as WriteNif.
+	 * the level's shapes under it, named like the group. Properties as WriteNif; a group with
+	 * an emissive color gets a material of its own.
 	 */
 	std::string WriteLodNif(const std::string& rootName, const std::vector<NifLodGroup>& groups);
 

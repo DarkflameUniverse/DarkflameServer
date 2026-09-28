@@ -1,6 +1,9 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -32,11 +35,19 @@ namespace UgcModel {
 	// Whether an LXFML reads but has no bricks at all (nothing to make; not a failure)
 	bool HasNoBricks(std::string_view lxfml);
 
+	/**
+	 * How an opaque color looks in the game when the UGC server's shader settings give it a shader of its own
+	 * (docs/UgcServer.md, "Metal and glow"): the LEGO plastic of S01_Opaque_Model, polished metal, brushed steel or glow.
+	 */
+	enum class eLook : uint8_t { PLASTIC = 0, METAL, BRUSHED, GLOW };
+	constexpr size_t LOOK_COUNT = 4;
+
 	struct Mesh {
 		std::vector<glm::vec3> positions;
 		std::vector<glm::vec3> normals;
 		std::vector<glm::vec4> colors; // sRGB, 0..1, alpha is opacity
 		std::vector<glm::vec3> glow;   // linear glow color per vertex (LU Toolbox's "Glow" layer); empty when nothing glows
+		std::vector<eLook> looks;      // per vertex; empty when everything is plastic
 		std::vector<uint32_t> indices;
 
 		size_t TriangleCount() const { return indices.size() / 3; }
@@ -62,6 +73,19 @@ namespace UgcModel {
 		BRICKDB,    // the brick database's Materials.xml
 	};
 
+	/**
+	 * Which colors have which look, from the client's data: a Materials.xml MaterialType (brickdb.zip) and LU Toolbox's
+	 * metallic and glow colors (UgcPalette). Glow wins over metal; transparent bricks are always plastic.
+	 */
+	struct LookRules {
+		std::map<std::string, eLook> materialTypes{ { "shinySteel", eLook::METAL }, { "brushedSteel", eLook::BRUSHED }, { "matteSteel", eLook::BRUSHED } };
+		bool paletteMetallic{ true }; // LU Toolbox's Metallic colors (UgcPalette::IsMetallic) are METAL
+		bool paletteGlow{ true };     // its glow colors (UgcPalette::Glow) are GLOW
+	};
+
+	// The look of an opaque material `id` whose Materials.xml entry is `material`
+	eLook LookOf(uint32_t id, const UgcBricks::Material& material, const LookRules& rules);
+
 	struct BuildOptions {
 		ePalette palette{ ePalette::LU_TOOLBOX };
 		float colorVariation{ 5.0f };      // percent, 0: none (LU Toolbox: Apply Color Variation, 5%)
@@ -69,6 +93,7 @@ namespace UgcModel {
 		float transparentOpacity{ 58.82f }; // percent, transparent bricks' vertex alpha (LU Toolbox palette only)
 		bool icon{};                       // the icon renderer's color corrections
 		uint32_t lod{};                    // brickprimitives level
+		LookRules looks;                   // which colors are metal and glow (Mesh::looks)
 	};
 
 	/**
@@ -100,8 +125,15 @@ namespace UgcModel {
 	 */
 	std::vector<Mesh> Divide(const Mesh& mesh, size_t maxVertices = 65535, size_t maxTriangles = 65535);
 
-	// A client .nif's meshes as one model (vertex colors times material color; transparent when blended)
-	Model FromNif(const NifFile::Model& nif);
+	// A client .nif's meshes as one model (vertex colors times material color; transparent when blended). `tagLooks`:
+	// the look of the opaque shapes whose multishader tag (NifFile::ShaderTag, a mapShaders id) is listed
+	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks = {});
+
+	/**
+	 * The mesh's triangles by look ([eLook] -> its triangles; a triangle's look is its first vertex's), the looks not
+	 * in `separate` staying with PLASTIC. nullopt when nothing is separated: the mesh stays as it is.
+	 */
+	std::optional<std::array<Mesh, LOOK_COUNT>> SplitLooks(const Mesh& mesh, const std::array<bool, LOOK_COUNT>& separate);
 
 	// The mesh cut into pieces at these index offsets (each piece's triangles start at one), e.g. one per brick
 	std::vector<Mesh> SplitAt(const Mesh& mesh, const std::vector<size_t>& starts);

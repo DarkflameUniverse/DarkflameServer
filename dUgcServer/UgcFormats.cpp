@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <map>
 
 #include "MD5.h"
 #include "ZCompression.h"
@@ -204,15 +205,7 @@ namespace {
 	class SharedProperties {
 	public:
 		explicit SharedProperties(NifBuilder& nif) : m_Nif(nif) {
-			Writer material;
-			WriteNet(material, -1);
-			for (int i = 0; i < 3; i++) material.Float(1.0f); // ambient
-			for (int i = 0; i < 3; i++) material.Float(1.0f); // diffuse
-			for (int i = 0; i < 3; i++) material.Float(0.0f); // specular
-			for (int i = 0; i < 3; i++) material.Float(0.0f); // emissive
-			material.Float(4.0f);  // glossiness, as the game's brick models
-			material.Float(1.0f);  // alpha
-			m_Material = nif.Add("NiMaterialProperty", std::move(material.Data()));
+			m_Material = nif.Add("NiMaterialProperty", Material(0.0f));
 
 			Writer vertexColor;
 			WriteNet(vertexColor, -1);
@@ -220,8 +213,22 @@ namespace {
 			m_VertexColor = nif.Add("NiVertexColorProperty", std::move(vertexColor.Data()));
 		}
 
-		// An NiTriShape of `mesh` (-1 when it is empty or too big for the format)
-		int32_t Shape(const std::string& name, const UgcModel::Mesh* mesh, bool transparent) {
+		// A white NiMaterialProperty with this emissive color (grey)
+		static std::string Material(float emissive) {
+			Writer material;
+			WriteNet(material, -1);
+			for (int i = 0; i < 3; i++) material.Float(1.0f); // ambient
+			for (int i = 0; i < 3; i++) material.Float(1.0f); // diffuse
+			for (int i = 0; i < 3; i++) material.Float(0.0f); // specular
+			for (int i = 0; i < 3; i++) material.Float(emissive);
+			material.Float(4.0f);  // glossiness, as the game's brick models
+			material.Float(1.0f);  // alpha
+			return std::move(material.Data());
+		}
+
+		// An NiTriShape of `mesh` (-1 when it is empty or too big for the format); `emissive`: its material's
+		// emissive color, 0 for the shared material without one
+		int32_t Shape(const std::string& name, const UgcModel::Mesh* mesh, bool transparent, float emissive = 0.0f) {
 			if (!mesh || mesh->Empty() || mesh->positions.size() > 65535 || mesh->TriangleCount() > 65535) return -1;
 			// The properties every shape of the game's own brick models has, in their order: material, alpha (blending
 			// by the vertex alpha: 1 on opaque bricks), specular (off) and vertex colors
@@ -237,7 +244,13 @@ namespace {
 				m_Specular = m_Nif.Add("NiSpecularProperty", std::move(specular.Data()));
 			}
 			(void)transparent;
-			std::vector<int32_t> properties{ m_Material, m_Alpha, m_Specular, m_VertexColor };
+			int32_t material = m_Material;
+			if (emissive > 0.0f) {
+				auto [it, added] = m_Emissive.try_emplace(emissive, -1);
+				if (added) it->second = m_Nif.Add("NiMaterialProperty", Material(emissive));
+				material = it->second;
+			}
+			std::vector<int32_t> properties{ material, m_Alpha, m_Specular, m_VertexColor };
 			const auto shapeBlock = m_Nif.Reserve("NiTriShape");
 			const auto dataBlock = m_Nif.Add("NiTriShapeData", TriShapeData(*mesh));
 			Writer tri;
@@ -257,6 +270,7 @@ namespace {
 		int32_t m_VertexColor{ -1 };
 		int32_t m_Alpha{ -1 };
 		int32_t m_Specular{ -1 };
+		std::map<float, int32_t> m_Emissive; // emissive color -> its material
 	};
 }
 
@@ -290,7 +304,7 @@ namespace UgcFormats {
 				const auto level = nif.Reserve("NiNode");
 				std::vector<int32_t> shapes;
 				for (const auto* piece : lod.pieces) {
-					const auto block = properties.Shape(group.name, piece, group.transparent);
+					const auto block = properties.Shape(group.name, piece, group.transparent, group.emissive);
 					if (block >= 0) shapes.push_back(block);
 				}
 				nif.Fill(level, NodeData(nif.String(lod.name), shapes));

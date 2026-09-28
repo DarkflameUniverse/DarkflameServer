@@ -26,19 +26,20 @@ namespace UgcBricks {
 		std::vector<uint32_t> indices;
 	};
 
-	// An LDD material: sRGB color and opacity, 0-255
+	// An LDD material: sRGB color and opacity, 0-255, and its MaterialType (shinyPlastic, shinySteel, glitter, ...)
 	struct Material {
 		uint8_t r{ 160 };
 		uint8_t g{ 160 };
 		uint8_t b{ 160 };
 		uint8_t a{ 255 };
+		std::string type;
 		bool Transparent() const { return a < 255; }
 	};
 
 	// A .g file ("10GB" magic, counts, positions, normals, texture coordinates for decorated parts, indices)
 	std::optional<Geometry> ParseGeometry(std::string_view data);
 
-	// Materials.xml: MatID -> color
+	// Materials.xml: MatID -> color and type
 	std::map<uint32_t, Material> ParseMaterials(std::string_view xml);
 
 	// A file from a zip archive (stored or deflated), matched without regard to case; nullopt when it isn't there

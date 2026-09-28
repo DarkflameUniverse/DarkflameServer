@@ -483,8 +483,28 @@ namespace UgcRender {
 			// The sun's highlight (Blinn-Phong), white, on top of the color
 			const float highlight = direct > 0.0f ? options.specular * options.sunStrength / 3.14159265f * sun * std::pow(std::max(0.0f, glm::dot(normal, halfway)), std::max(options.shininess, 1.0f)) : 0.0f;
 			const float exposure = std::max(options.exposure, 0.0f);
-			return glm::vec4((ToLinear(base.r) * lighting + highlight) * exposure, (ToLinear(base.g) * lighting + highlight) * exposure,
-				(ToLinear(base.b) * lighting + highlight) * exposure, std::clamp(base.a, 0.0f, 1.0f));
+			const auto look = isOpaque && mesh.looks.size() == mesh.positions.size() ? mesh.looks[i0] : UgcModel::eLook::PLASTIC;
+			if (look == UgcModel::eLook::PLASTIC) {
+				return glm::vec4((ToLinear(base.r) * lighting + highlight) * exposure, (ToLinear(base.g) * lighting + highlight) * exposure,
+					(ToLinear(base.b) * lighting + highlight) * exposure, std::clamp(base.a, 0.0f, 1.0f));
+			}
+			const glm::vec3 linear(ToLinear(base.r), ToLinear(base.g), ToLinear(base.b));
+			glm::vec3 shaded = (linear * lighting + glm::vec3(highlight)) * exposure;
+			if (look == UgcModel::eLook::METAL || look == UgcModel::eLook::BRUSHED) {
+				// A reflection of a bright sky over a dark ground, tinted by the color (polished: sharp; brushed: blurred
+				// and duller), over a dimmed diffuse light, and the sun's highlight in the metal's color
+				const bool polished = look == UgcModel::eLook::METAL;
+				const auto reflected = glm::reflect(-toCamera, normal);
+				const float up = polished ? glm::smoothstep(-0.15f, 0.5f, reflected.y) : 0.5f + 0.5f * reflected.y;
+				const float environment = glm::mix(0.06f, polished ? 1.1f : 0.75f, up);
+				const float spot = direct > 0.0f ? options.sunStrength / 3.14159265f * sun *
+					std::pow(std::max(0.0f, glm::dot(normal, halfway)), polished ? 180.0f : 30.0f) * (polished ? 4.0f : 1.2f) : 0.0f;
+				shaded = linear * (lighting * 0.35f + environment + spot) * exposure;
+			} else if (look == UgcModel::eLook::GLOW) {
+				// LEGO-Emissive: lerp(lit, vertex color, vertex alpha * the material's emissive red)
+				shaded = glm::mix(shaded, linear, std::clamp(options.glowEmissive, 0.0f, 1.0f));
+			}
+			return glm::vec4(shaded, std::clamp(base.a, 0.0f, 1.0f));
 		};
 
 		// Opaque first, with the depth buffer

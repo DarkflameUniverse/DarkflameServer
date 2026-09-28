@@ -88,6 +88,24 @@ namespace {
 		settings.lodDistances.cull = Setting<float>("lod_cull", 10000.0f);
 		if (!Game::config->GetValue("shader_opaque").empty()) settings.shaderOpaque = Game::config->GetValue("shader_opaque");
 		settings.combineTransparent = Setting<int32_t>("combine_transparent", 0) != 0;
+		// Metal and glow colors in NiLODNodes of their own, drawn with those shaders (off by default: not how live looked)
+		settings.shaders.metal = std::min(Setting<uint32_t>("shader_metal", 0), 9999u);
+		settings.shaders.brushed = std::min(Setting<uint32_t>("shader_brushed", 0), 9999u);
+		settings.shaders.glow = std::min(Setting<uint32_t>("shader_glow", 0), 9999u);
+		settings.shaders.glowEmissive = std::clamp(Setting<float>("glow_emissive", 1.0f), 0.0f, 10.0f);
+		settings.icon.glowEmissive = settings.shaders.glowEmissive;
+		// Which Materials.xml MaterialTypes are metal and brushed steel
+		for (const auto& [key, look] : { std::pair{ "metal_material_types", UgcModel::eLook::METAL }, std::pair{ "brushed_material_types", UgcModel::eLook::BRUSHED } }) {
+			const auto value = Game::config->GetValue(key);
+			if (value.empty()) continue;
+			std::erase_if(settings.build.looks.materialTypes, [look](const auto& entry) { return entry.second == look; });
+			std::stringstream stream(value);
+			std::string type;
+			while (std::getline(stream, type, ',')) {
+				std::erase_if(type, [](unsigned char c) { return std::isspace(c); });
+				if (!type.empty() && type != "none") settings.build.looks.materialTypes[type] = look;
+			}
+		}
 		settings.optimize.removeHidden = Setting<int32_t>("remove_hidden_faces", 1) != 0;
 		settings.optimize.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
 		settings.optimize.resolution = Setting<int32_t>("optimize_resolution", 1024);

@@ -102,9 +102,11 @@ TEST(UgcBricks, ParsesGeometryAndRejectsBadData) {
 }
 
 TEST(UgcBricks, ParsesMaterials) {
-	const auto materials = UgcBricks::ParseMaterials(R"(<Materials><Material MatID="21" Red="222" Green="0" Blue="13" Alpha="255"/><Material MatID="40" Red="238" Green="238" Blue="238" Alpha="150"/></Materials>)");
+	const auto materials = UgcBricks::ParseMaterials(R"(<Materials><Material MatID="21" Red="222" Green="0" Blue="13" Alpha="255"/><Material MatID="40" Red="238" Green="238" Blue="238" Alpha="150" MaterialType="shinySteel"/></Materials>)");
 	ASSERT_EQ(materials.size(), 2u);
 	EXPECT_EQ(materials.at(21).r, 222);
+	EXPECT_EQ(materials.at(21).type, "");
+	EXPECT_EQ(materials.at(40).type, "shinySteel");
 	EXPECT_FALSE(materials.at(21).Transparent());
 	EXPECT_TRUE(materials.at(40).Transparent());
 }
@@ -1056,4 +1058,211 @@ TEST(UgcIconPose, MatchesTheEditorsFixture) {
 			EXPECT_NEAR(point.y, c["iconPoints"][v][1].get<float>(), 1e-4f) << v;
 		}
 	}
+}
+
+namespace {
+	// Plastic (21), LU Toolbox metallic (150), glow (329, and 294 which LU Toolbox's palette has opaque) and
+	// transparent (40)
+	const char* LOOKS_LXFML = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<LXFML versionMajor="5" versionMinor="0"><Bricks>
+<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+<Brick><Part designID="3001" materials="150"><Bone transformation="1,0,0,0,1,0,0,0,1,3,0,0"/></Part></Brick>
+<Brick><Part designID="3001" materials="329"><Bone transformation="1,0,0,0,1,0,0,0,1,6,0,0"/></Part></Brick>
+<Brick><Part designID="3001" materials="294"><Bone transformation="1,0,0,0,1,0,0,0,1,9,0,0"/></Part></Brick>
+<Brick><Part designID="3001" materials="40"><Bone transformation="1,0,0,0,1,0,0,0,1,12,0,0"/></Part></Brick>
+</Bricks></LXFML>)";
+
+	UgcJobs::Settings SmallSettings() {
+		UgcJobs::Settings settings;
+		settings.optimize.resolution = 128;
+		settings.ao.samples = 8;
+		settings.icon.size = 32;
+		settings.icon.supersample = 1;
+		settings.icon.ao.samples = 4;
+		return settings;
+	}
+}
+
+TEST(UgcShaders, OffIsByteIdenticalToBefore) {
+	// With the shader settings off (the default) the files are exactly what the server made before they existed, so
+	// nothing is made again needlessly. The hashes are of the files made before the settings were added.
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	const auto outcome = UgcJobs::ProcessModel(LOOKS_LXFML, library, SmallSettings(), 7);
+	ASSERT_TRUE(outcome.ok) << outcome.error;
+	const auto nif = *ZCompression::Gunzip(outcome.files.at("model.nif.gz"));
+	std::string error;
+	const auto read = NifFile::Parse(nif, 0, error);
+	ASSERT_TRUE(read) << error;
+	EXPECT_EQ(read->nodes.size(), 4u); // the root, S01_Opaque_Model, S01_Alpha_Model and LOD_0
+	for (const auto& mesh : read->meshes) EXPECT_EQ(mesh.material.shaderTag, 1);
+	// The floating point results (color variation, occlusion) are the same on one platform and compiler; the hashes
+	// were taken with GCC on x86-64 Linux
+#if defined(__linux__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+	EXPECT_EQ(UgcFormats::Md5Hex(nif), "b0fcb707d36ccdb62e951bf50593e633");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz"))), "db55bd2c8567a862b2c96942aa5a2617");
+	EXPECT_EQ(UgcFormats::Md5Hex(outcome.files.at("icon.png")), "032ff7df236a636a4c609071d9b46181");
+#endif
+}
+
+TEST(UgcShaders, OnlyTheShaderIdsSwitchItOn) {
+	// The other shader settings change nothing while the groups are off
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	auto settings = SmallSettings();
+	const auto before = UgcJobs::ProcessModel(LOOKS_LXFML, library, settings, 7);
+	settings.shaders.glowEmissive = 0.5f;
+	settings.icon.glowEmissive = 0.5f;
+	settings.build.looks.materialTypes.clear();
+	const auto after = UgcJobs::ProcessModel(LOOKS_LXFML, library, settings, 7);
+	ASSERT_TRUE(before.ok && after.ok);
+	for (const auto* name : { "model.nif.checksum", "model.noao.nif.gz", "icon.png" }) EXPECT_EQ(before.files.at(name), after.files.at(name)) << name;
+}
+
+TEST(UgcShaders, NamesTheGroups) {
+	UgcJobs::Settings settings;
+	settings.shaders.metal = 88;
+	settings.shaders.brushed = 89;
+	settings.shaders.glow = 7;
+	EXPECT_EQ(UgcJobs::ShapeName(settings, UgcModel::eLook::PLASTIC, false), "S01_Opaque_Model");
+	EXPECT_EQ(UgcJobs::ShapeName(settings, UgcModel::eLook::PLASTIC, true), "S01_Alpha_Model");
+	EXPECT_EQ(UgcJobs::ShapeName(settings, UgcModel::eLook::METAL, false), "S88_Metal_Model");
+	EXPECT_EQ(UgcJobs::ShapeName(settings, UgcModel::eLook::BRUSHED, false), "S89_Brushed_Model");
+	EXPECT_EQ(UgcJobs::ShapeName(settings, UgcModel::eLook::GLOW, false), "S07_Glow_Model");
+	// The client reads the id back as the tag
+	EXPECT_EQ(NifFile::ShaderTag(UgcJobs::ShapeName(settings, UgcModel::eLook::GLOW, false)), 7);
+	EXPECT_EQ(NifFile::ShaderTag(UgcJobs::ShapeName(settings, UgcModel::eLook::METAL, false)), 88);
+	// The client's own ids read back to their looks whatever the settings, the settings' own too
+	const auto looks = settings.shaders.TagLooks();
+	EXPECT_EQ(looks.at(88), UgcModel::eLook::METAL);
+	EXPECT_EQ(looks.at(46), UgcModel::eLook::GLOW);
+	EXPECT_EQ(looks.at(7), UgcModel::eLook::GLOW);
+	EXPECT_FALSE(looks.contains(1));
+}
+
+TEST(UgcShaders, LooksComeFromTheColorData) {
+	const UgcModel::LookRules rules;
+	const UgcBricks::Material plastic{ 200, 0, 0, 255, "shinyPlastic" }, steel{ 150, 150, 150, 255, "shinySteel" }, brushed{ 150, 150, 150, 255, "brushedSteel" };
+	EXPECT_EQ(UgcModel::LookOf(21, plastic, rules), UgcModel::eLook::PLASTIC);
+	EXPECT_EQ(UgcModel::LookOf(5000, steel, rules), UgcModel::eLook::METAL);       // a Materials.xml shinySteel
+	EXPECT_EQ(UgcModel::LookOf(5000, brushed, rules), UgcModel::eLook::BRUSHED);
+	EXPECT_EQ(UgcModel::LookOf(183, plastic, rules), UgcModel::eLook::METAL);      // LU Toolbox's metallic, shinyPlastic in Materials.xml
+	EXPECT_EQ(UgcModel::LookOf(329, plastic, rules), UgcModel::eLook::GLOW);       // LU Toolbox's glow colors
+	EXPECT_EQ(UgcModel::LookOf(50, plastic, rules), UgcModel::eLook::GLOW);
+	EXPECT_EQ(UgcModel::LookOf(9016, plastic, rules), UgcModel::eLook::GLOW);
+	UgcModel::LookRules none;
+	none.materialTypes.clear();
+	none.paletteMetallic = false;
+	EXPECT_EQ(UgcModel::LookOf(5000, steel, none), UgcModel::eLook::PLASTIC);
+	EXPECT_EQ(UgcModel::LookOf(150, steel, none), UgcModel::eLook::PLASTIC);
+
+	// Built: opaque vertices get their color's look, transparent bricks none (their glow stays with them)
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	library.SetMaterials({ { 5000, brushed } });
+	std::string error;
+	const auto model = UgcModel::Build(UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3001" materials="150"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="5000"><Bone transformation="1,0,0,0,1,0,0,0,1,3,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,6,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="40"><Bone transformation="1,0,0,0,1,0,0,0,1,9,0,0"/></Part></Brick>
+		</Bricks></LXFML>)", error), library);
+	ASSERT_EQ(model.opaque.looks.size(), 24u);
+	EXPECT_EQ(model.opaque.looks[0], UgcModel::eLook::METAL);
+	EXPECT_EQ(model.opaque.looks[8], UgcModel::eLook::BRUSHED);
+	EXPECT_EQ(model.opaque.looks[16], UgcModel::eLook::PLASTIC);
+	EXPECT_TRUE(model.transparent.looks.empty());
+
+	// Split by the looks that have groups; the rest stay plastic; nothing to split: the mesh as it is
+	const auto split = UgcModel::SplitLooks(model.opaque, { false, true, false, false });
+	ASSERT_TRUE(split);
+	EXPECT_EQ((*split)[0].TriangleCount(), 24u);
+	EXPECT_EQ((*split)[1].TriangleCount(), 12u);
+	EXPECT_TRUE((*split)[2].Empty());
+	EXPECT_FALSE(UgcModel::SplitLooks(model.opaque, { false, false, false, true }));
+}
+
+TEST(UgcShaders, WritesAGroupPerLookWithEveryLevel) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	auto settings = SmallSettings();
+	settings.build.colorVariation = 0.0f;
+	settings.shaders.metal = 88;
+	settings.shaders.brushed = 89;
+	settings.shaders.glow = 46;
+	settings.shaders.glowEmissive = 0.75f;
+	const auto outcome = UgcJobs::ProcessModel(LOOKS_LXFML, library, settings, 7);
+	ASSERT_TRUE(outcome.ok) << outcome.error;
+	const auto nif = *ZCompression::Gunzip(outcome.files.at("model.nif.gz"));
+	std::string error;
+	for (const uint32_t level : { 0u, 1u }) {
+		const auto read = NifFile::Parse(nif, level, error);
+		ASSERT_TRUE(read) << error;
+		// No brushed steel colors: no group for them. Every group has both levels.
+		for (const auto* name : { "S01_Opaque_Model", "S88_Metal_Model", "S46_Glow_Model", "S01_Alpha_Model" }) EXPECT_TRUE(read->nodes.contains(name)) << name;
+		EXPECT_FALSE(read->nodes.contains("S89_Brushed_Model"));
+		EXPECT_TRUE(read->nodes.contains(level == 0 ? "LOD_0" : "LOD_2"));
+		std::map<int32_t, size_t> triangles;
+		for (const auto& mesh : read->meshes) triangles[mesh.material.shaderTag] += mesh.indices.size() / 3;
+		EXPECT_EQ(triangles[1], 24u); // the plastic brick and the transparent one
+		EXPECT_EQ(triangles[88], 12u);
+		EXPECT_EQ(triangles[46], 24u); // 329 and 294
+	}
+	const auto read = NifFile::Parse(nif, 0, error);
+	const auto noao = NifFile::Parse(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz")), 0, error);
+	ASSERT_TRUE(read && noao);
+	size_t glowShapes = 0;
+	for (const auto& mesh : read->meshes) {
+		if (mesh.material.shaderTag == 46) {
+			glowShapes++;
+			// The emissive shader's material, the plain color (as before the lighting bake), opaque
+			for (const auto value : mesh.material.emissive) EXPECT_FLOAT_EQ(value, 0.75f);
+			const auto plain = std::find_if(noao->meshes.begin(), noao->meshes.end(), [&](const auto& other) { return other.material.shaderTag == 46 && other.positions == mesh.positions; });
+			ASSERT_NE(plain, noao->meshes.end());
+			EXPECT_EQ(mesh.colors, plain->colors);
+			for (size_t i = 3; i < mesh.colors.size(); i += 4) EXPECT_EQ(mesh.colors[i], 255);
+		} else {
+			for (const auto value : mesh.material.emissive) EXPECT_EQ(value, 0.0f);
+		}
+	}
+	EXPECT_EQ(glowShapes, 1u);
+	EXPECT_NE(outcome.stats.find("\"S88_Metal_Model\":12"), std::string::npos) << outcome.stats;
+}
+
+TEST(UgcShaders, IconsDrawGlowUnlitAndMetalShiny) {
+	// One quad facing the camera, lit from behind: plastic is dark, glow its full color, metal shows a reflection
+	UgcModel::Model model;
+	model.opaque.positions = { { -1, -1, 0 }, { 1, -1, 0 }, { -1, 1, 0 }, { 1, 1, 0 } };
+	model.opaque.normals.assign(4, { 0, 0, 1 });
+	model.opaque.colors.assign(4, { 0.8f, 0.4f, 0.2f, 1.0f });
+	model.opaque.indices = { 0, 1, 2, 1, 3, 2 };
+	UgcRender::IconOptions options;
+	options.size = 16;
+	options.supersample = 1;
+	options.yawDegrees = 0.0f;
+	options.pitchDegrees = 0.0f;
+	options.sunYawDegrees = 180.0f;
+	options.sunPitchDegrees = 0.0f;
+	options.shadows = 0.0f;
+	const auto centre = [&](UgcModel::eLook look) {
+		auto copy = model;
+		if (look != UgcModel::eLook::PLASTIC) copy.opaque.looks.assign(4, look);
+		const auto image = UgcRender::RenderIcon(copy, options);
+		const size_t at = (8 * 16 + 8) * 4;
+		return glm::ivec3(image.rgba[at], image.rgba[at + 1], image.rgba[at + 2]);
+	};
+	const auto plastic = centre(UgcModel::eLook::PLASTIC), glow = centre(UgcModel::eLook::GLOW), metal = centre(UgcModel::eLook::METAL);
+	EXPECT_NEAR(glow.r, 204, 2);
+	EXPECT_NEAR(glow.g, 102, 2);
+	EXPECT_NEAR(glow.b, 51, 2);
+	EXPECT_LT(plastic.r, glow.r);
+	EXPECT_NE(metal, plastic);
+	EXPECT_GE(metal.r, metal.g); // tinted by its color
+	options.glowEmissive = 0.0f;
+	EXPECT_EQ(centre(UgcModel::eLook::GLOW), plastic);
+
+	// Read back from a .nif by the groups' tags
+	const UgcModel::Mesh mesh = model.opaque;
+	const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", { { "S46_Glow_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 1.0f } });
+	std::string error;
+	const auto read = NifFile::Parse(nif, 0, error);
+	ASSERT_TRUE(read) << error;
+	EXPECT_EQ(UgcModel::FromNif(*read, UgcJobs::Shaders{}.TagLooks()).opaque.looks, std::vector<UgcModel::eLook>(4, UgcModel::eLook::GLOW));
+	EXPECT_TRUE(UgcModel::FromNif(*read).opaque.looks.empty());
 }

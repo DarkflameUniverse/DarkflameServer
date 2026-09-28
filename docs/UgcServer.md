@@ -192,7 +192,7 @@ defaults. The table below goes through it step by step.
 | Remove Hidden Faces: Cycles bakes with an overexposed world (VC pre-pass 32 samples, tris to quads, 5 pixels between vertices, 8 samples, threshold 0.01), autoremove, transparent bricks hidden | Same result by other means: depth renders from 42 directions (`optimize_resolution`), transparent bricks hidden and untouched; the pre-pass, quads and samples are details of Blender's baking |
 | Use Ground Plane off | Same (`hsr_ground_plane=0`) |
 | Split objects over 65536 vertices (divide_mesh, along the longest side, linked parts together) | Same, also keeping each shape under 65535 triangles (the format's limit) |
-| Setup LOD data: SceneNode, NiLODNode per shape name, LOD nodes, near/far by the levels there are, `S01_Opaque_`/`S01_Alpha_` names cut at 60 | Same (`lod_distance_0..3`, `lod_cull`, `shader_opaque`); the glow, metal and superemissive shader settings aren't used by LU Toolbox either |
+| Setup LOD data: SceneNode, NiLODNode per shape name, LOD nodes, near/far by the levels there are, `S01_Opaque_`/`S01_Alpha_` names cut at 60 | Same (`lod_distance_0..3`, `lod_cull`, `shader_opaque`); LU Toolbox's glow, metal and superemissive shader settings are unused by it too; the UGC server's own metal and glow groups are opt in (see below) |
 | Bake Lighting, AO Only: 64 AO samples, distance 5, transparent skipped, glow strength 3 x 2, smooth vertex colors | Same (`ao_samples`, `ao_distance`, `glow_strength`); smoothing averages a vertex's corners, and the occlusion is per vertex already |
 | NifTools export for LU: 20.3.0.9, user version 0 | Same |
 | Physics (`.hkx`) | Intentionally not done: `.hkx` requests answer 404, so the client makes its own |
@@ -201,6 +201,57 @@ defaults. The table below goes through it step by step.
 | Icon: principled materials (roughness 0.16), hashed transparency, Cycles | Approximated: world light, camera fill, sun with soft shadow-mapped shadows and a highlight, exposure and contrast, matched to the game's own icons' brightness; no bounced light; transparent bricks sorted and blended |
 | Icon scene BrickBuild / Car: 50 mm lens, camera 53.4 / 19.5 degrees, sun at 21 / 50.3, 128 px, framing 1.03, transparent film | Same framing (`icon_*`); the light is brighter, to match the game's icons |
 | Icon scene Rocket: 35 mm lens, other angles, two suns | Not built in; a preset for the rocket build type can be set in the icon editor |
+
+### Metal and glow (opt in, not how live looked)
+
+Live's models, LU Toolbox's exports and the client's own builder (`LUNifBuilder_BK`, which writes only `S01_Opaque`
+and `S01_Alpha`) all draw every brick with the LEGO shader, so metal colors look like grey plastic and glowing colors
+like bright plastic. The UGC server can instead give them the client's metal and emissive shaders. Everything is off
+by default, and off writes exactly the files it wrote before these settings existed (the same bytes, tested), so
+nothing is made again needlessly.
+
+How the client picks the shader (checked in the 1.10.64 client; Ghidra bookmarks under "UGCShaders"): player models
+(LOT 14, and 6662) have RenderComponent shader 100, mapShaders "Multishader" (gameValue 9999). For a downloaded model
+`LWOBaseRenderComponent::WrapMultishaderNodes` (0x00c0d370) wraps each `NiLODNode` (or bare `NiGeometry`) of the
+.nif, and `AddObjectToRenderPipe` (0x00cfbdb0) reads the wrapped node's name with `sscanf("S%d")` (else `"_S%d"`
+after the first `_S`): the number is a mapShaders id, and its gameValue is the shader. A gameValue outside 3..108
+falls back to 5 (LEGO) and logs "Multishaded node ... malformed name". There is one shader per `NiLODNode`, shared by
+all of its levels, so each look needs a group of its own.
+
+| Setting (`ugcconfig.ini`, dashboard: UGC models) | Default | What it writes |
+| --- | --- | --- |
+| `shader_metal` | 0 (off) | `S<id>_Metal_Model` for metal colors: 88 is Polished Metal (gameValue 98). The client loads `textures/metal/metal_reflection_polished.dds` itself and tints it by the vertex color (`Metallic.fx`, `Technique_Lighting_PolishedMetal_VertColor`). |
+| `shader_brushed` | 0 (off) | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The client's Materials.xml has no such colors, so this only does something with a Materials.xml that names them. |
+| `shader_glow` | 0 (off) | `S<id>_Glow_Model` for opaque glowing colors: 46 is LEGO-Emissive (gameValue 53), which draws `lerp(lit, vertex color, vertex alpha * material emissive red)`, opaque. |
+| `glow_emissive` | 1 | The glow shapes' `NiMaterialProperty` emissive (grey): how far the shader goes from lit to the plain color. |
+| `metal_material_types` | `shinySteel` | Materials.xml `MaterialType`s that are metal (empty: the default; `none`: none). |
+| `brushed_material_types` | `brushedSteel,matteSteel` | Materials.xml `MaterialType`s that are brushed steel. |
+
+Which color has which look is data, not a list in the code (`UgcModel::LookOf`): glow is LU Toolbox's glow table
+(`UgcPalette::Glow`: 50, 294, 329, 9000-9027), metal is LU Toolbox's metallic table (`UgcPalette::IsMetallic`) plus
+the Materials.xml types above (the clients checked have 8 or 14 `shinySteel` colors, and 1 or 3 `glitter` ones, which stay
+plastic, as does pearl: the client has no shader for them). Only opaque bricks get a look: a transparent glowing
+color (294 with the brick database palette, alpha 150) stays in `S01_Alpha_Model`.
+
+What is written with a group on: per LOD, the opaque bricks are split by look before being divided at 65535 vertices,
+and the .nif gets, in order, `S01_Opaque_Model`, `S88_Metal_Model`, `S89_Brushed_Model`, `S46_Glow_Model` and
+`S01_Alpha_Model`, each only when it has triangles, and each with every LOD level (an empty `LOD_<n>` node where it has
+none there), like the plastic groups. Metal shapes are like plastic ones (white material, no textures, the brick color
+as vertex color with the lighting baked in). Glow shapes get a material of their own with emissive `glow_emissive`,
+vertex alpha 1 (the shader's mask) and their plain color, not the baked one: the shader lights them itself, and the
+glow added by the bake would glow twice. `stats.json` lists each LOD's triangles per group. `model.noao.nif` has the
+same groups.
+
+Turning a setting on or off changes only models made afterwards: the ones made already keep their look until they are
+made again, with the UGC page's **Make everything again** (or Reprocess on one model); nothing is remade on its own.
+
+The icon renderer and the dashboard know the groups: the icon reads each shape's tag back (the settings' ids and the
+client's 88, 89 and 46) and draws glow at its plain color (by `glow_emissive`, unlit) and metal with a dimmed diffuse
+light, a sky over dark ground reflection tinted by its color and a sun highlight (sharp for polished, broad for
+brushed). This is an approximation of the game's environment maps. `NifFile::ShaderLookFor` gives 98 `REFLECTIVE`,
+99 `REFLECTIVE | BRUSHED` and 53 `EMISSIVE`; the UGC page's 3D view gets each mesh's look (`/api/ugc/mesh`, "look")
+and draws metal as reflective (metalness 1, the view's environment) and glow unlit, and the zone views draw
+LEGO-Emissive objects going to their vertex color by its alpha (metal there stays lit like the rest).
 
 Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:4715`):
 

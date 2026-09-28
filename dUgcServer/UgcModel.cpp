@@ -159,6 +159,11 @@ namespace UgcModel {
 			if (other.glow.empty()) glow.resize(positions.size(), glm::vec3(0.0f));
 			else glow.insert(glow.end(), other.glow.begin(), other.glow.end());
 		}
+		if (!looks.empty() || !other.looks.empty()) {
+			looks.resize(base, eLook::PLASTIC);
+			if (other.looks.empty()) looks.resize(positions.size(), eLook::PLASTIC);
+			else looks.insert(looks.end(), other.looks.begin(), other.looks.end());
+		}
 		indices.reserve(indices.size() + other.indices.size());
 		for (const auto index : other.indices) indices.push_back(base + index);
 	}
@@ -185,11 +190,39 @@ namespace UgcModel {
 		return any;
 	}
 
+	eLook LookOf(uint32_t id, const UgcBricks::Material& material, const LookRules& rules) {
+		if (rules.paletteGlow && UgcPalette::Glow(id)) return eLook::GLOW;
+		if (rules.paletteMetallic && UgcPalette::IsMetallic(id)) return eLook::METAL;
+		const auto type = rules.materialTypes.find(material.type);
+		return type != rules.materialTypes.end() ? type->second : eLook::PLASTIC;
+	}
+
+	std::optional<std::array<Mesh, LOOK_COUNT>> SplitLooks(const Mesh& mesh, const std::array<bool, LOOK_COUNT>& separate) {
+		if (mesh.looks.size() != mesh.positions.size()) return std::nullopt;
+		const auto lookOf = [&](size_t triangle) {
+			const auto look = mesh.looks[mesh.indices[triangle * 3]];
+			return separate[static_cast<size_t>(look)] ? look : eLook::PLASTIC;
+		};
+		bool any = false;
+		for (size_t t = 0; t < mesh.TriangleCount() && !any; t++) any = lookOf(t) != eLook::PLASTIC;
+		if (!any) return std::nullopt;
+		std::array<Mesh, LOOK_COUNT> out;
+		for (size_t look = 0; look < LOOK_COUNT; look++) {
+			std::vector<bool> keep(mesh.TriangleCount());
+			bool some = false;
+			for (size_t t = 0; t < keep.size(); t++) some = (keep[t] = static_cast<size_t>(lookOf(t)) == look) || some;
+			if (!some) continue;
+			out[look] = mesh;
+			KeepTriangles(out[look], keep);
+		}
+		return out;
+	}
+
 	Model Build(const std::vector<Part>& parts, UgcBricks::BrickLibrary& library, const BuildOptions& options) {
 		Model model;
 		std::set<uint32_t> missing;
 		const bool luToolbox = options.palette == ePalette::LU_TOOLBOX;
-		bool anyGlow = false;
+		bool anyGlow = false, anyLook = false;
 		for (uint32_t brick = 0; brick < parts.size(); brick++) {
 			const auto& part = parts[brick];
 			const auto design = library.GetDesign(part.designId, options.lod);
@@ -249,6 +282,8 @@ namespace UgcModel {
 				}
 				const glm::vec4 color(UgcPalette::LinearToSrgb(linear), alpha);
 				anyGlow = anyGlow || glow != glm::vec3(0.0f);
+				const auto look = transparent ? eLook::PLASTIC : LookOf(colorId, library.GetMaterial(colorId), options.looks);
+				anyLook = anyLook || look != eLook::PLASTIC;
 				const auto base = static_cast<uint32_t>(mesh.positions.size());
 				const size_t vertexCount = geometry.positions.size() / 3;
 				for (size_t v = 0; v < vertexCount; v++) {
@@ -260,13 +295,17 @@ namespace UgcModel {
 					mesh.positions.push_back(glm::vec3(part.transform * glm::vec4(position, 1.0f)));
 					mesh.normals.push_back(normal);
 					mesh.colors.push_back(color);
-					if (&mesh == &model.opaque) model.opaque.glow.push_back(glow);
+					if (&mesh == &model.opaque) {
+						model.opaque.glow.push_back(glow);
+						model.opaque.looks.push_back(look);
+					}
 				}
 				for (const auto i : geometry.indices) mesh.indices.push_back(base + i);
 			}
 		}
 		if (!anyGlow) model.opaque.glow.clear();
 		else model.opaque.glow.resize(model.opaque.positions.size(), glm::vec3(0.0f));
+		if (!anyLook) model.opaque.looks.clear();
 		model.missingDesigns.assign(missing.begin(), missing.end());
 		return model;
 	}
@@ -303,7 +342,7 @@ namespace UgcModel {
 		return ranges;
 	}
 
-	Model FromNif(const NifFile::Model& nif) {
+	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks) {
 		Model model;
 		for (const auto& source : nif.meshes) {
 			Mesh mesh;
@@ -334,6 +373,9 @@ namespace UgcModel {
 			// Blending only shows where something is see-through (the game's brick models blend every shape)
 			bool seeThrough = source.material.alphaBlend && source.material.alpha < 0.99f;
 			for (size_t v = 0; source.material.alphaBlend && !seeThrough && v < mesh.colors.size(); v++) seeThrough = mesh.colors[v].a < 0.99f;
+			if (const auto look = tagLooks.find(source.material.shaderTag); !seeThrough && look != tagLooks.end() && look->second != eLook::PLASTIC) {
+				mesh.looks.assign(mesh.positions.size(), look->second);
+			}
 			(seeThrough ? model.transparent : model.opaque).Append(mesh);
 		}
 		return model;
@@ -355,6 +397,7 @@ namespace UgcModel {
 					if (source < mesh.normals.size()) piece.normals.push_back(mesh.normals[source]);
 					if (source < mesh.colors.size()) piece.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) piece.glow.push_back(mesh.glow[source]);
+					if (source < mesh.looks.size()) piece.looks.push_back(mesh.looks[source]);
 				}
 				piece.indices.push_back(it->second);
 			}
@@ -376,6 +419,7 @@ namespace UgcModel {
 					if (source < mesh.normals.size()) kept.normals.push_back(mesh.normals[source]);
 					if (source < mesh.colors.size()) kept.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) kept.glow.push_back(mesh.glow[source]);
+					if (source < mesh.looks.size()) kept.looks.push_back(mesh.looks[source]);
 				}
 				kept.indices.push_back(remap[source]);
 			}
@@ -408,6 +452,7 @@ namespace UgcModel {
 					if (source < mesh.normals.size()) current.normals.push_back(mesh.normals[source]);
 					if (source < mesh.colors.size()) current.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) current.glow.push_back(mesh.glow[source]);
+					if (source < mesh.looks.size()) current.looks.push_back(mesh.looks[source]);
 				}
 				current.indices.push_back(it->second);
 			}
@@ -460,6 +505,7 @@ namespace UgcModel {
 					if (source < mesh.normals.size()) half.normals.push_back(mesh.normals[source]);
 					if (source < mesh.colors.size()) half.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) half.glow.push_back(mesh.glow[source]);
+					if (source < mesh.looks.size()) half.looks.push_back(mesh.looks[source]);
 				}
 				half.indices.push_back(remap[source]);
 			}
