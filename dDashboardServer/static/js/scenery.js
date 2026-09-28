@@ -51,6 +51,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 	let used = 0;                // bytes of geometry and textures on the GPU
 	let active = 0;
 	let generation = 0;          // bumped on clear, so late responses are dropped
+	let requests = new AbortController(); // aborted on clear: requests for what's no longer wanted stop
 	let lastUpdate = 0;
 	const focusPoint = new THREE.Vector3();
 
@@ -71,7 +72,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 	}
 
 	async function fetchBuffer(url) {
-		const response = await fetch(url, { credentials: 'same-origin' });
+		const response = await fetch(url, { credentials: 'same-origin', signal: requests.signal });
 		if (!response.ok) throw new Error(response.status + ' ' + url);
 		return response.arrayBuffer();
 	}
@@ -110,10 +111,11 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		// Textures stored inside a .nif are named by their block ("#12"), so only unique within their model
 		const key = lod + '/' + (path.startsWith('#') ? asset + path : path);
 		if (!textures.has(key)) {
-			const size = detail.texture;
+			const size = detail.texture, mine = generation;
 			textures.set(key, fetchBuffer(versioned(urls.texture(manifest.zone, asset, slot, lod))).then((buffer) => {
 				const texture = makeTexture(buffer, size);
-				if (texture) used += texture.userData.bytes;
+				// Cleared meanwhile: the texture was already let go of (clear disposes what it finds)
+				if (texture && mine === generation) used += texture.userData.bytes;
 				return texture;
 			}).catch(() => null));
 		}
@@ -281,7 +283,10 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		active++;
 		try {
 			const { parts, radius, center } = await buildParts(asset, detail.lod, false);
-			if (mine !== generation) { parts.forEach((p) => { p.geometry.dispose(); p.material.dispose(); }); return; }
+			if (mine !== generation) {
+				parts.forEach((p) => { p.geometry.dispose(); if (p.material.map) p.material.map.dispose(); p.material.dispose(); });
+				return;
+			}
 			const instances = byAsset.get(asset) || [];
 			const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), rotation = new THREE.Quaternion(), scale = new THREE.Vector3(), tint = new THREE.Color();
 			// Objects the game doesn't draw (volumes, triggers) get their own cells in a see-through colour, shown on request
@@ -394,6 +399,8 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 
 	function clear() {
 		generation++;
+		requests.abort();
+		requests = new AbortController();
 		for (const entry of assets.values()) {
 			for (const cell of entry.cells) {
 				root.remove(cell.group);
@@ -418,11 +425,21 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		/** Load a manifest (or reload it at another detail level: 0 high, 1 medium, 2 low). */
 		async load(url = urls.manifest, level = 2) {
 			clear();
+			const mine = generation;
 			detail = DETAIL[Math.max(0, Math.min(DETAIL.length - 1, level))];
 			if (!manifest || manifest.url !== url) {
-				const response = await fetch(url, { credentials: 'same-origin' });
-				if (!response.ok) { manifest = null; return false; }
-				manifest = await response.json();
+				manifest = null;
+				let loaded = null;
+				try {
+					const response = await fetch(url, { credentials: 'same-origin', signal: requests.signal });
+					if (response.ok) loaded = await response.json();
+				} catch (error) {
+					// Aborted by a newer load or clear, or the network failed
+				}
+				// Another load or a clear came first: this one's result isn't wanted any more
+				if (mine !== generation) return false;
+				if (!loaded) return false;
+				manifest = loaded;
 				manifest.url = url;
 				setGameLights(manifest.lighting);
 				byAsset = groupObjects(manifest.objects);
@@ -474,6 +491,12 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			let cells = 0, drawn = 0;
 			for (const entry of assets.values()) for (const cell of entry.cells) { cells++; if (cell.group.visible) drawn++; }
 			return { assets: assets.size, loaded: [...assets.values()].filter((e) => e.state === 'done').length, cells, drawn, megabytes: Math.round(used / 1048576) };
+		},
+		/** Let go of everything loaded and stop what's loading (switching zones); load() starts again. */
+		clear() {
+			clear();
+			manifest = null;
+			byAsset = new Map();
 		},
 		dispose() {
 			clear();

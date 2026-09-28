@@ -429,6 +429,17 @@ async function loadZone(zone) {
 	state.follow = null;
 	stopReplay();
 	clearHeat();
+	// The old zone goes at once: its models, flairs, terrain and markers, and whatever of them is still loading
+	scenery.clear();
+	flairs.clear();
+	sceneryShown = flairsShown = null;
+	terrainData = null;
+	state.scene = null;
+	showTerrain();
+	buildObjects();
+	disposeGroup(layers.paths);
+	state.pathLines = new Map();
+	buildSpawns();
 	if (canHeat) loadHeatProperties(zone);
 	setStatus('Loading ' + zoneName(zone) + '…');
 	const [sceneData, terrain] = await Promise.all([
