@@ -5,10 +5,12 @@
 #include <fstream>
 #include <map>
 #include <set>
+#include <sstream>
 #include <unordered_map>
 
 #include "OnceCache.h"
 #include "UgcBricks.h"
+#include "UgcRoutes.h"
 #include "RouteUtils.h"
 #include "CDClientDatabase.h"
 #include "Game.h"
@@ -454,22 +456,56 @@ namespace {
 void RegisterClientAssetRoutes() {
 	Route(eHTTPMethod::GET, "/api/bricks/materials.js", 0,
 		"The brick colours (MatID -> [r, g, b, a]) from Materials.xml in the client's res/brickdb.zip, as a script setting "
-		"window.LDD_MATERIALS for the 3D viewers. Read once; an empty table when the client's brick database can't be read",
+		"window.LDD_MATERIALS for the 3D viewers, and window.LDD_GLITTER: the colours the UGC server makes glitter with its settings "
+		"(shader_glitter on: glitter_material_types and glitter_colors) and the glitter's glitter_size and glitter_density. "
+		"The colours are read once; an empty table when the client's brick database can't be read",
 		[](HTTPReply& reply, const HTTPContext&) {
 			// Read on first use (thread-safe static init); the client only changes with a restart
-			static const std::string script = [] {
-				nlohmann::json colours = nlohmann::json::object();
+			struct Colours {
+				std::string script;
+				std::map<uint32_t, std::string> types; // MatID -> MaterialType
+			};
+			static const Colours colours = [] {
+				Colours out;
+				nlohmann::json table = nlohmann::json::object();
 				const auto zip = ClientAssets::ReadResFile("brickdb.zip");
 				const auto xml = zip ? UgcBricks::ReadZipEntry(*zip, "Materials.xml") : std::nullopt;
 				if (xml) {
-					for (const auto& [id, m] : UgcBricks::ParseMaterials(*xml)) colours[std::to_string(id)] = { m.r, m.g, m.b, m.a };
+					for (const auto& [id, m] : UgcBricks::ParseMaterials(*xml)) {
+						table[std::to_string(id)] = { m.r, m.g, m.b, m.a };
+						out.types[id] = m.type;
+					}
 				} else {
 					LOG("Couldn't read Materials.xml from the client's brickdb.zip; the 3D viewers' bricks will be grey");
 				}
-				return "window.LDD_MATERIALS = " + colours.dump() + ";\n";
+				out.script = "window.LDD_MATERIALS = " + table.dump() + ";\n";
+				return out;
 			}();
+			// The glitter colours as the UGC server picks them (UgcServer.cpp ReadSettings), from its current settings
+			const auto list = [](const std::string& name) {
+				std::set<std::string> items;
+				std::stringstream stream(UgcRoutes::Setting(name).value_or(""));
+				std::string item;
+				while (std::getline(stream, item, ',')) {
+					std::erase_if(item, [](unsigned char c) { return std::isspace(c); });
+					if (!item.empty() && item != "none") items.insert(item);
+				}
+				return items;
+			};
+			nlohmann::json glitter = nlohmann::json::array();
+			if (GeneralUtils::TryParse<uint32_t>(UgcRoutes::Setting("shader_glitter").value_or("")).value_or(0) != 0) {
+				const auto types = list("glitter_material_types");
+				std::set<uint32_t> ids;
+				for (const auto& [id, type] : colours.types) if (types.contains(type)) ids.insert(id);
+				for (const auto& id : list("glitter_colors")) if (const auto value = GeneralUtils::TryParse<uint32_t>(id)) ids.insert(*value);
+				for (const auto id : ids) glitter.push_back(id);
+			}
+			const nlohmann::json settings{ { "colors", glitter },
+				{ "tile", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_size").value_or("")).value_or(1.6f) },
+				{ "flecks", GeneralUtils::TryParse<uint32_t>(UgcRoutes::Setting("glitter_density").value_or("")).value_or(50) },
+				{ "speed", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_speed").value_or("")).value_or(1.0f) } };
 			reply.status = eHTTPStatusCode::OK;
-			reply.message = script;
+			reply.message = colours.script + "window.LDD_GLITTER = " + settings.dump() + ";\n";
 			reply.contentType = eContentType::TEXT_JAVASCRIPT;
 			reply.headers.push_back("Cache-Control: private, max-age=3600");
 		});

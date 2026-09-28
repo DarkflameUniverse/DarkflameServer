@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -12,6 +13,7 @@
 #include "NifFile.h"
 #include "UgcBricks.h"
 #include "UgcFormats.h"
+#include "UgcGlitter.h"
 #include "UgcModel.h"
 #include "UgcJobs.h"
 #include "IUgc.h"
@@ -1303,4 +1305,248 @@ TEST(UgcModel, BrightnessAndTransparentColors) {
 	EXPECT_TRUE(seeThrough.opaque.colors.empty());
 	ASSERT_FALSE(seeThrough.transparent.colors.empty());
 	EXPECT_NEAR(seeThrough.transparent.colors[0].a, 0.5882f, 1e-4f);
+}
+
+// The glitter texture: the same every time, tiling (flecks wrap around the edges), mipmapped down to 1x1
+TEST(UgcGlitter, TextureIsTheSameEveryTimeAndMipmapped) {
+	const auto alpha = UgcGlitter::FleckAlpha(50);
+	ASSERT_EQ(alpha.size(), static_cast<size_t>(UgcGlitter::TEXTURE_SIZE * UgcGlitter::TEXTURE_SIZE));
+	EXPECT_EQ(alpha, UgcGlitter::FleckAlpha(50));
+	const auto lit = std::count_if(alpha.begin(), alpha.end(), [](uint8_t a) { return a > 0; });
+	EXPECT_GT(lit, 50);
+	EXPECT_LT(lit, static_cast<long>(alpha.size() / 10)); // sparse
+	const auto none = UgcGlitter::FleckAlpha(0), dense = UgcGlitter::FleckAlpha(200);
+	EXPECT_EQ(std::count_if(none.begin(), none.end(), [](uint8_t a) { return a > 0; }), 0);
+	EXPECT_GT(std::count_if(dense.begin(), dense.end(), [](uint8_t a) { return a > 0; }), lit);
+	const auto mips = UgcGlitter::Mipmaps(alpha);
+	ASSERT_EQ(mips.size(), 8u); // 128 .. 1
+	EXPECT_EQ(mips.back().size(), 1u);
+	double mean = 0;
+	for (const auto a : alpha) mean += a;
+	EXPECT_NEAR(mips.back()[0], mean / alpha.size(), 2.0);
+
+	// UVs: the axis plane the normal faces most, in tiles; the same density on every side
+	EXPECT_EQ(UgcGlitter::Uv({ 1.6f, 3.2f, 0.8f }, { 0, 0, 1 }, 1.6f), glm::vec2(1.0f, 2.0f));
+	EXPECT_EQ(UgcGlitter::Uv({ 1.6f, 3.2f, 0.8f }, { 0, -1, 0 }, 1.6f), glm::vec2(1.0f, 0.5f));
+	EXPECT_EQ(UgcGlitter::Uv({ 1.6f, 3.2f, 0.8f }, { 1, 0.2f, 0 }, 1.6f), glm::vec2(0.5f, 2.0f));
+	// Sampling wraps
+	EXPECT_FLOAT_EQ(UgcGlitter::Sample(alpha, { 0.3f, 0.7f }), UgcGlitter::Sample(alpha, { 2.3f, -0.3f }));
+}
+
+namespace {
+	// A quad in the XY plane, 4 by 4 units, colored
+	UgcModel::Mesh Quad(const glm::vec4& color) {
+		UgcModel::Mesh mesh;
+		mesh.positions = { { -2, -2, 0 }, { 2, -2, 0 }, { -2, 2, 0 }, { 2, 2, 0 } };
+		mesh.normals.assign(4, { 0, 0, 1 });
+		mesh.colors.assign(4, color);
+		mesh.indices = { 0, 1, 2, 1, 3, 2 };
+		return mesh;
+	}
+}
+
+// A glitter group: UVs, the fleck texture stored in the file, and the two texture transform controllers the client
+// animates it with; read back as NifFile sees it
+TEST(UgcFormats, GlitterNifReadsBack) {
+	const auto mesh = Quad({ 0.2f, 0.4f, 0.8f, 0.6f });
+	const UgcGlitter::Params glitter{ 1.6f, 50, 2.0f };
+	const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", { { "S21_GlitterAlpha_Model", true, { { 0.0f, 100.0f, "LOD_0", { &mesh, &mesh } } }, 0.0f, &glitter } });
+	std::string error;
+	const auto read = NifFile::Parse(nif, 0, error);
+	ASSERT_TRUE(read) << error;
+	ASSERT_EQ(read->meshes.size(), 2u);
+	for (const auto& shape : read->meshes) {
+		EXPECT_EQ(shape.material.shaderTag, 21);
+		ASSERT_EQ(shape.uvs.size(), 8u);
+		for (size_t v = 0; v < 4; v++) {
+			const auto uv = UgcGlitter::Uv(mesh.positions[v], mesh.normals[v], 1.6f);
+			EXPECT_FLOAT_EQ(shape.uvs[v * 2], uv.x);
+			EXPECT_FLOAT_EQ(shape.uvs[v * 2 + 1], uv.y);
+		}
+		EXPECT_TRUE(shape.material.texture.empty());
+		ASSERT_GE(shape.material.embeddedTexture, 0);
+		EXPECT_FALSE(shape.material.clampU);
+		EXPECT_FALSE(shape.material.clampV);
+		EXPECT_TRUE(shape.material.alphaBlend);
+		// A tile in 7 s and 11 s at speed 1: twice as fast at 2
+		EXPECT_NEAR(shape.material.uvScroll[0], 2.0f / 7.0f, 1e-6f);
+		EXPECT_NEAR(shape.material.uvScroll[1], 2.0f / 11.0f, 1e-6f);
+		// Vertex colors and the white material as the other groups
+		EXPECT_EQ(shape.colors[3], 153);
+		EXPECT_EQ(shape.material.diffuse, (std::array<float, 3>{ 1.0f, 1.0f, 1.0f }));
+	}
+	// One texturing property and one texture for every glitter shape; every block is read
+	EXPECT_EQ(read->meshes[0].material.embeddedTexture, read->meshes[1].material.embeddedTexture);
+	EXPECT_TRUE(read->skipped.empty()) << read->skipped.begin()->first;
+	// The texture: 128 square, 32-bit, 8 mipmaps, white with the flecks in its alpha
+	const auto dds = NifFile::EmbeddedTexture(nif, read->meshes[0].material.embeddedTexture);
+	ASSERT_TRUE(dds);
+	uint32_t header[31];
+	std::memcpy(header, dds->data() + 4, sizeof(header));
+	EXPECT_EQ(header[2], 128u);
+	EXPECT_EQ(header[3], 128u);
+	EXPECT_EQ(header[6], 8u);
+	EXPECT_EQ(header[21], 32u);
+	const auto alpha = UgcGlitter::FleckAlpha(50);
+	for (size_t i = 0; i < alpha.size(); i++) {
+		ASSERT_EQ(static_cast<uint8_t>((*dds)[128 + i * 4]), 255);
+		ASSERT_EQ(static_cast<uint8_t>((*dds)[128 + i * 4 + 3]), alpha[i]) << i;
+	}
+	// The block types, as the client's own animated textures (res/mesh/env/env_ag_ocean-maelstrom.nif)
+	for (const auto* type : { "NiTexturingProperty", "NiTextureTransformController", "NiFloatInterpolator", "NiFloatData", "NiSourceTexture", "NiPersistentSrcTextureRendererData" }) {
+		EXPECT_NE(nif.find(type), std::string::npos) << type;
+	}
+
+	// Still (speed 0): the texture without controllers
+	const UgcGlitter::Params still{ 1.6f, 50, 0.0f };
+	const auto stillNif = UgcFormats::WriteLodNif("SceneNode_Model", { { "S21_Glitter_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, &still } });
+	const auto stillRead = NifFile::Parse(stillNif, 0, error);
+	ASSERT_TRUE(stillRead) << error;
+	EXPECT_EQ(stillRead->meshes[0].material.uvScroll, (std::array<float, 2>{}));
+	EXPECT_GE(stillRead->meshes[0].material.embeddedTexture, 0);
+	EXPECT_EQ(stillNif.find("NiTextureTransformController"), std::string::npos);
+
+	// The dashboard's encoding carries the motion
+	const auto encoded = NifFile::Encode(*read, { "glitter", "glitter" });
+	uint32_t length = 0;
+	std::memcpy(&length, encoded.data(), 4);
+	const auto header2 = nlohmann::json::parse(encoded.substr(4, length));
+	EXPECT_NEAR(header2["meshes"][0]["uvScroll"][0].get<float>(), 2.0f / 7.0f, 1e-6f);
+	EXPECT_TRUE(header2["meshes"][0]["uv"].get<bool>());
+}
+
+// Glitter colors (a Materials.xml glitter type or glitter_colors) get groups of their own, opaque and transparent,
+// with every level; off (shader_glitter 0) they stay plastic and nothing changes
+TEST(UgcShaders, GlitterGroups) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	library.SetMaterials({ { 5001, { 67, 84, 147, 255, "glitter" } }, { 5002, { 240, 143, 28, 150, "glitter" } }, { 21, { 200, 0, 0, 255, "shinyPlastic" } },
+		{ 40, { 238, 238, 238, 150, "shinyPlastic" } } });
+	const std::string lxfml = R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3001" materials="5001"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="5002"><Bone transformation="1,0,0,0,1,0,0,0,1,3,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="5002"><Bone transformation="1,0,0,0,1,0,0,0,1,6,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,9,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="40"><Bone transformation="1,0,0,0,1,0,0,0,1,12,0,0"/></Part></Brick>
+		</Bricks></LXFML>)";
+	auto settings = SmallSettings();
+	settings.build.colorVariation = 0.0f;
+	settings.shaders.glitter = 21;
+	const auto outcome = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	ASSERT_TRUE(outcome.ok) << outcome.error;
+	const auto nif = *ZCompression::Gunzip(outcome.files.at("model.nif.gz"));
+	std::string error;
+	for (const uint32_t level : { 0u, 1u }) {
+		const auto read = NifFile::Parse(nif, level, error);
+		ASSERT_TRUE(read) << error;
+		for (const auto* name : { "S01_Opaque_Model", "S21_Glitter_Model", "S01_Alpha_Model", "S21_GlitterAlpha_Model" }) EXPECT_TRUE(read->nodes.contains(name)) << name;
+		std::map<std::pair<int32_t, bool>, size_t> triangles; // (tag, transparent) -> triangles
+		for (const auto& mesh : read->meshes) {
+			bool seeThrough = false;
+			for (size_t i = 3; i < mesh.colors.size(); i += 4) seeThrough = seeThrough || mesh.colors[i] < 250;
+			triangles[{ mesh.material.shaderTag, seeThrough }] += mesh.indices.size() / 3;
+			// Only the glitter shapes are textured
+			EXPECT_EQ(mesh.material.embeddedTexture >= 0, mesh.material.shaderTag == 21);
+			EXPECT_EQ(!mesh.uvs.empty(), mesh.material.shaderTag == 21);
+		}
+		EXPECT_EQ((triangles[{ 21, false }]), 12u);
+		EXPECT_EQ((triangles[{ 21, true }]), 24u); // one shape per brick, as the other transparent bricks
+		EXPECT_EQ((triangles[{ 1, false }]), 12u);
+		EXPECT_EQ((triangles[{ 1, true }]), 12u);
+	}
+	EXPECT_NE(outcome.stats.find("\"S21_Glitter_Model\":12"), std::string::npos) << outcome.stats;
+	EXPECT_NE(outcome.stats.find("\"S21_GlitterAlpha_Model\":24"), std::string::npos) << outcome.stats;
+	EXPECT_NE(outcome.stats.find("\"S01_Alpha_Model\":12"), std::string::npos) << outcome.stats;
+
+	// The icon reads the glitter back by the tag (transparent too)
+	const auto read = NifFile::Parse(nif, 0, error);
+	const auto back = UgcModel::FromNif(*read, settings.shaders.TagLooks());
+	EXPECT_EQ(std::count(back.opaque.looks.begin(), back.opaque.looks.end(), UgcModel::eLook::GLITTER), 8);
+	EXPECT_EQ(std::count(back.transparent.looks.begin(), back.transparent.looks.end(), UgcModel::eLook::GLITTER), 16);
+
+	// Combined transparent bricks: one glitter shape
+	settings.combineTransparent = true;
+	const auto combined = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	ASSERT_TRUE(combined.ok);
+	const auto combinedRead = NifFile::Parse(*ZCompression::Gunzip(combined.files.at("model.nif.gz")), 0, error);
+	ASSERT_TRUE(combinedRead);
+	size_t transparentGlitterShapes = 0;
+	for (const auto& mesh : combinedRead->meshes) transparentGlitterShapes += mesh.material.shaderTag == 21 && mesh.colors[3] < 250;
+	EXPECT_EQ(transparentGlitterShapes, 1u);
+
+	// Off: the glitter colors are plastic, in S01, and the files are the same as without glitter rules at all
+	settings.combineTransparent = false;
+	settings.shaders.glitter = 0;
+	const auto off = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	settings.build.looks.materialTypes.erase("glitter");
+	settings.shaders.glitterParams = { 3.0f, 7, 5.0f };
+	settings.icon.glitter = settings.shaders.glitterParams;
+	const auto noRules = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	ASSERT_TRUE(off.ok && noRules.ok);
+	for (const auto* name : { "model.nif.checksum", "model.noao.nif.gz", "icon.png" }) EXPECT_EQ(off.files.at(name), noRules.files.at(name)) << name;
+	const auto offRead = NifFile::Parse(*ZCompression::Gunzip(off.files.at("model.nif.gz")), 0, error);
+	ASSERT_TRUE(offRead);
+	for (const auto& mesh : offRead->meshes) EXPECT_EQ(mesh.material.shaderTag, 1);
+	EXPECT_EQ(off.stats.find("groups"), std::string::npos);
+}
+
+// Glitter in the icon: the texture's flecks over the color before the light, where they are at the start
+TEST(UgcShaders, IconsDrawGlitterFlecks) {
+	UgcModel::Model model;
+	model.opaque = Quad({ 0.2f, 0.2f, 0.6f, 1.0f });
+	UgcRender::IconOptions options;
+	options.size = 64;
+	options.supersample = 1;
+	options.yawDegrees = 0.0f;
+	options.pitchDegrees = 0.0f;
+	options.shadows = 0.0f;
+	options.glitter = { 0.5f, 60, 1.0f };
+	const auto plain = UgcRender::RenderIcon(model, options);
+	model.opaque.looks.assign(4, UgcModel::eLook::GLITTER);
+	const auto glitter = UgcRender::RenderIcon(model, options);
+	ASSERT_EQ(plain.rgba.size(), glitter.rgba.size());
+	size_t brighter = 0, same = 0;
+	for (size_t i = 0; i < plain.rgba.size(); i += 4) {
+		if (plain.rgba[i + 3] == 0) continue;
+		if (glitter.rgba[i] > plain.rgba[i] + 20) brighter++;
+		else if (glitter.rgba[i] == plain.rgba[i]) same++;
+	}
+	EXPECT_GT(brighter, 10u); // flecks
+	EXPECT_GT(same, brighter * 5); // on plain plastic
+	// Transparent glitter too, and it stays see-through
+	UgcModel::Model clear;
+	clear.transparent = Quad({ 0.2f, 0.2f, 0.6f, 0.5f });
+	clear.transparent.looks.assign(4, UgcModel::eLook::GLITTER);
+	const auto clearIcon = UgcRender::RenderIcon(clear, options);
+	clear.transparent.looks.clear();
+	const auto clearPlain = UgcRender::RenderIcon(clear, options);
+	EXPECT_NE(clearIcon.rgba, clearPlain.rgba);
+	for (size_t i = 3; i < clearIcon.rgba.size(); i += 4) EXPECT_EQ(clearIcon.rgba[i], clearPlain.rgba[i]);
+}
+
+// Satin colors: transparent at satin_opacity instead of the transparent opacity, and milky; the others as they were
+TEST(UgcModel, SatinColors) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	library.SetMaterials({ { 360, { 252, 252, 252, 150 } }, { 367, { 35, 120, 65, 150 } }, { 43, { 0, 50, 200, 150 } } });
+	std::string error;
+	const auto parts = UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3001" materials="367"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="43"><Bone transformation="1,0,0,0,1,0,0,0,1,3,0,0"/></Part></Brick>
+		</Bricks></LXFML>)", error);
+	UgcModel::BuildOptions options;
+	options.colorVariation = 0.0f;
+	const auto before = UgcModel::Build(parts, library, options);
+	options.satinColors = { 360, 367 };
+	options.satinOpacity = 80.0f;
+	options.satinWhiten = 25.0f;
+	const auto satin = UgcModel::Build(parts, library, options);
+	ASSERT_EQ(satin.transparent.colors.size(), 16u);
+	EXPECT_NEAR(before.transparent.colors[0].a, 0.5882f, 1e-4f);
+	EXPECT_NEAR(satin.transparent.colors[0].a, 0.8f, 1e-6f);
+	const auto linear = UgcPalette::SrgbToLinear(glm::vec3(before.transparent.colors[0]));
+	const auto milky = UgcPalette::LinearToSrgb(glm::mix(linear, glm::vec3(1.0f), 0.25f));
+	for (int c = 0; c < 3; c++) EXPECT_NEAR(satin.transparent.colors[0][c], milky[c], 1e-5f);
+	// The other transparent brick as before
+	EXPECT_EQ(satin.transparent.colors[8], before.transparent.colors[8]);
+	// Satin's own group is the transparent one: no look
+	EXPECT_TRUE(satin.transparent.looks.empty());
 }

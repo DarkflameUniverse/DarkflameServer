@@ -67,7 +67,50 @@ export function shaderOf(manifest, asset, mesh) {
 }
 
 // NifFile::eShaderLook bits
-export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8, TWO_LAYERS_BLENDED: 16, TWO_LAYERS_ADDED: 32, REFLECTIVE: 64, BRUSHED: 128, EMISSIVE: 256 };
+export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8, TWO_LAYERS_BLENDED: 16, TWO_LAYERS_ADDED: 32, REFLECTIVE: 64, BRUSHED: 128, EMISSIVE: 256,
+	GLITTER: 512 };
+
+/**
+ * Glitter for a three.js material (the UGC server's glitter colors, UgcGlitter): white flecks over the color before
+ * the light, as the game's LEGO-AnimUV shader lays its fleck texture over the vertex color. The flecks are drawn in
+ * the shader from a hash of cells of `coordinates` ('uv': the mesh's UVs, one tile of the texture each; 'position':
+ * a box projection of the object's position, `tile` units a tile, for meshes without UVs), `flecks` a tile, moving
+ * `scroll` tiles a second. Returns {update(seconds)} to animate it.
+ */
+export function addGlitter(material, { coordinates = 'uv', tile = 1.6, flecks = 50, scroll = [0, 0] } = {}) {
+	const uniforms = { glitterTime: { value: 0 }, glitterScroll: { value: scroll }, glitterTile: { value: tile }, glitterCells: { value: Math.max(1, Math.sqrt(flecks)) } };
+	material.onBeforeCompile = (shader) => {
+		Object.assign(shader.uniforms, uniforms);
+		const byPosition = coordinates === 'position';
+		shader.vertexShader = 'varying vec3 vGlitterPosition;\nvarying vec3 vGlitterNormal;\n' + (byPosition ? '' : 'attribute vec2 glitterUv;\nvarying vec2 vGlitterUv;\n') +
+			shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' +
+				(byPosition ? `vec4 glitterAt = vec4(transformed, 1.0);
+vec3 glitterNormal = objectNormal;
+#ifdef USE_INSTANCING
+glitterAt = instanceMatrix * glitterAt;
+glitterNormal = mat3(instanceMatrix) * glitterNormal;
+#endif
+vGlitterPosition = glitterAt.xyz;
+vGlitterNormal = glitterNormal;
+` : 'vGlitterUv = glitterUv;\n'));
+		shader.fragmentShader = 'uniform float glitterTime;\nuniform vec2 glitterScroll;\nuniform float glitterTile;\nuniform float glitterCells;\nvarying vec3 vGlitterPosition;\nvarying vec3 vGlitterNormal;\n' +
+			(byPosition ? '' : 'varying vec2 vGlitterUv;\n') + `
+float glitterHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float glitterFleck(vec2 uv) {
+	vec2 cell = floor(uv * glitterCells);
+	vec2 centre = vec2(glitterHash(cell), glitterHash(cell + 17.0));
+	float d = length(fract(uv * glitterCells) - centre) * 128.0 / glitterCells;
+	return (0.65 + 0.35 * glitterHash(cell + 41.0)) * (1.0 - smoothstep(0.0, 1.7, d));
+}
+` + shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + (byPosition ? `
+	vec3 glitterN = abs(vGlitterNormal);
+	vec2 glitterUv = (glitterN.x >= glitterN.y && glitterN.x >= glitterN.z ? vGlitterPosition.zy : glitterN.y >= glitterN.z ? vGlitterPosition.xz : vGlitterPosition.xy) / glitterTile;
+` : 'vec2 glitterUv = vGlitterUv;\n') + 'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), glitterFleck(glitterUv + glitterScroll * glitterTime));\n');
+	};
+	material.customProgramCacheKey = () => 'glitter-' + coordinates;
+	material.needsUpdate = true;
+	return { update(seconds) { uniforms.glitterTime.value = seconds; } };
+}
 
 /**
  * How a mesh is drawn under the game's shaders, when the manifest has the zone's lighting: {lit, texture,
@@ -112,7 +155,7 @@ export function mergeMeshes(meshes) {
 	for (const mesh of meshes) {
 		if (!mesh.vertices || !mesh.indices.length) continue;
 		const key = JSON.stringify([mesh.texture, mesh.diffuse, mesh.emissive, mesh.alpha, mesh.blend, mesh.test, mesh.doubleSided,
-			mesh.vertexColors, mesh.clampU, mesh.clampV, !!mesh.normals, !!mesh.uvs, !!mesh.colors, mesh.shaderTag, mesh.darkTexture, !!mesh.uvs2]);
+			mesh.vertexColors, mesh.clampU, mesh.clampV, !!mesh.normals, !!mesh.uvs, !!mesh.colors, mesh.shaderTag, mesh.darkTexture, !!mesh.uvs2, mesh.look, mesh.uvScroll]);
 		if (!groups.has(key)) groups.set(key, []);
 		groups.get(key).push(mesh);
 	}

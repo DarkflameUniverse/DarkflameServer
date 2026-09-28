@@ -463,6 +463,15 @@ namespace {
 		c.Add(Text(UGC, "metal_material_types", "Metal material types", "Materials.xml MaterialTypes drawn as metal, comma separated (none: only LU Toolbox's metallic colors).", "shinySteel"));
 		c.Add(Text(UGC, "brushed_material_types", "Brushed steel material types", "Materials.xml MaterialTypes drawn as brushed steel, comma separated (none: no such colors).", "brushedSteel,matteSteel"));
 		c.Add(Text(UGC, "brushed_colors", "Brushed steel colors", "LEGO color ids drawn as brushed steel whatever their Materials.xml type, comma separated: by default the drum lacquered 298,300,1002,1004 (none: no colors).", "298,300,1002,1004"));
+		c.Add(Int(UGC, "shader_glitter", "Glitter shader", "mapShaders id for glitter colors, in S<id>_Glitter_Model and (transparent ones) S<id>_GlitterAlpha_Model: 21 is LEGO-AnimUV, which lays a white fleck texture stored in the model over the color and moves it. 0: off, they stay plastic." + notLive, "21", 0, 9999));
+		c.Add(Text(UGC, "glitter_material_types", "Glitter material types", "Materials.xml MaterialTypes drawn as glitter, comma separated (none: only the glitter colors below).", "glitter"));
+		c.Add(Text(UGC, "glitter_colors", "Glitter colors", "LEGO color ids drawn as glitter whatever their Materials.xml type, comma separated: by default 114,117, which LEGO's color data calls glitter and the client's Materials.xml plain plastic (none: no colors).", "114,117"));
+		c.Add(Float(UGC, "glitter_size", "Glitter tile size", "The fleck texture's tile in model units (a stud is 0.8): how far apart the flecks are, the same on every brick.", "1.6", 0.1f, 100));
+		c.Add(Int(UGC, "glitter_density", "Glitter flecks", "Flecks in one tile of the glitter texture.", "50", 0, 2000));
+		c.Add(Float(UGC, "glitter_speed", "Glitter speed", "How fast the flecks drift: 1 moves them a tile in 7 s one way and 11 s the other; 0 keeps them still.", "1", 0, 100));
+		c.Add(Text(UGC, "satin_colors", "Satin colors", "Satin (opal) color ids, comma separated: they stay transparent plastic (the client has no satin shader) but are made milky and less see-through. By default LEGO's satin colors 360,362,363,364,365,366,367,376 (none: off)." + notLive, "360,362,363,364,365,366,367,376"));
+		c.Add(Float(UGC, "satin_opacity", "Satin opacity", "Percent: the opacity of transparent satin bricks, instead of the transparent opacity.", "75", 0, 100));
+		c.Add(Float(UGC, "satin_whiten", "Satin whitening", "Percent: how far satin colors go towards white.", "20", 0, 100));
 		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "", true));
 		c.Add(Bool(UGC, "hsr_ground_plane", "Nothing seen from below", "Also removes what can only be seen from under the model.", false));
 		c.Add(Unit(Int(UGC, "optimize_resolution", "Detail of the visibility renders", "", "1024", 64, 4096), "pixels"));

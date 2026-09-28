@@ -37,18 +37,19 @@ namespace UgcModel {
 	bool HasNoBricks(std::string_view lxfml);
 
 	/**
-	 * How an opaque color looks in the game when the UGC server's shader settings give it a shader of its own
-	 * (docs/UgcServer.md, "Metal and glow"): the LEGO plastic of S01_Opaque_Model, polished metal, brushed steel or glow.
+	 * How a color looks in the game when the UGC server's shader settings give it a shader of its own
+	 * (docs/UgcServer.md, "Metal and glow"): the LEGO plastic of S01_Opaque_Model, polished metal, brushed steel, glow
+	 * or glitter. Transparent bricks are plastic or glitter.
 	 */
-	enum class eLook : uint8_t { PLASTIC = 0, METAL, BRUSHED, GLOW };
-	constexpr size_t LOOK_COUNT = 4;
+	enum class eLook : uint8_t { PLASTIC = 0, METAL, BRUSHED, GLOW, GLITTER };
+	constexpr size_t LOOK_COUNT = 5;
 
 	struct Mesh {
 		std::vector<glm::vec3> positions;
 		std::vector<glm::vec3> normals;
 		std::vector<glm::vec4> colors; // sRGB, 0..1, alpha is opacity
 		std::vector<glm::vec3> glow;   // linear glow color per vertex (LU Toolbox's "Glow" layer); empty when nothing glows
-		std::vector<eLook> looks;      // per vertex; empty when everything is plastic
+		std::vector<eLook> looks;      // per vertex; empty when everything is plastic (transparent meshes: plastic or glitter)
 		std::vector<uint32_t> indices;
 
 		size_t TriangleCount() const { return indices.size() / 3; }
@@ -77,11 +78,12 @@ namespace UgcModel {
 	/**
 	 * Which colors have which look, from the client's data: a Materials.xml MaterialType (brickdb.zip) and LU Toolbox's
 	 * metallic and glow colors (UgcPalette), and colors named in the settings. A named color wins, then glow over metal;
-	 * transparent bricks are always plastic.
+	 * transparent bricks are plastic unless their color is glitter.
 	 */
 	struct LookRules {
-		std::map<uint32_t, eLook> colors;  // LEGO color ids given a look by the settings (brushed_colors)
-		std::map<std::string, eLook> materialTypes{ { "shinySteel", eLook::METAL }, { "brushedSteel", eLook::BRUSHED }, { "matteSteel", eLook::BRUSHED } };
+		std::map<uint32_t, eLook> colors;  // LEGO color ids given a look by the settings (brushed_colors, glitter_colors)
+		std::map<std::string, eLook> materialTypes{ { "shinySteel", eLook::METAL }, { "brushedSteel", eLook::BRUSHED }, { "matteSteel", eLook::BRUSHED },
+			{ "glitter", eLook::GLITTER } };
 		bool paletteMetallic{ true }; // LU Toolbox's Metallic colors (UgcPalette::IsMetallic) are METAL
 		bool paletteGlow{ true };     // its glow colors (UgcPalette::Glow) are GLOW
 	};
@@ -99,6 +101,12 @@ namespace UgcModel {
 		bool icon{};                       // the icon renderer's color corrections
 		uint32_t lod{};                    // brickprimitives level
 		LookRules looks;                   // which colors are metal and glow (Mesh::looks)
+		// Satin (opal) colors: transparent bricks of these colors get satinOpacity (percent) as their vertex alpha
+		// instead of the transparent opacity, and every brick of them has its color moved satinWhiten percent towards
+		// white (milky). The client has no satin shader: they stay in the transparent group. Empty: none.
+		std::set<uint32_t> satinColors;
+		float satinOpacity{ 75.0f };
+		float satinWhiten{ 20.0f };
 	};
 
 	/**
@@ -131,7 +139,8 @@ namespace UgcModel {
 	std::vector<Mesh> Divide(const Mesh& mesh, size_t maxVertices = 65535, size_t maxTriangles = 65535);
 
 	// A client .nif's meshes as one model (vertex colors times material color; transparent when blended). `tagLooks`:
-	// the look of the opaque shapes whose multishader tag (NifFile::ShaderTag, a mapShaders id) is listed
+	// the look of the opaque shapes whose multishader tag (NifFile::ShaderTag, a mapShaders id) is listed, and of the
+	// transparent ones when it is GLITTER
 	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks = {});
 
 	/**

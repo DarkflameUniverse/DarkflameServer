@@ -78,6 +78,35 @@ namespace UgcJobs {
 			for (size_t look = 0; look < UgcModel::LOOK_COUNT; look++) pieces[look] = UgcModel::Divide((*split)[look]);
 			return pieces;
 		}
+
+		// A model's transparent bricks as the .nif's shapes: one per brick (or all together, `combine`), the glitter
+		// ones apart when `glitterApart`
+		std::array<std::vector<UgcModel::Mesh>, 2> DivideTransparent(const UgcModel::Model& model, bool combine, bool glitterApart) {
+			std::array<std::vector<UgcModel::Mesh>, 2> out;
+			std::array<bool, UgcModel::LOOK_COUNT> separate{};
+			separate[static_cast<size_t>(UgcModel::eLook::GLITTER)] = glitterApart;
+			const auto glitter = static_cast<size_t>(UgcModel::eLook::GLITTER);
+			if (combine) {
+				const auto split = UgcModel::SplitLooks(model.transparent, separate);
+				if (!split) {
+					out[0] = UgcModel::Divide(model.transparent);
+				} else {
+					out[0] = UgcModel::Divide((*split)[0]);
+					out[1] = UgcModel::Divide((*split)[glitter]);
+				}
+				return out;
+			}
+			for (auto& piece : UgcModel::SplitAt(model.transparent, model.transparentBricks)) {
+				const auto split = UgcModel::SplitLooks(piece, separate);
+				if (!split) {
+					out[0].push_back(std::move(piece));
+					continue;
+				}
+				if (!(*split)[0].Empty()) out[0].push_back(std::move((*split)[0]));
+				if (!(*split)[glitter].Empty()) out[1].push_back(std::move((*split)[glitter]));
+			}
+			return out;
+		}
 	}
 
 	uint32_t Shaders::TagOf(UgcModel::eLook look) const {
@@ -85,23 +114,26 @@ namespace UgcJobs {
 			case UgcModel::eLook::METAL: return metal;
 			case UgcModel::eLook::BRUSHED: return brushed;
 			case UgcModel::eLook::GLOW: return glow;
+			case UgcModel::eLook::GLITTER: return glitter;
 			default: return 0;
 		}
 	}
 
 	std::map<int32_t, UgcModel::eLook> Shaders::TagLooks() const {
-		std::map<int32_t, UgcModel::eLook> looks{ { 88, UgcModel::eLook::METAL }, { 89, UgcModel::eLook::BRUSHED }, { 46, UgcModel::eLook::GLOW } };
-		for (const auto look : { UgcModel::eLook::METAL, UgcModel::eLook::BRUSHED, UgcModel::eLook::GLOW }) {
+		std::map<int32_t, UgcModel::eLook> looks{ { 88, UgcModel::eLook::METAL }, { 89, UgcModel::eLook::BRUSHED }, { 46, UgcModel::eLook::GLOW },
+			{ 21, UgcModel::eLook::GLITTER } };
+		for (const auto look : { UgcModel::eLook::METAL, UgcModel::eLook::BRUSHED, UgcModel::eLook::GLOW, UgcModel::eLook::GLITTER }) {
 			if (const auto tag = TagOf(look); tag != 0) looks[static_cast<int32_t>(tag)] = look;
 		}
 		return looks;
 	}
 
 	std::string ShapeName(const Settings& settings, UgcModel::eLook look, bool transparent) {
-		if (transparent) return "S01_Alpha_Model";
+		if (transparent && look != UgcModel::eLook::GLITTER) return "S01_Alpha_Model";
 		if (look == UgcModel::eLook::PLASTIC) return ("S" + settings.shaderOpaque + "_Opaque_Model").substr(0, 60);
 		const auto tag = std::to_string(settings.shaders.TagOf(look));
-		const char* name = look == UgcModel::eLook::METAL ? "_Metal_Model" : look == UgcModel::eLook::BRUSHED ? "_Brushed_Model" : "_Glow_Model";
+		const char* name = look == UgcModel::eLook::METAL ? "_Metal_Model" : look == UgcModel::eLook::BRUSHED ? "_Brushed_Model" :
+			look == UgcModel::eLook::GLOW ? "_Glow_Model" : transparent ? "_GlitterAlpha_Model" : "_Glitter_Model";
 		return ("S" + std::string(tag.size() < 2 ? "0" : "") + tag + name).substr(0, 60);
 	}
 
@@ -150,7 +182,9 @@ namespace UgcJobs {
 		// Every LOD made like LU Toolbox makes each LOD collection: colored, hidden faces removed, lighting baked, divided
 		std::vector<UgcModel::Model> models;
 		std::vector<LookPieces> opaquePieces;
-		std::vector<std::vector<UgcModel::Mesh>> transparentPieces;
+		// Per level: the transparent bricks' pieces, plastic and (with the glitter group on) glitter
+		using TransparentPieces = std::array<std::vector<UgcModel::Mesh>, 2>;
+		std::vector<TransparentPieces> transparentPieces;
 		// The looks with a shader of their own (UgcJobs::Shaders), each an NiLODNode apart from the plastic
 		std::array<bool, UgcModel::LOOK_COUNT> separate{};
 		for (size_t look = 1; look < UgcModel::LOOK_COUNT; look++) separate[look] = settings.shaders.TagOf(static_cast<UgcModel::eLook>(look)) != 0;
@@ -198,11 +232,11 @@ namespace UgcJobs {
 			entry["opaqueAfter"] = model.opaque.TriangleCount();
 			entry["vertices"] = model.opaque.positions.size() + model.transparent.positions.size();
 			opaquePieces.push_back(DivideByLook(model.opaque, separate));
-			transparentPieces.push_back(settings.combineTransparent ? UgcModel::Divide(model.transparent) : UgcModel::SplitAt(model.transparent, model.transparentBricks));
-			size_t shapes = transparentPieces.back().size();
+			transparentPieces.push_back(DivideTransparent(model, settings.combineTransparent, separate[static_cast<size_t>(UgcModel::eLook::GLITTER)]));
+			size_t shapes = transparentPieces.back()[0].size() + transparentPieces.back()[1].size();
 			for (const auto& pieces : opaquePieces.back()) shapes += pieces.size();
 			entry["shapes"] = shapes;
-			// Triangles per group (NiLODNode) when metal or glow have groups of their own
+			// Triangles per group (NiLODNode) when metal, glow or glitter have groups of their own
 			if (std::find(separate.begin(), separate.end(), true) != separate.end()) {
 				auto& byGroup = entry["groups"] = nlohmann::json::object();
 				for (size_t look = 0; look < UgcModel::LOOK_COUNT; look++) {
@@ -210,7 +244,11 @@ namespace UgcJobs {
 					for (const auto& piece : opaquePieces.back()[look]) triangles += piece.TriangleCount();
 					if (triangles > 0) byGroup[ShapeName(settings, static_cast<UgcModel::eLook>(look), false)] = triangles;
 				}
-				if (!model.transparent.Empty()) byGroup[ShapeName(settings, UgcModel::eLook::PLASTIC, true)] = model.transparent.TriangleCount();
+				for (size_t kind = 0; kind < 2; kind++) {
+					size_t triangles = 0;
+					for (const auto& piece : transparentPieces.back()[kind]) triangles += piece.TriangleCount();
+					if (triangles > 0) byGroup[ShapeName(settings, kind ? UgcModel::eLook::GLITTER : UgcModel::eLook::PLASTIC, true)] = triangles;
+				}
 			}
 			lodStats.push_back(entry);
 		}
@@ -218,17 +256,20 @@ namespace UgcJobs {
 
 		// An NiLODNode for the opaque bricks and one for the transparent ones, as LU Toolbox names them, and one for
 		// each look with a shader of its own between them. Every group has every level (empty where it has nothing).
-		const auto groups = [&](size_t levels, const std::vector<LookPieces>& opaque, const std::vector<std::vector<UgcModel::Mesh>>& transparent) {
+		// Transparent glitter last, after the plain transparent bricks.
+		const auto groups = [&](size_t levels, const std::vector<LookPieces>& opaque, const std::vector<TransparentPieces>& transparent) {
 			std::vector<UgcFormats::NifLodGroup> out;
-			for (size_t kind = 0; kind <= UgcModel::LOOK_COUNT; kind++) {
-				const bool isTransparent = kind == UgcModel::LOOK_COUNT;
-				const auto look = isTransparent ? UgcModel::eLook::PLASTIC : static_cast<UgcModel::eLook>(kind);
+			for (size_t kind = 0; kind < UgcModel::LOOK_COUNT + 2; kind++) {
+				const bool isTransparent = kind >= UgcModel::LOOK_COUNT;
+				const bool glitter = kind == UgcModel::LOOK_COUNT + 1 || kind == static_cast<size_t>(UgcModel::eLook::GLITTER);
+				const auto look = glitter ? UgcModel::eLook::GLITTER : isTransparent ? UgcModel::eLook::PLASTIC : static_cast<UgcModel::eLook>(kind);
 				UgcFormats::NifLodGroup group{ ShapeName(settings, look, isTransparent), isTransparent, {} };
 				if (look == UgcModel::eLook::GLOW) group.emissive = std::max(settings.shaders.glowEmissive, 0.0f);
+				if (glitter) group.glitter = &settings.shaders.glitterParams;
 				bool any = false;
 				for (size_t i = 0; i < levels; i++) {
 					UgcFormats::NifLod lod{ ranges[i].first, ranges[i].second, "LOD_" + std::to_string(lods[i]), {} };
-					for (const auto& piece : (isTransparent ? transparent[i] : opaque[i][kind])) lod.pieces.push_back(&piece);
+					for (const auto& piece : (isTransparent ? transparent[i][glitter ? 1 : 0] : opaque[i][kind])) lod.pieces.push_back(&piece);
 					any = any || !lod.pieces.empty();
 					group.lods.push_back(std::move(lod));
 				}
@@ -242,7 +283,7 @@ namespace UgcJobs {
 		AddDownload(outcome.files, "model.nif", nif);
 		{
 			const std::vector<LookPieces> opaque{ DivideByLook(preview.opaque, separate) };
-			const std::vector<std::vector<UgcModel::Mesh>> transparent{ transparentPieces[0] };
+			const std::vector<TransparentPieces> transparent{ transparentPieces[0] };
 			outcome.files["model.noao.nif.gz"] = ZCompression::Gzip(UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent)));
 		}
 

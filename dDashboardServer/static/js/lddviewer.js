@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { parseModel, mergeMeshes, linearColors, nearPlaneFor } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, linearColors, nearPlaneFor, addGlitter } from '/js/scenery-core.js';
 
 const GEOMETRY_MAGIC = 0x42473031; // "10GB"
 const MAX_PARALLEL_FETCHES = 6;
@@ -174,11 +174,13 @@ async function loadGeneratedModel(url) {
 // ---- Viewer ----
 
 const materialCache = new Map();
+// The glitter colours' moving flecks (window.LDD_GLITTER, the UGC server's glitter settings), updated each frame
+const glitterMaterials = [];
 function material(id) {
 	if (!materialCache.has(id)) {
 		const c = (window.LDD_MATERIALS || {})[id] || [160, 160, 160, 255];
 		const transparent = c[3] < 255;
-		materialCache.set(id, new THREE.MeshPhysicalMaterial({
+		const created = new THREE.MeshPhysicalMaterial({
 			color: new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace),
 			roughness: 0.28,
 			metalness: 0,
@@ -187,7 +189,14 @@ function material(id) {
 			transparent,
 			opacity: c[3] / 255,
 			depthWrite: !transparent
-		}));
+		});
+		const glitter = window.LDD_GLITTER;
+		if (glitter && (glitter.colors || []).includes(Number(id))) {
+			// Moving as the game moves its fleck texture: a tile in U in 7 s and in V in 11 s at speed 1
+			const speed = glitter.speed || 0;
+			glitterMaterials.push(addGlitter(created, { coordinates: 'position', tile: glitter.tile || 1.6, flecks: glitter.flecks || 50, scroll: [speed / 7, speed / 11] }));
+		}
+		materialCache.set(id, created);
 	}
 	return materialCache.get(id);
 }
@@ -749,6 +758,7 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 		const dt = Math.min((now - lastTime) / 1000, 0.1);
 		lastTime = now;
 		if (onTick) onTick(dt);
+		for (const glitter of glitterMaterials) glitter.update(now / 1000);
 		updateBubbles(now);
 		controls.update();
 		// The near plane follows how far out the camera is (depth precision for the scenery far away), but never

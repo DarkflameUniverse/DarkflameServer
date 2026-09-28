@@ -461,6 +461,11 @@ namespace UgcRender {
 		};
 		const glm::vec3 toCamera = glm::normalize(dir);
 		const glm::vec3 halfway = glm::normalize(light + toCamera);
+		bool anyGlitter = false;
+		for (const auto* mesh : { &model.opaque, &model.transparent }) {
+			anyGlitter = anyGlitter || std::find(mesh->looks.begin(), mesh->looks.end(), UgcModel::eLook::GLITTER) != mesh->looks.end();
+		}
+		const auto glitterAlpha = anyGlitter ? UgcGlitter::FleckAlpha(options.glitter.flecks) : std::vector<uint8_t>{};
 
 		const auto shade = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
 			glm::vec3 normal(0.0f, 1.0f, 0.0f);
@@ -483,8 +488,13 @@ namespace UgcRender {
 			// The sun's highlight (Blinn-Phong), white, on top of the color
 			const float highlight = direct > 0.0f ? options.specular * options.sunStrength / 3.14159265f * sun * std::pow(std::max(0.0f, glm::dot(normal, halfway)), std::max(options.shininess, 1.0f)) : 0.0f;
 			const float exposure = std::max(options.exposure, 0.0f);
-			const auto look = isOpaque && mesh.looks.size() == mesh.positions.size() ? mesh.looks[i0] : UgcModel::eLook::PLASTIC;
-			if (look == UgcModel::eLook::PLASTIC) {
+			const auto look = mesh.looks.size() == mesh.positions.size() && (isOpaque || mesh.looks[i0] == UgcModel::eLook::GLITTER) ? mesh.looks[i0] : UgcModel::eLook::PLASTIC;
+			if (look == UgcModel::eLook::GLITTER) {
+				// LEGO-AnimUV: lerp(vertex color, the texture's white, its alpha), then lit as plastic
+				const float fleck = UgcGlitter::Sample(glitterAlpha, UgcGlitter::Uv(position, normal, options.glitter.tile));
+				base = glm::vec4(glm::mix(glm::vec3(base), glm::vec3(1.0f), fleck), base.a);
+			}
+			if (look == UgcModel::eLook::PLASTIC || look == UgcModel::eLook::GLITTER) {
 				return glm::vec4((ToLinear(base.r) * lighting + highlight) * exposure, (ToLinear(base.g) * lighting + highlight) * exposure,
 					(ToLinear(base.b) * lighting + highlight) * exposure, std::clamp(base.a, 0.0f, 1.0f));
 			}

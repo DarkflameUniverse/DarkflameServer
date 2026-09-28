@@ -123,6 +123,7 @@ namespace {
 
 	struct NetHeader {
 		std::string name;
+		int32_t controller{ -1 };
 	};
 
 	struct AvHeader {
@@ -327,7 +328,7 @@ namespace {
 			net.name = String(reader.U32());
 			const auto extra = reader.U32();
 			reader.Skip(static_cast<uint64_t>(extra) * 4);
-			reader.I32(); // controller
+			net.controller = reader.I32();
 			return net;
 		}
 
@@ -554,6 +555,55 @@ namespace {
 			}
 		}
 
+		// Tiles a second the controllers from `first` on (an NiTexturingProperty's) move its base map in U and V: each
+		// NiTextureTransformController translating the base map, from its NiFloatInterpolator's NiFloatData's first key
+		// to its last, times its frequency
+		std::array<float, 2> BaseMapScroll(int32_t first) {
+			std::array<float, 2> scroll{};
+			std::set<int32_t> seen;
+			for (int32_t index = first; index >= 0 && !seen.contains(index);) {
+				seen.insert(index);
+				const auto* type = TypeOf(index);
+				if (!type || *type != "NiTextureTransformController") break;
+				m_Used.insert(index);
+				auto reader = BlockReader(index);
+				const auto next = reader.I32();
+				reader.U16(); // flags
+				const auto frequency = reader.Float();
+				reader.Skip(12); // phase, start, stop
+				reader.I32(); // target
+				const auto interpolator = reader.I32();
+				const auto shaderMap = reader.U8();
+				const auto slot = reader.U32();
+				const auto operation = reader.U32();
+				const auto* interpolatorType = TypeOf(interpolator);
+				if (reader.Ok() && !shaderMap && slot == 0 && operation <= 1 && interpolatorType && *interpolatorType == "NiFloatInterpolator") {
+					m_Used.insert(interpolator);
+					auto value = BlockReader(interpolator);
+					value.Float();
+					const auto data = value.I32();
+					const auto* dataType = TypeOf(data);
+					if (value.Ok() && dataType && *dataType == "NiFloatData") {
+						m_Used.insert(data);
+						auto keys = BlockReader(data);
+						const auto count = keys.U32();
+						const auto keyType = count > 0 ? keys.U32() : 0;
+						// Linear keys are time and value; quadratic add two tangents; TBC three floats
+						const uint32_t floats = keyType == 1 ? 2 : keyType == 2 ? 4 : keyType == 3 ? 5 : 0;
+						if (count >= 2 && floats > 0 && count <= 100000) {
+							const auto values = keys.Array<float>(static_cast<uint64_t>(count) * floats);
+							if (keys.Ok()) {
+								const float duration = values[(count - 1) * floats] - values[0];
+								if (duration > 0.0f) scroll[operation] = (values[(count - 1) * floats + 1] - values[1]) / duration * frequency;
+							}
+						}
+					}
+				}
+				index = next;
+			}
+			return scroll;
+		}
+
 		NifFile::Material ReadMaterial(const Properties& properties, uint8_t& baseSet, uint8_t& darkSet) {
 			NifFile::Material material;
 			if (properties.material >= 0) {
@@ -597,7 +647,7 @@ namespace {
 			}
 			if (properties.texturing >= 0) {
 				auto reader = BlockReader(properties.texturing);
-				ReadNet(reader);
+				material.uvScroll = BaseMapScroll(ReadNet(reader).controller);
 				reader.U16(); // flags
 				reader.U32(); // texture count
 				// TexDesc (nif.xml, 20.1.0.3 on): source, TexturingMapFlags (clamp in bits 12-15, UV set in 0-7), whether a
@@ -781,6 +831,7 @@ namespace NifFile {
 				{"shaderTag", material.shaderTag}, {"darkTexture", uv2 ? darkIndex : -1}, {"uv2", uv2}
 			};
 			if (m < looks.size()) entry["look"] = looks[m];
+			if (material.uvScroll[0] != 0.0f || material.uvScroll[1] != 0.0f) entry["uvScroll"] = { material.uvScroll[0], material.uvScroll[1] };
 			Append(body, mesh.positions.data(), mesh.positions.size() * sizeof(float));
 			if (!mesh.normals.empty()) {
 				std::vector<int8_t> packed(mesh.normals.size());

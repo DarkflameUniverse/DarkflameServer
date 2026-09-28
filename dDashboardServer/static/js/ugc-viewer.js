@@ -2,12 +2,13 @@
  * A 3D view of a .nif the UGC server made, from /api/ugc/mesh/:id (the dashboard converts it with NifFile::Encode,
  * as it does the scenery's models), with wireframe and vertex color switches and triangle counts. The metal and glow
  * groups (the UGC server's shader settings; each mesh's "look" is its shader's eShaderLook bits) are drawn as metal
- * reflecting the view's environment and as unlit glow.
+ * reflecting the view's environment and as unlit glow, the glitter groups with moving white flecks (their UVs and
+ * uvScroll, as the game moves its fleck texture).
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { parseModel, mergeMeshes, linearColors, metalOf, SHADER_LOOK } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, linearColors, metalOf, addGlitter, SHADER_LOOK } from '/js/scenery-core.js';
 
 export function createNifViewer(container) {
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -31,6 +32,7 @@ export function createNifViewer(container) {
 	scene.add(root);
 
 	let parts = [];
+	const clock = new THREE.Clock();
 	let wireframe = false, vertexColors = true, disposed = false, framed = false;
 	const grey = new THREE.Color(0xbbbbbb);
 
@@ -49,6 +51,8 @@ export function createNifViewer(container) {
 	function loop() {
 		if (disposed) return;
 		controls.update();
+		const seconds = clock.getElapsedTime();
+		for (const part of parts) if (part.glitter) part.glitter.update(seconds);
 		renderer.render(scene, camera);
 		requestAnimationFrame(loop);
 	}
@@ -125,10 +129,16 @@ export function createNifViewer(container) {
 					? new THREE.MeshBasicMaterial({ color: baseColor.clone(), vertexColors: hasColors })
 					: new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough,
 						roughness: metal === 'polished' ? 0.18 : metal === 'brushed' ? 0.45 : 0.6, metalness: metal ? 1 : 0 });
+				// Glitter: the fleck texture's UVs, one tile of it each, moving as the game moves it
+				let glitter = null;
+				if (look & SHADER_LOOK.GLITTER && mesh.uvs) {
+					geometry.setAttribute('glitterUv', new THREE.BufferAttribute(mesh.uvs, 2));
+					glitter = addGlitter(material, { coordinates: 'uv', scroll: mesh.uvScroll || [0, 0] });
+				}
 				const object = new THREE.Mesh(geometry, material);
 				if (seeThrough) object.renderOrder = 1;
 				root.add(object);
-				parts.push({ mesh: object, hasColors, baseColor });
+				parts.push({ mesh: object, hasColors, baseColor, glitter });
 				triangles += mesh.indices.length / 3;
 				vertices += mesh.vertices;
 			}

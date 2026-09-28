@@ -23,20 +23,23 @@ namespace UgcJobs {
 	 * parity table in docs/UgcServer.md.
 	 */
 	/**
-	 * The shaders of the metal and glow colors (UgcModel::eLook): the mapShaders id each look's own NiLODNode names
-	 * (S88_Metal_Model, ...), 0 for none (the colors stay in S01_Opaque_Model, as on live). Not what live did: live's
-	 * models are all S01 (docs/UgcServer.md, "Metal and glow").
+	 * The shaders of the metal, glow and glitter colors (UgcModel::eLook): the mapShaders id each look's own NiLODNode
+	 * names (S88_Metal_Model, ...), 0 for none (the colors stay in S01_Opaque_Model, or S01_Alpha_Model when
+	 * transparent, as on live). Not what live did: live's models are all S01 (docs/UgcServer.md, "Metal and glow").
 	 */
 	struct Shaders {
 		uint32_t metal{};        // shader_metal: 88 Polished Metal
 		uint32_t brushed{};      // shader_brushed: 89 Brushed Steel
 		uint32_t glow{};         // shader_glow: 46 LEGO-Emissive
+		uint32_t glitter{};      // shader_glitter: 21 LEGO-AnimUV (opaque and transparent glitter, each a group)
 		float glowEmissive{ 1.0f }; // glow_emissive: the glow shapes' NiMaterialProperty emissive (how much the vertex color shows unlit)
+		UgcGlitter::Params glitterParams; // glitter_size, glitter_density, glitter_speed
 
 		// The mapShaders id of a look's group, 0 for the plastic S01_Opaque_Model
 		uint32_t TagOf(UgcModel::eLook look) const;
 		// Multishader tag -> look, for reading the looks back out of a .nif (the icon): these settings' ids, and the
-		// client's Polished Metal (88), Brushed Steel (89) and LEGO-Emissive (46) for .nifs made with other settings
+		// client's Polished Metal (88), Brushed Steel (89), LEGO-Emissive (46) and LEGO-AnimUV (21) for .nifs made with
+		// other settings
 		std::map<int32_t, UgcModel::eLook> TagLooks() const;
 	};
 
@@ -81,7 +84,8 @@ namespace UgcJobs {
 		const std::map<int32_t, UgcModel::eLook>& tagLooks = {});
 
 	// The name of a group of shapes (its NiLODNode and shapes): S01_Opaque_Model, S01_Alpha_Model, S88_Metal_Model,
-	// S89_Brushed_Model, S46_Glow_Model (the ids from the settings), at most 60 characters as LU Toolbox cuts them
+	// S89_Brushed_Model, S46_Glow_Model, S21_Glitter_Model and S21_GlitterAlpha_Model (transparent glitter; the ids from
+	// the settings), at most 60 characters as LU Toolbox cuts them
 	std::string ShapeName(const Settings& settings, UgcModel::eLook look, bool transparent);
 
 	// How many bricks (parts) an LXFML has, counted cheaply (for the memory estimate before a job starts)

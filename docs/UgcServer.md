@@ -210,10 +210,10 @@ defaults. The table below goes through it step by step.
 ### Metal and glow (on by default, not how live looked)
 
 Live's models, LU Toolbox's exports and the client's own builder (`LUNifBuilder_BK`, which writes only `S01_Opaque`
-and `S01_Alpha`) all draw every brick with the LEGO shader, so metal colors look like grey plastic and glowing colors
-like bright plastic. The UGC server gives them the client's metal and emissive shaders by default. Set the three
-shader ids to 0 for live's look: off writes exactly the files it wrote before these settings existed (the same bytes,
-tested).
+and `S01_Alpha`) all draw every brick with the LEGO shader, so metal colors look like grey plastic, glowing colors
+like bright plastic and glitter like plain transparent plastic. The UGC server gives them the client's metal,
+emissive and animated UV shaders by default. Set the four shader ids to 0 (and `satin_colors` to `none`) for live's
+look: off writes exactly the files it wrote before these settings existed (the same bytes, tested).
 
 How the client picks the shader (checked in the 1.10.64 client; Ghidra bookmarks under "UGCShaders"): player models
 (LOT 14, and 6662) have RenderComponent shader 100, mapShaders "Multishader" (gameValue 9999). For a downloaded model
@@ -232,16 +232,28 @@ all of its levels, so each look needs a group of its own.
 | `metal_material_types` | `shinySteel` | Materials.xml `MaterialType`s that are metal (empty: the default; `none`: none). |
 | `brushed_material_types` | `brushedSteel,matteSteel` | Materials.xml `MaterialType`s that are brushed steel. |
 | `brushed_colors` | 298,300,1002,1004 (the drum lacquered colors) | LEGO color ids that are brushed steel whatever their type; they win over the metal and glow colors. Empty: the default; `none`: no colors. |
+| `shader_glitter` | 21 | `S<id>_Glitter_Model` (opaque) and `S<id>_GlitterAlpha_Model` (transparent) for glitter colors: 21 is LEGO-AnimUV (gameValue 30), see Glitter below. |
+| `glitter_material_types` | `glitter` | Materials.xml `MaterialType`s that are glitter. |
+| `glitter_colors` | 114,117 | LEGO color ids that are glitter whatever their type (as `brushed_colors`). The default: the two colors LEGO's own color data (Studio's color categories, "Glitter Colors") files as glitter that the client's Materials.xml types `shinyPlastic` (114 Tr. Medium Reddish-Violet w. Glitter, 117 Transparent Glitter). |
+| `glitter_size` | 1.6 | The glitter texture's tile, in model units (a stud is 0.8): the flecks' spacing, the same on every brick. |
+| `glitter_density` | 50 | Flecks in one tile. |
+| `glitter_speed` | 1 | How fast the flecks drift: a tile in U in 7 s and in V in 11 s at 1; 0 keeps them still (no controllers). |
+| `satin_colors` | 360,362,363,364,365,366,367,376 | Satin (opal) colors, see Satin below. The default: LEGO's color data's "Satin Colors" category (the Transparent ... Opal colors). Empty: the default; `none`: off. |
+| `satin_opacity` | 75 | Percent: the vertex alpha of transparent satin bricks, instead of `transparent_opacity` or the Materials.xml alpha. |
+| `satin_whiten` | 20 | Percent: how far satin colors are moved towards white (in linear RGB, after the color variation). |
 
 Which color has which look is data, not a list in the code (`UgcModel::LookOf`): glow is LU Toolbox's glow table
 (`UgcPalette::Glow`: 50, 294, 329, 9000-9027), metal is LU Toolbox's metallic table (`UgcPalette::IsMetallic`) plus
-the Materials.xml types above (the clients checked have 8 or 14 `shinySteel` colors, and 1 or 3 `glitter` ones, which stay
-plastic, as does pearl: the client has no shader for them). Only opaque bricks get a look: a transparent glowing
-color (294 with the brick database palette, alpha 150) stays in `S01_Alpha_Model`.
+the Materials.xml types above (the clients checked have 8 or 14 `shinySteel` colors, and 1 or 3 `glitter` ones: 129,
+341, 351), glitter is the `glitter` type plus `glitter_colors`. Pearl stays plastic (the client has no shader for it).
+Only opaque bricks get metal and glow: a transparent glowing color (294 with the brick database palette, alpha 150)
+stays in `S01_Alpha_Model`. Transparent bricks can be glitter (every glitter color the clients have is transparent:
+341 and 351 have alpha 150, 129 is in `transparent_colors`).
 
 What is written with a group on: per LOD, the opaque bricks are split by look before being divided at 65535 vertices,
-and the .nif gets, in order, `S01_Opaque_Model`, `S88_Metal_Model`, `S89_Brushed_Model`, `S46_Glow_Model` and
-`S01_Alpha_Model`, each only when it has triangles, and each with every LOD level (an empty `LOD_<n>` node where it has
+and the .nif gets, in order, `S01_Opaque_Model`, `S88_Metal_Model`, `S89_Brushed_Model`, `S46_Glow_Model`,
+`S21_Glitter_Model`, `S01_Alpha_Model` and `S21_GlitterAlpha_Model` (transparent glitter bricks, one shape per brick
+like the other transparent ones, or one with `combine_transparent`), each only when it has triangles, and each with every LOD level (an empty `LOD_<n>` node where it has
 none there), like the plastic groups. Metal shapes are like plastic ones (white material, no textures, the brick color
 as vertex color with the lighting baked in). Glow shapes get a material of their own with emissive `glow_emissive`,
 vertex alpha 1 (the shader's mask) and their plain color, not the baked one: the shader lights them itself, and the
@@ -258,6 +270,63 @@ brushed). This is an approximation of the game's environment maps. `NifFile::Sha
 99 `REFLECTIVE | BRUSHED` and 53 `EMISSIVE`; the UGC page's 3D view gets each mesh's look (`/api/ugc/mesh`, "look")
 and draws metal as reflective (metalness 1, the view's environment) and glow unlit, and the zone views draw
 LEGO-Emissive objects going to their vertex color by its alpha (metal there stays lit like the rest).
+
+#### Glitter
+
+The client has no glitter shader. LEGO-AnimUV (mapShaders 21, gameValue 30, `LEGOPPLighting.fx` and its `_low`,
+`_noenv`, `_noenv_nospec` versions) is the LEGO lighting with the UVs multiplied by `TEXTRANSFORMBASE` (the base map's
+texture transform) in the vertex shader. A shape with vertex colors and a base texture gets
+`Technique_LEGOPPLightingVertColorTextured_AnimUV` (technique names set up at 0x010ac110), whose pixel shader
+(`LEGOPPLighting_PS_VertColorTextured`) is `lerp(vertex color, texture rgb, texture alpha)`, then the LEGO lighting
+(`LEGOPP_PixelCommon4`), alpha = vertex alpha times the fade. So a white texture with flecks in its alpha puts white
+flecks on a brick that is otherwise lit as plastic, and moving the texture transform moves them.
+
+What a glitter shape has, beside what plastic shapes have (white material, alpha, specular, vertex colors):
+
+- A UV set: each vertex's position on the axis plane its normal faces most, divided by `glitter_size`
+  (`UgcGlitter::Uv`), so the flecks are as dense on every brick and every side.
+- An `NiTexturingProperty` (one per file, shared by both glitter groups): apply mode decal (fixed function would do
+  what the shader does), 9 slots, the base map only: wrap S and T, trilinear, UV set 0, a texture transform
+  (translation 0, scale 1, Maya method, center 0.5).
+- Its source, stored in the file as the client's own animated textures store theirs
+  (`res/mesh/env/env_ag_ocean-maelstrom.nif`, RenderComponent 14356): `NiSourceTexture` (use external 0, name
+  `ugc_glitter.dds`, pixel layout 6, mipmaps 2, alpha 3, static, persist render data) and
+  `NiPersistentSrcTextureRendererData`: RGBA 32 bit, channels blue, green, red, alpha, platform DX9, 128 x 128 with 8
+  mipmaps. RGB is white; the alpha is `glitter_density` soft dots (radius 1.2 to 2.2 px, peak 0.65 to 1) at places
+  from a fixed seed, wrapping at the edges (`UgcGlitter::FleckAlpha`), each mipmap the 2x2 mean of the one above.
+- Two `NiTextureTransformController`s on the property (the property's controller, the first linking the second):
+  flags 0x48 (active, loop, app time), frequency 1, phase 0, start 0, stop the period, target the property,
+  base map, operation translate U and translate V, each with an `NiFloatInterpolator` and `NiFloatData` of two linear
+  keys (0, 0) and (period, 1): a tile in `7 / glitter_speed` s in U and `11 / glitter_speed` s in V, looping, and
+  wrapping makes the loop seamless. The block layouts are the ocean file's (its controllers are 39 bytes, the property
+  70). With `glitter_speed` 0 the property has no controllers.
+
+The client finds the animation: `SetupRenderNodeExtraData` (0x00c746c0) sets `RenderNodeExtraData.flags0` bit 2 from
+`NifHasAnimatedControllers` (0x00bf4160), which returns true for a shape whose `NiTexturingProperty`'s first
+controller is an `NiTextureTransformController`. No node transform controllers are added (they would clear the
+object's static flag).
+
+Transparent glitter: every UGC shape has the same `NiAlphaProperty` (blend source alpha over one minus source alpha)
+and transparent bricks are transparent by their vertex alpha; the LEGO-AnimUV techniques declare
+`UsesNiRenderState = true` and their pixel shader outputs the vertex alpha, the same as the LEGO shader's that
+`S01_Alpha_Model` is drawn with, so transparent glitter gets a group of its own. There is no shimmer:
+LEGO-AnimUV's pixel shaders don't read the material's emissive (only the `_Emissive` ones do), so an
+`NiMaterialColorController` would change nothing.
+
+The icon draws the flecks where they are at the start (the same texture and UVs, before the light; `glitter_size`
+and `glitter_density`), opaque and transparent. The UGC page's 3D view marks glitter meshes (`/api/ugc/mesh`: look
+`GLITTER` 512, a mesh with a stored texture in a group tagged `shader_glitter` or 21) and draws moving flecks from
+their UVs and `uvScroll` (what `NifFile` reads from the controllers); the property and zone views, which draw bricks
+from the LXFML, draw them on the colors in `window.LDD_GLITTER` (`/api/bricks/materials.js`: the glitter colors by
+the current settings) from their positions.
+
+#### Satin
+
+The client has no satin shader either: Clear Plastic (mapShaders 3) has no vertex color, so it can't show a colored
+satin. Satin bricks stay in `S01_Alpha_Model` and are made to look satin when their colors are made: a transparent
+brick of a `satin_colors` color gets `satin_opacity` as its vertex alpha, and its color (any brick's) is moved
+`satin_whiten` percent towards white, milky. These colors are only in a client whose Materials.xml has them (the
+opal colors, 360 to 376, are not in the 1.10.64 client's).
 
 Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:4715`):
 

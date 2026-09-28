@@ -16,7 +16,8 @@
  * (NiNode, NiLODNode, NiBillboardNode and other nodes) with its transforms baked into the vertices, NiTriShape and
  * NiTriStrips geometry (positions, normals, the first UV set, vertex colors), and the properties Gamebryo passes down
  * the tree: NiMaterialProperty, NiAlphaProperty, NiTexturingProperty's base texture (an external NiSourceTexture),
- * NiVertexColorProperty and NiStencilProperty's draw mode (double sided). Skipped: hidden subtrees, animation,
+ * NiVertexColorProperty and NiStencilProperty's draw mode (double sided), and how fast NiTextureTransformControllers move
+ * the base texture. Skipped: hidden subtrees, other animation,
  * particles, lights and cameras; skinned geometry is drawn in its bind pose. Blocks are skipped by their stored sizes,
  * so a block this reader doesn't know never breaks the rest of the file.
  */
@@ -39,6 +40,9 @@ namespace NifFile {
 		// the base texture; as `texture` and `embeddedTexture`
 		std::string darkTexture;
 		int32_t embeddedDarkTexture{ -1 };
+		// How fast the base texture moves (tiles a second in U and V): NiTextureTransformControllers on the
+		// NiTexturingProperty translating the base map, each from its first key to its last, looping
+		std::array<float, 2> uvScroll{};
 		int32_t shaderTag{ -1 }; // mapShaders id from a multishader tag in the name of the mesh or a node above it
 	};
 
@@ -98,7 +102,11 @@ namespace NifFile {
 		BRUSHED = 128,
 		// LEGO-Emissive: lerp(lit, vertex color, vertex alpha * NiMaterialProperty's emissive red); the vertex alpha is
 		// that mask, not opacity
-		EMISSIVE = 256
+		EMISSIVE = 256,
+		// Not a shader's: the UGC server's glitter groups (LEGO-AnimUV with the fleck texture it stores in the .nif,
+		// UgcGlitter), white flecks by the texture's alpha over the lit vertex color, moving with the texture. Set by
+		// the dashboard's UGC mesh route, not by ShaderLookFor.
+		GLITTER = 512
 	};
 
 	// eShaderLook bits of a shader (mapShaders.gameValue); 0 for the usual lit look and for fixed function
@@ -131,6 +139,7 @@ namespace NifFile {
 	 * to a multiple of 4), then the binary data it describes. Per mesh at "offset": float32 positions (3 per vertex),
 	 * int8 normals (3 per vertex, times 127, padded to 4 bytes) when "normals", float32 UVs (2 per vertex) when "uv",
 	 * float32 dark texture UVs when "uv2", uint8 RGBA colors when "colors", then uint16 indices (padded to 4 bytes).
+	 * A mesh whose base texture moves has "uvScroll" (Material::uvScroll).
 	 * `textures[i]` is where mesh i's texture is (empty: none) and `darkTextures[i]` its dark texture; the header
 	 * lists each once in "textures" and a mesh's "texture" and "darkTexture" index it (-1: none). `looks[i]`, when
 	 * given, is mesh i's "look" (eShaderLook bits of the shader it is drawn with, for views without a scenery manifest).

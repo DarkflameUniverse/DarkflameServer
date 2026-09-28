@@ -223,7 +223,7 @@ namespace UgcModel {
 		Model model;
 		std::set<uint32_t> missing;
 		const bool luToolbox = options.palette == ePalette::LU_TOOLBOX;
-		bool anyGlow = false, anyLook = false;
+		bool anyGlow = false, anyLook = false, anyTransparentLook = false;
 		for (uint32_t brick = 0; brick < parts.size(); brick++) {
 			const auto& part = parts[brick];
 			const auto design = library.GetDesign(part.designId, options.lod);
@@ -283,10 +283,16 @@ namespace UgcModel {
 					linear = UgcPalette::ApplyVariation(linear, variation, UgcPalette::BrickRandom(options.seed, brick, colorId));
 				}
 				if (!options.icon && options.brightness != 100.0f) linear *= std::max(options.brightness, 0.0f) / 100.0f;
+				if (options.satinColors.contains(colorId)) {
+					// Satin: milky, and less see-through than clear plastic
+					linear = glm::mix(linear, glm::vec3(1.0f), std::clamp(options.satinWhiten / 100.0f, 0.0f, 1.0f));
+					if (transparent) alpha = std::clamp(options.satinOpacity / 100.0f, 0.0f, 1.0f);
+				}
 				const glm::vec4 color(UgcPalette::LinearToSrgb(linear), alpha);
 				anyGlow = anyGlow || glow != glm::vec3(0.0f);
-				const auto look = transparent ? eLook::PLASTIC : LookOf(colorId, library.GetMaterial(colorId), options.looks);
-				anyLook = anyLook || look != eLook::PLASTIC;
+				auto look = LookOf(colorId, library.GetMaterial(colorId), options.looks);
+				if (transparent && look != eLook::GLITTER) look = eLook::PLASTIC;
+				(transparent ? anyTransparentLook : anyLook) = (transparent ? anyTransparentLook : anyLook) || look != eLook::PLASTIC;
 				const auto base = static_cast<uint32_t>(mesh.positions.size());
 				const size_t vertexCount = geometry.positions.size() / 3;
 				for (size_t v = 0; v < vertexCount; v++) {
@@ -298,10 +304,8 @@ namespace UgcModel {
 					mesh.positions.push_back(glm::vec3(part.transform * glm::vec4(position, 1.0f)));
 					mesh.normals.push_back(normal);
 					mesh.colors.push_back(color);
-					if (&mesh == &model.opaque) {
-						model.opaque.glow.push_back(glow);
-						model.opaque.looks.push_back(look);
-					}
+					if (&mesh == &model.opaque) model.opaque.glow.push_back(glow);
+					mesh.looks.push_back(look);
 				}
 				for (const auto i : geometry.indices) mesh.indices.push_back(base + i);
 			}
@@ -309,6 +313,7 @@ namespace UgcModel {
 		if (!anyGlow) model.opaque.glow.clear();
 		else model.opaque.glow.resize(model.opaque.positions.size(), glm::vec3(0.0f));
 		if (!anyLook) model.opaque.looks.clear();
+		if (!anyTransparentLook) model.transparent.looks.clear();
 		model.missingDesigns.assign(missing.begin(), missing.end());
 		return model;
 	}
@@ -376,7 +381,7 @@ namespace UgcModel {
 			// Blending only shows where something is see-through (the game's brick models blend every shape)
 			bool seeThrough = source.material.alphaBlend && source.material.alpha < 0.99f;
 			for (size_t v = 0; source.material.alphaBlend && !seeThrough && v < mesh.colors.size(); v++) seeThrough = mesh.colors[v].a < 0.99f;
-			if (const auto look = tagLooks.find(source.material.shaderTag); !seeThrough && look != tagLooks.end() && look->second != eLook::PLASTIC) {
+			if (const auto look = tagLooks.find(source.material.shaderTag); look != tagLooks.end() && look->second != eLook::PLASTIC && (!seeThrough || look->second == eLook::GLITTER)) {
 				mesh.looks.assign(mesh.positions.size(), look->second);
 			}
 			(seeThrough ? model.transparent : model.opaque).Append(mesh);

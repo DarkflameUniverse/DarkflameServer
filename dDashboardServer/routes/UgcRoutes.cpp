@@ -264,6 +264,10 @@ namespace UgcRoutes {
 		g_IconKinds = LoadIconKinds();
 	}
 
+	std::optional<std::string> Setting(const std::string& name) {
+		return UgcSetting(name);
+	}
+
 	void RegisterRoutes() {
 		Route(eHTTPMethod::GET, "/ugc", Perm("properties_view"), "What the UGC server made of players' models",
 			[](HTTPReply& reply, const HTTPContext& context) { RenderPage(reply, context, "ugc.jinja2", "ugc"); });
@@ -478,7 +482,8 @@ namespace UgcRoutes {
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/mesh/:id", Perm("properties_view"),
-			"A player model's generated .nif converted for the 3D view (NifFile::Encode, as the scenery meshes, with each mesh's shader look). Query: ?lod=0 (most detailed) "
+			"A player model's generated .nif converted for the 3D view (NifFile::Encode, as the scenery meshes, with each mesh's shader look; the glitter "
+			"groups' meshes have the GLITTER look, their UVs and uvScroll, and the texture name \"glitter\"). Query: ?lod=0 (most detailed) "
 			"to 3, &version=current|previous, &ao=0 for the mesh before the lighting bake. The header adds triangles and vertices",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto id = PathId<LWOOBJID>(context.path, 3);
@@ -488,15 +493,25 @@ namespace UgcRoutes {
 				const bool baked = QueryValue(context.queryString, "ao") != "0";
 				const std::string file = std::string(previous ? "previous." : "") + (baked ? "model.nif" : "model.noao.nif");
 				const auto url = InternalUrl() + "/files/model/" + std::to_string(*id) + "/" + file;
-				Workers::Reply(reply, context, false, [url, lod](HTTPReply& out) {
+				// The glitter groups' tag: the setting's, and the client's LEGO-AnimUV (21) for models made with another
+				const auto glitterTag = GeneralUtils::TryParse<int32_t>(UgcSetting("shader_glitter").value_or("21")).value_or(21);
+				Workers::Reply(reply, context, false, [url, lod, glitterTag](HTTPReply& out) {
 					const auto fetched = CachedGet(url);
 					if (fetched->status != 200) return ReplyError(out, *fetched, url);
 					std::string error;
 					const auto model = NifFile::Parse(fetched->body, lod, error);
 					if (!model) return JsonError(out, eHTTPStatusCode::UNPROCESSABLE_ENTITY, "The .nif can't be read: " + error);
+					auto looks = Scenery::MultishaderLooks(*model);
+					std::vector<std::string> textures(model->meshes.size());
+					for (size_t i = 0; i < model->meshes.size(); i++) {
+						const auto& material = model->meshes[i].material;
+						if (material.embeddedTexture < 0 || (material.shaderTag != glitterTag && material.shaderTag != 21)) continue;
+						looks[i] |= NifFile::GLITTER;
+						textures[i] = "glitter";
+					}
 					out.status = eHTTPStatusCode::OK;
 					out.contentType = eContentType::APPLICATION_OCTET_STREAM;
-					out.message = NifFile::Encode(*model, std::vector<std::string>(model->meshes.size()), {}, Scenery::MultishaderLooks(*model));
+					out.message = NifFile::Encode(*model, textures, {}, looks);
 					out.headers.push_back("Cache-Control: private, no-cache");
 				});
 			});

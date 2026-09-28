@@ -62,6 +62,19 @@ namespace {
 		return GeneralUtils::TryParse<T>(Game::config->GetValue(key)).value_or(fallback);
 	}
 
+	// A list of color ids setting: empty is `fallback`, "none" (or anything without ids) is no colors
+	std::set<uint32_t> ColorList(const std::string& key, const std::string& fallback) {
+		const auto value = Game::config->GetValue(key);
+		std::set<uint32_t> colors;
+		std::stringstream stream(value.empty() ? fallback : value);
+		std::string id;
+		while (std::getline(stream, id, ',')) {
+			std::erase_if(id, [](unsigned char c) { return std::isspace(c); });
+			if (const auto color = GeneralUtils::TryParse<uint32_t>(id)) colors.insert(*color);
+		}
+		return colors;
+	}
+
 	std::vector<uint32_t> ParseLods(const std::string& text) {
 		std::vector<uint32_t> lods;
 		std::stringstream stream(text);
@@ -104,9 +117,14 @@ namespace {
 		settings.shaders.brushed = std::min(Setting<uint32_t>("shader_brushed", 89), 9999u);
 		settings.shaders.glow = std::min(Setting<uint32_t>("shader_glow", 46), 9999u);
 		settings.shaders.glowEmissive = std::clamp(Setting<float>("glow_emissive", 1.0f), 0.0f, 10.0f);
-		settings.icon.glowEmissive = settings.shaders.glowEmissive;
-		// Which Materials.xml MaterialTypes are metal and brushed steel
-		for (const auto& [key, look] : { std::pair{ "metal_material_types", UgcModel::eLook::METAL }, std::pair{ "brushed_material_types", UgcModel::eLook::BRUSHED } }) {
+		// Glitter colors in S<id>_Glitter_Model and S<id>_GlitterAlpha_Model with drifting flecks (LEGO-AnimUV)
+		settings.shaders.glitter = std::min(Setting<uint32_t>("shader_glitter", 21), 9999u);
+		settings.shaders.glitterParams.tile = std::clamp(Setting<float>("glitter_size", 1.6f), 0.1f, 100.0f);
+		settings.shaders.glitterParams.flecks = std::min(Setting<uint32_t>("glitter_density", 50), 2000u);
+		settings.shaders.glitterParams.speed = std::clamp(Setting<float>("glitter_speed", 1.0f), 0.0f, 100.0f);
+		// Which Materials.xml MaterialTypes are metal, brushed steel and glitter
+		for (const auto& [key, look] : { std::pair{ "metal_material_types", UgcModel::eLook::METAL }, std::pair{ "brushed_material_types", UgcModel::eLook::BRUSHED },
+			std::pair{ "glitter_material_types", UgcModel::eLook::GLITTER } }) {
 			const auto value = Game::config->GetValue(key);
 			if (value.empty()) continue;
 			std::erase_if(settings.build.looks.materialTypes, [look](const auto& entry) { return entry.second == look; });
@@ -117,17 +135,15 @@ namespace {
 				if (!type.empty() && type != "none") settings.build.looks.materialTypes[type] = look;
 			}
 		}
-		// LEGO color ids drawn as brushed steel whatever their Materials.xml type
-		{
-			// Empty: the default (the drum lacquered colors); none: no colors
-			const auto value = Game::config->GetValue("brushed_colors");
-			std::stringstream stream(value.empty() ? "298,300,1002,1004" : value);
-			std::string id;
-			while (std::getline(stream, id, ',')) {
-				std::erase_if(id, [](unsigned char c) { return std::isspace(c); });
-				if (const auto color = GeneralUtils::TryParse<uint32_t>(id)) settings.build.looks.colors[*color] = UgcModel::eLook::BRUSHED;
-			}
-		}
+		// LEGO color ids drawn as brushed steel (by default the drum lacquered colors) and as glitter (by default the
+		// ones LEGO's own color data files as glitter that the client's Materials.xml calls shinyPlastic) whatever their
+		// Materials.xml type; empty: the default, none: no colors
+		for (const auto color : ColorList("brushed_colors", "298,300,1002,1004")) settings.build.looks.colors[color] = UgcModel::eLook::BRUSHED;
+		for (const auto color : ColorList("glitter_colors", "114,117")) settings.build.looks.colors[color] = UgcModel::eLook::GLITTER;
+		// Satin (opal) colors: milky and less see-through in the transparent group (the client has no satin shader)
+		settings.build.satinColors = ColorList("satin_colors", "360,362,363,364,365,366,367,376");
+		settings.build.satinOpacity = std::clamp(Setting<float>("satin_opacity", 75.0f), 0.0f, 100.0f);
+		settings.build.satinWhiten = std::clamp(Setting<float>("satin_whiten", 20.0f), 0.0f, 100.0f);
 		settings.optimize.removeHidden = Setting<int32_t>("remove_hidden_faces", 1) != 0;
 		settings.optimize.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
 		settings.optimize.resolution = Setting<int32_t>("optimize_resolution", 1024);
@@ -142,6 +158,8 @@ namespace {
 			return value.empty() ? std::nullopt : std::optional(value);
 		});
 		settings.icon.size = Setting<int32_t>("icon_size", 128);
+		settings.icon.glowEmissive = settings.shaders.glowEmissive;
+		settings.icon.glitter = settings.shaders.glitterParams;
 		settings.icon.ao.distance = settings.ao.distance;
 		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
 		return settings;

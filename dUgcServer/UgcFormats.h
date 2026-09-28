@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "UgcGlitter.h"
 #include "UgcModel.h"
 #include "UgcRender.h"
 
@@ -43,13 +44,19 @@ namespace UgcFormats {
 		// NiMaterialProperty's emissive color (grey) of the group's shapes; 0 the shared white material with none.
 		// The client's emissive shader (S46) lerps from the lit color to the vertex color by vertex alpha times its red.
 		float emissive{};
+		// The glitter of the UGC server's glitter groups (docs/UgcServer.md, "Metal and glow"): the shapes get UVs
+		// (UgcGlitter::Uv) and an NiTexturingProperty whose base map is the fleck texture stored in the file
+		// (NiSourceTexture, NiPersistentSrcTextureRendererData), its texture transform's translation looped by an
+		// NiTextureTransformController for U and one for V. Null: none.
+		const UgcGlitter::Params* glitter{};
 	};
 
 	/**
 	 * The layout LU Toolbox exports (setup_lod_data) and the game's own brick models (res/BrickModels/ndmade) have:
 	 * the root node, an NiLODNode per group with NiRangeLODData holding each level's distances, a node per level and
 	 * the level's shapes under it, named like the group. Properties as WriteNif; a group with
-	 * an emissive color gets a material of its own.
+	 * an emissive color gets a material of its own, a glitter group the glitter texture's NiTexturingProperty (one
+	 * for every glitter group of the file).
 	 */
 	std::string WriteLodNif(const std::string& rootName, const std::vector<NifLodGroup>& groups);
 

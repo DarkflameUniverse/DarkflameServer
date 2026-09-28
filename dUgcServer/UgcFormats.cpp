@@ -138,7 +138,8 @@ namespace {
 		out.I32(-1); // collision object
 	}
 
-	std::string TriShapeData(const UgcModel::Mesh& mesh) {
+	// `glitter`: with a UV set projected for the glitter texture (UgcGlitter::Uv)
+	std::string TriShapeData(const UgcModel::Mesh& mesh, const UgcGlitter::Params* glitter = nullptr) {
 		Writer out;
 		const auto count = static_cast<uint16_t>(mesh.positions.size());
 		out.I32(0); // group ID
@@ -154,8 +155,9 @@ namespace {
 			min = glm::min(min, p);
 			max = glm::max(max, p);
 		}
-		out.U16(0); // data flags: no texture coordinates or tangents
 		const bool normals = mesh.normals.size() == mesh.positions.size();
+		const bool uvs = glitter && normals;
+		out.U16(uvs ? 1 : 0); // data flags: the number of UV sets, no tangents
 		out.U8(normals ? 1 : 0);
 		if (normals) {
 			for (const auto& n : mesh.normals) {
@@ -179,6 +181,13 @@ namespace {
 				out.Float(std::clamp(c.g, 0.0f, 1.0f));
 				out.Float(std::clamp(c.b, 0.0f, 1.0f));
 				out.Float(std::clamp(c.a, 0.0f, 1.0f));
+			}
+		}
+		if (uvs) {
+			for (size_t v = 0; v < mesh.positions.size(); v++) {
+				const auto uv = UgcGlitter::Uv(mesh.positions[v], mesh.normals[v], glitter->tile);
+				out.Float(uv.x);
+				out.Float(uv.y);
 			}
 		}
 		out.U16(0x4000); // consistency: static
@@ -226,9 +235,134 @@ namespace {
 			return std::move(material.Data());
 		}
 
+		/**
+		 * The glitter groups' NiTexturingProperty (made once a file), as the client's own animated textures have it
+		 * (res/mesh/env/env_ag_ocean-maelstrom.nif): the base map wrapping, with a texture transform (Maya method,
+		 * center 0.5), its source stored in the file, and NiTextureTransformControllers on the property looping the
+		 * transform's translation (flags 0x48: active, looping, app time; frequency 1) through an NiFloatInterpolator
+		 * and linear NiFloatData from 0 to 1 tile. The client's NifHasAnimatedControllers (0x00bf4160) finds the
+		 * property's first controller and marks the object animated. Apply mode decal: what fixed function would do
+		 * with it is what the shader does (the texture over the vertex color by its alpha, the vertex alpha kept).
+		 */
+		int32_t GlitterTexturing(const UgcGlitter::Params& glitter) {
+			if (m_Glitter >= 0) return m_Glitter;
+			m_Glitter = m_Nif.Reserve("NiTexturingProperty");
+			std::vector<std::pair<uint32_t, float>> motions; // TexTransform (0 translate U, 1 translate V), seconds a tile
+			if (glitter.PeriodU() > 0.0f) motions.emplace_back(0, glitter.PeriodU());
+			if (glitter.PeriodV() > 0.0f) motions.emplace_back(1, glitter.PeriodV());
+			std::vector<int32_t> controllers;
+			for (size_t i = 0; i < motions.size(); i++) controllers.push_back(m_Nif.Reserve("NiTextureTransformController"));
+			for (size_t i = 0; i < motions.size(); i++) {
+				const auto [operation, period] = motions[i];
+				Writer data;
+				data.U32(2); // keys
+				data.U32(1); // linear
+				data.Float(0.0f);
+				data.Float(0.0f);
+				data.Float(period);
+				data.Float(1.0f);
+				const auto interpolator = m_Nif.Reserve("NiFloatInterpolator");
+				const auto dataBlock = m_Nif.Add("NiFloatData", std::move(data.Data()));
+				Writer value;
+				value.Float(0.0f);
+				value.I32(dataBlock);
+				m_Nif.Fill(interpolator, std::move(value.Data()));
+				Writer controller;
+				controller.I32(i + 1 < controllers.size() ? controllers[i + 1] : -1); // next controller
+				controller.U16(0x48);     // active, loop, app time (as the client's files)
+				controller.Float(1.0f);   // frequency
+				controller.Float(0.0f);   // phase
+				controller.Float(0.0f);   // start
+				controller.Float(period); // stop
+				controller.I32(m_Glitter); // target
+				controller.I32(interpolator);
+				controller.U8(0);  // not a shader map
+				controller.U32(0); // the base map
+				controller.U32(operation);
+				m_Nif.Fill(controllers[i], std::move(controller.Data()));
+			}
+
+			// The texture: white, its alpha the flecks, mipmapped, 32-bit as the client's stored textures are (B, G, R, A)
+			const auto source = m_Nif.Reserve("NiSourceTexture");
+			Writer pixels;
+			pixels.U32(1);          // RGBA
+			pixels.U8(32);          // bits per pixel
+			pixels.U32(0xFFFFFFFF); // renderer hint
+			pixels.U32(0);          // extra data
+			pixels.U8(1);           // flags
+			pixels.U32(0);          // tiling
+			pixels.U8(0);           // sRGB
+			for (const uint32_t channel : { 2u, 1u, 0u, 3u }) { // blue, green, red, alpha
+				pixels.U32(channel);
+				pixels.U32(0); // convention: fixed
+				pixels.U8(8);
+				pixels.U8(0);  // unsigned
+			}
+			pixels.I32(-1); // palette
+			const auto mipmaps = UgcGlitter::Mipmaps(UgcGlitter::FleckAlpha(glitter.flecks));
+			pixels.U32(static_cast<uint32_t>(mipmaps.size()));
+			pixels.U32(4); // bytes per pixel
+			uint32_t offset = 0;
+			for (size_t level = 0; level < mipmaps.size(); level++) {
+				const uint32_t side = static_cast<uint32_t>(UgcGlitter::TEXTURE_SIZE) >> level;
+				pixels.U32(side);
+				pixels.U32(side);
+				pixels.U32(offset);
+				offset += static_cast<uint32_t>(mipmaps[level].size()) * 4;
+			}
+			pixels.U32(offset); // pixels
+			pixels.U32(offset); // padded
+			pixels.U32(1);      // faces
+			pixels.U32(3);      // platform: DX9
+			for (const auto& level : mipmaps) {
+				for (const auto a : level) {
+					pixels.U8(255);
+					pixels.U8(255);
+					pixels.U8(255);
+					pixels.U8(a);
+				}
+			}
+			const auto pixelData = m_Nif.Add("NiPersistentSrcTextureRendererData", std::move(pixels.Data()));
+			Writer texture;
+			WriteNet(texture, -1);
+			texture.U8(0); // stored in the file
+			texture.I32(m_Nif.String("ugc_glitter.dds"));
+			texture.I32(pixelData);
+			texture.U32(6); // pixel layout: default
+			texture.U32(2); // mipmaps: default
+			texture.U32(3); // alpha: default
+			texture.U8(1);  // static
+			texture.U8(0);  // direct render
+			texture.U8(1);  // persist render data
+			m_Nif.Fill(source, std::move(texture.Data()));
+
+			Writer texturing;
+			texturing.I32(-1); // name
+			texturing.U32(0);  // extra data
+			texturing.I32(controllers.empty() ? -1 : controllers[0]);
+			texturing.U16(1 << 1); // apply mode decal
+			texturing.U32(9);  // texture slots
+			texturing.U8(1);   // base map
+			texturing.I32(source);
+			texturing.U16(0x3200); // wrap S and T, trilinear, UV set 0
+			texturing.U8(1);       // texture transform
+			texturing.Float(0.0f); // translation
+			texturing.Float(0.0f);
+			texturing.Float(1.0f); // scale
+			texturing.Float(1.0f);
+			texturing.Float(0.0f); // rotation
+			texturing.U32(2);      // Maya
+			texturing.Float(0.5f); // center
+			texturing.Float(0.5f);
+			for (int slot = 1; slot < 9; slot++) texturing.U8(0); // dark, detail, gloss, glow, bump, normal, parallax, decal
+			texturing.U32(0); // shader maps
+			m_Nif.Fill(m_Glitter, std::move(texturing.Data()));
+			return m_Glitter;
+		}
+
 		// An NiTriShape of `mesh` (-1 when it is empty or too big for the format); `emissive`: its material's
-		// emissive color, 0 for the shared material without one
-		int32_t Shape(const std::string& name, const UgcModel::Mesh* mesh, bool transparent, float emissive = 0.0f) {
+		// emissive color, 0 for the shared material without one; `glitter`: with the glitter texture
+		int32_t Shape(const std::string& name, const UgcModel::Mesh* mesh, bool transparent, float emissive = 0.0f, const UgcGlitter::Params* glitter = nullptr) {
 			if (!mesh || mesh->Empty() || mesh->positions.size() > 65535 || mesh->TriangleCount() > 65535) return -1;
 			// The properties every shape of the game's own brick models has, in their order: material, alpha (blending
 			// by the vertex alpha: 1 on opaque bricks), specular (off) and vertex colors
@@ -251,8 +385,9 @@ namespace {
 				material = it->second;
 			}
 			std::vector<int32_t> properties{ material, m_Alpha, m_Specular, m_VertexColor };
+			if (glitter) properties.push_back(GlitterTexturing(*glitter));
 			const auto shapeBlock = m_Nif.Reserve("NiTriShape");
-			const auto dataBlock = m_Nif.Add("NiTriShapeData", TriShapeData(*mesh));
+			const auto dataBlock = m_Nif.Add("NiTriShapeData", TriShapeData(*mesh, glitter));
 			Writer tri;
 			WriteAv(tri, m_Nif.String(name), properties, SHAPE_FLAGS);
 			tri.I32(dataBlock);
@@ -271,6 +406,7 @@ namespace {
 		int32_t m_Alpha{ -1 };
 		int32_t m_Specular{ -1 };
 		std::map<float, int32_t> m_Emissive; // emissive color -> its material
+		int32_t m_Glitter{ -1 };             // the glitter groups' NiTexturingProperty
 	};
 }
 
@@ -304,7 +440,7 @@ namespace UgcFormats {
 				const auto level = nif.Reserve("NiNode");
 				std::vector<int32_t> shapes;
 				for (const auto* piece : lod.pieces) {
-					const auto block = properties.Shape(group.name, piece, group.transparent, group.emissive);
+					const auto block = properties.Shape(group.name, piece, group.transparent, group.emissive, group.glitter);
 					if (block >= 0) shapes.push_back(block);
 				}
 				nif.Fill(level, NodeData(nif.String(lod.name), shapes));

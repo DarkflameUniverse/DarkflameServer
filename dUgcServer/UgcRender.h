@@ -5,6 +5,7 @@
 
 #include <glm/glm.hpp>
 
+#include "UgcGlitter.h"
 #include "UgcModel.h"
 
 /**
@@ -56,6 +57,7 @@ namespace UgcRender {
 		float shadows{ 1.0f };       // how much the sun's shadows darken, 0 to 1
 		AoOptions ao{ false, 5.0f, 32, 1.0f, 0.0f };
 		float glowEmissive{ 1.0f };  // how far glowing shapes go from lit to their plain color (the glow_emissive setting)
+		UgcGlitter::Params glitter;  // the glitter's flecks (glitter_size, glitter_density), drawn where they are at the start
 	};
 
 	// The model drawn from the icon's camera, framed to fit, on a transparent background. `opaqueAo`: the opaque mesh's
@@ -63,7 +65,8 @@ namespace UgcRender {
 	// Opaque vertices with a look (UgcModel::Mesh::looks) are drawn roughly as the game's shaders draw them: GLOW goes
 	// from lit to its plain color by glowEmissive (LEGO-Emissive), METAL and BRUSHED dim the diffuse light and add a
 	// sky-and-ground reflection tinted by the color and a highlight, sharp for polished metal and broad for brushed
-	// steel (Polished Metal, Brushed Steel: an environment map tinted by the vertex color).
+	// steel (Polished Metal, Brushed Steel: an environment map tinted by the vertex color). GLITTER vertices (opaque or
+	// transparent) get the glitter texture's white flecks over their color before the light (LEGO-AnimUV), still.
 	Image RenderIcon(const UgcModel::Model& model, const IconOptions& options, const std::vector<float>* opaqueAo = nullptr);
 
 	struct OptimizeOptions {
