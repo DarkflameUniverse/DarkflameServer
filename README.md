@@ -6,6 +6,76 @@ Darkflame Universe (DLU) is a server emulator for LEGO® Universe. Development s
 ### LEGO® Universe
 Developed by NetDevil and The LEGO Group, LEGO® Universe launched in October 2010 and ceased operation in January 2012.
 
+## This branch (`dev/aronwk-aaron/experimental`)
+An experimental branch of DLU, kept rebased on `main`. Besides everything in `main` it adds the following. Every
+feature that changes gameplay or live data is off by default or matches live behaviour unless noted, and each has its
+own documentation in [docs/](docs/).
+
+### Web dashboard (`DashboardServer`)
+A web dashboard for running and moderating a server, started and supervised by master like the other servers. See
+[docs/Dashboard.md](docs/Dashboard.md).
+* **Accounts and sign-in:** staff and player accounts, permissions per rank, two-factor login,
+  password resets and registration by email (SMTP or OAuth2), locking after failed sign-ins, scoped API keys with rate
+  limits and quotas ([API](docs/DasshboardWebAPI.yaml)).
+* **Running the server:** server and world lists with live state (starting, ready, stopping), prestarted worlds as a
+  setting, announcements, scheduled and cancellable restarts, live updates, scheduled announcements, events, community
+  challenges and tasks, backups, webhooks and alerts, server health and instance load, per-server traffic diagnostics,
+  system logs with downloadable log bundles, crash dumps.
+* **Settings:** every setting the servers read, grouped by purpose with typed inputs, conditions, fuzzy search,
+  history, and hot reload; values can be set on the page or kept in the `.ini` files.
+* **Players and characters:** online players, character editing with history and lost-item recovery, inventory with
+  item search, missions and progress, a 3D world view with player positions and position history, related accounts.
+* **Moderation:** review queue, warnings, bans and strikes, player reports, linked accounts, chat filter, chat log and
+  chat bridges, an AI helper for staff (never for players), pet name moderation, leaderboards.
+* **Properties:** property pages with models, rent, reputation, moderation, import/remove/reprocess of models, a 3D
+  property view that plays model behaviours, and a public property showcase.
+* **Economy:** economy reports, contraband list with flagging and optional removal, saved views and report emails.
+* **Public pages:** an optional public server status page and widget, and pages for players.
+* **Developer tools:** a game message inspector, a CDClient table browser, 3D views of zones and properties drawn from
+  the client's own files (scenes streamed like the game, zone lighting, hidden objects toggle).
+
+### UGC server (`UgcServer`)
+Makes and serves player-built (Brick-by-Brick) models the way LU Toolbox does, so every player sees them and their
+icons without building them locally. See [docs/UgcServer.md](docs/UgcServer.md).
+* Builds each model's meshes from the client's brick primitives with LU Toolbox's palette, color variation, hidden
+  face removal and baked ambient occlusion, at two levels of detail, and draws its icon (DXT5 DDS like the client's).
+* Optional looks with the client's own shaders: metal, brushed steel, glow, glitter (animated flecks) and satin.
+* Serves models and icons to clients with or without the client's 3D services (the manifest the client asks worlds
+  for, sd0 downloads); served models keep collision, built by each client from the model's LXFML.
+* Car and rocket icons made once per combination of modules; a queue in the database with a quiet period after saves,
+  staff reprocessing at the front, CPU and memory budgets, crash dumps, storage caps and purging.
+* Dashboard pages: a UGC gallery and viewer, sortable lists with processing time, CPU, memory and triangles saved, a
+  3D icon pose editor, per-model and per-kind icon settings.
+* `/reprocessproperty` makes a property's models again and reloads the property for everyone on it.
+
+### Live updates and moving players
+* **Live updates:** move every server onto a new build without a restart. Worlds are replaced one by one and their
+  players moved with the game's own "Mythran dimensional shift"; auth, chat, UGC and the dashboard restart or hand
+  over. See [docs/LiveUpdate.md](docs/LiveUpdate.md).
+* **Instance replace and merge:** move an instance's players to another instance of the same zone (GM commands and
+  master coordination). See [docs/SeamlessTransfer.md](docs/SeamlessTransfer.md).
+* Master's failed server starts no longer leave a second master running.
+
+### Gameplay and world
+* **Properties:** optional rent; reputation from visitors that resists farming; best friends of the owner can build
+  while the owner has build mode on (off by default); models remember who placed them; optionally log back in on a
+  property.
+* **Brick-by-Brick:** server-side autosave storage, model metadata answers, and saved builds split into models with
+  every bone and rigid system moved together. See [docs/BuildWorkflow.md](docs/BuildWorkflow.md).
+* **Scene ghosting** (optional): players get the objects of the scenes the client has loaded, as the client streams
+  them.
+* Server-side knockback for AI-moved objects, switchable trigger volumes, missing force field, jetpack NPC and
+  Skullkin volume scripts, deletion restrictions enforced, cross-world new-mail notices, pet LOTs stored with names,
+  stale character saves refused.
+
+### Networking and data
+* **Packets:** packets and game messages moved to structs with Serialize/Deserialize, each conversion verified byte for
+  byte against the old code; message IDs pinned by tests (a few hand-written senders remain to convert). See [docs/PacketArchitecture.md](docs/PacketArchitecture.md).
+* **Traffic:** every server counts its packets and HTTP requests and reports them for the dashboard.
+* **Databases:** MySQL/MariaDB and SQLite kept in step by parity tests; new tables for the dashboard, UGC, API keys,
+  traffic and more; settings kept in the database for the dashboard, with the `.ini` files listing every setting.
+* `bind_ip` for the server sockets; login steps timed from auth through master to the world.
+
 ## License
 Darkflame Universe is licensed under AGPLv3, please read [LICENSE](LICENSE). Some important points:
 * We are not liable for anything you do with the code
