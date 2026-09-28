@@ -241,7 +241,7 @@ namespace UgcRoutes {
 			"A page of player models (kind=model) or of car and rocket assemblies (kind=modular: one per combination of modules, however many builds use "
 			"it). Query: q= (\"state:\", \"kind:\"/\"type:\" (a build type, e.g. build6), \"owner:\", \"account:\", \"property:\", \"name:\", "
 			"\"lot:\"/\"module:\" (a LOT or a module's name), \"id:\", or plain text across names, owners and ids), state=, type=, sort=newest|oldest|owner|name|"
-			"bricks|triangles|slowest (models) or newest|oldest|references|name (assemblies), reverse=1 (the sort's other direction), page= (from 0), size= (1-200). {items, total, page, size, counts, "
+			"bricks|triangles|slowest|made (models) or newest|oldest|references|name (assemblies), reverse=1 (the sort's other direction), page= (from 0), size= (1-200). {items, total, page, size, counts, "
 			"kinds, ugcPublicUrl, canManage}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const bool modular = QueryValue(context.queryString, "kind") == "modular";
@@ -260,7 +260,7 @@ namespace UgcRoutes {
 					query.search = parsed.search;
 					query.state = parsed.state;
 					static const std::map<std::string, IUgcLookup::eSort> SORTS = { { "newest", IUgcLookup::eSort::NEWEST }, { "oldest", IUgcLookup::eSort::OLDEST },
-						{ "owner", IUgcLookup::eSort::OWNER }, { "name", IUgcLookup::eSort::NAME }, { "bricks", IUgcLookup::eSort::BRICKS }, { "triangles", IUgcLookup::eSort::TRIANGLES }, { "slowest", IUgcLookup::eSort::SLOWEST } };
+						{ "owner", IUgcLookup::eSort::OWNER }, { "name", IUgcLookup::eSort::NAME }, { "bricks", IUgcLookup::eSort::BRICKS }, { "triangles", IUgcLookup::eSort::TRIANGLES }, { "slowest", IUgcLookup::eSort::SLOWEST }, { "made", IUgcLookup::eSort::MADE } };
 					if (const auto it = SORTS.find(sortText); it != SORTS.end()) query.sort = it->second;
 					query.reverse = reverse;
 					query.offset = page * size;

@@ -11,7 +11,7 @@
 
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
 	var SORTS = {
-		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['slowest', 'Slowest to make'], ['owner', 'Owner'], ['name', 'File name']],
+		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['owner', 'Owner'], ['name', 'File name']],
 		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['name', 'Name']]
 	};
 	// The list's state, as in the address: ?kind=&q=&state=&type=&sort=&page= (from 1)&view=, and the open item (&item=, &build=)
@@ -141,7 +141,8 @@
 			column('State', function (i) {
 				return badge(i.state) + (i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i);
 			}),
-			column('Made', function (i) { return '<span class="small">' + esc(madeText(i)) + '</span>'; }, 'slowest', true),
+			column('Made', function (i) { return '<span class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</span>'; }, 'made', true),
+			column('Took', function (i) { return '<span class="small">' + esc(costText(i).replace(/^took /, '')) + '</span>'; }, 'slowest', true),
 			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
 			column('File', function (i) { return '<span class="small">' + esc(i.detail || '') + '</span>' + errorText(i); }, 'name'),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })

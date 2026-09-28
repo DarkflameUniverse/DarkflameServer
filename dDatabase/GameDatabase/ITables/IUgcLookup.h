@@ -64,6 +64,7 @@ public:
 		BRICKS,    // models: the most bricks first
 		TRIANGLES, // models: the most triangles first
 		SLOWEST,   // the longest last make first (process_ms)
+		MADE,      // the most recently made (or attempted) first (processed_at)
 	};
 
 	// A page of one kind: all of them or those matching the search (the same matching as SearchUgc), in a state or any

@@ -58,6 +58,7 @@ namespace UgcLookupSql {
 		case eSort::NAME: return std::string("ORDER BY ") + (modular ? "b.ldf_config" : "u.filename") + dir(false) + ", " + id + " DESC ";
 		case eSort::BRICKS: return modular ? "ORDER BY " + id + dir(true) + " " : "ORDER BY u.brick_count" + std::string(dir(true)) + ", u.id DESC ";
 		case eSort::TRIANGLES: return modular ? "ORDER BY " + id + dir(true) + " " : "ORDER BY u.triangle_count" + std::string(dir(true)) + ", u.id DESC ";
+		case eSort::MADE: return "ORDER BY " + std::string(modular ? "b" : "u") + ".processed_at" + dir(true) + ", " + id + " DESC ";
 		case eSort::SLOWEST: return "ORDER BY " + std::string(modular ? "b" : "u") + ".process_ms" + dir(true) + ", " + id + " DESC ";
 		default: return "ORDER BY " + id + dir(true) + " ";
 		}

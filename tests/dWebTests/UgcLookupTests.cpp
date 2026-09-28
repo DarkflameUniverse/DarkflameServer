@@ -182,6 +182,8 @@ TEST_F(UgcLookupSqlTests, ListsPagesWithCounts) {
 	query.reverse = true; // the oldest first
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
 	query.reverse = false;
+	query.sort = IUgcLookup::eSort::MADE; // neither has been made: ties go newest first
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
 	query.sort = IUgcLookup::eSort::SLOWEST; // the tower took 5.2 s; the boat isn't made
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
 	query.reverse = true;
