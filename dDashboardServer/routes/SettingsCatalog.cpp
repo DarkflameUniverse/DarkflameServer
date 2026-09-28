@@ -129,6 +129,11 @@ namespace {
 
 		c.AddSection("Startup");
 		c.Add(Bool(MASTER, "prestart_servers", "Start auth, chat and char servers", "Master starts the other servers itself.", true, true));
+		{
+			auto worlds = List(MASTER, "prestart_worlds", "Worlds started with master", "Started when master starts, before anyone asks for them. Empty: character select (0) and Venture Explorer (1000).", eListOf::ZONE, "0,1000");
+			worlds.restart = true;
+			c.Add(When(std::move(worlds), MASTER, "prestart_servers", { "1" }));
+		}
 		c.Add(Bool(MASTER, "enable_dashboard", "Start the web dashboard", "", false, true));
 		c.Add(Bool(SHARED, "skip_account_creation", "Skip the first-account prompt", "For non-interactive setups: master doesn't ask for an account when there are none.", false, true));
 

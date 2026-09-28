@@ -249,6 +249,9 @@ namespace MasterPackets {
 		// More than this many worlds is a broken packet
 		static constexpr uint32_t MAX_INSTANCES = 10000;
 
+		// Where a world is: connected, launched but not connected yet, or shutting down
+		enum class eState : uint8_t { READY = 0, STARTING = 1, STOPPING = 2 };
+
 		struct Instance {
 			LWOMAPID mapID{};
 			LWOINSTANCEID instanceID{};
@@ -257,6 +260,7 @@ namespace MasterPackets {
 			LUString ip{};
 			uint32_t port{};
 			uint8_t isPrivate{};
+			eState state{ eState::READY }; // written after the UGC fields, one byte per instance
 		};
 
 		uint8_t authOnline{};

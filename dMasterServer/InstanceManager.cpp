@@ -80,6 +80,7 @@ const InstancePtr& InstanceManager::CreateInstance(LWOMAPID mapID, LWOCLONEID cl
 	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
 	m_Instances.push_back(std::move(newInstance));
+	if (m_OnInstancesChanged) m_OnInstancesChanged();
 
 	if (m_Instances.back()) {
 		LOG("Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
@@ -146,6 +147,7 @@ void InstanceManager::AddInstance(InstancePtr& instance) {
 	if (instance == nullptr) return;
 
 	m_Instances.push_back(std::move(instance));
+	if (m_OnInstancesChanged) m_OnInstancesChanged();
 }
 
 void InstanceManager::RemoveInstance(const InstancePtr& instance) {
@@ -156,6 +158,7 @@ void InstanceManager::RemoveInstance(const InstancePtr& instance) {
 			if (!Game::ShouldShutdown()) RedirectPendingRequests(instance);
 
 			m_Instances.erase(m_Instances.begin() + i);
+			if (m_OnInstancesChanged) m_OnInstancesChanged();
 
 			break;
 		}
@@ -164,6 +167,7 @@ void InstanceManager::RemoveInstance(const InstancePtr& instance) {
 
 void InstanceManager::ReadyInstance(const InstancePtr& instance) {
 	instance->SetIsReady(true);
+	if (m_OnInstancesChanged) m_OnInstancesChanged();
 
 	auto& pending = instance->GetPendingRequests();
 
@@ -288,6 +292,7 @@ const InstancePtr& InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLO
 	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
 	m_Instances.push_back(std::move(newInstance));
+	if (m_OnInstancesChanged) m_OnInstancesChanged();
 
 	if (m_Instances.back()) return m_Instances.back();
 	else LOG("Failed to create a new instance!");

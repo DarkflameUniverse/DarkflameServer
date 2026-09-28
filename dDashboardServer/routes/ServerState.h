@@ -39,6 +39,8 @@ struct WorldInstanceInfo {
 	std::string propertyName{};
 	std::string ownerId{};
 	std::string ownerName{};
+	// "starting" (launched, not connected yet) or "stopping"; worlds that are up are in g_WorldInstances instead
+	std::string state{};
 };
 
 namespace ServerState {
@@ -49,6 +51,8 @@ namespace ServerState {
 	extern bool g_UgcEnabled;
 	extern uint32_t g_UgcPid;
 	extern std::vector<WorldInstanceInfo> g_WorldInstances;
+	// Worlds master launched that aren't connected yet, or that are shutting down (kept apart: not running)
+	extern std::vector<WorldInstanceInfo> g_PendingWorlds;
 	extern std::mutex g_StatusMutex;
 
 	inline nlohmann::json GetServerStateJson() {
@@ -75,6 +79,12 @@ namespace ServerState {
 				{"isPrivate", world.isPrivate},
 				{"zoneName", world.zoneName}
 			});
+		}
+
+		data["startingWorlds"] = nlohmann::json::array();
+		for (const auto& world : g_PendingWorlds) {
+			data["startingWorlds"].push_back({ {"mapID", world.mapID}, {"instanceID", world.instanceID}, {"cloneID", world.cloneID},
+				{"zoneName", world.zoneName}, {"state", world.state} });
 		}
 
 		data["stats"]["onlinePlayers"] = totalOnlinePlayers;
@@ -108,6 +118,13 @@ namespace ServerState {
 			}
 		}
 		state["worlds"] = std::move(worlds);
+		// Starting and stopping worlds without clone IDs (a property instance only says it's a property)
+		nlohmann::json pending = nlohmann::json::array();
+		for (const auto& world : state.value("startingWorlds", nlohmann::json::array())) {
+			pending.push_back({ {"mapID", world.value("mapID", 0u)}, {"instanceID", world.value("instanceID", 0u)}, {"zoneName", world.value("zoneName", "")},
+				{"state", world.value("state", "")}, {"property", world.value("cloneID", 0u) != 0} });
+		}
+		state["startingWorlds"] = std::move(pending);
 		return state;
 	}
 }

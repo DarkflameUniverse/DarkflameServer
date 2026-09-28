@@ -352,6 +352,7 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			entry.ip = LUString(instance.ip);
 			entry.port = instance.port;
 			entry.isPrivate = instance.isPrivate ? 1 : 0;
+			entry.state = static_cast<MasterPackets::ServerListResponse::eState>(i % 3);
 		}
 		response.ugcEnabled = 1;
 		response.ugcOnline = count % 2;
@@ -362,6 +363,7 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			b.Write<uint8_t>(1);
 			b.Write<uint8_t>(count % 2);
 			b.Write<uint32_t>(4242 + count);
+			for (size_t i = 0; i < count; i++) b.Write<uint8_t>(static_cast<uint8_t>(i % 3)); // each world's state
 		}), StructPacket(response));
 
 		RakNet::BitStream stream; LoadPayload(stream, response);
@@ -373,6 +375,7 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			EXPECT_EQ(legacy.instances[i].players, copy.instances[i].players);
 			EXPECT_EQ(legacy.instances[i].ip, copy.instances[i].ip.string);
 			EXPECT_EQ(legacy.instances[i].isPrivate, copy.instances[i].isPrivate != 0);
+			EXPECT_EQ(static_cast<size_t>(copy.instances[i].state), i % 3);
 		}
 		EXPECT_EQ(copy.ugcEnabled, 1);
 		EXPECT_EQ(copy.ugcOnline, count % 2);

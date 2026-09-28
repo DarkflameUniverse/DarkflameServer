@@ -120,6 +120,7 @@ namespace ServerState {
 	bool g_UgcEnabled{};
 	uint32_t g_UgcPid{};
 	std::vector<WorldInstanceInfo> g_WorldInstances{};
+	std::vector<WorldInstanceInfo> g_PendingWorlds{};
 	std::mutex g_StatusMutex{};
 }
 
@@ -208,6 +209,7 @@ namespace {
 		ServerState::g_UgcPid = list.ugcPid;
 
 		ServerState::g_WorldInstances.clear();
+		ServerState::g_PendingWorlds.clear();
 		for (const auto& instance : list.instances) {
 			WorldInstanceInfo info;
 			info.mapID = instance.mapID;
@@ -219,7 +221,13 @@ namespace {
 			info.isPrivate = instance.isPrivate != 0;
 			info.zoneName = GetZoneDisplayName(info.mapID);
 			AddPropertyDetails(info);
-			ServerState::g_WorldInstances.push_back(info);
+			using eState = MasterPackets::ServerListResponse::eState;
+			if (instance.state == eState::READY) {
+				ServerState::g_WorldInstances.push_back(info);
+			} else {
+				info.state = instance.state == eState::STARTING ? "starting" : "stopping";
+				ServerState::g_PendingWorlds.push_back(info);
+			}
 		}
 
 		LOG_DEBUG("Received server list: auth=%s chat=%s ugc=%s worlds=%u",
@@ -274,6 +282,8 @@ namespace {
 		} else {
 			instances.push_back(info);
 		}
+
+		std::erase_if(ServerState::g_PendingWorlds, [&](const WorldInstanceInfo& w) { return w.mapID == zoneID && w.instanceID == instanceID; });
 
 		LOG("World ready: zone %i instance %i", zoneID, instanceID);
 	}

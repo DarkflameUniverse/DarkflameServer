@@ -245,7 +245,7 @@ namespace LiveWorld {
 				JsonSuccess(reply, { {"message", "Shutting it down"} });
 			});
 
-		Route(eHTTPMethod::GET, "/api/worlds", Perm("players_view"), "Every running world with its instance and clone IDs, address, players and, for property instances, the property and owner",
+		Route(eHTTPMethod::GET, "/api/worlds", Perm("players_view"), "Every world with its instance and clone IDs, address, players and, for property instances, the property and owner; worlds still starting or shutting down have state: starting|stopping",
 			[](HTTPReply& reply, const HTTPContext&) {
 				nlohmann::json worlds = nlohmann::json::array();
 				std::lock_guard lock(ServerState::g_StatusMutex);
@@ -253,6 +253,12 @@ namespace LiveWorld {
 					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", w.zoneName}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", w.players},
 						{"isPrivate", w.isPrivate}, {"ip", w.ip}, {"port", w.port}, {"propertyId", w.propertyId}, {"propertyName", w.propertyName},
 						{"ownerId", w.ownerId}, {"ownerName", w.ownerName} });
+				}
+				// Launched but not connected yet, or shutting down
+				for (const auto& w : ServerState::g_PendingWorlds) {
+					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", w.zoneName}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", 0},
+						{"isPrivate", w.isPrivate}, {"ip", w.ip}, {"port", w.port}, {"propertyId", w.propertyId}, {"propertyName", w.propertyName},
+						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state} });
 				}
 				JsonSuccess(reply, { {"worlds", worlds} });
 			});

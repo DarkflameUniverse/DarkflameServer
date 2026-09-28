@@ -1,4 +1,6 @@
 #pragma once
+
+#include <functional>
 #include <algorithm>
 #include "SpareBackoff.h"
 #include <map>
@@ -138,6 +140,9 @@ public:
 
 	const std::vector<InstancePtr>& GetInstances() const;
 	void AddInstance(InstancePtr& instance);
+
+	// Called on the main thread whenever a world is launched, becomes ready or is removed (for the dashboard's list)
+	void SetOnInstancesChanged(std::function<void()> callback) { m_OnInstancesChanged = std::move(callback); }
 	void RemoveInstance(const InstancePtr& instance);
 
 	void ReadyInstance(const InstancePtr& instance);
@@ -187,4 +192,5 @@ private:
 	int GetSoftCap(LWOMAPID mapID);
 	int GetHardCap(LWOMAPID mapID);
 	const InstancePtr& CreateInstance(LWOMAPID mapID, LWOCLONEID cloneID);
+	std::function<void()> m_OnInstancesChanged;
 };

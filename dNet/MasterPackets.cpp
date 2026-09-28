@@ -244,6 +244,7 @@ namespace MasterPackets {
 		bitStream.Write(ugcEnabled);
 		bitStream.Write(ugcOnline);
 		bitStream.Write(ugcPid);
+		for (const auto& instance : instances) bitStream.Write(static_cast<uint8_t>(instance.state));
 	}
 
 	bool ServerListResponse::Deserialize(RakNet::BitStream& bitStream) {
@@ -265,6 +266,12 @@ namespace MasterPackets {
 		VALIDATE_READ(bitStream.Read(ugcEnabled));
 		VALIDATE_READ(bitStream.Read(ugcOnline));
 		VALIDATE_READ(bitStream.Read(ugcPid));
+		for (auto& instance : instances) {
+			uint8_t state{};
+			VALIDATE_READ(bitStream.Read(state));
+			if (state > static_cast<uint8_t>(eState::STOPPING)) return false;
+			instance.state = static_cast<eState>(state);
+		}
 		return true;
 	}
 

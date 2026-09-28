@@ -10,6 +10,7 @@ namespace ServerState {
 	bool g_UgcEnabled{};
 	uint32_t g_UgcPid{};
 	std::vector<WorldInstanceInfo> g_WorldInstances{};
+	std::vector<WorldInstanceInfo> g_PendingWorlds{};
 	std::mutex g_StatusMutex{};
 }
 

@@ -124,6 +124,17 @@ $(function () {
 
 	// Staff get the detailed list (address, which property a clone is); everyone else the basic one from the status
 	var detailedWorlds = DASH.can('players_view');
+	// Worlds master launched that haven't connected yet, and those shutting down
+	function stateBadge(row) {
+		if (row.state === 'starting') return ' ' + fmt.badge('Starting', 'info');
+		if (row.state === 'stopping') return ' ' + fmt.badge('Shutting down', 'secondary');
+		return '';
+	}
+	function withPending(data) {
+		return (data.worlds || []).concat((data.startingWorlds || []).map(function (w) {
+			return { zoneName: w.zoneName, mapID: w.mapID, instanceID: w.property ? '' : w.instanceID, cloneID: w.cloneID || 0, players: 0, state: w.state };
+		}));
+	}
 	var worlds = $('#worldInstancesTable').DataTable({
 		paging: false,
 		searching: false,
@@ -133,7 +144,7 @@ $(function () {
 			{ data: 'zoneName', render: function (d, t, row) {
 				// Staff who read chat can open this world on the Chat Log: its chat, players and stats
 				var name = DASH.can('chat_view') && row.mapID ? fmt.link('/chat_log#world=' + row.mapID + ':' + row.instanceID, d) : esc(d);
-				return name + ' <span class="text-body-secondary">(' + esc(row.mapID) + ')</span>'; } },
+				return name + ' <span class="text-body-secondary">(' + esc(row.mapID) + ')</span>' + stateBadge(row); } },
 			// Without players_view, property instances come merged per zone ({properties: n}) and without clone IDs
 			{ data: 'instanceID', render: function (d, t, row) { return row.properties ? esc(row.properties) + ' propert' + (row.properties === 1 ? 'y' : 'ies') : esc(d); } }
 		].concat(detailedWorlds ? [{ data: 'cloneID' }, { data: 'propertyName', defaultContent: '', render: function (d, t, row) {
@@ -142,6 +153,7 @@ $(function () {
 		} }] : []).concat([
 			{ data: 'players', render: function (d) { return fmt.badge(d, 'primary'); } }
 		]).concat(detailedWorlds ? [{ data: 'isPrivate', render: function (d) { return d ? fmt.badge('Private', 'warning') : fmt.badge('Public', 'success'); } }, { data: 'port', defaultContent: '', render: function (d, t, row) { return '<code class="small">' + esc((row.ip || '') + ':' + d) + '</code>'; } }] : []).concat(DASH.can('worlds_manage') ? [{ data: null, orderable: false, className: 'text-end', render: function (d, t, row) {
+			if (row.state) return '';
 			return '<button class="btn btn-sm btn-outline-danger text-nowrap" data-shutdown-zone="' + esc(row.mapID) + '" data-shutdown-instance="' + esc(row.instanceID) + '">Shut down</button>';
 		} }] : []),
 		language: { emptyTable: 'No active world instances' }
@@ -211,7 +223,7 @@ $(function () {
 		if (data.worlds) {
 			setText('world-count', data.stats && data.stats.worlds !== undefined ? data.stats.worlds : data.worlds.length);
 			if (detailedWorlds) loadDetailedWorlds();
-			else worlds.clear().rows.add(data.worlds).draw(false);
+			else worlds.clear().rows.add(withPending(data)).draw(false);
 		}
 		if (data.stats) {
 			setText('online-players', data.stats.onlinePlayers);

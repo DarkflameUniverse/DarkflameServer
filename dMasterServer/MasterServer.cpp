@@ -88,6 +88,38 @@ SystemAddress ugcServerMasterPeerSysAddr;
 uint32_t ugcServerPid = 0;
 
 namespace {
+	// Every server for the dashboard: auth, chat, the UGC server and the worlds, including those launched but not
+	// connected yet (starting) and those shutting down
+	MasterPackets::ServerListResponse BuildServerList() {
+		using eState = MasterPackets::ServerListResponse::eState;
+		MasterPackets::ServerListResponse response;
+		response.authOnline = authServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+		response.chatOnline = chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+		response.ugcEnabled = Game::config->GetValue("enable_ugc_server") == "1" ? 1 : 0;
+		response.ugcOnline = ugcServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
+		response.ugcPid = ugcServerPid;
+		if (!Game::im) return response;
+		for (const auto& inst : Game::im->GetInstances()) {
+			if (!inst || inst->GetShutdownComplete()) continue;
+			auto& entry = response.instances.emplace_back();
+			entry.mapID = inst->GetMapID();
+			entry.instanceID = inst->GetInstanceID();
+			entry.cloneID = inst->GetCloneID();
+			entry.players = static_cast<uint32_t>(inst->GetCurrentClientCount());
+			entry.ip = LUString(inst->GetIP());
+			entry.port = inst->GetPort();
+			entry.isPrivate = inst->GetIsPrivate() ? 1 : 0;
+			entry.state = inst->GetIsShuttingDown() ? eState::STOPPING : inst->GetIsReady() ? eState::READY : eState::STARTING;
+		}
+		return response;
+	}
+
+	// Tells the dashboard at once when a world is launched, connects or goes away (it also asks every 30 seconds)
+	void PushServerListToDashboard() {
+		if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) return;
+		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, BuildServerList());
+	}
+
 	// Dashboard player actions waiting for world servers to answer
 	struct PendingPlayerAction {
 		ePlayerAction action{};
@@ -418,6 +450,7 @@ int main(int argc, char** argv) {
 
 	//Create additional objects here:
 	Game::im = new InstanceManager(Game::server->GetIP());
+	Game::im->SetOnInstancesChanged(PushServerListToDashboard);
 
 	//Get CDClient initial information
 	try {
@@ -442,8 +475,17 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("prestart_servers") != "0") {
 		StartChatServer();
 
-		Game::im->GetInstance(0, false, 0);
-		Game::im->GetInstance(1000, false, 0);
+		// The worlds started with master (prestart_worlds, zone ids; missing or empty: character select and Venture Explorer)
+		for (auto part : GeneralUtils::SplitString(Game::config->GetValue("prestart_worlds", "0,1000"), ',')) {
+			std::erase_if(part, [](const char c) { return std::isspace(static_cast<unsigned char>(c)); });
+			if (part.empty()) continue;
+			const auto zoneId = GeneralUtils::TryParse<LWOMAPID>(part);
+			if (!zoneId) {
+				LOG("prestart_worlds: '%s' isn't a zone id; skipped", part.c_str());
+				continue;
+			}
+			Game::im->GetInstance(*zoneId, false, 0);
+		}
 		StartAuthServer();
 	}
 
@@ -804,6 +846,7 @@ namespace {
 
 		LOG("Got shutdown response from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 		instance->SetIsShuttingDown(true);
+		PushServerListToDashboard();
 	}
 
 	void OnShutdownUniverse(const ShutdownUniverse& request, const SystemAddress& sysAddr) {
@@ -937,25 +980,7 @@ namespace {
 	void OnRequestServerList(const RequestServerList& request, const SystemAddress& sysAddr) {
 		LOG("Dashboard requested server list");
 
-		ServerListResponse response;
-		response.authOnline = authServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
-		response.chatOnline = chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
-		response.ugcEnabled = Game::config->GetValue("enable_ugc_server") == "1" ? 1 : 0;
-		response.ugcOnline = ugcServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
-		response.ugcPid = ugcServerPid;
-
-		for (const auto& inst : Game::im->GetInstances()) {
-			if (!inst || !inst->GetIsReady() || inst->GetIsShuttingDown()) continue;
-			auto& entry = response.instances.emplace_back();
-			entry.mapID = inst->GetMapID();
-			entry.instanceID = inst->GetInstanceID();
-			entry.cloneID = inst->GetCloneID();
-			entry.players = static_cast<uint32_t>(inst->GetCurrentClientCount());
-			entry.ip = LUString(inst->GetIP());
-			entry.port = inst->GetPort();
-			entry.isPrivate = inst->GetIsPrivate() ? 1 : 0;
-		}
-
+		const auto response = BuildServerList();
 		MasterPackets::SendTo(sysAddr, response);
 	}
 
