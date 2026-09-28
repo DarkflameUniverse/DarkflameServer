@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <cstdint>
 #include <exception>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -119,6 +121,112 @@ namespace WorldScene {
 			return lvl.substr(skydome + 4, length);
 		}
 		return {};
+	}
+
+	/**
+	 * A scene's lighting from its environment chunk, as the client's shaders get it (EnvironmentManager::SetLightEnv,
+	 * 0x01088aa0 in client 1.10.64): g_ambientLight, g_lightColor (the sun's color), g_upperHemiLight and g_lightVec,
+	 * the unit vector toward the sun (the file stores the direction the light shines in). Colors are 0..1.
+	 */
+	struct Lighting {
+		std::array<float, 3> ambient{};
+		std::array<float, 3> specular{};
+		std::array<float, 3> upperHemi{};
+		std::array<float, 3> light{};     // the sun's color
+		std::array<float, 3> lightVec{};  // toward the sun, unit length
+		std::array<float, 3> fogColor{};
+		float fogNear{};                  // fog at the highest draw distance setting
+		float fogFar{};
+
+		bool operator==(const Lighting&) const = default;
+	};
+
+	/**
+	 * The lighting of a scene file, read as the client's level_read_lighting_info (0x0102f8f0) does, gated by the
+	 * file's version; nullopt when the file has none or ends early. Scenes older than version 36 have no sun color
+	 * (the client keeps black there); ones before 31 no fog.
+	 */
+	inline std::optional<Lighting> ReadLighting(const std::string& lvl) {
+		std::istringstream stream(lvl);
+		LevelFile level;
+		try {
+			level.Read(stream);
+		} catch (const std::exception&) {
+			// The chunk headers read before any damage are enough
+		}
+		const auto info = level.chunkHeaders.find(LevelFile::FileInfo);
+		const auto environment = level.chunkHeaders.find(LevelFile::SceneEnviroment);
+		if (info == level.chunkHeaders.end() || environment == level.chunkHeaders.end()) return std::nullopt;
+		const auto version = info->second.fileInfo.version;
+		size_t at = environment->second.startPosition; // the chunk starts with the offset of its lighting
+		bool ok = true;
+		const auto u32 = [&]() {
+			uint32_t value{};
+			if (at > lvl.size() || lvl.size() - at < 4) {
+				ok = false;
+				return value;
+			}
+			std::memcpy(&value, lvl.data() + at, 4);
+			at += 4;
+			return value;
+		};
+		const auto f32 = [&]() {
+			const auto bits = u32();
+			float value{};
+			std::memcpy(&value, &bits, 4);
+			return value;
+		};
+		const auto read3 = [&](std::array<float, 3>& out) { for (auto& value : out) value = f32(); };
+		at = u32();
+		if (!ok || at == 0) return std::nullopt;
+
+		Lighting lighting;
+		if (version > 44) f32(); // how long the client blends to it
+		read3(lighting.ambient);
+		read3(lighting.specular);
+		read3(lighting.upperHemi);
+		std::array<float, 3> direction{};
+		read3(direction);
+		if (version > 30) {
+			if (version < 39) {
+				lighting.fogNear = f32();
+				lighting.fogFar = f32();
+			} else {
+				// Two draw distance settings (lowest, then highest): fog near and far, post fog solid and fade, static
+				// and dynamic object distance
+				for (int i = 0; i < 6; i++) f32();
+				lighting.fogNear = f32();
+				lighting.fogFar = f32();
+				for (int i = 0; i < 4; i++) f32();
+				if (version > 39) {
+					const auto cullGroups = u32(); // group id, min, max each
+					if (!ok || cullGroups > (lvl.size() - at) / 12) return std::nullopt;
+					at += static_cast<size_t>(cullGroups) * 12;
+				}
+			}
+			read3(lighting.fogColor);
+		}
+		if (version > 35) read3(lighting.light);
+		if (!ok) return std::nullopt;
+		const auto length = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+		if (length > 0.0f) for (int i = 0; i < 3; i++) lighting.lightVec[i] = -direction[i] / length;
+		return lighting;
+	}
+
+	/**
+	 * The lighting to draw a whole zone with: the client blends to each scene's lighting as the player walks in, so a
+	 * view of the zone takes the one most of its objects are lit by (scenes as {lighting, how many objects}; ties go
+	 * to the first). nullopt when no scene has any.
+	 */
+	inline std::optional<Lighting> ZoneLighting(const std::vector<std::pair<Lighting, size_t>>& scenes) {
+		std::vector<std::pair<Lighting, size_t>> totals;
+		for (const auto& [lighting, objects] : scenes) {
+			const auto it = std::find_if(totals.begin(), totals.end(), [&lighting](const auto& total) { return total.first == lighting; });
+			if (it == totals.end()) totals.emplace_back(lighting, objects);
+			else it->second += objects;
+		}
+		if (totals.empty()) return std::nullopt;
+		return std::max_element(totals.begin(), totals.end(), [](const auto& a, const auto& b) { return a.second < b.second; })->first;
 	}
 
 	/**

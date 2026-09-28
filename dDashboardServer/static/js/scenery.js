@@ -9,7 +9,7 @@
  * follows the camera, far away, behind everything.
  */
 import * as THREE from 'three';
-import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, parseDds, decodeDxt, completeChain, linearColors, groupObjects, cellsOf, textureAlphaMode, gameLook } from '/js/scenery-core.js';
 
 // Per detail level (the property view's 0 high, 1 medium, 2 low): the model LOD, how far objects are drawn, the
 // largest texture side and a memory budget for geometry and textures
@@ -64,6 +64,12 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		onProgress(done, wanted);
 	}
 
+	// A model or texture URL with the manifest's conversion format, so a browser's week-long cache of models
+	// converted the old way isn't used once the server converts them anew
+	function versioned(url) {
+		return manifest && manifest.format ? url + (url.includes('?') ? '&' : '?') + 'v=' + manifest.format : url;
+	}
+
 	async function fetchBuffer(url) {
 		const response = await fetch(url, { credentials: 'same-origin' });
 		if (!response.ok) throw new Error(response.status + ' ' + url);
@@ -105,7 +111,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		const key = lod + '/' + (path.startsWith('#') ? asset + path : path);
 		if (!textures.has(key)) {
 			const size = detail.texture;
-			textures.set(key, fetchBuffer(urls.texture(manifest.zone, asset, slot, lod)).then((buffer) => {
+			textures.set(key, fetchBuffer(versioned(urls.texture(manifest.zone, asset, slot, lod))).then((buffer) => {
 				const texture = makeTexture(buffer, size);
 				if (texture) used += texture.userData.bytes;
 				return texture;
@@ -114,12 +120,15 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		return textures.get(key);
 	}
 
-	function geometryOf(mesh) {
+	// Whether a mesh's vertex colors are drawn: as its game look says, else as NiVertexColorProperty does
+	const usesVertexColors = (mesh, look) => (look ? look.vertexColors : !!(mesh.colors && mesh.vertexColors !== 0));
+
+	function geometryOf(mesh, look) {
 		const geometry = new THREE.BufferGeometry();
 		geometry.setAttribute('position', new THREE.BufferAttribute(mesh.positions, 3));
 		if (mesh.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(mesh.normals, 3, true));
 		if (mesh.uvs) geometry.setAttribute('uv', new THREE.BufferAttribute(mesh.uvs, 2));
-		if (mesh.colors && mesh.vertexColors !== 0) geometry.setAttribute('color', new THREE.BufferAttribute(linearColors(mesh.colors), 4, true));
+		if (usesVertexColors(mesh, look)) geometry.setAttribute('color', new THREE.BufferAttribute(linearColors(mesh.colors), 4, true));
 		geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
 		if (!mesh.normals) geometry.computeVertexNormals();
 		geometry.computeBoundingSphere();
@@ -149,51 +158,105 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 #endif
 `;
 
+	// The texture alpha mode's change to a fragment shader
+	function textureAlphaPatch(shader, mode) {
+		if (mode === 'decal') {
+			shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', '').replace('#include <color_fragment>', DECAL_FRAGMENT);
+		} else if (mode === 'ignored') {
+			shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', OPAQUE_MAP_FRAGMENT);
+		}
+	}
+
 	function useTextureAlpha(material, mode) {
 		if (mode === 'opacity' || !material.map) return material;
-		material.onBeforeCompile = (shader) => {
-			if (mode === 'decal') {
-				shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', '').replace('#include <color_fragment>', DECAL_FRAGMENT);
-			} else {
-				shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', OPAQUE_MAP_FRAGMENT);
-			}
-		};
+		material.onBeforeCompile = (shader) => textureAlphaPatch(shader, mode);
 		material.customProgramCacheKey = () => 'textureAlpha:' + mode;
 		return material;
 	}
 
-	function materialOf(mesh, map, forSky, alphaMode = 'opacity') {
+	// The zone's lights as the game's shaders get them (manifest.lighting), shared by every lit material
+	const gameLights = { gameLightColor: { value: new THREE.Vector3(1, 1, 1) }, gameAmbient: { value: new THREE.Vector3() }, gameLightVec: { value: new THREE.Vector3(0, 1, 0) } };
+	function setGameLights(lighting) {
+		if (!lighting) return;
+		gameLights.gameLightColor.value.fromArray(lighting.light);
+		gameLights.gameAmbient.value.fromArray(lighting.ambient);
+		gameLights.gameLightVec.value.fromArray(lighting.lightVec);
+	}
+
+	/**
+	 * Lighting per vertex as BasicShaders.fx and LEGOPPLighting.fx do it: sun * max(0, N.L) + ambient in the game's
+	 * (sRGB) color space, which the vertex shader's color output clamps to 1, then made linear for three.js.
+	 */
+	const GAME_LIGHT_VERTEX = `#include <begin_vertex>
+	vec3 gameNormal = normal;
+	#ifdef USE_INSTANCING
+	gameNormal = mat3( instanceMatrix ) * gameNormal;
+	#endif
+	gameNormal = normalize( mat3( modelMatrix ) * gameNormal );
+	vGameLight = pow( clamp( gameLightColor * max( 0.0, dot( gameNormal, gameLightVec ) ) + gameAmbient, 0.0, 1.0 ), vec3( 2.2 ) );`;
+
+	/**
+	 * A material that draws a mesh the way its game shader does (gameLook): unlit by the view's own lights and tone
+	 * mapping, the zone's sun and ambient light per vertex when the shader is lit, the material's color only when the
+	 * shader reads it.
+	 */
+	function gameMaterial(options, mesh, alphaMode, look) {
+		const material = new THREE.MeshBasicMaterial({
+			...options,
+			color: look.material ? options.color : new THREE.Color(1, 1, 1)
+		});
+		material.toneMapped = false;
+		material.onBeforeCompile = (shader) => {
+			if (options.map) textureAlphaPatch(shader, alphaMode);
+			if (!look.lit) return;
+			Object.assign(shader.uniforms, gameLights);
+			shader.vertexShader = 'uniform vec3 gameLightColor;\nuniform vec3 gameAmbient;\nuniform vec3 gameLightVec;\nvarying vec3 vGameLight;\n' +
+				shader.vertexShader.replace('#include <begin_vertex>', GAME_LIGHT_VERTEX);
+			shader.fragmentShader = 'varying vec3 vGameLight;\n' +
+				shader.fragmentShader.replace('#include <aomap_fragment>', '#include <aomap_fragment>\n\treflectedLight.indirectDiffuse *= vGameLight;');
+		};
+		material.customProgramCacheKey = () => 'game:' + (options.map ? alphaMode : '') + ':' + look.lit;
+		return material;
+	}
+
+	function materialOf(mesh, map, forSky, alphaMode = 'opacity', look = null) {
 		// Nearly everything in the game's files has alpha blending switched on; it only shows where something is see-
 		// through: the material, a vertex or the texture (only when the object's shader uses the texture's alpha as
 		// opacity). Blended meshes still write depth, as Gamebryo's default does.
+		const vertexColors = usesVertexColors(mesh, look);
 		let vertexAlpha = false;
-		if (mesh.colors && mesh.vertexColors !== 0) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
+		if (vertexColors) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
 		const textureAlpha = alphaMode === 'opacity' && !!(map && map.userData.alpha);
-		const seeThrough = mesh.blend && (mesh.alpha < 0.99 || vertexAlpha || textureAlpha);
+		// The game's shaders take alpha from the vertex colors and texture only; NiMaterialProperty's is for fixed function
+		const materialAlpha = look && !look.material ? 1 : mesh.alpha;
+		const seeThrough = mesh.blend && (materialAlpha < 0.99 || vertexAlpha || textureAlpha);
 		const options = {
 			color: new THREE.Color().setRGB(mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2], THREE.SRGBColorSpace),
-			vertexColors: !!(mesh.colors && mesh.vertexColors !== 0),
+			vertexColors,
 			transparent: seeThrough,
-			opacity: mesh.alpha,
+			opacity: materialAlpha,
 			alphaTest: mesh.test >= 0 ? Math.max(mesh.test / 255, 0.01) : 0,
 			side: mesh.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
 			map: map || null
 		};
 		if (forSky) return useTextureAlpha(new THREE.MeshBasicMaterial({ ...options, depthWrite: false, fog: false }), alphaMode);
+		if (look) return gameMaterial(options, mesh, alphaMode, look);
 		const material = new THREE.MeshStandardMaterial({ ...options, roughness: 0.85, metalness: 0 });
 		material.emissive.setRGB(mesh.emissive[0], mesh.emissive[1], mesh.emissive[2], THREE.SRGBColorSpace);
 		return useTextureAlpha(material, alphaMode);
 	}
 
 	async function buildParts(asset, lod, forSky) {
-		const buffer = await fetchBuffer(urls.mesh(manifest.zone, asset, lod));
+		const buffer = await fetchBuffer(versioned(urls.mesh(manifest.zone, asset, lod)));
 		const model = parseModel(buffer);
 		const parts = [];
 		// The sky's layers keep their order; everything else has its look-alike pieces joined
 		for (const mesh of forSky ? model.meshes : mergeMeshes(model.meshes)) {
 			if (!mesh.vertices || !mesh.indices.length) continue;
+			// The sky keeps its own unlit look
+			const look = forSky ? null : gameLook(manifest, asset, mesh);
 			let map = null;
-			if (mesh.texture >= 0 && mesh.uv) {
+			if (mesh.texture >= 0 && mesh.uv && (!look || look.texture)) {
 				const texture = await loadTexture(asset, mesh.texture, model.header.textures[mesh.texture], lod);
 				if (texture) {
 					map = texture.clone(); // shares the image; wrapping differs per mesh
@@ -202,8 +265,8 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 					map.needsUpdate = true;
 				}
 			}
-			const geometry = geometryOf(mesh);
-			parts.push({ geometry, material: materialOf(mesh, map, forSky, textureAlphaMode(manifest, asset, mesh)) });
+			const geometry = geometryOf(mesh, look);
+			parts.push({ geometry, material: materialOf(mesh, map, forSky, textureAlphaMode(manifest, asset, mesh), look) });
 		}
 		const min = model.header.min, max = model.header.max;
 		const radius = Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) / 2;
@@ -361,6 +424,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 				if (!response.ok) { manifest = null; return false; }
 				manifest = await response.json();
 				manifest.url = url;
+				setGameLights(manifest.lighting);
 				byAsset = groupObjects(manifest.objects);
 				if (manifest.sky >= 0) byAsset.delete(manifest.sky);
 			}

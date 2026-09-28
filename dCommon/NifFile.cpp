@@ -661,6 +661,39 @@ namespace NifFile {
 		}
 	}
 
+	uint8_t ShaderLookFor(int32_t shader) {
+		// By the techniques of each mapShaders row (its label names them: "NL" no lighting, "NT" no texture, "VC"
+		// vertex colors), e.g. 38 "Basic VC" is Technique_Basic_Lighting_VertColor, 33 "Basic NL VC NT"
+		// Technique_Basic_NoLighting_VertColor_NoTexture, 32 "Basic NL Material" Technique_Basic_Material_NoLighting
+		switch (shader) {
+			// Basic NL Material, Over Everything Material Unlit
+			case 32: case 108:
+				return UNLIT | NO_VERTEX_COLORS | MATERIAL_COLOR;
+			// Basic NL, Basic NL UVAnim, OneSidedAlpha NL (and skinned), Opaque NL NoFog
+			case 34: case 36: case 56: case 61: case 83:
+				return UNLIT | NO_VERTEX_COLORS;
+			// Basic, the lit one without vertex colors
+			case 94:
+				return NO_VERTEX_COLORS;
+			// VertColor_NoLight_NoTex_AnimAlpha, VC_NL_NoTex_2D, Basic NL VC NT, OneSidedAlpha NL VC NT (and skinned),
+			// Basic NL NT, Opaque NL VC NT NoFog
+			case 11: case 16: case 33: case 58: case 63: case 80: case 82:
+				return UNLIT | NO_TEXTURE;
+			// Basic VC NT, Opaque VC NT NoFog
+			case 37: case 85:
+				return NO_TEXTURE;
+			// VertColor_NoLighting_Alpha, VertColorTex_NoLight_AlphaBlend and _AlphaTest, VC_NoLighting_2D, Over
+			// Everything (Unlit), Basic NL VC, LEGO-No Light, OneSidedAlpha NL VC (and skinned), OneSidedAlpha NL
+			// AnimAlpha, the NoLight scrolling UVs, Opaque NL VC NoFog, Additive NoLight VertColor, Two Textures Added NL
+			// VC AnimUV, Distortion (Ocean) Unlit, Two Layers Blended NL VC AnimUV
+			case 8: case 10: case 54: case 15: case 23: case 35: case 52: case 57: case 62: case 68: case 70: case 73: case 81:
+			case 84: case 87: case 93: case 101: case 105:
+				return UNLIT;
+			default:
+				return 0;
+		}
+	}
+
 	std::optional<Model> Parse(std::string_view data, uint32_t lod, std::string& error) {
 		return Parser(data, lod).Run(error);
 	}

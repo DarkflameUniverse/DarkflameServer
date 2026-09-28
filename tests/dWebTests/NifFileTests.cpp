@@ -355,6 +355,93 @@ TEST(WorldSceneTests, ReadsTheSkydomeOfASceneFile) {
 	EXPECT_EQ(WorldScene::ReadSkydome(""), "");
 }
 
+namespace {
+	// A scene file (`version`) with one environment chunk whose lighting is `lighting`
+	std::string SceneWithLighting(uint32_t version, const Bytes& lighting) {
+		Bytes lvl;
+		// File info chunk (data at 0x20: version), then the environment chunk (header at 0x34, data at 0x54) whose
+		// lighting starts at 0x60
+		lvl.Raw("CHNK").Put<uint32_t>(1000).Put<uint16_t>(1).Put<uint16_t>(1).Put<uint32_t>(0x34).Put<uint32_t>(0x20);
+		lvl.Raw(std::string(0x20 - lvl.data.size(), '\xCD'));
+		lvl.Put<uint32_t>(version).Put<uint32_t>(0).Put<uint32_t>(0x34).Put<uint32_t>(0).Put<uint32_t>(0);
+		lvl.Raw("CHNK").Put<uint32_t>(2000).Put<uint16_t>(1).Put<uint16_t>(2).Put<uint32_t>(0x60 + static_cast<uint32_t>(lighting.data.size()) - 0x34).Put<uint32_t>(0x54);
+		lvl.Raw(std::string(0x54 - lvl.data.size(), '\xCD'));
+		lvl.Put<uint32_t>(0x60).Put<uint32_t>(0).Put<uint32_t>(0);
+		lvl.Raw(lighting.data);
+		return lvl.data;
+	}
+
+	Bytes& Floats(Bytes& bytes, std::initializer_list<float> values) {
+		for (const auto value : values) bytes.Put<float>(value);
+		return bytes;
+	}
+}
+
+// As the client's level_read_lighting_info: version 48 has a blend time, two draw distance settings and cull groups
+TEST(WorldSceneTests, ReadsTheLightingOfASceneFile) {
+	Bytes lighting;
+	Floats(lighting, { 10.0f });                               // blend time
+	Floats(lighting, { 0.42f, 0.62f, 0.75f });                 // ambient
+	Floats(lighting, { 1, 1, 1 });                             // specular
+	Floats(lighting, { 1, 0.7f, 0.5f });                       // upper hemisphere
+	Floats(lighting, { 0, -3, -4 });                           // the way the sun shines
+	Floats(lighting, { 100, 300, 50, 50, 8000, 8000 });        // lowest draw distances
+	Floats(lighting, { 250, 350, 100, 100, 8000, 8000 });      // highest
+	lighting.Put<uint32_t>(2).Put<uint32_t>(7);
+	Floats(lighting, { 1, 2 });
+	lighting.Put<uint32_t>(8);
+	Floats(lighting, { 3, 4 });                                // cull groups
+	Floats(lighting, { 0.5f, 0.8f, 0.9f });                    // fog color
+	Floats(lighting, { 1, 0.9f, 0.8f });                       // sun color
+	const auto read = WorldScene::ReadLighting(SceneWithLighting(48, lighting));
+	ASSERT_TRUE(read);
+	EXPECT_FLOAT_EQ(read->ambient[1], 0.62f);
+	EXPECT_FLOAT_EQ(read->upperHemi[2], 0.5f);
+	EXPECT_FLOAT_EQ(read->lightVec[0], 0.0f); // toward the sun: the stored direction turned around, unit length
+	EXPECT_FLOAT_EQ(read->lightVec[1], 0.6f);
+	EXPECT_FLOAT_EQ(read->lightVec[2], 0.8f);
+	EXPECT_FLOAT_EQ(read->fogNear, 250.0f);
+	EXPECT_FLOAT_EQ(read->fogFar, 350.0f);
+	EXPECT_FLOAT_EQ(read->fogColor[2], 0.9f);
+	EXPECT_FLOAT_EQ(read->light[1], 0.9f);
+
+	// Version 35: no blend time, one fog range, no sun color
+	Bytes old;
+	Floats(old, { 0.5f, 0.5f, 0.5f, 1, 1, 1, 1, 1, 1, 0, -1, 0, 20, 90, 0.1f, 0.2f, 0.3f });
+	const auto older = WorldScene::ReadLighting(SceneWithLighting(35, old));
+	ASSERT_TRUE(older);
+	EXPECT_FLOAT_EQ(older->ambient[0], 0.5f);
+	EXPECT_FLOAT_EQ(older->lightVec[1], 1.0f);
+	EXPECT_FLOAT_EQ(older->fogFar, 90.0f);
+	EXPECT_FLOAT_EQ(older->fogColor[1], 0.2f);
+	EXPECT_FLOAT_EQ(older->light[0], 0.0f);
+
+	// Cut short, or no environment chunk
+	const auto whole = SceneWithLighting(48, lighting);
+	EXPECT_FALSE(WorldScene::ReadLighting(whole.substr(0, whole.size() - 8)));
+	EXPECT_FALSE(WorldScene::ReadLighting(""));
+}
+
+TEST(WorldSceneTests, LightsAZoneAsMostOfItsObjectsAre) {
+	WorldScene::Lighting day, dusk;
+	day.ambient = { 1, 1, 1 };
+	dusk.ambient = { 0.2f, 0.2f, 0.4f };
+	EXPECT_FALSE(WorldScene::ZoneLighting({}));
+	// Two scenes lit like dusk hold more objects than the day one
+	EXPECT_EQ(WorldScene::ZoneLighting({ { day, 50 }, { dusk, 30 }, { dusk, 25 } }), dusk);
+	EXPECT_EQ(WorldScene::ZoneLighting({ { day, 10 }, { dusk, 10 } }), day); // a tie goes to the first
+}
+
+TEST(NifFileTests, KnowsWhatEachShaderLeavesOut) {
+	EXPECT_EQ(NifFile::ShaderLookFor(38), 0);                   // Basic VC: lit, textured, vertex colors
+	EXPECT_EQ(NifFile::ShaderLookFor(NifFile::LEGO_SHADER), 0);
+	EXPECT_EQ(NifFile::ShaderLookFor(-1), 0);                   // fixed function is lit by Gamebryo
+	EXPECT_EQ(NifFile::ShaderLookFor(33), NifFile::UNLIT | NifFile::NO_TEXTURE); // Basic NL VC NT
+	EXPECT_EQ(NifFile::ShaderLookFor(37), NifFile::NO_TEXTURE); // Basic VC NT
+	EXPECT_EQ(NifFile::ShaderLookFor(70), NifFile::UNLIT);      // ScrollingUV_NoLight_AnimAlpha
+	EXPECT_EQ(NifFile::ShaderLookFor(32), NifFile::UNLIT | NifFile::NO_VERTEX_COLORS | NifFile::MATERIAL_COLOR); // Basic NL Material
+}
+
 // The game client's own meshes, when a client is configured (DLU_CLIENT_RES, else client_location in the build's
 // sharedconfig.ini): the first 300 .nif files under res/mesh/env read, and most have something to draw
 TEST(NifFileTests, ReadsTheClientsMeshes) {

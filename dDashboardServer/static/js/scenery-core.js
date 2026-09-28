@@ -43,14 +43,46 @@ export function parseModel(buffer) {
  * their shader in their node names (mesh.shaderTag); a tag the client can't use falls back to the LEGO shader.
  */
 export function textureAlphaMode(manifest, asset, mesh) {
-	if (!manifest || !manifest.shaders || !manifest.textureAlpha) return 'opacity';
-	let shader = manifest.shaders[asset];
-	if (shader === undefined || shader === null) return 'opacity';
-	if (shader === manifest.multishader) {
-		const tagged = mesh && mesh.shaderTag >= 0 && manifest.shaderTags ? manifest.shaderTags[mesh.shaderTag] : undefined;
-		shader = tagged !== undefined && tagged >= 3 && tagged <= 108 ? tagged : manifest.defaultShader;
-	}
-	return manifest.textureAlpha[shader] || 'opacity';
+	if (!manifest || !manifest.textureAlpha) return 'opacity';
+	const shader = shaderOf(manifest, asset, mesh);
+	return shader === null ? 'opacity' : manifest.textureAlpha[shader] || 'opacity';
+}
+
+/**
+ * The shader (mapShaders.gameValue) the game draws a mesh of a model with, or null when the manifest doesn't say
+ * (-1 is fixed function). A multishader model's parts name theirs in their node names (mesh.shaderTag, a mapShaders
+ * id); a tag the client can't use falls back to the LEGO shader.
+ */
+export function shaderOf(manifest, asset, mesh) {
+	if (!manifest || !manifest.shaders) return null;
+	const shader = manifest.shaders[asset];
+	if (shader === undefined || shader === null) return null;
+	if (shader !== manifest.multishader) return shader;
+	const tagged = mesh && mesh.shaderTag >= 0 && manifest.shaderTags ? manifest.shaderTags[mesh.shaderTag] : undefined;
+	return tagged !== undefined && tagged >= 3 && tagged <= 108 ? tagged : manifest.defaultShader;
+}
+
+// NifFile::eShaderLook bits
+export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8 };
+
+/**
+ * How a mesh is drawn under the game's shaders, when the manifest has the zone's lighting: {lit, texture,
+ * vertexColors, material} — whether the scene's sun and ambient light it, its texture and vertex colors are used, and
+ * whether its NiMaterialProperty colors are (only fixed function and the "Material" shaders use them). Null without
+ * lighting in the manifest (older servers), for the viewer's own lights.
+ */
+export function gameLook(manifest, asset, mesh) {
+	if (!manifest || !manifest.lighting) return null;
+	const shader = shaderOf(manifest, asset, mesh);
+	const fixedFunction = shader === null || shader < 0;
+	const bits = fixedFunction || !manifest.shaderLooks ? 0 : manifest.shaderLooks[shader] || 0;
+	return {
+		lit: !(bits & SHADER_LOOK.UNLIT),
+		texture: !(bits & SHADER_LOOK.NO_TEXTURE),
+		// Fixed function reads them as NiVertexColorProperty says; the shaders always do, unless they have none
+		vertexColors: !!(mesh.colors && !(bits & SHADER_LOOK.NO_VERTEX_COLORS) && (!fixedFunction || mesh.vertexColors !== 0)),
+		material: fixedFunction || !!(bits & SHADER_LOOK.MATERIAL_COLOR)
+	};
 }
 
 /**

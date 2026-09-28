@@ -222,8 +222,14 @@ namespace {
 		};
 		for (const auto& [id, value] : g_ShaderValues) mode(value);
 		mode(NifFile::LEGO_SHADER);
+		// What each shader leaves out of the lit look (NifFile::eShaderLook bits), for the ones that do
+		nlohmann::json looks = nlohmann::json::object();
+		for (const auto& [id, value] : g_ShaderValues) {
+			if (const auto look = NifFile::ShaderLookFor(value)) looks[std::to_string(value)] = look;
+		}
 		manifest["shaderTags"] = std::move(tags);
 		manifest["textureAlpha"] = std::move(modes);
+		manifest["shaderLooks"] = std::move(looks);
 		manifest["multishader"] = NifFile::MULTISHADER;
 		manifest["defaultShader"] = NifFile::LEGO_SHADER;
 	}
@@ -235,6 +241,23 @@ namespace {
 	double Round(float value, double scale) { return std::round(static_cast<double>(value) * scale) / scale; }
 
 	/**
+	 * Bump when NifFile's output changes: converted models kept on disk are made again, and the manifests' "format"
+	 * goes into the viewers' model and texture URLs so browsers don't keep drawing the old ones (they're cached for
+	 * a week). 2: meshes carry their multishader tag; conversions without it drew glom parts with the LEGO shader.
+	 */
+	constexpr uint32_t FORMAT_VERSION = 2;
+
+	// A zone's lighting (WorldScene::Lighting) for the viewers' shaders
+	nlohmann::json LightingJson(const WorldScene::Lighting& lighting) {
+		const auto triple = [](const std::array<float, 3>& value) { return nlohmann::json{ Round(value[0], 1000.0), Round(value[1], 1000.0), Round(value[2], 1000.0) }; };
+		return {
+			{"ambient", triple(lighting.ambient)}, {"light", triple(lighting.light)}, {"lightVec", triple(lighting.lightVec)},
+			{"upperHemi", triple(lighting.upperHemi)}, {"fogColor", triple(lighting.fogColor)},
+			{"fogNear", Round(lighting.fogNear, 10.0)}, {"fogFar", Round(lighting.fogFar, 10.0)}
+		};
+	}
+
+	/**
 	 * A zone's models and scenery manifest, built once (g_Zones). Once shared, assets, index, flairModels and the
 	 * warmed flags are guarded by g_ZoneMutex: the flairs' models join assets when their manifest is built.
 	 */
@@ -242,6 +265,7 @@ namespace {
 		std::vector<std::string> assets;      // res paths of models, indexed by the manifests
 		std::map<std::string, size_t> index;  // res path -> its index in assets
 		std::string json;
+		nlohmann::json lighting;              // LightingJson of the zone's lighting, null when its scenes have none
 		std::unordered_set<std::string> flairModels; // res paths of the flairs' models, converted ahead of others
 		bool warmedScenery{};                 // WarmUp queued the scenery's models
 		bool warmedFlairs{};                  // and the flairs'
@@ -266,9 +290,12 @@ namespace {
 		nlohmann::json hidden = nlohmann::json::array();
 		std::vector<int32_t> assetShaders;
 		int64_t sky = -1;
+		std::vector<std::pair<WorldScene::Lighting, size_t>> sceneLighting; // each scene's, with how many objects it has
 		for (const auto& scene : ZonePaths::ReadSceneFiles(*luz)) {
 			const auto lvl = ClientAssets::ReadResFile("maps/" + folder + scene);
 			if (!lvl) continue;
+			const auto objectsBefore = assetOf.size();
+			const auto lighting = WorldScene::ReadLighting(*lvl);
 			if (sky < 0) {
 				const auto skydome = JoinPath("", WorldScene::ReadSkydome(*lvl));
 				if (skydome.ends_with(".nif") && Files().paths.contains(skydome)) sky = static_cast<int64_t>(scenery.IndexOf(skydome));
@@ -286,9 +313,11 @@ namespace {
 				for (const auto value : { object.qx, object.qy, object.qz, object.qw }) rotations.push_back(Round(value, 10000.0));
 				scales.push_back(Round(object.scale, 1000.0));
 			}
+			if (lighting) sceneLighting.emplace_back(*lighting, assetOf.size() - objectsBefore);
 		}
+		if (const auto lighting = WorldScene::ZoneLighting(sceneLighting)) scenery.lighting = LightingJson(*lighting);
 		nlohmann::json manifest{
-			{"zone", zoneId}, {"sky", sky}, {"assets", scenery.assets},
+			{"zone", zoneId}, {"sky", sky}, {"assets", scenery.assets}, {"lighting", scenery.lighting}, {"format", FORMAT_VERSION},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"hidden", hidden} }}
 		};
 		assetShaders.resize(scenery.assets.size(), -1);
@@ -369,7 +398,7 @@ namespace {
 			assets = scenery.assets;
 		}
 		return nlohmann::json{
-			{"zone", zoneId}, {"sky", -1}, {"assets", assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 63.0},
+			{"zone", zoneId}, {"sky", -1}, {"assets", assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 63.0}, {"lighting", scenery.lighting}, {"format", FORMAT_VERSION},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"color", colors} }}
 		}.dump();
 	}
@@ -385,7 +414,6 @@ namespace {
 		return g_Flairs.Get(zoneId, [zoneId, &scenery] { return BuildFlairs(zoneId, scenery); });
 	}
 
-	constexpr uint32_t FORMAT_VERSION = 1; // bump when NifFile's output changes, so cached files are rebuilt
 	constexpr uintmax_t DISK_CACHE_BYTES = 512ull * 1024 * 1024;
 	const std::filesystem::path CACHE_DIR = std::filesystem::path("dDashboardServer") / "scenery_cache";
 

@@ -72,6 +72,22 @@ namespace NifFile {
 	// What a texture's alpha does under a shader (mapShaders.gameValue); -1 is fixed function (opacity)
 	eTextureAlpha TextureAlphaFor(int32_t shader);
 
+	/**
+	 * What a shader (mapShaders.gameValue) leaves out of the usual lit look, which is (sun * max(0, N.L) + ambient)
+	 * * vertex color * texture, the scene's lights from its .lvl, NiMaterialProperty's colors unused (the client's
+	 * BasicShaders.fx, LEGOPPLighting.fx and Ocean.fx). Fixed function (-1) has none of these: Gamebryo lights it with
+	 * the material and NiVertexColorProperty.
+	 */
+	enum eShaderLook : uint8_t {
+		UNLIT = 1,            // no lighting: the colors as they are (the "NoLighting" techniques)
+		NO_TEXTURE = 2,       // the texture isn't sampled ("NoTexture")
+		NO_VERTEX_COLORS = 4, // vertex colors aren't read
+		MATERIAL_COLOR = 8    // NiMaterialProperty's diffuse color is (the "Material" techniques)
+	};
+
+	// eShaderLook bits of a shader (mapShaders.gameValue); 0 for the usual lit look and for fixed function
+	uint8_t ShaderLookFor(int32_t shader);
+
 	// Where a node is in the model's space: p' = rotation * p + translation (row-major, scale folded in)
 	struct NodeTransform {
 		std::array<float, 9> rotation{ 1, 0, 0, 0, 1, 0, 0, 0, 1 };
