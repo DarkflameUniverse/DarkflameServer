@@ -180,6 +180,7 @@ namespace {
 		c.Add(Bool(WORLD, "allow_nameplate_off", "Players can hide their nameplate", "Staff always can; this lets players (GM 0) turn off the name above their head too.", false));
 		c.Add(Bool(WORLD, "allow_players_to_skip_cinematics", "Players can skip cinematics", "Most cutscenes get a skip option.", false));
 		c.Add(Bool(WORLD, "auto_reject_empty_properties", "Reject empty properties", "Properties made public without models are rejected automatically.", false));
+		c.Add(Bool(WORLD, "property_bff_build", "Best friends build on properties", "Best friends of a property's owner can join the owner's build mode there: place, move and pick up models, build brick by brick and edit behaviors. Only the owner starts build mode. Off (as live): only the owner builds.", false));
 		c.Add(Unused(Bool(WORLD, "disable_drops", "Turn off loot drops", "Not read by this version.", false)));
 
 		c.AddSection("Hardcore mode", "Players lose items, coins and U-score when they die, and earn extra U-score from enemies.");

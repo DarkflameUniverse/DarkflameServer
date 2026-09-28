@@ -345,9 +345,12 @@ namespace GameMessages {
 	void SetPropertyAccess::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		LOG("Set privacy option to: %i", accessType);
 
-		if (PropertyManagementComponent::Instance() == nullptr) return;
+		auto* property = PropertyManagementComponent::Instance();
+		// Only the owner decides who visits (a best friend who builds sees the owner's plaque too)
+		const auto* sender = PlayerManager::GetPlayer(sysAddr);
+		if (!property || !sender || property->GetOwnerId() != sender->GetObjectID()) return;
 
-		PropertyManagementComponent::Instance()->SetPrivacyOption(static_cast<PropertyPrivacyOption>(accessType));
+		property->SetPrivacyOption(static_cast<PropertyPrivacyOption>(accessType));
 	}
 
 	void UpdatePropertyOrModelForFilterCheck::Serialize(RakNet::BitStream& bitStream) const {
@@ -370,7 +373,12 @@ namespace GameMessages {
 	}
 
 	void UpdatePropertyOrModelForFilterCheck::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(newName), GeneralUtils::UTF16ToWTF8(newDescription));
+		auto* property = PropertyManagementComponent::Instance();
+		// Only the owner names the property
+		const auto* sender = PlayerManager::GetPlayer(sysAddr);
+		if (!property || !sender || property->GetOwnerId() != sender->GetObjectID()) return;
+
+		property->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(newName), GeneralUtils::UTF16ToWTF8(newDescription));
 	}
 
 	void QueryPropertyData::Handle(Entity& entity, const SystemAddress& sysAddr) {
@@ -406,16 +414,19 @@ namespace GameMessages {
 
 	void PropertyEditorBegin::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* property = PropertyManagementComponent::Instance();
-		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
-		property->OnStartBuilding();
+		auto* builder = PlayerManager::GetPlayer(sysAddr);
+		if (!property || !builder || !property->CanBuild(*builder)) return;
+		property->OnStartBuilding(*builder);
 
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditBegin();
 	}
 
 	void PropertyEditorEnd::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* property = PropertyManagementComponent::Instance();
-		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
-		property->OnFinishBuilding();
+		auto* builder = PlayerManager::GetPlayer(sysAddr);
+		// A builder who lost the right to build was already taken out of build mode (UpdateBuildRights)
+		if (!property || !builder || !property->CanBuild(*builder)) return;
+		property->OnFinishBuilding(*builder);
 
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditEnd();
 	}
@@ -503,9 +514,10 @@ namespace GameMessages {
 
 	void UpdateModelFromClient::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* property = PropertyManagementComponent::Instance();
-		// Only the owner edits their property; the model comes from the owner's inventory
-		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
-		property->UpdateModelPosition(modelID, position, rotation);
+		// Only players who can build edit the property; the model comes from the builder's inventory
+		auto* builder = PlayerManager::GetPlayer(sysAddr);
+		if (!property || !builder || !property->CanBuild(*builder)) return;
+		property->UpdateModelPosition(*builder, modelID, position, rotation);
 	}
 
 	void DeleteModelFromClient::Serialize(RakNet::BitStream& bitStream) const {
@@ -521,8 +533,9 @@ namespace GameMessages {
 
 	void DeleteModelFromClient::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* property = PropertyManagementComponent::Instance();
-		if (!property || property->GetOwnerId() != entity.GetObjectID()) return;
-		property->DeleteModel(modelID, reason);
+		auto* builder = PlayerManager::GetPlayer(sysAddr);
+		if (!property || !builder || !property->CanBuild(*builder)) return;
+		property->DeleteModel(*builder, modelID, reason);
 	}
 
 	void PropertyEntranceSync::Serialize(RakNet::BitStream& bitStream) const {
@@ -683,10 +696,12 @@ namespace GameMessages {
 	}
 
 	void ControlBehaviors::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		auto* const owner = PropertyManagementComponent::Instance()->GetOwner();
-		if (!owner) return;
+		auto* const property = PropertyManagementComponent::Instance();
+		// The model's behaviors are edited by a player who can build here; the answers go to them
+		auto* const builder = PlayerManager::GetPlayer(sysAddr);
+		if (!property || !builder || !property->CanBuild(*builder)) return;
 
-		::ControlBehaviors::Instance().ProcessCommand(&entity, *args, command, owner);
+		::ControlBehaviors::Instance().ProcessCommand(&entity, *args, command, builder);
 	}
 
 	void GetHotPropertyData::Handle(Entity& entity, const SystemAddress& sysAddr) {

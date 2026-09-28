@@ -249,9 +249,9 @@ void BrickByBrick::Save(Entity& player, const LWOOBJID localId, const std::strin
 
 	auto* inventory = player.GetComponent<InventoryComponent>();
 	auto* property = PropertyManagementComponent::Instance();
-	// Brick by brick building happens on the player's own property; the build becomes models placed there
-	if (!inventory || !property || property->GetOwnerId() != player.GetObjectID()) {
-		LOG("Player %llu saved a brick by brick model but is not on their own property", player.GetObjectID());
+	// Brick by brick building happens on a property the player can build on; the build becomes models placed there
+	if (!inventory || !property || !property->CanBuild(player)) {
+		LOG("Player %llu saved a brick by brick model but can't build on this property", player.GetObjectID());
 		response.reasonCode = eBlueprintSaveResponseType::PlacementFailed;
 		response.Send(player.GetSystemAddress());
 		return;
@@ -285,7 +285,7 @@ void BrickByBrick::Save(Entity& player, const LWOOBJID localId, const std::strin
 	for (const auto& model : models) {
 		LwoNameValue config;
 		config.Insert<LWOOBJID>(u"blueprintid", model.blueprintId);
-		property->SpawnModel(MODEL_OBJECT_LOT, model.modelId, model.center, QuatUtils::IDENTITY, config);
+		property->SpawnModel(MODEL_OBJECT_LOT, model.modelId, model.center, QuatUtils::IDENTITY, config, player.GetObjectID());
 	}
 	property->Save();
 	DashboardNotify::Changed("properties", property->GetId());
@@ -315,8 +315,8 @@ void BrickByBrick::ReturnModel(Entity& player, const LWOOBJID itemId, const bool
 		auto* item = inventory->FindItemById(itemId);
 		if (item && item->GetInventory()->GetType() == eInventoryType::MODELS_IN_BBB) {
 			auto* property = PropertyManagementComponent::Instance();
-			if (hasWorldTransform && property && property->GetOwnerId() == player.GetObjectID()) {
-				property->PlaceModelFromItem(*item, position, rotation);
+			if (hasWorldTransform && property && property->CanBuild(player)) {
+				property->PlaceModelFromItem(player, *item, position, rotation);
 				property->SendModelsOnProperty();
 			} else {
 				MoveKeepingId(*inventory, item, eInventoryType::MODELS);

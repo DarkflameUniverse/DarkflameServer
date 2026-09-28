@@ -167,6 +167,9 @@ Entity::~Entity() {
 			return;
 		}
 
+		// Ends their building on the property; the owner leaving can stop their best friends building
+		if (auto* property = PropertyManagementComponent::Instance()) property->OnPlayerRemoved(*this);
+
 		auto* zoneControl = Game::entityManager->GetZoneControlEntity();
 		if (zoneControl) {
 			zoneControl->GetScript()->OnPlayerExit(zoneControl, this);

@@ -12,6 +12,7 @@ set(DGAMETEST_SOURCES
 	"ItemSetPassiveAbilityTests.cpp"
 	"PowerUpStatisticTests.cpp"
 	"BrickByBrickTests.cpp"
+	"PropertyBuildersTests.cpp"
 	"ModularBuildTableTests.cpp"
 	"UgcManifestTests.cpp"
 	"SceneGhostingTests.cpp"

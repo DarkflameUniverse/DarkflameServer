@@ -35,6 +35,8 @@
 #include "BrickByBrick.h"
 #include "eLootSourceType.h"
 #include "eKillType.h"
+#include "PropertyBuilders.h"
+#include "BuildingMessages.h"
 
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
@@ -91,6 +93,77 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const i
 
 		Load();
 	}
+
+	// Turning property_bff_build on or off changes who can build right away
+	static bool configHandlerAdded = false;
+	if (!configHandlerAdded && Game::config) {
+		Game::config->AddConfigHandler([]() { if (instance) instance->UpdateBuildRights(); });
+		configHandlerAdded = true;
+	}
+}
+
+PropertyManagementComponent::~PropertyManagementComponent() {
+	if (instance == this) instance = nullptr;
+}
+
+bool PropertyManagementComponent::IsBestFriend(const LWOOBJID player) const {
+	if (owner == LWOOBJID_EMPTY || player == owner) return false;
+	const auto cached = bestFriends.find(player);
+	if (cached != bestFriends.end()) return cached->second;
+	const auto status = Database::Get()->GetBestFriendStatus(player, owner);
+	const bool isBestFriend = status && status->bestFriendStatus == 3;
+	bestFriends[player] = isBestFriend;
+	return isBestFriend;
+}
+
+bool PropertyManagementComponent::CanBuild(const Entity& player) const {
+	const bool bestFriendsBuild = PropertyBuilders::BestFriendsBuild();
+	PropertyBuilders::Player state{ .id = player.GetObjectID(), .isBuilding = builders.contains(player.GetObjectID()) };
+	// Only a best friend needs the lookup
+	if (bestFriendsBuild && state.id != owner) state.isBestFriend = IsBestFriend(state.id);
+	return PropertyBuilders::CanBuild(state, owner, builders.contains(owner), bestFriendsBuild);
+}
+
+void PropertyManagementComponent::OnPlayerLoaded(Entity& player) {
+	IsBestFriend(player.GetObjectID());
+}
+
+void PropertyManagementComponent::OnPlayerRemoved(Entity& player) {
+	const auto id = player.GetObjectID();
+	const bool wasBuilding = EndBuilding(player);
+	sentBuildRights.erase(id);
+	bestFriends.erase(id);
+	// The owner leaving build mode stops best friends who aren't building from joining
+	if (wasBuilding) UpdateBuildRights();
+}
+
+void PropertyManagementComponent::UpdateBuildRights() {
+	for (auto* player : PlayerManager::GetAllPlayers()) {
+		if (!player) continue;
+		const auto id = player->GetObjectID();
+		const auto sent = sentBuildRights.find(id);
+		// Never sent the property's data: the client has no rights to take away
+		const bool couldBuild = sent != sentBuildRights.end() && sent->second;
+		const bool canBuild = CanBuild(*player);
+		if (couldBuild == canBuild) continue;
+
+		if (!canBuild && builders.contains(id)) {
+			// Out of build mode, as when they leave it themselves
+			GameMessages::SetBuildModeConfirmed confirmed;
+			confirmed.target = id;
+			confirmed.start = false;
+			confirmed.warnVisitors = true;
+			confirmed.playerId = id;
+			confirmed.startPos = player->GetPosition();
+			confirmed.Send(player->GetSystemAddress());
+			if (player->GetCharacter()) player->GetCharacter()->SetBuildMode(false);
+			EndBuilding(*player);
+			Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditEnd();
+			ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"You can't build on this property any more.");
+		}
+
+		OnQueryPropertyData(player, player->GetSystemAddress());
+	}
 }
 
 LWOOBJID PropertyManagementComponent::GetOwnerId() const {
@@ -102,7 +175,7 @@ Entity* PropertyManagementComponent::GetOwner() const {
 }
 
 void PropertyManagementComponent::SetOwner(Entity* value) {
-	owner = value->GetObjectID();
+	SetOwnerId(value->GetObjectID());
 }
 
 std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
@@ -190,7 +263,7 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 	Database::Get()->UpdatePropertyDetails(info);
 	DashboardNotify::Changed("properties", propertyId);
 
-	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
+	OnQueryPropertyData(nullptr, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
@@ -251,10 +324,20 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	return true;
 }
 
-void PropertyManagementComponent::OnStartBuilding() {
-	auto* ownerEntity = GetOwner();
+void PropertyManagementComponent::OnStartBuilding(Entity& builder) {
+	const bool first = builders.empty();
+	if (!builders.insert(builder.GetObjectID()).second) return;
 
-	if (ownerEntity == nullptr) return;
+	// The owner starting lets their best friends join
+	if (builder.GetObjectID() == owner) UpdateBuildRights();
+
+	auto inventoryComponent = builder.GetComponent<InventoryComponent>();
+
+	// Push equipped items
+	if (inventoryComponent) inventoryComponent->PushEquippedItems();
+
+	// Someone else is already building: the property is already private and paused
+	if (!first) return;
 
 	const auto players = PlayerManager::GetAllPlayers();
 
@@ -274,16 +357,13 @@ void PropertyManagementComponent::OnStartBuilding() {
 		}
 	}
 
+	// Everyone who can't build here leaves
 	for (auto* player : players) {
-		if (player == ownerEntity) continue;
+		if (!player || CanBuild(*player)) continue;
 
 		auto* characterComponent = player->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SendToZone(zoneId);
 	}
-	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
-
-	// Push equipped items
-	if (inventoryComponent) inventoryComponent->PushEquippedItems();
 
 	for (auto modelID : models | std::views::keys) {
 		auto* model = Game::entityManager->GetEntity(modelID);
@@ -302,13 +382,22 @@ void PropertyManagementComponent::OnStartBuilding() {
 	}
 }
 
-void PropertyManagementComponent::OnFinishBuilding() {
-	auto* ownerEntity = GetOwner();
+void PropertyManagementComponent::OnFinishBuilding(const Entity& builder) {
+	// A best friend who left can't come back until the owner builds; the owner leaving stops the others joining
+	if (EndBuilding(builder)) UpdateBuildRights();
+}
 
-	if (ownerEntity == nullptr) return;
+bool PropertyManagementComponent::EndBuilding(const Entity& builder) {
+	if (builders.erase(builder.GetObjectID()) == 0) return false;
+
+	// Others are still building: keep the property private and paused
+	if (!builders.empty()) {
+		Save();
+		return true;
+	}
 
 	UpdateApprovedStatus(false);
-	
+
 	SetPrivacyOption(originalPrivacyOption);
 
 	Save();
@@ -328,9 +417,10 @@ void PropertyManagementComponent::OnFinishBuilding() {
 	for (auto* const entity : Game::entityManager->GetEntitiesInGroup("SpawnedPropertyEnemies")) {
 		if (entity) entity->Smash();
 	}
+	return true;
 }
 
-Entity* PropertyManagementComponent::SpawnModel(const LOT lot, const LWOOBJID modelId, const NiPoint3& position, const NiQuaternion& rotation, const LwoNameValue& config) {
+Entity* PropertyManagementComponent::SpawnModel(const LOT lot, const LWOOBJID modelId, const NiPoint3& position, const NiQuaternion& rotation, const LwoNameValue& config, const LWOOBJID placer) {
 	auto* node = new SpawnerNode();
 	node->position = position;
 	node->rotation = rotation;
@@ -361,15 +451,17 @@ Entity* PropertyManagementComponent::SpawnModel(const LOT lot, const LWOOBJID mo
 	auto* model = spawner->Spawn();
 	if (!model) return nullptr;
 
-	// Placed while the owner is editing: stays still until they finish (OnFinishBuilding resumes every model)
+	// Placed while someone is building: stays still until the last builder finishes (OnFinishBuilding resumes every
+	// model)
 	auto* modelComponent = model->GetComponent<ModelComponent>();
 	if (modelComponent) modelComponent->Pause();
 
 	models.insert_or_assign(model->GetObjectID(), spawnerId);
+	placedBy.insert_or_assign(modelId, placer);
 	return model;
 }
 
-LWOOBJID PropertyManagementComponent::PlaceModelFromItem(Item& item, const NiPoint3& position, const NiQuaternion& rotation) {
+LWOOBJID PropertyManagementComponent::PlaceModelFromItem(const Entity& builder, Item& item, const NiPoint3& position, const NiQuaternion& rotation) {
 	LWOOBJID modelId = LWOOBJID_EMPTY;
 	Entity* model = nullptr;
 
@@ -389,35 +481,38 @@ LWOOBJID PropertyManagementComponent::PlaceModelFromItem(Item& item, const NiPoi
 		modelConfig.Insert<LWOOBJID>(u"blueprintid", blueprintId);
 		const auto behaviors = config.find(u"userModelBehaviors");
 		if (behaviors != config.end() && behaviors->second) modelConfig.Insert<std::string>(u"userModelBehaviors", behaviors->second->GetValueAsString());
-		model = SpawnModel(BrickByBrick::MODEL_OBJECT_LOT, modelId, position, rotation, modelConfig);
+		model = SpawnModel(BrickByBrick::MODEL_OBJECT_LOT, modelId, position, rotation, modelConfig, builder.GetObjectID());
 	} else {
 		// A premade model gets a new UGID each time it is placed (live: the placed model's id, then a new item id
 		// when it is picked up)
 		modelId = ObjectIDManager::GetPersistentID();
 		GeneralUtils::SetBit(modelId, eObjectBits::CLIENT);
-		model = SpawnModel(item.GetLot(), modelId, position, rotation, {});
+		model = SpawnModel(item.GetLot(), modelId, position, rotation, {}, builder.GetObjectID());
 	}
 
 	if (!model) return LWOOBJID_EMPTY;
 
 	item.SetCount(item.GetCount() - 1, false, false, false, eLootSourceType::PROPERTY);
-	// Straight to the database: the model must not be lost if the server stops before the owner finishes editing
+	// Straight to the database: the model must not be lost if the server stops before the builder finishes editing
 	Save();
 	return modelId;
 }
 
 void PropertyManagementComponent::SendModelsOnProperty() const {
 	GameMessages::GetModelsOnProperty msg;
-	msg.target = owner;
 	msg.models = { models.begin(), models.end() };
-	msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	// Each player's own character, as PropertyContentsFromClient answers: the owner may not be here to target
+	for (const auto* player : PlayerManager::GetAllPlayers()) {
+		if (!player) continue;
+		msg.target = player->GetObjectID();
+		msg.Send(player->GetSystemAddress());
+	}
 }
 
-void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
+void PropertyManagementComponent::UpdateModelPosition(Entity& builder, const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
 	LOG("Placing model <%f, %f, %f>", position.x, position.y, position.z);
 
-	auto* entity = GetOwner();
-	if (entity == nullptr) return;
+	auto* entity = &builder;
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (inventoryComponent == nullptr) return;
@@ -433,7 +528,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		rotation = { rotation.w, rotation.z, rotation.y, rotation.x };
 	}
 
-	const auto modelId = PlaceModelFromItem(*item, position, rotation);
+	const auto modelId = PlaceModelFromItem(builder, *item, position, rotation);
 	if (modelId == LWOOBJID_EMPTY) return;
 
 	// As a live server answered a placed model
@@ -464,14 +559,8 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 	if (missionComponent != nullptr) missionComponent->Progress(eMissionTaskType::PLACE_MODEL, 0);
 }
 
-void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason) {
+void PropertyManagementComponent::DeleteModel(Entity& builder, const LWOOBJID id, const int deleteReason) {
 	LOG("Delete model: (%llu) (%i)", id, deleteReason);
-
-	auto* entity = GetOwner();
-	if (entity == nullptr) return;
-
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-	if (inventoryComponent == nullptr) return;
 
 	auto* model = Game::entityManager->GetEntity(id);
 	if (model == nullptr) {
@@ -486,6 +575,32 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	}
 
 	const auto modelId = index->second;
+
+	// The model goes back to whoever placed it
+	const auto placer = GetPlacedBy(modelId);
+	auto* placerEntity = placer == builder.GetObjectID() ? &builder : PlayerManager::GetPlayer(placer);
+	const auto placerName = [&]() -> std::string {
+		if (placerEntity && placerEntity->GetCharacter()) return placerEntity->GetCharacter()->GetName();
+		const auto info = Database::Get()->GetCharacterInfo(placer);
+		return info ? info->name : "another player";
+	};
+	switch (PropertyBuilders::PlanModelReturn(builder.GetObjectID(), placer, placerEntity != nullptr, deleteReason)) {
+	case PropertyBuilders::eModelReturn::PLACER_AWAY:
+		LOG("%llu picked up model %llu placed by %llu, who isn't here; leaving it on the property", builder.GetObjectID(), modelId, placer);
+		ChatPackets::SendSystemMessage(builder.GetSystemAddress(), "This model is " + placerName() + "'s. It stays on the property until they are here to get it back.");
+		return;
+	case PropertyBuilders::eModelReturn::NOT_THEIRS:
+		ChatPackets::SendSystemMessage(builder.GetSystemAddress(), "This model is " + placerName() + "'s. Only they can take it apart.");
+		return;
+	default:
+		break;
+	}
+	auto& receiver = *placerEntity;
+	const bool toBuilder = &receiver == &builder;
+
+	auto* inventoryComponent = receiver.GetComponent<InventoryComponent>();
+	if (inventoryComponent == nullptr) return;
+
 	const auto removal = BrickByBrick::PlanModelRemoval(deleteReason);
 
 	// Every way off the property puts the model in MODELS; taking it apart then opens it in brick by brick building
@@ -498,14 +613,17 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		subKey = modelId;
 	}
 
+	// Only the player picking it up carries it
 	const auto received = inventoryComponent->ReceiveItem(LWOOBJID_EMPTY, itemLot, 1, eLootSourceType::PROPERTY, config, subKey, false,
-		{ .inventory = eInventoryType::MODELS, .showFlyingLoot = false, .equip = removal.equip });
+		{ .inventory = eInventoryType::MODELS, .showFlyingLoot = false, .equip = toBuilder && removal.equip });
 	if (received.id == LWOOBJID_EMPTY) {
-		LOG("Could not give model %llu back to %llu, leaving it on the property", modelId, entity->GetObjectID());
+		LOG("Could not give model %llu back to %llu, leaving it on the property", modelId, receiver.GetObjectID());
+		if (!toBuilder) ChatPackets::SendSystemMessage(builder.GetSystemAddress(), "This model is " + placerName() + "'s, and they have no room for it. It stays on the property.");
 		return;
 	}
 
 	models.erase(index);
+	placedBy.erase(modelId);
 	Game::entityManager->DestructEntity(model);
 	auto* spawner = Game::zoneManager->GetSpawner(modelId);
 	if (spawner != nullptr) {
@@ -517,34 +635,45 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	// Straight to the database, as for placing
 	Save();
 
-	if (removal.notifyPostDelete) {
+	if (removal.notifyPostDelete && toBuilder) {
 		auto* item = inventoryComponent->FindItemById(received.id);
 		GameMessages::HandleUGCEquipPostDeleteBasedOnEditMode msg;
-		msg.target = entity->GetObjectID();
+		msg.target = builder.GetObjectID();
 		msg.invItem = received.id;
 		msg.itemsTotal = item ? item->GetCount() : 1;
-		msg.Send(entity->GetSystemAddress());
+		msg.Send(builder.GetSystemAddress());
+	}
+
+	if (!toBuilder) {
+		const auto builderName = builder.GetCharacter() ? builder.GetCharacter()->GetName() : "Another player";
+		ChatPackets::SendSystemMessage(builder.GetSystemAddress(), "This model is " + placerName() + "'s, so it went back to them.");
+		ChatPackets::SendSystemMessage(receiver.GetSystemAddress(), builderName + " picked up one of your models. It is back in your models.");
 	}
 
 	SendModelsOnProperty();
 
 	{
 		GameMessages::PlaceModelResponse msg;
-		msg.target = entity->GetObjectID();
+		msg.target = builder.GetObjectID();
 		msg.response = BrickByBrick::PLACE_MODEL_REMOVED;
-		msg.Send(entity->GetSystemAddress());
+		msg.Send(builder.GetSystemAddress());
 	}
 
 	switch (static_cast<BrickByBrick::eDeleteReason>(deleteReason)) {
 	case BrickByBrick::eDeleteReason::PICKING_MODEL_UP:
-		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPickedUp(&builder);
 		break;
 	case BrickByBrick::eDeleteReason::RETURNING_MODEL_TO_INVENTORY:
-		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRemoved(entity);
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRemoved(&builder);
 		break;
 	default:
 		break;
 	}
+}
+
+LWOOBJID PropertyManagementComponent::GetPlacedBy(const LWOOBJID modelId) const {
+	const auto placer = placedBy.find(modelId);
+	return PropertyBuilders::Placer(placer != placedBy.end() ? placer->second : LWOOBJID_EMPTY, owner);
 }
 
 void PropertyManagementComponent::UpdateApprovedStatus(const bool value, const std::string& rejectionReason) {
@@ -627,19 +756,15 @@ void PropertyManagementComponent::Load() {
 		auto* model = spawner->Spawn();
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
+		if (databaseModel.placedBy != LWOOBJID_EMPTY) placedBy.insert_or_assign(databaseModel.id, databaseModel.placedBy);
 	}
 }
 
 void PropertyManagementComponent::Save() {
-	if (propertyId == LWOOBJID_EMPTY) {
+	// From the property's own ids: it saves whoever is here (the owner may not be)
+	if (propertyId == LWOOBJID_EMPTY || owner == LWOOBJID_EMPTY) {
 		return;
 	}
-
-	const auto* const owner = GetOwner();
-	if (!owner) return;
-
-	const auto* const character = owner->GetCharacter();
-	if (!character) return;
 
 	auto present = Database::Get()->GetPropertyModels(propertyId);
 
@@ -659,12 +784,13 @@ void PropertyManagementComponent::Save() {
 		if (!modelComponent) continue;
 		const auto modelBehaviors = modelComponent->GetBehaviorsForSave();
 
-		// save the behaviors of the model
+		// save the behaviors of the model, as the model's placer's
+		const auto placer = GetPlacedBy(id);
 		for (const auto& [behaviorId, behaviorStr] : modelBehaviors) {
 			if (behaviorStr.empty() || behaviorId == -1 || behaviorId == 0) continue;
 			IBehaviors::Info info{
 				.behaviorId = behaviorId,
-				.characterId = character->GetID(),
+				.characterId = placer,
 				.behaviorInfo = behaviorStr
 			};
 			Database::Get()->AddBehavior(info);
@@ -685,6 +811,7 @@ void PropertyManagementComponent::Save() {
 			for (auto i = 0; i < model.behaviors.size(); i++) {
 				model.behaviors[i] = modelBehaviors[i].first;
 			}
+			model.placedBy = placer;
 
 			Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_" + std::to_string(model.lot) + "_name");
 		} else {
@@ -795,8 +922,27 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	message.pathPositions = GetPaths();
 
 	LOG("(%llu) sending property data (%d)", author, true);
-	message.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	// Each player gets their own: it tells builders they own the property
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
+			if (player) SendPropertyData(*player, message);
+		}
+	} else {
+		auto* player = PlayerManager::GetPlayer(sysAddr);
+		if (player) SendPropertyData(*player, message);
+	}
 	// send rejection here?
+}
+
+void PropertyManagementComponent::SendPropertyData(const Entity& player, const GameMessages::DownloadPropertyData& message) {
+	const bool canBuild = CanBuild(player);
+	sentBuildRights[player.GetObjectID()] = canBuild;
+
+	// The client lets only the property's owner build (ownerId == its character); a best friend who can build is told
+	// they own it, while ownerName stays the owner's
+	auto forPlayer = message;
+	if (canBuild) forPlayer.ownerId = player.GetObjectID();
+	forPlayer.Send(player.GetSystemAddress());
 }
 
 void PropertyManagementComponent::OnUse(Entity* originator) {
@@ -807,6 +953,7 @@ void PropertyManagementComponent::OnUse(Entity* originator) {
 }
 
 void PropertyManagementComponent::SetOwnerId(const LWOOBJID value) {
+	if (owner != value) bestFriends.clear();
 	owner = value;
 }
 
@@ -829,5 +976,5 @@ void PropertyManagementComponent::ApplyModeration(const bool approved, const std
 	rejectionReason = approved ? "" : reason;
 	// The dashboard makes rejected properties private; don't let a later save here publish it again
 	if (!approved) privacyOption = PropertyPrivacyOption::Private;
-	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
+	OnQueryPropertyData(nullptr, UNASSIGNED_SYSTEM_ADDRESS);
 }

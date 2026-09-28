@@ -17,6 +17,7 @@
 #include "RacingControlComponent.h"
 #include "WorldMigration.h"
 #include "BrickByBrick.h"
+#include "PropertyManagementComponent.h"
 #include "dConfig.h"
 #include "dZoneManager.h"
 #include "eReplicaComponentType.h"
@@ -122,6 +123,9 @@ namespace GameMessages {
 		// A brick by brick build that ended without a save (disconnect, crash): rebuild the autosave or give back the
 		// models that were open
 		BrickByBrick::OnPlayerLoaded(*entity);
+
+		// On a property: whether they are a best friend of the owner, who may build (and the owner arriving lets them)
+		if (auto* property = PropertyManagementComponent::Instance()) property->OnPlayerLoaded(*entity);
 
 		LOG("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 

@@ -435,6 +435,7 @@ namespace GameMessages {
 
 	void SetBuildMode::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* player = Game::entityManager->GetEntity(playerId);
+		if (!player || !player->GetCharacter()) return;
 
 		auto confirmedStartPos = startPos;
 		if (confirmedStartPos == NiPoint3Constant::ZERO) {
@@ -453,7 +454,8 @@ namespace GameMessages {
 		confirmed.modeValue = modeValue;
 		confirmed.playerId = playerId;
 		confirmed.startPos = confirmedStartPos;
-		confirmed.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		// Only the builder: another player building on the same property must not be put in (or out of) build mode
+		confirmed.Send(sysAddr);
 	}
 
 	void SetBuildModeConfirmed::Serialize(RakNet::BitStream& bitStream) const {

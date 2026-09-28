@@ -2,12 +2,18 @@
 
 #include "ePropertyPrivacyOption.h"
 #include <chrono>
+#include <map>
+#include <set>
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include "LDFFormat.h"
 
 class Item;
+
+namespace GameMessages {
+	struct DownloadPropertyData;
+}
 
 /**
  * Main component that handles interactions with a property, generally the plaques you see on properties.
@@ -16,7 +22,23 @@ class PropertyManagementComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
 	PropertyManagementComponent(Entity* parent, const int32_t componentID);
+	~PropertyManagementComponent() override;
 	static PropertyManagementComponent* Instance();
+
+	/**
+	 * Whether the player can build on this property: its owner, or with property_bff_build a best friend of the owner
+	 * while the owner is building (and, once in build mode, until they leave it)
+	 */
+	bool CanBuild(const Entity& player) const;
+
+	// A player finished loading into this world: looks up whether they are a best friend of the owner
+	void OnPlayerLoaded(Entity& player);
+
+	// A player left this world: ends their building and updates who else can build
+	void OnPlayerRemoved(Entity& player);
+
+	// Tells every player whose right to build changed (CanBuild) and ends building for those who lost it
+	void UpdateBuildRights();
 
 	/**
 	 * Event handler for when an entity requests information about this property, will send back whether it's owned, etc.
@@ -90,44 +112,51 @@ public:
 	bool Claim(LWOOBJID playerId);
 
 	/**
-	 * Event triggered when the owner of the property starts building, will kick other entities out
+	 * Event triggered when a player who can build starts building. The first one to start (the owner) makes the property
+	 * private, pauses the models and sends away the players who can't build.
 	 */
-	void OnStartBuilding();
+	void OnStartBuilding(Entity& builder);
 
 	/**
-	 * Event triggered when the owner of the property finished building, will re-apply this property for moderation
-	 * request.
+	 * Event triggered when a builder finished building. When the last one finishes the property is re-applied for
+	 * moderation, gets its privacy back and the models run again.
 	 */
-	void OnFinishBuilding();
+	void OnFinishBuilding(const Entity& builder);
 
 	/**
-	 * Updates the position of a model on the property
-	 * @param id the ID of the model to reposition
+	 * Places a model from the builder's inventory on the property
+	 * @param builder the player placing the model
+	 * @param id the ID of the model item to place
 	 * @param position the position to place the model on
 	 * @param rotation the rotation to place the model on
 	 */
-	void UpdateModelPosition(LWOOBJID id, NiPoint3 position, NiQuaternion rotation);
+	void UpdateModelPosition(Entity& builder, LWOOBJID id, NiPoint3 position, NiQuaternion rotation);
 
 	/**
-	 * Deletes a model for a property
+	 * Takes a model off the property, into the inventory of the player who placed it
+	 * @param builder the player taking the model off
 	 * @param id the ID of the model to delete
 	 * @param deleteReason the reason of the deletion, e.g. picked up or destroyed (in case of UGC)
 	 */
-	void DeleteModel(LWOOBJID id, int deleteReason);
+	void DeleteModel(Entity& builder, LWOOBJID id, int deleteReason);
 
 	/**
 	 * Spawns a model on the property and records it in the property's models (not yet saved)
 	 * @param lot the model object's LOT (14 for a brick built model)
 	 * @param modelId the model's id in properties_contents (its UGID)
 	 * @param config extra config for the model object
+	 * @param placedBy the player who placed it
 	 */
-	Entity* SpawnModel(LOT lot, LWOOBJID modelId, const NiPoint3& position, const NiQuaternion& rotation, const LwoNameValue& config);
+	Entity* SpawnModel(LOT lot, LWOOBJID modelId, const NiPoint3& position, const NiQuaternion& rotation, const LwoNameValue& config, LWOOBJID placedBy);
 
 	/**
-	 * Places a model item on the property, uses the item up and saves the property
+	 * Places a model item of the builder's on the property, uses the item up and saves the property
 	 * @return the placed model's id, or LWOOBJID_EMPTY if it could not be placed
 	 */
-	LWOOBJID PlaceModelFromItem(Item& item, const NiPoint3& position, const NiQuaternion& rotation);
+	LWOOBJID PlaceModelFromItem(const Entity& builder, Item& item, const NiPoint3& position, const NiQuaternion& rotation);
+
+	// The player who placed a model (by its id in properties_contents); the owner for models placed before this was kept
+	LWOOBJID GetPlacedBy(LWOOBJID modelId) const;
 
 	// GetModelsOnProperty with every model on the property
 	void SendModelsOnProperty() const;
@@ -175,6 +204,16 @@ public:
 
 	void OnChatMessageReceived(const std::string& sMessage) const;
 private:
+	// Sends the property's data to one player; a player who can build is told they own it, which is the client's only
+	// check before editing (the owner's name stays the owner's)
+	void SendPropertyData(const Entity& player, const GameMessages::DownloadPropertyData& message);
+
+	// Whether the player is a best friend of the owner (looked up the first time)
+	bool IsBestFriend(LWOOBJID player) const;
+
+	// OnFinishBuilding without updating who can build; false if they weren't building
+	bool EndBuilding(const Entity& builder);
+
 	/**
 	 * This
 	 */
@@ -249,4 +288,17 @@ private:
 	 * The privacy setting before it was changed, saved to set back after a player finishes building
 	 */
 	PropertyPrivacyOption originalPrivacyOption = PropertyPrivacyOption::Private;
+
+	// Whether each player on the property is a best friend of the owner, looked up once per player (again when the
+	// owner changes)
+	mutable std::map<LWOOBJID, bool> bestFriends;
+
+	// Whether each player on the property was last told they can build (see SendPropertyData)
+	std::map<LWOOBJID, bool> sentBuildRights;
+
+	// Players building right now
+	std::set<LWOOBJID> builders;
+
+	// Who placed each model, by its id in properties_contents (LWOOBJID_EMPTY: the owner)
+	std::map<LWOOBJID, LWOOBJID> placedBy;
 };
