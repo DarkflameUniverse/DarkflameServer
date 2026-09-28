@@ -18,6 +18,8 @@ public:
 		LOT lot{};
 		LWOOBJID ugcId{};
 		std::array<LWOOBJID, 5> behaviors{};
+		// The character who placed the model; 0 (NULL in the database) for the property's owner and older models
+		LWOOBJID placedBy{};
 	};
 
 	// Inserts a new UGC model into the database.

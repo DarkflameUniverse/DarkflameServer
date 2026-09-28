@@ -3,7 +3,7 @@
 std::vector<IPropertyContents::Model> MySQLDatabase::GetPropertyModels(const LWOOBJID& propertyId) {
 	auto result = ExecuteSelect(
 		"SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id, "
-		"behavior_1, behavior_2, behavior_3, behavior_4, behavior_5 "
+		"behavior_1, behavior_2, behavior_3, behavior_4, behavior_5, placed_by "
 		"FROM properties_contents WHERE property_id = ?;", propertyId);
 
 	std::vector<IPropertyContents::Model> toReturn;
@@ -25,6 +25,7 @@ std::vector<IPropertyContents::Model> MySQLDatabase::GetPropertyModels(const LWO
 		model.behaviors[2] = result->getUInt64("behavior_3");
 		model.behaviors[3] = result->getUInt64("behavior_4");
 		model.behaviors[4] = result->getUInt64("behavior_5");
+		model.placedBy = result->getUInt64("placed_by");
 
 		toReturn.push_back(std::move(model));
 	}
@@ -35,9 +36,9 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPr
 	try {
 		ExecuteInsert(
 			"INSERT INTO properties_contents"
-			"(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, model_name, model_description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5)"
-			"VALUES (?,  ?,           ?,      ?,   ?, ?, ?, ?,  ?,  ?,  ?,  ?,    ?,           ?,          ?,          ?,          ?,          ?)",
-			//       1,  2,           3,      4,   5, 6, 7, 8,  9,  10, 11, 12,   13,          14,         15,         16,         17          18
+			"(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, model_name, model_description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5, placed_by)"
+			"VALUES (?,  ?,           ?,      ?,   ?, ?, ?, ?,  ?,  ?,  ?,  ?,    ?,           ?,          ?,          ?,          ?,          ?,          ?)",
+			//       1,  2,           3,      4,   5, 6, 7, 8,  9,  10, 11, 12,   13,          14,         15,         16,         17          18          19
 			model.id, propertyId, model.ugcId == 0 ? std::nullopt : std::optional(model.ugcId), static_cast<uint32_t>(model.lot),
 			model.position.x, model.position.y, model.position.z, model.rotation.x, model.rotation.y, model.rotation.z, model.rotation.w,
 			name, "", // Model description.  TODO implement this.
@@ -45,7 +46,8 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPr
 			model.behaviors[1], // behavior 2
 			model.behaviors[2], // behavior 3
 			model.behaviors[3], // behavior 4
-			model.behaviors[4] // behavior 5
+			model.behaviors[4], // behavior 5
+			model.placedBy == 0 ? std::nullopt : std::optional(model.placedBy)
 		);
 	} catch (sql::SQLException& e) {
 		LOG("Error inserting new property model: %s", e.what());
@@ -85,6 +87,7 @@ std::optional<IPropertyContents::Model> MySQLDatabase::GetModel(const LWOOBJID m
 		model->behaviors[2] = result->getUInt64("behavior_3");
 		model->behaviors[3] = result->getUInt64("behavior_4");
 		model->behaviors[4] = result->getUInt64("behavior_5");
+		model->placedBy = result->getUInt64("placed_by");
 	}
 
 	return model;

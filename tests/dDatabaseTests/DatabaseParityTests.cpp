@@ -14,6 +14,7 @@
 
 #include <conncpp.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -678,6 +679,21 @@ TEST_F(ParitySeeded, Properties) {
 		db.InsertNewPropertyModel(PROP1, model, "Objects_14_name");
 		model.id = 1152921510000400002LL;
 		db.InsertNewPropertyModel(PROP1, model, "Objects_14_name");
+	});
+	Both("InsertNewPropertyModel placed by", [](GameDatabase& db) {
+		// NULL placed_by (the owner's) reads back as 0; a builder's id reads back as itself
+		IPropertyContents::Model model;
+		model.id = 1152921510000400003LL; model.lot = 6326; model.placedBy = CHAR_BOB;
+		db.InsertNewPropertyModel(PROP1, model, "Objects_6326_name");
+		auto models = db.GetPropertyModels(PROP1);
+		std::ranges::sort(models, {}, &IPropertyContents::Model::id);
+		json out = json::array();
+		for (const auto& placed : models) out.push_back({ placed.id, placed.lot, placed.placedBy });
+		const auto one = db.GetModel(1152921510000400003LL);
+		out.push_back(one ? json{ one->id, one->placedBy } : json());
+		const auto owners = db.GetModel(1152921510000400001LL);
+		out.push_back(owners ? json{ owners->id, owners->placedBy } : json());
+		return out;
 	});
 	Both("GetModelPropertyId", [](GameDatabase& db) { return json{ db.GetModelPropertyId(1152921510000400001LL), db.GetModelPropertyId(1) }; });
 	for (const auto sort : { IProperty::ShowcaseSort::REPUTATION, IProperty::ShowcaseSort::NEWEST, IProperty::ShowcaseSort::NAME }) {
