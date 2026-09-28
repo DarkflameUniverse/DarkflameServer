@@ -133,6 +133,7 @@ permission's row lists its commands ("In game too"). The pairs:
 | `health_view` | `/uptime`, `/metrics` |
 | `worlds_manage` | `/shutdown` |
 | `server_restart` | `/shutdownuniverse` |
+| `server_live_update` | `/liveupdate` |
 
 Commands that only act on your own character (`/gmadditem`, `/givemoney`, `/setcurrency`, `/giveuscore`, `/setlevel`)
 and `/teleport` aren't paired: they keep their own level. The pairs are declared on the commands (`dashboardPermission`

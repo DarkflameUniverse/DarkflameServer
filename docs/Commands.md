@@ -109,6 +109,7 @@ These commands are registered by the server so they appear in help, but their be
 |setanntitle|`/setanntitle <title>`|Sets the title of an announcement. Use with `/setannmsg` and `/announce`|8|
 |shutdown|`/shutdown`|Shuts this world down|8|
 |shutdownuniverse|`/shutdownuniverse`|Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.|9|
+|liveupdate|`/liveupdate [start [warn seconds] \| cancel \| status]`|Moves every server and world instance onto the server binaries on disk now without a restart (see [LiveUpdate.md](LiveUpdate.md)); progress is posted to you in chat.|9|
 |uptime|`/uptime`|Display the time the current world server has been active|8|
 
 ## Development Commands

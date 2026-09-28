@@ -209,6 +209,15 @@ All structs are in `dNet/InstanceMigration.h`, together with the pure planning f
 `tests/dCommonTests/InstanceMigrationTests.cpp`. The values are appended after `NEW_SESSION_ALERT`; a branch that also
 appends there has to put one set after the other when merged.
 
+### Live updates
+
+A live update ([LiveUpdate.md](LiveUpdate.md)) replaces every instance with these migrations
+(`MigrationCoordinator::Options::liveUpdate`). It also moves what the commands refuse: character selection (its users
+are sent to the new one), private instances (the replacement gets the same password), properties (saved and frozen
+first with `MIGRATE_PREPARE`, answered `PREPARED`) and activity zones (after their players had time to finish). The
+player's position is carried in `CarriedPlayerState` and applied when the target creates them, so properties and Moon
+Base keep it too.
+
 ### Controls
 
 * `/replaceinstance [warn seconds, 0-300, default 10] [seamless]`
