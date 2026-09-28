@@ -402,7 +402,7 @@ class TestSQLDatabase : public GameDatabase {
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override { return {}; }
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override { return {}; }
-	std::vector<IUgc::PendingModel> GetUgcModelsToProcess(const uint32_t limit) override { return {}; }
+	std::vector<IUgc::PendingModel> GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly) override { return {}; }
 	void ExpediteUgcModel(const LWOOBJID id) override {}
 	void ExpediteUgcModels(const LWOOBJID characterId) override {}
 	std::vector<std::pair<std::string, uint64_t>> GetModularBuildConfigCounts() override { return {}; }

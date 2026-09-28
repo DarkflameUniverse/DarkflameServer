@@ -777,7 +777,15 @@ TEST_F(ParitySeeded, UgcModel) {
 		model.id = 1152921510000400009LL; model.lot = 14; model.ugcId = 1152921510000500001LL;
 		db.InsertNewPropertyModel(PROP1, model, "Objects_14_name");
 		const auto changed = db.ResetPropertyUgcModelProcessing(PROP1);
-		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), db.ResetPropertyUgcModelProcessing(1) };
+		// Reset as priority: first in line, and the only one when asking for priority models; made, it's cleared
+		json priority = json::array();
+		for (const auto& model : db.GetUgcModelsToProcess(10, true)) priority.push_back({ model.id, model.priority });
+		const auto first = db.GetUgcModelsToProcess(10);
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
+		db.ResetUgcModelProcessing(1152921510000500001LL, false);
+		const auto afterMade = db.GetUgcModelsToProcess(10, true).size();
+		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), db.ResetPropertyUgcModelProcessing(1), priority,
+			first.empty() ? json() : json{ first.front().id, first.front().priority }, afterMade };
 	});
 	Both("Modular build processing", [&](GameDatabase& db) {
 		db.InsertUgcBuild("1:4713+1:4714+1:4715", 1152921510000500002LL, CHAR_ALICE);

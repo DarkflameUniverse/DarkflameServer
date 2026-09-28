@@ -431,6 +431,9 @@ serving), the worlds:
   minutes) it sends every player in the world the new `model.nif` checksums and transfers them back into the same
   zone and clone. The client loads the property again and downloads the new meshes (its manifest cache has the new
   checksums, which its files don't match). Models of a reprocess skip the "made again" switch.
+  The models are queued as priority (`ugc.priority`, also set by the dashboard's Reprocess all models): the UGC
+  server takes them before any other model, polls them even when its queue is full and puts them at its front (as
+  cars and rockets); the flag clears once a model is made.
 
 ### Waiting while the owner is still building
 

@@ -157,6 +157,7 @@ private:
 		bool iconOnly{};                // a model's icon drawn again from its stored .nif
 		bool assembly{};                // with `preview`: answered with the assembled .nif instead of an icon
 		UgcIconParams::Values iconValues; // models: the preset and override (UgcIconParams)
+		bool priority{};                // models staff asked to be made again: queued at the front
 	};
 
 	// A written file's MD5 and size as the client has it after inflating it (from its .checksum)

@@ -78,10 +78,12 @@ public:
 		LWOOBJID id{};
 		std::string lxfml;
 		uint32_t attempts{};
+		bool priority{}; // staff asked for it to be made again: before any other model
 	};
 
-	// Up to `limit` pending models whose quiet period is over (process_after), the least tried and then the newest first
-	virtual std::vector<PendingModel> GetUgcModelsToProcess(const uint32_t limit) = 0;
+	// Up to `limit` pending models whose quiet period is over (process_after): the priority ones first, then the least
+	// tried and then the newest. `priorityOnly`: only the priority ones.
+	virtual std::vector<PendingModel> GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly = false) = 0;
 
 	// Ends the quiet period of a waiting model (a client asked for it), or of all a character's waiting models (they
 	// left the property)
@@ -110,7 +112,8 @@ public:
 	// with `failedOnly`). Returns how many rows changed.
 	virtual uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) = 0;
 
-	// Sets every model placed on a property back to pending with no attempts. Returns how many rows changed.
+	// Sets every model placed on a property back to pending with no attempts, as priority (staff asked for it). Returns
+	// how many rows changed.
 	virtual uint64_t ResetPropertyUgcModelProcessing(const LWOOBJID propertyId) = 0;
 
 	// A page of models (all, or those in `state`), the newest first; `search` (when not empty) matches the model's id

@@ -110,8 +110,9 @@ std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
 	return toReturn;
 }
 
-std::vector<IUgc::PendingModel> MySQLDatabase::GetUgcModelsToProcess(const uint32_t limit) {
-	auto result = ExecuteSelect("SELECT id, lxfml, process_attempts FROM ugc WHERE is_optimized = 0 AND process_after <= ? ORDER BY process_attempts ASC, id DESC LIMIT ?;", UnixNow(), limit);
+std::vector<IUgc::PendingModel> MySQLDatabase::GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly) {
+	auto result = ExecuteSelect("SELECT id, lxfml, process_attempts, priority FROM ugc WHERE is_optimized = 0 AND process_after <= ? AND (? = 0 OR priority = 1) "
+		"ORDER BY priority DESC, process_attempts ASC, id DESC LIMIT ?;", UnixNow(), priorityOnly ? 1 : 0, limit);
 	std::vector<IUgc::PendingModel> models;
 	while (result->next()) {
 		auto& model = models.emplace_back();
@@ -121,13 +122,14 @@ std::vector<IUgc::PendingModel> MySQLDatabase::GetUgcModelsToProcess(const uint3
 		contents << blob->rdbuf();
 		model.lxfml = contents.str();
 		model.attempts = static_cast<uint32_t>(result->getInt("process_attempts"));
+		model.priority = result->getInt("priority") != 0;
 	}
 	return models;
 }
 
 void MySQLDatabase::SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) {
-	ExecuteUpdate("UPDATE ugc SET is_optimized = ?, process_attempts = ?, process_error = ?, bake_ao = ?, processed_at = ? WHERE id = ?;",
-		static_cast<int32_t>(state), attempts, error, bakeAo, UnixNow(), id);
+	ExecuteUpdate("UPDATE ugc SET is_optimized = ?, process_attempts = ?, process_error = ?, bake_ao = ?, processed_at = ?, priority = CASE WHEN ? = 0 THEN priority ELSE 0 END WHERE id = ?;",
+		static_cast<int32_t>(state), attempts, error, bakeAo, UnixNow(), static_cast<int32_t>(state), id);
 }
 
 std::optional<IUgc::ProcessInfo> MySQLDatabase::GetUgcProcessInfo(const LWOOBJID id) {
@@ -145,7 +147,7 @@ uint64_t MySQLDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> id
 }
 
 uint64_t MySQLDatabase::ResetPropertyUgcModelProcessing(const LWOOBJID propertyId) {
-	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0 "
+	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, priority = 1 "
 		"WHERE id IN (SELECT ugc_id FROM properties_contents WHERE property_id = ? AND ugc_id IS NOT NULL);", propertyId);
 }
 

@@ -332,10 +332,13 @@ void UgcProcessor::Poll() {
 
 	std::vector<Job> jobs;
 	std::vector<IUgc::PendingModel> models;
+	// Models staff asked to be made again come first too: polled even when the queue is full, to its front
 	if (limit > 0) models = Database::Get()->GetUgcModelsToProcess(limit);
+	else models = Database::Get()->GetUgcModelsToProcess(buildLimit, true);
 	for (auto& model : models) {
 		if (m_InFlight.contains({ Kind::MODEL, model.id })) continue;
 		Job job{ Kind::MODEL, model.id, model.attempts, UgcJobs::LxfmlFromBlob(model.lxfml) };
+		job.priority = model.priority;
 		if (job.blob.empty()) job.blob = std::move(model.lxfml); // the worker reports it can't be read
 		job.parts = UgcJobs::CountParts(job.blob);
 		job.iconValues = IconValues(UgcIconParams::ModelKind(), UgcIconParams::ModelTarget(model.id));
@@ -383,7 +386,7 @@ void UgcProcessor::Poll() {
 		std::lock_guard lock(m_Mutex);
 		for (auto& job : jobs) {
 			if (job.kind == Kind::MODEL) m_InFlight.insert({ job.kind, job.id });
-			if (job.kind == Kind::MODULAR) m_Jobs.push_front(std::move(job));
+			if (job.kind == Kind::MODULAR || job.priority) m_Jobs.push_front(std::move(job));
 			else m_Jobs.push_back(std::move(job));
 		}
 	}
