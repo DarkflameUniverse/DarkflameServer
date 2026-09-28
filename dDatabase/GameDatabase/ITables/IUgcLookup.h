@@ -37,6 +37,8 @@ public:
 		uint32_t bricks{};          // models: counted by the UGC server when it made them (0: not yet)
 		uint32_t triangles{};       // models: of the made mesh's most detailed level (0: not yet)
 		uint32_t processMs{};       // how long the last successful make took (0: not made, or made before it was timed)
+		uint32_t processCpuMs{};    // the worker thread's CPU time for it
+		uint32_t processMemoryKb{}; // the memory the UGC server estimated for it (not measured)
 	};
 
 	// What SearchUgc matches. A number (when set) is matched against ids; text against names

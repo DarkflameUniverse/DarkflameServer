@@ -221,7 +221,9 @@ void UgcProcessor::Worker() {
 			continue;
 		}
 		const auto start = std::chrono::steady_clock::now();
+		const double cpuStart = UgcThrottle::ThreadCpuSeconds();
 		Done done{ job.kind, job.id, job.attempts };
+		done.memoryEstimate = job.memory;
 		done.iconOnly = job.iconOnly;
 		try {
 			if (job.iconOnly) {
@@ -262,6 +264,7 @@ void UgcProcessor::Worker() {
 		}
 		done.outcome.files.clear();
 		done.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+		done.cpuMilliseconds = std::max(0.0, UgcThrottle::ThreadCpuSeconds() - cpuStart) * 1000.0;
 		UgcThrottle::Checkpoint();
 
 		{
@@ -367,6 +370,8 @@ void UgcProcessor::Poll() {
 }
 
 void UgcProcessor::Record(const Done& done) {
+	// What the make cost (wall time, the worker's CPU time, the estimated memory), for the dashboard
+	const IUgc::ProcessStats cost{ static_cast<uint32_t>(done.milliseconds), static_cast<uint32_t>(done.cpuMilliseconds), static_cast<uint32_t>(done.memoryEstimate / 1024) };
 	auto error = done.outcome.error.substr(0, MAX_ERROR_LENGTH);
 	const auto attempts = done.attempts + 1;
 	const auto state = done.outcome.ok ? IUgc::eProcessState::DONE
@@ -374,7 +379,7 @@ void UgcProcessor::Record(const Done& done) {
 		: attempts >= m_Config.maxAttempts ? IUgc::eProcessState::FAILED : IUgc::eProcessState::PENDING;
 	if (done.kind == Kind::MODEL) {
 		Database::Get()->SetUgcModelProcessed(done.id, state, attempts, error, done.outcome.ok && done.outcome.aoBaked);
-		if (done.outcome.ok) Database::Get()->SetUgcModelProcessMs(done.id, static_cast<uint32_t>(done.milliseconds));
+		if (done.outcome.ok) Database::Get()->SetUgcModelProcessStats(done.id, cost);
 		// What it counted (stats.json), for sorting on the dashboard
 		const auto stats = done.outcome.ok && !done.outcome.stats.empty() ? nlohmann::json::parse(done.outcome.stats, nullptr, false) : nlohmann::json();
 		if (stats.is_object()) {
@@ -384,7 +389,7 @@ void UgcProcessor::Record(const Done& done) {
 		}
 	} else {
 		Database::Get()->SetModularBuildProcessed(done.id, state, attempts, error);
-		if (done.outcome.ok) Database::Get()->SetModularBuildProcessMs(done.id, static_cast<uint32_t>(done.milliseconds));
+		if (done.outcome.ok) Database::Get()->SetModularBuildProcessStats(done.id, cost);
 		// Which combination's files it shares, for the worlds' manifest answers
 		if (const auto combo = m_ComboOf.find(done.id); combo != m_ComboOf.end()) Database::Get()->SetModularBuildCombination(done.id, combo->second);
 	}

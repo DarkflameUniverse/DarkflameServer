@@ -416,8 +416,8 @@ public:
 	void SetUgcFileChecksum(const eFileOwner owner, const LWOOBJID storageId, const std::string_view file, const std::string_view md5, const uint32_t size) override;
 	std::optional<IUgc::FileChecksum> GetUgcFileChecksum(const LWOOBJID blueprintId, const std::string_view file) override;
 	void SetModularBuildCombination(const LWOOBJID id, const LWOOBJID combinationId) override;
-	void SetUgcModelProcessMs(const LWOOBJID id, const uint32_t milliseconds) override;
-	void SetModularBuildProcessMs(const LWOOBJID id, const uint32_t milliseconds) override;
+	void SetUgcModelProcessStats(const LWOOBJID id, const ProcessStats& stats) override;
+	void SetModularBuildProcessStats(const LWOOBJID id, const IUgc::ProcessStats& stats) override;
 	std::vector<IUgcModularBuild::PendingBuild> GetModularBuildsWithoutCombination(const uint32_t limit) override;
 	std::optional<IUgc::ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) override;
 	uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) override;

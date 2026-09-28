@@ -173,6 +173,8 @@ private:
 		UgcJobs::Outcome outcome;
 		uint64_t bytes{};
 		double milliseconds{};
+		double cpuMilliseconds{};  // the worker thread's CPU time for it
+		uint64_t memoryEstimate{}; // the bytes it was estimated to need (the memory budget's figure)
 		bool iconOnly{};
 		std::vector<Checksum> checksums; // of the files written that the client downloads as sd0
 	};

@@ -21,6 +21,8 @@ namespace {
 		entry.bricks = static_cast<uint32_t>(result.getInt64Field("brick_count"));
 		entry.triangles = static_cast<uint32_t>(result.getInt64Field("triangle_count"));
 		entry.processMs = static_cast<uint32_t>(result.getInt64Field("process_ms"));
+		entry.processCpuMs = static_cast<uint32_t>(result.getInt64Field("process_cpu_ms"));
+		entry.processMemoryKb = static_cast<uint32_t>(result.getInt64Field("process_memory_kb"));
 		return entry;
 	}
 }

@@ -127,6 +127,6 @@ std::vector<IUgcModularBuild::PendingBuild> SQLiteDatabase::GetModularBuildsWith
 	return builds;
 }
 
-void SQLiteDatabase::SetModularBuildProcessMs(const LWOOBJID id, const uint32_t milliseconds) {
-	ExecuteUpdate("UPDATE ugc_modular_build SET process_ms = ? WHERE ugc_id = ?;", milliseconds, id);
+void SQLiteDatabase::SetModularBuildProcessStats(const LWOOBJID id, const IUgc::ProcessStats& stats) {
+	ExecuteUpdate("UPDATE ugc_modular_build SET process_ms = ?, process_cpu_ms = ?, process_memory_kb = ? WHERE ugc_id = ?;", stats.milliseconds, stats.cpuMilliseconds, stats.memoryKb, id);
 }

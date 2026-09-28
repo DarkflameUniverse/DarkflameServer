@@ -89,16 +89,26 @@
 		return '<img src="' + esc(fileUrl(list.kind, iconId(i), 'icon.png')) + '" width="' + size + '" height="' + size + '" loading="lazy" alt="" class="ugc-checker rounded" onerror="this.style.visibility=\'hidden\'">';
 	}
 	function moduleNames(i) { return (i.moduleList || []).map(function (m) { return m.name || m.lot; }).join(', '); }
-	// How long a make took: "850 ms", "12.4 s", "2 min 5 s"
+	// A duration in the largest units that fit: "850 ms", "12.4 s", "2 min 5 s", "1 h 4 min", "2 d 3 h"
 	function duration(ms) {
+		ms = Math.round(ms);
 		if (ms < 1000) return ms + ' ms';
-		if (ms < 60000) return (ms / 1000).toFixed(1) + ' s';
-		return Math.floor(ms / 60000) + ' min ' + Math.round((ms % 60000) / 1000) + ' s';
+		if (ms < 60000) return (ms / 1000).toFixed(ms < 10000 ? 2 : 1) + ' s';
+		var s = Math.round(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+		if (d) return d + ' d' + (h % 24 ? ' ' + (h % 24) + ' h' : '');
+		if (h) return h + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+		return m + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : '');
 	}
-	// When it was made and how long that took (the time is only known for makes since it was recorded)
+	function megabytes(kb) { return kb >= 1048576 ? (kb / 1048576).toFixed(1) + ' GB' : kb >= 1024 ? Math.round(kb / 1024) + ' MB' : kb + ' KB'; }
+	// What the last make cost: its time, the worker's CPU time and the memory the UGC server estimated for it
+	function costText(i) {
+		if (!i.processMs) return '';
+		return 'took ' + duration(i.processMs) + (i.processCpuMs ? ', CPU ' + duration(i.processCpuMs) : '') + (i.processMemoryKb ? ', ~' + megabytes(i.processMemoryKb) + ' RAM (est.)' : '');
+	}
+	// When it was made and what that cost (the cost is only known for makes since it was recorded)
 	function madeText(i) {
 		if (!i.processedAt) return '';
-		return fmt.unix(i.processedAt) + (i.processMs ? ' \u00b7 took ' + duration(i.processMs) : '');
+		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '');
 	}
 	function waitBadge(i) {
 		return i.state === 'pending' && i.processAfter > Date.now() / 1000 ? ' <span class="small text-body-secondary" title="Waits for the owner to stop saving">after ' + esc(fmt.unix(i.processAfter)) + '</span>' : '';
@@ -288,7 +298,7 @@
 				meter('Jobs\' memory', s.jobMemoryBytes || 0, l.maxMemoryBytes || 0, esc(mb(s.jobMemoryBytes || 0)) + ' estimated' +
 					(l.maxMemoryBytes ? ' of ' + esc(mb(l.maxMemoryBytes)) : ', no limit') + (s.memoryWaits ? ', ' + esc(s.memoryWaits) + ' waits' : '')) +
 				'</div>' + (l.nice ? '<div class="text-body-secondary">Workers run at priority ' + esc(l.nice) + '.</div>' : '') +
-				(last ? '<div class="text-body-secondary">Last: ' + esc(last.kind) + ' ' + esc(last.id) + (last.ok ? ' made in ' + esc(last.ms) + ' ms' : ' failed') +
+				(last ? '<div class="text-body-secondary">Last: ' + esc(last.kind) + ' ' + esc(last.id) + (last.ok ? ' made in ' + esc(duration(last.ms)) : ' failed') +
 					(last.message ? ' (' + esc(last.message) + ')' : '') + '</div>' : '');
 		}).catch(function () { box.innerHTML = fmt.badge('Unknown', 'secondary') + ' Couldn\'t ask the dashboard for the UGC server\'s status.'; });
 	}

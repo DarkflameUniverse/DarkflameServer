@@ -191,7 +191,7 @@ namespace {
 		return { { "id", std::to_string(entry.id) }, { "characterId", std::to_string(entry.characterId) }, { "characterName", entry.characterName },
 			{ "accountId", entry.accountId }, { "accountName", entry.accountName }, { "state", IUgc::ProcessStateName(entry.state) }, { "attempts", entry.attempts },
 			{ "processedAt", entry.processedAt }, { "error", entry.error }, { "bakeAo", entry.bakeAo }, { "processAfter", entry.processAfter },
-			{ "detail", entry.detail }, { "bricks", entry.bricks }, { "triangles", entry.triangles }, { "processMs", entry.processMs } };
+			{ "detail", entry.detail }, { "bricks", entry.bricks }, { "triangles", entry.triangles }, { "processMs", entry.processMs }, { "processCpuMs", entry.processCpuMs }, { "processMemoryKb", entry.processMemoryKb } };
 	}
 
 	// Web thread: every car and rocket build (the assemblies are made from them)

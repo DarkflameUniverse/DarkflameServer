@@ -195,6 +195,6 @@ std::optional<IUgc::FileChecksum> MySQLDatabase::GetUgcFileChecksum(const LWOOBJ
 	return IUgc::FileChecksum{ std::string(result->getString("md5").c_str()), static_cast<uint32_t>(result->getUInt("size")) };
 }
 
-void MySQLDatabase::SetUgcModelProcessMs(const LWOOBJID id, const uint32_t milliseconds) {
-	ExecuteUpdate("UPDATE ugc SET process_ms = ? WHERE id = ?;", milliseconds, id);
+void MySQLDatabase::SetUgcModelProcessStats(const LWOOBJID id, const ProcessStats& stats) {
+	ExecuteUpdate("UPDATE ugc SET process_ms = ?, process_cpu_ms = ?, process_memory_kb = ? WHERE id = ?;", stats.milliseconds, stats.cpuMilliseconds, stats.memoryKb, id);
 }
