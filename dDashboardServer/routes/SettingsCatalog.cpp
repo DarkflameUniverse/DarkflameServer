@@ -137,6 +137,17 @@ namespace {
 		c.Add(Bool(MASTER, "enable_dashboard", "Start the web dashboard", "", false, true));
 		c.Add(Bool(SHARED, "skip_account_creation", "Skip the first-account prompt", "For non-interactive setups: master doesn't ask for an account when there are none.", false, true));
 
+		c.AddSection("Live updates", "Moving every server and world instance onto a new build without a restart (the dashboard's Live update, /liveupdate or SIGUSR2 to master). Read when one starts.");
+		c.Add(Unit(Int(MASTER, "live_update_warn_seconds", "Warning before moving players", "The game's Mythran maintenance warning is shown this long before players are moved. The dashboard can pick another for one update.", "10", 0, 300), "seconds"));
+		c.Add(Int(MASTER, "live_update_parallel_worlds", "Worlds at once", "World instances replaced at the same time.", "4", 1, 64));
+		c.Add(Unit(Int(MASTER, "live_update_player_wait", "Wait for busy players", "Players who are dead or building are moved once they are done, or after this long.", "30", 0, 600), "seconds"));
+		c.Add(Unit(Int(MASTER, "live_update_property_build_wait", "Wait for property builders", "A property is saved for its new instance once nobody builds there, or after this long (they leave build mode then).", "60", 0, 600), "seconds"));
+		c.Add(Unit(Int(MASTER, "live_update_char_select_wait", "Wait at character select", "Players picking a character get this long to go in by themselves; then they are moved to the new character select.", "60", 0, 3600), "seconds"));
+		c.Add(Unit(Int(MASTER, "live_update_activity_wait", "Wait for activities", "Races, minigames and other activity zones get this long to finish; then their players are moved (the activity is lost).", "1800", 0, 86400), "seconds"));
+		c.Add(Unit(Int(MASTER, "live_update_ugc_drain_timeout", "Wait for the UGC server", "The UGC server finishes the models it is making; after this long it is stopped (they are made again).", "300", 0, 3600), "seconds"));
+		c.Add(Unit(Int(MASTER, "live_update_service_timeout", "Server restart timeout", "How long auth, chat, the UGC server or the dashboard may take to stop or come back before master starts it again (3 tries).", "30", 10, 600), "seconds"));
+		c.Add(Bool(MASTER, "live_update_run_migrations", "Run database migrations", "Run the new build's database migrations first. The running servers must cope with the new schema until they are replaced.", true));
+
 		c.AddSection("Game client");
 		c.Add(Format(Text(SHARED, "client_location", "Client folder", "The folder with res/, or the one with client/ and versions/.", "", true), eFormat::PATH));
 		c.Add(Int(SHARED, "client_net_version", "Network version", "Clients reporting another version are refused. 171022 for the retail client, 171023 for Darkflame Universe clients.", "171022", 0, std::nullopt, true));

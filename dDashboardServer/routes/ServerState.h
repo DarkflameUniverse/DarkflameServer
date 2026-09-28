@@ -39,7 +39,8 @@ struct WorldInstanceInfo {
 	std::string propertyName{};
 	std::string ownerId{};
 	std::string ownerName{};
-	// "starting" (launched, not connected yet) or "stopping"; worlds that are up are in g_WorldInstances instead
+	// "starting" (launched, not connected yet) or "stopping" (in g_PendingWorlds), or "draining" for a world that is up
+	// but whose players are being moved to a new instance (in g_WorldInstances); empty for one that is just up
 	std::string state{};
 };
 
@@ -77,7 +78,8 @@ namespace ServerState {
 				{"cloneID", world.cloneID},
 				{"players", world.players},
 				{"isPrivate", world.isPrivate},
-				{"zoneName", world.zoneName}
+				{"zoneName", world.zoneName},
+				{"state", world.state}
 			});
 		}
 
@@ -103,7 +105,7 @@ namespace ServerState {
 			const auto mapID = world.value("mapID", 0u);
 			if (world.value("cloneID", 0u) == 0) {
 				worlds.push_back({ {"mapID", mapID}, {"instanceID", world.value("instanceID", 0u)}, {"players", world.value("players", 0u)},
-					{"zoneName", world.value("zoneName", "")} });
+					{"zoneName", world.value("zoneName", "")}, {"state", world.value("state", "")} });
 				continue;
 			}
 			const auto it = propertyRows.find(mapID);

@@ -20,6 +20,9 @@
 #include "MessageType/Game.h"
 #include "MessageType/Master.h"
 #include "PetComponent.h"
+#include "PropertyManagementComponent.h"
+#include "ControllablePhysicsComponent.h"
+#include "UserManager.h"
 #include "PlayerManager.h"
 #include "ServiceType.h"
 #include "TradingManager.h"
@@ -30,8 +33,6 @@
 using namespace InstanceMigration;
 
 namespace {
-	// Players who are dead or building wait this long to finish before they go anyway
-	constexpr float MAX_WAIT_SECONDS = 15.0f;
 	// A client that got its transfer and is still connected after this is dropped (it is saved already)
 	constexpr float LEAVE_TIMEOUT_SECONDS = 20.0f;
 	// Nobody left to move for this long: done (players still loading in finish first)
@@ -60,6 +61,17 @@ namespace {
 	};
 
 	std::optional<Active> g_Active;
+
+	// A property being saved before its new instance loads it (MIGRATE_PREPARE)
+	struct Preparing {
+		uint32_t migrationId{};
+		float waitLeft{};
+		bool told{};
+	};
+	std::optional<Preparing> g_Preparing;
+	// The migration this property was frozen for (0: not frozen)
+	uint32_t g_FrozenFor = 0;
+	std::string g_LiveUpdateTold; // the last live update summary the GM who asked was told
 	std::map<SystemAddress, Leaving> g_Leaving;
 	std::map<LWOOBJID, std::pair<CarriedPlayerState, float>> g_Carried;
 	std::function<void(const SystemAddress&)> g_Cleanup;
@@ -93,12 +105,36 @@ namespace {
 		announcement.SendToClient(player->GetSystemAddress());
 	}
 
+	// Character selection has users but no player entities
+	bool IsCharacterSelect() {
+		return Game::server->GetZoneID() == 0;
+	}
+
 	uint16_t Remaining() {
 		uint16_t remaining = 0;
+		if (IsCharacterSelect()) {
+			for (const auto& [sysAddr, user] : UserManager::Instance()->GetUsers()) {
+				if (user && !g_Leaving.contains(sysAddr)) remaining++;
+			}
+			return remaining;
+		}
 		for (auto* player : PlayerManager::GetAllPlayers()) {
 			if (player && !g_Leaving.contains(player->GetSystemAddress())) remaining++;
 		}
 		return remaining;
+	}
+
+	// Someone at character selection: nothing to save, they just connect to the new one, which sends them their
+	// characters again
+	void MoveUser(const SystemAddress& sysAddr) {
+		const auto& order = g_Active->order;
+		g_Leaving[sysAddr] = { LWOOBJID_EMPTY, 0.0f };
+		ClientPackets::TransferToWorld transfer;
+		transfer.serverIP = LUString(order.targetIp);
+		transfer.serverPort = order.targetPort;
+		transfer.mythranShift = order.mythranShift;
+		transfer.Send(sysAddr);
+		LOG("Migration %u: sent %s from character selection to instance %u", order.migrationId, sysAddr.ToString(), order.targetInstance);
 	}
 
 	// Save, lock and send one player over. Returns false when they couldn't be sent.
@@ -120,6 +156,19 @@ namespace {
 		carried.characterId = playerId;
 		carried.seamless = order.seamless;
 		if (auto* pet = PetComponent::GetActivePet(playerId)) carried.petItemId = pet->GetItemId();
+		// Where they stand: the saved character doesn't keep it on properties (or Moon Base)
+		if (auto* physics = player->GetComponent<ControllablePhysicsComponent>()) {
+			const auto& position = physics->GetPosition();
+			const auto& rotation = physics->GetRotation();
+			carried.hasPosition = true;
+			carried.x = position.x;
+			carried.y = position.y;
+			carried.z = position.z;
+			carried.rotW = rotation.w;
+			carried.rotX = rotation.x;
+			carried.rotY = rotation.y;
+			carried.rotZ = rotation.z;
+		}
 
 		// Same zone, so they spawn where they stood (Entity.cpp only uses a spawn point when the zone changes)
 		character->SetZoneID(order.targetZone);
@@ -153,6 +202,19 @@ namespace {
 	void MovePlayers(float deltaTime) {
 		auto& active = *g_Active;
 		active.budget = std::min(active.budget + active.order.playersPerSecond * deltaTime, static_cast<float>(active.order.playersPerSecond));
+		if (IsCharacterSelect()) {
+			std::vector<SystemAddress> users;
+			for (const auto& [sysAddr, user] : UserManager::Instance()->GetUsers()) {
+				if (user && !g_Leaving.contains(sysAddr)) users.push_back(sysAddr);
+			}
+			for (const auto& sysAddr : users) {
+				if (active.budget < 1.0f) break;
+				active.budget -= 1.0f;
+				MoveUser(sysAddr);
+				active.moved++;
+			}
+			return;
+		}
 		// Copy: moving a player can change the list (a cancelled trade, a pet)
 		const auto players = PlayerManager::GetAllPlayers();
 		for (auto* player : players) {
@@ -161,7 +223,7 @@ namespace {
 			auto* character = player->GetCharacter();
 			const bool inTrade = TradingManager::Instance()->GetPlayerTrade(player->GetObjectID()) != nullptr;
 			auto& waited = active.waiting[player->GetObjectID()];
-			const auto decision = DecidePlayer(inTrade, character && character->GetBuildMode(), player->GetIsDead(), waited, MAX_WAIT_SECONDS);
+			const auto decision = DecidePlayer(inTrade, character && character->GetBuildMode(), player->GetIsDead(), waited, active.order.maxWaitSeconds);
 			if (decision == ePlayerDecision::WAIT) {
 				waited += deltaTime;
 				continue;
@@ -195,6 +257,15 @@ void WorldMigration::SetCleanupHandler(std::function<void(const SystemAddress&)>
 
 void WorldMigration::HandleOrder(const MigratePlayersOrder& order) {
 	if (order.targetPort == 0) {
+		if (g_Preparing && g_Preparing->migrationId == order.migrationId) {
+			LOG("Migration %u cancelled while the property was being saved", order.migrationId);
+			g_Preparing.reset();
+		}
+		// A property nobody went to the new instance of is ours again; once someone did, it stays with them
+		if (g_FrozenFor == order.migrationId && (!g_Active || g_Active->moved == 0)) {
+			if (auto* property = PropertyManagementComponent::Instance()) property->Unfreeze();
+			g_FrozenFor = 0;
+		}
 		if (!g_Active || g_Active->order.migrationId != order.migrationId) return;
 		LOG("Migration %u cancelled; %u player(s) were moved", order.migrationId, g_Active->moved);
 		SendStatus(eState::FAILED, Remaining(), "Cancelled");
@@ -219,6 +290,27 @@ void WorldMigration::HandleOrder(const MigratePlayersOrder& order) {
 	}
 }
 
+void WorldMigration::HandlePrepare(const MigratePrepare& prepare) {
+	if (g_Active || g_Preparing) {
+		LOG("Migration %u refused: another migration is running here", prepare.migrationId);
+		SendStatus(prepare.migrationId, 0, eState::FAILED, 0, 0, Remaining(), "Another migration is running on this instance");
+		return;
+	}
+	g_Preparing = Preparing{ prepare.migrationId, static_cast<float>(prepare.maxWaitSeconds), false };
+	LOG("Migration %u: saving this instance's property for its replacement (waiting up to %u s for builders)", prepare.migrationId, prepare.maxWaitSeconds);
+}
+
+void WorldMigration::ApplyCarriedPosition(Entity* player) {
+	if (!player) return;
+	const auto it = g_Carried.find(player->GetObjectID());
+	if (it == g_Carried.end() || !it->second.first.hasPosition) return;
+	const auto& state = it->second.first;
+	auto* physics = player->GetComponent<ControllablePhysicsComponent>();
+	if (!physics) return;
+	physics->SetPosition(NiPoint3(state.x, state.y, state.z));
+	physics->SetRotation(NiQuaternion(state.rotW, state.rotX, state.rotY, state.rotZ));
+}
+
 void WorldMigration::StoreCarriedState(const CarriedPlayerState& state) {
 	if (state.targetZone != Game::server->GetZoneID() || state.targetInstance != Game::server->GetInstanceID()) return;
 	g_Carried[state.characterId] = { state, 0.0f };
@@ -231,6 +323,28 @@ void WorldMigration::Update(float deltaTime) {
 		else ++it;
 	}
 	DropStuckClients(deltaTime);
+
+	if (g_Preparing) {
+		auto* property = PropertyManagementComponent::Instance();
+		if (property && property->GetBuilderCount() > 0 && g_Preparing->waitLeft > 0.0f) {
+			if (!g_Preparing->told) {
+				g_Preparing->told = true;
+				const auto seconds = std::to_string(static_cast<int>(g_Preparing->waitLeft));
+				for (auto* player : PlayerManager::GetAllPlayers()) {
+					if (player) ChatPackets::SendSystemMessage(player->GetSystemAddress(),
+						GeneralUtils::ASCIIToUTF16("The server is being updated: building on this property ends in " + seconds + " seconds."));
+				}
+			}
+			g_Preparing->waitLeft -= deltaTime;
+		} else {
+			const auto migrationId = g_Preparing->migrationId;
+			g_Preparing.reset();
+			if (property) property->FreezeForHandOff();
+			g_FrozenFor = migrationId;
+			SendStatus(migrationId, 0, eState::PREPARED, 0, 0, Remaining(), property ? "Property saved" : "Nothing to save");
+		}
+	}
+
 	if (!g_Active) return;
 
 	auto& active = *g_Active;
@@ -400,4 +514,62 @@ void WorldMigration::MergeInstanceCommand(Entity* entity, const SystemAddress& s
 	ChatPackets::SendSystemMessage(sysAddr, u"Asking master to merge this instance into " +
 		(target ? u"instance " + GeneralUtils::ASCIIToUTF16(std::to_string(target)) : std::u16string(u"the best fit")) + u".");
 	RequestMigration(entity, eKind::MERGE, target, warnSeconds, seamless);
+}
+
+namespace {
+	std::string LiveUpdateSummary(const LiveUpdateStatus& status) {
+		using namespace LiveUpdate;
+		size_t done = 0, failed = 0;
+		for (const auto& unit : status.units) {
+			if (IsFinished(unit.state)) done++;
+			if (unit.state == eUnitState::FAILED) failed++;
+		}
+		std::string text = "Live update " + std::to_string(status.updateId) + ": " + PhaseName(status.phase);
+		if (!status.units.empty()) text += ", " + std::to_string(done) + " of " + std::to_string(status.units.size()) + " done";
+		if (failed) text += ", " + std::to_string(failed) + " failed";
+		if (!status.message.empty()) text += ". " + status.message;
+		return text;
+	}
+}
+
+void WorldMigration::LiveUpdateCommand(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	const auto words = GeneralUtils::SplitString(args, ' ');
+	const std::string verb = words.empty() || words[0].empty() ? "status" : words[0];
+	LiveUpdateRequest request;
+	if (verb == "start") {
+		request.action = LiveUpdate::eAction::START;
+		if (words.size() > 1) {
+			const auto warn = GeneralUtils::TryParse<int32_t>(words[1]);
+			if (!warn || *warn < 0 || *warn > InstanceMigrationRequest::MAX_WARN_SECONDS) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Usage: /liveupdate start [warn seconds, 0-300]");
+				return;
+			}
+			request.warnSeconds = *warn;
+		}
+	} else if (verb == "cancel") {
+		request.action = LiveUpdate::eAction::CANCEL;
+	} else if (verb == "status") {
+		request.action = LiveUpdate::eAction::STATUS;
+	} else {
+		ChatPackets::SendSystemMessage(sysAddr, u"Usage: /liveupdate [start [warn seconds] | cancel | status]");
+		return;
+	}
+	if (entity) {
+		request.requesterId = entity->GetObjectID();
+		if (auto* character = entity->GetCharacter()) request.requestedBy = character->GetName();
+	}
+	g_LiveUpdateTold.clear();
+	LOG("Asking master to %s a live update (requested by %s)", verb.c_str(), request.requestedBy.c_str());
+	MasterPackets::SendToMaster(request);
+	if (request.action == LiveUpdate::eAction::START) ChatPackets::SendSystemMessage(sysAddr, u"Asking master to move everything onto the binaries on disk now.");
+}
+
+void WorldMigration::HandleLiveUpdateStatus(const LiveUpdateStatus& status) {
+	if (status.requesterId == LWOOBJID_EMPTY) return;
+	auto* requester = PlayerManager::GetPlayer(status.requesterId);
+	if (!requester) return;
+	const auto text = LiveUpdateSummary(status);
+	if (text == g_LiveUpdateTold) return;
+	g_LiveUpdateTold = text;
+	ChatPackets::SendSystemMessage(requester->GetSystemAddress(), GeneralUtils::ASCIIToUTF16(text));
 }

@@ -30,6 +30,31 @@ void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify
 	// Names longer than ChatPackets::LoginSessionNotify::MAX_NAME_LENGTH were dropped when read
 	const LWOOBJID playerId = notify.playerID;
 
+	// A world sending its players to a new chat server (live update): nobody logged in or changed zones
+	if (notify.resync) {
+		if (m_Players.contains(playerId)) {
+			m_Players[playerId].worldServerSysAddr = sysAddr;
+			m_PlayersToRemove.erase(playerId);
+			return;
+		}
+		auto& data = m_Players[playerId];
+		data = PlayerData();
+		data.playerID = playerId;
+		data.playerName = notify.playerName;
+		data.zoneID = notify.zoneID;
+		data.muteExpire = static_cast<time_t>(notify.muteExpire);
+		data.gmLevel = notify.gmLevel;
+		data.worldServerSysAddr = sysAddr;
+		m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
+		m_PlayerCount++;
+		// Their friends list is read again when their client next asks (every zone load); until then the friends
+		// they have are what friend updates go to
+		ChatPacketHandler::LoadFriends(data);
+		m_PlayersToRemove.erase(playerId);
+		LOG("Took over user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
+		return;
+	}
+
 	auto isLogin = !m_Players.contains(playerId);
 	auto& data = m_Players[playerId];
 	data = PlayerData();
@@ -169,6 +194,11 @@ const PlayerData& PlayerContainer::GetPlayerData(const std::string& playerName) 
 
 void PlayerContainer::Shutdown() {
 	m_Players.erase(LWOOBJID_EMPTY);
+	// Handed over to the next chat server (live update): everyone is still online
+	if (m_Retiring) {
+		m_Players.clear();
+		return;
+	}
 	while (!m_Players.empty()) {
 		const auto& [id, playerData] = *m_Players.begin();
 		Database::Get()->UpdateActivityLog(id, eActivityType::PlayerLoggedOut, playerData.zoneID.GetMapID());

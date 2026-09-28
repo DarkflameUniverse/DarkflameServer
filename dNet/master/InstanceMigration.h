@@ -55,6 +55,10 @@ namespace InstanceMigration {
 		MOVING,
 		DONE,
 		FAILED,
+		// Live updates of property (clone) instances: the source freezes the property and saves it before the new
+		// instance loads it (MIGRATE_PREPARE)
+		PREPARING,
+		PREPARED,
 	};
 
 	inline const char* KindName(eKind kind) { return kind == eKind::MERGE ? "merge" : "replace"; }
@@ -66,6 +70,8 @@ namespace InstanceMigration {
 		case eState::MOVING: return "moving";
 		case eState::DONE: return "done";
 		case eState::FAILED: return "failed";
+		case eState::PREPARING: return "preparing";
+		case eState::PREPARED: return "prepared";
 		}
 		return "unknown";
 	}
@@ -135,6 +141,29 @@ namespace InstanceMigration {
 		if (source.draining) return eRefusal::ALREADY_MIGRATING;
 		if (!source.ready) return eRefusal::NOT_READY;
 		return eRefusal::NONE;
+	}
+
+	/**
+	 * A live update replaces every instance, so it moves what CheckSource refuses too: character selection, private
+	 * instances, properties (after MIGRATE_PREPARE) and activity zones (once their players had time to finish). Only
+	 * an instance that isn't running properly is left alone. A draining one is fine: the live update drains activity
+	 * zones and character selection itself before moving whoever is left.
+	 */
+	inline eRefusal CheckLiveUpdateSource(const InstanceView& source) {
+		if (source.shuttingDown) return eRefusal::SHUTTING_DOWN;
+		if (!source.ready) return eRefusal::NOT_READY;
+		return eRefusal::NONE;
+	}
+
+	/**
+	 * Whether master may send a new player to this instance of zone/clone (InstanceManager::FindInstance): not
+	 * private, not shutting down, not draining (being emptied for a live update or migration), and with room: under
+	 * the soft cap, or under the hard cap for players following a friend. Seats held for players being moved in count.
+	 */
+	inline bool AcceptsNewPlayers(const InstanceView& instance, uint32_t zone, uint32_t clone, bool friendTransfer) {
+		if (instance.zoneId != zone || instance.cloneId != clone) return false;
+		if (instance.isPrivate || instance.shuttingDown || instance.draining) return false;
+		return instance.Load() < (friendTransfer ? instance.hardCap : instance.softCap);
 	}
 
 	// Whether everyone in source fits into target. Merges may fill up to the hard cap: the soft cap only keeps
@@ -297,6 +326,11 @@ struct MigratePlayersOrder : public LUBitStream {
 	 * (LwoClientGhostManager::OnReceiveConstruction). Not tested with the real client yet.
 	 */
 	bool seamless{};
+	// How long players who are dead or building may take before they are moved anyway. Written last and read only
+	// when there (older senders didn't write it)
+	uint16_t maxWaitSeconds{ DEFAULT_MAX_WAIT_SECONDS };
+	static constexpr uint16_t DEFAULT_MAX_WAIT_SECONDS = 15;
+	static constexpr uint16_t MAX_MAX_WAIT_SECONDS = 600;
 
 	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(migrationId);
@@ -309,6 +343,7 @@ struct MigratePlayersOrder : public LUBitStream {
 		stream.Write(playersPerSecond);
 		stream.Write<uint8_t>(mythranShift ? 1 : 0);
 		stream.Write<uint8_t>(seamless ? 1 : 0);
+		stream.Write(std::min(maxWaitSeconds, MAX_MAX_WAIT_SECONDS));
 	}
 
 	bool Deserialize(RakNet::BitStream& stream) override {
@@ -319,6 +354,9 @@ struct MigratePlayersOrder : public LUBitStream {
 		mythranShift = shift != 0;
 		seamless = seamlessValue != 0;
 		if (playersPerSecond == 0) playersPerSecond = 1;
+		maxWaitSeconds = DEFAULT_MAX_WAIT_SECONDS;
+		uint16_t wait{};
+		if (stream.GetNumberOfUnreadBits() >= 16 && stream.Read(wait)) maxWaitSeconds = std::min(wait, MAX_MAX_WAIT_SECONDS);
 		return true;
 	}
 };
@@ -365,7 +403,7 @@ struct MigrationStatus : public LUBitStream {
 		if (!stream.Read(migrationId) || !stream.Read(stateValue) || !stream.Read(kindValue) || !stream.Read(zoneId) ||
 			!stream.Read(sourceInstance) || !stream.Read(targetInstance) || !stream.Read(moved) || !stream.Read(remaining) ||
 			!stream.Read(failed) || !stream.Read(requesterId)) return false;
-		if (stateValue > static_cast<uint8_t>(InstanceMigration::eState::FAILED) || kindValue > static_cast<uint8_t>(InstanceMigration::eKind::MERGE)) return false;
+		if (stateValue > static_cast<uint8_t>(InstanceMigration::eState::PREPARED) || kindValue > static_cast<uint8_t>(InstanceMigration::eKind::MERGE)) return false;
 		state = static_cast<InstanceMigration::eState>(stateValue);
 		kind = static_cast<InstanceMigration::eKind>(kindValue);
 		return InstanceMigration::ReadText(stream, message, MAX_MESSAGE);
@@ -385,6 +423,14 @@ struct CarriedPlayerState : public LUBitStream {
 	LWOOBJID characterId{};
 	LWOOBJID petItemId{}; // the pet that was out (its item), summoned again; 0 for none
 	bool seamless{}; // the client kept its scene: skip LOAD_STATIC_ZONE and load the player at once
+	/**
+	 * Where the player stood. The saved character only keeps it where the location is saved (not on properties
+	 * unless save_property_location is on, and Moon Base always starts at the spawn point), so the target puts the
+	 * player here when it creates them. Written last and read only when there (older senders didn't write it).
+	 */
+	bool hasPosition{};
+	float x{}, y{}, z{};
+	float rotW{ 1.0f }, rotX{}, rotY{}, rotZ{};
 
 	void Serialize(RakNet::BitStream& stream) const override {
 		stream.Write(targetZone);
@@ -392,12 +438,55 @@ struct CarriedPlayerState : public LUBitStream {
 		stream.Write(characterId);
 		stream.Write(petItemId);
 		stream.Write<uint8_t>(seamless ? 1 : 0);
+		stream.Write<uint8_t>(hasPosition ? 1 : 0);
+		if (hasPosition) {
+			stream.Write(x);
+			stream.Write(y);
+			stream.Write(z);
+			stream.Write(rotW);
+			stream.Write(rotX);
+			stream.Write(rotY);
+			stream.Write(rotZ);
+		}
 	}
 
 	bool Deserialize(RakNet::BitStream& stream) override {
 		uint8_t seamlessValue{};
 		if (!stream.Read(targetZone) || !stream.Read(targetInstance) || !stream.Read(characterId) || !stream.Read(petItemId) || !stream.Read(seamlessValue)) return false;
 		seamless = seamlessValue != 0;
+		hasPosition = false;
+		uint8_t positionValue{};
+		if (stream.GetNumberOfUnreadBits() >= 8 && stream.Read(positionValue) && positionValue != 0) {
+			if (!stream.Read(x) || !stream.Read(y) || !stream.Read(z) || !stream.Read(rotW) || !stream.Read(rotX) || !stream.Read(rotY) || !stream.Read(rotZ)) return false;
+			hasPosition = true;
+		}
+		return true;
+	}
+};
+
+/**
+ * MIGRATE_PREPARE (master -> source world, live updates of property instances): the new instance loads the property
+ * from the database when it starts, so before it is started the source waits (up to maxWaitSeconds) for everyone to
+ * leave build mode, saves the property and freezes it: nobody can build or claim it there any more and it is never
+ * saved again, so the new instance's saves can't be overwritten. The source answers MIGRATE_STATUS PREPARED (or
+ * FAILED). A MIGRATE_PLAYERS with target port 0 for the same migration unfreezes it again when nobody was moved yet.
+ */
+struct MigratePrepare : public LUBitStream {
+	MigratePrepare() : LUBitStream(ServiceType::MASTER, MessageType::Master::MIGRATE_PREPARE) {}
+
+	static constexpr uint16_t MAX_WAIT_SECONDS = 600;
+
+	uint32_t migrationId{};
+	uint16_t maxWaitSeconds{ 60 };
+
+	void Serialize(RakNet::BitStream& stream) const override {
+		stream.Write(migrationId);
+		stream.Write(std::min(maxWaitSeconds, MAX_WAIT_SECONDS));
+	}
+
+	bool Deserialize(RakNet::BitStream& stream) override {
+		if (!stream.Read(migrationId) || !stream.Read(maxWaitSeconds)) return false;
+		maxWaitSeconds = std::min(maxWaitSeconds, MAX_WAIT_SECONDS);
 		return true;
 	}
 };

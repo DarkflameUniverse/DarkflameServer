@@ -36,6 +36,10 @@ namespace {
 		bool shutdownSource{};
 		bool startedTarget{}; // we started the target for this migration
 		bool seamless{};
+		bool liveUpdate{};
+		bool prepare{};
+		uint16_t prepareWaitSeconds{};
+		uint16_t playerWaitSeconds{ MigratePlayersOrder::DEFAULT_MAX_WAIT_SECONDS };
 		LWOOBJID requester{};
 		int reserved{};
 		uint16_t moved{};
@@ -46,25 +50,14 @@ namespace {
 
 	std::map<uint32_t, Migration> g_Active;
 	std::function<void(const MigrationStatus&)> g_Reporter;
+	std::function<void(const MigrationStatus&)> g_Observer;
 
 	const InstancePtr& FindInstance(uint32_t zone, uint32_t instance) {
 		return Game::im->FindInstanceWithPrivate(static_cast<LWOMAPID>(zone), static_cast<LWOINSTANCEID>(instance));
 	}
 
 	InstanceView View(const Instance& instance) {
-		InstanceView view;
-		view.zoneId = instance.GetMapID();
-		view.instanceId = instance.GetInstanceID();
-		view.cloneId = instance.GetCloneID();
-		view.players = instance.GetCurrentClientCount();
-		view.softCap = instance.GetSoftCap();
-		view.hardCap = instance.GetHardCap();
-		view.reserved = instance.GetReserved();
-		view.ready = instance.GetIsReady();
-		view.isPrivate = instance.GetIsPrivate();
-		view.shuttingDown = instance.GetIsShuttingDown() || instance.GetShutdownComplete();
-		view.draining = instance.GetIsDraining();
-		return view;
+		return instance.View();
 	}
 
 	// Races, minigames and other activities run in their own zones with state that only lives in that world
@@ -84,7 +77,7 @@ namespace {
 	void Report(const Migration& migration, eState state, const std::string& message, uint16_t remaining = 0) {
 		LOG("Migration %u (%s zone %u instance %u -> %u): %s%s%s", migration.id, KindName(migration.kind), migration.zone, migration.source,
 			migration.target, StateName(state), message.empty() ? "" : ": ", message.c_str());
-		if (!g_Reporter) return;
+		if (!g_Reporter && !g_Observer) return;
 		MigrationStatus status;
 		status.migrationId = migration.id;
 		status.state = state;
@@ -97,7 +90,9 @@ namespace {
 		status.requesterId = migration.requester;
 		status.remaining = remaining;
 		status.message = message;
-		g_Reporter(status);
+		if (g_Observer) g_Observer(status);
+		// In game only the GM who asked hears about it
+		if (g_Reporter && status.requesterId != LWOOBJID_EMPTY) g_Reporter(status);
 	}
 
 	void ReleaseSeats(Migration& migration) {
@@ -126,6 +121,10 @@ namespace {
 		if (success && migration.shutdownSource && source) {
 			// Draining stays set: nothing is sent to it while it shuts down
 			source->Shutdown();
+		} else if (source && migration.prepare && migration.moved > 0) {
+			// A property some players already went to: the new instance owns it now, and the old one stays frozen
+			// (it is shut down once empty); nobody new goes to the old one
+			LOG("Migration %u: the property's old instance %u keeps draining (players already went to %u)", migration.id, migration.source, migration.target);
 		} else if (source) {
 			source->SetIsDraining(false);
 		}
@@ -150,7 +149,9 @@ namespace {
 		order.playersPerSecond = PLAYERS_PER_SECOND;
 		// Without a loading screen the "dimensional shift" notice would be the only sign; leave it out then
 		order.seamless = migration.seamless;
-		order.mythranShift = !migration.seamless;
+		// Character selection has no maintenance notice to show
+		order.mythranShift = !migration.seamless && source.GetMapID() != 0;
+		order.maxWaitSeconds = migration.playerWaitSeconds;
 		MasterPackets::SendTo(source.GetSysAddr(), order);
 
 		migration.state = migration.warnSeconds > 0 ? eState::WARNING : eState::MOVING;
@@ -164,7 +165,42 @@ void MigrationCoordinator::SetReporter(std::function<void(const MigrationStatus&
 	g_Reporter = std::move(reporter);
 }
 
-eRefusal MigrationCoordinator::Start(const InstanceMigrationRequest& request) {
+void MigrationCoordinator::SetObserver(std::function<void(const MigrationStatus&)> observer) {
+	g_Observer = std::move(observer);
+}
+
+namespace {
+	// The new instance (REPLACE): a fresh world server from the binary on disk now, so an update takes effect. A private
+	// instance's replacement gets the same password; the source is draining already, so the password finds the new one.
+	Instance* StartTarget(Instance& source) {
+		if (source.GetIsPrivate()) {
+			source.SetIsDraining(true);
+			const auto& started = Game::im->CreatePrivateInstance(source.GetMapID(), source.GetCloneID(), source.GetPassword());
+			return started ? started.get() : nullptr;
+		}
+		const auto& started = Game::im->StartNewInstance(source.GetMapID(), source.GetCloneID());
+		return started ? started.get() : nullptr;
+	}
+
+	// Seats held, the source draining, and the order sent once the target is ready
+	void Begin(Migration& migration, Instance& source, Instance& target) {
+		migration.target = target.GetInstanceID();
+		// Seats for everyone there now; a few may still arrive while draining, the hard cap is the real limit
+		migration.reserved = source.GetCurrentClientCount();
+		target.SetReserved(target.GetReserved() + migration.reserved);
+		source.SetIsDraining(true);
+		if (target.GetIsReady()) {
+			SendOrder(migration, source, target);
+		} else {
+			migration.state = eState::STARTING_TARGET;
+			migration.deadline = Clock::now() + TARGET_START_TIMEOUT;
+			Report(migration, eState::STARTING_TARGET, "Starting instance " + std::to_string(migration.target),
+				static_cast<uint16_t>(source.GetCurrentClientCount()));
+		}
+	}
+}
+
+eRefusal MigrationCoordinator::Start(const InstanceMigrationRequest& request, const Options& options) {
 	Migration migration;
 	migration.id = request.requestId;
 	migration.kind = request.kind;
@@ -175,6 +211,10 @@ eRefusal MigrationCoordinator::Start(const InstanceMigrationRequest& request) {
 	migration.seamless = request.seamless;
 	migration.requester = request.requesterId;
 	migration.by = request.requestedBy;
+	migration.liveUpdate = options.liveUpdate;
+	migration.prepare = options.prepare;
+	migration.prepareWaitSeconds = std::min(options.prepareWaitSeconds, MigratePrepare::MAX_WAIT_SECONDS);
+	migration.playerWaitSeconds = std::min(options.playerWaitSeconds, MigratePlayersOrder::MAX_MAX_WAIT_SECONDS);
 
 	const auto refuse = [&migration](eRefusal refusal) {
 		Report(migration, eState::FAILED, Describe(refusal));
@@ -186,7 +226,8 @@ eRefusal MigrationCoordinator::Start(const InstanceMigrationRequest& request) {
 	Instance* source = FindInstance(request.zoneId, request.sourceInstance).get();
 	if (!source) return refuse(eRefusal::NOT_RUNNING);
 	auto sourceView = View(*source);
-	if (const auto refusal = CheckSource(sourceView, IsActivityZone(request.zoneId)); refusal != eRefusal::NONE) return refuse(refusal);
+	const auto sourceRefusal = options.liveUpdate ? CheckLiveUpdateSource(sourceView) : CheckSource(sourceView, IsActivityZone(request.zoneId));
+	if (sourceRefusal != eRefusal::NONE) return refuse(sourceRefusal);
 	if (IsTakingPart(request.zoneId, request.sourceInstance)) return refuse(eRefusal::ALREADY_MIGRATING);
 	migration.clone = source->GetCloneID();
 
@@ -208,32 +249,36 @@ eRefusal MigrationCoordinator::Start(const InstanceMigrationRequest& request) {
 		if (IsTakingPart(request.zoneId, targetId)) return refuse(eRefusal::ALREADY_MIGRATING);
 		if (const auto refusal = CheckMergeTarget(View(*found), sourceView); refusal != eRefusal::NONE) return refuse(refusal);
 		target = found.get();
+	} else if (migration.prepare) {
+		// A property: the new instance loads it from the database when it starts, so the source saves and freezes it
+		// first (HandleStatus starts the target once it is PREPARED). Visitors still go to the source meanwhile.
+		LOG("Migration %u requested by %s: preparing zone %u clone %u instance %u (%i player(s))", migration.id, migration.by.c_str(),
+			migration.zone, migration.clone, migration.source, source->GetCurrentClientCount());
+		auto& active = g_Active[migration.id] = migration;
+		active.state = eState::PREPARING;
+		active.deadline = Clock::now() + std::chrono::seconds(active.prepareWaitSeconds) + TARGET_START_TIMEOUT;
+		MigratePrepare prepare;
+		prepare.migrationId = active.id;
+		prepare.maxWaitSeconds = active.prepareWaitSeconds;
+		MasterPackets::SendTo(source->GetSysAddr(), prepare);
+		Report(active, eState::PREPARING, "Saving the property", static_cast<uint16_t>(source->GetCurrentClientCount()));
+		return eRefusal::NONE;
 	} else {
 		// A fresh world server, started from the binary on disk now: this is how a live update takes over
-		const auto& started = Game::im->StartNewInstance(source->GetMapID(), source->GetCloneID());
-		if (!started) return refuse(eRefusal::MASTER_SHUTTING_DOWN);
-		target = started.get();
+		target = StartTarget(*source);
+		if (!target) {
+			source->SetIsDraining(false);
+			return refuse(eRefusal::MASTER_SHUTTING_DOWN);
+		}
 		migration.startedTarget = true;
+		// Starting it grew the instance list, which moves the InstancePtrs but not the Instances: source is still good
 	}
-
-	migration.target = target->GetInstanceID();
-	// Seats for everyone there now; a few may still arrive while draining, the hard cap is the real limit
-	migration.reserved = source->GetCurrentClientCount();
-	target->SetReserved(target->GetReserved() + migration.reserved);
-	source->SetIsDraining(true);
 
 	LOG("Migration %u requested by %s: %s zone %u instance %u (%i player(s)) -> instance %u", migration.id, migration.by.c_str(),
-		KindName(migration.kind), migration.zone, migration.source, source->GetCurrentClientCount(), migration.target);
+		KindName(migration.kind), migration.zone, migration.source, source->GetCurrentClientCount(), target->GetInstanceID());
 
 	auto& active = g_Active[migration.id] = migration;
-	if (target->GetIsReady()) {
-		SendOrder(active, *source, *target);
-	} else {
-		active.state = eState::STARTING_TARGET;
-		active.deadline = Clock::now() + TARGET_START_TIMEOUT;
-		Report(active, eState::STARTING_TARGET, "Starting instance " + std::to_string(active.target),
-			static_cast<uint16_t>(source->GetCurrentClientCount()));
-	}
+	Begin(active, *source, *target);
 	return eRefusal::NONE;
 }
 
@@ -248,6 +293,20 @@ void MigrationCoordinator::HandleStatus(const SystemAddress& from, const Migrati
 	migration.failed = status.failed;
 	if (status.state == eState::DONE) return Finish(it, true, status.message);
 	if (status.state == eState::FAILED) return Finish(it, false, status.message);
+	if (status.state == eState::PREPARED) {
+		if (migration.state != eState::PREPARING) return;
+		// Saved and frozen: now the new instance may load the property
+		Instance* sourceInstance = source.get();
+		Instance* target = StartTarget(*sourceInstance);
+		if (!target) {
+			SendCancel(migration);
+			return Finish(it, false, "Master refused to start the new instance");
+		}
+		migration.startedTarget = true;
+		LOG("Migration %u: property of zone %u clone %u saved; instance %u -> %u", migration.id, migration.zone, migration.clone, migration.source, target->GetInstanceID());
+		Report(migration, eState::PREPARED, status.message, static_cast<uint16_t>(sourceInstance->GetCurrentClientCount()));
+		return Begin(migration, *sourceInstance, *target);
+	}
 	migration.state = status.state;
 	Report(migration, status.state, status.message, status.remaining);
 }
@@ -289,7 +348,14 @@ void MigrationCoordinator::Update() {
 	for (auto it = g_Active.begin(); it != g_Active.end();) {
 		auto& migration = it->second;
 		auto current = it++;
-		if (migration.state == eState::STARTING_TARGET) {
+		if (migration.state == eState::PREPARING) {
+			if (!FindInstance(migration.zone, migration.source)) {
+				Finish(current, false, "The instance being emptied stopped");
+			} else if (now > migration.deadline) {
+				SendCancel(migration);
+				Finish(current, false, "The property wasn't saved in time");
+			}
+		} else if (migration.state == eState::STARTING_TARGET) {
 			const auto& source = FindInstance(migration.zone, migration.source);
 			const auto& target = FindInstance(migration.zone, migration.target);
 			if (!source || !target) {

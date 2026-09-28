@@ -61,6 +61,15 @@ public:
 	// Waits for the jobs that are running; queued ones are dropped (they stay pending in the database)
 	void Stop();
 
+	/**
+	 * Main thread, live updates: take no new work. Queued jobs are dropped (they stay pending in the database, so the
+	 * next UGC server makes them); the running ones finish and their outcome is recorded by Update as usual.
+	 */
+	void Drain();
+	// Main thread: draining and nothing running or waiting to be recorded any more
+	bool Drained() const;
+	bool IsDraining() const { return m_Draining; }
+
 	// Main thread: poll, dispatch, record results, keep the storage under its cap
 	void Update();
 
@@ -219,6 +228,7 @@ private:
 	double m_CpuSeconds{};
 	double m_CpuPercent{};
 	bool m_Stopping{};
+	bool m_Draining{};         // main thread: live update, no new work (Drain)
 	std::vector<std::thread> m_Threads;
 
 	// Main thread only

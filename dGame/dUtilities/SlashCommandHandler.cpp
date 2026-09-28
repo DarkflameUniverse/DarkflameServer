@@ -1715,6 +1715,15 @@ void SlashCommandHandler::Startup() {
 	});
 
 	RegisterCommand({
+		.help = "Moves the whole server onto the binaries on disk now",
+		.info = "A live update: with a new build in place, master restarts the UGC, auth and chat servers, replaces every world instance with a new one and moves its players there (with the game's Mythran maintenance warning and a short loading screen), then restarts the dashboard. Master itself keeps running. Usage: /liveupdate [start [warn seconds, 0-300] | cancel | status]",
+		.aliases = {"liveupdate"},
+		.handle = WorldMigration::LiveUpdateCommand,
+		.requiredLevel = eGameMasterLevel::OPERATOR,
+		.dashboardPermission = "server_live_update"
+	});
+
+	RegisterCommand({
 		.help = "[claim] Community challenges and live events",
 		.info = "Shows the server-wide community challenges running now, how far along they are and what you added, and the live events in this world. Also gives you the coins waiting from challenges you helped complete",
 		.aliases = {"challenge", "challenges"},

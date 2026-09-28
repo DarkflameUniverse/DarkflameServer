@@ -17,6 +17,9 @@ namespace ChatPacketHandler {
 	// Sends msg to the world server `world`, which passes it on to the client of `target`
 	void SendRouted(const LWOOBJID target, const SystemAddress& world, const LUBitStream& msg, const bool broadcast = false);
 
+	// Reads a player's friends from the database into their data, noting which are online; nothing is sent
+	void LoadFriends(PlayerData& player);
+
 	void HandleFriendlistRequest(const ChatPackets::GetFriendsList& request, const SystemAddress& sysAddr);
 	void HandleFriendRequest(const ChatPackets::AddFriendRequest& request, const SystemAddress& sysAddr);
 	void HandleFriendResponse(const ChatPackets::AddFriendResponse& response, const SystemAddress& sysAddr);

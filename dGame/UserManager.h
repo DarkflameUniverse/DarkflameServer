@@ -47,6 +47,8 @@ public:
 	void SaveAllActiveCharacters();
 
 	size_t GetUserCount() const { return m_Users.size(); }
+	// Everyone connected, by address (character selection moves them one by one in a live update)
+	const std::map<SystemAddress, User*>& GetUsers() const { return m_Users; }
 
 	// Access cached config values
 	bool GetMuteAutoRejectNames() const { return m_MuteAutoRejectNames; }

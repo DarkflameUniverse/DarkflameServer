@@ -59,6 +59,7 @@
 #include "ModerationTools.h"
 #include "ModeratorHelper.h"
 #include "LiveWorld.h"
+#include "LiveUpdateRoutes.h"
 #include "Scenery.h"
 #include "Workers.h"
 #include "ReportRoutes.h"
@@ -222,7 +223,9 @@ namespace {
 			info.zoneName = GetZoneDisplayName(info.mapID);
 			AddPropertyDetails(info);
 			using eState = MasterPackets::ServerListResponse::eState;
-			if (instance.state == eState::READY) {
+			if (instance.state == eState::READY || instance.state == eState::DRAINING) {
+				// Draining: still up with its players, who are being moved to a new instance
+				if (instance.state == eState::DRAINING) info.state = "draining";
 				ServerState::g_WorldInstances.push_back(info);
 			} else {
 				info.state = instance.state == eState::STARTING ? "starting" : "stopping";
@@ -340,6 +343,7 @@ namespace {
 			handlers.On<PlayerActionResult>(Master::PLAYER_ACTION_RESULT, [](const PlayerActionResult& result, const SystemAddress&) { PlayerActions::HandleResult(result); });
 			handlers.On<MasterPackets::WorldShutDown>(Master::SHUTDOWN_RESPONSE, OnWorldShutDown);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, [](const ServerTraffic& report, const SystemAddress&) { Traffic::Ingest(report); });
+			handlers.On<LiveUpdateStatus>(Master::LIVE_UPDATE_STATUS, [](const LiveUpdateStatus& status, const SystemAddress&) { LiveUpdateRoutes::HandleStatus(status); });
 			return handlers;
 		}();
 		return handlers;
@@ -540,6 +544,7 @@ int main(int argc, char** argv) {
 	RegisterModerationToolRoutes();
 	ModeratorHelper::RegisterRoutes();
 	LiveWorld::RegisterRoutes();
+	LiveUpdateRoutes::RegisterRoutes();
 	Inspector::RegisterRoutes();
 	RegisterCDClientBrowserRoutes();
 	RegisterSettingsRoutes();
@@ -606,6 +611,7 @@ int main(int argc, char** argv) {
 			Scheduler::Update();
 			ServerRoutes::Update();
 			LiveWorld::Update();
+			LiveUpdateRoutes::Update();
 			Inspector::Update();
 			Announcements::Update();
 			EventsCalendar::Update();

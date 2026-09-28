@@ -240,7 +240,7 @@ const InstancePtr& InstanceManager::GetInstanceBySysAddr(const SystemAddress& sy
 
 const InstancePtr& InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
 	for (const auto& i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !i->IsFull(isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown() && !i->GetIsDraining()) {
+		if (i && InstanceMigration::AcceptsNewPlayers(i->View(), mapID, cloneId, isFriendTransfer)) {
 			return i;
 		}
 	}
@@ -304,7 +304,8 @@ const InstancePtr& InstanceManager::FindPrivateInstance(const std::string& passw
 	for (const auto& instance : m_Instances) {
 		if (!instance) continue;
 
-		if (!instance->GetIsPrivate()) {
+		// A private instance being replaced (live update) takes nobody new: its replacement has the same password
+		if (!instance->GetIsPrivate() || instance->GetIsDraining() || instance->GetIsShuttingDown() || instance->GetShutdownComplete()) {
 			continue;
 		}
 

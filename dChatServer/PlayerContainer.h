@@ -67,6 +67,9 @@ class PlayerContainer {
 public:
 	void Initialize();
 	void InsertPlayer(const ChatPackets::LoginSessionNotify& notify, const SystemAddress& sysAddr);
+	// Live updates: this chat server replaces one that retired; don't log everyone out when it stops
+	void SetRetiring(bool retiring) { m_Retiring = retiring; }
+	bool IsRetiring() const { return m_Retiring; }
 	void ScheduleRemovePlayer(const ChatPackets::UnexpectedDisconnect& notify, const SystemAddress& sysAddr);
 	void RemovePlayer(const LWOOBJID playerID);
 	void MuteUpdate(const ChatPackets::GMMute& mute, const SystemAddress& sysAddr);
@@ -96,5 +99,6 @@ private:
 	uint32_t m_MaxNumberOfFriends = 50;
 	uint32_t m_PlayerCount = 0;
 	uint32_t m_SimCount = 0;
+	bool m_Retiring = false;
 };
 

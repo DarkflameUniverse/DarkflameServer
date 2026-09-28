@@ -70,5 +70,19 @@ namespace MessageType {
 		// UGC server -> master -> every world: player models whose mesh (model.nif) was just made or made again (see
 		// UgcModelsMade.h), so worlds showing them tell their clients (NotifyClientUGCModelReady)
 		UGC_MODELS_MADE,
+
+		// Live updates (see LiveUpdate.h, docs/LiveUpdate.md)
+		// Master -> world: a property (clone) instance is about to be replaced; freeze and save it, answer MIGRATE_STATUS
+		MIGRATE_PREPARE,
+		// Dashboard or world (a GM's /liveupdate) -> master: start, cancel or ask about a live update
+		LIVE_UPDATE_REQUEST,
+		// Master -> dashboard and worlds: how a live update is going
+		LIVE_UPDATE_STATUS,
+		// Master -> chat or UGC server: a new build takes over; finish up and exit
+		LIVE_UPDATE_RETIRE,
+		// Retiring chat server -> master -> the next chat server: the teams to carry over
+		CHAT_HANDOFF,
+		// Master -> worlds during a live update: a new chat server is up; connect and send it who is online
+		CHAT_SERVER_READY,
 	};
 }

@@ -16,6 +16,7 @@ set(DASHBOARDROUTES_SOURCES
 	"WebhookRoutes.cpp"
 	"EconomyJobs.cpp"
 	"LiveWorld.cpp"
+	"LiveUpdateRoutes.cpp"
 	"SettingsRoutes.cpp"
 	"Background.cpp"
 	"Scheduler.cpp"

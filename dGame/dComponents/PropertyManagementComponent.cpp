@@ -117,6 +117,8 @@ bool PropertyManagementComponent::IsBestFriend(const LWOOBJID player) const {
 }
 
 bool PropertyManagementComponent::CanBuild(const Entity& player) const {
+	// Handed off to a new instance: building happens there
+	if (frozen) return false;
 	const bool bestFriendsBuild = PropertyBuilders::BestFriendsBuild();
 	PropertyBuilders::Player state{ .id = player.GetObjectID(), .isBuilding = builders.contains(player.GetObjectID()) };
 	// Only a best friend needs the lookup
@@ -267,7 +269,7 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 }
 
 bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
-	if (owner != LWOOBJID_EMPTY) {
+	if (owner != LWOOBJID_EMPTY || frozen) {
 		return false;
 	}
 
@@ -510,6 +512,8 @@ void PropertyManagementComponent::SendModelsOnProperty() const {
 }
 
 void PropertyManagementComponent::UpdateModelPosition(Entity& builder, const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
+	// Handed off to a new instance (live update): nothing changes here any more
+	if (frozen) return;
 	LOG("Placing model <%f, %f, %f>", position.x, position.y, position.z);
 
 	auto* entity = &builder;
@@ -560,6 +564,7 @@ void PropertyManagementComponent::UpdateModelPosition(Entity& builder, const LWO
 }
 
 void PropertyManagementComponent::DeleteModel(Entity& builder, const LWOOBJID id, const int deleteReason) {
+	if (frozen) return;
 	LOG("Delete model: (%llu) (%i)", id, deleteReason);
 
 	auto* model = Game::entityManager->GetEntity(id);
@@ -761,6 +766,9 @@ void PropertyManagementComponent::Load() {
 }
 
 void PropertyManagementComponent::Save() {
+	// Handed off to a new instance (live update): what it saves is what counts
+	if (frozen) return;
+
 	// From the property's own ids: it saves whoever is here (the owner may not be)
 	if (propertyId == LWOOBJID_EMPTY || owner == LWOOBJID_EMPTY) {
 		return;
@@ -831,6 +839,29 @@ void PropertyManagementComponent::Save() {
 	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	Database::Get()->UpdateLastSave(info);
 	DashboardNotify::Changed("properties", propertyId);
+}
+
+void PropertyManagementComponent::FreezeForHandOff() {
+	if (frozen) return;
+	// Everyone still building stops (their models are kept as they are now), and nobody can start again
+	std::vector<LWOOBJID> building(builders.begin(), builders.end());
+	for (const auto id : building) {
+		auto* builder = Game::entityManager->GetEntity(id);
+		if (builder) EndBuilding(*builder);
+		else builders.erase(id);
+	}
+	Save();
+	frozen = true;
+	// Takes the build rights the clients were given away (CanBuild is false for everyone now)
+	UpdateBuildRights();
+	LOG("Property %llu (clone %u) saved and handed off to a new instance", propertyId, clone_Id);
+}
+
+void PropertyManagementComponent::Unfreeze() {
+	if (!frozen) return;
+	frozen = false;
+	UpdateBuildRights();
+	LOG("Property %llu (clone %u) is no longer handed off", propertyId, clone_Id);
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {

@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "master/InstanceMigration.h"
+#include "master/LiveUpdate.h"
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
 
@@ -27,6 +28,12 @@ namespace WorldMigration {
 
 	// MIGRATE_PLAYER_STATE from master: a player on their way here
 	void StoreCarriedState(const CarriedPlayerState& state);
+
+	// MIGRATE_PREPARE from master (live update of a property): wait for builders, save the property and freeze it
+	void HandlePrepare(const MigratePrepare& prepare);
+
+	// The player entity of someone moved here was just made: put them where they stood (properties don't save it)
+	void ApplyCarriedPosition(Entity* player);
 
 	// Every world frame
 	void Update(float deltaTime);
@@ -59,6 +66,12 @@ namespace WorldMigration {
 
 	// /mergeinstance [target instance, 0 for the best fit] [warn seconds] [seamless]
 	void MergeInstanceCommand(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+
+	// /liveupdate [start [warn seconds] | cancel | status]: a live update of the whole server (docs/LiveUpdate.md)
+	void LiveUpdateCommand(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+
+	// LIVE_UPDATE_STATUS from master: tell the GM who asked, if they are here
+	void HandleLiveUpdateStatus(const LiveUpdateStatus& status);
 }
 
 #endif  //!__WORLDMIGRATION__H__

@@ -26,6 +26,8 @@
 #include "TeamContainer.h"
 #include "PacketDispatcher.h"
 #include "ChatPackets.h"
+#include "master/LiveUpdate.h"
+#include "MasterPackets.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -260,7 +262,7 @@ namespace {
 			handlers.On<GMLevelUpdate>(Chat::GMLEVEL_UPDATE, ChatPacketHandler::HandleGMLevelUpdate);
 			handlers.On<LoginSessionNotify>(Chat::LOGIN_SESSION_NOTIFY, [](const LoginSessionNotify& notify, const SystemAddress& sysAddr) { Game::playerContainer.InsertPlayer(notify, sysAddr); });
 			// we just forward this packet to every connected server
-			handlers.On<Announcement>(Chat::GM_ANNOUNCE, [](const Announcement& announcement, const SystemAddress& sysAddr) {
+			handlers.On<ChatPackets::Announcement>(Chat::GM_ANNOUNCE, [](const ChatPackets::Announcement& announcement, const SystemAddress& sysAddr) {
 				RakNet::BitStream bitStream;
 				announcement.WritePacket(bitStream);
 				Game::server->Send(bitStream, sysAddr, true); // send to everyone except origin
@@ -286,6 +288,18 @@ namespace {
 	const PacketDispatcher<MessageType::Master>& MasterHandlers() {
 		static const auto handlers = [] {
 			PacketDispatcher<MessageType::Master> handlers;
+			// Live update: a new chat server takes over. Hand the teams over (through master) and stop; master starts the
+			// new one once this one is gone, and the worlds send it their players again.
+			handlers.On<LiveUpdateRetire>(MessageType::Master::LIVE_UPDATE_RETIRE, [](const LiveUpdateRetire&, const SystemAddress&) {
+				const auto handoff = TeamContainer::MakeHandoff();
+				LOG("Live update: handing %zu team(s) over to the next chat server and stopping", handoff.teams.size());
+				MasterPackets::SendToMaster(handoff);
+				Game::playerContainer.SetRetiring(true);
+				Game::lastSignal = -1;
+			});
+			handlers.On<ChatHandoff>(MessageType::Master::CHAT_HANDOFF, [](const ChatHandoff& handoff, const SystemAddress&) {
+				TeamContainer::Restore(handoff);
+			});
 			handlers.On<PlayerActionRequest>(MessageType::Master::PLAYER_ACTION, [](const PlayerActionRequest& request, const SystemAddress&) {
 				// Words added or removed on the dashboard: web chat is checked with the same filter as the worlds
 				if (request.action == ePlayerAction::RELOAD_CHAT_FILTER && Game::chatFilter) {

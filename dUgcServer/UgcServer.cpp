@@ -697,10 +697,22 @@ int main(int argc, char** argv) {
 
 		Packet* packet = g_Server->ReceiveFromMaster();
 		while (packet) {
+			// Live update (docs/LiveUpdate.md): finish the running jobs, then stop; master starts the new build's server
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			LUBitStream header;
+			if (header.ReadHeader(inStream) && header.connectionType == ServiceType::MASTER &&
+				static_cast<MessageType::Master>(header.internalPacketID) == MessageType::Master::LIVE_UPDATE_RETIRE && !processor.IsDraining()) {
+				LOG("Live update: finishing the running jobs, then stopping");
+				processor.Drain();
+			}
 			g_Server->DeallocateMasterPacket(packet);
 			packet = g_Server->ReceiveFromMaster();
 		}
 		processor.Update();
+		if (processor.Drained()) {
+			LOG("Live update: the running jobs are done; stopping");
+			Game::lastSignal = -1;
+		}
 		// Worlds showing a model whose mesh changed tell their clients (docs/UgcServer.md, "Models without 3D services")
 		if (auto changed = processor.TakeChangedMeshes(); !changed.empty()) {
 			for (size_t start = 0; start < changed.size(); start += UgcModelsMade::MAX_MODELS) {

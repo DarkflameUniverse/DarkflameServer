@@ -140,7 +140,45 @@ namespace {
 	bool g_ChatDisabled = false;
 	bool g_ChatConnected = false;
 	bool g_WorldShutdownSequenceComplete = false;
+	// Where the chat server is (to connect again at once when a live update started a new one)
+	std::string g_ChatIP;
+	uint32_t g_ChatPort = 0;
+	// A live update restarted chat: send it who is here once connected
+	bool g_ChatResyncPending = false;
 }; // namespace anonymous
+
+// Everyone loaded in here, to a chat server that just started (live update): friends see them online, whispers and
+// teams reach them. Nothing is logged as a login or zone change.
+void ResendPlayersToChat() {
+	uint32_t sent = 0;
+	for (auto* player : PlayerManager::GetAllPlayers()) {
+		auto* character = player ? player->GetCharacter() : nullptr;
+		auto* user = character ? character->GetParentUser() : nullptr;
+		if (!user) continue;
+		ChatPackets::LoginSessionNotify notify;
+		notify.playerID = player->GetObjectID();
+		notify.playerName = character->GetName();
+		notify.zoneID = Game::zoneManager->GetZone()->GetZoneID();
+		notify.muteExpire = user->GetMuteExpire();
+		notify.gmLevel = player->GetGMLevel();
+		notify.resync = true;
+		ChatServerLink::Send(notify);
+		sent++;
+	}
+	LOG("Sent %u player(s) to the new chat server", sent);
+}
+
+// CHAT_SERVER_READY (live update): connect to the new chat server now rather than at the next retry
+void OnChatServerReady() {
+	g_ChatResyncPending = true;
+	if (g_ChatConnected) {
+		g_ChatResyncPending = false;
+		ResendPlayersToChat();
+		return;
+	}
+	LOG("A new chat server is up; connecting");
+	Game::chatServer->Connect(g_ChatIP.c_str(), g_ChatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
+}
 
 void WorldShutdownSequence();
 void WorldShutdownProcess(uint32_t zoneId);
@@ -293,6 +331,8 @@ int main(int argc, char** argv) {
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
 	Game::chatServer->Startup(1, 30, &chatSock, 1);
 	Game::chatServer->Connect(masterIP.c_str(), chatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
+	g_ChatIP = masterIP;
+	g_ChatPort = chatPort;
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
@@ -483,6 +523,8 @@ int main(int argc, char** argv) {
 
 			WorldMigration::Update(deltaTime);
 		}
+		// Character selection has no entities, but its users are moved in a live update
+		if (zoneID == 0 && deltaTime > 0.0f) WorldMigration::Update(deltaTime);
 
 		Metrics::StartMeasurement(MetricVariable::PacketHandling);
 
@@ -691,6 +733,10 @@ void HandlePacketChat(Packet* packet) {
 		Game::chatSysAddr = packet->systemAddress;
 
 		g_ChatConnected = true;
+		if (g_ChatResyncPending) {
+			g_ChatResyncPending = false;
+			ResendPlayersToChat();
+		}
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM && packet->length >= 4) {
@@ -832,6 +878,9 @@ namespace {
 			handlers.On<MigratePlayersOrder>(Master::MIGRATE_PLAYERS, [](const MigratePlayersOrder& order, const SystemAddress&) { WorldMigration::HandleOrder(order); });
 			handlers.On<CarriedPlayerState>(Master::MIGRATE_PLAYER_STATE, [](const CarriedPlayerState& state, const SystemAddress&) { WorldMigration::StoreCarriedState(state); });
 			handlers.On<MigrationStatus>(Master::MIGRATE_STATUS, [](const MigrationStatus& status, const SystemAddress&) { WorldMigration::HandleStatus(status); });
+			handlers.On<MigratePrepare>(Master::MIGRATE_PREPARE, [](const MigratePrepare& prepare, const SystemAddress&) { WorldMigration::HandlePrepare(prepare); });
+			handlers.On<LiveUpdateStatus>(Master::LIVE_UPDATE_STATUS, [](const LiveUpdateStatus& status, const SystemAddress&) { WorldMigration::HandleLiveUpdateStatus(status); });
+			handlers.On<ChatServerReady>(Master::CHAT_SERVER_READY, [](const ChatServerReady&, const SystemAddress&) { OnChatServerReady(); });
 			handlers.On<PlayerActionRequest>(Master::PLAYER_ACTION, OnPlayerAction);
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, [](const MessageCaptureControl& control, const SystemAddress&) { MessageInspector::Control(control); });
 			handlers.On<Announcement>(Master::ANNOUNCE, [](const Announcement& announcement, const SystemAddress&) { DashboardNotify::Announce(announcement.title, announcement.message); });
@@ -866,6 +915,8 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			EntityInfo info{};
 			info.lot = 1;
 			Entity* player = Game::entityManager->CreateEntity(info, UserManager::Instance()->GetUser(sysAddr));
+			// Moved here from another instance: where they stood there (properties don't save it)
+			WorldMigration::ApplyCarriedPosition(player);
 
 			auto* characterComponent = player->GetComponent<CharacterComponent>();
 			if (!characterComponent) return;

@@ -13,6 +13,39 @@ namespace {
 	LWOOBJID g_TeamIDCounter = 0;
 }
 
+ChatHandoff TeamContainer::MakeHandoff() {
+	ChatHandoff handoff;
+	for (const auto* team : GetTeams()) {
+		if (!team) continue;
+		auto& carried = handoff.teams.emplace_back();
+		carried.teamId = team->teamID;
+		carried.leaderId = team->leaderID;
+		carried.members = team->memberIDs;
+		carried.lootFlag = team->lootFlag;
+		carried.local = team->local;
+		carried.zoneId = team->zoneId.GetMapID();
+		carried.instanceId = team->zoneId.GetInstanceID();
+		carried.cloneId = team->zoneId.GetCloneID();
+	}
+	return handoff;
+}
+
+void TeamContainer::Restore(const ChatHandoff& handoff) {
+	for (const auto& carried : handoff.teams) {
+		if (carried.members.empty()) continue;
+		auto* team = new TeamData();
+		team->teamID = carried.teamId;
+		team->leaderID = carried.leaderId;
+		team->memberIDs = carried.members;
+		team->lootFlag = carried.lootFlag;
+		team->local = carried.local;
+		team->zoneId = LWOZONEID(carried.zoneId, carried.instanceId, carried.cloneId);
+		GetTeamsMut().push_back(team);
+		g_TeamIDCounter = std::max(g_TeamIDCounter, carried.teamId);
+	}
+	LOG("Took over %zu team(s) from the last chat server", handoff.teams.size());
+}
+
 const TeamContainer::Data& TeamContainer::GetTeamContainer() {
 	return g_TeamContainer;
 }

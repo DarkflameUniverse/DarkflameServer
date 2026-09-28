@@ -52,6 +52,8 @@ namespace ChatPackets {
 		WriteZone(bitStream, zoneID);
 		bitStream.Write(muteExpire);
 		bitStream.Write(gmLevel);
+		// Only on a resync, so every other one is byte for byte what it always was
+		if (resync) bitStream.Write<uint8_t>(1);
 	}
 
 	bool LoginSessionNotify::Deserialize(RakNet::BitStream& bitStream) {
@@ -60,6 +62,8 @@ namespace ChatPackets {
 		VALIDATE_READ(ReadZone(bitStream, zoneID));
 		VALIDATE_READ(bitStream.Read(muteExpire));
 		VALIDATE_READ(bitStream.Read(gmLevel));
+		uint8_t resyncValue{};
+		resync = bitStream.GetNumberOfUnreadBits() >= 8 && bitStream.Read(resyncValue) && resyncValue != 0;
 		return true;
 	}
 

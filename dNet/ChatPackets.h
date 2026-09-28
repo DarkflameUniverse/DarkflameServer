@@ -44,6 +44,9 @@ namespace ChatPackets {
 		LWOZONEID zoneID{};
 		int64_t muteExpire{}; // time_t
 		eGameMasterLevel gmLevel{};
+		// Sent again to a new chat server after a live update restarted chat (CHAT_SERVER_READY): the player didn't
+		// log in or change zones. Written last, only when set, and read only when there.
+		bool resync{};
 
 		LoginSessionNotify() : LUBitStream(ServiceType::CHAT, MessageType::Chat::LOGIN_SESSION_NOTIFY) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

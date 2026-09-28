@@ -13,6 +13,7 @@
 #include "master/DashboardMessages.h"
 #include "master/DataChanged.h"
 #include "master/InstanceMigration.h"
+#include "master/LiveUpdate.h"
 #include "master/MessageCapture.h"
 #include "master/PlayerAction.h"
 #include "master/UgcModelsMade.h"
@@ -24,7 +25,7 @@ class dServer;
  *
  * The dashboard's messages and instance migration are MASTER packets too; they live in per-topic headers under
  * dNet/master/ (PlayerAction.h, DataChanged.h, DashboardMessages.h, MessageCapture.h, InstanceMigration.h,
- * UgcModelsMade.h), which
+ * LiveUpdate.h, UgcModelsMade.h), which
  * this header includes, so including MasterPackets.h gives every MASTER struct.
  */
 namespace MasterPackets {
@@ -251,8 +252,9 @@ namespace MasterPackets {
 		// More than this many worlds is a broken packet
 		static constexpr uint32_t MAX_INSTANCES = 10000;
 
-		// Where a world is: connected, launched but not connected yet, or shutting down
-		enum class eState : uint8_t { READY = 0, STARTING = 1, STOPPING = 2 };
+		// Where a world is: connected, launched but not connected yet, shutting down, or connected but having its
+		// players moved to a new instance (a live update or instance migration; nobody new is sent there)
+		enum class eState : uint8_t { READY = 0, STARTING = 1, STOPPING = 2, DRAINING = 3 };
 
 		struct Instance {
 			LWOMAPID mapID{};

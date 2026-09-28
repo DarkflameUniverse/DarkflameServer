@@ -5,6 +5,7 @@
 #include <ctime>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <thread>
@@ -39,6 +40,7 @@
 #include "Game.h"
 #include "InstanceManager.h"
 #include "MigrationCoordinator.h"
+#include "LiveUpdateCoordinator.h"
 #include "MasterPackets.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
@@ -51,6 +53,7 @@
 #include "master/DataChanged.h"
 #include "master/MessageCapture.h"
 #include "master/InstanceMigration.h"
+#include "master/LiveUpdate.h"
 #include "master/ServerTraffic.h"
 #include "master/UgcModelsMade.h"
 
@@ -89,6 +92,18 @@ SystemAddress ugcServerMasterPeerSysAddr;
 uint32_t ugcServerPid = 0;
 
 namespace {
+	// How many times each server connected (a live update waits for the new process to connect)
+	uint32_t g_AuthConnects = 0;
+	uint32_t g_ChatConnects = 0;
+	uint32_t g_UgcConnects = 0;
+	uint32_t g_DashboardConnects = 0;
+	// The teams a chat server retired by a live update handed over, for the next chat server that connects
+	std::optional<ChatHandoff> g_ChatHandoff;
+	// SIGUSR2 starts a live update (docs/LiveUpdate.md)
+	volatile std::sig_atomic_t g_LiveUpdateSignal = 0;
+}
+
+namespace {
 	// Every server for the dashboard: auth, chat, the UGC server and the worlds, including those launched but not
 	// connected yet (starting) and those shutting down
 	MasterPackets::ServerListResponse BuildServerList() {
@@ -110,7 +125,8 @@ namespace {
 			entry.ip = LUString(inst->GetIP());
 			entry.port = inst->GetPort();
 			entry.isPrivate = inst->GetIsPrivate() ? 1 : 0;
-			entry.state = inst->GetIsShuttingDown() ? eState::STOPPING : inst->GetIsReady() ? eState::READY : eState::STARTING;
+			entry.state = inst->GetIsShuttingDown() ? eState::STOPPING : !inst->GetIsReady() ? eState::STARTING :
+				inst->GetIsDraining() ? eState::DRAINING : eState::READY;
 		}
 		return response;
 	}
@@ -157,6 +173,8 @@ namespace {
 	}
 }
 
+void InitializeLiveUpdates();
+
 int GenerateBCryptPassword(const std::string& password, const int workFactor, char salt[BCRYPT_HASHSIZE], char hash[BCRYPT_HASHSIZE]) {
 	int32_t bcryptState = ::bcrypt_gensalt(workFactor, salt);
 	assert(bcryptState == 0);
@@ -182,6 +200,10 @@ int main(int argc, char** argv) {
 	std::atexit([]() { ShutdownSequence(); });
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
+#ifdef SIGUSR2
+	// kill -USR2 <master pid>: live update onto the binaries on disk now (docs/LiveUpdate.md)
+	std::signal(SIGUSR2, [](int) { g_LiveUpdateSignal = 1; });
+#endif
 
 	Game::config = new dConfig("masterconfig.ini");
 
@@ -472,6 +494,8 @@ int main(int argc, char** argv) {
 	});
 	Game::im->LoadZoneLimits();
 
+	InitializeLiveUpdates();
+
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "0") {
 		StartChatServer();
@@ -525,6 +549,14 @@ int main(int argc, char** argv) {
 		}
 
 		MigrationCoordinator::Update();
+		if (g_LiveUpdateSignal) {
+			g_LiveUpdateSignal = 0;
+			std::string error;
+			if (!LiveUpdateCoordinator::Start("signal (SIGUSR2)", LWOOBJID_EMPTY, LiveUpdateRequest::DEFAULT_WARN, error)) {
+				LOG("Live update from SIGUSR2 refused: %s", error.c_str());
+			}
+		}
+		LiveUpdateCoordinator::Update();
 		CheckPlayerActionTimeouts();
 
 		// Spare instances for busy zones (zone_limits), checked every few seconds
@@ -673,15 +705,25 @@ namespace {
 			break;
 		case ServiceType::CHAT:
 			chatServerMasterPeerSysAddr = sysAddr;
+			g_ChatConnects++;
+			// A live update retired the last one: this one gets its teams
+			if (g_ChatHandoff) {
+				LOG("Handing %zu team(s) over to the new chat server", g_ChatHandoff->teams.size());
+				MasterPackets::SendTo(sysAddr, *g_ChatHandoff);
+				g_ChatHandoff.reset();
+			}
 			break;
 		case ServiceType::AUTH:
 			authServerMasterPeerSysAddr = sysAddr;
+			g_AuthConnects++;
 			break;
 		case ServiceType::DASHBOARD:
 			dashboardServerMasterPeerSysAddr = sysAddr;
+			g_DashboardConnects++;
 			break;
 		case ServiceType::UGC:
 			ugcServerMasterPeerSysAddr = sysAddr;
+			g_UgcConnects++;
 			break;
 		default:
 			break;
@@ -864,6 +906,30 @@ namespace {
 		MigrationCoordinator::Start(request);
 	}
 
+	// The dashboard, or a world for a GM's /liveupdate (the world checked the GM level)
+	void OnLiveUpdateRequest(const LiveUpdateRequest& request, const SystemAddress& sysAddr) {
+		const bool fromDashboard = sysAddr == dashboardServerMasterPeerSysAddr && sysAddr != UNASSIGNED_SYSTEM_ADDRESS;
+		if (!fromDashboard && !Game::im->GetInstanceBySysAddr(sysAddr)) {
+			LOG("Ignoring a live update request from a server that is neither the dashboard nor a world");
+			return;
+		}
+		if (shutdownSequenceStarted && request.action == LiveUpdate::eAction::START) {
+			LOG("Shutdown sequence has been started. Not starting a live update.");
+			return;
+		}
+		LiveUpdateCoordinator::HandleRequest(request);
+	}
+
+	// A chat server retired by a live update hands its teams over
+	void OnChatHandoff(const ChatHandoff& handoff, const SystemAddress& sysAddr) {
+		if (sysAddr != chatServerMasterPeerSysAddr) {
+			LOG("Ignoring a chat handoff from a server that is not the chat server");
+			return;
+		}
+		LOG("The chat server handed over %zu team(s)", handoff.teams.size());
+		g_ChatHandoff = handoff;
+	}
+
 	void OnPlayerAction(const PlayerActionRequest& request, const SystemAddress& sysAddr) {
 		// Only the dashboard may ask worlds to act on players
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
@@ -1028,6 +1094,8 @@ namespace {
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
 			handlers.On<UgcModelsMade>(Master::UGC_MODELS_MADE, OnUgcModelsMade);
+			handlers.On<LiveUpdateRequest>(Master::LIVE_UPDATE_REQUEST, OnLiveUpdateRequest);
+			handlers.On<ChatHandoff>(Master::CHAT_HANDOFF, OnChatHandoff);
 			return handlers;
 		}();
 		return handlers;
@@ -1125,6 +1193,7 @@ int ShutdownSequence(int32_t signal) {
 		FinalizeShutdown(EXIT_FAILURE);
 	}
 
+	LiveUpdateCoordinator::Abort("Master is shutting down");
 	Game::im->SetIsShuttingDown(true);
 	shutdownSequenceStarted = true;
 	Game::lastSignal = -1;
@@ -1230,4 +1299,78 @@ int32_t FinalizeShutdown(int32_t signal) {
 
 	if (signal != EXIT_SUCCESS) exit(signal);
 	return signal;
+}
+
+// Live updates (docs/LiveUpdate.md): what the coordinator needs from master
+void InitializeLiveUpdates() {
+	using LiveUpdate::eService;
+	const auto peer = [](eService service) -> const SystemAddress& {
+		switch (service) {
+		case eService::UGC: return ugcServerMasterPeerSysAddr;
+		case eService::AUTH: return authServerMasterPeerSysAddr;
+		case eService::CHAT: return chatServerMasterPeerSysAddr;
+		case eService::DASHBOARD: return dashboardServerMasterPeerSysAddr;
+		}
+		return authServerMasterPeerSysAddr;
+	};
+
+	LiveUpdateCoordinator::Hooks hooks;
+	hooks.service = [peer](eService service) {
+		LiveUpdate::ServiceView view;
+		view.online = peer(service) != UNASSIGNED_SYSTEM_ADDRESS;
+		switch (service) {
+		case eService::UGC:
+			view.enabled = Game::config->GetValue("enable_ugc_server") == "1";
+			view.connects = g_UgcConnects;
+			break;
+		case eService::AUTH:
+			view.connects = g_AuthConnects;
+			break;
+		case eService::CHAT:
+			view.connects = g_ChatConnects;
+			break;
+		case eService::DASHBOARD:
+			view.enabled = Game::config->GetValue("enable_dashboard") == "1";
+			view.connects = g_DashboardConnects;
+			break;
+		}
+		return view;
+	};
+	// Chat hands its teams over and the UGC server finishes its jobs first; auth and the dashboard just stop. Either
+	// way master starts the new one when the old one disconnects (HandlePacket).
+	hooks.retire = [peer](eService service) {
+		const auto& address = peer(service);
+		if (address == UNASSIGNED_SYSTEM_ADDRESS) return;
+		if (service == eService::CHAT || service == eService::UGC) MasterPackets::SendTo(address, LiveUpdateRetire());
+		else MasterPackets::SendTo(address, MasterPackets::Shutdown());
+	};
+	hooks.stop = [peer](eService service) {
+		const auto& address = peer(service);
+		if (address != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(address, MasterPackets::Shutdown());
+	};
+	hooks.start = [](eService service) {
+		switch (service) {
+		case eService::UGC: ugcServerPid = StartUgcServer(); break;
+		case eService::AUTH: StartAuthServer(); break;
+		case eService::CHAT: StartChatServer(); break;
+		case eService::DASHBOARD: StartDashboardServer(); break;
+		}
+	};
+	hooks.chatReady = [] {
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (instance && instance->GetIsReady() && !instance->GetIsShuttingDown()) MasterPackets::SendTo(instance->GetSysAddr(), ChatServerReady());
+		}
+	};
+	hooks.publish = [](const LiveUpdateStatus& status, bool toWorlds) {
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, status);
+		// The worlds' states (draining) changed with it
+		PushServerListToDashboard();
+		// The GM who asked in game hears how it goes, wherever they are by then
+		if (!toWorlds || status.requesterId == LWOOBJID_EMPTY) return;
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (instance && instance->GetIsReady() && !instance->GetIsShuttingDown()) MasterPackets::SendTo(instance->GetSysAddr(), status);
+		}
+	};
+	LiveUpdateCoordinator::Initialize(std::move(hooks));
+	MigrationCoordinator::SetObserver(LiveUpdateCoordinator::OnMigrationStatus);
 }

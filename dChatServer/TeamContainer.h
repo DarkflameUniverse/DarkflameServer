@@ -10,6 +10,7 @@
 
 #include "dCommonVars.h"
 #include "ChatPackets.h"
+#include "master/LiveUpdate.h"
 
 struct SystemAddress;
 struct PlayerData;
@@ -53,6 +54,13 @@ namespace TeamContainer {
 	void UpdateTeamsOnWorld(TeamData* team, bool deleteTeam);
 
 	const TeamContainer::Data& GetTeamContainer();
+
+	// Live updates: the teams, for the next chat server (CHAT_HANDOFF)
+	ChatHandoff MakeHandoff();
+
+	// Live updates: the teams the last chat server had. Nothing is sent to anyone: the clients and worlds still know
+	// their teams; the players themselves come back as the worlds send them again.
+	void Restore(const ChatHandoff& handoff);
 	std::vector<TeamData*>& GetTeamsMut();
 	const std::vector<TeamData*>& GetTeams();
 };

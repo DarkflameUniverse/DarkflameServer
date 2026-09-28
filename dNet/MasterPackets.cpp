@@ -269,7 +269,7 @@ namespace MasterPackets {
 		for (auto& instance : instances) {
 			uint8_t state{};
 			VALIDATE_READ(bitStream.Read(state));
-			if (state > static_cast<uint8_t>(eState::STOPPING)) return false;
+			if (state > static_cast<uint8_t>(eState::DRAINING)) return false;
 			instance.state = static_cast<eState>(state);
 		}
 		return true;

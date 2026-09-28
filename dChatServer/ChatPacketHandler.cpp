@@ -32,6 +32,24 @@ void ChatPacketHandler::SendRouted(const LWOOBJID target, const SystemAddress& w
 	Game::server->Send(bitStream, world, broadcast);
 }
 
+void ChatPacketHandler::LoadFriends(PlayerData& player) {
+	player.friends.clear();
+	player.countOfBestFriends = 0;
+	for (const auto& friendData : Database::Get()->GetFriendsList(player.playerID)) {
+		FriendData fd;
+		fd.isFTP = false;
+		fd.friendID = friendData.friendID;
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
+		fd.isBestFriend = friendData.isBestFriend;
+		if (fd.isBestFriend) player.countOfBestFriends += 1;
+		fd.friendName = friendData.friendName;
+		const auto& online = Game::playerContainer.GetPlayerData(fd.friendID);
+		fd.isOnline = static_cast<bool>(online);
+		fd.zoneID = online ? online.zoneID : LWOZONEID();
+		player.friends.push_back(fd);
+	}
+}
+
 void ChatPacketHandler::HandleFriendlistRequest(const ChatPackets::GetFriendsList& request, const SystemAddress& sysAddr) {
 	//Get from the packet which player we want to do something with:
 	const LWOOBJID playerID = request.playerID;

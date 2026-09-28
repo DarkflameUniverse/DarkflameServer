@@ -48,6 +48,44 @@
 
 {% include "world_instances.jinja2" %}
 
+{% if can.server_live_update %}
+<div class="row g-3 mt-1">
+	<div class="col-12" id="liveUpdate">
+		<div class="card">
+			<div class="card-header d-flex justify-content-between align-items-center">
+				<h5 class="mb-0">Live update</h5>
+				<span id="liveUpdatePhase"></span>
+			</div>
+			<div class="card-body">
+				<p class="small text-body-secondary">Moves everything onto the server binaries on disk now, without a restart: the UGC server finishes its jobs
+					and restarts, auth restarts (logins pause for a few seconds), chat hands its teams over and restarts, every world instance is
+					replaced by a new one and its players are moved there (the game's Mythran maintenance warning, then a short loading screen), and
+					the dashboard restarts last. Properties are saved before their new instance loads them; races and minigames finish first.
+					Master keeps running: updating master itself takes a normal restart.</p>
+				<div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="liveUpdateForm">
+					<div class="input-group input-group-sm" style="max-width: 20rem">
+						<span class="input-group-text">Warn players</span>
+						<select class="form-select" id="liveUpdateWarn">
+							<option value="" selected>as set (live_update_warn_seconds)</option><option value="0">not at all</option><option value="10">10 seconds before</option>
+							<option value="30">30 seconds before</option><option value="60">1 minute before</option><option value="120">2 minutes before</option>
+						</select>
+					</div>
+					<button class="btn btn-sm btn-warning" id="liveUpdateStart">Start live update</button>
+					<button class="btn btn-sm btn-outline-danger d-none" id="liveUpdateCancel">Cancel</button>
+				</div>
+				<p class="mb-2" id="liveUpdateSummary"></p>
+				<div class="table-responsive d-none" id="liveUpdateTableWrap">
+					<table class="table table-sm align-middle mb-0">
+						<thead><tr><th>What</th><th>Instance</th><th>Players</th><th>State</th><th></th></tr></thead>
+						<tbody id="liveUpdateRows"></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
 {% if can.server_announce or can.server_restart %}
 <div class="row g-3 mt-1">
 	{% if can.server_announce %}
@@ -122,12 +160,60 @@ $(function () {
 		if (window.Live) Live.onStatus(function (s) { showRestart(s.restart); });
 	}
 
+	// Live update: start or cancel it, and show every server and world as it goes (pushed on the live_update topic)
+	if (document.getElementById('liveUpdate')) {
+		var stateColors = { pending: 'secondary', preparing: 'info', starting: 'info', ready: 'primary', waiting: 'warning', draining: 'warning',
+			stopping: 'info', stopped: 'success', failed: 'danger', skipped: 'secondary' };
+		var stateNames = { pending: 'Waiting its turn', preparing: 'Saving property', starting: 'Starting new one', ready: 'New one ready', waiting: 'Waiting for players',
+			draining: 'Moving players', stopping: 'Stopping old one', stopped: 'Done', failed: 'Failed', skipped: 'Skipped' };
+		var phaseColors = { idle: 'secondary', running: 'warning', cancelling: 'warning', done: 'success', failed: 'danger', cancelled: 'secondary' };
+		var kindNames = { database: 'Database migrations', ugc: 'UGC server', auth: 'Auth server', chat: 'Chat server', dashboard: 'Dashboard' };
+		var showLiveUpdate = function (u) {
+			if (!u) return;
+			var running = !!u.running;
+			document.getElementById('liveUpdateStart').classList.toggle('d-none', running);
+			document.getElementById('liveUpdateWarn').closest('.input-group').classList.toggle('d-none', running);
+			document.getElementById('liveUpdateCancel').classList.toggle('d-none', !running || u.phase === 'cancelling');
+			document.getElementById('liveUpdatePhase').innerHTML = u.updateId ? fmt.badge(u.phase, phaseColors[u.phase] || 'secondary') : '';
+			var summary = '';
+			if (u.updateId) {
+				summary = 'Started ' + esc(fmt.unix(u.startedAt)) + (u.by ? ' by ' + esc(u.by) : '') + (u.finishedAt ? ', finished ' + esc(fmt.unix(u.finishedAt)) : '') +
+					'. ' + esc(u.done) + ' of ' + esc(u.total) + ' done' + (u.failed ? ', ' + esc(u.failed) + ' failed' : '') + '.';
+			}
+			if (u.message) summary += (summary ? ' ' : '') + '<strong>' + esc(u.message) + '</strong>';
+			document.getElementById('liveUpdateSummary').innerHTML = summary;
+			var rows = (u.units || []).map(function (unit) {
+				var what = unit.kind === 'world' ? fmt.zone(unit.zone, unit.zoneName) + (unit.clone ? ' <span class="small text-body-secondary">property clone ' + esc(unit.clone) + '</span>' : '') +
+					(unit.isPrivate ? ' ' + fmt.badge('Private', 'warning') : '') : esc(kindNames[unit.kind] || unit.kind);
+				var instance = unit.kind === 'world' ? esc(unit.instance) + (unit.replacement ? ' &rarr; ' + esc(unit.replacement) : '') : '';
+				var players = unit.kind === 'world' ? esc(unit.players) + (unit.moved ? ' <span class="small text-body-secondary">(' + esc(unit.moved) + ' moved)</span>' : '') : '';
+				return '<tr><td>' + what + '</td><td>' + instance + '</td><td>' + players + '</td><td>' + fmt.badge(stateNames[unit.state] || unit.state, stateColors[unit.state] || 'secondary') +
+					'</td><td class="small">' + esc(unit.message || '') + '</td></tr>';
+			});
+			document.getElementById('liveUpdateRows').innerHTML = rows.join('');
+			document.getElementById('liveUpdateTableWrap').classList.toggle('d-none', rows.length === 0);
+		};
+		document.getElementById('liveUpdateStart').addEventListener('click', function () {
+			if (!confirm('Start a live update onto the binaries on disk now? Everyone online is moved to new instances (a short loading screen), and the dashboard restarts at the end.')) return;
+			var warn = document.getElementById('liveUpdateWarn').value;
+			api.action('/api/server/live_update', warn === '' ? {} : { warnSeconds: parseInt(warn, 10) }, 'Live update requested').catch(function () {});
+		});
+		document.getElementById('liveUpdateCancel').addEventListener('click', function () {
+			if (!confirm('Cancel the live update? Nothing new is started; what is under way finishes.')) return;
+			api.action('/api/server/live_update/cancel', {}, 'Cancelling').catch(function () {});
+		});
+		var loadLiveUpdate = function () { api.get('/api/server/live_update').then(function (d) { if (d.success) showLiveUpdate(d.liveUpdate); }).catch(function () {}); };
+		loadLiveUpdate();
+		if (window.Live) Live.onTopic('live_update', showLiveUpdate);
+	}
+
 	// Staff get the detailed list (address, which property a clone is); everyone else the basic one from the status
 	var detailedWorlds = DASH.can('players_view');
 	// Worlds master launched that haven't connected yet, and those shutting down
 	function stateBadge(row) {
 		if (row.state === 'starting') return ' ' + fmt.badge('Starting', 'info');
 		if (row.state === 'stopping') return ' ' + fmt.badge('Shutting down', 'secondary');
+		if (row.state === 'draining') return ' ' + fmt.badge('Moving players', 'warning');
 		return '';
 	}
 	function withPending(data) {

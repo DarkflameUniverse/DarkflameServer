@@ -1763,7 +1763,7 @@ static_assert(static_cast<int64_t>(MessageType::Game::CAN_ITEMS_BE_REFORGED) == 
 static_assert(static_cast<int64_t>(MessageType::Game::NOTIFY_CLIENT_RAIL_START_FAILED) == 1771);
 static_assert(static_cast<int64_t>(MessageType::Game::GET_IS_ON_RAIL) == 1772);
 
-// MessageType::Master: 19 enumerators
+// MessageType::Master: 43 enumerators
 static_assert(static_cast<int64_t>(MessageType::Master::REQUEST_ZONE_TRANSFER) == 1);
 static_assert(static_cast<int64_t>(MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE) == 2);
 static_assert(static_cast<int64_t>(MessageType::Master::SERVER_INFO) == 3);
@@ -1783,6 +1783,30 @@ static_assert(static_cast<int64_t>(MessageType::Master::SHUTDOWN_UNIVERSE) == 16
 static_assert(static_cast<int64_t>(MessageType::Master::AFFIRM_TRANSFER_REQUEST) == 17);
 static_assert(static_cast<int64_t>(MessageType::Master::AFFIRM_TRANSFER_RESPONSE) == 18);
 static_assert(static_cast<int64_t>(MessageType::Master::NEW_SESSION_ALERT) == 19);
+static_assert(static_cast<int64_t>(MessageType::Master::REQUEST_SERVER_LIST) == 20);
+static_assert(static_cast<int64_t>(MessageType::Master::SERVER_LIST_RESPONSE) == 21);
+static_assert(static_cast<int64_t>(MessageType::Master::PLAYER_ACTION) == 22);
+static_assert(static_cast<int64_t>(MessageType::Master::PLAYER_ACTION_RESULT) == 23);
+static_assert(static_cast<int64_t>(MessageType::Master::DATA_CHANGED) == 24);
+static_assert(static_cast<int64_t>(MessageType::Master::PLAYER_POSITIONS) == 25);
+static_assert(static_cast<int64_t>(MessageType::Master::ANNOUNCE) == 26);
+static_assert(static_cast<int64_t>(MessageType::Master::DASHBOARD_SHUTDOWN) == 27);
+static_assert(static_cast<int64_t>(MessageType::Master::CONFIG_RELOAD) == 28);
+static_assert(static_cast<int64_t>(MessageType::Master::INSTANCE_SHUTDOWN) == 29);
+static_assert(static_cast<int64_t>(MessageType::Master::MESSAGE_CAPTURE_CONTROL) == 30);
+static_assert(static_cast<int64_t>(MessageType::Master::MESSAGE_CAPTURE_DATA) == 31);
+static_assert(static_cast<int64_t>(MessageType::Master::INSTANCE_MIGRATE) == 32);
+static_assert(static_cast<int64_t>(MessageType::Master::MIGRATE_PLAYERS) == 33);
+static_assert(static_cast<int64_t>(MessageType::Master::MIGRATE_STATUS) == 34);
+static_assert(static_cast<int64_t>(MessageType::Master::MIGRATE_PLAYER_STATE) == 35);
+static_assert(static_cast<int64_t>(MessageType::Master::SERVER_TRAFFIC) == 36);
+static_assert(static_cast<int64_t>(MessageType::Master::UGC_MODELS_MADE) == 37);
+static_assert(static_cast<int64_t>(MessageType::Master::MIGRATE_PREPARE) == 38);
+static_assert(static_cast<int64_t>(MessageType::Master::LIVE_UPDATE_REQUEST) == 39);
+static_assert(static_cast<int64_t>(MessageType::Master::LIVE_UPDATE_STATUS) == 40);
+static_assert(static_cast<int64_t>(MessageType::Master::LIVE_UPDATE_RETIRE) == 41);
+static_assert(static_cast<int64_t>(MessageType::Master::CHAT_HANDOFF) == 42);
+static_assert(static_cast<int64_t>(MessageType::Master::CHAT_SERVER_READY) == 43);
 
 // MessageType::Server: 3 enumerators
 static_assert(static_cast<int64_t>(MessageType::Server::VERSION_CONFIRM) == 0);

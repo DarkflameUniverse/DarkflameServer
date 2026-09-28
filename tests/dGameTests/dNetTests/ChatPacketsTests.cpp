@@ -659,6 +659,25 @@ TEST_F(ChatPacketsTests, WorldToChatMatchesLegacy) {
 	EXPECT_FALSE(read.Deserialize(stream));
 }
 
+// Live updates: players sent again to a new chat server carry a resync byte; every other notify stays as it was
+TEST_F(ChatPacketsTests, LoginSessionNotifyResync) {
+	ChatPackets::LoginSessionNotify plain;
+	plain.playerID = 0x42;
+	plain.playerName = "Name";
+	ChatPackets::LoginSessionNotify resync = plain;
+	resync.resync = true;
+	RakNet::BitStream plainStream; plain.Serialize(plainStream);
+	RakNet::BitStream resyncStream; resync.Serialize(resyncStream);
+	EXPECT_EQ(resyncStream.GetNumberOfBitsUsed(), plainStream.GetNumberOfBitsUsed() + 8);
+
+	ChatPackets::LoginSessionNotify readPlain, readResync;
+	ASSERT_TRUE(readPlain.Deserialize(plainStream));
+	ASSERT_TRUE(readResync.Deserialize(resyncStream));
+	EXPECT_FALSE(readPlain.resync);
+	EXPECT_TRUE(readResync.resync);
+	EXPECT_EQ(readResync.playerName, "Name");
+}
+
 TEST_F(ChatPacketsTests, CreateTeamMatchesLegacy) {
 	for (size_t count = 0; count <= 3; count++) {
 		for (const auto& zone : g_Zones) {

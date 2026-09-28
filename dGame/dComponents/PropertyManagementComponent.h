@@ -203,6 +203,21 @@ public:
 
 
 	void OnChatMessageReceived(const std::string& sMessage) const;
+
+	/**
+	 * Live updates (docs/LiveUpdate.md): a new instance of this property is about to load it from the database. Takes
+	 * everyone out of build mode, saves, and from then on nobody can build or claim it here and it is never saved again,
+	 * so the new instance's saves can't be overwritten by this one.
+	 */
+	void FreezeForHandOff();
+
+	// The hand-off was called off before anyone went to the new instance: building and saving work again
+	void Unfreeze();
+
+	bool IsFrozen() const noexcept { return frozen; }
+
+	// Players in build mode here now
+	size_t GetBuilderCount() const noexcept { return builders.size(); }
 private:
 	// Sends the property's data to one player; a player who can build is told they own it, which is the client's only
 	// check before editing (the owner's name stays the owner's)
@@ -218,6 +233,9 @@ private:
 	 * This
 	 */
 	static PropertyManagementComponent* instance;
+
+	// Handed off to a new instance for a live update (FreezeForHandOff)
+	bool frozen = false;
 
 	/**
 	 * The ID of the owner of this property

@@ -1,6 +1,7 @@
 set(DMASTERSERVER_SOURCES
 	"InstanceManager.cpp"
 	"MigrationCoordinator.cpp"
+	"LiveUpdateCoordinator.cpp"
 	"Start.cpp"
 )
 

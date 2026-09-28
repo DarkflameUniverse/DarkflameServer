@@ -150,6 +150,35 @@ void UgcProcessor::Stop() {
 	m_Threads.clear();
 }
 
+void UgcProcessor::Drain() {
+	if (m_Draining) return;
+	m_Draining = true;
+	std::deque<Job> dropped;
+	{
+		std::lock_guard lock(m_Mutex);
+		dropped.swap(m_Jobs);
+	}
+	// What was waiting for them is forgotten too; the database rows stay pending
+	for (const auto& job : dropped) {
+		if (job.kind == Kind::MODEL) {
+			m_InFlight.erase({ job.kind, job.id });
+			continue;
+		}
+		m_ComboJobs.erase(job.id);
+		if (const auto rows = m_ComboRows.find(job.id); rows != m_ComboRows.end()) {
+			for (const auto& [row, attempts] : rows->second) m_InFlight.erase({ Kind::MODULAR, row });
+			m_ComboRows.erase(rows);
+		}
+	}
+	LOG("Draining: %zu queued job(s) left for the next UGC server, waiting for the running ones", dropped.size());
+}
+
+bool UgcProcessor::Drained() const {
+	if (!m_Draining) return false;
+	std::lock_guard lock(m_Mutex);
+	return m_Active == 0 && m_Jobs.empty() && m_Done.empty();
+}
+
 void UgcProcessor::Worker() {
 	int appliedNice = 0;
 	while (true) {
@@ -546,6 +575,8 @@ void UgcProcessor::Backfill() {
 
 void UgcProcessor::Update() {
 	Collect();
+	// Live update: only the running jobs' outcomes are recorded
+	if (m_Draining) return;
 	Backfill();
 	const auto now = std::chrono::steady_clock::now();
 	if (now - m_CpuSampled >= std::chrono::seconds(2)) SampleUsage();

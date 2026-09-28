@@ -11,6 +11,7 @@
 #include "Stamps.h"
 #include "dZMCommon.h"
 #include "Logger.h"
+#include "master/InstanceMigration.h"
 
 struct Player {
 	LWOOBJID id;
@@ -97,6 +98,23 @@ public:
 	void Shutdown();
 
 	bool IsFull(bool isFriendTransfer) const;
+
+	// What instance migrations and live updates plan with
+	InstanceMigration::InstanceView View() const {
+		InstanceMigration::InstanceView view;
+		view.zoneId = GetMapID();
+		view.instanceId = GetInstanceID();
+		view.cloneId = GetCloneID();
+		view.players = GetCurrentClientCount();
+		view.softCap = GetSoftCap();
+		view.hardCap = GetHardCap();
+		view.reserved = GetReserved();
+		view.ready = GetIsReady();
+		view.isPrivate = GetIsPrivate();
+		view.shuttingDown = GetIsShuttingDown() || GetShutdownComplete();
+		view.draining = GetIsDraining();
+		return view;
+	}
 
 private:
 	std::string m_IP{};
