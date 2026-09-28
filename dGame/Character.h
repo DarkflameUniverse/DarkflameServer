@@ -102,6 +102,11 @@ public:
 	 */
 	uint32_t GetPropertyCloneID() const { return m_PropertyCloneID; }
 
+	// Whether a character's location (zone and position) is saved in the zone this world runs, for logging back in
+	// there: not the character select world, nor where the zone says not to, nor a property (a clone) unless
+	// save_property_location is 1
+	static bool SavesLocationInThisZone();
+
 	/**
 	 * Gets the last login of this character in MS
 	 * @return the last login of this character

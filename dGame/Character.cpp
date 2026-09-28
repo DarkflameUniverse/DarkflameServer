@@ -283,11 +283,8 @@ void Character::SaveXMLToDatabase() {
 		character->SetAttribute("cc", m_Coins);
 
 		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
-		// Where the character logs back in. Not a property (a clone) unless save_property_location is 1: by default
-		// logging in from a property goes to the last world before it.
-		const bool savesHere = zoneInfo.GetCloneID() == 0 || (Game::config && Game::config->GetValue("save_property_location") == "1");
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if (zoneInfo.GetMapID() != 0 && savesHere && !Game::zoneManager->GetDisableSaveLocation()) {
+		if (SavesLocationInThisZone()) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
@@ -656,4 +653,11 @@ void Character::SetBillboardVisible(bool visible) {
 	GameMessages::SetNameBillboardState ownerBillboardState;
 	ownerBillboardState.target = m_OurEntity->GetObjectID();
 	ownerBillboardState.Send(m_OurEntity->GetSystemAddress());
+}
+
+bool Character::SavesLocationInThisZone() {
+	const auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
+	if (zoneInfo.GetMapID() == 0 || Game::zoneManager->GetDisableSaveLocation()) return false;
+	// By default logging in from a property goes to the last world before it
+	return zoneInfo.GetCloneID() == 0 || (Game::config && Game::config->GetValue("save_property_location") == "1");
 }
