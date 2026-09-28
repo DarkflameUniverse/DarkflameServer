@@ -24,7 +24,7 @@ TEST(ConfigLayerTests, DatabaseValuesLayerAroundFilesAndEnvironment) {
 	config.SetDatabaseValues({ { "zz_override", "web" }, { "mysql_host", "evil" } }, { { "zz_fallback", "web" }, { "zz_both", "web" } });
 	EXPECT_EQ(config.GetValue("zz_override"), "web");
 	EXPECT_EQ(config.GetValue("zz_fallback"), "web");
-	EXPECT_EQ(config.GetValue("mysql_host"), ""); // connection settings never come from the database
+	EXPECT_NE(config.GetValue("mysql_host"), "evil"); // connection settings never come from the database (the build's own sharedconfig.ini may set one)
 	EXPECT_EQ(config.GetValue("zz_missing"), "");
 
 	// The environment beats a fallback but not an override

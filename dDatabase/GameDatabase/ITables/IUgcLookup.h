@@ -39,6 +39,7 @@ public:
 		uint32_t processMs{};       // how long the last successful make took (0: not made, or made before it was timed)
 		uint32_t processCpuMs{};    // the worker thread's CPU time for it
 		uint32_t processMemoryKb{}; // the memory the UGC server estimated for it (not measured)
+		std::string modelName;      // models: the name a player gave it where it is placed (empty: none)
 	};
 
 	// What SearchUgc matches. A number (when set) is matched against ids; text against names
@@ -65,6 +66,8 @@ public:
 		TRIANGLES, // models: the most triangles first
 		SLOWEST,   // the longest last make first (process_ms)
 		MADE,      // the most recently made (or attempted) first (processed_at)
+		CPU,       // the most CPU time in the last make first (process_cpu_ms)
+		MEMORY,    // the most estimated memory in the last make first (process_memory_kb)
 	};
 
 	// A page of one kind: all of them or those matching the search (the same matching as SearchUgc), in a state or any

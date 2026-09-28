@@ -11,7 +11,7 @@
 
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
 	var SORTS = {
-		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['owner', 'Owner'], ['name', 'File name']],
+		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['cpu', 'Most CPU'], ['memory', 'Most RAM'], ['owner', 'Owner'], ['name', 'File name']],
 		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['name', 'Name']]
 	};
 	// The list's state, as in the address: ?kind=&q=&state=&type=&sort=&page= (from 1)&view=, and the open item (&item=, &build=)
@@ -110,6 +110,13 @@
 		if (!i.processedAt) return '';
 		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '');
 	}
+	// A model's file as the player named it: its name with the upload's extension (".lxfml"), else the upload's name
+	function fileName(i) {
+		var file = i.detail || '';
+		if (!i.modelName) return file;
+		var dot = file.lastIndexOf('.');
+		return i.modelName + (dot > 0 ? file.slice(dot) : '');
+	}
 	function waitBadge(i) {
 		return i.state === 'pending' && i.processAfter > Date.now() / 1000 ? ' <span class="small text-body-secondary" title="Waits for the owner to stop saving">after ' + esc(fmt.unix(i.processAfter)) + '</span>' : '';
 	}
@@ -142,9 +149,11 @@
 				return badge(i.state) + (i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i);
 			}),
 			column('Made', function (i) { return '<span class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</span>'; }, 'made', true),
-			column('Took', function (i) { return '<span class="small">' + esc(costText(i).replace(/^took /, '')) + '</span>'; }, 'slowest', true),
+			column('Took', function (i) { return '<span class="small">' + (i.processMs ? esc(duration(i.processMs)) : '') + '</span>'; }, 'slowest', true),
+			column('CPU', function (i) { return '<span class="small">' + (i.processCpuMs ? esc(duration(i.processCpuMs)) : '') + '</span>'; }, 'cpu', true),
+			column('RAM (est.)', function (i) { return '<span class="small">' + (i.processMemoryKb ? '~' + esc(megabytes(i.processMemoryKb)) : '') + '</span>'; }, 'memory', true),
 			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
-			column('File', function (i) { return '<span class="small">' + esc(i.detail || '') + '</span>' + errorText(i); }, 'name'),
+			column('File', function (i) { return '<span class="small" title="' + esc(i.detail || '') + '">' + esc(fileName(i)) + '</span>' + errorText(i); }, 'name'),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })
 		],
 		modular: [

@@ -23,6 +23,7 @@ namespace {
 		entry.processMs = static_cast<uint32_t>(result.getInt64Field("process_ms"));
 		entry.processCpuMs = static_cast<uint32_t>(result.getInt64Field("process_cpu_ms"));
 		entry.processMemoryKb = static_cast<uint32_t>(result.getInt64Field("process_memory_kb"));
+		entry.modelName = result.getStringField("model_name", "");
 		return entry;
 	}
 }

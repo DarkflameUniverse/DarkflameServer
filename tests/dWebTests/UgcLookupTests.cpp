@@ -173,15 +173,19 @@ TEST_F(UgcLookupSqlTests, ListsPagesWithCounts) {
 	query.reverse = true; // the fewest bricks first
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
 	query.reverse = false;
-	query.sort = IUgcLookup::eSort::NAME; // boat before tower
-	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
-	query.reverse = true; // tower before boat
+	query.sort = IUgcLookup::eSort::NAME; // "Big tower" (its placed name) before boat.lxfml, whatever the case
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
+	query.reverse = true;
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
 	query.reverse = false;
 	query.sort = IUgcLookup::eSort::NEWEST;
 	query.reverse = true; // the oldest first
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1000, 1001 }));
 	query.reverse = false;
+	query.sort = IUgcLookup::eSort::CPU; // none recorded: ties go newest first
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
+	query.sort = IUgcLookup::eSort::MEMORY;
+	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
 	query.sort = IUgcLookup::eSort::MADE; // neither has been made: ties go newest first
 	EXPECT_EQ(List(query, false).first, (std::vector<int64_t>{ 1001, 1000 }));
 	query.sort = IUgcLookup::eSort::SLOWEST; // the tower took 5.2 s; the boat isn't made
@@ -193,7 +197,7 @@ TEST_F(UgcLookupSqlTests, ListsPagesWithCounts) {
 	query.limit = 1;
 	query.offset = 1;
 	std::tie(ids, total) = List(query, false);
-	EXPECT_EQ(ids, (std::vector<int64_t>{ 1000 }));
+	EXPECT_EQ(ids, (std::vector<int64_t>{ 1001 }));
 	EXPECT_EQ(total, 2); // the count is of every match, not the page
 	query = {};
 	query.state = IUgc::eProcessState::DONE;
