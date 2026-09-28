@@ -13,6 +13,7 @@ namespace DEVGMCommands {
 	void ShutdownUniverse(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void SetMinifig(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void TestMap(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ReprocessProperty(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void ReportProxPhys(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void SpawnPhysicsVerts(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Teleport(Entity* entity, const SystemAddress& sysAddr, const std::string args);

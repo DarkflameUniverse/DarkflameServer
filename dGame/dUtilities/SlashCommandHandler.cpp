@@ -459,6 +459,15 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(TestMapCommand);
 
+	Command ReprocessPropertyCommand{
+		.help = "Make this property's models again and reload it",
+		.info = "The UGC server makes every model placed on the property you are on again (with the current UGC settings). Once they are made, everyone on the property is sent back into it, so their game loads the new meshes",
+		.aliases = { "reprocessproperty", "reloadpropertymodels" },
+		.handle = DEVGMCommands::ReprocessProperty,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ReprocessPropertyCommand);
+
 	Command ReportProxPhysCommand{
 		.help = "Display proximity sensor info",
 		.info = "Prints to console the position and radius of proximity sensors.",

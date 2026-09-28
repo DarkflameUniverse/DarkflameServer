@@ -426,6 +426,12 @@ serving), the worlds:
   replaces what the client showed.
   A model made again unchanged (after eviction) isn't sent. Nothing polls: one message per batch of made models.
 
+* **`/reprocessproperty`** (GM 8): every model placed on the property the player is on goes back to the UGC server's
+  queue (`ResetPropertyUgcModelProcessing`). The world checks every 5 seconds; once none is pending (or after 15
+  minutes) it sends every player in the world the new `model.nif` checksums and transfers them back into the same
+  zone and clone. The client loads the property again and downloads the new meshes (its manifest cache has the new
+  checksums, which its files don't match). Models of a reprocess skip the "made again" switch.
+
 ### Waiting while the owner is still building
 
 A saved model isn't made right away: `InsertNewUgcModel` stores `process_after` = now + `ugc_debounce_seconds`

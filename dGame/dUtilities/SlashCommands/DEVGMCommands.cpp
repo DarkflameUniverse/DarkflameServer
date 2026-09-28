@@ -1,4 +1,7 @@
 #include "DEVGMCommands.h"
+
+#include "UgcManifest.h"
+#include "PropertyManagementComponent.h"
 #include "MasterPackets.h"
 
 #include <ranges>
@@ -1978,5 +1981,20 @@ namespace DEVGMCommands {
 				controllable->SetPosition(originalPosition);
 			}
 		}
+	}
+
+	void ReprocessProperty(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		auto* const property = PropertyManagementComponent::Instance();
+		if (!property || property->GetId() == LWOOBJID_EMPTY) {
+			ChatPackets::SendSystemMessage(sysAddr, u"You aren't on a property.");
+			return;
+		}
+		const auto queued = UgcManifest::ReprocessProperty(property->GetId());
+		if (queued == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"This property has no brick built models.");
+			return;
+		}
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16("Making " + std::to_string(queued) +
+			" model(s) again. Everyone on the property is reloaded when they're made."));
 	}
 };

@@ -60,6 +60,11 @@ namespace UgcManifest {
 	// clients to served meshes that are due
 	void Update();
 
+	// /reprocessproperty: every model placed on the property is made again by the UGC server; once none is waiting
+	// (or after 15 minutes), every player in this world is sent the new mesh checksums and transferred back into it,
+	// so their client loads the property again with the new meshes. Returns how many models were queued.
+	size_t ReprocessProperty(LWOOBJID propertyId);
+
 	// A client left (or went back to character select): its waiting requests and pending switches are dropped
 	void OnDisconnect(const SystemAddress& sysAddr);
 

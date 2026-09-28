@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string_view>
 #include <vector>
@@ -21,6 +22,9 @@
 #include "MD5.h"
 #include "PlayerManager.h"
 #include "Sd0.h"
+#include "dZoneManager.h"
+#include "ChatPackets.h"
+#include "ZoneInstanceManager.h"
 
 namespace {
 	// How often the waiting requests are looked up again, how long they wait at most and how many there can be
@@ -58,6 +62,14 @@ namespace {
 		bool destructed{}; // taken down; constructed at `due`
 	};
 	std::vector<Reconstruct> g_Reconstructs;
+
+	// /reprocessproperty: the models being made again, and when the players are reloaded at the latest
+	struct PropertyReload {
+		std::set<LWOOBJID> blueprintIds;
+		std::chrono::steady_clock::time_point since;
+		std::chrono::steady_clock::time_point nextCheck;
+	};
+	std::optional<PropertyReload> g_PropertyReload;
 
 	bool ManifestOn() {
 		// Off unless set: a client whose boot.cfg doesn't point it at the UGC server downloads from its built-in
@@ -264,8 +276,66 @@ namespace {
 
 }
 
+namespace {
+	// Sends every player in this world the made models' checksums, then transfers them back into this zone and clone:
+	// the client loads the property again, and its manifest cache now has the new meshes' checksums
+	void ReloadPlayers(const std::set<LWOOBJID>& blueprintIds) {
+		const auto zoneId = Game::zoneManager->GetZoneID();
+		for (auto* const player : PlayerManager::GetAllPlayers()) {
+			if (!player) continue;
+			const auto sysAddr = player->GetSystemAddress();
+			for (const auto id : blueprintIds) {
+				const auto checksum = Database::Get()->GetUgcFileChecksum(id, "model.nif");
+				if (checksum && checksum->md5.size() == 32) Send(sysAddr, id, eUgcResourceType::NIF, checksum);
+			}
+			ChatPackets::SendSystemMessage(sysAddr, u"The property's models were made again: loading the property again.");
+			const auto objectId = player->GetObjectID();
+			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId.GetMapID(), zoneId.GetCloneID(), false,
+				[objectId](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+					auto* const entity = Game::entityManager->GetEntity(objectId);
+					if (!entity || !entity->GetCharacter()) return;
+					auto* const character = entity->GetCharacter();
+					character->SetZoneID(zoneID);
+					character->SetZoneInstance(zoneInstance);
+					character->SetZoneClone(zoneClone);
+					character->SaveXMLToDatabase();
+					ClientPackets::TransferToWorld transfer;
+					transfer.serverIP = LUString(serverIP);
+					transfer.serverPort = serverPort;
+					transfer.mythranShift = mythranShift;
+					transfer.Send(entity->GetSystemAddress());
+				});
+		}
+	}
+}
+
+size_t UgcManifest::ReprocessProperty(const LWOOBJID propertyId) {
+	std::set<LWOOBJID> blueprintIds;
+	for (const auto& model : Database::Get()->GetPropertyModels(propertyId)) {
+		if (model.ugcId != 0) blueprintIds.insert(model.ugcId);
+	}
+	if (blueprintIds.empty()) return 0;
+	Database::Get()->ResetPropertyUgcModelProcessing(propertyId);
+	const auto now = std::chrono::steady_clock::now();
+	g_PropertyReload = PropertyReload{ std::move(blueprintIds), now, now + RETRY_INTERVAL };
+	LOG("Making the %zu models of property %llu again; players are reloaded when they're made", g_PropertyReload->blueprintIds.size(), static_cast<unsigned long long>(propertyId));
+	return g_PropertyReload->blueprintIds.size();
+}
+
 void UgcManifest::Update() {
 	const auto now = std::chrono::steady_clock::now();
+	if (g_PropertyReload && now >= g_PropertyReload->nextCheck) {
+		g_PropertyReload->nextCheck = now + RETRY_INTERVAL;
+		bool waiting = false;
+		for (const auto id : g_PropertyReload->blueprintIds) {
+			const auto info = Database::Get()->GetUgcProcessInfo(id);
+			waiting = waiting || (info && info->state == IUgc::eProcessState::PENDING);
+		}
+		if (!waiting || now - g_PropertyReload->since > MAX_WAIT) {
+			ReloadPlayers(g_PropertyReload->blueprintIds);
+			g_PropertyReload.reset();
+		}
+	}
 	std::erase_if(g_Reconstructs, [now](Reconstruct& pending) { return ConstructAgain(pending, now); });
 
 	if (g_Waiting.empty() || now < g_NextRetry) return;
@@ -284,11 +354,13 @@ void UgcManifest::OnDisconnect(const SystemAddress& sysAddr) {
 void UgcManifest::OnModelsMade(const std::vector<LWOOBJID>& blueprintIds) {
 	for (const auto id : blueprintIds) g_LxfmlChecksums.erase(id); // made again after its LXFML changed, maybe
 	if (!ServesModels() || !Game::entityManager) return;
+	// Models of a /reprocessproperty: the players are reloaded once they're all made
 
 	const auto& players = PlayerManager::GetAllPlayers();
 	if (players.empty()) return;
 	const auto models = Game::entityManager->GetEntitiesByLOT(BrickByBrick::MODEL_OBJECT_LOT);
 	for (const auto id : blueprintIds) {
+		if (g_PropertyReload && g_PropertyReload->blueprintIds.contains(id)) continue;
 		std::vector<Entity*> shown;
 		for (auto* const model : models) {
 			if (model && model->GetVar<LWOOBJID>(u"blueprintid") == id) shown.push_back(model);
