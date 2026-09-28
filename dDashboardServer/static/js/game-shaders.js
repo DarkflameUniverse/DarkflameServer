@@ -32,6 +32,7 @@ varying vec2 vUvDark;
 varying vec2 vUv;
 varying vec4 vColor;
 varying vec3 vLight;       // the lit color the technique's vertex shader outputs (clamped as a COLOR output is)
+varying vec3 vLit;         // ... times the vertex color, clamped once as the Basic, AlphaAsAlpha and Flair COLOR0 outputs are
 varying float vLdn;        // N.L, clamped
 varying vec3 vNormal;      // world space
 varying vec3 vWorld;
@@ -92,11 +93,21 @@ void main() {
 	// g_metalDiffuse * N.L^4 + g_metalAmbient
 	vLight = clamp( vec3( 0.7 ) * pow( vLdn, 4.0 ) + vec3( 0.3 ), 0.0, 1.0 );
 #elif defined( FAMILY_FLAIR )
+	// Flair_VS: (0.85 * sun + ambient) * the flair's tint, clamped once as the COLOR0 output
 	vLight = clamp( 0.85 * gameLightColor + gameAmbient, 0.0, 1.0 );
+	vLit = clamp( ( 0.85 * gameLightColor + gameAmbient ) * vcol.rgb, 0.0, 1.0 );
 #elif defined( UNLIT )
 	vLight = vec3( 1.0 );
+	vLit = clamp( vcol.rgb, 0.0, 1.0 );
 #else
-	vLight = clamp( max( vec3( 0.0 ), gameLightColor * ldn ) + gameAmbient, 0.0, 1.0 );
+	// BasicShaders / AlphaAsAlpha *_Lighting_VertColor_VS: (sun * N.L + ambient) * the vertex color, then clamped as
+	// the COLOR0 output (not the light alone: a bright light still lifts a dark vertex color)
+	vec3 lit = max( vec3( 0.0 ), gameLightColor * ldn ) + gameAmbient;
+	vLight = clamp( lit, 0.0, 1.0 );
+	vLit = clamp( lit * vcol.rgb, 0.0, 1.0 );
+#endif
+#if !defined( FAMILY_FLAIR ) && !defined( FAMILY_BASIC )
+	vLit = vLight * vcol.rgb;
 #endif
 	gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }
@@ -128,6 +139,7 @@ varying vec2 vUvDark;
 #endif
 varying vec4 vColor;
 varying vec3 vLight;
+varying vec3 vLit;
 varying float vLdn;
 varying vec3 vNormal;
 varying vec3 vWorld;
@@ -309,7 +321,7 @@ void main() {
 
 #else
 	// Basic, AlphaAsAlpha, fixed function, flairs, the sky: texture times the lit (or unlit) vertex color
-	vec4 light = vec4( vLight * vc.rgb, vc.a );
+	vec4 light = vec4( vLit, vc.a );
 	#ifdef LAYERS_BLENDED
 	result = vec4( mix( tex( darkMap, vUvDark ).rgb, tex( map, vUv ).rgb, vc.a ) * light.rgb, 1.0 );
 	#elif defined( LAYERS_ADDED )

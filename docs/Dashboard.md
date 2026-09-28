@@ -1096,7 +1096,7 @@ scenes.
 | Family | gameValues | Drawn as |
 | --- | --- | --- |
 | LEGO (LEGOPPLighting) | 4, 5, 12, 14, 19, 20, 22, 25-31, 48, 50, 53, 72, 88, 92 | hemisphere lit sun + ambient, fresnel rim, N.H^320 specular, default reflection cube x0.05; texture over vertex colors by its alpha (decal) or times them (Item, Masked NonDecal, FaceCreate); Emissive/SuperEmissive (vertex alpha x emissive red), Glow, Grayscale, NoAmbient, AnimUV |
-| Basic (BasicShaders, AlphaAsAlpha) | 7-11, 13, 15-18, 23, 24, 32-39, 49, 52, 54-65, 68, 70, 73, 80-87, 91, 93, 94, 105-108 | sun x N.L + ambient per vertex (or unlit) x vertex color x texture; AlphaAsAlpha both sides; AlphaBlend without depth writes, AlphaTest cut out, Additive; material alpha for the AnimAlpha ones; two layer blends and adds |
+| Basic (BasicShaders, AlphaAsAlpha) | 7-11, 13, 15-18, 23, 24, 32-39, 49, 52, 54-65, 68, 70, 73, 80-87, 91, 93, 94, 105-108 | (sun x N.L + ambient) x vertex color per vertex, clamped once as the COLOR0 output (or unlit), x texture; AlphaAsAlpha both sides (its techniques set Cullmode none, so cards made to be seen from one side show their backs from outside a playable area); AlphaBlend without depth writes, AlphaTest cut out, Additive; material alpha for the AnimAlpha ones; two layer blends and adds |
 | Metal (Metallic.fx) | 98, 99, 100 | 0.7 N.L^4 + 0.3, plus the client's metal cube (polished or brushed, with the brushed noise in object space) tinted by the vertex color, specular |
 | Clear Plastic | 6 | default reflection cube, fresnel of the lit grey, tight highlight; see-through facing the eye |
 | Ocean (Distortion) | 69, 89, 90, 95, 101 | three texture layers, each warped by the one before, lit (or unlit x2, or FX with the emissive alpha window) |
@@ -1104,7 +1104,7 @@ scenes.
 | BrickWater | 51 | hemisphere lit vertex color, fresnel, specular |
 | Darkling | 75-77, 102-104 | dark texture on the second UV set over the base look by a window of vertex alphas (material emissive r/g/b); Specular uses LEGO lighting, Structure multiplies |
 | Terrain meshes | 2, 3, 97 | texture x vertex color x (sun x N.L + ambient); Rim Light adds a rim; Diffuse Map Only doubles the texture |
-| Flairs (Flair.fx) | the flair manifest | (0.85 sun + ambient) x tint |
+| Flairs (Flair.fx) | the flair manifest | (0.85 sun + ambient) x tint, clamped once; the tint is the terrain file's color byte / 255 times the flair model's own vertex colors |
 | Sky (Skydome.fx) | the scene's sky | texture x vertex color, unlit, moving by its texture transform |
 | Not drawn | 21, 71, 74, 79, 96 | model footprints, post-processing, drop shadows, Undefined |
 | Fixed function | -1 | sun x N.L + ambient with the material color and NiVertexColorProperty |
@@ -1118,7 +1118,7 @@ Powerups, Orb, TV Screen and Head Icon effects (drawn as LEGO or unlit), Flair's
 client's environment textures come from `/api/scenery/env/:name` (`reflection`, `polished`, `brushed`,
 `brushedNoise`). Placed player models are drawn by the viewer's own lighting.
 
-The views ask for a zone's manifest with the conversion format they're written for (`?format=5`,
+The views ask for a zone's manifest with the conversion format they're written for (`?format=6`,
 `scenery-core.js` `SCENERY_FORMAT`, which follows `Scenery.cpp` `FORMAT_VERSION`), since browsers keep manifests for up
 to a day. A manifest without `techniques` (an older server's) is drawn with the viewer's own lights and its
 `textureAlpha` table instead of guessing every shader as LEGO, which laid see-through textures over white vertex

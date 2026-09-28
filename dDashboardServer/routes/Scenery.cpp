@@ -278,9 +278,10 @@ namespace {
 	 * which must follow this; SceneryCoreJs checks), so a manifest a browser kept for a day from an older server
 	 * isn't drawn with newer code. 2: meshes carry their multishader tag; conversions without it drew glom parts with
 	 * the LEGO shader. 3: dark textures and the UV set each texture names. 4: the game's shaders draw the models
-	 * (manifest "techniques"), vertex colors go to them as stored. 5: an animated material alpha is its highest key.
+	 * (manifest "techniques"), vertex colors go to them as stored. 5: an animated material alpha is its highest key. 6: flair tints are bytes over
+	 * 255 (they were over 63).
 	 */
-	constexpr uint32_t FORMAT_VERSION = 5;
+	constexpr uint32_t FORMAT_VERSION = 6;
 
 	// A zone's lighting (WorldScene::Lighting) for the viewers' shaders
 	nlohmann::json LightingJson(const WorldScene::Lighting& lighting) {
@@ -442,7 +443,7 @@ namespace {
 
 	/**
 	 * The flairs' manifest (as the scenery's, plus a tint per flair), from the zone's terrain file. A flair's color
-	 * tints its model; 63 is full strength (the files use 0 to 63 for most flairs, a little more for brighter ones).
+	 * tints its model as a byte over 255, times the model's own vertex colors (FlairAssets::AppendRenderBuffer).
 	 */
 	std::optional<std::string> BuildFlairs(uint32_t zoneId, ZoneScenery& scenery) {
 		const auto raw = ZoneRawShared(zoneId);
@@ -477,7 +478,7 @@ namespace {
 			assets = scenery.assets;
 		}
 		return nlohmann::json{
-			{"zone", zoneId}, {"sky", -1}, {"assets", assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 63.0}, {"lighting", scenery.lighting}, {"format", FORMAT_VERSION},
+			{"zone", zoneId}, {"sky", -1}, {"assets", assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 255.0}, {"lighting", scenery.lighting}, {"format", FORMAT_VERSION},
 			// Flair.fx for all of them: (0.85 * sun + ambient) * the flair's tint, whatever their facing
 			{"technique", { {"family", "flair"}, {"look", 0}, {"alpha", "opacity"}, {"flags", 0} }},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"color", colors} }}
@@ -488,7 +489,7 @@ namespace {
 
 	/**
 	 * The flairs' manifest (as the scenery's, plus a tint per flair), from the zone's terrain file. A flair's color
-	 * tints its model; 63 is full strength (the files use 0 to 63 for most flairs, a little more for brighter ones).
+	 * tints its model as a byte over 255, times the model's own vertex colors (FlairAssets::AppendRenderBuffer).
 	 * Built when first asked for (any thread).
 	 */
 	const std::optional<std::string>& Flairs(uint32_t zoneId, ZoneScenery& scenery) {

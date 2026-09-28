@@ -111,7 +111,7 @@ export const TECHNIQUE = {
  * The conversion format (Scenery.cpp FORMAT_VERSION) these views are written for. Manifest URLs carry it, so a
  * browser never draws with a manifest it kept from an older server (they are cached for up to a day).
  */
-export const SCENERY_FORMAT = 5;
+export const SCENERY_FORMAT = 6;
 
 /** A manifest URL asking for SCENERY_FORMAT's manifest (the server ignores the parameter; browsers cache by it). */
 export function manifestUrl(url) {
