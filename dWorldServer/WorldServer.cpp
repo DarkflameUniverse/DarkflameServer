@@ -170,12 +170,14 @@ void ResendPlayersToChat() {
 
 // CHAT_SERVER_READY (live update): connect to the new chat server now rather than at the next retry
 void OnChatServerReady() {
-	g_ChatResyncPending = true;
 	if (g_ChatConnected) {
-		g_ChatResyncPending = false;
+		// Already connected to the new one; should that be the old one's link and not noticed yet, the players go
+		// again once connected (a resync changes nothing for players the chat server has)
 		ResendPlayersToChat();
+		g_ChatResyncPending = true;
 		return;
 	}
+	g_ChatResyncPending = true;
 	LOG("A new chat server is up; connecting");
 	Game::chatServer->Connect(g_ChatIP.c_str(), g_ChatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 }
