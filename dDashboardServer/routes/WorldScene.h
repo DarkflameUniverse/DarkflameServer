@@ -83,6 +83,38 @@ namespace WorldScene {
 	};
 
 	/**
+	 * Whether a client script hides its object as soon as it loads: a self:SetVisible{visible = false ...} statement
+	 * directly in the body of onStartup or onRenderComponentReady, not inside a condition (as
+	 * scripts/02_client/map/general/l_set_invisible.lua on "Clear threat list Trigger Wall", or l_bootydig_client.lua,
+	 * which shows its object again once it's dug). The game runs the script; the viewers read it.
+	 */
+	inline bool ClientScriptHidesOnLoad(const std::string& script) {
+		std::istringstream lines(script);
+		std::string line;
+		bool inLoadHandler = false;
+		while (std::getline(lines, line)) {
+			if (!line.empty() && line.back() == '\r') line.pop_back();
+			if (line.starts_with("function ")) {
+				const auto name = line.substr(9, line.find('(') == std::string::npos ? std::string::npos : line.find('(') - 9);
+				inLoadHandler = name == "onStartup" || name == "onRenderComponentReady";
+				continue;
+			}
+			if (line.starts_with("end")) {
+				inLoadHandler = false;
+				continue;
+			}
+			if (!inLoadHandler) continue;
+			// One level in: a tab, or up to four spaces
+			const auto indent = line.find_first_not_of(" \t");
+			if (indent == std::string::npos || !(line.compare(0, indent, "\t") == 0 || (indent <= 4 && line.find('\t') >= indent))) continue;
+			std::string statement;
+			for (const char c : line.substr(indent)) if (c != ' ') statement += c;
+			if (statement.starts_with("self:SetVisible{visible=false")) return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Whether the client draws an object's model, given its LOT's Objects.type. As the client's
 	 * ObjectLoader2::LoadRenderComponent (0x01053ca5 in client 1.10.64): nothing for renderDisabled or CreateNULLRender,
 	 * blocking volumes and a few LOTs it leaves out by number (6368 is the 3D ambient sound, which gets an effect

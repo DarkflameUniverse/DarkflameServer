@@ -144,7 +144,31 @@ namespace {
 		std::string asset; // RenderComponent.render_asset as stored
 		std::string type;  // Objects.type
 		int32_t shader{ -1 }; // mapShaders.gameValue of RenderComponent.shader_id (-1 fixed function or unknown)
+		bool hidesOnLoad{};   // its client script hides it as soon as it loads (WorldScene::ClientScriptHidesOnLoad)
 	};
+
+	// A client script's text, by its ScriptComponent path (backslashes, any case); empty when the client has none
+	std::string ReadClientScript(const std::string& stored) {
+		static const auto index = [] {
+			std::unordered_map<std::string, std::filesystem::path> files;
+			const auto res = ClientAssets::ResFolder();
+			if (res.empty()) return files;
+			std::error_code ec;
+			for (const auto& top : std::filesystem::directory_iterator(res, ec)) {
+				if (Lower(top.path().filename().string()) != "scripts" || !top.is_directory(ec)) continue;
+				for (auto it = std::filesystem::recursive_directory_iterator(top.path(), ec); !ec && it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+					if (it->is_regular_file(ec)) files.emplace(Lower(std::filesystem::relative(it->path(), res, ec).generic_string()), it->path());
+				}
+			}
+			return files;
+		}();
+		auto key = Lower(stored);
+		std::replace(key.begin(), key.end(), '\\', '/');
+		const auto it = index.find(key);
+		if (it == index.end()) return {};
+		std::ifstream in(it->second, std::ios::binary);
+		return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+	}
 
 	// mapShaders: id (what RenderComponent.shader_id and multishader tags name) -> gameValue (the shader drawn)
 	std::map<int32_t, int32_t> g_ShaderValues;
@@ -161,6 +185,19 @@ namespace {
 			}
 			auto shaders = CDClientDatabase::ExecuteQuery("SELECT id, gameValue FROM mapShaders;");
 			for (; !shaders.eof(); shaders.nextRow()) g_ShaderValues.try_emplace(shaders.getIntField(0), shaders.getIntField(1));
+			// Objects whose client script hides them as soon as they load
+			auto scripts = CDClientDatabase::ExecuteQuery(
+				"SELECT cr.id, sc.client_script_name FROM ComponentsRegistry cr JOIN ScriptComponent sc ON sc.id = cr.component_id "
+				"WHERE cr.component_type = " + std::to_string(static_cast<int32_t>(eReplicaComponentType::SCRIPT)) + " AND sc.client_script_name IS NOT NULL AND sc.client_script_name != '';");
+			std::unordered_map<std::string, bool> hides; // by script, read once
+			for (; !scripts.eof(); scripts.nextRow()) {
+				const auto it = infos.find(static_cast<uint32_t>(scripts.getIntField(0)));
+				if (it == infos.end()) continue;
+				const std::string script = scripts.getStringField(1, "");
+				auto [known, added] = hides.try_emplace(script, false);
+				if (added) known->second = WorldScene::ClientScriptHidesOnLoad(ReadClientScript(script));
+				it->second.hidesOnLoad = it->second.hidesOnLoad || known->second;
+			}
 			auto types = CDClientDatabase::ExecuteQuery("SELECT id, type FROM Objects;");
 			for (; !types.eof(); types.nextRow()) {
 				const auto it = infos.find(static_cast<uint32_t>(types.getIntField(0)));
@@ -192,7 +229,8 @@ namespace {
 		const auto& infos = RenderInfos();
 		const auto info = infos.find(lot);
 		if (info == infos.end()) return {};
-		const auto draw = WorldScene::ClientDraws(object, info->second.type);
+		auto draw = WorldScene::ClientDraws(object, info->second.type);
+		if (draw == WorldScene::eClientDraw::DRAWN && info->second.hidesOnLoad) draw = WorldScene::eClientDraw::HIDDEN;
 		if (draw == WorldScene::eClientDraw::NO_MODEL) return {};
 		static std::mutex mutex;
 		static std::unordered_map<std::string, std::string> resolved;

@@ -142,3 +142,16 @@ TEST(WorldSceneTests, ClientDrawsWhatTheGameDraws) {
 	EXPECT_EQ(WorldScene::ClientDraws(read[4], "Smashables"), eClientDraw::NO_MODEL);
 	EXPECT_EQ(WorldScene::ClientDraws(read[5], "Environmental"), eClientDraw::HIDDEN);
 }
+
+// A client script that hides its object as soon as it loads (a top-level SetVisible false in onStartup or
+// onRenderComponentReady) makes the viewers treat the object as hidden; conditional ones don't
+TEST(WorldSceneTests, ClientScriptsThatHideOnLoad) {
+	// scripts/02_client/map/general/l_set_invisible.lua
+	EXPECT_TRUE(WorldScene::ClientScriptHidesOnLoad("-- comment\nfunction onRenderComponentReady(self,msg)\n\tself:SetVisible{visible = false, fadeTime = 0}\nend"));
+	EXPECT_TRUE(WorldScene::ClientScriptHidesOnLoad("function onStartup(self)\r\n    self:SetVisible{ visible = false }\r\nend\r\n"));
+	// Only when a condition holds, in another handler, or shown
+	EXPECT_FALSE(WorldScene::ClientScriptHidesOnLoad("function onStartup(self)\n\tif x then\n\t\tself:SetVisible{visible = false}\n\tend\nend"));
+	EXPECT_FALSE(WorldScene::ClientScriptHidesOnLoad("function onTimerDone(self,msg)\n\tself:SetVisible{visible = false}\nend"));
+	EXPECT_FALSE(WorldScene::ClientScriptHidesOnLoad("function onStartup(self)\n\tself:SetVisible{visible = true}\nend"));
+	EXPECT_FALSE(WorldScene::ClientScriptHidesOnLoad(""));
+}
