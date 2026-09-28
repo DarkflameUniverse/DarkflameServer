@@ -756,6 +756,13 @@ TEST_F(ParitySeeded, UgcModel) {
 		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
 		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), infoJson(db.GetUgcProcessInfo(1)) };
 	});
+	Both("ResetPropertyUgcModelProcessing", [&](GameDatabase& db) {
+		IPropertyContents::Model model;
+		model.id = 1152921510000400009LL; model.lot = 14; model.ugcId = 1152921510000500001LL;
+		db.InsertNewPropertyModel(PROP1, model, "Objects_14_name");
+		const auto changed = db.ResetPropertyUgcModelProcessing(PROP1);
+		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), db.ResetPropertyUgcModelProcessing(1) };
+	});
 	Both("Modular build processing", [&](GameDatabase& db) {
 		db.InsertUgcBuild("1:4713+1:4714+1:4715", 1152921510000500002LL, CHAR_ALICE);
 		json out = json::array();

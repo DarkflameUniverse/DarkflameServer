@@ -144,6 +144,11 @@ uint64_t MySQLDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> id
 	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0;");
 }
 
+uint64_t MySQLDatabase::ResetPropertyUgcModelProcessing(const LWOOBJID propertyId) {
+	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0 "
+		"WHERE id IN (SELECT ugc_id FROM properties_contents WHERE property_id = ? AND ugc_id IS NOT NULL);", propertyId);
+}
+
 std::vector<IUgc::ProcessInfo> MySQLDatabase::GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) {
 	const std::string select =
 		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao, u.process_after "

@@ -20,6 +20,9 @@
 				<button class="btn btn-outline-danger btn-sm" onclick="rejectProperty()">Reject</button>
 				{% endif %}
 				<a class="btn btn-sm btn-primary" href="/properties/{{ property_id }}/3d">Open 3D view</a>
+				{% if can.ugc_manage %}
+				<button class="btn btn-sm btn-outline-secondary" id="reprocessModelsBtn" title="Have the UGC server make every model on this property again (mesh and icon), with the current settings">Reprocess all models</button>
+				{% endif %}
 				{% if can.reports_view %}
 				<a class="btn btn-sm btn-outline-secondary d-none" id="propEconomy" href="#">Economy &amp; map</a>
 				{% endif %}
@@ -87,6 +90,11 @@
 					<div class="form-text">Leave empty to use the positions stored in the file.</div>
 				</div>
 				<div class="col-md-2"><button class="btn btn-sm btn-primary w-100" id="importBtn">Import</button></div>
+			</div>
+			<hr>
+			<div class="d-flex align-items-center gap-2 flex-wrap">
+				<button class="btn btn-sm btn-outline-danger" id="removeModelsBtn">Remove all models</button>
+				<span class="small text-body-secondary">Deletes every model placed on this property; they don't go back to the owner. Not possible while the property is loaded in a world.</span>
 			</div>
 		</div>
 	</div>
@@ -262,6 +270,21 @@ $('#modelsTable').DataTable({
 	autoWidth: false,
 	columns,
 	language: { emptyTable: 'Nothing placed on this property' }
+});
+
+const reprocessModelsBtn = document.getElementById('reprocessModelsBtn');
+if (reprocessModelsBtn) reprocessModelsBtn.addEventListener('click', () => {
+	reprocessModelsBtn.disabled = true;
+	api.action('/api/ugc/reprocess', { kind: 'model', property: propertyId }).then((d) => { toast(d.message, 'success'); load(); })
+		.catch(() => {}).finally(() => { reprocessModelsBtn.disabled = false; });
+});
+
+const removeModelsBtn = document.getElementById('removeModelsBtn');
+if (removeModelsBtn) removeModelsBtn.addEventListener('click', () => {
+	if (window.prompt('This deletes every model on the property. Type the property ID (' + propertyId + ') to confirm:') !== propertyId) return;
+	removeModelsBtn.disabled = true;
+	api.action('/api/properties/' + propertyId + '/remove_models', { confirm: propertyId }).then((d) => { toast(d.message, 'success'); load(); })
+		.catch(() => {}).finally(() => { removeModelsBtn.disabled = false; });
 });
 
 const importBtn = document.getElementById('importBtn');

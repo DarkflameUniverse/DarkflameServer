@@ -110,6 +110,9 @@ public:
 	// with `failedOnly`). Returns how many rows changed.
 	virtual uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) = 0;
 
+	// Sets every model placed on a property back to pending with no attempts. Returns how many rows changed.
+	virtual uint64_t ResetPropertyUgcModelProcessing(const LWOOBJID propertyId) = 0;
+
 	// A page of models (all, or those in `state`), the newest first; `search` (when not empty) matches the model's id
 	// exactly or part of its owner's name
 	virtual std::vector<ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) = 0;

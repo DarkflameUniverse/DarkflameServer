@@ -281,4 +281,23 @@ void RegisterMaintenanceRoutes() {
 			BroadcastTableChanged("properties", std::to_string(*propertyId));
 			JsonSuccess(reply, { {"models", created}, {"message", "Imported " + std::to_string(created.size()) + " model(s)"} });
 		});
+
+	Route(eHTTPMethod::POST, "/api/properties/:id/remove_models", Perm("properties_import"),
+		"Delete every model placed on a property (they don't go back to the owner). Body: {confirm: the property ID}",
+		[](HTTPReply& reply, const HTTPContext& context) {
+			const auto propertyId = PathId<LWOOBJID>(context.path, 2);
+			const auto body = ParseBody(context);
+			if (!propertyId) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid ID");
+			if (!body || body->value("confirm", std::string()) != std::to_string(*propertyId)) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Confirm with the property ID");
+			const auto property = Database::Get()->GetPropertyInfo(*propertyId);
+			if (!property) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Property not found");
+			// A loaded property keeps its own list of models and saves it back
+			if (PropertyInstanceRunning(property->cloneId)) return JsonError(reply, eHTTPStatusCode::CONFLICT, "This property is loaded in a world right now; try again when nobody is on it");
+
+			const auto models = Database::Get()->GetPropertyModels(*propertyId);
+			for (const auto& model : models) Database::Get()->RemoveModel(model.id);
+			Audit(context, "remove_property_models", std::to_string(models.size()) + " model(s) from property " + std::to_string(*propertyId));
+			BroadcastTableChanged("properties", std::to_string(*propertyId));
+			JsonSuccess(reply, { {"removed", models.size()}, {"message", "Removed " + std::to_string(models.size()) + " model(s)"} });
+		});
 }

@@ -682,11 +682,19 @@ namespace UgcRoutes {
 			});
 
 		Route(eHTTPMethod::POST, "/api/ugc/reprocess", Perm("ugc_manage"),
-			"Have the UGC server make items again. Body: {kind: model|modular, id} for one, {kind, failedOnly: true} for the failed ones, {kind} for all",
+			"Have the UGC server make items again. Body: {kind: model|modular, id} for one, {kind: model, property} for every model placed on a property, {kind, failedOnly: true} for the failed ones, {kind} for all",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
 				const bool modular = body->value("kind", "model") == "modular";
+				if (!modular && body->contains("property")) {
+					const auto property = GeneralUtils::TryParse<LWOOBJID>((*body)["property"].is_string() ? (*body)["property"].get<std::string>() : (*body)["property"].dump());
+					if (!property) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid property");
+					const auto changed = Database::Get()->ResetPropertyUgcModelProcessing(*property);
+					Audit(context, "ugc_reprocess", "Queued " + std::to_string(changed) + " model(s) on property " + std::to_string(*property) + " to be made again");
+					BroadcastTableChanged("ugc");
+					return JsonSuccess(reply, { { "message", std::to_string(changed) + " model" + (changed == 1 ? "" : "s") + " will be made again" } });
+				}
 				std::optional<LWOOBJID> id;
 				if (body->contains("id")) {
 					id = BodyId(*body);
