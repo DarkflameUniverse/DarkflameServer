@@ -83,7 +83,7 @@ namespace NifFile {
 	 * BasicShaders.fx, LEGOPPLighting.fx and Ocean.fx). Fixed function (-1) has none of these: Gamebryo lights it with
 	 * the material and NiVertexColorProperty.
 	 */
-	enum eShaderLook : uint8_t {
+	enum eShaderLook : uint16_t {
 		UNLIT = 1,            // no lighting: the colors as they are (the "NoLighting" techniques)
 		NO_TEXTURE = 2,       // the texture isn't sampled ("NoTexture")
 		NO_VERTEX_COLORS = 4, // vertex colors aren't read
@@ -91,11 +91,18 @@ namespace NifFile {
 		// Two textures (base and dark, each with its UV set): blended by the vertex alpha, which is then no opacity
 		// ("Two Layers Blended"), or added, weighted by the material's diffuse red and green ("Two Textures Added")
 		TWO_LAYERS_BLENDED = 16,
-		TWO_LAYERS_ADDED = 32
+		TWO_LAYERS_ADDED = 32,
+		// Metal (Metallic.fx): the lit color plus an environment map (textures/metal/metal_reflection_*.dds, which the
+		// shader loads itself) tinted by the vertex color, polished or, with BRUSHED, brushed with object space noise
+		REFLECTIVE = 64,
+		BRUSHED = 128,
+		// LEGO-Emissive: lerp(lit, vertex color, vertex alpha * NiMaterialProperty's emissive red); the vertex alpha is
+		// that mask, not opacity
+		EMISSIVE = 256
 	};
 
 	// eShaderLook bits of a shader (mapShaders.gameValue); 0 for the usual lit look and for fixed function
-	uint8_t ShaderLookFor(int32_t shader);
+	uint16_t ShaderLookFor(int32_t shader);
 
 	// Where a node is in the model's space: p' = rotation * p + translation (row-major, scale folded in)
 	struct NodeTransform {
@@ -125,9 +132,11 @@ namespace NifFile {
 	 * int8 normals (3 per vertex, times 127, padded to 4 bytes) when "normals", float32 UVs (2 per vertex) when "uv",
 	 * float32 dark texture UVs when "uv2", uint8 RGBA colors when "colors", then uint16 indices (padded to 4 bytes).
 	 * `textures[i]` is where mesh i's texture is (empty: none) and `darkTextures[i]` its dark texture; the header
-	 * lists each once in "textures" and a mesh's "texture" and "darkTexture" index it (-1: none).
+	 * lists each once in "textures" and a mesh's "texture" and "darkTexture" index it (-1: none). `looks[i]`, when
+	 * given, is mesh i's "look" (eShaderLook bits of the shader it is drawn with, for views without a scenery manifest).
 	 */
-	std::string Encode(const Model& model, const std::vector<std::string>& textures, const std::vector<std::string>& darkTextures = {});
+	std::string Encode(const Model& model, const std::vector<std::string>& textures, const std::vector<std::string>& darkTextures = {},
+		const std::vector<uint16_t>& looks = {});
 
 	/**
 	 * A texture stored inside a .nif (NiPixelData or NiPersistentSrcTextureRendererData, block `block`) as a DDS file

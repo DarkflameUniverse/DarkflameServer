@@ -11,6 +11,7 @@
 #include "Database.h"
 #include "UgcIconParams.h"
 #include "NifFile.h"
+#include "Scenery.h"
 #include "SettingsCatalog.h"
 #include "SettingsHistory.h"
 #include "UgcAssemblies.h"
@@ -477,7 +478,7 @@ namespace UgcRoutes {
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/mesh/:id", Perm("properties_view"),
-			"A player model's generated .nif converted for the 3D view (NifFile::Encode, as the scenery meshes). Query: ?lod=0 (most detailed) "
+			"A player model's generated .nif converted for the 3D view (NifFile::Encode, as the scenery meshes, with each mesh's shader look). Query: ?lod=0 (most detailed) "
 			"to 3, &version=current|previous, &ao=0 for the mesh before the lighting bake. The header adds triangles and vertices",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto id = PathId<LWOOBJID>(context.path, 3);
@@ -495,7 +496,7 @@ namespace UgcRoutes {
 					if (!model) return JsonError(out, eHTTPStatusCode::UNPROCESSABLE_ENTITY, "The .nif can't be read: " + error);
 					out.status = eHTTPStatusCode::OK;
 					out.contentType = eContentType::APPLICATION_OCTET_STREAM;
-					out.message = NifFile::Encode(*model, std::vector<std::string>(model->meshes.size()));
+					out.message = NifFile::Encode(*model, std::vector<std::string>(model->meshes.size()), {}, Scenery::MultishaderLooks(*model));
 					out.headers.push_back("Cache-Control: private, no-cache");
 				});
 			});

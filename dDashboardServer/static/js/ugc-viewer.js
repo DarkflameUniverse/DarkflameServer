@@ -1,11 +1,13 @@
 /**
  * A 3D view of a .nif the UGC server made, from /api/ugc/mesh/:id (the dashboard converts it with NifFile::Encode,
- * as it does the scenery's models), with wireframe and vertex color switches and triangle counts.
+ * as it does the scenery's models), with wireframe and vertex color switches and triangle counts. The metal and glow
+ * groups (the UGC server's shader settings; each mesh's "look" is its shader's eShaderLook bits) are drawn as metal
+ * reflecting the view's environment and as unlit glow.
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { parseModel, mergeMeshes, linearColors } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, linearColors, metalOf, SHADER_LOOK } from '/js/scenery-core.js';
 
 export function createNifViewer(container) {
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -116,7 +118,13 @@ export function createNifViewer(container) {
 				// Blending only matters where something is see-through (every shape of a brick model blends)
 				let seeThrough = !!mesh.blend && mesh.alpha < 0.99;
 				if (mesh.blend && hasColors) for (let i = 3; i < mesh.colors.length && !seeThrough; i += 4) seeThrough = mesh.colors[i] < 250;
-				const material = new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough, roughness: 0.6, metalness: 0 });
+				const look = mesh.look || 0;
+				const metal = metalOf(look);
+				// Glow: the emissive shader's vertex color, unlit (its vertex alpha is the glow, not opacity)
+				const material = look & SHADER_LOOK.EMISSIVE
+					? new THREE.MeshBasicMaterial({ color: baseColor.clone(), vertexColors: hasColors })
+					: new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough,
+						roughness: metal === 'polished' ? 0.18 : metal === 'brushed' ? 0.45 : 0.6, metalness: metal ? 1 : 0 });
 				const object = new THREE.Mesh(geometry, material);
 				if (seeThrough) object.renderOrder = 1;
 				root.add(object);

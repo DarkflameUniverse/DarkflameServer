@@ -247,10 +247,18 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 	gameNormal = normalize( mat3( modelMatrix ) * gameNormal );
 	vGameLight = pow( clamp( gameLightColor * max( 0.0, dot( gameNormal, gameLightVec ) ) + gameAmbient, 0.0, 1.0 ), vec3( 2.2 ) );`;
 
+	// LEGO-Emissive: the lit color goes to the vertex color by the vertex alpha times the material's emissive red
+	const EMISSIVE_FRAGMENT = `
+#ifdef USE_COLOR_ALPHA
+	outgoingLight = mix( outgoingLight, vColor.rgb, clamp( vColor.a * emissiveMix, 0.0, 1.0 ) );
+#endif
+#include <opaque_fragment>`;
+
 	/**
 	 * A material that draws a mesh the way its game shader does (gameLook): unlit by the view's own lights and tone
 	 * mapping, the zone's sun and ambient light per vertex when the shader is lit, the material's color only when the
-	 * shader reads it.
+	 * shader reads it. Metal is drawn lit like the rest (the game adds a reflection of its own textures); glowing
+	 * meshes go to their vertex color as the emissive shader does.
 	 */
 	function gameMaterial(options, mesh, alphaMode, look, darkMap = null) {
 		const material = new THREE.MeshBasicMaterial({
@@ -261,7 +269,12 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		const layers = darkMap ? look.layers : null;
 		// TwoLayersAdded_PS: base * material diffuse red + dark * material diffuse green (their animations)
 		const weights = new THREE.Vector2(mesh.diffuse[0], mesh.diffuse[1]);
+		const emissive = !!look.emissive;
 		material.onBeforeCompile = (shader) => {
+			if (emissive) {
+				shader.uniforms.emissiveMix = { value: mesh.emissive[0] };
+				shader.fragmentShader = 'uniform float emissiveMix;\n' + shader.fragmentShader.replace('#include <opaque_fragment>', EMISSIVE_FRAGMENT);
+			}
 			if (layers) {
 				shader.uniforms.darkMap = { value: darkMap };
 				shader.uniforms.layerWeights = { value: weights };
@@ -280,7 +293,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			shader.fragmentShader = 'varying vec3 vGameLight;\n' +
 				shader.fragmentShader.replace('#include <aomap_fragment>', '#include <aomap_fragment>\n\treflectedLight.indirectDiffuse *= vGameLight;');
 		};
-		material.customProgramCacheKey = () => 'game:' + (options.map ? alphaMode : '') + ':' + look.lit + ':' + layers;
+		material.customProgramCacheKey = () => 'game:' + (options.map ? alphaMode : '') + ':' + look.lit + ':' + layers + ':' + emissive;
 		return material;
 	}
 
@@ -292,7 +305,8 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 		let vertexAlpha = false;
 		// A two layer blend reads the vertex alpha as the mix of its textures, not as opacity
 		const layersBlended = !!(darkMap && look.layers === 'blended');
-		if (vertexColors && !layersBlended) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
+		// ... and the emissive shader as how much the vertex color glows
+		if (vertexColors && !layersBlended && !(look && look.emissive)) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
 		const textureAlpha = alphaMode === 'opacity' && !!(map && map.userData.alpha);
 		// The game's shaders take alpha from the vertex colors and texture only; NiMaterialProperty's is for fixed function
 		const materialAlpha = look && !look.material ? 1 : mesh.alpha;

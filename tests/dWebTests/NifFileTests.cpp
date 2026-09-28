@@ -492,6 +492,31 @@ TEST(NifFileTests, KnowsWhatEachShaderLeavesOut) {
 	EXPECT_EQ(NifFile::ShaderLookFor(37), NifFile::NO_TEXTURE); // Basic VC NT
 	EXPECT_EQ(NifFile::ShaderLookFor(70), NifFile::UNLIT);      // ScrollingUV_NoLight_AnimAlpha
 	EXPECT_EQ(NifFile::ShaderLookFor(32), NifFile::UNLIT | NifFile::NO_VERTEX_COLORS | NifFile::MATERIAL_COLOR); // Basic NL Material
+	// The UGC server's metal and glow groups: Polished Metal, Brushed Steel, LEGO-Emissive
+	EXPECT_EQ(NifFile::ShaderLookFor(98), NifFile::REFLECTIVE);
+	EXPECT_EQ(NifFile::ShaderLookFor(99), NifFile::REFLECTIVE | NifFile::BRUSHED);
+	EXPECT_EQ(NifFile::ShaderLookFor(53), NifFile::EMISSIVE);
+	// Through a multishader tag's gameValue (S88 -> 98), as a player model's parts are drawn
+	EXPECT_EQ(NifFile::ShaderLookFor(NifFile::MultishaderPart(98)), NifFile::REFLECTIVE);
+	EXPECT_EQ(NifFile::ShaderLookFor(NifFile::MultishaderPart(std::nullopt)), 0);
+}
+
+TEST(NifFileTests, EncodesEachMeshsLook) {
+	NifFile::Model model;
+	model.meshes.resize(2);
+	for (auto& mesh : model.meshes) {
+		mesh.positions = { 0, 0, 0, 1, 0, 0, 0, 1, 0 };
+		mesh.indices = { 0, 1, 2 };
+	}
+	const auto header = [](const std::string& encoded) {
+		uint32_t length = 0;
+		std::memcpy(&length, encoded.data(), 4);
+		return nlohmann::json::parse(encoded.substr(4, length));
+	};
+	const auto with = header(NifFile::Encode(model, { "", "" }, {}, { NifFile::REFLECTIVE, NifFile::EMISSIVE }));
+	EXPECT_EQ(with["meshes"][0]["look"], NifFile::REFLECTIVE);
+	EXPECT_EQ(with["meshes"][1]["look"], NifFile::EMISSIVE);
+	EXPECT_FALSE(header(NifFile::Encode(model, { "", "" }))["meshes"][0].contains("look"));
 }
 
 // The game client's own meshes, when a client is configured (DLU_CLIENT_RES, else client_location in the build's

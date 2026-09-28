@@ -687,7 +687,7 @@ namespace NifFile {
 		}
 	}
 
-	uint8_t ShaderLookFor(int32_t shader) {
+	uint16_t ShaderLookFor(int32_t shader) {
 		// By the technique each shader class sets up (ShaderManager's factory table at 0x01889608, indexed by gameValue;
 		// the class's technique setup names it). Checked in the client: 33 and 82 Technique_Basic_NoLighting_VertColor_
 		// NoTexture, 35 and 84 Technique_Basic_NoLighting_VertColor, 37 Technique_Basic_Lighting_VertColor_NoTexture,
@@ -730,6 +730,15 @@ namespace NifFile {
 			case 8: case 10: case 54: case 15: case 23: case 35: case 52: case 57: case 62: case 68: case 70: case 73: case 81:
 			case 84: case 87: case 101:
 				return UNLIT;
+			// Polished Metal (Technique_Lighting_PolishedMetal_VertColor in Metallic.fx) and Brushed Steel (its noise
+			// in object space); both load their reflection textures themselves
+			case 98:
+				return REFLECTIVE;
+			case 99:
+				return REFLECTIVE | BRUSHED;
+			// LEGO-Emissive
+			case 53:
+				return EMISSIVE;
 			default:
 				return 0;
 		}
@@ -744,7 +753,7 @@ namespace NifFile {
 		return Parser(data, 0).Dds(block, error);
 	}
 
-	std::string Encode(const Model& model, const std::vector<std::string>& textures, const std::vector<std::string>& darkTextures) {
+	std::string Encode(const Model& model, const std::vector<std::string>& textures, const std::vector<std::string>& darkTextures, const std::vector<uint16_t>& looks) {
 		std::string body;
 		nlohmann::json meshes = nlohmann::json::array();
 		std::vector<std::string> names;
@@ -771,6 +780,7 @@ namespace NifFile {
 				{"vertexColors", material.vertexColorMode}, {"texture", textureIndex}, {"clampU", material.clampU}, {"clampV", material.clampV},
 				{"shaderTag", material.shaderTag}, {"darkTexture", uv2 ? darkIndex : -1}, {"uv2", uv2}
 			};
+			if (m < looks.size()) entry["look"] = looks[m];
 			Append(body, mesh.positions.data(), mesh.positions.size() * sizeof(float));
 			if (!mesh.normals.empty()) {
 				std::vector<int8_t> packed(mesh.normals.size());

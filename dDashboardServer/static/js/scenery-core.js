@@ -67,13 +67,16 @@ export function shaderOf(manifest, asset, mesh) {
 }
 
 // NifFile::eShaderLook bits
-export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8, TWO_LAYERS_BLENDED: 16, TWO_LAYERS_ADDED: 32 };
+export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8, TWO_LAYERS_BLENDED: 16, TWO_LAYERS_ADDED: 32, REFLECTIVE: 64, BRUSHED: 128, EMISSIVE: 256 };
 
 /**
  * How a mesh is drawn under the game's shaders, when the manifest has the zone's lighting: {lit, texture,
  * vertexColors, material, layers} — whether the scene's sun and ambient light it, its texture and vertex colors are
  * used, whether its NiMaterialProperty colors are (only fixed function and the "Material" shaders use them), and how
- * a two layer shader puts its dark texture with the base one ('blended', 'added' or null). Null without
+ * a two layer shader puts its dark texture with the base one ('blended', 'added' or null), whether it is metal
+ * ('polished', 'brushed' or null: an environment reflection tinted by the vertex color) and whether it glows
+ * (LEGO-Emissive: the lit color goes to the vertex color by the vertex alpha times the material's emissive red, so
+ * the vertex alpha is no opacity). Null without
  * lighting in the manifest (older servers), for the viewer's own lights.
  */
 export function gameLook(manifest, asset, mesh) {
@@ -87,8 +90,16 @@ export function gameLook(manifest, asset, mesh) {
 		// Fixed function reads them as NiVertexColorProperty says; the shaders always do, unless they have none
 		vertexColors: !!(mesh.colors && !(bits & SHADER_LOOK.NO_VERTEX_COLORS) && (!fixedFunction || mesh.vertexColors !== 0)),
 		material: fixedFunction || !!(bits & SHADER_LOOK.MATERIAL_COLOR),
-		layers: bits & SHADER_LOOK.TWO_LAYERS_BLENDED ? 'blended' : bits & SHADER_LOOK.TWO_LAYERS_ADDED ? 'added' : null
+		layers: bits & SHADER_LOOK.TWO_LAYERS_BLENDED ? 'blended' : bits & SHADER_LOOK.TWO_LAYERS_ADDED ? 'added' : null,
+		metal: metalOf(bits),
+		emissive: !!(bits & SHADER_LOOK.EMISSIVE)
 	};
+}
+
+// A shader's metal from its eShaderLook bits: 'polished', 'brushed' or null
+export function metalOf(bits) {
+	if (!(bits & SHADER_LOOK.REFLECTIVE)) return null;
+	return bits & SHADER_LOOK.BRUSHED ? 'brushed' : 'polished';
 }
 
 /**

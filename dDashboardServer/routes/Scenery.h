@@ -3,12 +3,17 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 struct HTTPReply;
 struct HTTPContext;
 
 namespace WorldScene {
 	struct Object;
+}
+
+namespace NifFile {
+	struct Model;
 }
 
 /**
@@ -45,6 +50,13 @@ namespace Scenery {
 
 	// Whether ZoneJson is built (so answering it is quick)
 	bool ZoneReady(uint32_t zoneId);
+
+	/**
+	 * The eShaderLook bits (NifFile::ShaderLookFor) of each mesh of a multishader model (a player model: RenderComponent
+	 * shader Multishader), from its parts' tags (mapShaders ids, read by Preload); for NifFile::Encode's `looks`.
+	 * Any thread.
+	 */
+	std::vector<uint16_t> MultishaderLooks(const NifFile::Model& model);
 
 	/**
 	 * The zone's flairs (the grass, flowers and small rocks its terrain file strews over it, models from FlairTable) as a

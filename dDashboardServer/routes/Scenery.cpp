@@ -867,6 +867,16 @@ namespace Scenery {
 		return zone->json;
 	}
 
+	std::vector<uint16_t> MultishaderLooks(const NifFile::Model& model) {
+		std::vector<uint16_t> looks;
+		for (const auto& mesh : model.meshes) {
+			std::optional<int32_t> shader;
+			if (const auto it = g_ShaderValues.find(mesh.material.shaderTag); it != g_ShaderValues.end()) shader = it->second;
+			looks.push_back(NifFile::ShaderLookFor(NifFile::MultishaderPart(shader)));
+		}
+		return looks;
+	}
+
 	bool ZoneReady(uint32_t zoneId) {
 		return g_Zones.Ready(zoneId);
 	}

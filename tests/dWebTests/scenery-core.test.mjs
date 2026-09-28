@@ -33,13 +33,13 @@ same(S.textureAlphaMode(manifest, 1, { shaderTag: 1 }), 'decal', 'LEGO part text
 same(S.textureAlphaMode(manifest, 1, { shaderTag: 30 }), 'opacity', 'Basic VC part texture alpha');
 
 // Lit, textured, vertex colors, no material colors: Basic VC
-same(S.gameLook(manifest, 1, { ...colored, shaderTag: 30 }), { lit: true, texture: true, vertexColors: true, material: false, layers: null }, 'Basic VC');
+same(S.gameLook(manifest, 1, { ...colored, shaderTag: 30 }), { lit: true, texture: true, vertexColors: true, material: false, layers: null, metal: null, emissive: false }, 'Basic VC');
 // Vertex colors are read even when NiVertexColorProperty ignores them, but only if the mesh has some
 same(S.gameLook(manifest, 0, { ...colored, vertexColors: 0 }).vertexColors, true, 'shader reads vertex colors');
 same(S.gameLook(manifest, 0, {}).vertexColors, false, 'mesh without vertex colors');
-same(S.gameLook(manifest, 3, colored), { lit: false, texture: false, vertexColors: true, material: false, layers: null }, 'Basic NL VC NT');
+same(S.gameLook(manifest, 3, colored), { lit: false, texture: false, vertexColors: true, material: false, layers: null, metal: null, emissive: false }, 'Basic NL VC NT');
 // Fixed function: NiVertexColorProperty and the material decide
-same(S.gameLook(manifest, 2, { ...colored, vertexColors: 0 }), { lit: true, texture: true, vertexColors: false, material: true, layers: null }, 'fixed function');
+same(S.gameLook(manifest, 2, { ...colored, vertexColors: 0 }), { lit: true, texture: true, vertexColors: false, material: true, layers: null, metal: null, emissive: false }, 'fixed function');
 // Without the zone's lighting the viewer lights scenery itself
 same(S.gameLook({ ...manifest, lighting: null }, 0, colored), null, 'no lighting');
 
@@ -62,6 +62,15 @@ const layered = { ...manifest, shaders: [106, 107], shaderLooks: { 106: S.SHADER
 same(S.gameLook(layered, 0, colored).layers, 'blended', 'two layers blended');
 same(S.gameLook(layered, 1, colored).layers, 'added', 'two layers added');
 same(S.gameLook(manifest, 0, colored).layers, null, 'one layer');
+
+// A player model's metal and glow groups (UGC server shader settings): Polished Metal, Brushed Steel, LEGO-Emissive
+const shiny = { ...manifest, shaders: [9999], shaderTags: { 1: 5, 88: 98, 89: 99, 46: 53 },
+	shaderLooks: { 98: S.SHADER_LOOK.REFLECTIVE, 99: S.SHADER_LOOK.REFLECTIVE | S.SHADER_LOOK.BRUSHED, 53: S.SHADER_LOOK.EMISSIVE } };
+same(S.gameLook(shiny, 0, { ...colored, shaderTag: 88 }).metal, 'polished', 'polished metal');
+same(S.gameLook(shiny, 0, { ...colored, shaderTag: 89 }).metal, 'brushed', 'brushed steel');
+same(S.gameLook(shiny, 0, { ...colored, shaderTag: 46 }).emissive, true, 'emissive');
+same(S.gameLook(shiny, 0, { ...colored, shaderTag: 1 }).metal, null, 'plastic');
+same([S.metalOf(0), S.metalOf(S.SHADER_LOOK.REFLECTIVE), S.metalOf(S.SHADER_LOOK.REFLECTIVE | S.SHADER_LOOK.BRUSHED)], [null, 'polished', 'brushed'], 'metal of look bits');
 
 // The near plane grows with the distance, within limits
 same([S.nearPlaneFor(10), S.nearPlaneFor(2000), S.nearPlaneFor(100000)], [0.5, 5, 20], 'near plane');
