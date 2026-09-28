@@ -26,6 +26,10 @@ export function parseModel(buffer) {
 			mesh.uvs = new Float32Array(buffer, offset, n * 2);
 			offset += n * 8;
 		}
+		if (entry.uv2) {
+			mesh.uvs2 = new Float32Array(buffer, offset, n * 2);
+			offset += n * 8;
+		}
 		if (entry.colors) {
 			mesh.colors = new Uint8Array(buffer, offset, n * 4);
 			offset += n * 4;
@@ -63,12 +67,13 @@ export function shaderOf(manifest, asset, mesh) {
 }
 
 // NifFile::eShaderLook bits
-export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8 };
+export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8, TWO_LAYERS_BLENDED: 16, TWO_LAYERS_ADDED: 32 };
 
 /**
  * How a mesh is drawn under the game's shaders, when the manifest has the zone's lighting: {lit, texture,
- * vertexColors, material} — whether the scene's sun and ambient light it, its texture and vertex colors are used, and
- * whether its NiMaterialProperty colors are (only fixed function and the "Material" shaders use them). Null without
+ * vertexColors, material, layers} — whether the scene's sun and ambient light it, its texture and vertex colors are
+ * used, whether its NiMaterialProperty colors are (only fixed function and the "Material" shaders use them), and how
+ * a two layer shader puts its dark texture with the base one ('blended', 'added' or null). Null without
  * lighting in the manifest (older servers), for the viewer's own lights.
  */
 export function gameLook(manifest, asset, mesh) {
@@ -81,7 +86,8 @@ export function gameLook(manifest, asset, mesh) {
 		texture: !(bits & SHADER_LOOK.NO_TEXTURE),
 		// Fixed function reads them as NiVertexColorProperty says; the shaders always do, unless they have none
 		vertexColors: !!(mesh.colors && !(bits & SHADER_LOOK.NO_VERTEX_COLORS) && (!fixedFunction || mesh.vertexColors !== 0)),
-		material: fixedFunction || !!(bits & SHADER_LOOK.MATERIAL_COLOR)
+		material: fixedFunction || !!(bits & SHADER_LOOK.MATERIAL_COLOR),
+		layers: bits & SHADER_LOOK.TWO_LAYERS_BLENDED ? 'blended' : bits & SHADER_LOOK.TWO_LAYERS_ADDED ? 'added' : null
 	};
 }
 
@@ -95,7 +101,7 @@ export function mergeMeshes(meshes) {
 	for (const mesh of meshes) {
 		if (!mesh.vertices || !mesh.indices.length) continue;
 		const key = JSON.stringify([mesh.texture, mesh.diffuse, mesh.emissive, mesh.alpha, mesh.blend, mesh.test, mesh.doubleSided,
-			mesh.vertexColors, mesh.clampU, mesh.clampV, !!mesh.normals, !!mesh.uvs, !!mesh.colors, mesh.shaderTag]);
+			mesh.vertexColors, mesh.clampU, mesh.clampV, !!mesh.normals, !!mesh.uvs, !!mesh.colors, mesh.shaderTag, mesh.darkTexture, !!mesh.uvs2]);
 		if (!groups.has(key)) groups.set(key, []);
 		groups.get(key).push(mesh);
 	}
@@ -107,6 +113,7 @@ export function mergeMeshes(meshes) {
 		const out = { ...first, vertices, positions: new Float32Array(vertices * 3) };
 		if (first.normals) out.normals = new Int8Array(vertices * 3);
 		if (first.uvs) out.uvs = new Float32Array(vertices * 2);
+		if (first.uvs2) out.uvs2 = new Float32Array(vertices * 2);
 		if (first.colors) out.colors = new Uint8Array(vertices * 4);
 		out.indices = vertices > 65535 ? new Uint32Array(indexCount) : new Uint16Array(indexCount);
 		let v = 0, i = 0;
@@ -114,6 +121,7 @@ export function mergeMeshes(meshes) {
 			out.positions.set(m.positions, v * 3);
 			if (out.normals) out.normals.set(m.normals, v * 3);
 			if (out.uvs) out.uvs.set(m.uvs, v * 2);
+			if (out.uvs2) out.uvs2.set(m.uvs2, v * 2);
 			if (out.colors) out.colors.set(m.colors, v * 4);
 			for (let k = 0; k < m.indices.length; k++) out.indices[i + k] = m.indices[k] + v;
 			v += m.vertices;
@@ -381,4 +389,14 @@ export function loadedScenes(scenes, scene) {
 	const entry = (scenes || []).find((s) => s.id === scene);
 	if (entry) for (const n of entry.neighbours) loaded.add(n);
 	return loaded;
+}
+
+/**
+ * The camera's near plane for a view `distance` from what it looks at. A depth buffer's precision goes with
+ * near / distance², so a fixed small near plane (0.5) makes coplanar pieces fight (ground overlays, floor rings, road
+ * pieces) once the camera is far out; the game's own camera stays close to the player. A four hundredth
+ * of the distance keeps close-ups working and far views steady.
+ */
+export function nearPlaneFor(distance) {
+	return Math.min(20, Math.max(0.5, distance / 400));
 }

@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { parseModel, mergeMeshes, linearColors } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, linearColors, nearPlaneFor } from '/js/scenery-core.js';
 
 const GEOMETRY_MAGIC = 0x42473031; // "10GB"
 const MAX_PARALLEL_FETCHES = 6;
@@ -499,6 +499,7 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 	scene.add(sun, sun.target);
 
 	const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
+	let framedNear = 0.1; // the near plane framing set
 	const controls = new OrbitControls(camera, renderer.domElement);
 	controls.enableDamping = true;
 
@@ -557,7 +558,7 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 		const size = Math.max(box.getSize(new THREE.Vector3()).length(), minSize);
 		controls.target.copy(center);
 		camera.position.copy(center).add(new THREE.Vector3(size * 0.6, size * 0.75, size * 0.6));
-		camera.near = size / 500;
+		camera.near = framedNear = size / 500;
 		camera.far = size * 50;
 		camera.updateProjectionMatrix();
 	}
@@ -750,6 +751,13 @@ export function createViewer(container, { onProgress, onSelect, onTick, brickUrl
 		if (onTick) onTick(dt);
 		updateBubbles(now);
 		controls.update();
+		// The near plane follows how far out the camera is (depth precision for the scenery far away), but never
+		// past what framing the models set, so close-ups of small models keep working
+		const near = Math.min(nearPlaneFor(camera.position.distanceTo(controls.target)), framedNear * 20);
+		if (Math.abs(near - camera.near) / camera.near > 0.15) {
+			camera.near = near;
+			camera.updateProjectionMatrix();
+		}
 		renderer.render(scene, camera);
 	})();
 

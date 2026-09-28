@@ -248,6 +248,7 @@ namespace {
 		size_t m_FooterStart{};
 		std::set<int32_t> m_Used;
 		std::set<int32_t> m_Visiting;
+		std::vector<std::vector<float>> m_UvSets; // the UV sets of the geometry being read
 		NifFile::Model m_Model;
 
 		static bool IsDrawnType(const std::string& type) {
@@ -448,8 +449,14 @@ namespace {
 			m_Used.insert(dataRef);
 
 			NifFile::Mesh mesh;
+			m_UvSets.clear();
 			if (!ReadGeometryData(dataRef, *dataType == "NiTriStripsData", parent.Then(av.transform), mesh) || mesh.indices.empty()) return;
-			mesh.material = ReadMaterial(properties);
+			uint8_t baseSet = 0, darkSet = 0;
+			mesh.material = ReadMaterial(properties, baseSet, darkSet);
+			// Each texture reads the UV set its flags name (TexturingMapFlags' low byte), the first when that's missing
+			const auto set = [this](uint8_t index) { return index < m_UvSets.size() ? m_UvSets[index] : m_UvSets.empty() ? std::vector<float>{} : m_UvSets[0]; };
+			mesh.uvs = set(baseSet);
+			if (!mesh.material.darkTexture.empty() || mesh.material.embeddedDarkTexture >= 0) mesh.uvs2 = set(darkSet);
 			mesh.material.shaderTag = properties.shaderTag;
 			if (skin >= 0) {
 				m_Model.skinned++;
@@ -491,10 +498,7 @@ namespace {
 				for (const auto value : colors) mesh.colors.push_back(static_cast<uint8_t>(std::lround(std::clamp(value, 0.0f, 1.0f) * 255.0f)));
 			}
 			const auto uvSets = dataFlags & 63;
-			if (uvSets > 0) {
-				mesh.uvs = reader.Array<float>(static_cast<uint64_t>(count) * 2);
-				reader.Skip(static_cast<uint64_t>(uvSets - 1) * count * 8);
-			}
+			for (int set = 0; set < uvSets; set++) m_UvSets.push_back(reader.Array<float>(static_cast<uint64_t>(count) * 2));
 			reader.U16(); // consistency flags
 			reader.I32(); // additional data
 			const auto triangles = reader.U16();
@@ -519,7 +523,7 @@ namespace {
 			if (!reader.Ok() || mesh.positions.size() != static_cast<size_t>(count) * 3) return false;
 			if (mesh.normals.size() != mesh.positions.size()) mesh.normals.clear();
 			if (mesh.colors.size() != static_cast<size_t>(count) * 4) mesh.colors.clear();
-			if (mesh.uvs.size() != static_cast<size_t>(count) * 2) mesh.uvs.clear();
+			std::erase_if(m_UvSets, [count](const std::vector<float>& set) { return set.size() != static_cast<size_t>(count) * 2; });
 			// Drop triangles pointing past the vertices
 			std::vector<uint16_t> valid;
 			valid.reserve(mesh.indices.size());
@@ -532,7 +536,25 @@ namespace {
 			return true;
 		}
 
-		NifFile::Material ReadMaterial(const Properties& properties) {
+		// A texture slot's NiSourceTexture: an external file name or the block of pixels stored in the file
+		void ReadSource(int32_t source, std::string& file, int32_t& embedded) {
+			const auto* type = TypeOf(source);
+			if (!type || *type != "NiSourceTexture") return;
+			m_Used.insert(source);
+			auto texture = BlockReader(source);
+			ReadNet(texture);
+			const auto external = texture.U8();
+			const auto name = String(texture.U32());
+			const auto pixels = texture.I32();
+			const auto* pixelType = TypeOf(pixels);
+			if (texture.Ok() && external == 1) file = name;
+			else if (texture.Ok() && pixelType && (*pixelType == "NiPixelData" || *pixelType == "NiPersistentSrcTextureRendererData")) {
+				embedded = pixels;
+				m_Used.insert(pixels);
+			}
+		}
+
+		NifFile::Material ReadMaterial(const Properties& properties, uint8_t& baseSet, uint8_t& darkSet) {
 			NifFile::Material material;
 			if (properties.material >= 0) {
 				auto reader = BlockReader(properties.material);
@@ -578,26 +600,30 @@ namespace {
 				ReadNet(reader);
 				reader.U16(); // flags
 				reader.U32(); // texture count
+				// TexDesc (nif.xml, 20.1.0.3 on): source, TexturingMapFlags (clamp in bits 12-15, UV set in 0-7), whether a
+				// texture transform follows (translation, scale, rotation, method, center: 32 bytes)
+				const auto texDesc = [&reader](int32_t& source, uint16_t& flags) {
+					source = reader.I32();
+					flags = reader.U16();
+					if (reader.U8()) reader.Skip(32);
+				};
+				int32_t source = -1;
+				uint16_t flags = 0;
 				if (reader.U8()) { // has base texture
-					const auto source = reader.I32();
-					const auto flags = reader.U16();
-					const auto* type = TypeOf(source);
-					if (reader.Ok() && type && *type == "NiSourceTexture") {
-						m_Used.insert(source);
-						auto texture = BlockReader(source);
-						ReadNet(texture);
-						const auto external = texture.U8();
-						const auto file = String(texture.U32());
-						const auto pixels = texture.I32();
-						const auto* pixelType = TypeOf(pixels);
-						if (texture.Ok() && external == 1) material.texture = file;
-						else if (texture.Ok() && pixelType && (*pixelType == "NiPixelData" || *pixelType == "NiPersistentSrcTextureRendererData")) {
-							material.embeddedTexture = pixels;
-							m_Used.insert(pixels);
-						}
+					texDesc(source, flags);
+					if (reader.Ok()) {
+						ReadSource(source, material.texture, material.embeddedTexture);
 						const auto clamp = (flags >> 12) & 0xF;
 						material.clampU = clamp == 0 || clamp == 1;
 						material.clampV = clamp == 0 || clamp == 2;
+						baseSet = static_cast<uint8_t>(flags & 0xFF);
+					}
+				}
+				if (reader.U8()) { // has dark texture
+					texDesc(source, flags);
+					if (reader.Ok()) {
+						ReadSource(source, material.darkTexture, material.embeddedDarkTexture);
+						darkSet = static_cast<uint8_t>(flags & 0xFF);
 					}
 				}
 			}
@@ -662,9 +688,12 @@ namespace NifFile {
 	}
 
 	uint8_t ShaderLookFor(int32_t shader) {
-		// By the techniques of each mapShaders row (its label names them: "NL" no lighting, "NT" no texture, "VC"
-		// vertex colors), e.g. 38 "Basic VC" is Technique_Basic_Lighting_VertColor, 33 "Basic NL VC NT"
-		// Technique_Basic_NoLighting_VertColor_NoTexture, 32 "Basic NL Material" Technique_Basic_Material_NoLighting
+		// By the technique each shader class sets up (ShaderManager's factory table at 0x01889608, indexed by gameValue;
+		// the class's technique setup names it). Checked in the client: 33 and 82 Technique_Basic_NoLighting_VertColor_
+		// NoTexture, 35 and 84 Technique_Basic_NoLighting_VertColor, 37 Technique_Basic_Lighting_VertColor_NoTexture,
+		// 38 and 94 Technique_Basic_Lighting_VertColor, 70 Technique_AlphaAsAlpha_UVScrolling_SimpleV_NoLighting_
+		// AlphaAnim, 105 Technique_TwoLayersBlended_NoLighting_VertColor_UVScrolling. The rest follow their mapShaders
+		// labels ("NL" no lighting, "NT" no texture, "VC" vertex colors)
 		switch (shader) {
 			// Basic NL Material, Over Everything Material Unlit
 			case 32: case 108:
@@ -672,9 +701,8 @@ namespace NifFile {
 			// Basic NL, Basic NL UVAnim, OneSidedAlpha NL (and skinned), Opaque NL NoFog
 			case 34: case 36: case 56: case 61: case 83:
 				return UNLIT | NO_VERTEX_COLORS;
-			// Basic, the lit one without vertex colors
-			case 94:
-				return NO_VERTEX_COLORS;
+			// (94 "Basic" is Technique_Basic_Lighting_VertColor like "Basic VC": its shader's technique setup, the vtable
+			// slot at +0x90 of the class made at 0x0045f240, names that technique, so it's the usual look)
 			// VertColor_NoLight_NoTex_AnimAlpha, VC_NL_NoTex_2D, Basic NL VC NT, OneSidedAlpha NL VC NT (and skinned),
 			// Basic NL NT, Opaque NL VC NT NoFog
 			case 11: case 16: case 33: case 58: case 63: case 80: case 82:
@@ -682,12 +710,25 @@ namespace NifFile {
 			// Basic VC NT, Opaque VC NT NoFog
 			case 37: case 85:
 				return NO_TEXTURE;
+			// Two Textures Added NL VC AnimUV (TwoLayersAdded_PS in BasicShaders.fx), Two Layers Added VC AnimUV
+			case 93:
+				return UNLIT | TWO_LAYERS_ADDED;
+			case 107:
+				return TWO_LAYERS_ADDED;
+			// Two Layers Blended NL VC AnimUV and Two Layers Blended VC AnimUV. The client names techniques for them
+			// (Technique_TwoLayersBlended_*) that no shader it ships has, so how the game draws them is a guess: the dark
+			// texture under the base one by the vertex alpha, as the meshes' data suggests (Avant Gardens' snow caps
+			// and grass fade into rock by it)
+			case 105:
+				return UNLIT | TWO_LAYERS_BLENDED;
+			case 106:
+				return TWO_LAYERS_BLENDED;
 			// VertColor_NoLighting_Alpha, VertColorTex_NoLight_AlphaBlend and _AlphaTest, VC_NoLighting_2D, Over
 			// Everything (Unlit), Basic NL VC, LEGO-No Light, OneSidedAlpha NL VC (and skinned), OneSidedAlpha NL
-			// AnimAlpha, the NoLight scrolling UVs, Opaque NL VC NoFog, Additive NoLight VertColor, Two Textures Added NL
-			// VC AnimUV, Distortion (Ocean) Unlit, Two Layers Blended NL VC AnimUV
+			// AnimAlpha, the NoLight scrolling UVs, Opaque NL VC NoFog, Additive NoLight VertColor, Distortion (Ocean)
+			// Unlit
 			case 8: case 10: case 54: case 15: case 23: case 35: case 52: case 57: case 62: case 68: case 70: case 73: case 81:
-			case 84: case 87: case 93: case 101: case 105:
+			case 84: case 87: case 101:
 				return UNLIT;
 			default:
 				return 0;
@@ -703,7 +744,7 @@ namespace NifFile {
 		return Parser(data, 0).Dds(block, error);
 	}
 
-	std::string Encode(const Model& model, const std::vector<std::string>& textures) {
+	std::string Encode(const Model& model, const std::vector<std::string>& textures, const std::vector<std::string>& darkTextures) {
 		std::string body;
 		nlohmann::json meshes = nlohmann::json::array();
 		std::vector<std::string> names;
@@ -712,19 +753,23 @@ namespace NifFile {
 			const auto& material = mesh.material;
 			const auto vertices = mesh.positions.size() / 3;
 			const std::string texture = m < textures.size() ? textures[m] : std::string{};
-			int32_t textureIndex = -1;
-			if (!texture.empty()) {
-				const auto it = std::find(names.begin(), names.end(), texture);
-				textureIndex = static_cast<int32_t>(it - names.begin());
-				if (it == names.end()) names.push_back(texture);
-			}
+			const auto indexOf = [&names](const std::string& name) {
+				if (name.empty()) return -1;
+				const auto it = std::find(names.begin(), names.end(), name);
+				const auto index = static_cast<int32_t>(it - names.begin());
+				if (it == names.end()) names.push_back(name);
+				return index;
+			};
+			const int32_t textureIndex = indexOf(texture);
+			const int32_t darkIndex = indexOf(m < darkTextures.size() ? darkTextures[m] : std::string{});
+			const bool uv2 = darkIndex >= 0 && mesh.uvs2.size() == vertices * 2;
 			nlohmann::json entry{
 				{"offset", body.size()}, {"vertices", vertices}, {"indices", mesh.indices.size()},
 				{"normals", !mesh.normals.empty()}, {"uv", !mesh.uvs.empty() && textureIndex >= 0}, {"colors", !mesh.colors.empty()},
 				{"diffuse", Color(material.diffuse)}, {"emissive", Color(material.emissive)}, {"alpha", std::round(material.alpha * 1000.0f) / 1000.0f},
 				{"blend", material.alphaBlend}, {"test", material.alphaTest ? material.alphaThreshold : -1}, {"doubleSided", material.doubleSided},
 				{"vertexColors", material.vertexColorMode}, {"texture", textureIndex}, {"clampU", material.clampU}, {"clampV", material.clampV},
-				{"shaderTag", material.shaderTag}
+				{"shaderTag", material.shaderTag}, {"darkTexture", uv2 ? darkIndex : -1}, {"uv2", uv2}
 			};
 			Append(body, mesh.positions.data(), mesh.positions.size() * sizeof(float));
 			if (!mesh.normals.empty()) {
@@ -734,6 +779,7 @@ namespace NifFile {
 				Pad(body);
 			}
 			if (entry["uv"].get<bool>()) Append(body, mesh.uvs.data(), mesh.uvs.size() * sizeof(float));
+			if (uv2) Append(body, mesh.uvs2.data(), mesh.uvs2.size() * sizeof(float));
 			if (!mesh.colors.empty()) Append(body, mesh.colors.data(), mesh.colors.size());
 			Append(body, mesh.indices.data(), mesh.indices.size() * sizeof(uint16_t));
 			Pad(body);

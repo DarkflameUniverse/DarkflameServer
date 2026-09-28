@@ -167,6 +167,23 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 #endif
 `;
 
+	// Two layer shaders: the dark texture (its own UV set) under the base one by the vertex alpha, or the two added
+	const TWO_LAYERS_BLENDED_FRAGMENT = `
+#ifdef USE_MAP
+	#ifdef USE_COLOR_ALPHA
+	float layerMix = vColor.a;
+	#else
+	float layerMix = 1.0;
+	#endif
+	diffuseColor.rgb *= mix( texture2D( darkMap, vUvDark ).rgb, texture2D( map, vMapUv ).rgb, layerMix );
+#endif
+`;
+	const TWO_LAYERS_ADDED_FRAGMENT = `
+#ifdef USE_MAP
+	diffuseColor *= texture2D( map, vMapUv ) * layerWeights.x + texture2D( darkMap, vUvDark ) * layerWeights.y;
+#endif
+`;
+
 	// The texture alpha mode's change to a fragment shader
 	function textureAlphaPatch(shader, mode) {
 		if (mode === 'decal') {
@@ -235,14 +252,27 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 	 * mapping, the zone's sun and ambient light per vertex when the shader is lit, the material's color only when the
 	 * shader reads it.
 	 */
-	function gameMaterial(options, mesh, alphaMode, look) {
+	function gameMaterial(options, mesh, alphaMode, look, darkMap = null) {
 		const material = new THREE.MeshBasicMaterial({
 			...options,
 			color: look.material ? options.color : new THREE.Color(1, 1, 1)
 		});
 		material.toneMapped = false;
+		const layers = darkMap ? look.layers : null;
+		// TwoLayersAdded_PS: base * material diffuse red + dark * material diffuse green (their animations)
+		const weights = new THREE.Vector2(mesh.diffuse[0], mesh.diffuse[1]);
 		material.onBeforeCompile = (shader) => {
-			if (options.map) textureAlphaPatch(shader, alphaMode);
+			if (layers) {
+				shader.uniforms.darkMap = { value: darkMap };
+				shader.uniforms.layerWeights = { value: weights };
+				shader.vertexShader = 'attribute vec2 uvDark;\nvarying vec2 vUvDark;\n' +
+					shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\n\tvUvDark = uvDark;');
+				shader.fragmentShader = 'uniform sampler2D darkMap;\nuniform vec2 layerWeights;\nvarying vec2 vUvDark;\n' + shader.fragmentShader
+					.replace('#include <map_fragment>', layers === 'blended' ? TWO_LAYERS_BLENDED_FRAGMENT : TWO_LAYERS_ADDED_FRAGMENT)
+					.replace('#include <color_fragment>', layers === 'blended' ? '#ifdef USE_COLOR_ALPHA\n\tdiffuseColor.rgb *= vColor.rgb;\n#endif' : '#include <color_fragment>');
+			} else if (options.map) {
+				textureAlphaPatch(shader, alphaMode);
+			}
 			if (!look.lit) return;
 			Object.assign(shader.uniforms, gameLights);
 			shader.vertexShader = 'uniform vec3 gameLightColor;\nuniform vec3 gameAmbient;\nuniform vec3 gameLightVec;\nvarying vec3 vGameLight;\n' +
@@ -250,17 +280,19 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			shader.fragmentShader = 'varying vec3 vGameLight;\n' +
 				shader.fragmentShader.replace('#include <aomap_fragment>', '#include <aomap_fragment>\n\treflectedLight.indirectDiffuse *= vGameLight;');
 		};
-		material.customProgramCacheKey = () => 'game:' + (options.map ? alphaMode : '') + ':' + look.lit;
+		material.customProgramCacheKey = () => 'game:' + (options.map ? alphaMode : '') + ':' + look.lit + ':' + layers;
 		return material;
 	}
 
-	function materialOf(mesh, map, forSky, alphaMode = 'opacity', look = null) {
+	function materialOf(mesh, map, forSky, alphaMode = 'opacity', look = null, darkMap = null) {
 		// Nearly everything in the game's files has alpha blending switched on; it only shows where something is see-
 		// through: the material, a vertex or the texture (only when the object's shader uses the texture's alpha as
 		// opacity). Blended meshes still write depth, as Gamebryo's default does.
 		const vertexColors = usesVertexColors(mesh, look);
 		let vertexAlpha = false;
-		if (vertexColors) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
+		// A two layer blend reads the vertex alpha as the mix of its textures, not as opacity
+		const layersBlended = !!(darkMap && look.layers === 'blended');
+		if (vertexColors && !layersBlended) for (let i = 3; i < mesh.colors.length && !vertexAlpha; i += 4) vertexAlpha = mesh.colors[i] < 250;
 		const textureAlpha = alphaMode === 'opacity' && !!(map && map.userData.alpha);
 		// The game's shaders take alpha from the vertex colors and texture only; NiMaterialProperty's is for fixed function
 		const materialAlpha = look && !look.material ? 1 : mesh.alpha;
@@ -275,7 +307,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			map: map || null
 		};
 		if (forSky) return useTextureAlpha(new THREE.MeshBasicMaterial({ ...options, depthWrite: false, fog: false }), alphaMode);
-		if (look) return gameMaterial(options, mesh, alphaMode, look);
+		if (look) return gameMaterial(options, mesh, alphaMode, look, darkMap);
 		const material = new THREE.MeshStandardMaterial({ ...options, roughness: 0.85, metalness: 0 });
 		material.emissive.setRGB(mesh.emissive[0], mesh.emissive[1], mesh.emissive[2], THREE.SRGBColorSpace);
 		return useTextureAlpha(material, alphaMode);
@@ -290,18 +322,21 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 			if (!mesh.vertices || !mesh.indices.length) continue;
 			// The sky keeps its own unlit look
 			const look = forSky ? null : gameLook(manifest, asset, mesh);
-			let map = null;
-			if (mesh.texture >= 0 && mesh.uv && (!look || look.texture)) {
-				const texture = await loadTexture(asset, mesh.texture, model.header.textures[mesh.texture], lod);
-				if (texture) {
-					map = texture.clone(); // shares the image; wrapping differs per mesh
-					map.wrapS = mesh.clampU ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
-					map.wrapT = mesh.clampV ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
-					map.needsUpdate = true;
-				}
-			}
+			const textureOf = async (slot, clampU, clampV) => {
+				const texture = await loadTexture(asset, slot, model.header.textures[slot], lod);
+				if (!texture) return null;
+				const map = texture.clone(); // shares the image; wrapping differs per mesh
+				map.wrapS = clampU ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
+				map.wrapT = clampV ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
+				map.needsUpdate = true;
+				return map;
+			};
+			const map = mesh.texture >= 0 && mesh.uv && (!look || look.texture) ? await textureOf(mesh.texture, mesh.clampU, mesh.clampV) : null;
+			// A two layer shader's second texture, on its own UV set
+			const darkMap = look && look.layers && map && mesh.darkTexture >= 0 && mesh.uvs2 ? await textureOf(mesh.darkTexture, false, false) : null;
 			const geometry = geometryOf(mesh, look);
-			parts.push({ geometry, material: materialOf(mesh, map, forSky, textureAlphaMode(manifest, asset, mesh), look) });
+			if (darkMap) geometry.setAttribute('uvDark', new THREE.BufferAttribute(mesh.uvs2, 2));
+			parts.push({ geometry, material: materialOf(mesh, map, forSky, textureAlphaMode(manifest, asset, mesh), look, darkMap) });
 		}
 		const min = model.header.min, max = model.header.max;
 		const radius = Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) / 2;
@@ -343,6 +378,7 @@ export function createScenery({ scene, camera, renderer, urls, focus, onProgress
 				for (const part of parts) {
 					if (hidden && !part.ghost) part.ghost = new THREE.MeshBasicMaterial({ color: HIDDEN_COLOR, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide });
 					const mesh = new THREE.InstancedMesh(part.geometry, hidden ? part.ghost : part.material, cellInstances.length);
+					mesh.userData.asset = asset; // which of the manifest's models it is, for picking
 					cellInstances.forEach((instance, i) => {
 						position.set(instance.x, instance.y, instance.z);
 						rotation.set(instance.qx, instance.qy, instance.qz, instance.qw);

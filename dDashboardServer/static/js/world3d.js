@@ -19,6 +19,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildTerrainChunks, TERRAIN_LOOKS } from '/js/lddviewer.js';
 import { createScenery } from '/js/scenery.js';
+import { nearPlaneFor } from '/js/scenery-core.js';
 import { Track, replayPosition, trailSegments, heatFrames, heatLevel, heatColor, formatSpan, coreBounds, isPlaceholderTerrain } from '/js/world3d-core.js';
 
 const LIVE_DELAY = 1.2;        // seconds live players are drawn behind the newest report
@@ -75,6 +76,14 @@ const scenery = createScenery({
 	onProgress: (loaded, wanted) => setStatus(loaded < wanted ? 'Scenery ' + loaded + '/' + wanted + '…' : ''),
 	onScenes: renderScenes
 });
+
+// The near plane follows how far out the camera is, so far views keep their depth precision (no fighting surfaces)
+function fitNearPlane(cam, target) {
+	const near = nearPlaneFor(cam.position.distanceTo(target));
+	if (Math.abs(near - cam.near) / cam.near < 0.15) return;
+	cam.near = near;
+	cam.updateProjectionMatrix();
+}
 
 // ---- scenes: which of the zone's scenes the scenery shows (scenery.js setSceneMode) ----
 
@@ -1112,6 +1121,7 @@ function animate() {
 		}
 	}
 	controls.update();
+	fitNearPlane(camera, controls.target);
 	scenery.update(dt);
 	flairs.update(dt);
 	renderer.render(scene, camera);

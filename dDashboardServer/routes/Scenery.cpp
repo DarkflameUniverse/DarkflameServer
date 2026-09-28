@@ -245,8 +245,9 @@ namespace {
 	 * Bump when NifFile's output changes: converted models kept on disk are made again, and the manifests' "format"
 	 * goes into the viewers' model and texture URLs so browsers don't keep drawing the old ones (they're cached for
 	 * a week). 2: meshes carry their multishader tag; conversions without it drew glom parts with the LEGO shader.
+	 * 3: dark textures and the UV set each texture names.
 	 */
-	constexpr uint32_t FORMAT_VERSION = 2;
+	constexpr uint32_t FORMAT_VERSION = 3;
 
 	// A zone's lighting (WorldScene::Lighting) for the viewers' shaders
 	nlohmann::json LightingJson(const WorldScene::Lighting& lighting) {
@@ -591,12 +592,17 @@ namespace {
 			return nullptr;
 		}
 		const auto folder = FolderOf(path);
-		std::vector<std::string> textures; // per mesh: a res path, "#<block>" for one stored in the .nif, or empty
+		// Per mesh: a res path, "#<block>" for one stored in the .nif, or empty; for its base and its dark texture
+		const auto where = [&folder](int32_t embedded, const std::string& file) {
+			if (embedded >= 0) return "#" + std::to_string(embedded);
+			return file.empty() ? std::string{} : FindTexture(folder, file);
+		};
+		std::vector<std::string> textures, darkTextures;
 		for (const auto& mesh : model->meshes) {
-			if (mesh.material.embeddedTexture >= 0) textures.push_back("#" + std::to_string(mesh.material.embeddedTexture));
-			else textures.push_back(mesh.material.texture.empty() ? std::string{} : FindTexture(folder, mesh.material.texture));
+			textures.push_back(where(mesh.material.embeddedTexture, mesh.material.texture));
+			darkTextures.push_back(where(mesh.material.embeddedDarkTexture, mesh.material.darkTexture));
 		}
-		auto encoded = std::make_shared<const std::string>(NifFile::Encode(*model, textures));
+		auto encoded = std::make_shared<const std::string>(NifFile::Encode(*model, textures, darkTextures));
 		g_Disk.Store(target, *encoded);
 		return encoded;
 	}

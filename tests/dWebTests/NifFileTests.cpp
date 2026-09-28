@@ -213,6 +213,56 @@ TEST(NifFileTests, PassesPropertiesDownTheTree) {
 	EXPECT_TRUE(m.doubleSided);
 }
 
+// Two layer shaders use NiTexturingProperty's dark texture too, each texture on the UV set its flags name
+TEST(NifFileTests, ReadsTheDarkTextureAndEachTexturesUvSet) {
+	NifBuilder nif;
+	const auto snow = nif.String("snow.dds"), rock = nif.String("rock.dds");
+	const auto source = [&nif](int32_t name) {
+		return nif.Add("NiSourceTexture", Net().Put<uint8_t>(1).Put(name).Put<int32_t>(-1).Floats({ 0, 0, 0 }).Put<uint8_t>(1).Put<uint8_t>(1).Put<uint8_t>(0));
+	};
+	const auto base = source(snow), dark = source(rock);
+	// Base on UV set 1 with a texture transform (32 bytes to skip), dark on UV set 0
+	auto texturing = Net().Put<uint16_t>(0).Put<uint32_t>(9).Put<uint8_t>(1).Put(base).Put<uint16_t>(0x3201).Put<uint8_t>(1);
+	texturing.Raw(std::string(32, '\0'));
+	texturing.Put<uint8_t>(1).Put(dark).Put<uint16_t>(0x3200).Put<uint8_t>(0);
+	for (int slot = 2; slot < 9; slot++) texturing.Put<uint8_t>(0);
+	texturing.Put<uint32_t>(0);
+	const auto property = nif.Add("NiTexturingProperty", texturing);
+	// A triangle with two UV sets: set 0 all (0.25, 0.75), set 1 all (0.5, 0.5)
+	Bytes data;
+	data.Put<int32_t>(0).Put<uint16_t>(3).Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(1);
+	for (int i = 0; i < 3; i++) data.Floats({ static_cast<float>(i == 1), static_cast<float>(i == 2), 0.0f });
+	data.Put<uint16_t>(2).Put<uint8_t>(0).Floats({ 0, 0, 0, 1 }).Put<uint8_t>(0);
+	for (int i = 0; i < 3; i++) data.Floats({ 0.25f, 0.75f });
+	for (int i = 0; i < 3; i++) data.Floats({ 0.5f, 0.5f });
+	data.Put<uint16_t>(0).Put<int32_t>(-1).Put<uint16_t>(1).Put<uint32_t>(3).Put<uint8_t>(1).Put<uint16_t>(0).Put<uint16_t>(1).Put<uint16_t>(2).Put<uint16_t>(0);
+	const auto root = nif.Add("NiNode", {});
+	const auto shape = nif.Add("NiTriShape", {});
+	const auto shapeData = nif.Add("NiTriShapeData", data);
+	nif.Set(root, Node(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {}), { shape }));
+	nif.Set(shape, Geometry(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, { property }), shapeData));
+	std::string error;
+	const auto model = NifFile::Parse(nif.Build({ root }), 0, error);
+	ASSERT_TRUE(model) << error;
+	ASSERT_EQ(model->meshes.size(), 1u);
+	const auto& mesh = model->meshes[0];
+	EXPECT_EQ(mesh.material.texture, "snow.dds");
+	EXPECT_EQ(mesh.material.darkTexture, "rock.dds");
+	ASSERT_EQ(mesh.uvs.size(), 6u);
+	EXPECT_FLOAT_EQ(mesh.uvs[0], 0.5f);   // the base texture's set 1
+	ASSERT_EQ(mesh.uvs2.size(), 6u);
+	EXPECT_FLOAT_EQ(mesh.uvs2[1], 0.75f); // the dark texture's set 0
+
+	// The browser gets the dark texture and its UVs
+	const auto encoded = NifFile::Encode(*model, { "mesh/snow.dds" }, { "mesh/rock.dds" });
+	uint32_t length{};
+	std::memcpy(&length, encoded.data(), 4);
+	const auto header = nlohmann::json::parse(encoded.substr(4, length));
+	EXPECT_EQ(header["textures"], nlohmann::json::array({ "mesh/snow.dds", "mesh/rock.dds" }));
+	EXPECT_EQ(header["meshes"][0]["darkTexture"], 1);
+	EXPECT_EQ(header["meshes"][0]["uv2"], true);
+}
+
 TEST(NifFileTests, TurnsStripsIntoTriangles) {
 	NifBuilder nif;
 	const auto root = nif.Add("NiNode", {});
@@ -434,6 +484,8 @@ TEST(WorldSceneTests, LightsAZoneAsMostOfItsObjectsAre) {
 
 TEST(NifFileTests, KnowsWhatEachShaderLeavesOut) {
 	EXPECT_EQ(NifFile::ShaderLookFor(38), 0);                   // Basic VC: lit, textured, vertex colors
+	EXPECT_EQ(NifFile::ShaderLookFor(94), 0);                   // "Basic" draws with vertex colors too (Nimbus Station's pines)
+	EXPECT_EQ(NifFile::ShaderLookFor(84), NifFile::UNLIT);      // Opaque NL VC NoFog
 	EXPECT_EQ(NifFile::ShaderLookFor(NifFile::LEGO_SHADER), 0);
 	EXPECT_EQ(NifFile::ShaderLookFor(-1), 0);                   // fixed function is lit by Gamebryo
 	EXPECT_EQ(NifFile::ShaderLookFor(33), NifFile::UNLIT | NifFile::NO_TEXTURE); // Basic NL VC NT

@@ -35,6 +35,10 @@ namespace NifFile {
 		int32_t embeddedTexture{ -1 }; // else the block with the texture's pixels in the file (EmbeddedTexture)
 		bool clampU{};
 		bool clampV{};
+		// NiTexturingProperty's dark texture (its second slot), which the client's two layer shaders blend or add to
+		// the base texture; as `texture` and `embeddedTexture`
+		std::string darkTexture;
+		int32_t embeddedDarkTexture{ -1 };
 		int32_t shaderTag{ -1 }; // mapShaders id from a multishader tag in the name of the mesh or a node above it
 	};
 
@@ -42,7 +46,8 @@ namespace NifFile {
 		Material material;
 		std::vector<float> positions;   // x, y, z per vertex, in the model's space
 		std::vector<float> normals;     // empty when the geometry has none
-		std::vector<float> uvs;         // u, v per vertex, empty when none
+		std::vector<float> uvs;         // u, v per vertex, empty when none: the UV set the base texture names
+		std::vector<float> uvs2;        // the UV set the dark texture names, empty without one
 		std::vector<uint8_t> colors;    // r, g, b, a per vertex (sRGB), empty when none
 		std::vector<uint16_t> indices;  // triangles
 	};
@@ -82,7 +87,11 @@ namespace NifFile {
 		UNLIT = 1,            // no lighting: the colors as they are (the "NoLighting" techniques)
 		NO_TEXTURE = 2,       // the texture isn't sampled ("NoTexture")
 		NO_VERTEX_COLORS = 4, // vertex colors aren't read
-		MATERIAL_COLOR = 8    // NiMaterialProperty's diffuse color is (the "Material" techniques)
+		MATERIAL_COLOR = 8,   // NiMaterialProperty's diffuse color is (the "Material" techniques)
+		// Two textures (base and dark, each with its UV set): blended by the vertex alpha, which is then no opacity
+		// ("Two Layers Blended"), or added, weighted by the material's diffuse red and green ("Two Textures Added")
+		TWO_LAYERS_BLENDED = 16,
+		TWO_LAYERS_ADDED = 32
 	};
 
 	// eShaderLook bits of a shader (mapShaders.gameValue); 0 for the usual lit look and for fixed function
@@ -114,10 +123,11 @@ namespace NifFile {
 	 * A model for the browser: a little-endian uint32 with the length of a JSON header, the header (padded with spaces
 	 * to a multiple of 4), then the binary data it describes. Per mesh at "offset": float32 positions (3 per vertex),
 	 * int8 normals (3 per vertex, times 127, padded to 4 bytes) when "normals", float32 UVs (2 per vertex) when "uv",
-	 * uint8 RGBA colors when "colors", then uint16 indices (padded to 4 bytes). `textures[i]` is where mesh i's texture
-	 * is (empty: none); the header lists each once in "textures" and a mesh's "texture" indexes it (-1: none).
+	 * float32 dark texture UVs when "uv2", uint8 RGBA colors when "colors", then uint16 indices (padded to 4 bytes).
+	 * `textures[i]` is where mesh i's texture is (empty: none) and `darkTextures[i]` its dark texture; the header
+	 * lists each once in "textures" and a mesh's "texture" and "darkTexture" index it (-1: none).
 	 */
-	std::string Encode(const Model& model, const std::vector<std::string>& textures);
+	std::string Encode(const Model& model, const std::vector<std::string>& textures, const std::vector<std::string>& darkTextures = {});
 
 	/**
 	 * A texture stored inside a .nif (NiPixelData or NiPersistentSrcTextureRendererData, block `block`) as a DDS file

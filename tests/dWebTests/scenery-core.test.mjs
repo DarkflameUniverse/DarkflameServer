@@ -33,13 +33,13 @@ same(S.textureAlphaMode(manifest, 1, { shaderTag: 1 }), 'decal', 'LEGO part text
 same(S.textureAlphaMode(manifest, 1, { shaderTag: 30 }), 'opacity', 'Basic VC part texture alpha');
 
 // Lit, textured, vertex colors, no material colors: Basic VC
-same(S.gameLook(manifest, 1, { ...colored, shaderTag: 30 }), { lit: true, texture: true, vertexColors: true, material: false }, 'Basic VC');
+same(S.gameLook(manifest, 1, { ...colored, shaderTag: 30 }), { lit: true, texture: true, vertexColors: true, material: false, layers: null }, 'Basic VC');
 // Vertex colors are read even when NiVertexColorProperty ignores them, but only if the mesh has some
 same(S.gameLook(manifest, 0, { ...colored, vertexColors: 0 }).vertexColors, true, 'shader reads vertex colors');
 same(S.gameLook(manifest, 0, {}).vertexColors, false, 'mesh without vertex colors');
-same(S.gameLook(manifest, 3, colored), { lit: false, texture: false, vertexColors: true, material: false }, 'Basic NL VC NT');
+same(S.gameLook(manifest, 3, colored), { lit: false, texture: false, vertexColors: true, material: false, layers: null }, 'Basic NL VC NT');
 // Fixed function: NiVertexColorProperty and the material decide
-same(S.gameLook(manifest, 2, { ...colored, vertexColors: 0 }), { lit: true, texture: true, vertexColors: false, material: true }, 'fixed function');
+same(S.gameLook(manifest, 2, { ...colored, vertexColors: 0 }), { lit: true, texture: true, vertexColors: false, material: true, layers: null }, 'fixed function');
 // Without the zone's lighting the viewer lights scenery itself
 same(S.gameLook({ ...manifest, lighting: null }, 0, colored), null, 'no lighting');
 
@@ -56,6 +56,15 @@ same([...S.loadedScenes(scenes, 2)].sort(), [0, 1, 2, 3], 'loaded around 2');
 same([...S.loadedScenes(scenes, 0)], [0], 'loaded in the global scene');
 // A run longer than the map stops at its end
 same(S.decodeSceneMap({ chunks: [{ x: 0, z: 0, maxX: 1, maxZ: 1, size: 1, runs: runs([9, 4]) }] }).chunks[0].cells.length, 1, 'runs clipped');
+
+// Two layer shaders
+const layered = { ...manifest, shaders: [106, 107], shaderLooks: { 106: S.SHADER_LOOK.TWO_LAYERS_BLENDED, 107: S.SHADER_LOOK.TWO_LAYERS_ADDED } };
+same(S.gameLook(layered, 0, colored).layers, 'blended', 'two layers blended');
+same(S.gameLook(layered, 1, colored).layers, 'added', 'two layers added');
+same(S.gameLook(manifest, 0, colored).layers, null, 'one layer');
+
+// The near plane grows with the distance, within limits
+same([S.nearPlaneFor(10), S.nearPlaneFor(2000), S.nearPlaneFor(100000)], [0.5, 5, 20], 'near plane');
 
 if (failures) {
 	console.error(`${failures} failed`);
