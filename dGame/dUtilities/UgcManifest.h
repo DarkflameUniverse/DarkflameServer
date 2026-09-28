@@ -66,7 +66,7 @@ namespace UgcManifest {
 	// clients to served meshes that are due
 	void Update();
 
-	// A client left: its waiting requests are dropped
+	// A client left (or went back to character select): its waiting requests and pending switches are dropped
 	void OnDisconnect(const SystemAddress& sysAddr);
 
 	// The UGC server made these models' meshes (again, with a new checksum): each one placed in this world is sent the

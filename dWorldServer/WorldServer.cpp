@@ -1229,6 +1229,8 @@ namespace {
 				auto user = UserManager::Instance()->GetUser(sysAddr);
 				if (!user || !user->GetLastUsedChar()) return;
 				Game::entityManager->DestroyEntity(user->GetLastUsedChar()->GetEntity());
+				// Back at character select on the same connection: forget this client's UGC requests and switches
+				UgcManifest::OnDisconnect(sysAddr);
 			}
 
 			//This loops prevents users who aren't authenticated to double-request the char list, which
