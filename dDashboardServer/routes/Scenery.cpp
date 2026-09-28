@@ -208,29 +208,21 @@ namespace {
 	}
 
 	/**
-	 * How the client's shaders use each model's texture alpha, for the viewer: "shaders" gives each asset's shader
-	 * (the first object drawing it wins; -1 fixed function or not an object), "shaderTags" a multishader part's tag ->
-	 * shader, and "textureAlpha" the shaders whose texture alpha isn't opacity (NifFile::TextureAlphaFor).
+	 * How the client draws each model, for the viewers' game shaders (static/js/game-shaders.js): "shaders" gives each
+	 * asset's shader (the first object drawing it wins; -1 fixed function or not an object), "shaderTags" a multishader
+	 * part's tag -> shader, and "techniques" every shader's technique (NifFile::TechniquesJson, the one table of them).
 	 */
 	void AddShaders(nlohmann::json& manifest, const std::vector<int32_t>& assetShaders) {
 		RenderInfos(); // reads g_ShaderValues
 		manifest["shaders"] = assetShaders;
-		nlohmann::json tags = nlohmann::json::object(), modes = nlohmann::json::object();
-		for (const auto& [id, value] : g_ShaderValues) tags[std::to_string(id)] = value;
-		auto mode = [&modes](int32_t value) {
-			const auto alpha = NifFile::TextureAlphaFor(value);
-			if (alpha != NifFile::eTextureAlpha::OPACITY) modes[std::to_string(value)] = alpha == NifFile::eTextureAlpha::DECAL ? "decal" : "ignored";
-		};
-		for (const auto& [id, value] : g_ShaderValues) mode(value);
-		mode(NifFile::LEGO_SHADER);
-		// What each shader leaves out of the lit look (NifFile::eShaderLook bits), for the ones that do
-		nlohmann::json looks = nlohmann::json::object();
+		nlohmann::json tags = nlohmann::json::object();
+		std::set<int32_t> values{ -1, NifFile::LEGO_SHADER };
 		for (const auto& [id, value] : g_ShaderValues) {
-			if (const auto look = NifFile::ShaderLookFor(value)) looks[std::to_string(value)] = look;
+			tags[std::to_string(id)] = value;
+			values.insert(value);
 		}
 		manifest["shaderTags"] = std::move(tags);
-		manifest["textureAlpha"] = std::move(modes);
-		manifest["shaderLooks"] = std::move(looks);
+		manifest["techniques"] = nlohmann::json::parse(NifFile::TechniquesJson({ values.begin(), values.end() }));
 		manifest["multishader"] = NifFile::MULTISHADER;
 		manifest["defaultShader"] = NifFile::LEGO_SHADER;
 	}
@@ -245,15 +237,16 @@ namespace {
 	 * Bump when NifFile's output changes: converted models kept on disk are made again, and the manifests' "format"
 	 * goes into the viewers' model and texture URLs so browsers don't keep drawing the old ones (they're cached for
 	 * a week). 2: meshes carry their multishader tag; conversions without it drew glom parts with the LEGO shader.
-	 * 3: dark textures and the UV set each texture names.
+	 * 3: dark textures and the UV set each texture names. 4: the game's shaders draw the models (manifest
+	 * "techniques"), vertex colors go to them as stored.
 	 */
-	constexpr uint32_t FORMAT_VERSION = 3;
+	constexpr uint32_t FORMAT_VERSION = 4;
 
 	// A zone's lighting (WorldScene::Lighting) for the viewers' shaders
 	nlohmann::json LightingJson(const WorldScene::Lighting& lighting) {
 		const auto triple = [](const std::array<float, 3>& value) { return nlohmann::json{ Round(value[0], 1000.0), Round(value[1], 1000.0), Round(value[2], 1000.0) }; };
 		return {
-			{"ambient", triple(lighting.ambient)}, {"light", triple(lighting.light)}, {"lightVec", triple(lighting.lightVec)},
+			{"ambient", triple(lighting.ambient)}, {"light", triple(lighting.light)}, {"lightVec", triple(lighting.lightVec)}, {"specular", triple(lighting.specular)},
 			{"upperHemi", triple(lighting.upperHemi)}, {"fogColor", triple(lighting.fogColor)},
 			{"fogNear", Round(lighting.fogNear, 10.0)}, {"fogFar", Round(lighting.fogFar, 10.0)}
 		};
@@ -445,6 +438,8 @@ namespace {
 		}
 		return nlohmann::json{
 			{"zone", zoneId}, {"sky", -1}, {"assets", assets}, {"distance", FLAIR_DISTANCE}, {"colorScale", 1.0 / 63.0}, {"lighting", scenery.lighting}, {"format", FORMAT_VERSION},
+			// Flair.fx for all of them: (0.85 * sun + ambient) * the flair's tint, whatever their facing
+			{"technique", { {"family", "flair"}, {"look", 0}, {"alpha", "opacity"}, {"flags", 0} }},
 			{"objects", { {"asset", assetOf}, {"pos", positions}, {"rot", rotations}, {"scale", scales}, {"color", colors} }}
 		}.dump();
 	}
@@ -956,7 +951,46 @@ namespace Scenery {
 		});
 	}
 
+	/**
+	 * The environment textures the client's shaders load themselves, by the name the viewers ask for them: the default
+	 * reflection cube (LEGOPPLighting, ClearPlastic) and Metallic.fx's cubes and noise.
+	 */
+	static const std::map<std::string, std::string>& EnvironmentTextures() {
+		static const std::map<std::string, std::string> textures{
+			{ "reflection", "textures/env/default_reflection.dds" },
+			{ "polished", "textures/metal/metal_reflection_polished.dds" },
+			{ "brushed", "textures/metal/metal_reflection_brushed.dds" },
+			{ "brushedNoise", "textures/metal/metal_reflection_brushed_noise.dds" }
+		};
+		return textures;
+	}
+
 	void RegisterRoutes() {
+		Route(eHTTPMethod::GET, "/api/scenery/env/:name", 0,
+			"An environment texture the client's shaders load themselves, as a DDS file: reflection (the default reflection cube), polished, brushed (the metal cubes) or brushedNoise",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const std::string name(PathSegment(context.path, 3));
+				const auto& textures = EnvironmentTextures();
+				const auto it = textures.find(name);
+				if (it == textures.end()) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "No such environment texture");
+				// Read once: a few megabytes the views ask for with every zone
+				static std::mutex mutex;
+				static std::map<std::string, std::shared_ptr<const std::string>> cache;
+				std::shared_ptr<const std::string> bytes;
+				{
+					std::lock_guard lock(mutex);
+					if (const auto cached = cache.find(name); cached != cache.end()) bytes = cached->second;
+				}
+				if (!bytes) {
+					auto read = ClientAssets::ReadResFile(it->second);
+					if (!read) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "The client has no such texture");
+					bytes = std::make_shared<const std::string>(std::move(*read));
+					std::lock_guard lock(mutex);
+					cache.try_emplace(name, bytes);
+				}
+				Binary(reply, *bytes);
+			});
+
 		Route(eHTTPMethod::GET, "/api/scenery/:zone/mesh/:asset", 0,
 			"Model `asset` of a zone's scenery (see the scenery routes of properties and /world3d), converted from the client's .nif. Query: ?lod=0 (most detailed) to 3",
 			[](HTTPReply& reply, const HTTPContext& context) {

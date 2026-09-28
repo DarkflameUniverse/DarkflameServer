@@ -41,18 +41,6 @@ export function parseModel(buffer) {
 }
 
 /**
- * What a mesh's texture alpha does in the game, from the manifest's shader data (Scenery.cpp AddShaders): the
- * client's shader decides, not the .nif. 'opacity' see-through where the alpha is; 'decal' the texture is laid over
- * the vertex colors by its alpha (LEGO shaders); 'ignored' the alpha does nothing. A multishader model's parts name
- * their shader in their node names (mesh.shaderTag); a tag the client can't use falls back to the LEGO shader.
- */
-export function textureAlphaMode(manifest, asset, mesh) {
-	if (!manifest || !manifest.textureAlpha) return 'opacity';
-	const shader = shaderOf(manifest, asset, mesh);
-	return shader === null ? 'opacity' : manifest.textureAlpha[shader] || 'opacity';
-}
-
-/**
  * The shader (mapShaders.gameValue) the game draws a mesh of a model with, or null when the manifest doesn't say
  * (-1 is fixed function). A multishader model's parts name theirs in their node names (mesh.shaderTag, a mapShaders
  * id); a tag the client can't use falls back to the LEGO shader.
@@ -112,22 +100,57 @@ float glitterFleck(vec2 uv) {
 	return { update(seconds) { uniforms.glitterTime.value = seconds; } };
 }
 
+// NifFile::eTechniqueFlag bits (what a technique does besides its family and eShaderLook bits)
+export const TECHNIQUE = {
+	UV_ANIM: 1, DOUBLE_SIDED: 2, BLEND: 4, ALPHA_TEST: 8, ADDITIVE: 16, NO_AMBIENT: 32, GLOW: 64, IGNORE_VERTEX_ALPHA: 128,
+	SUPER_EMISSIVE: 256, GRAYSCALE: 512, SHINY_GLINT: 1024, SPECULAR: 2048, NON_DECAL: 4096, OCEAN_FX: 8192, RIM_LIGHT: 16384,
+	DIFFUSE_ONLY: 32768, ANIM_ALPHA: 65536, BASIC_EMISSIVE: 131072, NO_FOG: 262144, NOT_DRAWN: 524288, NO_BLEND: 1048576
+};
+
+// A technique the manifest doesn't name: the LEGO shader's, as the client falls back to it
+const LEGO_TECHNIQUE = { family: 'lego', look: 0, alpha: 'decal', flags: 0 };
+const FIXED_TECHNIQUE = { family: 'fixed', look: 0, alpha: 'opacity', flags: 0 };
+
 /**
- * How a mesh is drawn under the game's shaders, when the manifest has the zone's lighting: {lit, texture,
- * vertexColors, material, layers} — whether the scene's sun and ambient light it, its texture and vertex colors are
- * used, whether its NiMaterialProperty colors are (only fixed function and the "Material" shaders use them), and how
- * a two layer shader puts its dark texture with the base one ('blended', 'added' or null), whether it is metal
- * ('polished', 'brushed' or null: an environment reflection tinted by the vertex color) and whether it glows
- * (LEGO-Emissive: the lit color goes to the vertex color by the vertex alpha times the material's emissive red, so
- * the vertex alpha is no opacity). Null without
- * lighting in the manifest (older servers), for the viewer's own lights.
+ * The technique (NifFile::TechniqueFor, the manifest's "techniques" by gameValue) a mesh of a model is drawn with:
+ * {shader, family, look, alpha, flags}. A manifest-wide "technique" (the flairs') is every mesh's; without a shader the
+ * mesh is fixed function; a shader the table lacks is drawn as LEGO.
+ */
+export function techniqueOf(manifest, asset, mesh) {
+	if (manifest && manifest.technique) return { shader: null, ...manifest.technique };
+	const shader = shaderOf(manifest, asset, mesh);
+	if (shader === null || shader < 0) return { shader, ...FIXED_TECHNIQUE };
+	const known = manifest.techniques && manifest.techniques[shader];
+	return { shader, ...(known || LEGO_TECHNIQUE) };
+}
+
+/**
+ * What a texture's alpha does in the game (the technique's, NifFile::eTextureAlpha): 'opacity' see-through where the
+ * alpha is; 'decal' the texture is laid over the vertex colors by its alpha (LEGO shaders); 'ignored' it does nothing.
+ */
+export function textureAlphaMode(manifest, asset, mesh) {
+	return techniqueOf(manifest, asset, mesh).alpha || 'opacity';
+}
+
+/**
+ * How a mesh is drawn under the game's shaders, when the manifest has the zone's lighting: {family (game-shaders.js),
+ * lit, texture, vertexColors, material, layers, metal, emissive, textureAlpha, uvAnim, flags, blend, doubleSided,
+ * hidden} — whether the scene's sun and ambient light it, its texture and vertex colors are used, whether its
+ * NiMaterialProperty colors are (only fixed function and the "Material" shaders use them), how a two layer shader puts
+ * its dark texture with the base one ('blended', 'added' or null), whether it is metal ('polished', 'brushed' or null),
+ * whether it glows (LEGO-Emissive: the vertex alpha is then no opacity), whether its texture moves as the .nif's
+ * texture transform says, its blending ('nif': as NiAlphaProperty says; 'blend': see-through without depth writes;
+ * 'test': cut out; 'additive'; 'opaque') and whether the game draws it in the world at all (hidden: post-processing
+ * and shadow shaders). Null without lighting in the manifest (older servers), for the viewer's own lights.
  */
 export function gameLook(manifest, asset, mesh) {
 	if (!manifest || !manifest.lighting) return null;
-	const shader = shaderOf(manifest, asset, mesh);
-	const fixedFunction = shader === null || shader < 0;
-	const bits = fixedFunction || !manifest.shaderLooks ? 0 : manifest.shaderLooks[shader] || 0;
+	const technique = techniqueOf(manifest, asset, mesh);
+	const fixedFunction = technique.family === 'fixed';
+	const bits = technique.look || 0;
+	const flags = technique.flags || 0;
 	return {
+		family: technique.family,
 		lit: !(bits & SHADER_LOOK.UNLIT),
 		texture: !(bits & SHADER_LOOK.NO_TEXTURE),
 		// Fixed function reads them as NiVertexColorProperty says; the shaders always do, unless they have none
@@ -135,8 +158,32 @@ export function gameLook(manifest, asset, mesh) {
 		material: fixedFunction || !!(bits & SHADER_LOOK.MATERIAL_COLOR),
 		layers: bits & SHADER_LOOK.TWO_LAYERS_BLENDED ? 'blended' : bits & SHADER_LOOK.TWO_LAYERS_ADDED ? 'added' : null,
 		metal: metalOf(bits),
-		emissive: !!(bits & SHADER_LOOK.EMISSIVE)
+		emissive: !!(bits & SHADER_LOOK.EMISSIVE),
+		textureAlpha: technique.alpha || 'opacity',
+		uvAnim: !!(flags & TECHNIQUE.UV_ANIM),
+		flags,
+		blend: flags & TECHNIQUE.ADDITIVE ? 'additive' : flags & TECHNIQUE.BLEND ? 'blend' : flags & TECHNIQUE.ALPHA_TEST ? 'test' : flags & TECHNIQUE.NO_BLEND ? 'opaque' : 'nif',
+		doubleSided: !!(flags & TECHNIQUE.DOUBLE_SIDED),
+		hidden: !!(flags & TECHNIQUE.NOT_DRAWN)
 	};
+}
+
+/**
+ * How a mesh drawn with `look` is blended: {transparent, depthWrite, additive, alphaCutoff, doubleSided}. Most of the
+ * game's files have alpha blending switched on; it only shows where something is see-through (`seeThrough`: the
+ * material, a vertex or the texture's alpha as opacity). Blended meshes still write depth, as Gamebryo's default does,
+ * unless the technique turns that off.
+ */
+export function blendingOf(look, mesh, seeThrough) {
+	const cutoff = mesh.test >= 0 ? Math.max(mesh.test / 255, 0.01) : 0;
+	const doubleSided = !!mesh.doubleSided || !!(look && look.doubleSided);
+	switch (look ? look.blend : 'nif') {
+		case 'additive': return { transparent: true, depthWrite: false, additive: true, alphaCutoff: 0, doubleSided };
+		case 'blend': return { transparent: true, depthWrite: false, additive: false, alphaCutoff: cutoff, doubleSided };
+		case 'test': return { transparent: false, depthWrite: true, additive: false, alphaCutoff: cutoff || 0.5, doubleSided };
+		case 'opaque': return { transparent: false, depthWrite: true, additive: false, alphaCutoff: 0, doubleSided };
+		default: return { transparent: !!(mesh.blend && seeThrough), depthWrite: true, additive: false, alphaCutoff: cutoff, doubleSided };
+	}
 }
 
 // A shader's metal from its eShaderLook bits: 'polished', 'brushed' or null
@@ -260,6 +307,37 @@ export function parseDds(buffer, maxSize = 4096) {
 	const image = downscale({ format: 'RGBA', width, height, levels: [{ width, height, data: rgba }] }, maxSize);
 	image.alpha = !!hasAlpha;
 	return image;
+}
+
+/**
+ * A DDS cube map (the client's environment cubes, textures/env and textures/metal) as six RGBA faces no larger than
+ * maxSize: {faces: [{format: 'RGBA', width, height, data}]} in the file's order (+X, -X, +Y, -Y, +Z, -Z, as WebGL
+ * takes them). With `plain`, a DDS that isn't a cube comes back as its one face instead; null otherwise.
+ */
+export function parseDdsCube(buffer, maxSize = 256, plain = false) {
+	if (buffer.byteLength < 128) return null;
+	const view = new DataView(buffer);
+	if (view.getUint32(0, true) !== 0x20534444) return null;
+	const isCube = (view.getUint32(112, true) & 0x200) !== 0;
+	if (isCube === plain) return null;
+	const height = view.getUint32(12, true), width = view.getUint32(16, true);
+	const mipCount = Math.max(1, view.getUint32(28, true));
+	const pfFlags = view.getUint32(80, true);
+	const format = FOURCC[view.getUint32(84, true)];
+	if (!(pfFlags & 0x4) || !format || !width || !height || width > 4096 || height > 4096) return null;
+	const blockBytes = format === 'DXT1' ? 8 : 16;
+	const levelBytes = (w, h) => Math.max(1, (w + 3) >> 2) * Math.max(1, (h + 3) >> 2) * blockBytes;
+	let faceBytes = 0;
+	for (let i = 0, w = width, h = height; i < mipCount; i++, w = Math.max(1, w >> 1), h = Math.max(1, h >> 1)) faceBytes += levelBytes(w, h);
+	const count = isCube ? 6 : 1;
+	if (128 + faceBytes * count > buffer.byteLength) return null;
+	const faces = [];
+	for (let f = 0; f < count; f++) {
+		const data = new Uint8Array(buffer, 128 + f * faceBytes, levelBytes(width, height));
+		const rgba = decodeDxt(format, width, height, data);
+		faces.push(downscale({ format: 'RGBA', width, height, levels: [{ width, height, data: rgba }] }, maxSize).levels[0]);
+	}
+	return plain ? { format: 'RGBA', ...faces[0] } : { faces: faces.map((face) => ({ format: 'RGBA', ...face })) };
 }
 
 // Halve an RGBA image (box filter) until it fits maxSize
