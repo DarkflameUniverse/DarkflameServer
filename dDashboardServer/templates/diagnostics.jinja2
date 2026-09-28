@@ -61,6 +61,7 @@
 		</div>
 	</div>
 	<div class="col-xl-4 d-flex flex-column gap-3 mt-3 mt-xl-0">
+		<div class="card panel-fill d-none" id="ugcCard"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">UGC server</h5><a class="small" href="/ugc">UGC page</a></div><div class="card-body py-2 small" id="ugcBody">Asking the UGC server…</div></div>
 		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2"><h5 class="mb-0 fs-6">Servers <span class="text-body-secondary fw-normal small">(averages over the range; click to filter)</span></h5></div><div class="card-body p-0" id="servers"></div></div>
 		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">Busiest message types</h5>
 			<div class="btn-group btn-group-sm" role="group" aria-label="Direction"><input type="radio" class="btn-check" name="msgDir" id="dirIn" value="in" checked><label class="btn btn-outline-secondary py-0" for="dirIn">In</label><input type="radio" class="btn-check" name="msgDir" id="dirOut" value="out"><label class="btn btn-outline-secondary py-0" for="dirOut">Out</label></div></div>
@@ -80,6 +81,42 @@
 	var server = '';
 	var direction = 'in';
 	var data = null;
+
+	// The UGC server (when it's enabled): its work, what it uses, and what it has made
+	function loadUgc() {
+		api.get('/api/diagnostics/ugc').then(function (d) {
+			var card = document.getElementById('ugcCard'), body = document.getElementById('ugcBody');
+			card.classList.toggle('d-none', !d.enabled);
+			if (!d.enabled) return;
+			var counts = function (title, c) {
+				return '<div>' + esc(title) + ': ' + fmt.badge(nf.format(c.done || 0) + ' made', 'success') + ' ' + fmt.badge(nf.format(c.pending || 0) + ' waiting', 'secondary') + ' ' +
+					fmt.badge(nf.format(c.failed || 0) + ' failed', c.failed ? 'danger' : 'secondary') + (c.empty ? ' ' + fmt.badge(nf.format(c.empty) + ' empty', 'light') : '') + '</div>';
+			};
+			var html = counts('Models', d.counts.model) + counts('Cars and rockets', d.counts.modular);
+			var s = d.status;
+			if (!s) {
+				body.innerHTML = fmt.badge('Unreachable', 'warning') + ' ' + esc(d.error || '') + '<hr class="my-2">' + html;
+				return;
+			}
+			var u = s.usage || {}, l = s.limits || {}, cores = u.cores || 1;
+			var row = function (k, v) { return '<tr><td class="text-body-secondary pe-2">' + esc(k) + '</td><td>' + v + '</td></tr>'; };
+			html = '<div class="mb-1">' + fmt.badge('Online', 'success') + (u.throttled ? ' ' + fmt.badge('Throttled', 'warning') : '') + (u.paused ? ' ' + fmt.badge('Paused', 'info') : '') + '</div>' +
+				'<table class="table table-sm table-borderless mb-1"><tbody>' +
+				row('Work', esc(s.active) + ' of ' + esc(s.workers) + ' workers busy, ' + esc(nf.format(s.queued)) + ' queued') +
+				row('CPU', esc(((u.cpuPercent || 0) / cores).toFixed(0)) + '% of ' + esc(cores) + ' cores' + (l.maxCpus ? ' (limit ' + esc((l.maxCpus / cores * 100).toFixed(0)) + '%)' : '')) +
+				row('Memory', esc(bytes(u.residentBytes || 0)) + ' in use; jobs ~' + esc(bytes(s.jobMemoryBytes || 0)) + (l.maxMemoryBytes ? ' of ' + esc(bytes(l.maxMemoryBytes)) : '') + (s.memoryWaits ? ', ' + esc(s.memoryWaits) + ' waits' : '')) +
+				row('Files', esc(bytes(s.storedBytes || 0)) + (s.maxStorageBytes ? ' of ' + esc(bytes(s.maxStorageBytes)) : '') + (s.evicted ? ', ' + esc(s.evicted) + ' evicted' : '')) +
+				row('Since start', esc(nf.format(s.made || 0)) + ' made, ' + esc(nf.format(s.failed || 0)) + ' failed attempts') +
+				'</tbody></table>' + html;
+			var recent = (s.recent || []).slice(0, 5);
+			if (recent.length) html += '<div class="mt-1 text-body-secondary">Last: ' + recent.map(function (r) {
+				return esc(r.kind) + ' ' + esc(r.id) + (r.ok ? ' ' + esc(ms(r.ms)) : ' failed');
+			}).join(' · ') + '</div>';
+			body.innerHTML = html;
+		}).catch(function () {});
+	}
+	loadUgc();
+	setInterval(loadUgc, 10000);
 
 	function bytes(v) {
 		if (v >= 1073741824) return (v / 1073741824).toFixed(2) + ' GB';

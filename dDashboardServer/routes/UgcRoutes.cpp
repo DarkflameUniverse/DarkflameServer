@@ -7,6 +7,7 @@
 #include <set>
 
 #include "CDClientDatabase.h"
+#include "ServerState.h"
 #include "Database.h"
 #include "UgcIconParams.h"
 #include "NifFile.h"
@@ -430,6 +431,29 @@ namespace UgcRoutes {
 					out.contentType = eContentType::APPLICATION_JSON;
 					out.message = R"({"success":true,"status":)" + fetched->body + "}";
 					out.headers.push_back("Cache-Control: no-store");
+				}, WorkerPool::ePriority::URGENT);
+			});
+
+		Route(eHTTPMethod::GET, "/api/diagnostics/ugc", Perm("health_view"),
+			"The UGC server for the Diagnostics page: {enabled, online, status (its /status: queue, workers, CPU, memory, limits, "
+			"throttling, recent makes) or error, counts: {model, modular} per state}",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				bool enabled = false, online = false;
+				{
+					std::lock_guard lock(ServerState::g_StatusMutex);
+					enabled = ServerState::g_UgcEnabled;
+					online = ServerState::g_UgcStatus.online;
+				}
+				const auto base = InternalUrl();
+				Workers::Reply(reply, context, false, [base, enabled, online](HTTPReply& out) {
+					nlohmann::json body = { { "success", true }, { "enabled", enabled }, { "online", online },
+						{ "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } } };
+					if (enabled) {
+						const auto fetched = CachedGet(base + "/status", eCache::STATUS);
+						if (fetched->status == 200) body["status"] = nlohmann::json::parse(fetched->body, nullptr, false);
+						else body["error"] = fetched->status == 0 ? fetched->error : "answered " + std::to_string(fetched->status);
+					}
+					JsonReply(out, eHTTPStatusCode::OK, body);
 				}, WorkerPool::ePriority::URGENT);
 			});
 
