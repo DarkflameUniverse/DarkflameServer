@@ -117,6 +117,10 @@ defaults. The table below goes through it step by step.
    `Materials.xml`): LU's colors, the LDD colors LU doesn't have mapped onto the nearest LU one, colors LU Toolbox doesn't know but the
    client's `Materials.xml` has (colors added to the brick database) from `Materials.xml`, unknown ones black. A
    brick is transparent only when all of its materials are; transparent bricks get `transparent_opacity` (58.82%).
+   `transparent_colors` names colors that are transparent whatever `Materials.xml` says (129, "Tr. Bright Bluish
+   Violet with Glitter", has alpha 255 there); an opaque-listed color named there gets `transparent_opacity`.
+   `color_brightness` (percent, default 100: unchanged) scales the models' colors after the variation below, not
+   the icons'.
 3. Color variation: each material of each brick has its brightness shifted like LU Toolbox's "Apply Color Variation":
    the color's HSV value is taken to a 1/2.224 gamma, moved by a random amount of up to `color_variation`/200 (5%:
    0.025) either way, times the color's own amount (black 0.4, orange 1.5, ...), clamped and taken back; hue and

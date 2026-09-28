@@ -79,6 +79,15 @@ namespace {
 		settings.build.palette = Game::config->GetValue("color_palette") == "brickdb" ? UgcModel::ePalette::BRICKDB : UgcModel::ePalette::LU_TOOLBOX;
 		settings.build.colorVariation = std::clamp(Setting<float>("color_variation", 5.0f), 0.0f, 100.0f);
 		settings.build.transparentOpacity = std::clamp(Setting<float>("transparent_opacity", 58.82f), 0.0f, 100.0f);
+		settings.build.brightness = std::clamp(Setting<float>("color_brightness", 100.0f), 0.0f, 200.0f);
+		{
+			std::stringstream stream(Game::config->GetValue("transparent_colors"));
+			std::string id;
+			while (std::getline(stream, id, ',')) {
+				std::erase_if(id, [](unsigned char c) { return std::isspace(c); });
+				if (const auto color = GeneralUtils::TryParse<uint32_t>(id)) settings.build.transparentColors.insert(*color);
+			}
+		}
 		const auto lods = ParseLods(Game::config->GetValue("lods").empty() ? "0,2" : Game::config->GetValue("lods"));
 		if (!lods.empty()) settings.lods = lods;
 		settings.lodDistances.lod0 = Setting<float>("lod_distance_0", 0.0f);

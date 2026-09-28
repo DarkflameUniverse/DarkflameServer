@@ -1272,3 +1272,35 @@ TEST(UgcShaders, IconsDrawGlowUnlitAndMetalShiny) {
 	EXPECT_EQ(UgcModel::FromNif(*read, UgcJobs::Shaders{}.TagLooks()).opaque.looks, std::vector<UgcModel::eLook>(4, UgcModel::eLook::GLOW));
 	EXPECT_TRUE(UgcModel::FromNif(*read).opaque.looks.empty());
 }
+
+// color_brightness scales the models' vertex colors (not icons'); transparent_colors makes a color Materials.xml has
+// opaque transparent, at transparent_opacity
+TEST(UgcModel, BrightnessAndTransparentColors) {
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	constexpr uint32_t ADDED = 50001;
+	library.SetMaterials({ { ADDED, { 0, 200, 100, 255 } } });
+	std::string error;
+	const auto brick = UgcModel::ParseLxfml("<LXFML versionMajor=\"5\"><Bricks><Brick><Part designID=\"3001\" materials=\"" + std::to_string(ADDED) +
+		"\"><Bone transformation=\"1,0,0,0,1,0,0,0,1,0,0,0\"/></Part></Brick></Bricks></LXFML>", error);
+	UgcModel::BuildOptions options;
+	options.colorVariation = 0.0f;
+	const auto normal = UgcModel::Build(brick, library, options);
+	ASSERT_FALSE(normal.opaque.colors.empty());
+	EXPECT_TRUE(normal.transparent.colors.empty());
+
+	options.brightness = 50.0f;
+	const auto darker = UgcModel::Build(brick, library, options);
+	ASSERT_FALSE(darker.opaque.colors.empty());
+	const auto linear = UgcPalette::SrgbToLinear(glm::vec3(normal.opaque.colors[0])) * 0.5f;
+	EXPECT_NEAR(darker.opaque.colors[0].g, UgcPalette::LinearToSrgb(linear).g, 1e-4f);
+	options.icon = true;
+	EXPECT_EQ(UgcModel::Build(brick, library, options).opaque.colors[0], UgcModel::Build(brick, library, [&] { auto o = options; o.brightness = 100.0f; return o; }()).opaque.colors[0]);
+
+	options = {};
+	options.colorVariation = 0.0f;
+	options.transparentColors.insert(ADDED);
+	const auto seeThrough = UgcModel::Build(brick, library, options);
+	EXPECT_TRUE(seeThrough.opaque.colors.empty());
+	ASSERT_FALSE(seeThrough.transparent.colors.empty());
+	EXPECT_NEAR(seeThrough.transparent.colors[0].a, 0.5882f, 1e-4f);
+}

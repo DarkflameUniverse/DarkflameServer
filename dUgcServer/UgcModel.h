@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -93,6 +94,8 @@ namespace UgcModel {
 		float colorVariation{ 5.0f };      // percent, 0: none (LU Toolbox: Apply Color Variation, 5%)
 		uint64_t seed{};                   // of the variation's random numbers
 		float transparentOpacity{ 58.82f }; // percent, transparent bricks' vertex alpha (LU Toolbox palette only)
+		float brightness{ 100.0f };        // percent, the models' vertex colors (not icons'); 100: as the palette has them
+		std::set<uint32_t> transparentColors; // color ids drawn transparent whatever Materials.xml says (129: its alpha is 255)
 		bool icon{};                       // the icon renderer's color corrections
 		uint32_t lod{};                    // brickprimitives level
 		LookRules looks;                   // which colors are metal and glow (Mesh::looks)

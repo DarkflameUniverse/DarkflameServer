@@ -442,6 +442,8 @@ namespace {
 		c.Add(Labels(Choice(UGC, "color_palette", "Colors", "LU Toolbox's LU palette (unknown colors black), or the client's Materials.xml.", "lu_toolbox", { "lu_toolbox", "brickdb" }), { "LU Toolbox", "Brick database" }));
 		c.Add(Unit(Float(UGC, "color_variation", "Color variation", "Each brick's brightness is shifted by up to this much (the same every time the model is made). 0: none.", "5", 0, 100), "%"));
 		c.Add(Unit(Float(UGC, "transparent_opacity", "Transparent opacity", "", "58.82", 0, 100), "%"));
+		c.Add(Unit(Float(UGC, "color_brightness", "Model color brightness", "The models' vertex colors (not the icons'). 100: as the palette has them; lower is darker. Models already made keep theirs until they are made again.", "100", 0, 200), "%"));
+		c.Add(Text(UGC, "transparent_colors", "Always transparent colors", "LEGO color ids drawn transparent whatever Materials.xml says, comma separated (e.g. 129, the transparent glitter violet, which Materials.xml has opaque). Their opacity is Transparent opacity.", ""));
 		c.Add(Text(UGC, "lods", "Levels of detail", "brickprimitives levels made, 0 (most detailed) to 2, e.g. 0,2.", "0,2"));
 		c.Add(Float(UGC, "lod_distance_0", "LOD 0 distance", "", "0", 0, 100000));
 		c.Add(Float(UGC, "lod_distance_1", "LOD 1 distance", "", "50", 0, 100000));

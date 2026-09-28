@@ -247,7 +247,8 @@ namespace UgcModel {
 			for (size_t index = 0; index < design->size(); index++) {
 				const auto id = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
 				const auto toolboxId = materialOf(index);
-				transparent = transparent && (luToolbox && inToolbox(toolboxId) ? UgcPalette::IsTransparent(toolboxId) : library.GetMaterial(luToolbox ? toolboxId : id).Transparent());
+				const auto named = options.transparentColors.contains(luToolbox ? toolboxId : id);
+				transparent = transparent && (named || (luToolbox && inToolbox(toolboxId) ? UgcPalette::IsTransparent(toolboxId) : library.GetMaterial(luToolbox ? toolboxId : id).Transparent()));
 			}
 			auto& mesh = transparent ? model.transparent : model.opaque;
 			if (transparent) model.transparentBricks.push_back(mesh.indices.size());
@@ -263,7 +264,7 @@ namespace UgcModel {
 					colorId = materialOf(index);
 					const auto material = library.GetMaterial(colorId);
 					linear = UgcPalette::SrgbToLinear(glm::vec3(material.r, material.g, material.b) / 255.0f);
-					if (transparent) alpha = material.a / 255.0f;
+					if (transparent) alpha = material.a < 255 ? material.a / 255.0f : std::clamp(options.transparentOpacity / 100.0f, 0.0f, 1.0f);
 				} else if (luToolbox) {
 					colorId = materialOf(index);
 					linear = *UgcPalette::Linear(colorId, options.icon);
@@ -275,12 +276,13 @@ namespace UgcModel {
 					colorId = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
 					const auto material = library.GetMaterial(colorId);
 					linear = UgcPalette::SrgbToLinear(glm::vec3(material.r, material.g, material.b) / 255.0f);
-					if (transparent) alpha = material.a / 255.0f;
+					if (transparent) alpha = material.a < 255 ? material.a / 255.0f : std::clamp(options.transparentOpacity / 100.0f, 0.0f, 1.0f);
 				}
 				if (options.colorVariation > 0.0f) {
 					const float variation = options.colorVariation * (luToolbox ? UgcPalette::VariationScale(colorId) : 1.0f);
 					linear = UgcPalette::ApplyVariation(linear, variation, UgcPalette::BrickRandom(options.seed, brick, colorId));
 				}
+				if (!options.icon && options.brightness != 100.0f) linear *= std::max(options.brightness, 0.0f) / 100.0f;
 				const glm::vec4 color(UgcPalette::LinearToSrgb(linear), alpha);
 				anyGlow = anyGlow || glow != glm::vec3(0.0f);
 				const auto look = transparent ? eLook::PLASTIC : LookOf(colorId, library.GetMaterial(colorId), options.looks);
