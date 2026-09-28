@@ -717,7 +717,8 @@ The view fills the window (the page doesn't scroll; the wheel only zooms). View 
 - **Scenery** (on by default) draws every object in the zone's scene files with its model, from the client's .nif
   files, as the property view does; **Sky** switches the zone's sky. Objects the game doesn't draw (trigger and
   blocking volumes: blocking-volume types, `renderDisabled`/`CreateNULLRender`, and `carver_only` objects, which the
-  client never loads) are left out; **Hidden objects** shows them see-through in pink for debugging. Models load nearest first around where the camera
+  client never loads) are left out; **Hidden objects** shows them see-through in pink for debugging. **Fog** (off by
+  default) adds the zone's fog. Models are drawn with the game's shaders (see *Game shaders* under Properties in 3D). Models load nearest first around where the camera
   looks; **High / Medium / Low detail** sets how far they're drawn and how sharp (Medium by default). Objects drawn with
   a model get no marker; **Markers on objects with a model** (Layers tab) brings the markers back. They can be clicked
   either way.
@@ -1052,8 +1053,8 @@ changes); sounds, spawned enemies and drops are listed in the log. Actions the s
 red. Terrain needs `client_location` to be set.
 
 **Layers.** The property 3D view (and the showcase's) fills the window with its panels scrolling inside; its **Layers**
-tab has the same switches as World 3D where they apply: detail, Terrain, Scenery, Sky, Placed models, Build area,
-Shadows and Hidden objects (off by default), remembered per account.
+tab has the same switches as World 3D where they apply: detail, Terrain, Scenery, Sky, Fog (off by default), Placed
+models, Build area, Shadows and Hidden objects (off by default), remembered per account.
 
 **Generated models.** When the UGC server has made a player-built model, the property 3D view draws it from the model
 the UGC server made (the NIF the game client gets), and builds the rest from their LXFML as before; switch
@@ -1070,6 +1071,39 @@ Whether a texture's alpha makes a model see-through follows the shader the game 
 shader, or for a multishaded model the `S05__`-style tag in each part's name), not only the .nif: the LEGO shaders
 lay the texture over the vertex colors and terrain meshes and LEGO items ignore its alpha, so their textures' alpha
 channels (often gloss or leftover masks) don't punch holes in them.
+
+**Game shaders.** Scenery, sky and flairs are drawn with ports of the client's shaders (`res/shaders/*.fx`) to WebGL
+(`static/js/game-shaders.js`), one program per technique family and variant, shared by every mesh that uses it. Which
+technique a shader (mapShaders `gameValue`) uses is one table, `NifFile::TechniqueFor` (dCommon); the manifests carry
+it as `techniques` (gameValue -> family, eShaderLook bits, texture alpha, eTechniqueFlag bits). A gameValue the
+table lacks is drawn as LEGO, as the client falls back to it. The math runs on sRGB values as Direct3D 9 did, with the
+zone's sun, ambient, upper hemisphere and specular colors from the scene files, blended as the camera moves between
+scenes.
+
+| Family | gameValues | Drawn as |
+| --- | --- | --- |
+| LEGO (LEGOPPLighting) | 4, 5, 12, 14, 19, 20, 22, 25-31, 48, 50, 53, 72, 88, 92 | hemisphere lit sun + ambient, fresnel rim, N.H^320 specular, default reflection cube x0.05; texture over vertex colors by its alpha (decal) or times them (Item, Masked NonDecal, FaceCreate); Emissive/SuperEmissive (vertex alpha x emissive red), Glow, Grayscale, NoAmbient, AnimUV |
+| Basic (BasicShaders, AlphaAsAlpha) | 7-11, 13, 15-18, 23, 24, 32-39, 49, 52, 54-65, 68, 70, 73, 80-87, 91, 93, 94, 105-108 | sun x N.L + ambient per vertex (or unlit) x vertex color x texture; AlphaAsAlpha both sides; AlphaBlend without depth writes, AlphaTest cut out, Additive; material alpha for the AnimAlpha ones; two layer blends and adds |
+| Metal (Metallic.fx) | 98, 99, 100 | 0.7 N.L^4 + 0.3, plus the client's metal cube (polished or brushed, with the brushed noise in object space) tinted by the vertex color, specular |
+| Clear Plastic | 6 | default reflection cube, fresnel of the lit grey, tight highlight; see-through facing the eye |
+| Ocean (Distortion) | 69, 89, 90, 95, 101 | three texture layers, each warped by the one before, lit (or unlit x2, or FX with the emissive alpha window) |
+| Flat Surf | 78 | texture lit, alpha from a second lookup |
+| BrickWater | 51 | hemisphere lit vertex color, fresnel, specular |
+| Darkling | 75-77, 102-104 | dark texture on the second UV set over the base look by a window of vertex alphas (material emissive r/g/b); Specular uses LEGO lighting, Structure multiplies |
+| Terrain meshes | 2, 3, 97 | texture x vertex color x (sun x N.L + ambient); Rim Light adds a rim; Diffuse Map Only doubles the texture |
+| Flairs (Flair.fx) | the flair manifest | (0.85 sun + ambient) x tint |
+| Sky (Skydome.fx) | the scene's sky | texture x vertex color, unlit, moving by its texture transform |
+| Not drawn | 21, 71, 74, 79, 96 | model footprints, post-processing, drop shadows, Undefined |
+| Fixed function | -1 | sun x N.L + ambient with the material color and NiVertexColorProperty |
+
+Moving textures (the AnimUV, ScrollingUV and Distortion shaders, the sky) scroll as the .nif's texture transform
+controllers say. Fog (Layers, off by default: the views look from further out than the game's camera) mixes in the
+zone's fog color from its near to far distance, terrain included. Approximated or left out: shadows, the LEGO parallax
+and normal maps (BrickWater), Ocean's layer motion (the client moves its layers by timers of its own), the shiny glint
+(a band moving up the object), Reveal and FadeUp masks (drawn fully shown), Glow's color (the shader's default cyan),
+Powerups, Orb, TV Screen and Head Icon effects (drawn as LEGO or unlit), Flair's distance fade and movement. The
+client's environment textures come from `/api/scenery/env/:name` (`reflection`, `polished`, `brushed`,
+`brushedNoise`). Placed player models are drawn by the viewer's own lighting.
 
 Converting a model the caches don't have yet (a big "glom" file takes a moment) happens on a few worker threads, so
 the dashboard keeps answering everything else meanwhile: the route hands the request to a worker (`Web::Defer`) and

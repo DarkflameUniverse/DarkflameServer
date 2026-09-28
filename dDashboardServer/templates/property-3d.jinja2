@@ -105,6 +105,7 @@
 							<div class="form-check form-switch mb-0 small" id="boundaryWrap"><input class="form-check-input" type="checkbox" id="boundaryToggle" data-pref="property3d.boundary" checked><label class="form-check-label" for="boundaryToggle">Build area</label></div>
 							<div class="form-check form-switch mb-0 small"><input class="form-check-input" type="checkbox" id="shadowToggle" data-pref="property3d.shadows" checked><label class="form-check-label" for="shadowToggle">Shadows</label></div>
 							<div class="form-check form-switch mb-0 small" title="The zone's sky, as the game draws it (with Scenery on)"><input class="form-check-input" type="checkbox" id="skyToggle" data-pref="property3d.sky" checked><label class="form-check-label" for="skyToggle">Sky</label></div>
+							<div class="form-check form-switch mb-0 small" title="The zone's fog, as the game draws it around the player (with Scenery on)"><input class="form-check-input" type="checkbox" id="fogToggle" data-pref="property3d.fog"><label class="form-check-label" for="fogToggle">Fog</label></div>
 							<div class="form-check form-switch mb-0 small" title="The models placed on the property"><input class="form-check-input" type="checkbox" id="modelsToggle" data-pref="property3d.models" checked><label class="form-check-label" for="modelsToggle">Placed models</label></div>
 							{% if not exists("showcase") %}<div class="form-check form-switch mb-0 small d-none" id="generatedWrap" title="Draw player-built models as the UGC server made them for the game (on: generated models; off: built from their LXFML). Models it hasn't made yet are built from their LXFML either way"><input class="form-check-input" type="checkbox" id="generatedToggle" data-pref="property3d.generated" checked><label class="form-check-label" for="generatedToggle">Generated models</label></div>{% endif %}
 							<div class="form-check form-switch mb-0 small" title="Also draw, see-through, the models of objects the game doesn't draw: trigger and blocking volumes (with Scenery on)"><input class="form-check-input" type="checkbox" id="hiddenToggle" data-pref="property3d.hidden"><label class="form-check-label" for="hiddenToggle">Hidden objects</label></div>
@@ -387,6 +388,7 @@ async function showScenery() {
 	const toggle = document.getElementById('sceneryToggle');
 	scenery.setEnabled(toggle.checked);
 	scenery.setSky(document.getElementById('skyToggle').checked);
+	scenery.setFog(document.getElementById('fogToggle').checked);
 	scenery.setShowHidden(document.getElementById('hiddenToggle').checked);
 	if (!toggle.checked) return;
 	const lod = parseInt(document.getElementById('lodSelect').value, 10);
@@ -471,6 +473,7 @@ document.getElementById('terrainToggle').addEventListener('change', () => showTe
 document.getElementById('boundaryToggle').addEventListener('change', showBoundary);
 document.getElementById('sceneryToggle').addEventListener('change', showScenery);
 document.getElementById('skyToggle').addEventListener('change', showScenery);
+document.getElementById('fogToggle').addEventListener('change', showScenery);
 document.getElementById('hiddenToggle').addEventListener('change', showScenery);
 document.getElementById('modelsToggle').addEventListener('change', (e) => viewer.setModelsVisible(e.target.checked));
 if (document.getElementById('generatedToggle')) document.getElementById('generatedToggle').addEventListener('change', () => { loadedLod = null; loadScene(); });
