@@ -1347,6 +1347,71 @@ namespace {
 
 // A glitter group: UVs, the fleck texture stored in the file, and the two texture transform controllers the client
 // animates it with; read back as NifFile sees it
+namespace {
+	// Each block's type and its NiAVObject flags (the u16 after the name, extra data count and controller), from a
+	// NIF 20.3.0.9 as UgcFormats writes it (no extra data)
+	std::vector<std::pair<std::string, uint16_t>> BlockFlags(const std::string& nif) {
+		size_t at = nif.find('\n') + 1;
+		const auto u32 = [&]() { uint32_t v = 0; std::memcpy(&v, nif.data() + at, 4); at += 4; return v; };
+		const auto u16 = [&]() { uint16_t v = 0; std::memcpy(&v, nif.data() + at, 2); at += 2; return v; };
+		at += 4 + 1 + 4; // version, endian, user version
+		const auto blocks = u32();
+		const auto typeCount = u16();
+		std::vector<std::string> types;
+		for (uint16_t i = 0; i < typeCount; i++) {
+			const auto length = u32();
+			types.emplace_back(nif.substr(at, length));
+			at += length;
+		}
+		std::vector<uint16_t> blockTypes;
+		for (uint32_t i = 0; i < blocks; i++) blockTypes.push_back(u16() & 0x7fff);
+		std::vector<uint32_t> sizes;
+		for (uint32_t i = 0; i < blocks; i++) sizes.push_back(u32());
+		const auto strings = u32();
+		u32(); // max length
+		for (uint32_t i = 0; i < strings; i++) at += u32();
+		const auto groups = u32();
+		at += groups * 4;
+		std::vector<std::pair<std::string, uint16_t>> out;
+		for (uint32_t i = 0; i < blocks; i++) {
+			uint16_t flags = 0;
+			const auto& type = types[blockTypes[i]];
+			if (type == "NiNode" || type == "NiLODNode" || type == "NiTriShape") std::memcpy(&flags, nif.data() + at + 12, 2);
+			out.emplace_back(type, flags);
+			at += sizes[i];
+		}
+		return out;
+	}
+}
+
+// The client updates an object's scene graph every frame only when its root has the selective update bit (0x02), so
+// a model with moving glitter has it on its root, the glitter group's nodes and shapes (as the client's own animated
+// files); still glitter and everything else keep the game's brick model flags
+TEST(UgcFormats, MovingGlitterIsUpdatedEveryFrame) {
+	const auto mesh = Quad({ 0.2f, 0.4f, 0.8f, 0.6f });
+	const UgcGlitter::Params moving{ 1.6f, 50, 1.0f };
+	const UgcGlitter::Params still{ 1.6f, 50, 0.0f };
+	for (const auto* glitter : { &moving, &still }) {
+		const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", {
+			{ "S01_Opaque_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } } },
+			{ "S21_Glitter_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, glitter } });
+		const auto blocks = BlockFlags(nif);
+		const bool animated = glitter == &moving;
+		ASSERT_EQ(blocks[0].first, "NiNode");
+		EXPECT_EQ(blocks[0].second, animated ? 0x102 : 0x110) << "root";
+		std::vector<uint16_t> shapes;
+		for (const auto& [type, flags] : blocks) if (type == "NiTriShape") shapes.push_back(flags);
+		ASSERT_EQ(shapes.size(), 2u);
+		EXPECT_EQ(shapes[0], 0x10); // plastic
+		EXPECT_EQ(shapes[1], animated ? 0x1A : 0x10);
+		std::vector<uint16_t> lods;
+		for (const auto& [type, flags] : blocks) if (type == "NiLODNode") lods.push_back(flags);
+		ASSERT_EQ(lods.size(), 2u);
+		EXPECT_EQ(lods[0], 0x110);
+		EXPECT_EQ(lods[1], animated ? 0x102 : 0x110);
+	}
+}
+
 TEST(UgcFormats, GlitterNifReadsBack) {
 	const auto mesh = Quad({ 0.2f, 0.4f, 0.8f, 0.6f });
 	const UgcGlitter::Params glitter{ 1.6f, 50, 2.0f };

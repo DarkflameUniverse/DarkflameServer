@@ -299,7 +299,12 @@ What a glitter shape has, beside what plastic shapes have (white material, alpha
   base map, operation translate U and translate V, each with an `NiFloatInterpolator` and `NiFloatData` of two linear
   keys (0, 0) and (period, 1): a tile in `7 / glitter_speed` s in U and `11 / glitter_speed` s in V, looping, and
   wrapping makes the loop seamless. The block layouts are the ocean file's (its controllers are 39 bytes, the property
-  70). With `glitter_speed` 0 the property has no controllers.
+  70). With `glitter_speed` 0 the property has no controllers. The client updates an object's scene graph every frame only when its root
+  NiNode has the selective update bit (0x02; `LWOBaseRenderComponent::Run` 0x00d5d770 calls `NiAVObject::Update` when
+  `NiAVObject::GetSelectiveUpdate` 0x00413050 is set); otherwise only once when it loads, and the controllers never
+  move. So a model with moving glitter has flags 0x102 on its root, the glitter NiLODNode and its `LOD_n` nodes, and
+  0x1A on the glitter shapes, as the client's own AG ocean (`mesh/env/env_ag_ocean-maelstrom.nif`); every other
+  node keeps 0x110 and shape 0x10.
 
 The client finds the animation: `SetupRenderNodeExtraData` (0x00c746c0) sets `RenderNodeExtraData.flags0` bit 2 from
 `NifHasAnimatedControllers` (0x00bf4160), which returns true for a shape whose `NiTexturingProperty`'s first

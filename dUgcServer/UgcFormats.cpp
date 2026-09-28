@@ -118,6 +118,12 @@ namespace {
 	// NiAVObject flags as the game's own brick models (res/BrickModels/ndmade) have them: nodes 0x110, shapes 0x10
 	constexpr uint16_t NODE_FLAGS = 0x110;
 	constexpr uint16_t SHAPE_FLAGS = 0x10;
+	// Nodes and shapes with controllers under them, as the client's own animated files (the AG ocean): the client
+	// updates an object's scene graph every frame only when its root has the selective update bit (0x02;
+	// LWOBaseRenderComponent::Run 0x00d5d770, NiAVObject::GetSelectiveUpdate 0x00413050). Without it the model is
+	// updated once when it loads and its controllers never move.
+	constexpr uint16_t ANIMATED_NODE_FLAGS = 0x102;
+	constexpr uint16_t ANIMATED_SHAPE_FLAGS = 0x1A; // selective update, update property controllers, rigid
 
 	void WriteNet(Writer& out, int32_t name) {
 		out.I32(name);
@@ -201,9 +207,9 @@ namespace {
 		return std::move(out.Data());
 	}
 	// An NiNode's data: no properties, `children`, no effects
-	std::string NodeData(int32_t name, const std::vector<int32_t>& children) {
+	std::string NodeData(int32_t name, const std::vector<int32_t>& children, uint16_t flags = NODE_FLAGS) {
 		Writer node;
-		WriteAv(node, name, {});
+		WriteAv(node, name, {}, flags);
 		node.U32(static_cast<uint32_t>(children.size()));
 		for (const auto child : children) node.I32(child);
 		node.U32(0); // effects
@@ -389,7 +395,8 @@ namespace {
 			const auto shapeBlock = m_Nif.Reserve("NiTriShape");
 			const auto dataBlock = m_Nif.Add("NiTriShapeData", TriShapeData(*mesh, glitter));
 			Writer tri;
-			WriteAv(tri, m_Nif.String(name), properties, SHAPE_FLAGS);
+			const bool animated = glitter && (glitter->PeriodU() > 0.0f || glitter->PeriodV() > 0.0f);
+			WriteAv(tri, m_Nif.String(name), properties, animated ? ANIMATED_SHAPE_FLAGS : SHAPE_FLAGS);
 			tri.I32(dataBlock);
 			tri.I32(-1); // skin instance
 			tri.U32(0);  // materials
@@ -429,8 +436,12 @@ namespace UgcFormats {
 		const int32_t root = nif.Reserve("NiNode");
 		SharedProperties properties(nif);
 		std::vector<int32_t> groupBlocks;
+		bool anyAnimated = false;
 		for (const auto& group : groups) {
 			if (group.lods.empty()) continue;
+			const bool animated = group.glitter && (group.glitter->PeriodU() > 0.0f || group.glitter->PeriodV() > 0.0f);
+			anyAnimated = anyAnimated || animated;
+			const auto nodeFlags = animated ? ANIMATED_NODE_FLAGS : NODE_FLAGS;
 			const auto lodNode = nif.Reserve("NiLODNode");
 			std::vector<int32_t> levels;
 			Writer ranges;
@@ -443,13 +454,13 @@ namespace UgcFormats {
 					const auto block = properties.Shape(group.name, piece, group.transparent, group.emissive, group.glitter);
 					if (block >= 0) shapes.push_back(block);
 				}
-				nif.Fill(level, NodeData(nif.String(lod.name), shapes));
+				nif.Fill(level, NodeData(nif.String(lod.name), shapes, nodeFlags));
 				levels.push_back(level);
 				ranges.Float(lod.nearDistance);
 				ranges.Float(lod.farDistance);
 			}
 			const auto rangeData = nif.Add("NiRangeLODData", std::move(ranges.Data()));
-			auto data = NodeData(nif.String(group.name), levels);
+			auto data = NodeData(nif.String(group.name), levels, nodeFlags);
 			Writer lod;
 			lod.Raw(data);
 			lod.U16(3); // switch flags: update only the active child, and controllers (as the game's own files)
@@ -458,7 +469,7 @@ namespace UgcFormats {
 			nif.Fill(lodNode, std::move(lod.Data()));
 			groupBlocks.push_back(lodNode);
 		}
-		nif.Fill(root, NodeData(nif.String(rootName), groupBlocks));
+		nif.Fill(root, NodeData(nif.String(rootName), groupBlocks, anyAnimated ? ANIMATED_NODE_FLAGS : NODE_FLAGS));
 		return nif.Finish(root);
 	}
 
