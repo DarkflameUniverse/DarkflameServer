@@ -32,6 +32,7 @@ namespace {
 	};
 }
 #else
+#include <cstdio>
 #include <unistd.h>
 #endif
 
@@ -65,6 +66,9 @@ uint32_t StartChatServer() {
 	} else if (chat_pid == 0) {
 		// We are the child process
 		execl(chat_path.string().c_str(), chat_path.string().c_str(), nullptr);
+		// exec failed (e.g. the binary is being rebuilt): the child must not carry on as a second master
+		perror("exec");
+		_exit(127);
 	}
 #endif
 	LOG("ChatServer PID is %d", chat_pid);
@@ -101,6 +105,9 @@ uint32_t StartAuthServer() {
 	} else if (auth_pid == 0) {
 		// We are the child process
 		execl(auth_path.string().c_str(), auth_path.string().c_str(), nullptr);
+		// exec failed (e.g. the binary is being rebuilt): the child must not carry on as a second master
+		perror("exec");
+		_exit(127);
 	}
 #endif
 	LOG("AuthServer PID is %d", auth_pid);
@@ -137,6 +144,9 @@ uint32_t StartDashboardServer() {
 	} else if (web_pid == 0) {
 		// We are the child process
 		execl(web_path.string().c_str(), web_path.string().c_str(), nullptr);
+		// exec failed (e.g. the binary is being rebuilt): the child must not carry on as a second master
+		perror("exec");
+		_exit(127);
 	}
 #endif
 	LOG("DashboardServer PID is %d", web_pid);
@@ -173,6 +183,9 @@ uint32_t StartUgcServer() {
 	} else if (ugc_pid == 0) {
 		// We are the child process
 		execl(ugc_path.string().c_str(), ugc_path.string().c_str(), nullptr);
+		// exec failed (e.g. the binary is being rebuilt): the child must not carry on as a second master
+		perror("exec");
+		_exit(127);
 	}
 #endif
 	LOG("UgcServer PID is %d", ugc_pid);
@@ -214,6 +227,9 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 			"-instance", std::to_string(lastInstanceID).c_str(),
 			"-maxclients", std::to_string(maxPlayers).c_str(),
 			"-clone", std::to_string(cloneID).c_str(), nullptr);
+		// exec failed (e.g. the binary is being rebuilt): the child must not carry on as a second master
+		perror("exec");
+		_exit(127);
 	}
 #endif
 	LOG("WorldServer PID is %d", world_pid);
