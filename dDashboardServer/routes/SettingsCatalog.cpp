@@ -458,6 +458,7 @@ namespace {
 		c.Add(Float(UGC, "glow_emissive", "Glow emissive strength", "With the glow shader on: the glow shapes' material emissive, how far the emissive shader goes from lit to the plain color (1: fully).", "1", 0, 10));
 		c.Add(Text(UGC, "metal_material_types", "Metal material types", "Materials.xml MaterialTypes drawn as metal, comma separated (none: only LU Toolbox's metallic colors).", "shinySteel"));
 		c.Add(Text(UGC, "brushed_material_types", "Brushed steel material types", "Materials.xml MaterialTypes drawn as brushed steel, comma separated (none: no such colors).", "brushedSteel,matteSteel"));
+		c.Add(Text(UGC, "brushed_colors", "Brushed steel colors", "LEGO color ids drawn as brushed steel whatever their Materials.xml type, comma separated (e.g. the drum lacquered 298,300,1002,1004). Empty: none.", ""));
 		c.Add(Bool(UGC, "remove_hidden_faces", "Remove faces nobody can see", "", true));
 		c.Add(Bool(UGC, "hsr_ground_plane", "Nothing seen from below", "Also removes what can only be seen from under the model.", false));
 		c.Add(Unit(Int(UGC, "optimize_resolution", "Detail of the visibility renders", "", "1024", 64, 4096), "pixels"));

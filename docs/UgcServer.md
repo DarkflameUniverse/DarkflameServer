@@ -221,11 +221,12 @@ all of its levels, so each look needs a group of its own.
 | Setting (`ugcconfig.ini`, dashboard: UGC models) | Default | What it writes |
 | --- | --- | --- |
 | `shader_metal` | 0 (off) | `S<id>_Metal_Model` for metal colors: 88 is Polished Metal (gameValue 98). The client loads `textures/metal/metal_reflection_polished.dds` itself and tints it by the vertex color (`Metallic.fx`, `Technique_Lighting_PolishedMetal_VertColor`). |
-| `shader_brushed` | 0 (off) | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The client's Materials.xml has no such colors, so this only does something with a Materials.xml that names them. |
+| `shader_brushed` | 0 (off) | `S<id>_Brushed_Model` for brushed steel colors: 89 is Brushed Steel (gameValue 99; it loads `metal_reflection_brushed.dds` and `_noise.dds`, the noise in object space). The textures are registered by the client (0x00453730) as global shader textures 6 and 7, so the .nif needs none. The client's Materials.xml has no brushed types, so this needs `brushed_colors` or a Materials.xml that names them. |
 | `shader_glow` | 0 (off) | `S<id>_Glow_Model` for opaque glowing colors: 46 is LEGO-Emissive (gameValue 53), which draws `lerp(lit, vertex color, vertex alpha * material emissive red)`, opaque. |
 | `glow_emissive` | 1 | The glow shapes' `NiMaterialProperty` emissive (grey): how far the shader goes from lit to the plain color. |
 | `metal_material_types` | `shinySteel` | Materials.xml `MaterialType`s that are metal (empty: the default; `none`: none). |
 | `brushed_material_types` | `brushedSteel,matteSteel` | Materials.xml `MaterialType`s that are brushed steel. |
+| `brushed_colors` | empty | LEGO color ids that are brushed steel whatever their type (e.g. the drum lacquered 298, 300, 1002, 1004); they win over the metal and glow colors. |
 
 Which color has which look is data, not a list in the code (`UgcModel::LookOf`): glow is LU Toolbox's glow table
 (`UgcPalette::Glow`: 50, 294, 329, 9000-9027), metal is LU Toolbox's metallic table (`UgcPalette::IsMetallic`) plus

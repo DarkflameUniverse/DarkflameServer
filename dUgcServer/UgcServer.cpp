@@ -106,6 +106,15 @@ namespace {
 				if (!type.empty() && type != "none") settings.build.looks.materialTypes[type] = look;
 			}
 		}
+		// LEGO color ids drawn as brushed steel whatever their Materials.xml type
+		{
+			std::stringstream stream(Game::config->GetValue("brushed_colors"));
+			std::string id;
+			while (std::getline(stream, id, ',')) {
+				std::erase_if(id, [](unsigned char c) { return std::isspace(c); });
+				if (const auto color = GeneralUtils::TryParse<uint32_t>(id)) settings.build.looks.colors[*color] = UgcModel::eLook::BRUSHED;
+			}
+		}
 		settings.optimize.removeHidden = Setting<int32_t>("remove_hidden_faces", 1) != 0;
 		settings.optimize.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
 		settings.optimize.resolution = Setting<int32_t>("optimize_resolution", 1024);

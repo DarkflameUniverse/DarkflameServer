@@ -1148,6 +1148,12 @@ TEST(UgcShaders, LooksComeFromTheColorData) {
 	EXPECT_EQ(UgcModel::LookOf(329, plastic, rules), UgcModel::eLook::GLOW);       // LU Toolbox's glow colors
 	EXPECT_EQ(UgcModel::LookOf(50, plastic, rules), UgcModel::eLook::GLOW);
 	EXPECT_EQ(UgcModel::LookOf(9016, plastic, rules), UgcModel::eLook::GLOW);
+	UgcModel::LookRules named;
+	named.colors[298] = UgcModel::eLook::BRUSHED;
+	named.colors[329] = UgcModel::eLook::BRUSHED;
+	EXPECT_EQ(UgcModel::LookOf(298, steel, named), UgcModel::eLook::BRUSHED);    // a named color wins over its type
+	EXPECT_EQ(UgcModel::LookOf(329, plastic, named), UgcModel::eLook::BRUSHED);  // and over the glow colors
+	EXPECT_EQ(UgcModel::LookOf(150, steel, named), UgcModel::eLook::METAL);
 	UgcModel::LookRules none;
 	none.materialTypes.clear();
 	none.paletteMetallic = false;
