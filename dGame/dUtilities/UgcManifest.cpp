@@ -35,6 +35,9 @@ namespace {
 	constexpr auto SERVED_MESH_DELAY = std::chrono::seconds(3);
 	constexpr size_t MAX_SWITCHES = 4096;
 	constexpr int MAX_SWITCHES_PER_MODEL = 3;
+	// How long after NotifyClientUGCModelReady the model is constructed again: the client flushes the model's files on
+	// its load thread, and a model constructed before that is done loses the mesh it just loaded
+	constexpr auto RECONSTRUCT_DELAY = std::chrono::milliseconds(1500);
 
 	struct Waiting {
 		SystemAddress sysAddr;
@@ -58,6 +61,14 @@ namespace {
 	};
 	std::vector<Switch> g_Switches;
 	std::map<std::pair<SystemAddress, LWOOBJID>, int> g_SwitchCount;
+
+	// Placed models to construct again for a client once its flush is done
+	struct Reconstruct {
+		SystemAddress sysAddr;
+		LWOOBJID objectId{};
+		std::chrono::steady_clock::time_point due;
+	};
+	std::vector<Reconstruct> g_Reconstructs;
 
 	bool ManifestOn() {
 		// Off unless set: a client whose boot.cfg doesn't point it at the UGC server downloads from its built-in
@@ -245,8 +256,10 @@ namespace {
 	// Shows a placed model to one client again with the served mesh. NotifyClientUGCModelReady only flushes the
 	// client's cached NIF, HKX and LXFML and loads them again as preloads (LWOBlueprintComponent::
 	// OnNotifyClientUGCModelReady, 0x00ca6430): an object already drawn keeps its mesh. So the object is also taken
-	// down and constructed again for that client, and its new render component loads the NIF, whose cached checksum
-	// is now the served one (sent first). The HKX's is still the one the client built, so it keeps its collision.
+	// down and constructed again for that client, once the flush is done (RECONSTRUCT_DELAY; constructed at once, the
+	// flush can land after the new object loaded its mesh, which then disappears). Its new render component loads the
+	// NIF, whose cached checksum is now the served one (sent first); the HKX's is still the one the client built, so
+	// it keeps its collision.
 	void ShowServedMesh(Entity& model, Entity& player, const LWOOBJID blueprintId) {
 		const auto sysAddr = player.GetSystemAddress();
 		if (model.GetIsGhostingCandidate()) {
@@ -257,8 +270,19 @@ namespace {
 		ready.target = model.GetObjectID();
 		ready.blueprintID = blueprintId;
 		ready.Send(sysAddr);
-		Game::entityManager->DestructEntity(&model, sysAddr);
-		Game::entityManager->ConstructEntity(&model, sysAddr);
+		std::erase_if(g_Reconstructs, [&](const Reconstruct& r) { return r.sysAddr == sysAddr && r.objectId == model.GetObjectID(); });
+		g_Reconstructs.push_back({ sysAddr, model.GetObjectID(), std::chrono::steady_clock::now() + RECONSTRUCT_DELAY });
+	}
+
+	// Constructs a model again for a client whose flush is done; false while it isn't due
+	bool ConstructAgain(const Reconstruct& pending, const std::chrono::steady_clock::time_point now) {
+		if (now < pending.due) return false;
+		if (!Game::entityManager || !PlayerManager::GetPlayer(pending.sysAddr)) return true;
+		auto* const model = Game::entityManager->GetEntity(pending.objectId);
+		if (!model) return true;
+		Game::entityManager->DestructEntity(model, pending.sysAddr);
+		Game::entityManager->ConstructEntity(model, pending.sysAddr);
+		return true;
 	}
 
 	// Switches one client to a model's served mesh; false while the client isn't ready for it yet
@@ -288,6 +312,7 @@ namespace {
 void UgcManifest::Update() {
 	const auto now = std::chrono::steady_clock::now();
 	std::erase_if(g_Switches, [now](Switch& pending) { return now - pending.since > MAX_WAIT || SwitchToServedMesh(pending, now); });
+	std::erase_if(g_Reconstructs, [now](const Reconstruct& pending) { return ConstructAgain(pending, now); });
 
 	if (g_Waiting.empty() || now < g_NextRetry) return;
 	g_NextRetry = now + RETRY_INTERVAL;
@@ -301,6 +326,7 @@ void UgcManifest::OnDisconnect(const SystemAddress& sysAddr) {
 	std::erase_if(g_LxfmlSent, [&sysAddr](const auto& sent) { return sent.first.first == sysAddr; });
 	std::erase_if(g_Switches, [&sysAddr](const Switch& pending) { return pending.sysAddr == sysAddr; });
 	std::erase_if(g_SwitchCount, [&sysAddr](const auto& count) { return count.first.first == sysAddr; });
+	std::erase_if(g_Reconstructs, [&sysAddr](const Reconstruct& pending) { return pending.sysAddr == sysAddr; });
 }
 
 void UgcManifest::OnModelsMade(const std::vector<LWOOBJID>& blueprintIds) {
