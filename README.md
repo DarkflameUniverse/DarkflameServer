@@ -12,8 +12,8 @@ feature that changes gameplay or live data is off by default or matches live beh
 own documentation in [docs/](docs/).
 
 ### AI usage
-Much of this branch was written with an AI coding assistant (Anthropic's Claude), working under the maintainer's
-direction. Commits it helped write carry a `Co-Authored-By: Claude` line. The maintainer reviews that code before it is
+**This branch heavily uses AI.** Most of its code, tests and documentation were written by an AI coding assistant
+(Anthropic's Claude) working under the maintainer's direction, and it keeps being developed that way. Commits it helped write carry a `Co-Authored-By: Claude` line. The maintainer reviews that code before it is
 proposed for `main`, and it goes through the project's normal review like any other contribution; nothing from this
 branch reaches `main` without that. Findings about the game client come from the client itself in Ghidra, checked
 against packet captures where possible, not from the assistant's memory.
