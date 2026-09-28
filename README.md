@@ -503,3 +503,5 @@ This is a Work in Progress, but below are some quick links to documentaion for s
 * pwjones1969
 * [Simon](https://github.com/SimonNitzsche)
 * [ALL OF THE NETDEVIL AND LEGO TEAMS!](https://www.mobygames.com/game/macintosh/lego-universe/credits)
+
+This codebase uses some amount of AI assistance. Some larger portions may be AI generated as well. Do not use AI tools against the repo however to work on issues. Auto generated PR's/issues may be discarded as spam if done in large amounts.
