@@ -8,6 +8,8 @@
 #include <sstream>
 #include <unordered_set>
 #include <filesystem>
+#include <functional>
+#include <map>
 
 using namespace TinyXmlUtils;
 
@@ -26,6 +28,16 @@ std::string SerializeElement(tinyxml2::XMLElement* elem) {
 	elem->Accept(&p);
 	return std::string(p.CStr());
 };
+
+// A rigid system by what it holds (its rigids' refIDs and boneRefs): splitting moves its transformations
+std::string RigidSystemKey(tinyxml2::XMLElement* rigidSystem) {
+	std::string key;
+	for (auto* rigid = rigidSystem->FirstChildElement("Rigid"); rigid; rigid = rigid->NextSiblingElement("Rigid")) {
+		key += std::string(rigid->Attribute("refID") ? rigid->Attribute("refID") : "") + ":" + (rigid->Attribute("boneRefs") ? rigid->Attribute("boneRefs") : "") + ";";
+	}
+	for (auto* joint = rigidSystem->FirstChildElement("Joint"); joint; joint = joint->NextSiblingElement("Joint")) key += SerializeElement(joint);
+	return key;
+}
 
 // Helper function to test splitting functionality
 static void TestSplitUsesAllBricksAndNoDuplicatesHelper(const std::string& filename) {
@@ -50,7 +62,7 @@ static void TestSplitUsesAllBricksAndNoDuplicatesHelper(const std::string& filen
 	std::unordered_set<std::string> originalRigidSet;
 	if (auto* rsParent = doc.FirstChildElement("LXFML")->FirstChildElement("RigidSystems")) {
 		for (auto* rs = rsParent->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
-			originalRigidSet.insert(SerializeElement(rs));
+			originalRigidSet.insert(RigidSystemKey(rs));
 		}
 	}
 
@@ -102,7 +114,7 @@ static void TestSplitUsesAllBricksAndNoDuplicatesHelper(const std::string& filen
 		// collect rigid systems in this output
 		if (auto* rsParent = outDoc.FirstChildElement("LXFML")->FirstChildElement("RigidSystems")) {
 			for (auto* rs = rsParent->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
-				auto s = SerializeElement(rs);
+				auto s = RigidSystemKey(rs);
 				// no duplicate allowed across outputs
 				ASSERT_EQ(usedRigidSet.find(s), usedRigidSet.end()) << "Duplicate RigidSystem across splits";
 				usedRigidSet.insert(s);
@@ -429,4 +441,96 @@ TEST(LxfmlTests, ReadContentsListsBricksAndTheirBox) {
 	EXPECT_TRUE(nothing.designIds.empty());
 	EXPECT_EQ(nothing.boxMin, NiPoint3Constant::ZERO);
 	EXPECT_TRUE(Lxfml::ReadContents("<LXFML><Bricks/></LXFML>").designIds.empty());
+}
+
+namespace {
+	const std::string PROBE_HEAD = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta><Bricks>)";
+
+	// Two models: bricks 0 and 1 in one rigid system at x 100.4; a flexible part (two bones) and an upside down brick,
+	// joined in another rigid system, around x 1222
+	const std::string TWO_MODELS = PROBE_HEAD +
+		R"(<Brick refID="0" designID="3001"><Part refID="0" designID="3001" materials="21"><Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,100.4,433.92,-62.8"/></Part></Brick>)"
+		R"(<Brick refID="1" designID="3001"><Part refID="1" designID="3001" materials="21"><Bone refID="1" transformation="1,0,0,0,1,0,0,0,1,100.4,434.88,-62.8"/></Part></Brick>)"
+		R"(<Brick refID="2" designID="73590"><Part refID="2" designID="73590" materials="26"><Bone refID="2" transformation="1,0,0,0,1,0,0,0,1,1234.4,433.92,-10.8"/><Bone refID="3" transformation="1,0,0,0,1,0,0,0,1,1236.8,433.92,-10.8"/></Part></Brick>)"
+		R"(<Brick refID="3" designID="3001"><Part refID="4" designID="3001" materials="1"><Bone refID="4" transformation="1,0,0,0,-1,0,0,0,-1,1210,433.92,-10.8"/></Part></Brick>)"
+		R"(</Bricks><RigidSystems>)"
+		R"(<RigidSystem><Rigid refID="0" transformation="1,0,0,0,1,0,0,0,1,100.4,433.92,-62.8" boneRefs="0,1"/></RigidSystem>)"
+		R"(<RigidSystem><Rigid refID="1" transformation="1,0,0,0,1,0,0,0,1,1234.4,433.92,-10.8" boneRefs="2,3"/><Rigid refID="2" transformation="1,0,0,0,-1,0,0,0,-1,1210,433.92,-10.8" boneRefs="4"/></RigidSystem>)"
+		R"(</RigidSystems><GroupSystems><GroupSystem></GroupSystem></GroupSystems></LXFML>)";
+
+	// refID -> transformation of every element named `name`
+	std::map<std::string, std::string> Transformations(const std::string& lxfml, const char* name) {
+		tinyxml2::XMLDocument doc;
+		doc.Parse(lxfml.c_str());
+		std::map<std::string, std::string> out;
+		std::function<void(const tinyxml2::XMLElement*)> walk = [&](const tinyxml2::XMLElement* element) {
+			for (; element; element = element->NextSiblingElement()) {
+				if (std::string(element->Name()) == name) out[element->Attribute("refID")] = element->Attribute("transformation");
+				walk(element->FirstChildElement());
+			}
+		};
+		walk(doc.FirstChildElement());
+		return out;
+	}
+
+	std::vector<std::string> BrickOrder(const std::string& lxfml) {
+		tinyxml2::XMLDocument doc;
+		doc.Parse(lxfml.c_str());
+		std::vector<std::string> out;
+		for (auto* brick = doc.FirstChildElement("LXFML")->FirstChildElement("Bricks")->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) out.push_back(brick->Attribute("refID"));
+		return out;
+	}
+}
+
+TEST(LxfmlTests, SplitMovesRigidsWithTheirBones) {
+	const auto results = Lxfml::Split(TWO_MODELS);
+	ASSERT_EQ(results.size(), 2);
+	EXPECT_EQ(results[0].center, NiPoint3(100.8f, 433.92f, -62.4f));
+	const auto bones = Transformations(results[0].lxfml, "Bone");
+	EXPECT_EQ(bones.at("0"), "1,0,0,0,1,0,0,0,1,-0.4,0,-0.4");
+	EXPECT_EQ(bones.at("1"), "1,0,0,0,1,0,0,0,1,-0.4,0.96,-0.4");
+	// The rigid system sits where its first bone does, as the game writes it
+	EXPECT_EQ(Transformations(results[0].lxfml, "Rigid").at("0"), bones.at("0"));
+}
+
+TEST(LxfmlTests, SplitMovesEveryBoneOfAFlexiblePart) {
+	const auto results = Lxfml::Split(TWO_MODELS);
+	ASSERT_EQ(results.size(), 2);
+	// The box of every bone (1210 to 1236.8): centred at 1223.4, snapped to the grid at 1223.2 (z -10.8, halfway, to the even -11.2)
+	EXPECT_EQ(results[1].center, NiPoint3(1223.2f, 433.92f, -11.2f));
+	const auto bones = Transformations(results[1].lxfml, "Bone");
+	EXPECT_EQ(bones.at("2"), "1,0,0,0,1,0,0,0,1,11.2,0,0.4");
+	EXPECT_EQ(bones.at("3"), "1,0,0,0,1,0,0,0,1,13.6,0,0.4");
+	EXPECT_EQ(bones.at("4"), "1,0,0,0,-1,0,0,0,-1,-13.2,0,0.4");
+	const auto rigids = Transformations(results[1].lxfml, "Rigid");
+	EXPECT_EQ(rigids.at("1"), bones.at("2"));
+	EXPECT_EQ(rigids.at("2"), bones.at("4"));
+}
+
+TEST(LxfmlTests, SplitKeepsTheFileOrder) {
+	const auto results = Lxfml::Split(TWO_MODELS);
+	ASSERT_EQ(results.size(), 2);
+	EXPECT_EQ(BrickOrder(results[0].lxfml), (std::vector<std::string>{ "0", "1" }));
+	EXPECT_EQ(BrickOrder(results[1].lxfml), (std::vector<std::string>{ "2", "3" }));
+	// And the same model always comes out the same
+	EXPECT_EQ(Lxfml::Split(TWO_MODELS)[1].lxfml, results[1].lxfml);
+}
+
+TEST(LxfmlTests, NormalizeWithoutReadableBonesKeepsTheModel) {
+	const std::string lxfml = PROBE_HEAD + R"(<Brick refID="0" designID="3001"><Part refID="0" designID="3001"><Bone refID="0" transformation=""/></Part></Brick></Bricks></LXFML>)";
+	const auto result = Lxfml::NormalizePosition(lxfml);
+	// Not somewhere far above the world: left as it is, at the origin
+	EXPECT_EQ(result.center, NiPoint3Constant::ZERO);
+	EXPECT_EQ(result.lxfml, lxfml);
+}
+
+TEST(LxfmlTests, NormalizeAtAPositionKeepsTheBricksInPlace) {
+	// Bones already relative to the model; the given position is snapped to the grid and the bones make up for it
+	const std::string lxfml = PROBE_HEAD +
+		R"(<Brick refID="0" designID="3001"><Part refID="0" designID="3001"><Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick></Bricks>)"
+		R"(<RigidSystems><RigidSystem><Rigid refID="0" transformation="1,0,0,0,1,0,0,0,1,0,0,0" boneRefs="0"/></RigidSystem></RigidSystems></LXFML>)";
+	const auto result = Lxfml::NormalizePosition(lxfml, NiPoint3(10.5f, 5.0f, -3.0f));
+	EXPECT_EQ(result.center, NiPoint3(10.4f, 5.0f, -3.2f));
+	EXPECT_EQ(Transformations(result.lxfml, "Bone").at("0"), "1,0,0,0,1,0,0,0,1,0.1,0,0.2");
+	EXPECT_EQ(Transformations(result.lxfml, "Rigid").at("0"), "1,0,0,0,1,0,0,0,1,0.1,0,0.2");
 }

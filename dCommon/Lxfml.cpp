@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <functional>
 #include <sstream>
+#include <charconv>
+#include <optional>
 
 namespace {
 	// The base LXFML xml file to use when creating new models.
@@ -73,132 +75,107 @@ Lxfml::Contents Lxfml::ReadContents(const std::string_view data) {
 	return contents;
 }
 
+namespace {
+	// A transformation attribute: 9 rotation values kept as written, then the position
+	struct Transformation {
+		std::vector<std::string> rotation;
+		double x{}, y{}, z{};
+	};
+
+	std::optional<Transformation> ParseTransformation(const char* text) {
+		if (!text) return std::nullopt;
+		auto split = GeneralUtils::SplitString(text, ',');
+		if (split.size() < 12) return std::nullopt;
+		const auto x = GeneralUtils::TryParse<double>(split[9]);
+		const auto y = GeneralUtils::TryParse<double>(split[10]);
+		const auto z = GeneralUtils::TryParse<double>(split[11]);
+		if (!x || !y || !z) return std::nullopt;
+		split.resize(9);
+		return Transformation{ std::move(split), *x, *y, *z };
+	}
+
+	// The shortest text that reads back as the same float
+	std::string FormatNumber(const double value) {
+		char buffer[32];
+		const auto [end, error] = std::to_chars(buffer, buffer + sizeof(buffer), static_cast<float>(value));
+		return error == std::errc() ? std::string(buffer, end) : std::to_string(value);
+	}
+
+	std::string FormatTransformation(const Transformation& transformation) {
+		std::string text;
+		for (const auto& value : transformation.rotation) text += value + ',';
+		return text + FormatNumber(transformation.x) + ',' + FormatNumber(transformation.y) + ',' + FormatNumber(transformation.z);
+	}
+
+	// Every element named `name` under `parent`'s children named `childName` (e.g. every Bone of every Part)
+	template<typename Visit>
+	void ForEachGrandchild(tinyxml2::XMLElement* parent, const char* childName, const char* name, Visit&& visit) {
+		if (!parent) return;
+		for (auto* child = parent->FirstChildElement(childName); child; child = child->NextSiblingElement(childName)) {
+			for (auto* element = child->FirstChildElement(name); element; element = element->NextSiblingElement(name)) visit(element);
+		}
+	}
+}
+
 Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoint3& curPosition) {
 	Result toReturn;
-	
-	// Handle empty or invalid input
-	if (data.empty()) {
-		return toReturn;
-	}
-	
+	if (data.empty()) return toReturn;
+
 	tinyxml2::XMLDocument doc;
 	// Use length-based parsing to avoid expensive string copy
-	const auto err = doc.Parse(data.data(), data.size());
-	if (err != tinyxml2::XML_SUCCESS) {
-		return toReturn;
-	}
+	if (doc.Parse(data.data(), data.size()) != tinyxml2::XML_SUCCESS) return toReturn;
+	auto* lxfml = doc.FirstChildElement("LXFML");
+	if (!lxfml) return toReturn;
 
-	TinyXmlUtils::DocumentReader reader(doc);
-	std::map<std::string/* refID */, std::string> transformations;
-
-	auto lxfml = reader["LXFML"];
-	if (!lxfml) {
-		return toReturn;
-	}
-
-	// First get all the positions of bricks
-	for (const auto& brick : lxfml["Bricks"]) {
-		const auto* part = brick.FirstChildElement("Part");
-		while (part) {
-			const auto* bone = part->FirstChildElement("Bone");
-			if (bone) {
-				auto* transformation = bone->Attribute("transformation");
-				if (transformation) {
-					auto* refID = bone->Attribute("refID");
-					if (refID) transformations[refID] = transformation;
-				}
-			}
-			part = part->NextSiblingElement("Part");
+	// Every bone of every part (flexible parts have several), and every rigid of every rigid system: both are
+	// positioned in the same space, so both move
+	std::vector<tinyxml2::XMLElement*> bones;
+	if (auto* bricks = lxfml->FirstChildElement("Bricks")) {
+		for (auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
+			ForEachGrandchild(brick, "Part", "Bone", [&bones](tinyxml2::XMLElement* bone) { bones.push_back(bone); });
 		}
 	}
+	std::vector<tinyxml2::XMLElement*> rigids;
+	ForEachGrandchild(lxfml->FirstChildElement("RigidSystems"), "RigidSystem", "Rigid", [&rigids](tinyxml2::XMLElement* rigid) { rigids.push_back(rigid); });
 
-	// These points are well out of bounds for an actual player
-	NiPoint3 lowest{ 10'000.0f, 10'000.0f, 10'000.0f };
-	NiPoint3 highest{ -10'000.0f, -10'000.0f, -10'000.0f };
-
-	NiPoint3 delta = NiPoint3Constant::ZERO;
+	// The new origin: the middle of the bricks' origins, on the floor of the lowest one. x and z are snapped to the
+	// LEGO grid (0.8) so the model's position stays on it; the bricks don't move in the world either way, only the
+	// model's pivot does.
+	double rootX = curPosition.x, rootY = curPosition.y, rootZ = curPosition.z;
 	if (curPosition == NiPoint3Constant::ZERO) {
-		// Calculate the lowest and highest points on the entire model
-		for (const auto& transformation : transformations | std::views::values) {
-			auto split = GeneralUtils::SplitString(transformation, ',');
-		if (split.size() < 12) continue;
-	
-		auto xOpt = GeneralUtils::TryParse<float>(split[9]);
-		auto yOpt = GeneralUtils::TryParse<float>(split[10]);
-		auto zOpt = GeneralUtils::TryParse<float>(split[11]);
-			
-		if (!xOpt.has_value() || !yOpt.has_value() || !zOpt.has_value()) continue;
-		
-		auto x = xOpt.value();
-		auto y = yOpt.value();
-		auto z = zOpt.value();
-		if (x < lowest.x) lowest.x = x;
-		if (y < lowest.y) lowest.y = y;
-			if (z < lowest.z) lowest.z = z;
-
-			if (highest.x < x) highest.x = x;
-			if (highest.y < y) highest.y = y;
-			if (highest.z < z) highest.z = z;
+		bool any = false;
+		double minX{}, minY{}, minZ{}, maxX{}, maxY{}, maxZ{};
+		for (const auto* bone : bones) {
+			const auto transformation = ParseTransformation(bone->Attribute("transformation"));
+			if (!transformation) continue;
+			const auto& [rotation, x, y, z] = *transformation;
+			minX = any ? std::min(minX, x) : x; maxX = any ? std::max(maxX, x) : x;
+			minY = any ? std::min(minY, y) : y; maxY = any ? std::max(maxY, y) : y;
+			minZ = any ? std::min(minZ, z) : z; maxZ = any ? std::max(maxZ, z) : z;
+			any = true;
 		}
-
-		delta = (highest - lowest) / 2.0f;
-	} else {
-		lowest = curPosition;
-		highest = curPosition;
-		delta = NiPoint3Constant::ZERO;
+		// Nothing to place it by: keep the model as it is, at the origin
+		if (!any) {
+			toReturn.lxfml = std::string(data);
+			return toReturn;
+		}
+		rootX = (minX + maxX) / 2.0;
+		rootY = minY;
+		rootZ = (minZ + maxZ) / 2.0;
 	}
+	rootX = GeneralUtils::RountToNearestEven(rootX, 0.8);
+	rootZ = GeneralUtils::RountToNearestEven(rootZ, 0.8);
 
-	auto newRootPos = lowest + delta;
-
-	// Need to snap this chosen position to the nearest valid spot
-	// on the LEGO grid
-	newRootPos.x = GeneralUtils::RountToNearestEven(newRootPos.x, 0.8f);
-	newRootPos.z = GeneralUtils::RountToNearestEven(newRootPos.z, 0.8f);
-
-	// Clamp the Y to the lowest point on the model 
-	newRootPos.y = lowest.y;
-
-	// Adjust all positions to account for the new origin
-	for (auto& transformation : transformations | std::views::values) {
-		auto split = GeneralUtils::SplitString(transformation, ',');
-		if (split.size() < 12) {
-			continue;
-		}
-
-		auto xOpt = GeneralUtils::TryParse<float>(split[9]);
-		auto yOpt = GeneralUtils::TryParse<float>(split[10]);
-		auto zOpt = GeneralUtils::TryParse<float>(split[11]);
-		
-		if (!xOpt.has_value() || !yOpt.has_value() || !zOpt.has_value()) {
-			continue;
-		}		
-		auto x = xOpt.value() - newRootPos.x + curPosition.x;
-		auto y = yOpt.value() - newRootPos.y + curPosition.y;
-		auto z = zOpt.value() - newRootPos.z + curPosition.z;
-		std::stringstream stream;
-		for (int i = 0; i < 9; i++) {
-			stream << split[i];
-			stream << ',';
-		}
-		stream << x << ',' << y << ',' << z;
-		transformation = stream.str();
-	}
-
-	// Finally write the new transformation back into the lxfml
-	for (auto& brick : lxfml["Bricks"]) {
-		auto* part = brick.FirstChildElement("Part");
-		while (part) {
-			auto* bone = part->FirstChildElement("Bone");
-			if (bone) {
-				auto* transformation = bone->Attribute("transformation");
-				if (transformation) {
-					auto* refID = bone->Attribute("refID");
-					if (refID) {
-						bone->SetAttribute("transformation", transformations[refID].c_str());
-					}
-				}
-			}
-			part = part->NextSiblingElement("Part");
+	// Everything moves by the same amount: onto the new origin, then by the given position
+	const double offsetX = curPosition.x - rootX, offsetY = curPosition.y - rootY, offsetZ = curPosition.z - rootZ;
+	for (auto* elements : { &bones, &rigids }) {
+		for (auto* element : *elements) {
+			auto transformation = ParseTransformation(element->Attribute("transformation"));
+			if (!transformation) continue;
+			transformation->x += offsetX;
+			transformation->y += offsetY;
+			transformation->z += offsetZ;
+			element->SetAttribute("transformation", FormatTransformation(*transformation).c_str());
 		}
 	}
 
@@ -206,12 +183,10 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 	doc.Print(&printer);
 
 	toReturn.lxfml = printer.CStr();
-	toReturn.center = newRootPos;
+	toReturn.center = NiPoint3(static_cast<float>(rootX), static_cast<float>(rootY), static_cast<float>(rootZ));
 	return toReturn;
 }
 
-// Deep-clone an XMLElement (attributes, text, and child elements) into a target document
-// with maximum depth protection to prevent infinite loops
 static tinyxml2::XMLElement* CloneElementDeep(const tinyxml2::XMLElement* src, tinyxml2::XMLDocument& dstDoc, int maxDepth = 100) {
 	if (!src || maxDepth <= 0) return nullptr;
 	auto* dst = dstDoc.NewElement(src->Name());
@@ -269,20 +244,22 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 	std::unordered_map<std::string, tinyxml2::XMLElement*> partRefToBrick;
 	std::unordered_map<std::string, std::string> boneRefToPartRef;
 	std::unordered_map<std::string, tinyxml2::XMLElement*> brickByRef;
+	std::vector<tinyxml2::XMLElement*> brickOrder;
 
 	auto* bricksParent = lxfml->FirstChildElement("Bricks");
 	if (bricksParent) {
 		for (auto* brick = bricksParent->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
 			const char* brickRef = brick->Attribute("refID");
 			if (brickRef) brickByRef.emplace(std::string(brickRef), brick);
+			brickOrder.push_back(brick);
 			for (auto* part = brick->FirstChildElement("Part"); part; part = part->NextSiblingElement("Part")) {
 				const char* partRef = part->Attribute("refID");
 				if (partRef) {
 					partRefToPart.emplace(std::string(partRef), part);
 					partRefToBrick.emplace(std::string(partRef), brick);
 				}
-				auto* bone = part->FirstChildElement("Bone");
-				if (bone) {
+				// Flexible parts have a bone per section
+				for (auto* bone = part->FirstChildElement("Bone"); bone; bone = bone->NextSiblingElement("Bone")) {
 					const char* boneRef = bone->Attribute("refID");
 					if (boneRef) boneRefToPartRef.emplace(std::string(boneRef), partRef ? std::string(partRef) : std::string());
 				}
@@ -326,16 +303,17 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		auto* outRigidSystems = outRoot->FirstChildElement("RigidSystems");
 		auto* outGroupSystems = outRoot->FirstChildElement("GroupSystems");
 
-		// clone and insert bricks
-		for (const auto& bref : bricksToInclude) {
-			auto it = brickByRef.find(bref);
-			if (it == brickByRef.end()) continue;
-			tinyxml2::XMLElement* cloned = CloneElementDeep(it->second, outDoc);
+		// clone and insert bricks and rigid systems in the order the file has them, so the same model always
+		// comes out the same
+		for (auto* brick : brickOrder) {
+			const char* bref = brick->Attribute("refID");
+			// (a refID used twice: the first brick with it, as the maps have it)
+			if (!bref || !bricksToInclude.contains(bref) || brickByRef.at(bref) != brick) continue;
+			tinyxml2::XMLElement* cloned = CloneElementDeep(brick, outDoc);
 			if (cloned) outBricks->InsertEndChild(cloned);
 		}
-
-		// clone and insert rigidsystems
-		for (auto* rsPtr : rigidSystemsToInclude) {
+		for (auto* rsPtr : rigidSystems) {
+			if (std::find(rigidSystemsToInclude.begin(), rigidSystemsToInclude.end(), rsPtr) == rigidSystemsToInclude.end()) continue;
 			tinyxml2::XMLElement* cloned = CloneElementDeep(rsPtr, outDoc);
 			if (cloned) outRigidSystems->InsertEndChild(cloned);
 		}
@@ -353,18 +331,10 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 			outGroupSystems->InsertEndChild(newGS);
 		}
 
-		// Print to string
+		// Print to string, then normalize position and compute center (the input is at most 10 MB, so each part is too)
 		tinyxml2::XMLPrinter printer;
 		outDoc.Print(&printer);
-		// Normalize position and compute center using existing helper
-		std::string xmlString = printer.CStr();
-		if (xmlString.size() > 5000000) { // 5MB limit for normalization
-			Result emptyResult;
-			emptyResult.lxfml = xmlString;
-			return emptyResult;
-		}
-		auto normalized = NormalizePosition(xmlString, curPosition);
-		return normalized;
+		return NormalizePosition(printer.CStr(), curPosition);
 	};
 
 	// 1) Process groups (each top-level Group becomes one output; nested groups are included)
@@ -400,8 +370,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 			}
 			auto partIt = partRefToPart.find(pref);
 			if (partIt != partRefToPart.end()) {
-				auto* bone = partIt->second->FirstChildElement("Bone");
-				if (bone) {
+				for (auto* bone = partIt->second->FirstChildElement("Bone"); bone; bone = bone->NextSiblingElement("Bone")) {
 					const char* bref = bone->Attribute("refID");
 					if (bref) boneRefsIncluded.insert(std::string(bref));
 				}
@@ -487,8 +456,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 						}
 						auto partIt = partRefToPart.find(pref);
 						if (partIt != partRefToPart.end()) {
-							auto* bone = partIt->second->FirstChildElement("Bone");
-							if (bone) {
+							for (auto* bone = partIt->second->FirstChildElement("Bone"); bone; bone = bone->NextSiblingElement("Bone")) {
 								const char* bref = bone->Attribute("refID");
 								if (bref) boneRefsIncluded.insert(std::string(bref));
 							}
@@ -498,11 +466,8 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 			}
 		}
 		
-		if (iteration >= maxIterations) {
-			// Iteration limit reached, stop processing to prevent infinite loops
-			// The file is likely malformed, so just skip further processing
-			return results;
-		}		
+		// (Every pass that goes on adds a rigid system or group, so the limit is never reached; hitting it anyway still
+		// outputs what was collected, and the rest of the file comes out as further models below.)
 		// include bricks from bricksIncluded into used set
 		for (const auto& b : bricksIncluded) usedBrickRefs.insert(b);
 
@@ -541,7 +506,10 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 	}
 
 	// 3) Any remaining bricks not included become their own files
-	for (const auto& [bref, brickPtr] : brickByRef) {
+	for (auto* brick : brickOrder) {
+		const char* brefAttr = brick->Attribute("refID");
+		if (!brefAttr) continue;
+		const std::string bref(brefAttr);
 		if (usedBrickRefs.find(bref) != usedBrickRefs.end()) continue;
 		std::unordered_set<std::string> bricksIncluded{ bref };
 		auto normalized = makeOutput(bricksIncluded, {});
