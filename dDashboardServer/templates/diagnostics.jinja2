@@ -20,7 +20,7 @@
 	.tr-tile .value { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.tr-table td, .tr-table th { font-variant-numeric: tabular-nums; }
 	.tr-table tr[data-server] { cursor: pointer; }
-	@media (min-width: 1200px) { .tr-grid { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 1rem; height: 100%; } .tr-grid > .row { min-height: 0; --bs-gutter-y: 0; } .tr-grid > .row > * { height: 100%; } }
+	@media (min-width: 1200px) { .tr-grid { display: grid; grid-template-rows: repeat(3, minmax(240px, 1fr)); gap: 1rem; height: 100%; } .tr-grid > .row { min-height: 0; --bs-gutter-y: 0; } .tr-grid > .row > * { height: 100%; } }
 	@media (max-width: 1199.98px) { .tr-chart-box { height: 200px; } .tr-grid > .row + .row { margin-top: 1rem; } }
 </style>
 {% endblock %}
@@ -44,7 +44,7 @@
 
 <div class="row g-2 mb-3" id="tiles"></div>
 
-<div class="row g-3 fill-viewport-xl">
+<div class="row g-3">
 	<div class="col-xl-8">
 		<div class="tr-grid">
 			<div class="row g-3">
@@ -61,12 +61,12 @@
 		</div>
 	</div>
 	<div class="col-xl-4 d-flex flex-column gap-3 mt-3 mt-xl-0">
-		<div class="card panel-fill d-none" id="ugcCard"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">UGC server</h5><a class="small" href="/ugc">UGC page</a></div><div class="card-body py-2 small" id="ugcBody">Asking the UGC server…</div></div>
-		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2"><h5 class="mb-0 fs-6">Servers <span class="text-body-secondary fw-normal small">(averages over the range; click to filter)</span></h5></div><div class="card-body p-0" id="servers"></div></div>
-		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">Busiest message types</h5>
+		<div class="card d-none" id="ugcCard"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">UGC server</h5><a class="small" href="/ugc">UGC page</a></div><div class="card-body py-2 small" id="ugcBody">Asking the UGC server…</div></div>
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Servers <span class="text-body-secondary fw-normal small">(averages over the range; click to filter)</span></h5></div><div class="card-body p-0" id="servers"></div></div>
+		<div class="card"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">Busiest message types</h5>
 			<div class="btn-group btn-group-sm" role="group" aria-label="Direction"><input type="radio" class="btn-check" name="msgDir" id="dirIn" value="in" checked><label class="btn btn-outline-secondary py-0" for="dirIn">In</label><input type="radio" class="btn-check" name="msgDir" id="dirOut" value="out"><label class="btn btn-outline-secondary py-0" for="dirOut">Out</label></div></div>
 			<div class="card-body p-0" id="messages"></div></div>
-		<div class="card panel-fill" style="flex: 1 1 0; min-height: 10rem"><div class="card-header py-2"><h5 class="mb-0 fs-6">HTTP routes <span class="text-body-secondary fw-normal small">(last hour at most)</span></h5></div><div class="card-body p-0" id="routes"></div></div>
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">HTTP routes <span class="text-body-secondary fw-normal small">(last hour at most)</span></h5></div><div class="card-body p-0" id="routes"></div></div>
 	</div>
 </div>
 {% endblock %}
