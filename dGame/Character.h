@@ -17,6 +17,26 @@ class Entity;
 enum class ePermissionMap : uint64_t;
 enum class eGameMasterLevel : uint8_t;
 enum class eLootSourceType : uint32_t;
+namespace GameMessages {
+	struct SetCurrency;
+}
+
+/**
+ * Where a coin change came from, as live filled SetCurrency (18,417 live SetCurrency):
+ * pickups carry the position the client picked the coins up at (the client starts the coin animation there);
+ * mission, achievement and activity rewards name the player (LOT 1); vendors name the vendor and its LOT;
+ * trades carry the trade ID. Everything else (death, mail) names nothing.
+ */
+struct CoinSource {
+	NiPoint3 position{ NiPoint3Constant::ZERO };
+	LWOOBJID object{ LWOOBJID_EMPTY };
+	LOT lot{ LOT_NULL };
+	LWOOBJID tradeID{ LWOOBJID_EMPTY };
+
+	static CoinSource Object(const Entity& source);
+	static CoinSource Position(const NiPoint3& position);
+	static CoinSource Trade(LWOOBJID tradeID);
+};
 
 /**
  * Meta information about a character, like their name and style
@@ -352,7 +372,12 @@ public:
 	 * @param newCoins the amount of coins to update by
 	 * @param coinSource The source of the loot
 	 */
-	void SetCoins(int64_t newCoins, eLootSourceType coinSource);
+	void SetCoins(int64_t newCoins, eLootSourceType coinSource, const CoinSource& source = {});
+
+	/**
+	 * The SetCurrency live sent for a coin change.
+	 */
+	static GameMessages::SetCurrency MakeSetCurrency(LWOOBJID player, int64_t coins, eLootSourceType coinSource, const CoinSource& source);
 
 	/**
 	 * Get the entity this character belongs to

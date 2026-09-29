@@ -408,9 +408,9 @@ TEST_F(RemainingMessagesTests, PlayerMessagesMatchLegacy) {
 					currency.lootType = smallValue;
 					currency.sourceID = smallValue;
 					currency.sourceLOT = smallValue;
-					currency.sourceTradeID = smallValue;
 					currency.sourceType = source;
-					ExpectSameSends([&] { LegacyGameMessages::SendSetCurrency(&entity, value, smallValue, smallValue, smallValue, smallValue, true, source); }, [&] { currency.SendToClient(entity.GetSystemAddress()); });
+					// The legacy sender wrote a set trade ID as 4 bytes; the client reads 8 (see SetCurrencyTradeIdIsAnObjectId).
+					ExpectSameSends([&] { LegacyGameMessages::SendSetCurrency(&entity, value, smallValue, smallValue, smallValue, 0, true, source); }, [&] { currency.SendToClient(entity.GetSystemAddress()); });
 					RoundTrip(currency);
 				}
 			}
@@ -427,7 +427,16 @@ TEST_F(RemainingMessagesTests, InboundPlayerMessagesMatchLegacy) {
 	for (const uint32_t amount : { 0u, 1u, 0xffffffffu }) {
 		GameMessages::PickupCurrency pickup;
 		pickup.currency = amount;
-		EXPECT_EQ(ReadWithLegacy<unsigned int>(pickup, LegacyGameMessages::ReadPickupCurrency), amount);
+		pickup.position = NiPoint3(1.5f, -2.0f, 300.25f);
+		// The old reader stopped after the amount; the client also sends where it picked the coins up.
+		RakNet::BitStream wire;
+		pickup.Serialize(wire);
+		RakNet::BitStream legacyStream(wire.GetData(), wire.GetNumberOfBytesUsed(), false);
+		EXPECT_EQ(LegacyGameMessages::ReadPickupCurrency(legacyStream), amount);
+		const auto copy = RoundTrip(pickup);
+		EXPECT_EQ(copy.currency, amount);
+		EXPECT_EQ(copy.position, pickup.position);
+		EXPECT_EQ(wire.GetNumberOfBitsUsed(), 16u * 8u);
 		ExpectTruncatedFails(pickup);
 	}
 	for (const auto& name : g_WStrings) {

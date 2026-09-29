@@ -53,8 +53,7 @@ namespace GameMessages {
 		NiPoint3 position{ NiPoint3Constant::ZERO };
 		LOT sourceLOT{ LOT_NULL }; // optional
 		LWOOBJID sourceID{ LWOOBJID_EMPTY }; // optional
-		// optional (default 0). DLU writes it as an int32_t; lu_packets has an object ID (8 bytes). Only ever 0.
-		int32_t sourceTradeID{ 0 };
+		LWOOBJID sourceTradeID{ LWOOBJID_EMPTY }; // optional; the client reads an object ID (8 bytes)
 		eLootSourceType sourceType{ eLootSourceType::NONE }; // optional
 	};
 
@@ -109,6 +108,7 @@ namespace GameMessages {
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 
 		uint32_t currency{};
+		NiPoint3 position{ NiPoint3Constant::ZERO }; // where the client picked the coins up
 	};
 
 	// Client -> server.

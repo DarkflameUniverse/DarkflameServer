@@ -528,7 +528,7 @@ void Mission::YieldRewards() {
 
 		if (info.reward_currency_repeatable > 0 || coinsToSend > 0) {
 			eLootSourceType lootSource = info.isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
-			character->SetCoins(character->GetCoins() + info.reward_currency_repeatable + coinsToSend, lootSource);
+			character->SetCoins(character->GetCoins() + info.reward_currency_repeatable + coinsToSend, lootSource, CoinSource::Object(*entity));
 		}
 
 		return;
@@ -556,7 +556,7 @@ void Mission::YieldRewards() {
 
 	if (info.reward_currency > 0 || coinsToSend > 0) {
 		eLootSourceType lootSource = info.isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
-		character->SetCoins(character->GetCoins() + info.reward_currency + coinsToSend, lootSource);
+		character->SetCoins(character->GetCoins() + info.reward_currency + coinsToSend, lootSource, CoinSource::Object(*entity));
 	}
 
 	if (info.reward_maxinventory > 0) {

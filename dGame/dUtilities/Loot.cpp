@@ -570,7 +570,7 @@ void Loot::GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t acti
 
 	auto* character = player->GetCharacter();
 
-	character->SetCoins(character->GetCoins() + coins, eLootSourceType::ACTIVITY);
+	character->SetCoins(character->GetCoins() + coins, eLootSourceType::ACTIVITY, CoinSource::Object(*player));
 }
 
 void Loot::DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {

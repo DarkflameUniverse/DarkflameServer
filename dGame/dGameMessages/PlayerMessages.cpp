@@ -50,7 +50,7 @@ namespace GameMessages {
 		bitStream.Write(position.z);
 		BitStreamUtils::WriteOptional(bitStream, sourceLOT, LOT_NULL);
 		BitStreamUtils::WriteOptional(bitStream, sourceID, LWOOBJID_EMPTY);
-		BitStreamUtils::WriteOptional(bitStream, sourceTradeID, 0);
+		BitStreamUtils::WriteOptional(bitStream, sourceTradeID, LWOOBJID_EMPTY);
 		BitStreamUtils::WriteOptional(bitStream, sourceType, eLootSourceType::NONE);
 	}
 
@@ -62,7 +62,7 @@ namespace GameMessages {
 		VALIDATE_READ(bitStream.Read(position.z));
 		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, sourceLOT, LOT_NULL));
 		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, sourceID, LWOOBJID_EMPTY));
-		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, sourceTradeID, 0));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, sourceTradeID, LWOOBJID_EMPTY));
 		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, sourceType, eLootSourceType::NONE));
 		return true;
 	}
@@ -115,10 +115,17 @@ namespace GameMessages {
 
 	void PickupCurrency::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(currency);
+		bitStream.Write(position.x);
+		bitStream.Write(position.y);
+		bitStream.Write(position.z);
 	}
 
 	bool PickupCurrency::Deserialize(RakNet::BitStream& bitStream) {
-		return bitStream.Read(currency);
+		VALIDATE_READ(bitStream.Read(currency));
+		VALIDATE_READ(bitStream.Read(position.x));
+		VALIDATE_READ(bitStream.Read(position.y));
+		VALIDATE_READ(bitStream.Read(position.z));
+		return true;
 	}
 
 	void PickupCurrency::Handle(Entity& entity, const SystemAddress& sysAddr) {
@@ -126,7 +133,7 @@ namespace GameMessages {
 
 		auto* ch = entity.GetCharacter();
 		if (ch && entity.PickupCoins(currency)) {
-			ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::PICKUP);
+			ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::PICKUP, CoinSource::Position(position));
 		}
 	}
 

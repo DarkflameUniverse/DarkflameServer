@@ -207,7 +207,7 @@ void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 		inventoryComponent->RemoveItem(itemComp.currencyLOT, altCurrencyCost, eInventoryType::ALL);
 	}
 
-	character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR);
+	character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
 	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
 	SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
 }
@@ -278,7 +278,7 @@ void VendorComponent::SellToVendor(Entity& player, const SystemAddress& sysAddr,
 
 	MakeRoomInBuyback(*inv, *item, static_cast<uint32_t>(std::max(count, 0)));
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::SELL_SUCCESS);
 }
 
@@ -316,7 +316,7 @@ void VendorComponent::BuybackFromVendor(Entity& player, const SystemAddress& sys
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR);
+	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
 	//Game::entityManager->SerializeEntity(player); // so inventory updates
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_SUCCESS);
 }

@@ -177,8 +177,8 @@ void Trade::Complete() {
 
 	// Now actually do the trade. Nothing is created or destroyed, so the economy ledger records transfers instead.
 	EconomyLedger::ScopedItemTransfer transfer;
-	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::TRADE);
-	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::TRADE);
+	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::TRADE, CoinSource::Trade(m_TradeId));
+	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::TRADE, CoinSource::Trade(m_TradeId));
 
 	const auto zone = Game::server ? Game::server->GetZoneID() : 0;
 	const auto recordCoins = [zone](const uint64_t coins, const LWOOBJID from, const LWOOBJID to) {

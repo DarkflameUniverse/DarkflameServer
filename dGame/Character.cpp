@@ -590,7 +590,38 @@ const NiPoint3& Character::GetRespawnPoint(LWOMAPID map) const {
 	return pair->second;
 }
 
-void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
+CoinSource CoinSource::Object(const Entity& source) {
+	CoinSource coinSource;
+	coinSource.object = source.GetObjectID();
+	coinSource.lot = source.GetLOT();
+	return coinSource;
+}
+
+CoinSource CoinSource::Position(const NiPoint3& position) {
+	CoinSource coinSource;
+	coinSource.position = position;
+	return coinSource;
+}
+
+CoinSource CoinSource::Trade(const LWOOBJID tradeID) {
+	CoinSource coinSource;
+	coinSource.tradeID = tradeID;
+	return coinSource;
+}
+
+GameMessages::SetCurrency Character::MakeSetCurrency(const LWOOBJID player, const int64_t coins, const eLootSourceType coinSource, const CoinSource& source) {
+	GameMessages::SetCurrency setCurrency;
+	setCurrency.target = player;
+	setCurrency.currency = coins;
+	setCurrency.position = source.position;
+	setCurrency.sourceLOT = source.lot;
+	setCurrency.sourceID = source.object;
+	setCurrency.sourceTradeID = source.tradeID;
+	setCurrency.sourceType = coinSource;
+	return setCurrency;
+}
+
+void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource, const CoinSource& source) {
 	if (newCoins < 0) {
 		newCoins = 0;
 	}
@@ -600,15 +631,7 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 	m_Coins = newCoins;
 
 	auto* entity = Game::entityManager->GetEntity(m_ObjectID);
-	GameMessages::SetCurrency setCurrency;
-	setCurrency.target = entity->GetObjectID();
-	setCurrency.currency = m_Coins;
-	setCurrency.lootType = 0;
-	setCurrency.sourceLOT = 0;
-	setCurrency.sourceID = 0;
-	setCurrency.sourceTradeID = 0;
-	setCurrency.sourceType = lootSource;
-	setCurrency.SendToClient(entity->GetSystemAddress());
+	MakeSetCurrency(entity->GetObjectID(), m_Coins, lootSource, source).SendToClient(entity->GetSystemAddress());
 
 	// Live followed every coin gain with CurrencyCollected (the amount gained); losses had none
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
