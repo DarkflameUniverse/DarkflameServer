@@ -84,6 +84,36 @@ TEST(RawTerrainTests, ReadsEveryLayer) {
 	EXPECT_FLOAT_EQ(raw.maxBoundsX, 6.0f);
 }
 
+// Before version 32: a shader ID, a width x width BGRA color map the client keeps (width - 1) x (width - 1) of as RGBA,
+// a BGRA texture map, no light or blend maps, a (width x width) scene map in version 31 and none (all scene 0) before
+TEST(RawTerrainTests, ReadsOlderVersions) {
+	for (const uint16_t version : { 30, 31 }) {
+		RawWriter w;
+		w.Put<uint16_t>(version).Put<uint8_t>(0).Put<uint32_t>(1).Put<uint32_t>(1).Put<uint32_t>(1);
+		w.Put<uint32_t>(0).Put<uint32_t>(3).Put<uint32_t>(3).Put(0.0f).Put(0.0f);
+		w.Put<uint32_t>(7);
+		for (uint32_t texture : { 10u, 11u, 12u, 13u }) w.Put(texture);
+		w.Put(1.0f);
+		for (int i = 0; i < 9; i++) w.Put(0.0f);
+		for (int i = 0; i < 9; i++) w.Put<uint8_t>(1).Put<uint8_t>(2).Put<uint8_t>(3).Put<uint8_t>(static_cast<uint8_t>(i)); // BGRA
+		w.Put<uint32_t>(1).Put<uint8_t>(1).Put<uint8_t>(2).Put<uint8_t>(3).Put<uint8_t>(4);
+		w.Put<uint32_t>(0); // no flairs
+		if (version == 31) for (int i = 0; i < 9; i++) w.Put<uint8_t>(static_cast<uint8_t>(i));
+		else w.Put<uint8_t>(0);
+
+		Raw::Raw raw;
+		ASSERT_TRUE(Read(w.data, raw)) << version;
+		const auto& chunk = raw.chunks.at(0);
+		EXPECT_EQ(chunk.shaderId, 7u);
+		EXPECT_EQ(chunk.colorMapResolution, 2u);
+		// Rows 0-1, columns 0-1 of the 3 x 3, as RGBA
+		EXPECT_EQ(chunk.colorMap, (std::vector<uint8_t>{ 3, 2, 1, 0, 3, 2, 1, 1, 3, 2, 1, 3, 3, 2, 1, 4 }));
+		EXPECT_EQ(chunk.textureMap, (std::vector<uint8_t>{ 3, 2, 1, 4 }));
+		if (version == 31) EXPECT_EQ(chunk.sceneMap, (std::vector<uint8_t>{ 0, 1, 3, 4 }));
+		else EXPECT_EQ(chunk.sceneMap, (std::vector<uint8_t>(4, 0)));
+	}
+}
+
 TEST(RawTerrainTests, RejectsDamagedFiles) {
 	const auto raw = SampleRaw();
 	for (const size_t length : { size_t{ 0 }, size_t{ 2 }, size_t{ 20 }, raw.size() / 2, raw.size() - 1 }) {

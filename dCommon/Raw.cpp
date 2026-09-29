@@ -123,11 +123,6 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			const size_t width = static_cast<size_t>(chunk.width);
 			const size_t height = static_cast<size_t>(chunk.height);
 
-			if (width == 0 || height == 0) {
-				LOG("Chunk %u has invalid heightmap dimensions: width=%zu, height=%zu", chunk.id, width, height);
-				return false;
-			}
-
 			if (width > kMaxResolution || height > kMaxResolution) {
 				LOG("Chunk %u heightmap dimensions exceed maximum resolution %u: width=%zu, height=%zu", chunk.id, kMaxResolution, width, height);
 				return false;
@@ -147,7 +142,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			}
 
 			const size_t totalBytes = heightMapSize * elementSize;
-			if (totalBytes == 0 || totalBytes > kMaxBlobBytes) {
+			if (totalBytes > kMaxBlobBytes) {
 				LOG("Chunk %u heightmap total size invalid: bytes=%zu (max %zu)", chunk.id, totalBytes, kMaxBlobBytes);
 				return false;
 			}
@@ -165,7 +160,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			if (version >= 32) {
 				BinaryIO::BinaryRead(stream, chunk.colorMapResolution);
 			} else {
-				chunk.colorMapResolution = chunk.width - 1;
+				chunk.colorMapResolution = chunk.width > 0 ? chunk.width - 1 : 0; // no color map for a width of 0
 			}
 
 			if (chunk.colorMapResolution > kMaxResolution) {
@@ -181,14 +176,23 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				}
 				chunk.colorMap.resize(colorMapPixelCount);
 				stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(colorMapPixelCount));
-			} else {
+			} else if (chunk.width > 0) {
+				// width x width BGRA pixels, of which the client keeps the (width - 1) x (width - 1) before the last row and
+				// column, as RGBA (RAWReadColorandLightMaps)
 				const size_t legacyColorBytes = static_cast<size_t>(chunk.width) * chunk.width * 4;
 				if (legacyColorBytes > kMaxBlobBytes) {
 					LOG("Chunk legacy colorMap size %zu exceeds maximum %zu bytes", legacyColorBytes, kMaxBlobBytes);
 					return false;
 				}
-				chunk.colorMap.resize(legacyColorBytes);
-				stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(legacyColorBytes));
+				std::vector<uint8_t> pixels(legacyColorBytes);
+				stream.read(reinterpret_cast<char*>(pixels.data()), static_cast<std::streamsize>(legacyColorBytes));
+				chunk.colorMap.reserve(static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution * 4);
+				for (uint32_t y = 0; y < chunk.colorMapResolution; ++y) {
+					for (uint32_t x = 0; x < chunk.colorMapResolution; ++x) {
+						const auto* bgra = &pixels[(static_cast<size_t>(y) * chunk.width + x) * 4];
+						chunk.colorMap.insert(chunk.colorMap.end(), { bgra[2], bgra[1], bgra[0], bgra[3] });
+					}
+				}
 			}
 
 			if (stream.fail()) {
@@ -226,6 +230,10 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			}
 			chunk.textureMap.resize(textureMapPixelCount);
 			stream.read(reinterpret_cast<char*>(chunk.textureMap.data()), static_cast<std::streamsize>(textureMapPixelCount));
+			// Before version 32 the pixels are BGRA; the client keeps them as RGBA (0x0103aaf0)
+			if (version < 32) {
+				for (size_t i = 0; i + 3 < chunk.textureMap.size(); i += 4) std::swap(chunk.textureMap[i], chunk.textureMap[i + 2]);
+			}
 
 			if (stream.fail()) {
 				return false;
@@ -281,7 +289,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				chunk.sceneMap.resize(sceneMapSize);
 				stream.read(reinterpret_cast<char*>(chunk.sceneMap.data()), static_cast<std::streamsize>(sceneMapSize));
 			} else if (version == 31) {
-				const size_t sceneMapCells = static_cast<size_t>(chunk.colorMapResolution + 1) * (chunk.colorMapResolution + 1);
+				const size_t sceneMapCells = chunk.width > 0 ? static_cast<size_t>(chunk.colorMapResolution + 1) * (chunk.colorMapResolution + 1) : 0;
 				if (sceneMapCells > kMaxBlobBytes) {
 					LOG("Chunk v31 sceneMap size %zu exceeds maximum %zu bytes", sceneMapCells, kMaxBlobBytes);
 					return false;
@@ -295,7 +303,9 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 					}
 				}
 			} else {
+				// Before version 31 a chunk has no scene map, only a byte; the client's is all scene 0 (RAWReadSceneMap)
 				stream.seekg(1, std::ios::cur);
+				chunk.sceneMap.assign(static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution, 0);
 			}
 
 			if (stream.fail()) {
