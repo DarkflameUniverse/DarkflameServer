@@ -1,5 +1,6 @@
 #include "ZoneMessages.h"
 #include "MovementMessages.h"
+#include "MissionMessages.h"
 
 #include "BitStreamUtils.h"
 #include "CDClientManager.h"
@@ -173,6 +174,84 @@ namespace GameMessages {
 
 	bool ReadyForUpdates::Deserialize(RakNet::BitStream& bitStream) {
 		return bitStream.Read(objectID);
+	}
+
+	namespace {
+		template<typename Msg>
+		void WriteTransfer(RakNet::BitStream& bitStream, const Msg& msg, const bool first) {
+			bitStream.Write(first);
+			BitStreamUtils::WriteOptional<LWOCLONEID>(bitStream, msg.cloneID, 0);
+			BitStreamUtils::WriteOptional(bitStream, msg.posX, std::numeric_limits<float>::max());
+			BitStreamUtils::WriteOptional(bitStream, msg.posY, std::numeric_limits<float>::max());
+			BitStreamUtils::WriteOptional(bitStream, msg.posZ, std::numeric_limits<float>::max());
+			BitStreamUtils::WriteOptional(bitStream, msg.rotW, 1.0f);
+			BitStreamUtils::WriteOptional(bitStream, msg.rotX, 0.0f);
+			BitStreamUtils::WriteOptional(bitStream, msg.rotY, 0.0f);
+			BitStreamUtils::WriteOptional(bitStream, msg.rotZ, 0.0f);
+			BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, msg.spawnPoint);
+			bitStream.Write(msg.ucInstanceType);
+			BitStreamUtils::WriteOptional<LWOMAPID>(bitStream, msg.zoneID, 0);
+		}
+
+		template<typename Msg>
+		bool ReadTransfer(RakNet::BitStream& bitStream, Msg& msg, bool& first) {
+			VALIDATE_READ(bitStream.Read(first));
+			VALIDATE_READ(BitStreamUtils::ReadOptional<LWOCLONEID>(bitStream, msg.cloneID, 0));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.posX, std::numeric_limits<float>::max()));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.posY, std::numeric_limits<float>::max()));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.posZ, std::numeric_limits<float>::max()));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.rotW, 1.0f));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.rotX, 0.0f));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.rotY, 0.0f));
+			VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, msg.rotZ, 0.0f));
+			VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, msg.spawnPoint));
+			VALIDATE_READ(bitStream.Read(msg.ucInstanceType));
+			VALIDATE_READ(BitStreamUtils::ReadOptional<LWOMAPID>(bitStream, msg.zoneID, 0));
+			return true;
+		}
+	}
+
+	void TransferToZone::Serialize(RakNet::BitStream& bitStream) const {
+		WriteTransfer(bitStream, *this, bCheckTransferAllowed);
+	}
+
+	bool TransferToZone::Deserialize(RakNet::BitStream& bitStream) {
+		return ReadTransfer(bitStream, *this, bCheckTransferAllowed);
+	}
+
+	void TransferToZoneCheckedIM::Serialize(RakNet::BitStream& bitStream) const {
+		WriteTransfer(bitStream, *this, bIsThereaQueue);
+	}
+
+	bool TransferToZoneCheckedIM::Deserialize(RakNet::BitStream& bitStream) {
+		return ReadTransfer(bitStream, *this, bIsThereaQueue);
+	}
+
+	void SendZoneTransferNotice(const LWOOBJID player, const LWOMAPID zoneID, const LWOCLONEID cloneID, const std::u16string& spawnPoint, const SystemAddress& sysAddr) {
+		NotifyClientFlagChange flag;
+		flag.target = player;
+		flag.iFlagID = static_cast<uint32_t>(ePlayerFlag::BEGINNING_ZONE_SUMMARY_DISPLAYED);
+		flag.bFlag = true;
+		flag.SendToClient(sysAddr);
+
+		TransferToZone transfer;
+		transfer.target = player;
+		transfer.bCheckTransferAllowed = true;
+		transfer.cloneID = cloneID;
+		transfer.spawnPoint = spawnPoint;
+		transfer.zoneID = zoneID;
+		transfer.SendToClient(sysAddr);
+
+		TransferToZoneCheckedIM checked;
+		checked.target = player;
+		checked.bIsThereaQueue = false;
+		checked.cloneID = cloneID;
+		checked.spawnPoint = spawnPoint;
+		checked.zoneID = zoneID;
+		checked.SendToClient(sysAddr);
+
+		flag.bFlag = false;
+		flag.SendToClient(sysAddr);
 	}
 
 	void InvalidZoneTransferList::Serialize(RakNet::BitStream& bitStream) const {

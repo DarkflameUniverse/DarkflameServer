@@ -4,11 +4,63 @@
 #include "GameMessages.h"
 #include "eObjectWorldState.h"
 
+#include <limits>
 #include <string>
 
 // Game messages for a player's zone lifecycle: loading in, zone summaries, level ups, announcements.
 // Fields are listed in wire order; names follow the client (legouniverse.exe 1.10.64) where known.
 namespace GameMessages {
+	// Server -> client, to one client. The player is about to change zones. The client checks the map against its
+	// INVALIDMAPTRANSFERLIST (civilians only, when bCheckTransferAllowed). The optional fields are written only when
+	// they differ from the defaults below (the client's own invalid clone and map are 0).
+	struct TransferToZone : public NetGameMsg {
+		TransferToZone() : NetGameMsg(MessageType::Game::TRANSFER_TO_ZONE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		bool bCheckTransferAllowed{ false };
+		LWOCLONEID cloneID{ 0 }; // optional
+		float posX{ std::numeric_limits<float>::max() }; // optional
+		float posY{ std::numeric_limits<float>::max() }; // optional
+		float posZ{ std::numeric_limits<float>::max() }; // optional
+		float rotW{ 1.0f }; // optional
+		float rotX{ 0.0f }; // optional
+		float rotY{ 0.0f }; // optional
+		float rotZ{ 0.0f }; // optional
+		std::u16string spawnPoint{}; // u32 length prefixed
+		uint8_t ucInstanceType{};
+		LWOMAPID zoneID{ 0 }; // optional
+	};
+
+	// Server -> client, to one client. The transfer was checked: with no queue the client pauses the player's
+	// controls, shows the target zone's loading screen and leaves gameplay; with a queue it cancels the launch
+	// (LWOCharacterComponent, case TransferToZoneCheckedIM). Same layout as TransferToZone.
+	struct TransferToZoneCheckedIM : public NetGameMsg {
+		TransferToZoneCheckedIM() : NetGameMsg(MessageType::Game::TRANSFER_TO_ZONE_CHECKED_IM) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		bool bIsThereaQueue{ false };
+		LWOCLONEID cloneID{ 0 }; // optional
+		float posX{ std::numeric_limits<float>::max() }; // optional
+		float posY{ std::numeric_limits<float>::max() }; // optional
+		float posZ{ std::numeric_limits<float>::max() }; // optional
+		float rotW{ 1.0f }; // optional
+		float rotX{ 0.0f }; // optional
+		float rotY{ 0.0f }; // optional
+		float rotZ{ 0.0f }; // optional
+		std::u16string spawnPoint{}; // u32 length prefixed
+		uint8_t ucInstanceType{};
+		LWOMAPID zoneID{ 0 }; // optional
+	};
+
+	/**
+	 * What live sent right before TRANSFER_TO_WORLD when a player launched to another zone (131 captured launches):
+	 * player flag 32 set, TransferToZone (transfer check on), TransferToZoneCheckedIM (no queue), flag 32 cleared.
+	 * No position or rotation; the clone only for properties.
+	 */
+	void SendZoneTransferNotice(LWOOBJID player, LWOMAPID zoneID, LWOCLONEID cloneID, const std::u16string& spawnPoint, const SystemAddress& sysAddr);
+
 	// Client -> server. The client finished loading the zone and its player.
 	struct PlayerLoaded : public NetGameMsg {
 		PlayerLoaded() : NetGameMsg(MessageType::Game::PLAYER_LOADED) {}

@@ -13,6 +13,7 @@
 #include "MissionOfferComponent.h"
 #include "PlayerManager.h"
 #include "RocketLaunchpadControlComponent.h"
+#include "ZoneMessages.h"
 #include "ZoneInstanceManager.h"
 #include "dServer.h"
 #include "dZoneManager.h"
@@ -114,6 +115,8 @@ namespace GameMessages {
 					character->SetZoneInstance(zoneInstance);
 					character->SetZoneClone(zoneClone);
 				}
+
+				GameMessages::SendZoneTransferNotice(player->GetObjectID(), static_cast<LWOMAPID>(zoneID), zoneClone, character ? GeneralUtils::ASCIIToUTF16(character->GetTargetScene()) : u"", sysAddr);
 
 				ClientPackets::TransferToWorld transfer;
 				transfer.serverIP = LUString(serverIP);

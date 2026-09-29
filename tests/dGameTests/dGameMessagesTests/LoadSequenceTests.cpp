@@ -78,3 +78,40 @@ TEST_F(LoadSequenceTests, UnreadMailIsAnnouncedOnLoad) {
 		"53 05 00 31 00 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "
 		"00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00"), FromCapture(sent[0]));
 }
+
+// Live, right before TRANSFER_TO_WORLD on a rocket launch to Nimbus Station (spawn point MedPropLand): flag 32 on,
+// TransferToZone, TransferToZoneCheckedIM, flag 32 off, all to the launching client. Bytes: live with the player ID
+// replaced (the live UpdatePlayerStatistic between the first two is left out).
+TEST_F(LoadSequenceTests, ZoneTransferNoticeMatchesLive) {
+	const auto sent = Capture([&] { GameMessages::SendZoneTransferNotice(PLAYER, 1200, 0, u"MedPropLand", ClientAddress()); });
+	ASSERT_EQ(sent.size(), 4u);
+	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 01 00 00 00 00 00 00 10 d8 01 90 00 00 00 00", 177), FromCapture(sent[0]));
+	EXPECT_PACKET_EQ(FromHex(
+		"53 05 00 0c 00 00 00 00 01 00 00 00 00 00 00 10 04 02 80 05 80 00 00 26 80 32 80 32 00 28 00 39 00 37 80 38 00 "
+		"26 00 30 80 37 00 32 00 00 6c 01 00", 386), FromCapture(sent[1]));
+	EXPECT_PACKET_EQ(FromHex(
+		"53 05 00 0c 00 00 00 00 01 00 00 00 00 00 00 10 05 02 00 05 80 00 00 26 80 32 80 32 00 28 00 39 00 37 80 38 00 "
+		"26 00 30 80 37 00 32 00 00 6c 01 00", 386), FromCapture(sent[2]));
+	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 01 00 00 00 00 00 00 10 d8 01 10 00 00 00 00", 177), FromCapture(sent[3]));
+	for (const auto& packet : sent) {
+		EXPECT_EQ(packet.sysAddr, ClientAddress());
+		EXPECT_FALSE(packet.broadcast);
+	}
+}
+
+// A property launch carries the clone; the messages read back to what was sent.
+TEST_F(LoadSequenceTests, ZoneTransferCarriesThePropertyClone) {
+	const auto sent = Capture([&] { GameMessages::SendZoneTransferNotice(PLAYER, 1250, 545173, u"", ClientAddress()); });
+	const auto transfers = SentGameMessages<GameMessages::TransferToZone>(sent);
+	const auto checked = SentGameMessages<GameMessages::TransferToZoneCheckedIM>(sent);
+	ASSERT_EQ(transfers.size(), 1u);
+	ASSERT_EQ(checked.size(), 1u);
+	EXPECT_TRUE(transfers[0].bCheckTransferAllowed);
+	EXPECT_EQ(transfers[0].cloneID, 545173u);
+	EXPECT_EQ(transfers[0].zoneID, 1250);
+	EXPECT_FALSE(checked[0].bIsThereaQueue);
+	EXPECT_EQ(checked[0].cloneID, 545173u);
+	RoundTrip(transfers[0]);
+	RoundTrip(checked[0]);
+	ExpectTruncatedFails(transfers[0]);
+}
