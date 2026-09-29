@@ -777,7 +777,7 @@ it sends every 5 seconds with its workers, totals and storage), in the `server` 
 comes back, in the System Log (`UgcServer_*.log`) and crash dumps (`Crash_UgcServer_<start time>_<pid>.log` in `dump_folder`), and in
 Prometheus (`darkflame_ugc_up`, `darkflame_ugc_items`, `darkflame_server_ugc_*{server="ugc"}`). See docs/Dashboard.md.
 
-The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the new `ugc_manage` permission to make
+The UGC Server page (`/ugc`, **UGC** in the menu under Properties; `properties_view` to look, the new `ugc_manage` permission to make
 things again and to save icon values) reads the database: counts per state for models and for cars and rockets, and the
 items as a gallery of their icons or a list. Player models are listed one by one (owner, state, attempts, last attempt,
 bricks and triangles, file name, failure reason). Cars and rockets are listed as **assemblies**, one per combination of
@@ -786,24 +786,26 @@ columns and sorts (assemblies have no Saved): Icon, ID and Owner (an assembly's 
 many other owners), State (an assembly is made when any build of it is), Made, Took, CPU and RAM (an assembly's: the
 latest make of any of its builds, and the cost of the make the UGC server did for it; builds that shared the made icon
 cost nothing), Size (bricks and triangles; an assembly's module count), File (the file name; an assembly's build type,
-named after the type's assembly object in `ModularBuildComponent`, and its modules) and, for assemblies, how many builds
-and owners use it.
+named after the type's assembly object in `ModularBuildComponent`, and its modules) and Where: for a model where it is
+(below), for an assembly how many builds and owners use it. Owners link to their character and, with `accounts_view`,
+account.
 
 Both lists are paged on the server (`GET /api/ugc?kind=model|modular&q=&state=&type=&sort=&page=&size=`, with the
-total), with numbered pages, first and last, a page to jump to and a page size kept per user. The search box takes
+total; `where=1` adds each model's whereabouts; while searching, `matches` says how many of each kind match, shown on
+the kind buttons), with numbered pages, first and last, a page to jump to and a page size kept per user. The search box takes
 plain text (names, owners, ids) or field prefixes: `owner:`, `account:`, `property:`, `name:`, `lot:` or `module:` (a
 LOT, or for assemblies a module's name), `id:`, `state:` and `kind:` (a car or rocket type). Models sort by newest,
 oldest, most bricks, most triangles, recently made, slowest, most CPU, most RAM, most triangles saved, owner or file
 name; assemblies the same (most modules for most bricks, no triangles or saved) and by most builds. The kind,
 search, filters, sort, page and view are kept in the address, so Back and Forward and shared links work. The search
-is the UGC search's SQL (`UgcLookupSql`, the same on MySQL and SQLite, `IUgcLookup::ListUgc`); assemblies are grouped
+is `UgcLookupSql` (the same on MySQL and SQLite, `IUgcLookup::ListUgc`); assemblies are grouped
 from the builds (`UgcAssemblies`). Buttons make one item, the failed ones or everything again (these only reset the
 columns; the UGC server picks the rows up).
 
 An assembly opens with its modules, the icon editor and **References**: the builds that use it (`GET
 /api/ugc/assembly/builds?modules=&q=&page=`), with owner character and account, state and where each is (placed on a
-property, in a mail, in its creator's inventories; the same lookup as the UGC search), paged and searchable. A link
-to a build, `/ugc?item=<build id>&kind=modular` (what the UGC search and the character pages link to), opens its
+property, in a mail, in its creator's inventories; the same lookup as the models' Where), paged and searchable. A link
+to a build, `/ugc?item=<build id>&kind=modular` (what the property and character pages link to), opens its
 assembly (`GET /api/ugc/assembly/of/<id>`) with that build highlighted in References.
 
 **The icon editor** (on every opened item, and per type under **Icon presets per type**, which opens each type on an
@@ -848,16 +850,17 @@ were removed, vertices, shapes, timings, with the change since the version befor
 
 ### Finding creations and showing them elsewhere
 
-**UGC Search** (`/ugc_search`, in the menu under Properties, `properties_view`; `?q=` fills the search in) finds
-players' creations with `GET /api/ugc_links/search?q=`. A number matches the UGC / blueprint id, a placed model's
-object id, the property it is placed on, the creator's character or account id, or a LOT (a model placed as that LOT,
-or a car or rocket with that module); text matches the creator's character and account names, property names, the
-name and description a player gave a placed model and the upload's file name. `owner:`, `property:`, `model:`, `id:`
-and `lot:` search one field. Each result has its icon, state, creator and where it is: placed on a property (from
-`properties_contents`), attached to a mail (a car's or rocket's subkey, a model item's blueprint in the attachment's
-config) or in its creator's inventories (their saved XML); anything else is "Not found" (traded, sold or deleted).
+The UGC page's search is the one search for creations (it replaced the UGC Search page; `/ugc_search?q=` redirects
+to `/ugc?view=list&q=`). A number matches the UGC / blueprint id, a placed model's object id, the property it is placed
+on, the creator's character or account id, or a LOT (a model placed as that LOT, or a car or rocket with that module);
+text matches the creator's character and account names, property names, the name and description a player gave a
+placed model and the upload's file name. A model's Where (`UgcLinks::Whereabouts`) is where it is: placed on a property
+(from `properties_contents`, with the name the player gave it there and a link to that model in the property's 3D view),
+attached to a mail (a model item's blueprint in the attachment's config; for a car's or rocket's build, its subkey) or
+in its creator's inventories (their saved XML, looked at for the 25 first creators on a page); anything else is "Not
+found" (traded, sold or deleted). `GET /api/ugc_links/search?q=` (API) answers the same search for both kinds at once.
 
-Results, the property page and the character page link to a creation on the UGC page as
+The property page and the character page link to a creation on the UGC page as
 `/ugc?item=<id>&kind=model|modular`, for the page to open that item.
 
 What the UGC server made shows on the pages that show a creation, to whoever may view that page:

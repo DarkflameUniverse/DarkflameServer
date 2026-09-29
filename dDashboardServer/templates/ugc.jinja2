@@ -8,7 +8,8 @@
 		<h2 class="mb-1">UGC Server</h2>
 		<p class="text-body-secondary mb-0">The UGC server makes a mesh and an icon for every model players build, and icons for their cars and rockets,
 			and serves them to the game client. New and changed models are picked up by themselves; a model that fails is tried a few times, then left
-			as failed until it's made again from here. See <code>docs/UgcServer.md</code>.</p>
+			as failed until it's made again from here. The search finds creations by owner, account, property, the name players gave them, LOT or id,
+			and the List view says where each one is. See <code>docs/UgcServer.md</code>.</p>
 	</div>
 
 	<div class="row g-2 mb-3" id="counts"></div>
@@ -75,7 +76,7 @@
 	<div id="gallery" class="ugc-gallery mb-2"></div>
 	<div class="card d-none" id="listCard"><div class="card-body p-2">
 		<div id="modelTableBox"><table class="table table-sm align-middle mb-0 w-100 table-stack" id="ugcModelTable">
-			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Made</th><th>Took</th><th>CPU</th><th>RAM (est.)</th><th>Saved</th><th>Size</th><th>File</th><th></th></tr></thead></table></div>
+			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Made</th><th>Took</th><th>CPU</th><th>RAM (est.)</th><th>Saved</th><th>Size</th><th>File</th><th>Where</th><th></th></tr></thead></table></div>
 		<div id="assemblyTableBox" class="d-none"><table class="table table-sm align-middle mb-0 w-100 table-stack" id="ugcAssemblyTable">
 			<thead><tr><th>Icon</th><th>ID</th><th>Owner</th><th>State</th><th>Made</th><th>Took</th><th>CPU</th><th>RAM (est.)</th><th>Size</th><th>File</th><th>Where</th><th></th></tr></thead></table></div>
 	</div></div>
@@ -172,7 +173,7 @@
 					<div class="card-header py-2 small fw-semibold d-flex flex-wrap align-items-center gap-2">References <span class="text-body-secondary fw-normal">the builds that use these modules</span>
 						<input type="search" class="form-control form-control-sm ms-auto" style="max-width: 16rem" id="refSearch" placeholder="Owner, account, property or id" aria-label="Search the builds"></div>
 					<div class="card-body p-2"><table class="table table-sm small align-middle mb-0 w-100" id="refTable">
-						<thead><tr><th>Build (blueprint id)</th><th>Owner</th><th>Account</th><th>State</th><th>Made</th><th>Where it is</th><th></th></tr></thead></table></div>
+						<thead><tr><th>Build (blueprint id)</th><th>Owner</th><th>Account</th><th>State</th><th>Made</th><th>Where it is</th></tr></thead></table></div>
 				</div>
 			</div>
 		</div></div>

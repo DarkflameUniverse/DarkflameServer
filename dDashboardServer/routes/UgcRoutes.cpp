@@ -284,8 +284,8 @@ namespace UgcRoutes {
 			"it). Query: q= (\"state:\", \"kind:\"/\"type:\" (a build type, e.g. build6), \"owner:\", \"account:\", \"property:\", \"name:\", "
 			"\"lot:\"/\"module:\" (a LOT or a module's name), \"id:\", or plain text across names, owners and ids), state=, type=, sort=newest|oldest|owner|name|"
 			"bricks|triangles|slowest|made|cpu|memory|savings (models) or newest|oldest|owner|name|modules|made|slowest|cpu|memory|references (assemblies), "
-			"reverse=1 (the sort's other direction), page= (from 0), size= (1-200). {items, total, page, size, counts, totals, kinds, ugcPublicUrl, "
-			"canManage}",
+			"reverse=1 (the sort's other direction), page= (from 0), size= (1-200), where=1 (models: where each is, as an assembly's builds). {items, "
+			"total, page, size, counts, totals, matches: {model, modular} (while searching: how many of each kind match), kinds, ugcPublicUrl, canManage}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const bool modular = QueryValue(context.queryString, "kind") == "modular";
 				auto parsed = ParseListSearch(QueryValue(context.queryString, "q").substr(0, 100));
@@ -295,6 +295,7 @@ namespace UgcRoutes {
 				const auto size = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "size")).value_or(PAGE_SIZE), 1u, 200u);
 				const auto sortText = QueryValue(context.queryString, "sort");
 				const bool reverse = QueryValue(context.queryString, "reverse") == "1";
+				const bool where = QueryValue(context.queryString, "where") == "1";
 				const auto kinds = IconKinds();
 
 				// A page of models, and how many match
@@ -345,10 +346,21 @@ namespace UgcRoutes {
 
 				nlohmann::json items = nlohmann::json::array();
 				uint64_t total = 0;
+				nlohmann::json matches = nullptr;
+				const bool searching = !parsed.search.text.empty() || parsed.search.number.has_value();
 				if (!modular) {
 					const auto [entries, count] = models(page * size, size);
 					total = count;
-					for (const auto& entry : entries) items.push_back(EntryJson(entry));
+					const auto whereabouts = where ? UgcLinks::Whereabouts(entries) : std::map<LWOOBJID, nlohmann::json>{};
+					for (const auto& entry : entries) {
+						auto item = EntryJson(entry);
+						if (where) {
+							const auto found = whereabouts.find(entry.id);
+							item["where"] = found == whereabouts.end() ? nlohmann::json::array() : found->second;
+						}
+						items.push_back(std::move(item));
+					}
+					if (searching) matches = { { "model", total }, { "modular", assemblies().size() } };
 				} else {
 					const auto list = assemblies();
 					total = list.size();
@@ -370,11 +382,12 @@ namespace UgcRoutes {
 							{ "characterName", a.characterName }, { "accountId", a.accountId }, { "accountName", a.accountName }, { "processedAt", a.processedAt },
 							{ "processMs", a.processMs }, { "processCpuMs", a.processCpuMs }, { "processMemoryKb", a.processMemoryKb } });
 					}
+					if (searching) matches = { { "model", models(0, 1).second }, { "modular", total } };
 				}
 				JsonSuccess(reply, { { "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } },
 					{ "totals", { { "model", Totals(Database::Get()->GetUgcProcessTotals(false)) }, { "modular", Totals(Database::Get()->GetUgcProcessTotals(true)) } } },
 					{ "items", items }, { "total", total }, { "page", page }, { "size", size }, { "more", static_cast<uint64_t>(page + 1) * size < total }, { "kinds", kinds },
-					{ "ugcPublicUrl", Game::config->GetValue("ugc_public_url") }, { "canManage", Can(context, "ugc_manage") } });
+					{ "matches", matches }, { "ugcPublicUrl", Game::config->GetValue("ugc_public_url") }, { "canManage", Can(context, "ugc_manage") } });
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/assembly/builds", Perm("properties_view"),

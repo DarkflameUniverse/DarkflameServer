@@ -1,5 +1,6 @@
 #include "UgcLinks.h"
 
+#include <cctype>
 #include <map>
 #include <memory>
 #include <set>
@@ -24,6 +25,17 @@ namespace {
 	// Creators whose inventories a search looks in for creations that are not placed or mailed
 	constexpr size_t MAX_INVENTORIES = 25;
 
+
+	// A query value for an address: letters, digits and -._~ as they are, everything else %XX
+	std::string UrlEncode(std::string_view value) {
+		static constexpr char HEX[] = "0123456789ABCDEF";
+		std::string out;
+		for (const unsigned char c : value) {
+			if (std::isalnum(c) || c == '-' || c == '.' || c == '_' || c == '~') out += static_cast<char>(c);
+			else out += { '%', HEX[c >> 4], HEX[c & 15] };
+		}
+		return out;
+	}
 
 	// ---- Who may see a creation ----
 
@@ -128,9 +140,14 @@ namespace UgcLinks {
 	}
 
 	void RegisterRoutes() {
-		Route(eHTTPMethod::GET, "/ugc_search", Perm("properties_view"), "Find players' models, cars and rockets and where they are",
+		// The UGC page's lists replaced the search page: its links (?q=) open them with the search filled in
+		Route(eHTTPMethod::GET, "/ugc_search", Perm("properties_view"), "Moved: the UGC page's lists (/ugc?view=list&q=)",
 			[](HTTPReply& reply, const HTTPContext& context) {
-				RenderPage(reply, context, "ugc-search.jinja2", "ugc_search", { { "query", QueryValue(context.queryString, "q").substr(0, 100) } });
+				const auto query = QueryValue(context.queryString, "q").substr(0, 100);
+				reply.status = eHTTPStatusCode::FOUND;
+				reply.location = "/ugc?view=list" + (query.empty() ? std::string() : "&q=" + UrlEncode(query));
+				reply.message = "";
+				reply.contentType = eContentType::TEXT_HTML;
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc_links/search", Perm("properties_view"),

@@ -95,8 +95,11 @@
 			'<table class="table table-sm mb-0 small"><tbody>' + rows.map(function (r) { return '<tr><th class="fw-normal text-body-secondary">' + r[0] + '</th><td>' + r[1] + '</td></tr>'; }).join('') +
 			'</tbody></table></div></div></div>';
 	}
+	// The creator's character, and account for those who may see accounts
 	function owner(i) {
-		return i.characterName ? '<a href="/characters/' + esc(i.characterId) + '">' + esc(i.characterName) + '</a>' : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>';
+		var character = i.characterName ? '<a href="/characters/' + esc(i.characterId) + '">' + esc(i.characterName) + '</a>' : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>';
+		var account = i.accountId && i.accountName ? '<div class="small text-body-secondary">' + (DASH.can('accounts_view') ? fmt.link('/accounts/' + i.accountId, i.accountName) : esc(i.accountName)) + '</div>' : '';
+		return character + account;
 	}
 	function badge(state) { var s = STATES[state] || [state, 'secondary']; return fmt.badge(s[0], s[1]); }
 	// The id whose files show an item's icon: a model's own, an assembly's made build's (the UGC server finds its combination)
@@ -183,6 +186,7 @@
 			}, 'savings', true),
 			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
 			column('File', function (i) { return '<span class="small" title="' + esc(i.detail || '') + '">' + esc(fileName(i)) + '</span>' + errorText(i); }, 'name'),
+			column('Where', function (i) { return '<span class="small">' + whereText(i.where, i) + '</span>'; }),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })
 		]),
 		// The models' columns but Saved: an assembly's ID and owner are its newest build's, its size its modules, its
@@ -246,6 +250,11 @@
 				.map(function (k) { return '<option value="' + esc(k.kind) + '">' + esc(k.label) + '</option>'; }).join('');
 			$('typeFilter').value = list.type;
 		}
+		// While searching, how many of each kind match (the search looks in both)
+		$('kindButtons').querySelectorAll('[data-kind]').forEach(function (b) {
+			var count = d.matches ? d.matches[b.dataset.kind] : null;
+			b.textContent = (b.dataset.kind === 'modular' ? 'Cars and rockets' : 'Models') + (count === null || count === undefined ? '' : ' (' + Number(count).toLocaleString() + ')');
+		});
 		$('manageButtons').classList.toggle('d-none', !canManage);
 		$('cacheCard').classList.toggle('d-none', !canManage);
 		$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular) +
@@ -269,7 +278,7 @@
 			language: { emptyTable: 'Nothing here.', zeroRecords: 'Nothing matches.' },
 			ajax: function (data, callback) {
 				var size = data.length > 0 ? data.length : 200;
-				api.get('/api/ugc?' + filterQuery() + '&' + orderQuery(columns, data.order) + '&page=' + Math.floor(data.start / size) + '&size=' + size).then(function (d) {
+				api.get('/api/ugc?' + filterQuery() + '&' + orderQuery(columns, data.order) + '&page=' + Math.floor(data.start / size) + '&size=' + size + (kind === 'model' ? '&where=1' : '')).then(function (d) {
 					if (!d.success) { callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [], error: d.error || 'Failed' }); return; }
 					applyMeta(d);
 					if (list.kind === kind) items = d.items;
@@ -507,12 +516,22 @@
 	// ---- an assembly's references: the builds that use it, and where they are ----
 
 	var refs = null, refTimer = null;
-	function whereText(w) {
+	var INVENTORIES = { 5: 'Models', 12: 'Vault models', 14: 'Brick-building models' };
+	function inventoryName(type) { return (window.Labels && Labels.name('inventories', type)) || INVENTORIES[type] || 'Inventory ' + type; }
+	// Where a creation is: placed on a property (with the name the player gave it there, and its 3D view), in a mail or
+	// in its creator's inventories (`item`: the creation, for its creator's name)
+	function whereText(w, item) {
 		return (w || []).map(function (x) {
-			if (x.type === 'property') return 'On ' + fmt.property(x.propertyId, x.propertyName || 'property ' + x.propertyId) + (x.ownerName ? ' of ' + esc(x.ownerName) : '');
-			if (x.type === 'mail') return 'In a mail to <a href="/characters/' + esc(x.characterId) + '">' + esc(x.characterName || x.characterId) + '</a>';
-			return 'In the creator\'s ' + esc(x.inventory || 'inventory');
-		}).join('<br>') || '<span class="text-body-secondary">Not found placed, mailed or with its creator</span>';
+			if (x.type === 'property') {
+				// A model the player didn't name has the client's placeholder (Objects_<lot>_name)
+				var named = x.modelName && !/^Objects_\d+_name$/.test(x.modelName) ? ' as <span class="text-break">' + esc(x.modelName) + '</span>' : '';
+				return '<div>On ' + fmt.link('/properties/' + x.propertyId, x.propertyName || 'property ' + x.propertyId) + named +
+					(x.ownerName ? ' of ' + fmt.character(x.ownerId, x.ownerName) : '') +
+					(x.modelId ? ' <a href="/properties/' + esc(x.propertyId) + '/3d#model=' + esc(x.modelId) + '">3D</a>' : '') + '</div>';
+			}
+			if (x.type === 'mail') return '<div>In a mail to ' + fmt.character(x.characterId, x.characterName) + '</div>';
+			return '<div>In ' + (item && item.characterName ? fmt.character(x.characterId, item.characterName) + '\'s ' : 'the creator\'s ') + esc(inventoryName(x.inventory)) + '</div>';
+		}).join('') || '<span class="text-body-secondary" title="Not placed on a property, not in the mail and not in its creator\'s inventories: traded, sold or deleted">Not found</span>';
 	}
 	// The builds that use the open assembly: a server-side DataTable, made once and reloaded for each assembly. A
 	// linked build (refs.highlight) opens on the page holding it, marked.
@@ -522,8 +541,7 @@
 		column('Account', function (b) { return b.accountId ? '<a href="/accounts/' + esc(b.accountId) + '">' + esc(b.accountName || b.accountId) + '</a>' : ''; }, 'account'),
 		column('State', function (b) { return badge(b.state) + errorText(b); }, 'state'),
 		column('Made', function (b) { return '<span class="small">' + esc(madeText(b)) + '</span>'; }),
-		column('Where it is', function (b) { return whereText(b.where); }),
-		column('', function (b) { return '<div class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/ugc_search?q=' + encodeURIComponent('id:' + b.id) + '">Find</a></div>'; })
+		column('Where it is', function (b) { return whereText(b.where, b); })
 	];
 	var refTable = null;
 	function loadRefs() {

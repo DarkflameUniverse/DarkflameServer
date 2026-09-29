@@ -1073,7 +1073,8 @@ are time taken, so less is better.
 The property page's model list shows each model's icon: for a player-built model (or a car or rocket) the icon the UGC
 server made of it (the item's icon until it has), with its UGC state and a link to it on the UGC page. The character
 page's inventories (models, vault models and the brick building ones included) show creations the same way.
-**UGC Search** (`/ugc_search`, `properties_view`) finds creations and where they are: see docs/UgcServer.md.
+The **UGC** page (`/ugc`, `properties_view`) finds creations by owner, account, property, name, LOT or id and says where they are (it
+replaced the UGC Search page): see docs/UgcServer.md.
 
 **Today's Top Properties** (Properties page, permission `feature_properties`, default GM 5). The game's news screen has
 four "Today's Top Properties" slots, one per small property world: Block Yard, Nimbus Rock, Chantey Shanty and Raven
