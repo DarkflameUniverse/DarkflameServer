@@ -335,6 +335,18 @@ public:
 	uint64_t InsertChatMessage(const ChatMessage& message) override;
 	std::vector<ChatMessage> GetChatMessages(const ChatQuery& query) override;
 	uint64_t CountChatMessages(const ChatQuery& query) override;
+	std::vector<WhisperPartner> GetWhisperPartners(LWOOBJID characterId, uint32_t offset, uint32_t limit) override;
+	uint64_t CountWhisperPartners(LWOOBJID characterId) override;
+	std::vector<ChatTeam> GetChatTeams(LWOOBJID characterId, uint32_t offset, uint32_t limit) override;
+	uint64_t CountChatTeams(LWOOBJID characterId) override;
+	uint64_t InsertChatFlag(const ChatFlag& flag, const std::vector<uint64_t>& messageIds) override;
+	std::optional<ChatFlag> GetChatFlag(uint64_t id) override;
+	std::vector<ChatFlag> GetChatFlags(const ChatFlagQuery& query) override;
+	uint64_t CountChatFlags(const ChatFlagQuery& query) override;
+	bool UpdateChatFlag(uint64_t id, const std::string& status, const std::string& note, uint64_t playerReportId, int64_t time, const std::string& updatedBy) override;
+	void InsertChatFlagEvent(const ChatFlagEvent& event) override;
+	std::vector<ChatFlagEvent> GetChatFlagEvents(uint64_t flagId) override;
+	std::vector<std::pair<uint64_t, uint64_t>> GetFlaggedMessages(const std::vector<uint64_t>& messageIds) override;
 	void InsertModerationDecision(const std::string& kind, int64_t subjectId, const std::string& subject, bool approved, const std::string& reason, int64_t time) override;
 	nlohmann::json GetModerationDecisions(const std::string& kind, int64_t subjectId, uint32_t limit) override;
 	Totp GetTotp(uint32_t accountId) override;

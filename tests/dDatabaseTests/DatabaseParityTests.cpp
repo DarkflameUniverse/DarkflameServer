@@ -73,7 +73,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::GuildSummary, guild, memberCount, le
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::GuildPage, total, filtered, guilds);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IApiKeys::ApiKey, id, accountId, name, note, keyHash, keyPrefix, permissions, readOnly, allowedIps, allowedPaths, rateLimit, dailyQuota, createdAt, createdBy, issuedAt, expiresAt, revokedAt, revokedBy, lastUsedAt, lastIp, requestCount, quotaDay, dayCount);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ICharacterSnapshots::CharacterSnapshot, id, characterId, takenAt, reason, actor, size, hash, compressed);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatMessage, id, time, channel, senderId, senderName, accountId, recipientId, recipientName, zoneId, instanceId, cloneId, message, blocked);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatMessage, id, time, channel, senderId, senderName, accountId, recipientId, recipientName, zoneId, instanceId, cloneId, message, blocked, guildId, teamId, filtered);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::WhisperPartner, characterId, name, messages, firstTime, lastTime);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatTeam, teamId, messages, firstTime, lastTime, senders);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardAdmin::Webhook, id, name, url, format, events, secret, enabled, createdAt, lastSentAt, lastStatus, lastError);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardAdmin::Totp, encryptedSecret, enabledAt, lastStep);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardStats::Snapshot, accounts, accountsMaxId, characters, pendingNames, properties, pendingProperties, playKeys, bugReports, unresolvedBugReports, petNames, pendingPetNames, activityLogMaxId, chatLogMaxId, commandLogMaxId, auditLogMaxId, mailMaxId, openEconomyFlags, economyFlagsMaxId);
@@ -1459,30 +1461,50 @@ TEST_F(ParitySeeded, ChatLog) {
 		ids.push_back(db.InsertChatMessage({ 0, 1700000010, "whisper", CHAR_BOB, "Bob", 2, CHAR_ALICE, "Alice", 1100, 1, 0, "psst 100% secret", false }));
 		ids.push_back(db.InsertChatMessage({ 0, 1700000020, "zone", CHAR_BOB, "Bob", 2, 0, "", 1200, 0, 0, "bad word", true }));
 		ids.push_back(db.InsertChatMessage({ 0, 1700000030, "web", 0, "Dashboard", 0, 0, "", 0, 0, 0, "Server restarting", false }));
+		IChatLog::ChatMessage guild{ 0, 1700000040, "guild", CHAR_ALICE, "Alice", 1, 0, "", 1100, 1, 0, "guild hello", false };
+		guild.guildId = 7;
+		ids.push_back(db.InsertChatMessage(guild));
+		IChatLog::ChatMessage team{ 0, 1700000050, "team", CHAR_BOB, "Bob", 2, 0, "", 1100, 1, 0, "team darn", false };
+		team.teamId = 1700000000000001;
+		team.filtered = true;
+		ids.push_back(db.InsertChatMessage(team));
+		team.senderId = CHAR_ALICE; team.senderName = "Alice"; team.time = 1700000055; team.filtered = false; team.message = "team reply";
+		ids.push_back(db.InsertChatMessage(team));
+		ids.push_back(db.InsertChatMessage({ 0, 1700000060, "whisper", CHAR_ALICE, "Alice", 1, CHAR_BOB, "Bob", 1100, 1, 0, "reply to bob", false }));
+		ids.push_back(db.InsertChatMessage({ 0, 1700000070, "whisper", CHAR_ALICE, "Alice", 1, CHAR_GM, "GameMaster", 1100, 1, 0, "hi gm", false }));
 		return ids;
 	});
 	const auto queries = [] {
 		std::vector<std::pair<std::string, IChatLog::ChatQuery>> list;
 		IChatLog::ChatQuery query;
 		list.emplace_back("default", query);
-		query.includePrivate = true; list.emplace_back("private", query);
+		query.includePrivate = true; query.includeWhispers = true; list.emplace_back("private", query);
 		query.newestFirst = true; list.emplace_back("newest", query);
-		IChatLog::ChatQuery after; after.afterId = 1; after.includePrivate = true; list.emplace_back("after", after);
+		IChatLog::ChatQuery after; after.afterId = 1; after.includePrivate = true; after.includeWhispers = true; list.emplace_back("after", after);
 		IChatLog::ChatQuery channel; channel.channel = "zone"; list.emplace_back("channel", channel);
-		IChatLog::ChatQuery character; character.characterId = CHAR_ALICE; character.includePrivate = true; list.emplace_back("character", character);
+		IChatLog::ChatQuery character; character.characterId = CHAR_ALICE; character.includePrivate = true; character.includeWhispers = true; list.emplace_back("character", character);
 		IChatLog::ChatQuery account; account.accountId = 2; list.emplace_back("account", account);
 		IChatLog::ChatQuery zone; zone.zoneId = 1100; zone.instanceId = 1; list.emplace_back("zone", zone);
 		IChatLog::ChatQuery instance0; instance0.instanceId = 0; list.emplace_back("instance 0", instance0);
-		IChatLog::ChatQuery since; since.since = 1700000015; since.includePrivate = true; list.emplace_back("since", since);
-		IChatLog::ChatQuery search; search.search = "100%"; search.includePrivate = true; list.emplace_back("search percent", search);
-		IChatLog::ChatQuery searchName; searchName.search = "bob"; searchName.includePrivate = true; list.emplace_back("search name", searchName);
+		IChatLog::ChatQuery since; since.since = 1700000015; since.includePrivate = true; since.includeWhispers = true; list.emplace_back("since", since);
+		IChatLog::ChatQuery search; search.search = "100%"; search.includePrivate = true; search.includeWhispers = true; list.emplace_back("search percent", search);
+		IChatLog::ChatQuery searchName; searchName.search = "bob"; searchName.includePrivate = true; searchName.includeWhispers = true; list.emplace_back("search name", searchName);
 		IChatLog::ChatQuery blocked; blocked.blockedOnly = true; list.emplace_back("blocked", blocked);
-		IChatLog::ChatQuery page; page.limit = 1; page.offset = 1; page.includePrivate = true; list.emplace_back("page", page);
+		IChatLog::ChatQuery page; page.limit = 1; page.offset = 1; page.includePrivate = true; page.includeWhispers = true; list.emplace_back("page", page);
+		IChatLog::ChatQuery groupOnly; groupOnly.includePrivate = true; list.emplace_back("team and guild without whispers", groupOnly);
+		IChatLog::ChatQuery whispersOnly; whispersOnly.includeWhispers = true; list.emplace_back("whispers without team and guild", whispersOnly);
+		IChatLog::ChatQuery pair; pair.channel = "whisper"; pair.includeWhispers = true; pair.characterId = CHAR_ALICE; pair.otherCharacterId = CHAR_BOB; list.emplace_back("conversation", pair);
+		IChatLog::ChatQuery guildQ; guildQ.includePrivate = true; guildQ.guildId = 7; list.emplace_back("guild", guildQ);
+		IChatLog::ChatQuery teamQ; teamQ.includePrivate = true; teamQ.teamId = 1700000000000001; list.emplace_back("team", teamQ);
+		IChatLog::ChatQuery until; until.until = 1700000020; until.includePrivate = true; until.includeWhispers = true; list.emplace_back("until", until);
+		IChatLog::ChatQuery before; before.beforeId = 3; before.includePrivate = true; before.includeWhispers = true; before.newestFirst = true; list.emplace_back("before", before);
 		return list;
 	}();
 	for (const auto& [name, query] : queries) {
 		Both("GetChatMessages " + name, [&](GameDatabase& db) { return json{ db.GetChatMessages(query), db.CountChatMessages(query) }; });
 	}
+	Both("GetWhisperPartners", [](GameDatabase& db) { return json{ db.GetWhisperPartners(CHAR_ALICE, 0, 10), db.CountWhisperPartners(CHAR_ALICE), db.GetWhisperPartners(CHAR_ALICE, 1, 1), db.GetWhisperPartners(CHAR_GM, 0, 10) }; });
+	Both("GetChatTeams", [](GameDatabase& db) { return json{ db.GetChatTeams(0, 0, 10), db.CountChatTeams(0), db.GetChatTeams(CHAR_ALICE, 0, 10), db.CountChatTeams(CHAR_GM) }; });
 	Both("PruneLog chat", [](GameDatabase& db) { return db.PruneLog(IDashboardAdmin::eLog::CHAT, 1700000015); });
 	Both("GetDashboardSnapshot", [](GameDatabase& db) { return db.GetDashboardSnapshot(); });
 }
@@ -1632,7 +1654,7 @@ TEST_F(ParitySeeded, SearchEscaping) {
 	Both("GetShowcaseProperties wildcard search", [](GameDatabase& db) { IProperty::ShowcaseQuery query; query.search = "%"; return db.GetShowcaseProperties(query); });
 	Both("GetShowcaseProperties underscore search", [](GameDatabase& db) { IProperty::ShowcaseQuery query; query.search = "_"; return db.GetShowcaseProperties(query); });
 	Both("GetChatMessages wildcard search", [](GameDatabase& db) {
-		IChatLog::ChatQuery query; query.includePrivate = true;
+		IChatLog::ChatQuery query; query.includePrivate = true; query.includeWhispers = true;
 		json out = json::array();
 		for (const auto* text : { "%", "_", "!", "100%", "'" }) {
 			query.search = text;

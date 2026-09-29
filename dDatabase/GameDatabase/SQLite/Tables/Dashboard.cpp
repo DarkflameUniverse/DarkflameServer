@@ -26,7 +26,10 @@ namespace {
 		"(SELECT COALESCE(MAX(id), 0) FROM audit_log) AS audit_log_max_id, "
 		"(SELECT COALESCE(MAX(id), 0) FROM mail) AS mail_max_id, "
 		"(SELECT COUNT(*) FROM economy_flags WHERE status = 0) AS open_economy_flags, "
-		"(SELECT COALESCE(MAX(id), 0) FROM economy_flags) AS economy_flags_max_id;";
+		"(SELECT COALESCE(MAX(id), 0) FROM economy_flags) AS economy_flags_max_id, "
+		"(SELECT COUNT(*) FROM chat_flags WHERE status = 'open') AS open_chat_flags, "
+		"(SELECT COALESCE(MAX(id), 0) FROM chat_flags) AS chat_flags_max_id, "
+		"(SELECT COALESCE(MAX(updated_at), 0) FROM chat_flags) AS chat_flags_updated_at;";
 }
 
 namespace {
@@ -269,6 +272,9 @@ IDashboardStats::Snapshot SQLiteDatabase::GetDashboardSnapshot() {
 	snapshot.mailMaxId = result.getInt64Field("mail_max_id");
 	snapshot.openEconomyFlags = result.getInt64Field("open_economy_flags");
 	snapshot.economyFlagsMaxId = result.getInt64Field("economy_flags_max_id");
+	snapshot.openChatFlags = result.getInt64Field("open_chat_flags");
+	snapshot.chatFlagsMaxId = result.getInt64Field("chat_flags_max_id");
+	snapshot.chatFlagsUpdatedAt = result.getInt64Field("chat_flags_updated_at");
 	return snapshot;
 }
 

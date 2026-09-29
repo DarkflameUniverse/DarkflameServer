@@ -26,7 +26,10 @@ namespace {
 		"(SELECT COALESCE(MAX(id), 0) FROM audit_log) AS audit_log_max_id, "
 		"(SELECT COALESCE(MAX(id), 0) FROM mail) AS mail_max_id, "
 		"(SELECT COUNT(*) FROM economy_flags WHERE status = 0) AS open_economy_flags, "
-		"(SELECT COALESCE(MAX(id), 0) FROM economy_flags) AS economy_flags_max_id;";
+		"(SELECT COALESCE(MAX(id), 0) FROM economy_flags) AS economy_flags_max_id, "
+		"(SELECT COUNT(*) FROM chat_flags WHERE status = 'open') AS open_chat_flags, "
+		"(SELECT COALESCE(MAX(id), 0) FROM chat_flags) AS chat_flags_max_id, "
+		"(SELECT COALESCE(MAX(updated_at), 0) FROM chat_flags) AS chat_flags_updated_at;";
 }
 
 namespace {
@@ -264,6 +267,9 @@ IDashboardStats::Snapshot MySQLDatabase::GetDashboardSnapshot() {
 	snapshot.mailMaxId = result->getUInt64("mail_max_id");
 	snapshot.openEconomyFlags = result->getUInt64("open_economy_flags");
 	snapshot.economyFlagsMaxId = result->getUInt64("economy_flags_max_id");
+	snapshot.openChatFlags = result->getUInt64("open_chat_flags");
+	snapshot.chatFlagsMaxId = result->getUInt64("chat_flags_max_id");
+	snapshot.chatFlagsUpdatedAt = result->getUInt64("chat_flags_updated_at");
 	return snapshot;
 }
 

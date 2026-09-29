@@ -27,6 +27,9 @@ public:
 		uint64_t mailMaxId{};
 		uint64_t openEconomyFlags{};
 		uint64_t economyFlagsMaxId{};
+		uint64_t openChatFlags{};
+		uint64_t chatFlagsMaxId{};
+		uint64_t chatFlagsUpdatedAt{};
 
 		bool operator==(const Snapshot&) const = default;
 	};

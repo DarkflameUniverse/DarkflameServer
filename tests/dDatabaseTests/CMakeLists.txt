@@ -14,3 +14,19 @@ target_include_directories(dDatabaseTests PRIVATE
 target_link_libraries(dDatabaseTests ${COMMON_LIBRARIES} MariaDB::ConnCpp sqlite3 GTest::gtest_main)
 
 gtest_discover_tests(dDatabaseTests)
+
+# The chat history and chat flag tables on SQLite alone (no MariaDB/MySQL needed), so they always run.
+add_executable(dDatabaseSqliteTests "ChatHistorySqliteTests.cpp")
+
+target_include_directories(dDatabaseSqliteTests PRIVATE
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/MySQL"
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/SQLite"
+	"${PROJECT_SOURCE_DIR}/dNet"
+	"${PROJECT_SOURCE_DIR}/thirdparty/nlohmann"
+	"${PROJECT_SOURCE_DIR}/thirdparty/SQLite"
+)
+
+# dCommon uses raknet without linking it: link them as a group so the order of the static libraries does not matter
+target_link_libraries(dDatabaseSqliteTests glm::glm "dNet" "magic_enum" "$<LINK_GROUP:RESCAN,dDatabase,dDatabaseGame,dCommon,raknet>" MariaDB::ConnCpp sqlite3 GTest::gtest_main ${CMAKE_DL_LIBS})
+
+gtest_discover_tests(dDatabaseSqliteTests)
