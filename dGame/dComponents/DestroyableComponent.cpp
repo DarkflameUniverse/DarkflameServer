@@ -746,7 +746,9 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	GameMessages::Die die;
 	die.target = m_Parent->GetObjectID();
-	die.bClientDeath = isPlayer;
+	// Live never set client_death, players included (19,428 Die in the live captures). The client only uses it to
+	// match a death it already predicted locally (LWODestroyableComponent::msgDie).
+	die.bClientDeath = false;
 	die.bSpawnLoot = true;
 	die.deathType = deathType;
 	die.killType = killType;

@@ -6,6 +6,32 @@
 #include "Entity.h"
 #include "eReplicaComponentType.h"
 #include "eStateChangeType.h"
+#include "Character.h"
+#include "CharacterComponent.h"
+#include "CombatMessages.h"
+#include "PacketTestUtils.h"
+#include "dCommonVars.h"
+
+#include <optional>
+
+namespace {
+	// The first game message with this ID among captured packets, read into T.
+	template<typename T>
+	std::optional<T> FindGameMessage(const std::vector<CapturedPacket>& packets, const MessageType::Game id) {
+		for (const auto& packet : packets) {
+			RakNet::BitStream bitStream(const_cast<unsigned char*>(packet.bytes.data()), packet.bytes.size(), false);
+			bitStream.IgnoreBytes(8); // CLIENT GAME_MSG header
+			LWOOBJID target{};
+			MessageType::Game messageID{};
+			if (!bitStream.Read(target) || !bitStream.Read(messageID) || messageID != id) continue;
+			T msg;
+			if (!msg.Deserialize(bitStream)) continue;
+			msg.target = target;
+			return msg;
+		}
+		return std::nullopt;
+	}
+}
 
 class DestroyableTest : public GameDependenciesTest {
 protected:
@@ -554,4 +580,39 @@ TEST_F(DestroyableTest, DestroyableComponentDamageCooldownTest) {
 	destroyableComponent->SetDamageCooldownTimer(0.0f);
 	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 0.0f);
 	ASSERT_FALSE(destroyableComponent->IsCooldownImmune());
+}
+
+// Live Die never sets client_death (19,428 live Die, 452 of them players).
+TEST_F(DestroyableTest, DieDoesNotClaimAClientDeath) {
+	destroyableComponent->SetMaxArmor(0.0f);
+	const auto sent = PacketTestUtils::Capture([&] { destroyableComponent->Damage(UINT32_MAX, LWOOBJID_EMPTY); });
+	const auto die = FindGameMessage<GameMessages::Die>(sent, MessageType::Game::DIE);
+	ASSERT_TRUE(die.has_value());
+	EXPECT_EQ(die->target, baseEntity->GetObjectID());
+	EXPECT_FALSE(die->bClientDeath);
+	EXPECT_TRUE(die->bSpawnLoot);
+}
+
+TEST_F(DestroyableTest, PlayerDieDoesNotClaimAClientDeath) {
+	auto playerInfo = info;
+	playerInfo.lot = 1;
+	Entity player(0x1000000000000001LL, playerInfo);
+	Character character(1, nullptr);
+	player.SetCharacter(&character);
+	character.SetEntity(&player);
+	SystemAddress address;
+	address.binaryAddress = 0x0100007f;
+	address.port = 2003;
+	player.AddComponent<CharacterComponent>(-1, &character, address);
+	auto* destroyable = player.AddComponent<DestroyableComponent>(-1);
+	destroyable->SetMaxHealth(4.0f);
+	destroyable->SetHealth(4);
+	ASSERT_TRUE(player.IsPlayer());
+
+	const auto sent = PacketTestUtils::Capture([&] { destroyable->Smash(LWOOBJID_EMPTY); });
+	const auto die = FindGameMessage<GameMessages::Die>(sent, MessageType::Game::DIE);
+	ASSERT_TRUE(die.has_value());
+	EXPECT_EQ(die->target, player.GetObjectID());
+	EXPECT_FALSE(die->bClientDeath);
+	player.SetCharacter(nullptr);
 }
