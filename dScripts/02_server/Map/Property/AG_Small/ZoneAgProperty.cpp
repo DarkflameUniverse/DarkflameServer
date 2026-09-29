@@ -1,5 +1,6 @@
 #include "ZoneAgProperty.h"
 #include "GeneralUtils.h"
+#include "BossSpiderQueenEnemyServer.h"
 #include "EntityManager.h"
 #include "Character.h"
 #include "Entity.h"
@@ -133,6 +134,32 @@ void ZoneAgProperty::ProcessGroupObjects(Entity* self, const std::string& group)
 	}
 
 	spiderBoss->SetVar<LWOOBJID>(varName, objects.front()->GetObjectID());
+}
+
+void ZoneAgProperty::ProcessZoneVolumes(Entity* self) {
+	// Tells the Spider Queen which of the arena's zone volumes each player walks into, so her rapid fire sweeps
+	// start where the player is
+	for (const auto& group : self->GetVar<std::vector<std::string>>(ZoneVolumesGroup)) {
+		const auto volumes = Game::entityManager->GetEntitiesInGroup(group);
+		if (volumes.empty()) {
+			// Not spawned yet: look again shortly
+			self->AddTimer("ProcessGroupObj_ZoneVolumes", 0.3f);
+			return;
+		}
+
+		auto* const volume = volumes.front();
+		if (volume->GetVar<bool>(u"spiderBossSensor")) continue; // already reporting
+		volume->SetVar<bool>(u"spiderBossSensor", true);
+
+		volume->AddCollisionPhantomCallback([zoneID = self->GetObjectID(), group](Entity* target) {
+			auto* const zone = Game::entityManager->GetEntity(zoneID);
+			if (!zone) return;
+			auto* const spiderBoss = Game::entityManager->GetEntity(zone->GetVar<LWOOBJID>(u"SpiderBossID"));
+			if (!spiderBoss) return;
+			auto* const bossScript = dynamic_cast<BossSpiderQueenEnemyServer*>(spiderBoss->GetScript());
+			if (bossScript) bossScript->OnZoneVolumeEntered(spiderBoss, target, group);
+		});
+	}
 }
 
 void ZoneAgProperty::SpawnSpots(Entity* self) {
@@ -313,6 +340,8 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		ProcessGroupObjects(self, self->GetVar<std::string>(LandTargetGroup));
 	} else if (timerName == "ProcessGroupObj_ScreamEmitter") {
 		ProcessGroupObjects(self, self->GetVar<std::string>(SpiderScreamGroup));
+	} else if (timerName == "ProcessGroupObj_ZoneVolumes") {
+		ProcessZoneVolumes(self);
 	}
 }
 
@@ -431,7 +460,7 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 
 		ProcessGroupObjects(self, self->GetVar<std::string>(LandTargetGroup));
 		ProcessGroupObjects(self, self->GetVar<std::string>(SpiderScreamGroup));
-		//        ProcessGroupObjects(self, groups.ZoneVolumes);
+		ProcessZoneVolumes(self);
 	} else if (args == "CheckForPropertyOwner") {
 		sender->SetNetworkVar<std::string>(u"PropertyOwnerID", std::to_string(self->GetVar<LWOOBJID>(u"PropertyOwner")));
 	} else if (args == "ClearProperty") {

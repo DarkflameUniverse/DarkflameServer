@@ -112,6 +112,63 @@ TEST_F(SpiderQueenTest, TheMeleeSmashLocksTheSpecialsForItsLength) {
 	EXPECT_FALSE(boss->GetBoolean(u"bSpecialQueued"));
 }
 
+namespace {
+	// The arena's 16 rapid fire targets as the AG property map places them: target n has CWOrder n and CWOrder2
+	// (n + 8) mod 16 (1 to 16); ZoneNTargets holds the targets 2N-1, 2N and 2N+1 (target 1 again after 16), so
+	// neighbouring groups share their edge target. The object ID is 100 + CWOrder.
+	std::vector<BossSpiderQueenEnemyServer::RapidFireTarget> ArenaGroup(const std::string& group) {
+		const int32_t zone = group[4] - '0';
+		std::vector<BossSpiderQueenEnemyServer::RapidFireTarget> targets;
+		for (int32_t n = 2 * zone - 1; n <= 2 * zone + 1; n++) {
+			const int32_t cwOrder = (n - 1) % 16 + 1;
+			targets.push_back({ 100 + cwOrder, cwOrder, (cwOrder + 7) % 16 + 1 });
+		}
+		// The sweep sorts them; hand them over out of order
+		std::ranges::reverse(targets);
+		return targets;
+	}
+
+	std::vector<LWOOBJID> Ids(const std::vector<int32_t>& cwOrders) {
+		std::vector<LWOOBJID> ids;
+		for (const auto order : cwOrders) ids.push_back(100 + order);
+		return ids;
+	}
+}
+
+TEST_F(SpiderQueenTest, RapidFireSweepsTheThreeZonesAroundThePlayerClockwise) {
+	EXPECT_EQ(BossSpiderQueenEnemyServer::BuildRapidFireTargets("Zone5Vol", true, ArenaGroup), Ids({ 7, 8, 9, 10, 11, 12, 13 }));
+}
+
+TEST_F(SpiderQueenTest, RapidFireSweepsCounterClockwise) {
+	EXPECT_EQ(BossSpiderQueenEnemyServer::BuildRapidFireTargets("Zone5Vol", false, ArenaGroup), Ids({ 13, 12, 11, 10, 9, 8, 7 }));
+}
+
+TEST_F(SpiderQueenTest, RapidFireSweepsOverTheEdgeBetweenZonesEightAndOne) {
+	EXPECT_EQ(BossSpiderQueenEnemyServer::BuildRapidFireTargets("Zone1Vol", true, ArenaGroup), Ids({ 15, 16, 1, 2, 3, 4, 5 }));
+	EXPECT_EQ(BossSpiderQueenEnemyServer::BuildRapidFireTargets("Zone8Vol", false, ArenaGroup), Ids({ 3, 2, 1, 16, 15, 14, 13 }));
+	EXPECT_EQ(BossSpiderQueenEnemyServer::BuildRapidFireTargets("Zone2Vol", true, ArenaGroup), Ids({ 1, 2, 3, 4, 5, 6, 7 }));
+}
+
+TEST_F(SpiderQueenTest, ZoneVolumesTellTheBossWhereThePlayerIs) {
+	for (const auto& group : { "Zone1Vol", "Zone2Vol", "Zone3Vol", "Zone4Vol", "Zone5Vol", "Zone6Vol", "Zone7Vol", "Zone8Vol", "AggroVol", "TeleVol" }) {
+		Add(0x2000 + static_cast<LWOOBJID>(entities.size()), 14400, { group });
+	}
+	zone->SetVar<LWOOBJID>(u"SpiderBossID", BOSS);
+	zoneScript.ProcessZoneVolumes(zone);
+	zoneScript.ProcessZoneVolumes(zone); // asked again: each volume reports once
+	for (const auto& entity : entities) {
+		if (entity->GetGroups().size() == 1 && entity->GetGroups()[0].ends_with("Vol")) {
+			EXPECT_TRUE(entity->GetVar<bool>(u"spiderBossSensor"));
+		}
+	}
+}
+
+TEST_F(SpiderQueenTest, ZoneVolumesWaitForTheVolumesToSpawn) {
+	zoneScript.ProcessZoneVolumes(zone);
+	zone->Update(0.0f);
+	EXPECT_TRUE(zone->HasTimer("ProcessGroupObj_ZoneVolumes"));
+}
+
 TEST_F(SpiderQueenTest, NoSpecialsBeforeTheFirstWave) {
 	// Stage 1 has no special attack; the skill manager does nothing
 	const auto packets = Capture([&] { bossScript.SpiderSkillManager(boss, true); });

@@ -24,4 +24,5 @@ target_precompile_headers(dScriptsServerMapProperty REUSE_FROM dScriptsBase)
 target_include_directories(dScriptsServerMapProperty PUBLIC "."
 	"AG_Med"
 	"AG_Small"
-	"NS_Med")
+	"NS_Med"
+	"../../Enemy/AG") # the AG property zone reports zone volumes to the Spider Queen

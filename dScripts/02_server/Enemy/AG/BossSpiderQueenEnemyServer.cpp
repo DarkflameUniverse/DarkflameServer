@@ -20,6 +20,7 @@
 #include "PlayerManager.h"
 #include "eStateChangeType.h"
 
+#include <algorithm>
 #include <vector>
 
 //----------------------------------------------------------------
@@ -434,31 +435,83 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
-	const auto targets = self->GetTargetsInPhantom();
-
-	if (targets.empty()) {
-		LOG("Failed to find RFS targets");
-
+	// The sweep starts around a random player, from the zone volume that player last entered
+	const auto& players = PlayerManager::GetAllPlayers();
+	if (players.empty()) {
 		self->AddTimer("PollSpiderSkillManager", static_cast<float>(GeneralUtils::GenerateRandomNumber<int32_t>(s1DelayMin, s1DelayMax)));
-
 		return;
 	}
 
 	ToggleForSpecial(self, true);
 
-	const auto randomTarget = GeneralUtils::GenerateRandomNumber<int32_t>(0, targets.size() - 1);
+	const auto* const attackFocus = players[GeneralUtils::GenerateRandomNumber<size_t>(0, players.size() - 1)];
+	const auto inZone = inZoneTable.find(attackFocus->GetObjectID());
+	const auto& primaryZone = inZone != inZoneTable.end() ? inZone->second : defaultFacingZone;
 
-	auto attackFocus = targets[randomTarget];
+	// Clockwise or counter-clockwise at random
+	const bool clockwise = GeneralUtils::GenerateRandomNumber<int32_t>(1, 2) == 1;
 
-	attackTargetTable.push_back(attackFocus);
+	attackTargetTable = BuildRapidFireTargets(primaryZone, clockwise, [](const std::string& group) {
+		std::vector<RapidFireTarget> targets;
+		for (auto* const target : Game::entityManager->GetEntitiesInGroup(group)) {
+			targets.push_back({ target->GetObjectID(), target->GetVar<int32_t>(u"CWOrder"), target->GetVar<int32_t>(u"CWOrder2") });
+		}
+		return targets;
+	});
 
+	// Turn towards the fourth target, then shoot every target in turn
 	auto* skillComponent = self->GetComponent<SkillComponent>();
-
-	skillComponent->CalculateBehavior(1480, 36652, attackFocus, true);
+	skillComponent->CalculateBehavior(1480, 36652, attackTargetTable.size() >= 4 ? attackTargetTable[3] : LWOOBJID_EMPTY, true);
 
 	RapidFireShooterManager(self);
 
-	PlayAnimAndReturnTime(self, spiderSingleShot);
+	PlayAnimAndReturnTime(self, clockwise ? spiderShootRght : spiderShootLeft);
+}
+
+std::vector<LWOOBJID> BossSpiderQueenEnemyServer::BuildRapidFireTargets(const std::string& primaryZone, const bool clockwise,
+	const std::function<std::vector<RapidFireTarget>(const std::string& group)>& groupTargets) {
+	std::vector<LWOOBJID> attackTargets;
+
+	const auto zoneGroups = rapidFireTargetTable.find(primaryZone);
+	if (zoneGroups == rapidFireTargetTable.end()) return attackTargets;
+
+	const auto& groups = zoneGroups->second;
+	const auto& primaryGroup = clockwise ? groups[0] : groups[2];
+	const auto& secondaryGroup = groups[1];
+	const auto& tertiaryGroup = clockwise ? groups[2] : groups[0];
+
+	// Zones 8 and 1 meet where CWOrder starts again; sweeps over that edge sort by CWOrder2
+	const bool crossesStart = std::ranges::any_of(groups, [](const std::string& group) {
+		return group == "Zone1Targets" || group == "Zone8Targets";
+	});
+
+	for (const auto* const group : { &primaryGroup, &secondaryGroup, &tertiaryGroup }) {
+		auto targets = groupTargets(*group);
+		std::ranges::stable_sort(targets, [crossesStart, clockwise](const RapidFireTarget& a, const RapidFireTarget& b) {
+			const auto orderA = crossesStart ? a.cwOrder2 : a.cwOrder;
+			const auto orderB = crossesStart ? b.cwOrder2 : b.cwOrder;
+			return clockwise ? orderA < orderB : orderA > orderB;
+		});
+
+		// The middle group leaves out its first and last target
+		const bool isSecondary = group == &secondaryGroup;
+		for (size_t i = 0; i < targets.size(); i++) {
+			if (isSecondary && (i == 0 || i == targets.size() - 1)) continue;
+			attackTargets.push_back(targets[i].id);
+		}
+	}
+
+	return attackTargets;
+}
+
+void BossSpiderQueenEnemyServer::OnZoneVolumeEntered(Entity* self, Entity* player, const std::string& volumeGroup) {
+	if (!player || !player->IsPlayer()) return;
+
+	// The aggro volume is not a quadrant (the boss's aggro uses her proximity radius)
+	if (volumeGroup == "AggroVol") return;
+
+	// A teleported player faces the default zone
+	inZoneTable[player->GetObjectID()] = volumeGroup == "TeleVol" ? defaultFacingZone : volumeGroup;
 }
 
 void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string timerName) {

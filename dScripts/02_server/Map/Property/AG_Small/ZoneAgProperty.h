@@ -31,6 +31,7 @@ public:
 	void LoadProperty(Entity* self);
 
 	void ProcessGroupObjects(Entity* self, const std::string& group);
+	void ProcessZoneVolumes(Entity* self);
 
 	void SpawnSpots(Entity* self) override;
 	void KillSpots(Entity* self) override;

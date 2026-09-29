@@ -1,6 +1,9 @@
 #pragma once
 #include "CppScripts.h"
 
+#include <functional>
+#include <map>
+
 /*
 --------------------------------------------------------------
 
@@ -49,6 +52,22 @@ public:
 
 	void RunRapidFireShooter(Entity* self);
 
+	// A target of the rapid fire shooter (groups Zone1Targets..Zone8Targets) and its clockwise order in the arena
+	struct RapidFireTarget {
+		LWOOBJID id = LWOOBJID_EMPTY;
+		int32_t cwOrder = 0;
+		int32_t cwOrder2 = 0; // the order where the sweep crosses between zones 8 and 1
+	};
+
+	// The rapid fire shooter's targets for a player in primaryZone (Zone1Vol..Zone8Vol), as the live script builds
+	// them: the three target groups around that zone, each sorted in the sweep direction, without the first and last
+	// target of the middle group
+	static std::vector<LWOOBJID> BuildRapidFireTargets(const std::string& primaryZone, bool clockwise,
+		const std::function<std::vector<RapidFireTarget>(const std::string& group)>& groupTargets);
+
+	// A player touched one of the arena's zone volumes (group Zone1Vol..Zone8Vol, AggroVol or TeleVol)
+	void OnZoneVolumeEntered(Entity* self, Entity* player, const std::string& volumeGroup);
+
 	float PlayAnimAndReturnTime(Entity* self, const std::u16string& animId);
 
 	void OnTimerDone(Entity* self, std::string timerName) override;
@@ -89,8 +108,7 @@ private:
 	std::vector<LWOOBJID> hatchList = {};	//Global list maintaining a record of all the eggs we have prepped to hatch for a wave
 
 	const std::string defaultFacingZone = "Zone3Vol";	//Maintains a default facing to ensure appropriate Spider Boss positioning for teleported players
-	std::vector<int> inZoneTable = {};					//Keeps track through player ID index what quadrant of the zone the player is in now
-	std::vector<int> fromZoneTable = {};				//Keeps track through player ID index what quadrant of the zone the player was last in
+	std::map<LWOOBJID, std::string> inZoneTable;		//Keeps track through player ID index what quadrant of the zone the player is in now
 
 	const float defaultAnimPause = 2.5f;							//Default period of time to pause between missing animation actions
 	const std::u16string spiderJeerAnim = u"taunt";					//Animation Spider Boss plays to antagonize the player
@@ -120,7 +138,7 @@ private:
 	const unsigned int instanceMissionID = 1941;			//Achievement to update for beating the instanced Boss
 
 	//Establishes a link for the Spider to identify rapid fire targets based on zone reference
-	const std::map<std::string, std::vector<std::string>> rapidFireTargetTable = {
+	static inline const std::map<std::string, std::vector<std::string>> rapidFireTargetTable = {
 		{"Zone1Vol", {"Zone8Targets", "Zone1Targets", "Zone2Targets"}},
 		{"Zone2Vol", {"Zone1Targets", "Zone2Targets", "Zone3Targets"}},
 		{"Zone3Vol", {"Zone2Targets", "Zone3Targets", "Zone4Targets"}},
