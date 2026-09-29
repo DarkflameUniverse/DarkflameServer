@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <map>
 #include <functional>
 #include <tuple>
@@ -218,6 +219,11 @@ public:
 	std::unordered_map<eReplicaComponentType, Component*>& GetComponents() { return m_Components; } // TODO: Remove
 
 	void WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacketType packetType);
+
+	// Milliseconds since this object was created on this server (the construction's time_since_created_on_server).
+	uint32_t GetTimeSinceCreatedMs() const {
+		return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_CreationTime).count());
+	}
 	void WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) const;
 	void UpdateXMLDoc(tinyxml2::XMLDocument& doc);
 	void Update(float deltaTime);
@@ -432,6 +438,9 @@ private:
 	int8_t m_Observers = 0;
 
 	bool m_IsParentChildDirty = true;
+
+	// When this object was created on this server. Construction sends its age from this, as live did.
+	std::chrono::steady_clock::time_point m_CreationTime = std::chrono::steady_clock::now();
 
 	bool m_IsSleeping = false;
 

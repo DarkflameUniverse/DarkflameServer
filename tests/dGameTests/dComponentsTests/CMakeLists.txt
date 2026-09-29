@@ -15,6 +15,7 @@ set(DCOMPONENTS_TESTS
 	"ReplicaComponentOrderTests.cpp"
 	"QuickBuildCompleteTests.cpp"
 	"RocketLaunchTests.cpp"
+	"ReplicaConstructionTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

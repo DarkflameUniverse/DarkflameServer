@@ -997,7 +997,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		outBitStream.Write<uint8_t>(name.size());
 		outBitStream.Write(name);
 
-		outBitStream.Write<uint32_t>(0); //Time since created on server
+		// Live sent the object's age on this server in milliseconds: 0 for an object constructed as it is created
+		// (a player's own construction on load), the time since load for zone objects.
+		outBitStream.Write<uint32_t>(GetTimeSinceCreatedMs());
 
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
