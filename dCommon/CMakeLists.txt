@@ -88,7 +88,27 @@ else ()
 	)
 endif ()
 
+# Build identifier (BuildInfo.h). The generator runs on every build but only rewrites BuildInfo.cpp when the
+# commit, branch, dirty state or build kind changed, so only that one file recompiles.
+set(BUILDINFO_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/BuildInfo.cpp")
+add_custom_target(BuildInfoGenerate
+	COMMAND "${CMAKE_COMMAND}"
+		"-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+		"-DTEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.cpp.in"
+		"-DOUTPUT=${BUILDINFO_SOURCE}"
+		"-DVERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
+		"-DVERSION_MINOR=${PROJECT_VERSION_MINOR}"
+		"-DVERSION_PATCH=${PROJECT_VERSION_PATCH}"
+		-P "${PROJECT_SOURCE_DIR}/cmake/BuildInfo.cmake"
+	BYPRODUCTS "${BUILDINFO_SOURCE}"
+	COMMENT "Checking build identifier"
+	VERBATIM
+)
+add_library(dBuildInfo STATIC "${BUILDINFO_SOURCE}")
+target_include_directories(dBuildInfo PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+add_dependencies(dBuildInfo BuildInfoGenerate)
+
 target_link_libraries(dCommon
-	PUBLIC glm::glm
+	PUBLIC glm::glm dBuildInfo
 	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
 	INTERFACE dDatabase)
