@@ -211,7 +211,7 @@ namespace {
 		std::vector<std::tuple<std::optional<eLog>, std::string, int64_t>> logs;
 		for (const auto& [log, key, fallback] : { std::tuple{ std::optional(eLog::ACTIVITY), "log_activity_days", 365 },
 			std::tuple{ std::optional(eLog::COMMAND), "log_command_days", 365 }, std::tuple{ std::optional(eLog::AUDIT), "log_audit_days", 730 },
-			std::tuple{ std::optional(eLog::CHEAT_DETECTION), "log_cheat_detection_days", 365 }, std::tuple{ std::optional(eLog::CHAT), "log_chat_days", 90 },
+			std::tuple{ std::optional(eLog::CHEAT_DETECTION), "log_cheat_detection_days", 365 }, std::tuple{ std::optional(eLog::CHAT), "log_chat_days", 30 },
 			std::tuple{ std::optional(eLog::LOGIN_ADDRESS), "log_login_address_days", 90 },
 			std::tuple{ std::optional<eLog>(), "log_task_days", 90 },
 			std::tuple{ std::optional<eLog>(), "health_days", 30 },

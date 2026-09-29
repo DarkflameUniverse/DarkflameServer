@@ -407,7 +407,7 @@ namespace {
 		c.Add(Days("log_audit_days", "Audit log", "", "730"));
 		c.Add(Days("log_cheat_detection_days", "Cheat detections", "", "365"));
 		c.Add(Days("log_task_days", "Scheduled task runs", "", "90"));
-		c.Add(Days("log_chat_days", "Chat log", "", "90"));
+		c.Add(Days("log_chat_days", "Chat log", "Every message players sent (zone, whispers, team and guild chat). Chat flags keep a copy of what they flagged.", "30"));
 		c.Add(Days("log_login_address_days", "Login addresses", "Addresses an account hasn't logged in from for this long are forgotten.", "90"));
 		c.Add(Days("health_days", "Server health history", "Minute-by-minute player counts and uptime.", "30"));
 		c.Add(Days("traffic_days", "Server traffic history", "Minute-by-minute packets, bytes and HTTP requests of every server (Diagnostics). The last hour at one second is only kept in memory.", "30"));
