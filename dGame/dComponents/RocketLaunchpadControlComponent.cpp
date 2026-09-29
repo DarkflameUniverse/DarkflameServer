@@ -45,7 +45,14 @@ RocketLaunchpadControlComponent::~RocketLaunchpadControlComponent() {
 	delete m_AltPrecondition;
 }
 
-void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId, LWOCLONEID cloneId) {
+GameMessages::FireEventClientSide RocketLaunchpadControlComponent::MakeRocketEquipped(const LWOOBJID launchpad, const LWOOBJID rocket, const LWOOBJID player, const LWOCLONEID cloneId, const int32_t worldIndex) {
+	GameMessages::FireEventClientSide rocketEquipped(launchpad, u"RocketEquipped", rocket, player);
+	if (cloneId != LWOCLONEID_INVALID) rocketEquipped.param1 = cloneId;
+	rocketEquipped.param2 = worldIndex;
+	return rocketEquipped;
+}
+
+void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId, LWOCLONEID cloneId, int32_t worldIndex) {
 	auto zone = mapId == LWOMAPID_INVALID ? m_TargetZone : mapId;
 
 	if (zone == 0) {
@@ -79,7 +86,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
 	// Equipping the rocket (RocketEquip) sent ChangeObjectWorldState(ATTACHED); live sent it before this event
-	GameMessages::FireEventClientSide(m_Parent->GetObjectID(), u"RocketEquipped", rocket->GetId(), originator->GetObjectID()).SendToClient(originator->GetSystemAddress());
+	MakeRocketEquipped(m_Parent->GetObjectID(), rocket->GetId(), originator->GetObjectID(), cloneId, worldIndex).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(originator);
 }

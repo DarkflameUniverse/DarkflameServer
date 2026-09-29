@@ -11,6 +11,10 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+namespace GameMessages {
+	struct FireEventClientSide;
+}
+
 class PreconditionExpression;
 
 /**
@@ -28,8 +32,17 @@ public:
 	 * @param originator the entity to launch
 	 * @param mapId the world to go to
 	 * @param cloneId the clone ID (for properties)
+	 * @param worldIndex which of a LUP entrance's worlds was picked, -1 otherwise
 	 */
-	void Launch(Entity* originator, LWOMAPID mapId = LWOMAPID_INVALID, LWOCLONEID cloneId = LWOCLONEID_INVALID);
+	void Launch(Entity* originator, LWOMAPID mapId = LWOMAPID_INVALID, LWOCLONEID cloneId = LWOCLONEID_INVALID, int32_t worldIndex = -1);
+
+	/**
+	 * The "RocketEquipped" event live sent from the launchpad to every client in the zone when a player launched
+	 * (1,196 of the 1,265 captured were other players' launches): it plays the launch for that player on every
+	 * client (LWORocketLaunchComponentCommon::msgFireEventClientSide). param1 is the property clone (0 is left out),
+	 * param2 the picked LUP world index (-1 is left out).
+	 */
+	static GameMessages::FireEventClientSide MakeRocketEquipped(LWOOBJID launchpad, LWOOBJID rocket, LWOOBJID player, LWOCLONEID cloneId, int32_t worldIndex);
 
 	/**
 	 * Handles an OnUse event from some entity, preparing it for launch to some other world

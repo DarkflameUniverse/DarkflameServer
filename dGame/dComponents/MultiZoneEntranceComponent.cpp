@@ -34,5 +34,5 @@ void MultiZoneEntranceComponent::OnSelectWorld(Entity* originator, uint32_t inde
 	auto* rocketLaunchpadControlComponent = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketLaunchpadControlComponent || index >= m_LUPWorlds.size()) return;
 
-	rocketLaunchpadControlComponent->Launch(originator, m_LUPWorlds[index], 0);
+	rocketLaunchpadControlComponent->Launch(originator, m_LUPWorlds[index], 0, static_cast<int32_t>(index));
 }
