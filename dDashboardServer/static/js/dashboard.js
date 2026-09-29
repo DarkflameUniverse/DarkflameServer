@@ -189,7 +189,10 @@
 		button.type = 'button';
 		button.className = 'btn btn-sm btn-primary';
 		button.textContent = 'Refresh';
-		button.addEventListener('click', reloadKeepingScroll);
+		button.addEventListener('click', function () {
+			banner.remove();
+			if (window.Nav) Nav.refresh({ force: true }); else reloadKeepingScroll();
+		});
 		banner.append(text, button);
 		document.body.appendChild(banner);
 	}
@@ -237,15 +240,19 @@
 			Live.on(table, throttle(function () { if (generation === pageGeneration) dataTable.ajax.reload(null, false); }, RELOAD_THROTTLE_MS));
 		},
 		/**
-		 * For server-rendered pages about one row: reload the page when that row changes in any of the given tables
-		 * (or any row, with anyRow). If the user is typing or has a dialog open, offer a refresh instead.
+		 * For server-rendered pages about one row: update the page in place when that row changes in any of the given
+		 * tables (or any row, with anyRow). Nav.refresh patches only what the server shows differently, so what is being
+		 * typed stays; where it can't (the page would be rebuilt) and the user is busy, it offers a refresh instead.
+		 * Without nav.js the page reloads, or offers a refresh while the user is busy.
 		 */
 		refreshPage: function (tables, id, options) {
 			options = options || {};
 			var generation = pageGeneration;
 			var refresh = throttle(function () {
 				if (generation !== pageGeneration) return;
-				if (isBusy()) showStaleBanner(); else reloadKeepingScroll();
+				if (window.Nav) Nav.refresh();
+				else if (isBusy()) showStaleBanner();
+				else reloadKeepingScroll();
 			}, PAGE_REFRESH_MIN_MS);
 			[].concat(tables).forEach(function (table) {
 				Live.on(table, function (e) {
@@ -254,6 +261,8 @@
 			});
 		},
 		throttle: throttle,
+		isBusy: isBusy,
+		showStaleBanner: showStaleBanner,
 		onStatus: function (cb) { statusWatchers.push(cb); },
 		// Forget what the page registered (nav.js, when it swaps in another page). Topics only it asked for are dropped.
 		resetPage: function () {

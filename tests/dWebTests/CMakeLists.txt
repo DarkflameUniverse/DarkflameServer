@@ -94,7 +94,7 @@ if(NODE_EXECUTABLE)
 	# The sidebar's saved group state (the script at the end of templates/header.jinja2)
 	add_test(NAME SidebarStateJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/sidebar-state.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/templates/header.jinja2")
-	# Which links the dashboard follows without a reload (static/js/nav.js)
+	# Which links the dashboard follows without a reload, and its in-place update rules (static/js/nav.js)
 	add_test(NAME NavRulesJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/nav.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/nav.js")
 endif()

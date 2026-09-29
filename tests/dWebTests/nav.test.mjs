@@ -1,4 +1,4 @@
-// Which links the dashboard follows without a reload (static/js/nav.js).
+// Which links the dashboard follows without a reload, and the rules its in-place updates use (static/js/nav.js).
 // Run by ctest: node nav.test.mjs <nav.js>
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -57,6 +57,11 @@ same(R.sameKeys(['DIV#a', '#3', 'P'], ['DIV#a', '#3', 'P']), true, 'same keys');
 same(R.sameKeys(['DIV#a', 'P'], ['DIV#a', '#3', 'P']), false, 'one more');
 same(R.sameKeys(['DIV#a'], ['DIV#b']), false, 'other id');
 same(R.sameKeys([], []), true, 'empty');
+
+// A server class change touches only the classes the server changed, not those scripts added
+same(R.classChanges('badge text-bg-warning', 'badge text-bg-success'), { remove: ['text-bg-warning'], add: ['text-bg-success'] }, 'badge colour');
+same(R.classChanges('', 'a  b'), { remove: [], add: ['a', 'b'] }, 'from nothing');
+same(R.classChanges(null, null), { remove: [], add: [] }, 'nothing');
 
 if (failures) {
 	console.error(`${failures} failure(s)`);

@@ -360,8 +360,9 @@ reports are kept as the record of what happened.
 ## Live updates
 
 Pages update on their own: world servers tell the dashboard (through master) as soon as they write something it shows,
-and it pushes that to open browsers. Pages about one thing (a character, an account) reload in place when it changes,
-unless you're typing, in which case they offer a refresh instead.
+and it pushes that to open browsers. Pages about one thing (a character, an account) update in place when it changes:
+only the parts the server now shows differently change, and what you're typing stays. When the page can't be patched
+that way (its layout changed) and you're typing, it offers a refresh instead.
 
 Moving between pages doesn't reload the dashboard: the next page is fetched and swapped in, and the menu, the top bar
 and the live connection stay. A thin bar at the top shows while it loads; if it can't be fetched, the page says so with
@@ -372,8 +373,9 @@ them load normally. Leaving a page with unsaved changes (Settings, Vanity) asks 
 For page scripts (`static/js/nav.js`): listeners a page adds to `document` or `window`, its `setInterval` timers, its
 `Live` watchers and its DataTables are removed when another page is swapped in; its scripts run again when it's opened
 again, and `DOMContentLoaded`/`load` handlers they add run once they have all run. Elements a page appends to `<body>`
-are removed unless marked `data-nav-keep`. `Nav.go(url)` opens a page. `document` gets `dash:page` after a page is
-swapped in and `dash:leave` before. A page that must always load on its own adds `data-nav="reload"` to any element; a link with `data-nav="off"`
+are removed unless marked `data-nav-keep`. `Nav.go(url)` opens a page, `Nav.refresh()` updates the current one in place.
+`document` gets `dash:page` after a page is swapped in, `dash:leave` before, and `dash:refreshed` after an in-place
+update. A page that must always load on its own adds `data-nav="reload"` to any element; a link with `data-nav="off"`
 always loads normally.
 
 View choices you make on the pages (show staff, filters, the 3D viewer's switches, ...) are saved to your account, so

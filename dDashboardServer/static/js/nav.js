@@ -11,7 +11,10 @@
  * the permissions or user changed, or either page is one that has to load on its own: module scripts, an import map
  * (the 3D views) or data-nav="reload" anywhere in it. A link with data-nav="off" always loads normally.
  *
- * Nav.go(url) opens a page from a script.
+ * Nav.refresh() updates the current page in place: the server's HTML for the page is compared with the HTML the page
+ * started from, and only what differs is patched into the live page, so what scripts put there and what the user is
+ * typing stay. Where that isn't possible (the page's layout changed, or a changed part holds what a script built) the
+ * page is swapped in again. Nav.go(url) opens a page from a script.
  */
 (function () {
 	'use strict';
@@ -46,6 +49,14 @@
 			if (a.length !== b.length) return false;
 			for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
 			return true;
+		},
+		// Classes to take out of and put into a live element when the server's class list went from `before` to `after`
+		classChanges: function (before, after) {
+			var b = String(before || '').split(/\s+/).filter(Boolean), a = String(after || '').split(/\s+/).filter(Boolean);
+			return {
+				remove: b.filter(function (c) { return a.indexOf(c) === -1; }),
+				add: a.filter(function (c) { return b.indexOf(c) === -1; })
+			};
 		}
 	};
 	window.NavRules = rules;
@@ -66,7 +77,7 @@
 	var keepInBody = Array.prototype.slice.call(document.body.children);
 	var inFlight = 0;  // fetches of any kind, to know when a swapped-in page has loaded its data
 
-	function newPage() { return { listeners: [], intervals: [], hard: null }; }
+	function newPage() { return { listeners: [], intervals: [], hard: null, base: null, map: new WeakMap(), server: new WeakSet() }; }
 
 	function isJqueryHandle(target, fn) {
 		try { var data = window.jQuery && jQuery._data && jQuery._data(target); return !!(data && data.handle === fn); } catch (e) { return false; }
@@ -299,6 +310,97 @@
 		if (offcanvas) offcanvas.hide();
 	}
 
+	// ---- Server HTML and the live page ----
+
+	function key(n) {
+		if (n.nodeType === 1) return n.tagName + (n.id ? '#' + n.id : '');
+		return '#' + n.nodeType;
+	}
+	function keys(list) { return Array.prototype.map.call(list, key); }
+	// Remember which live node each node of the server's HTML became (walks two identical trees side by side)
+	function pair(server, live) {
+		page.map.set(server, live);
+		page.server.add(live);
+		var a = server.childNodes, b = live.childNodes;
+		for (var i = 0; i < a.length && i < b.length; i++) pair(a[i], b[i]);
+	}
+	// Map `next` onto the live nodes `base` stands for (the two are equal)
+	function remap(base, next) {
+		var live = page.map.get(base);
+		if (live) page.map.set(next, live);
+		var a = base.childNodes, b = next.childNodes;
+		for (var i = 0; i < a.length && i < b.length; i++) remap(a[i], b[i]);
+	}
+	function hasScriptContent(live) {
+		// Something a script built (a node that didn't come from the server) somewhere under live
+		if (!page.server.has(live)) return true;
+		for (var c = live.firstChild; c; c = c.nextSibling) if (hasScriptContent(c)) return true;
+		return false;
+	}
+	// Controls a page script may have bound itself (no inline handler), and scripts: HTML that only works once the
+	// page's scripts have run over it
+	var SCRIPTED = 'button:not([onclick]):not([type="submit"]):not([data-bs-toggle]):not([data-bs-dismiss]), ' +
+		'input[type="checkbox"]:not([onchange]):not([onclick]), input[type="radio"]:not([onchange]):not([onclick]), ' +
+		'select:not([onchange]), script:not([type="application/json"])';
+	function needsScripts(nodes) {
+		return Array.prototype.some.call(nodes, function (n) {
+			return n.nodeType === 1 && (n.matches(SCRIPTED) || !!n.querySelector(SCRIPTED));
+		});
+	}
+
+	/**
+	 * The changes that turn the live page from `base` (the server's HTML it started from) into `next` (the server's
+	 * HTML now), as functions to run; null when that can't be done without rebuilding the page.
+	 */
+	function plan(base, next, ops, top) {
+		var a = base.childNodes, b = next.childNodes;
+		if (!rules.sameKeys(keys(a), keys(b))) {
+			if (top) return null;
+			var parent = page.map.get(base);
+			if (!parent || !parent.isConnected) return ops;
+			var old = Array.prototype.filter.call(a, function (n) { var l = page.map.get(n); return l && l.parentNode === parent; }).map(function (n) { return page.map.get(n); });
+			// What a script built or bound would be lost: swap the page in and run its scripts instead
+			if (old.some(hasScriptContent) || needsScripts(old) || needsScripts(b)) return null;
+			ops.push(function () {
+				var anchor = old.length ? old[0] : null;
+				Array.prototype.forEach.call(b, function (n) {
+					var el = document.importNode(n, true);
+					parent.insertBefore(el, anchor);
+					pair(n, el);
+				});
+				old.forEach(function (el) { el.remove(); });
+			});
+			return ops;
+		}
+		for (var i = 0; i < a.length; i++) {
+			if (a[i].isEqualNode(b[i])) { ops.push(remap.bind(null, a[i], b[i])); continue; }
+			var live = page.map.get(a[i]);
+			if (!live || !live.isConnected) continue;  // a script took it over
+			if (a[i].nodeType !== 1) {
+				ops.push(function (l, n) { l.nodeValue = n.nodeValue; page.map.set(n, l); }.bind(null, live, b[i]));
+				continue;
+			}
+			ops.push(patchAttributes.bind(null, a[i], b[i], live));
+			if (!plan(a[i], b[i], ops, false)) return null;
+		}
+		return ops;
+	}
+	function patchAttributes(base, next, live) {
+		page.map.set(next, live);
+		Array.prototype.forEach.call(next.attributes, function (attr) {
+			var before = base.getAttribute(attr.name);
+			if (before === attr.value) return;
+			if (attr.name === 'class') {
+				var change = rules.classChanges(before, attr.value);
+				change.remove.forEach(function (c) { live.classList.remove(c); });
+				change.add.forEach(function (c) { live.classList.add(c); });
+			} else live.setAttribute(attr.name, attr.value);  // value/checked: the browser keeps what the user changed
+		});
+		Array.prototype.forEach.call(base.attributes, function (attr) {
+			if (!next.hasAttribute(attr.name)) live.removeAttribute(attr.name);
+		});
+	}
+
 	// ---- Swapping a page in ----
 
 	function scriptsIn(root) {
@@ -333,6 +435,46 @@
 		}, function (e) { runningScripts = false; readyQueue = []; throw e; });
 	}
 
+	// What a page reloaded in place should keep: where it was scrolled, open tabs and folding parts, typed input
+	function capture() {
+		var s = { scroll: window.scrollY, tabs: [], open: [], values: [], focus: null };
+		main.querySelectorAll('[data-bs-toggle="tab"].active, [data-bs-toggle="pill"].active').forEach(function (t) {
+			var target = t.getAttribute('data-bs-target') || t.getAttribute('href');
+			if (target) s.tabs.push(target);
+		});
+		main.querySelectorAll('.collapse.show[id], details[open][id]').forEach(function (el) { s.open.push(el.id); });
+		main.querySelectorAll('input[id], textarea[id], select[id]').forEach(function (el) {
+			if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked !== el.defaultChecked) s.values.push({ id: el.id, checked: el.checked }); }
+			else if (el.tagName === 'SELECT') { if (Array.prototype.some.call(el.options, function (o) { return o.selected !== o.defaultSelected; })) s.values.push({ id: el.id, value: el.value }); }
+			else if (el.type !== 'file' && el.type !== 'password' && el.value !== el.defaultValue) s.values.push({ id: el.id, value: el.value });
+		});
+		if (document.activeElement && document.activeElement.id && main.contains(document.activeElement)) s.focus = document.activeElement.id;
+		return s;
+	}
+	function restoreInputs(s) {
+		s.values.forEach(function (v) {
+			var el = document.getElementById(v.id);
+			if (!el) return;
+			if ('checked' in v) el.checked = v.checked; else el.value = v.value;
+		});
+		s.open.forEach(function (id) {
+			var el = document.getElementById(id);
+			if (!el) return;
+			if (el.tagName === 'DETAILS') el.open = true;
+			else {
+				el.classList.add('show');
+				document.querySelectorAll('[data-bs-target="#' + CSS.escape(id) + '"]').forEach(function (b) { b.classList.remove('collapsed'); b.setAttribute('aria-expanded', 'true'); });
+			}
+		});
+	}
+	function restoreTabs(s) {
+		s.tabs.forEach(function (target) {
+			var t = main.querySelector('[data-bs-target="' + CSS.escape(target) + '"], [href="' + CSS.escape(target) + '"]');
+			if (t && window.bootstrap && !t.classList.contains('active')) bootstrap.Tab.getOrCreateInstance(t).show();
+		});
+		if (s.focus) { var f = document.getElementById(s.focus); if (f) f.focus({ preventScroll: true }); }
+	}
+
 	// Once the page's first requests are done (or after a few seconds): scroll again, the content has its height now
 	function whenLoaded(fn) {
 		var until = Date.now() + 3000;
@@ -344,7 +486,7 @@
 
 	/**
 	 * Swap the fetched page in. options: push (a new history entry) or replace, from (the page it was reached from),
-	 * scroll (restore to this position).
+	 * scroll (restore to this position), keep (a captured state to restore).
 	 */
 	function swap(doc, url, options) {
 		var head = prepareHead(doc);
@@ -362,18 +504,23 @@
 			var banner = document.getElementById('restart-banner');
 			if (banner) banner.remove();
 			var nextMain = doc.querySelector('main');
+			var base = nextMain.cloneNode(true);
 			var nodes = Array.prototype.slice.call(nextMain.childNodes).map(function (n) { return document.adoptNode(n); });
 			main.replaceChildren.apply(main, nodes);
+			page.base = base;
+			page.map.set(base, main);
+			for (var i = 0; i < nodes.length; i++) pair(base.childNodes[i], nodes[i]);
 			if (banner) main.insertBefore(banner, main.firstChild);
 
 			var scripts = document.getElementById('page-scripts');
 			scripts.replaceChildren.apply(scripts, Array.prototype.slice.call(doc.getElementById('page-scripts').childNodes).map(function (n) { return document.adoptNode(n); }));
 
 			if (window.Prefs && Prefs.apply) Prefs.apply(main);
+			if (options.keep) restoreInputs(options.keep);
 			if (window.Crumbs && Crumbs.start) Crumbs.start(options.from || '');
 			var hash = new URL(url, location.href).hash;
 			var target = hash ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
-			var y = options.scroll, landed = 0;
+			var y = options.keep ? options.keep.scroll : options.scroll, landed = 0;
 			if (typeof y === 'number') {
 				// The page gets its full height once its data is in: hold enough height until then to scroll back to y
 				main.style.minHeight = Math.max(0, y + window.innerHeight - (main.getBoundingClientRect().top + window.scrollY)) + 'px';
@@ -381,9 +528,10 @@
 				landed = window.scrollY;
 			} else if (target) target.scrollIntoView();
 			else window.scrollTo(0, 0);
-			main.focus({ preventScroll: true });
+			if (!options.keep) main.focus({ preventScroll: true });
 
 			return runScripts(scriptsIn(main).concat(scriptsIn(scripts))).then(function () {
+				if (options.keep) restoreTabs(options.keep);
 				if (window.fitLayout) fitLayout();
 				try { document.dispatchEvent(new CustomEvent('dash:page')); } catch (e) { console.error(e); }
 				if (typeof y === 'number') {
@@ -468,7 +616,42 @@
 		});
 	}
 
-	window.Nav = { go: go };
+	/**
+	 * Update this page in place with what the server shows now (see the top). options.force: swap the page in again
+	 * even while the user is busy.
+	 */
+	var refreshing = null, refreshAgain = false;
+	function refresh(options) {
+		options = options || {};
+		if (currentIsHard()) { window.location.reload(); return Promise.resolve(); }
+		if (refreshing) { refreshAgain = true; return refreshing; }
+		var url = location.href, at = sequence;
+		refreshing = fetchPage(url).then(function (r) {
+			if (at !== sequence || location.href !== url) return;  // went elsewhere meanwhile
+			if (!r.doc || unusable(r.doc)) { window.location.reload(); return; }
+			var ops = page.base ? plan(page.base, r.doc.querySelector('main'), [], true) : null;
+			if (ops) {
+				ops.forEach(function (op) { op(); });
+				page.base = r.doc.querySelector('main');
+				page.map.set(page.base, main);
+				document.title = r.doc.title;
+				try { document.dispatchEvent(new CustomEvent('dash:refreshed')); } catch (e) { console.error(e); }
+				return;
+			}
+			if (!options.force && window.Live && Live.isBusy && Live.isBusy()) { Live.showStaleBanner(); return; }
+			return swap(r.doc, url, { replace: true, from: rendered, keep: capture() });
+		}).catch(function (e) { console.error(e); }).finally(function () {
+			refreshing = null;
+			if (refreshAgain) { refreshAgain = false; refresh(options); }
+		});
+		return refreshing;
+	}
+
+	window.Nav = { go: go, refresh: refresh };
+
+	// The first page: its server HTML, before its scripts change it (they run after this file)
+	page.base = main.cloneNode(true);
+	pair(page.base, main);
 
 	// ---- Links, forms, back and forward ----
 
