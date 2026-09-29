@@ -433,8 +433,8 @@ void RegisterDashboardRoutes() {
 
 	// Moderation and tools
 	// Holds three queues; anyone who may work one of them gets in and sees only theirs
-	Route(eHTTPMethod::GET, "/moderation", 1, "Moderation queue (names, pet names, properties)", [](HTTPReply& reply, const HTTPContext& context) {
-		if (!Can(context, "moderate_names") && !Can(context, "moderate_pet_names") && !Can(context, "moderate_properties")) {
+	Route(eHTTPMethod::GET, "/moderation", 1, "Moderation queue (names, pet names, guild names, properties)", [](HTTPReply& reply, const HTTPContext& context) {
+		if (!Can(context, "moderate_names") && !Can(context, "moderate_pet_names") && !Can(context, "guilds_manage") && !Can(context, "moderate_properties")) {
 			return RenderError(reply, context, eHTTPStatusCode::FORBIDDEN, "You don't have permission to review names or properties.");
 		}
 		RenderPage(reply, context, "moderation.jinja2", "moderation");

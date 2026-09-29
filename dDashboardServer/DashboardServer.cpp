@@ -101,6 +101,7 @@
 #include "ApiKeyService.h"
 #include "ApiKeyRoutes.h"
 #include "GrantRoutes.h"
+#include "GuildRoutes.h"
 #include "PermissionGrantsLoader.h"
 #include "JWTUtils.h"
 #include "GeneralUtils.h"
@@ -536,6 +537,7 @@ int main(int argc, char** argv) {
 	RegisterLeaderboardRoutes();
 	ApiKeyRoutes::RegisterRoutes();
 	GrantRoutes::RegisterRoutes();
+	GuildRoutes::RegisterRoutes();
 	RequireAuthMiddleware::SetApiAccessCheck([](const HTTPContext& context) { return Permissions::Allowed(context.gmLevel, "api_access", nullptr, context.grants.get()); });
 	RequireAuthMiddleware::SetForbiddenPage([](const HTTPContext& context, HTTPReply& reply) {
 		RouteUtils::RenderError(reply, context, eHTTPStatusCode::FORBIDDEN, "You don't have permission to open this page.");

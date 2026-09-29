@@ -17,7 +17,7 @@ public:
 	struct ChatMessage {
 		uint64_t id{};
 		int64_t time{};
-		std::string channel;       // zone, whisper, team, web
+		std::string channel;       // zone, whisper, team, guild, web
 		LWOOBJID senderId{};       // the character; 0 for messages from the web
 		std::string senderName;
 		uint32_t accountId{};

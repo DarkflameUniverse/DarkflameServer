@@ -31,6 +31,18 @@
 </div>
 {% endif %}
 
+{% if can.guilds_manage %}
+<div class="card mb-4">
+	<div class="card-header"><h5 class="mb-0">Pending Guild Names</h5></div>
+	<div class="card-body">
+		<table id="pendingGuildsTable" class="table table-striped table-hover table-stack">
+			<thead><tr><th>ID</th><th>Guild Name</th><th>Leader</th><th>Members</th><th>Actions</th></tr></thead>
+			<tbody></tbody>
+		</table>
+	</div>
+</div>
+{% endif %}
+
 {% if can.moderate_properties %}
 <div class="card">
 	<div class="card-header"><h5 class="mb-0">Pending Properties</h5></div>
@@ -83,6 +95,26 @@ $(function () {
 			{ data: 'owner_id', orderable: false, defaultContent: '', render: petOwner },
 			{ data: 'id', orderable: false, render: function (d, t, row) { return actionButtons('pet', d, row.owner_id, row.pet_name); } }
 		], $.extend({ liveTable: 'pet_names' }, small));
+	}
+
+	if (DASH.can('guilds_manage')) {
+		serverTable('#pendingGuildsTable', '/api/tables/guilds', [
+			{ data: 'id', orderable: false },
+			{ data: 'name', orderable: false, render: function (d) { return fmt.link('/guilds', d); } },
+			{ data: 'leader_id', orderable: false, render: function (d, t, row) { return d ? fmt.character(d, row.leader_name) : ''; } },
+			{ data: 'member_count', orderable: false },
+			{ data: 'id', orderable: false, render: function (d, t, row) {
+				return '<button class="btn btn-sm btn-outline-success me-1" data-guild-action="approve" data-id="' + esc(d) + '">Approve</button>' +
+					'<button class="btn btn-sm btn-outline-danger" data-guild-action="reject" data-id="' + esc(d) + '" data-name="' + esc(row.name) + '">Reject</button>';
+			} }
+		], $.extend({ liveTable: 'guilds', extra: function () { return { pending: true }; } }, small));
+		$('#pendingGuildsTable').on('click', '[data-guild-action]', function () {
+			var id = this.getAttribute('data-id');
+			if (this.getAttribute('data-guild-action') === 'approve') { api.action('/api/guilds/' + id + '/approve', {}, 'Approved').catch(function () {}); return; }
+			var reason = prompt('Reject the guild name “' + this.getAttribute('data-name') + '”? The guild is renamed “Guild ' + id + '”. Reason (optional, kept in its history):', '');
+			if (reason === null) return;
+			api.action('/api/guilds/' + id + '/reject', { reason: reason }, 'Rejected').catch(function () {});
+		});
 	}
 
 	if (DASH.can('moderate_properties')) {

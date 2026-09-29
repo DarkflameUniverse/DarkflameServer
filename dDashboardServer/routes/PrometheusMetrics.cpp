@@ -47,8 +47,8 @@ namespace {
 	// Chat messages counted since the dashboard started, by channel
 	bool g_ChatStarted{};
 	uint64_t g_ChatSeen{};
-	std::map<std::string, uint64_t> g_ChatMessages{ {"zone", 0}, {"whisper", 0}, {"team", 0}, {"web", 0} };
-	std::map<std::string, uint64_t> g_ChatBlocked{ {"zone", 0}, {"whisper", 0}, {"team", 0}, {"web", 0} };
+	std::map<std::string, uint64_t> g_ChatMessages{ {"zone", 0}, {"whisper", 0}, {"team", 0}, {"guild", 0}, {"web", 0} };
+	std::map<std::string, uint64_t> g_ChatBlocked{ {"zone", 0}, {"whisper", 0}, {"team", 0}, {"guild", 0}, {"web", 0} };
 
 	std::string LowerName(std::string_view name) {
 		std::string out(name);

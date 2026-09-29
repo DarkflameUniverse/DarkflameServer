@@ -22,7 +22,7 @@ namespace {
 	constexpr uint32_t MAX_PAGE = 500;
 	uint64_t g_LastPushed = 0;
 
-	bool IsPrivate(const std::string& channel) { return channel == "whisper" || channel == "team"; }
+	bool IsPrivate(const std::string& channel) { return channel == "whisper" || channel == "team" || channel == "guild"; }
 
 	nlohmann::json MessageJson(const IChatLog::ChatMessage& m) {
 		const auto& zones = ZoneNames();
@@ -37,7 +37,7 @@ namespace {
 	IChatLog::ChatQuery Query(const HTTPContext& context, const std::function<std::string(const char*)>& get) {
 		IChatLog::ChatQuery q;
 		q.channel = get("channel");
-		// Whispers and team chat need their own permission
+		// Whispers, team and guild chat need their own permission
 		q.includePrivate = Can(context, "chat_private");
 		if (IsPrivate(q.channel) && !q.includePrivate) q.channel = "none";
 		const auto character = get("character");
