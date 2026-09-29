@@ -25,7 +25,11 @@ void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 				static_cast<uint32_t>(tableData.getIntField("id", -1)),
 				static_cast<uint32_t>(tableData.getIntField("mapID", -1)),
 				static_cast<uint32_t>(tableData.getIntField("vendorMapID", -1)),
-				tableData.getStringField("spawnName", "")
+				tableData.getStringField("spawnName", ""),
+				tableData.getFloatField("zoneX", 548.0f),
+				tableData.getFloatField("zoneY", 406.0f),
+				tableData.getFloatField("zoneZ", 178.0f),
+				tableData.getFloatField("maxBuildHeight", 128.0f)
 		};
 
 		entries.push_back(entry);

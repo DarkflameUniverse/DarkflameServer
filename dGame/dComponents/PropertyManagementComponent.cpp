@@ -946,8 +946,8 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	message.lastLogoutTime = 0;
 	message.dayOfMonthPlaqueWasBought = 1;
 	message.repAchievementReq = 1;
-	message.zonePosition = { 548.0f, 406.0f, 178.0f };
-	message.maxBuildHeight = 128.0f;
+	message.zonePosition = { propertyTemplate.zoneX, propertyTemplate.zoneY, propertyTemplate.zoneZ };
+	message.maxBuildHeight = propertyTemplate.maxBuildHeight;
 	message.rentalDate = claimed;
 	message.accessType = static_cast<uint8_t>(privacy);
 	message.pathPositions = GetPaths();
