@@ -218,3 +218,40 @@ CDClient data (joined with ComponentsRegistry, Missions, MissionTasks, LootMatri
 | EventGating (8) | eventName, date_start, date_end | Holiday event and its Unix times (UTC, inclusive): pirateDay 2011-09-19 to 2011-09-20, buildNexusTower 2010-03-09 to 2011-03-14, test rows. Lua: `GetHolidayEvent{eventToCheck}.isValid`, used only by the Crux Prime random spawners (pirateDay loads). | Read; an event runs in its dates or when event_1..event_8 names it; the str and zip random spawners use the pirateDay loads. |
 | SmashableComponent (5) | id, LootMatrixIndex | No ComponentsRegistry type refers to it and 3 of its 5 loot matrices (28, 30, 31) do not exist. | Unused (no object has it). |
 | RebuildSections (99) | rebuildID (RebuildComponent.id 1-27), objectID (piece LOT), offset_x/y/z, fall_angle_x/y/z and fall_height (19 rows), requires_list (piece placed first, 54 rows), size (0/1/2), bPlaced (14 rows) | Pieces of the early piece-by-piece quickbuilds ("Contest", "Team Nine Times", ZP and "? - Crate Solo" rebuilds). None of the 27 rebuilds or their pieces is placed in a 1.10.64 level or LUZ spawner. | Unused (no live object has it). |
+
+## 7. Object construction (replica) differences
+
+Method: the world-server capture zips, every `[24]` construction decoded with lu_packets (103,054 constructions in the
+value census, per-LOT comparison on 527 zips). DLU side: the 200 most common non-player LOTs built
+by `EntityManager::CreateEntity` against the 1.10.64 CDClient with no level data, written as construction packets and
+decoded with the same decoder; fields that depend on level data, spawn time or position were left out of the diff.
+
+Fixed on this branch (tests in `ReplicaConstructionTests.cpp`): `time_since_created_on_server` (object age in ms);
+character GM/activity/social blocks on every construction; inventory `is_bound`, `inventory_type`, NPC item slots and
+`equipped_model_transforms` Some([]); controllable-physics cheat block only when changed; simple-physics motion type
+(Fixed / Keyframed for moving platforms and models without behaviors / Dynamic for models with behaviors) and no velocity
+for fixed objects; factions from `factionList` (so -1 is replicated); item component UGC info and its place after the
+skill and combat AI components.
+
+Deferred to the object-loading rework (backlog 51):
+
+| Difference | Live | DLU | Evidence | Source |
+|---|---|---|---|---|
+| Quickbuild without a DestructibleComponent row | Full destroyable: immunities 0, health 1 / max 1.0, armor 1 / max 0, imagination 0, factions [-1], smashable per object, threat list Some(false). The client gives a componentID -1 destroyable faction {-1} and 0 maxima (`LWODestroyableComponent::LoadDataFromTemplate` 0x00c9f900). | `QuickBuildComponent` writes the three destroyable flags as 0. | LOTs 7804 (280), 12416 (189), 12408 (147), 7157 (126), 3935 (82) | C, G |
+| Enemy stun and status immunities at construction | 1 for knockback, pull-to-point, interrupt, stun move/turn/attack/use-item/equip on spiderlings, apes, turrets | 0 (applied later by skills or scripts, if at all) | 6359 (164), 6806 (129), 14572 (99), 12588 (68), 6254 (260), 6454 (139); 1,149 stun-attack immunities in total | C |
+| Script network vars | `points` (i64) on AG survival and NS instance enemies: 100, 200 or 300 | None | 6351 (552), 12586 (348), 12589 (280), 12587 (134), 6454 (139) | C |
+| Effects active at construction | candle_light 2108 on candles 8524-8526, fire 611 on GF tiki torches 6511, running 295 on campfire activator 2248, tether 6270 on enemies returning to tether, onbounce on bouncers | None | 5,363 active effects in 103,054 constructions | C |
+| NPC buffs at construction | buff 2 on AM skeleton miners 12000 and NJ skeleton raiders 14025 | None | 103 / 67 constructions | C |
+| Wild pet state | 1 (5639, 5641), 4 or 1 (13067); tamed pets 67108865 / 67108866 | 67108866 for every untamed pet | 1,652 pet constructions | C, I |
+| Moving platforms | `path_info` (path name, starting waypoint, reverse) and mover state on 853 of 986 | Neither (`m_Serialize` false) | 11950 (180), 12157 (100) | C |
+| Jetpack | `jetpack_info` Some(effect 167, flying false, bypass true) on 1,497 player constructions | Never (jetpack mode is client side only) | 1,497 of 7,424 LOT 1 | C |
+| Character `is_lego_club_member` | false on 6,515, true on 909 | true | 7,424 LOT 1 | C |
+| Character `prop_mod_last_display_time` | Unix time on 1,719 | 0 | 7,424 LOT 1 | C |
+| Character `transition_state` Leave | 69 constructions | Never | 7,424 LOT 1 | C |
+| Model UGC info (model component) | ug_id 0 for reward models (9671, 9658, 9672, 8092 ...), userModelID for LOT 14, description on 109 | Object ID when there is no userModelID; no description | 841 item infos | C |
+| Parent `update_position_with_parent` | true on 61 (9644 Summoner Scratch, 9479 Engineer Personal Fortress) | always false | 6,133 parent infos | C |
+| Equipped item `extra_info` | LDF (`_Metric_Souce_LOT_Int`, `_Metric_Currency_Delta_Int` ...) on 1,846 of 49,534 items | Only for items equipped this session; items equipped on load have none | Inventory constructions | C |
+| Equipped item that is both an NPC row and a proxy | The proxy's TEMP_ITEMS slot 0 | The row's ITEMS slot | NPC 13378 (NT Paradox Faction Vendor), item 11463 | C |
+| Destroyable `is_smashable` from level data | Some(smashable_info) on 14673, 12272, 14175, 13843, 14718, 14424, 13842, 6209 | Not compared (needs level `is_smashable`) | 120-1,217 constructions each | I |
+| Collectible IDs, bouncer `bounce_on_collision`, triggers, phantom physics effects | From level config | Not compared (level data) | - | - |
+| Component order | The client's load order (`ComponentOrderVector::Initialize` 0x0101f8e0) puts COLLECTIBLE after SCRIPTED_ACTIVITY, MOVING_PLATFORM after COLLECTIBLE and BOUNCER after MODEL; DLU's order differs there. No decoded live or DLU object has two of these together, so the difference is not visible. | - | 200 LOTs decode cleanly | G, C |
