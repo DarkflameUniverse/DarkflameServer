@@ -105,6 +105,7 @@
 #include "PermissionGrantsLoader.h"
 #include "JWTUtils.h"
 #include "GeneralUtils.h"
+#include "BuildInfo.h"
 #include <fstream>
 #include <filesystem>
 
@@ -376,6 +377,7 @@ int main(int argc, char** argv) {
 	Game::config->LogSettings();
 
 	LOG("Starting Dashboard Server");
+	LOG("Version: %s", std::string(BuildInfo::buildString).c_str());
 
 	// Load settings
 	if (Game::config->GetValue("max_clients") != "") 

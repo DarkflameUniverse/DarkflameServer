@@ -107,6 +107,7 @@
 #include "EffectsMessages.h"
 #include "MovementMessages.h"
 #include "ZoneMessages.h"
+#include "BuildInfo.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -242,7 +243,7 @@ int main(int argc, char** argv) {
 	Game::config->LogSettings();
 
 	LOG("Starting World server...");
-	LOG("Version: %s", Game::projectVersion.c_str());
+	LOG("Version: %s", std::string(BuildInfo::buildString).c_str());
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	g_ChatDisabled = Game::config->GetValue("disable_chat") == "1";

@@ -29,6 +29,7 @@
 
 #include "Game.h"
 #include "Server.h"
+#include "BuildInfo.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
 	Game::config->LogSettings();
 
 	LOG("Starting Auth server...");
-	LOG("Version: %s", PROJECT_VERSION);
+	LOG("Version: %s", std::string(BuildInfo::buildString).c_str());
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	try {

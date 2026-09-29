@@ -7,6 +7,7 @@
 <div class="card mb-4" style="max-width: 720px;">
 	<div class="card-body">
 		<h5>DarkflameServer <span class="text-body-secondary">{{ version }}</span></h5>
+		<p class="small text-body-secondary">{{ buildKind }} build{% if commit %} of commit <code>{{ commit }}</code>{% if dirty %} with uncommitted changes{% endif %}{% endif %}</p>
 		<p>A server emulator for LEGO&reg; Universe. This dashboard is part of the server and replaces the separate NexusDashboard.</p>
 		<ul class="mb-0">
 			<li><a href="https://github.com/DarkflameUniverse/DarkflameServer" target="_blank" rel="noopener">DarkflameServer on GitHub</a></li>

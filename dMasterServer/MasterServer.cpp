@@ -56,6 +56,7 @@
 #include "master/LiveUpdate.h"
 #include "master/ServerTraffic.h"
 #include "master/UgcModelsMade.h"
+#include "BuildInfo.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
 
@@ -243,7 +244,7 @@ int main(int argc, char** argv) {
 	LOG("Using net version %i", clientNetVersion);
 
 	LOG("Starting Master server...");
-	LOG("Version: %s", PROJECT_VERSION);
+	LOG("Version: %s", std::string(BuildInfo::buildString).c_str());
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database

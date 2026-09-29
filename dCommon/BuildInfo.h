@@ -32,6 +32,15 @@ namespace BuildInfo {
 		return (static_cast<uint8_t>(buildKind) & BUILD_KIND_MASK) | (dirty ? DIRTY_FLAG : 0);
 	}
 
+	inline std::string_view BuildKindName() {
+		switch (buildKind) {
+			case eBuildKind::LOCAL: return "Local";
+			case eBuildKind::CI: return "CI";
+			case eBuildKind::RELEASE: return "Release";
+			default: return "Unknown";
+		}
+	}
+
 	// The first 32 bits (8 hex digits) of the commit hash, 0 without git.
 	inline uint32_t CommitPrefix() {
 		uint32_t value = 0;

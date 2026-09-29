@@ -42,6 +42,7 @@
 #include "UgcProcessor.h"
 #include "UgcStorage.h"
 #include "UgcThrottle.h"
+#include "BuildInfo.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -646,6 +647,7 @@ int main(int argc, char** argv) {
 	if (!Game::config->GetValue("dump_folder").empty()) Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	Game::config->LogSettings();
 	LOG("Starting UGC Server");
+	LOG("Version: %s", std::string(BuildInfo::buildString).c_str());
 
 	const auto res = ResPath();
 	if (res.empty() || !std::filesystem::exists(res)) {

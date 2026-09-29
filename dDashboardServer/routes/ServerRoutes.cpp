@@ -27,6 +27,7 @@
 #include "DashboardRoutes.h"
 #include "LogBundle.h"
 #include "Workers.h"
+#include "BuildInfo.h"
 
 #ifdef __linux__
 #include <unistd.h>
@@ -414,7 +415,7 @@ void RegisterServerRoutes() {
 			const std::string downloadName = std::string("logs_") + stamp + ".zip";
 			const auto out = folder / ("bundle_" + std::to_string(context.accountId) + "_" + std::to_string(now) + "_" + std::to_string(++counter) + ".zip");
 
-			std::string header = "DarkflameServer log bundle\nServer version: " PROJECT_VERSION "\nMade: " + std::string(made) + " (server time) by " +
+			std::string header = "DarkflameServer log bundle\nServer version: " + std::string(BuildInfo::buildString) + "\nMade: " + std::string(made) + " (server time) by " +
 				context.authenticatedUser + "\nFilters: " + filter->ToJson().dump() + "\nSize limit: " + LogBundle::SizeText(maxBytes) + " before compression\n";
 			Audit(context, "download_logs", "Downloaded a log bundle: " + std::to_string(files.size()) + " file(s), " + LogBundle::SizeText(total) +
 				" of logs; filters " + filter->ToJson().dump());

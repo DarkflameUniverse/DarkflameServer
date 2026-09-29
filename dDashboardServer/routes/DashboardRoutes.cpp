@@ -23,6 +23,7 @@
 #include "GameLabels.h"
 #include "BehaviorXml.h"
 #include "ClientAssets.h"
+#include "BuildInfo.h"
 #include <chrono>
 #include <algorithm>
 #include <fstream>
@@ -484,7 +485,8 @@ void RegisterDashboardRoutes() {
 	SimplePage("/settings", Perm("settings"), "settings.jinja2", "settings", "Server settings");
 	SimplePage("/client_assets", Perm("client_files"), "client_assets.jinja2", "client_assets", "Browse the game client's files");
 	Route(eHTTPMethod::GET, "/about", 0, "About this server", [](HTTPReply& reply, const HTTPContext& context) {
-		RenderPage(reply, context, "about.jinja2", "about", { {"version", PROJECT_VERSION} });
+		RenderPage(reply, context, "about.jinja2", "about", { {"version", std::string(BuildInfo::buildString)},
+			{"commit", std::string(BuildInfo::commit)}, {"dirty", BuildInfo::dirty}, {"buildKind", std::string(BuildInfo::BuildKindName())} });
 	});
 
 	// Logs
