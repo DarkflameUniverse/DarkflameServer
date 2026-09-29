@@ -13,7 +13,7 @@
 (function (root) {
 	'use strict';
 
-	var COLUMNS = [0, 1, 2, 3]; // clients | auth, chat, worlds, others | master | dashboard, UGC
+	var COLUMNS = [0, 1, 2, 3, 4]; // game clients | auth, chat, worlds, others | master | dashboard, UGC | web clients
 
 	function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
 	function rates(r) { r = r || {}; return { packets_in: num(r.packets_in), packets_out: num(r.packets_out), bytes_in: num(r.bytes_in), bytes_out: num(r.bytes_out) }; }
@@ -68,7 +68,7 @@
 		}
 
 		var clients = node({ id: 'clients', kind: 'clients', label: 'Game clients', column: 0, order: 0 });
-		var web = node({ id: 'web', kind: 'web', label: 'Web clients', column: 0, order: 10 });
+		var web = node({ id: 'web', kind: 'web', label: 'Web clients', column: 4, order: 0 });
 		var hasChat = keys.some(function (k) { return servers[k].type === 'CHAT'; });
 
 		keys.forEach(function (key) {
@@ -144,7 +144,7 @@
 			if (shownOfKind >= limit) return;
 			var id = 'peer:' + peer.address;
 			var who = peer.character || peer.account || peer.address;
-			var p = node({ id: id, kind: 'peer', label: who, column: 0, order: (peer.kind === 'game' ? 0.1 : 10.1) + shownOfKind / 100 });
+			var p = node({ id: id, kind: 'peer', label: who, column: peer.kind === 'game' ? 0 : 4, order: 0.1 + shownOfKind / 100 });
 			p.peer = peer;
 			(peer.servers || []).forEach(function (entry) {
 				var target = servers[entry.server];
@@ -191,13 +191,13 @@
 	 * Returns {width, height, nodeWidth, nodeHeight, nodes: {id: {x, y}}, paths: {edgeId: {fwd, back}}}.
 	 */
 	function layout(graph, totalWidth) {
-		var nodeWidth = Math.max(110, Math.min(170, Math.floor(totalWidth / 5.2))), nodeHeight = 54, rowHeight = 74, pad = 16;
+		var nodeWidth = Math.max(110, Math.min(170, Math.floor(totalWidth / 6.4))), nodeHeight = 54, rowHeight = 74, pad = 16;
 		var byColumn = COLUMNS.map(function () { return []; });
 		graph.nodes.forEach(function (n) { byColumn[n.column].push(n); });
 		var rows = Math.max.apply(null, byColumn.map(function (c) { return c.length; }).concat([1]));
 		var height = rows * rowHeight + pad * 2;
 		var usable = totalWidth - nodeWidth - pad * 2;
-		var xs = [0, 0.36, 0.68, 1].map(function (f) { return Math.round(pad + nodeWidth / 2 + f * usable); });
+		var xs = [0, 0.28, 0.54, 0.78, 1].map(function (f) { return Math.round(pad + nodeWidth / 2 + f * usable); });
 		var at = {};
 		byColumn.forEach(function (column, c) {
 			var step = (height - pad * 2) / Math.max(column.length, 1);

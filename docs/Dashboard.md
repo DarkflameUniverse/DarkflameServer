@@ -735,9 +735,9 @@ How it is counted:
 
 ### Network
 
-**Network** (`health_view`, next to Diagnostics) draws the traffic live, from the same reports: game clients and web
-clients on the left, auth, chat, the worlds (one box per zone; + shows each instance) and any other server that reports
-in the middle, master, the dashboard and the UGC server on the right. Servers appear as they report, so a new kind of
+**Network** (`health_view`, next to Diagnostics) draws the traffic live, from the same reports: game clients on the
+left, auth, chat, the worlds (one box per zone; + shows each instance) and any other server that reports in the middle,
+then master, then the dashboard and the UGC server, and web clients (browsers and API users) right of the dashboard. Servers appear as they report, so a new kind of
 server shows up without changes. Each link has a lane each way, as thick as its bytes per second, with dashes moving
 faster with more packets, and coloured by its load against its own peak over the last 5 minutes; hover it for the
 numbers. Boxes show connections, average ping, resends, busy workers and live dashboard pages. Clicking a box shows its

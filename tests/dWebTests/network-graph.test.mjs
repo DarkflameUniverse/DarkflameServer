@@ -39,7 +39,7 @@ const summary = {
 
 const graph = G.build(summary, {});
 const ids = graph.nodes.map((n) => n.id);
-same(ids, ['clients', 'web', 'auth', 'chat', 'zone:1200', 'service:99:0:0', 'master', 'dashboard', 'ugc'], 'nodes in column order, one per zone');
+same(ids, ['clients', 'auth', 'chat', 'zone:1200', 'service:99:0:0', 'master', 'dashboard', 'ugc', 'web'], 'nodes in column order, one per zone');
 const edge = (id) => graph.edges.find((e) => e.id === id);
 
 same(edge('clients>zone:1200').fwd, { packets: 27, bytes: 2700 }, 'players to the zone: both instances');
@@ -85,7 +85,7 @@ same(G.speed(1e6) < G.speed(1), true, 'busier moves faster');
 
 // Layout: columns left to right, every link a path each way
 const L = G.layout(graph, 1000);
-same(L.nodes.clients.x < L.nodes.auth.x && L.nodes.auth.x < L.nodes.master.x && L.nodes.master.x < L.nodes.dashboard.x, true, 'columns');
+same(L.nodes.clients.x < L.nodes.auth.x && L.nodes.auth.x < L.nodes.master.x && L.nodes.master.x < L.nodes.dashboard.x && L.nodes.dashboard.x < L.nodes.web.x, true, 'columns, web clients right of the dashboard');
 same(graph.edges.every((e) => L.paths[e.id] && /^M/.test(L.paths[e.id].fwd) && /^M/.test(L.paths[e.id].back)), true, 'paths');
 same(G.layout(graph, 1000), L, 'the same layout every time');
 
