@@ -139,7 +139,7 @@ TEST(LegacyGameMessageTests, AssertLegacyGmValues) {
 	EXPECT_EQ(MessageType::Game::SET_GHOST_REFERENCE_POSITION, static_cast<MessageType::Game>(768));
 	EXPECT_EQ(MessageType::Game::FIRE_EVENT_SERVER_SIDE, static_cast<MessageType::Game>(770));
 	EXPECT_EQ(MessageType::Game::SCRIPT_NETWORK_VAR_UPDATE, static_cast<MessageType::Game>(781));
-	EXPECT_EQ(MessageType::Game::UPDATE_MODEL_FROM_CLIENT, static_cast<MessageType::Game>(793));
+	EXPECT_EQ(MessageType::Game::CREATE_MODEL_FROM_CLIENT, static_cast<MessageType::Game>(793));
 	EXPECT_EQ(MessageType::Game::DELETE_MODEL_FROM_CLIENT, static_cast<MessageType::Game>(794));
 	EXPECT_EQ(MessageType::Game::PLAY_ND_AUDIO_EMITTER, static_cast<MessageType::Game>(821));
 	EXPECT_EQ(MessageType::Game::PLAY2_D_AMBIENT_SOUND, static_cast<MessageType::Game>(831));

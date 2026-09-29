@@ -268,9 +268,9 @@ namespace GameMessages {
 		LWOOBJID modelID{};
 	};
 
-	// Client -> server.
+	// Client -> server. The client names message 793 CreateModelFromClient.
 	struct UpdateModelFromClient : public NetGameMsg {
-		UpdateModelFromClient() : NetGameMsg(MessageType::Game::UPDATE_MODEL_FROM_CLIENT) {}
+		UpdateModelFromClient() : NetGameMsg(MessageType::Game::CREATE_MODEL_FROM_CLIENT) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;

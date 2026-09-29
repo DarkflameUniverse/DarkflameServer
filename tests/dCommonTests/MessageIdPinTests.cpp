@@ -891,8 +891,8 @@ static_assert(static_cast<int64_t>(MessageType::Game::GET_MISSION_OFFERER_LOT) =
 static_assert(static_cast<int64_t>(MessageType::Game::USE_UNIQUE_ITEM) == 789);
 static_assert(static_cast<int64_t>(MessageType::Game::GET_IS_PET) == 790);
 static_assert(static_cast<int64_t>(MessageType::Game::DELETE_PROPERTY) == 791);
-static_assert(static_cast<int64_t>(MessageType::Game::CREATEMODEL_FROM_CLIENT) == 792);
-static_assert(static_cast<int64_t>(MessageType::Game::UPDATE_MODEL_FROM_CLIENT) == 793);
+static_assert(static_cast<int64_t>(MessageType::Game::DELETE_PROPERTY_RESPONSE) == 792);
+static_assert(static_cast<int64_t>(MessageType::Game::CREATE_MODEL_FROM_CLIENT) == 793);
 static_assert(static_cast<int64_t>(MessageType::Game::DELETE_MODEL_FROM_CLIENT) == 794);
 static_assert(static_cast<int64_t>(MessageType::Game::SHOW_PROPERTY_BOUNDS) == 795);
 static_assert(static_cast<int64_t>(MessageType::Game::SET_PROPERTY_I_DS) == 796);
@@ -1003,8 +1003,8 @@ static_assert(static_cast<int64_t>(MessageType::Game::NOTIFY_CLIENT_UGC_ICON_REA
 static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_BUILD_MODE_CHANGED) == 912);
 static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_BUILD_MODE_UPDATE) == 913);
 static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_DELETION_ACTION) == 914);
-static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_MODERATION_STATUS_ACTION) == 915);
-static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_MODERATION_STATUS_ACTION_RESPONSE) == 916);
+static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_MODERATION_ACTION) == 915);
+static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_MODERATION_ACTION_RESPONSE) == 916);
 static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_MODERATION_STATUS_UPDATE) == 917);
 static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_NEEDS_GM_ATTENTION) == 918);
 static_assert(static_cast<int64_t>(MessageType::Game::PROPERTY_MODERATION_CHANGED) == 919);

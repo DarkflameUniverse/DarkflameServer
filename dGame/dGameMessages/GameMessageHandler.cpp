@@ -122,7 +122,7 @@ namespace {
 		{ ZONE_PROPERTY_MODEL_EQUIPPED, []() { return std::make_unique<ZonePropertyModelEquipped>(); } },
 		{ ZONE_PROPERTY_MODEL_ROTATED, []() { return std::make_unique<ZonePropertyModelRotated>(); } },
 		{ PLACE_PROPERTY_MODEL, []() { return std::make_unique<PlacePropertyModel>(); } },
-		{ UPDATE_MODEL_FROM_CLIENT, []() { return std::make_unique<UpdateModelFromClient>(); } },
+		{ CREATE_MODEL_FROM_CLIENT, []() { return std::make_unique<UpdateModelFromClient>(); } },
 		{ DELETE_MODEL_FROM_CLIENT, []() { return std::make_unique<DeleteModelFromClient>(); } },
 		{ CONTROL_BEHAVIORS, []() { return std::make_unique<GameMessages::ControlBehaviors>(); } },
 		{ PROPERTY_ENTRANCE_SYNC, []() { return std::make_unique<PropertyEntranceSync>(); } },
