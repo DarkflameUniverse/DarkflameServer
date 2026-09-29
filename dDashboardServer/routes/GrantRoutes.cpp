@@ -8,6 +8,8 @@
 #include "eHTTPMethod.h"
 #include "Game.h"
 #include "GeneralUtils.h"
+#include "master/PlayerAction.h"
+#include "PlayerActions.h"
 #include "HTTPContext.h"
 #include "PermissionGrants.h"
 #include "Permissions.h"
@@ -168,10 +170,23 @@ namespace {
 		std::map<uint32_t, bool> manageable;
 	};
 
-	// Grants apply at once: the dashboard's open pages get their account's rights again
-	void Applied(const Target& target) {
+	/**
+	 * Grants apply at once: the dashboard's open pages get their account's rights again, and the world servers read the
+	 * grants of the account's online sessions (or the character, if it is loaded) again, as for a GM level change.
+	 * Returns the request ID of the refresh (the page shows its result).
+	 */
+	uint32_t Applied(const HTTPContext& context, const Target& target) {
 		Game::web.RecheckWebSockets(target.accountId);
 		BroadcastTableChanged("grants", std::to_string(target.accountId));
+		PlayerActionRequest request;
+		const bool account = target.type == PermissionGrants::ACCOUNT;
+		request.action = account ? ePlayerAction::REFRESH_ACCOUNT : ePlayerAction::REFRESH_CHARACTER;
+		request.accountId = target.accountId;
+		request.characterId = account ? 0 : target.id;
+		return PlayerActions::Request(request, context.accountId, [account](const PlayerActionResult& result) {
+			if (result.affected == 0) return PlayerActions::Outcome{ true, account ? "The account isn't online; it applies when they next play" : "The character isn't online; it applies when they next play" };
+			return PlayerActions::Outcome{ true, "Applied in game at once" };
+		});
 	}
 }
 
@@ -287,8 +302,8 @@ void GrantRoutes::RegisterRoutes() {
 			const auto description = std::string(deny ? "Took away " : "Granted ") + what + (deny ? " from " : " to ") + target->Describe() +
 				(expiresAt ? " until " + UtcTime(expiresAt) : "") + (note.empty() ? "" : ": " + note) + OwnAccountNote(context.accountId, target->accountId);
 			Audit(context, deny ? "deny_permission" : "grant_permission", description, target->Audit());
-			Applied(*target);
-			JsonSuccess(reply, { {"id", grant.id}, {"message", std::string(deny ? "Took away " : "Granted ") + what} });
+			const auto requestId = Applied(context, *target);
+			JsonSuccess(reply, { {"id", grant.id}, {"requestId", requestId}, {"message", std::string(deny ? "Took away " : "Granted ") + what} });
 		});
 
 	Route(eHTTPMethod::POST, "/api/grants/:id/remove", Perm(MANAGE),
@@ -311,7 +326,7 @@ void GrantRoutes::RegisterRoutes() {
 			const auto what = PermissionGrants::Describe(*kind, grant->name);
 			Audit(context, "remove_grant", std::string("Removed the ") + (grant->deny ? "deny of " : "grant of ") + what + (grant->deny ? " from " : " to ") +
 				target->Describe() + " (given by " + grant->grantedBy + ")" + OwnAccountNote(context.accountId, target->accountId), target->Audit());
-			Applied(*target);
-			JsonSuccess(reply, { {"message", std::string("Removed the ") + (grant->deny ? "deny of " : "grant of ") + what} });
+			const auto requestId = Applied(context, *target);
+			JsonSuccess(reply, { {"requestId", requestId}, {"message", std::string("Removed the ") + (grant->deny ? "deny of " : "grant of ") + what} });
 		});
 }

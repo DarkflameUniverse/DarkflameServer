@@ -48,10 +48,12 @@ namespace {
 		return static_cast<uint32_t>(users.size());
 	}
 
-	// Pick up a GM level change: lower the in-game level if it now exceeds the account's maximum
+	// Pick up a GM level change: lower the in-game level if it now exceeds the account's maximum. Also a change of the
+	// account's permission grants: they are read again the next time a command is used
 	uint32_t RefreshAccount(uint32_t accountId) {
 		const auto users = UserManager::Instance()->GetUsersForAccount(accountId);
 		if (users.empty()) return 0;
+		for (auto* user : users) user->ForgetGrants();
 
 		const auto info = Database::Get()->GetAccountInfo(users.front()->GetUsername());
 		if (!info) return 0;
@@ -83,10 +85,12 @@ namespace {
 		return static_cast<uint32_t>(users.size());
 	}
 
+	// Restrictions or permission grants of a character changed
 	uint32_t RefreshCharacter(LWOOBJID characterId) {
 		auto* entity = PlayerManager::GetPlayer(characterId);
 		auto* character = entity ? entity->GetCharacter() : nullptr;
 		if (!character) return 0;
+		if (auto* user = character->GetParentUser()) user->ForgetGrants();
 
 		const auto info = Database::Get()->GetCharacterInfo(characterId);
 		if (!info) return 0;

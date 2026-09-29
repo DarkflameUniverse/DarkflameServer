@@ -18,8 +18,8 @@
  */
 enum class ePlayerAction : uint8_t {
 	KICK_ACCOUNT,       // Disconnect every session of accountId
-	REFRESH_ACCOUNT,    // Reload account data (GM level) for online sessions of accountId
-	REFRESH_CHARACTER,  // Reload character data (restrictions) for characterId if loaded
+	REFRESH_ACCOUNT,    // Reload account data (GM level, permission grants) for online sessions of accountId
+	REFRESH_CHARACTER,  // Reload character data (restrictions, permission grants) for characterId if loaded
 	RESCUE_CHARACTER,   // Transfer characterId to zoneId if it is loaded in a world, landing on spawn point `text` (empty: the zone's default)
 	// Tell a player a moderator decided on something they asked for (approved = yes/no, text = name or reason)
 	NAME_MODERATED,     // characterId's requested name; text is the name
