@@ -21,6 +21,7 @@
 #include "UgcIconParams.h"
 #include "UgcJobs.h"
 #include "UgcStorage.h"
+#include "UgcToolbox.h"
 
 /**
  * The UGC server's queue. The main thread (Update) takes pending rows from the database, gathers each one's input
@@ -58,6 +59,12 @@ public:
 
 	// Main thread: new settings and limits (config reload)
 	void Configure(UgcJobs::Settings settings, Limits limits);
+
+	// Main thread: LU Toolbox's Blender settings (processor=toolbox-blender); a running Blender is started again with
+	// them before its next model
+	void ConfigureToolbox(const UgcToolbox::Config& config);
+	// Why toolbox-blender can't be used with the settings given (empty: it can)
+	std::string ToolboxProblem() const;
 	// Waits for the jobs that are running; queued ones are dropped (they stay pending in the database)
 	void Stop();
 
@@ -200,6 +207,7 @@ private:
 		bool iconOnly{};
 		double iconChangeMs{};           // an icon drawn again: how much longer it took than the icon made before
 		std::vector<Checksum> checksums; // of the files written that the client downloads as sd0
+		std::string fallback;            // toolbox-blender was asked for but can't be used: why (made natively)
 	};
 
 	// Main thread: records the checksums of an item's files (ugc_file_checksums)
@@ -229,6 +237,8 @@ private:
 	UgcBricks::BrickLibrary& m_Library;
 	UgcJobs::Settings m_Settings; // guarded by m_Mutex (workers copy it per job)
 	Limits m_Limits;              // guarded by m_Mutex
+	UgcToolbox::Worker m_Toolbox; // LU Toolbox's Blender, which the workers take turns on
+	std::string m_ToolboxProblem{ "not configured" }; // guarded by m_Mutex: why toolbox-blender can't be used (UgcToolbox::Problem)
 
 	mutable std::mutex m_Mutex;
 	std::condition_variable m_Wake;

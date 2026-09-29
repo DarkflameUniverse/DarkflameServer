@@ -181,7 +181,38 @@ namespace {
 		settings.icon.denoiseSamples = std::clamp(Setting<int32_t>("denoise_samples", 4), 1, 256);
 		settings.icon.bakedAo = settings.ao.enabled ? std::clamp(settings.ao.strength, 0.0f, 1.0f) : 0.0f;
 		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
+		// What makes the models: native, or toolbox-blender (LU Toolbox in Blender, when it can run: ReadToolboxConfig)
+		const auto processorName = Game::config->GetValue("processor");
+		if (UgcProcessOptions::Contains(UgcProcessOptions::PROCESSOR, processorName)) settings.processor = processorName;
 		return settings;
+	}
+
+	// A path setting: relative ones are next to the server binaries; empty is `fallback` (empty: none)
+	std::filesystem::path PathSetting(const std::string& key, const std::string& fallback = "") {
+		const auto value = Game::config->GetValue(key).empty() ? fallback : Game::config->GetValue(key);
+		if (value.empty()) return {};
+		std::filesystem::path path(value);
+		return path.is_relative() ? BinaryPathFinder::GetBinaryDir() / path : path;
+	}
+
+	std::filesystem::path ResPath();
+
+	// LU Toolbox in a headless Blender (processor=toolbox-blender, docs/UgcServer.md "LU Toolbox in Blender"): the
+	// external programs and folders it needs
+	UgcToolbox::Config ReadToolboxConfig() {
+		UgcToolbox::Config config;
+		config.blender = PathSetting("toolbox_blender");
+		config.standalone = PathSetting("toolbox_standalone_dir");
+		config.scripts = PathSetting("toolbox_scripts_dir");
+		config.worker = BinaryPathFinder::GetBinaryDir() / "ugc-toolbox" / "dlu_toolbox_worker.py";
+		config.brickdb = PathSetting("toolbox_brickdb_dir", "toolbox-brickdb");
+		config.work = PathSetting("toolbox_work_dir", "toolbox-work");
+		config.res = ResPath();
+		if (!Game::config->GetValue("toolbox_device").empty()) config.device = Game::config->GetValue("toolbox_device");
+		config.threads = std::clamp(Setting<uint32_t>("toolbox_threads", 4), 1u, 256u);
+		config.timeoutSeconds = std::clamp(Setting<uint32_t>("toolbox_timeout_seconds", 1800), 10u, 86400u);
+		config.nice = std::clamp(Setting<int32_t>("worker_nice", 0), 0, 19);
+		return config;
 	}
 
 	// The processing options the settings pick, and what is used instead when this build or machine can't
@@ -193,6 +224,21 @@ namespace {
 			LOG("ray_backend=%s can't be used (%s): embree instead", std::string(UgcRays::Name(settings.ao.rays)).c_str(), UgcRays::Problem(settings.ao.rays).c_str());
 		}
 		if (!UgcRender::Available(settings.icon.denoise)) LOG("denoise=%s can't be used (the server was built without DLU_OIDN): off instead", std::string(UgcRender::Name(settings.icon.denoise)).c_str());
+	}
+
+	// Whether LU Toolbox in Blender can be used, logged at start and when it changes (and the processor setting's
+	// fallback): every make that asks for it and can't have it logs why too
+	void LogToolbox(const UgcJobs::Settings& settings, const std::string& problem) {
+		static std::optional<std::string> logged;
+		if (logged && *logged == problem + settings.processor) return;
+		logged = problem + settings.processor;
+		if (problem.empty()) {
+			LOG("toolbox-blender can be used%s", settings.processor == UgcProcessOptions::TOOLBOX_BLENDER ? " and makes the models (processor=toolbox-blender)" : "");
+		} else if (settings.processor == UgcProcessOptions::TOOLBOX_BLENDER) {
+			LOG("processor=toolbox-blender can't be used (%s): models are made natively", problem.c_str());
+		} else {
+			LOG("toolbox-blender can't be used (%s)", problem.c_str());
+		}
 	}
 
 	UgcProcessor::Limits ReadLimits() {
@@ -575,7 +621,7 @@ namespace {
 		auto settings = ReadSettings();
 		UgcProcessOptions::Choice choice;
 		if (!UgcProcessOptions::Parse(options, choice)) {
-			std::cerr << "Unknown processing options \"" << options << "\" (ray backend embree, hiprt or embree-gpu; denoise off or oidn)\n";
+			std::cerr << "Unknown processing options \"" << options << "\" (ray backend embree, hiprt or embree-gpu; denoise off or oidn; processor native or toolbox-blender)\n";
 			return EXIT_FAILURE;
 		}
 		UgcJobs::ApplyOptions(settings, choice);
@@ -593,7 +639,19 @@ namespace {
 				std::cerr << "Can't read " << input << "\n";
 				return EXIT_FAILURE;
 			}
-			outcome = UgcJobs::ProcessModel(*data, library, settings);
+			// LU Toolbox in Blender when asked for and it can run (Blender is started for this model and stopped after)
+			UgcToolbox::Worker toolbox;
+			toolbox.Configure(ReadToolboxConfig());
+			std::string why;
+			if (UgcToolbox::Resolve(settings.processor, UgcToolbox::Problem(toolbox.GetConfig()), why) == UgcProcessOptions::TOOLBOX_BLENDER) {
+				// A file name has no object id: its name hashed names Blender's files
+				outcome = UgcJobs::ProcessModelToolbox(*data, library, settings, toolbox, UgcModularKey::StorageId(input));
+				toolbox.Stop();
+				// Blender's CPU time is charged to this thread (JobCpuSeconds below)
+			} else {
+				if (!why.empty()) std::cerr << "toolbox-blender can't be used (" << why << "): made natively\n";
+				outcome = UgcJobs::ProcessModel(*data, library, settings);
+			}
 		} else {
 			CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer/CDServer.sqlite").string());
 			UgcJobs::ModularInput modular;
@@ -633,7 +691,7 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig("ugcconfig.ini");
 
 	// UgcServer --make-model <file.lxfml> <folder> [options] or --make-modular "1:4713+1:4714+1:4715" <folder> [options];
-	// options: processing options over the settings (UgcProcessOptions), e.g. embree fast
+	// options: processing options over the settings (UgcProcessOptions), e.g. embree oidn, or toolbox-blender
 	if (argc >= 4 && (std::string(argv[1]) == "--make-model" || std::string(argv[1]) == "--make-modular")) {
 		std::string options;
 		for (int i = 4; i < argc; i++) options += std::string(options.empty() ? "" : " ") + argv[i];
@@ -704,7 +762,9 @@ int main(int argc, char** argv) {
 	processorConfig.threads = threads > 0 ? threads : std::max<size_t>(std::thread::hardware_concurrency() / 2, 1);
 	UgcProcessor processor(processorConfig, storage, library, ReadSettings());
 	processor.Configure(ReadSettings(), ReadLimits());
+	processor.ConfigureToolbox(ReadToolboxConfig());
 	LogProcessingOptions(ReadSettings());
+	LogToolbox(ReadSettings(), processor.ToolboxProblem());
 	g_Processor = &processor;
 	// Sent with the traffic reports to the dashboard (Diagnostics)
 	TrafficStats::Local().SetGauge("workers_busy", [&processor] { return static_cast<double>(processor.Busy()); });
@@ -772,7 +832,10 @@ int main(int argc, char** argv) {
 		// Settings the dashboard changed arrive as a config reload; pick them up
 		if (now - lastConfigure >= std::chrono::seconds(5)) {
 			lastConfigure = now;
-			processor.Configure(ReadSettings(), ReadLimits());
+			const auto settings = ReadSettings();
+			processor.Configure(settings, ReadLimits());
+			processor.ConfigureToolbox(ReadToolboxConfig());
+			LogToolbox(settings, processor.ToolboxProblem());
 		}
 	}
 

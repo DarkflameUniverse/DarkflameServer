@@ -152,6 +152,20 @@ void UgcProcessor::Stop() {
 		if (thread.joinable()) thread.join();
 	}
 	m_Threads.clear();	if (m_FileThread.joinable()) m_FileThread.join();
+	// LU Toolbox's Blender goes with the workers
+	m_Toolbox.Stop();
+}
+
+void UgcProcessor::ConfigureToolbox(const UgcToolbox::Config& config) {
+	m_Toolbox.Configure(config);
+	auto problem = UgcToolbox::Problem(config);
+	std::lock_guard lock(m_Mutex);
+	m_ToolboxProblem = std::move(problem);
+}
+
+std::string UgcProcessor::ToolboxProblem() const {
+	std::lock_guard lock(m_Mutex);
+	return m_ToolboxProblem;
 }
 
 void UgcProcessor::Drain() {
@@ -188,6 +202,7 @@ void UgcProcessor::Worker() {
 	while (true) {
 		Job job;
 		UgcJobs::Settings settings;
+		std::string toolboxProblem;
 		int nice = 0;
 		{
 			std::unique_lock lock(m_Mutex);
@@ -213,6 +228,7 @@ void UgcProcessor::Worker() {
 			m_MemoryInUse += job.memory;
 			settings = m_Settings;
 			nice = m_Limits.nice;
+			toolboxProblem = m_ToolboxProblem;
 		}
 		if (nice != appliedNice) {
 			ApplyNice(nice);
@@ -304,9 +320,19 @@ void UgcProcessor::Worker() {
 				// The processing options staff picked for this make, over the settings (unknown ones: the settings')
 				UgcProcessOptions::Choice choice;
 				if (job.kind == Kind::MODEL && UgcProcessOptions::Parse(job.options, choice)) UgcJobs::ApplyOptions(settings, choice);
-				done.outcome = job.kind == Kind::MODEL
-					? UgcJobs::ProcessModel(job.blob, m_Library, settings, static_cast<uint64_t>(job.id), job.iconValues)
-					: UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
+				// LU Toolbox in Blender when it's asked for and can run, else the UGC server's own pipeline (and why)
+				const bool toolbox = job.kind == Kind::MODEL &&
+					UgcToolbox::Resolve(settings.processor, toolboxProblem, done.fallback) == UgcProcessOptions::TOOLBOX_BLENDER;
+				if (toolbox) {
+					done.outcome = UgcJobs::ProcessModelToolbox(job.blob, m_Library, settings, m_Toolbox, static_cast<uint64_t>(job.id), job.iconValues);
+				} else if (job.kind == Kind::MODEL) {
+					done.outcome = UgcJobs::ProcessModel(job.blob, m_Library, settings, static_cast<uint64_t>(job.id), job.iconValues);
+					if (!done.fallback.empty()) {
+						done.outcome.note = "toolbox-blender can't be used (" + done.fallback + "): made natively" + (done.outcome.note.empty() ? "" : "; " + done.outcome.note);
+					}
+				} else {
+					done.outcome = UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
+				}
 			}
 		} catch (const UgcThrottle::Cancelled&) {
 			// Stopping: abandoned, not failed; nothing is written or recorded
@@ -498,6 +524,9 @@ void UgcProcessor::Record(const Done& done) {
 		if (const auto combo = m_ComboOf.find(done.id); combo != m_ComboOf.end()) Database::Get()->SetModularBuildCombination(done.id, combo->second);
 	}
 	m_Recent.erase({ done.kind, done.id });
+	if (!done.fallback.empty()) {
+		LOG("Model %llu asked for toolbox-blender, which can't be used (%s): made natively", static_cast<unsigned long long>(done.id), done.fallback.c_str());
+	}
 
 	if (done.outcome.empty) {
 		m_Empty++;
@@ -727,6 +756,8 @@ nlohmann::json UgcProcessor::Status() const {
 	status["evicted"] = m_Evicted;
 	status["storedBytes"] = m_StoredBytes;
 	status["maxStorageBytes"] = m_Config.maxStorageBytes;
+	// LU Toolbox's Blender (processor=toolbox-blender): whether it runs, what it reported, why it can't be used
+	status["toolbox"] = m_Toolbox.Status();
 	auto& recent = status["recent"] = nlohmann::json::array();
 	for (auto it = m_Log.rbegin(); it != m_Log.rend(); ++it) {
 		recent.push_back({ { "kind", KindName(it->kind) }, { "id", std::to_string(it->id) }, { "ok", it->ok },
