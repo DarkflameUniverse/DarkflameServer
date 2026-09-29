@@ -133,6 +133,7 @@ void UgcProcessor::Start() {
 	}
 	m_NextEviction = std::chrono::steady_clock::now();
 	m_Stopping = false;
+	UgcThrottle::Cancel(false);
 	for (size_t i = 0; i < std::max<size_t>(m_Config.threads, 1); i++) m_Threads.emplace_back(&UgcProcessor::Worker, this);
 	LOG("UGC processing started with %zu worker(s), %llu MB stored", m_Threads.size(), static_cast<unsigned long long>(m_StoredBytes / (1024 * 1024)));
 }
@@ -143,6 +144,9 @@ void UgcProcessor::Stop() {
 		m_Stopping = true;
 		m_Jobs.clear();
 	}
+	// Jobs being made stop at their next checkpoint instead of finishing (a big model can take minutes); their rows stay
+	// waiting and are made again after the restart
+	UgcThrottle::Cancel(true);
 	m_Wake.notify_all();
 	for (auto& thread : m_Threads) {
 		if (thread.joinable()) thread.join();
@@ -256,6 +260,10 @@ void UgcProcessor::Worker() {
 					reply.contentType = eContentType::TEXT_PLAIN;
 					reply.message = outcome.error;
 				}
+			} catch (const UgcThrottle::Cancelled&) {
+				reply.status = eHTTPStatusCode::SERVICE_UNAVAILABLE;
+				reply.contentType = eContentType::TEXT_PLAIN;
+				reply.message = "the UGC server is stopping";
 			} catch (const std::exception& ex) {
 				reply.status = eHTTPStatusCode::INTERNAL_SERVER_ERROR;
 				reply.contentType = eContentType::TEXT_PLAIN;
@@ -288,6 +296,12 @@ void UgcProcessor::Worker() {
 					? UgcJobs::ProcessModel(job.blob, m_Library, settings, static_cast<uint64_t>(job.id), job.iconValues)
 					: UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
 			}
+		} catch (const UgcThrottle::Cancelled&) {
+			// Stopping: abandoned, not failed; nothing is written or recorded
+			std::lock_guard lock(m_Mutex);
+			m_Active--;
+			m_MemoryInUse -= std::min(m_MemoryInUse, job.memory);
+			continue;
 		} catch (const std::exception& ex) {
 			done.outcome.ok = false;
 			done.outcome.error = std::string("crashed: ") + ex.what();
@@ -315,7 +329,11 @@ void UgcProcessor::Worker() {
 		done.outcome.files.clear();
 		done.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 		done.cpuMilliseconds = std::max(0.0, UgcThrottle::ThreadCpuSeconds() - cpuStart) * 1000.0;
-		UgcThrottle::Checkpoint();
+		try {
+			UgcThrottle::Checkpoint();
+		} catch (const UgcThrottle::Cancelled&) {
+			// Stopping: the job is done already, so it's still recorded
+		}
 
 		{
 			std::lock_guard lock(m_Mutex);

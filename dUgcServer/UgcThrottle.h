@@ -14,8 +14,15 @@ namespace UgcThrottle {
 	void SetBudget(double cpus);
 	double GetBudget();
 
-	// Account the calling thread's CPU time and sleep when over the budget
+	// Account the calling thread's CPU time and sleep when over the budget. Throws Cancelled once Cancel(true) was
+	// called, so a job stops in moments when the server shuts down.
 	void Checkpoint();
+
+	// Thrown by Checkpoint while cancelled: the job is abandoned, not failed (its row stays waiting)
+	struct Cancelled {};
+	// Stop (true) or allow (false) every job's work: set when the server stops, cleared when it starts
+	void Cancel(bool cancel);
+	bool IsCancelled();
 
 	// Start accounting on this thread from now (a worker starting a job), so time spent idle isn't counted
 	void Begin();

@@ -14,6 +14,7 @@ namespace {
 	constexpr double MIN_ACCOUNT_SECONDS = 0.005;
 
 	std::atomic<double> g_Budget{ 0.0 };
+	std::atomic<bool> g_Cancel{ false };
 	std::mutex g_Mutex;
 	double g_Balance = BURST_SECONDS; // CPU seconds that may still be used
 	std::chrono::steady_clock::time_point g_Refilled = std::chrono::steady_clock::now();
@@ -58,7 +59,11 @@ namespace UgcThrottle {
 		t_LastCpu = ThreadCpuSeconds();
 	}
 
+	void Cancel(const bool cancel) { g_Cancel = cancel; }
+	bool IsCancelled() { return g_Cancel; }
+
 	void Checkpoint() {
+		if (g_Cancel) throw Cancelled{};
 		const double budget = g_Budget;
 		if (budget <= 0.0) return;
 		const double cpu = ThreadCpuSeconds();
@@ -80,7 +85,12 @@ namespace UgcThrottle {
 		wait = std::min(wait, 5.0);
 		g_SleptMs += static_cast<uint64_t>(wait * 1000.0);
 		g_LastSleep = UnixMs();
-		std::this_thread::sleep_for(std::chrono::duration<double>(wait));
+		// In short sleeps, so a cancel isn't held up by a long wait
+		const auto until = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(wait));
+		while (std::chrono::steady_clock::now() < until) {
+			if (g_Cancel) throw Cancelled{};
+			std::this_thread::sleep_for(std::min<std::chrono::steady_clock::duration>(until - std::chrono::steady_clock::now(), std::chrono::milliseconds(100)));
+		}
 		// Time asleep costs no CPU; don't count this call's own bookkeeping twice
 		t_LastCpu = ThreadCpuSeconds();
 	}

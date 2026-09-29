@@ -1755,3 +1755,12 @@ TEST(UgcHsr, SamplePointsFollowTheTrianglesSize) {
 	EXPECT_LE(dense.size(), 40u);
 	EXPECT_EQ(UgcHsr::SamplePoints({ 0, 0, 0 }, { 1.6f, 0, 0 }, { 1.6f, 0, 1.6f }, 0.1143f, 28).size(), 100u); // bigger ones as before
 }
+
+// Stopping the server cancels the jobs being made: Checkpoint throws until the cancel is cleared
+TEST(UgcThrottle, CancelStopsJobsAtTheirNextCheckpoint) {
+	UgcThrottle::Cancel(true);
+	EXPECT_TRUE(UgcThrottle::IsCancelled());
+	EXPECT_THROW(UgcThrottle::Checkpoint(), UgcThrottle::Cancelled);
+	UgcThrottle::Cancel(false);
+	EXPECT_NO_THROW(UgcThrottle::Checkpoint());
+}
