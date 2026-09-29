@@ -202,6 +202,23 @@ void SkillComponent::Reset() {
 	this->m_managedBehaviors.clear();
 }
 
+void SkillComponent::EndSkill(const uint32_t skillUid) {
+	const auto [begin, end] = m_managedBehaviors.equal_range(skillUid);
+	for (auto it = begin; it != end; ++it) {
+		auto* const context = it->second;
+		if (!context) continue;
+		std::erase_if(m_managedProjectiles, [context](const ProjectileSyncEntry& projectile) { return projectile.context == context; });
+		// End what the skill started, but drop its pending timers (Reset would run them now: a late hit)
+		for (const auto& entry : context->endEntries) entry.behavior->End(context, entry.branchContext, entry.second);
+		context->endEntries.clear();
+		context->timerEntries.clear();
+		context->syncEntries.clear();
+		context->scheduledUpdates.clear();
+		delete context;
+	}
+	m_managedBehaviors.erase(begin, end);
+}
+
 void SkillComponent::Interrupt() {
 	// TODO: need to check immunities on the destroyable component, but they aren't implemented
 	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();

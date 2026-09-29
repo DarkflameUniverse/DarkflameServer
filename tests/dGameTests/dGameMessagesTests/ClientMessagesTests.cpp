@@ -3,7 +3,12 @@
 #include "GameDependencies.h"
 #include "GameMessageTestUtils.h"
 
+#include "CDClientDatabase.h"
 #include "CharacterComponent.h"
+#include "DestroyableComponent.h"
+#include "EntityManager.h"
+#include "SkillComponent.h"
+#include "SkillMessages.h"
 #include "Entity.h"
 #include "PlayerMessages.h"
 
@@ -81,4 +86,38 @@ TEST_F(ClientMessagesTests, SetLastCustomBuildMatchesLiveCapture) {
 	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS);
 	EXPECT_EQ(characterComponent->GetLastRocketConfig(), u"1:14454;1:4714;1:4715;");
 	EXPECT_FALSE(characterComponent->GetIsLanding());
+}
+
+// CasterDead (120): an optional caster, then an optional skill handle. 303 live packets, sent through the targeted
+// player when an enemy's skill arrived after the enemy died.
+TEST_F(ClientMessagesTests, CasterDeadMatchesLiveCapture) {
+	auto msg = FromLiveClientCapture<GameMessages::CasterDead>(std::string(PLAYER_HEADER) + "7800" + "dade8000002000024040000000");
+	EXPECT_EQ(msg.i64Caster, 0x40040000000bdb5LL);
+	EXPECT_EQ(msg.uiSkillHandle, 1u);
+	EXPECT_EQ(RoundTrip(msg).i64Caster, msg.i64Caster);
+	ExpectTruncatedFails(msg);
+}
+
+// The caster's skill with that handle ends only when the server also sees the caster as dead.
+TEST_F(ClientMessagesTests, CasterDeadEndsTheDeadCastersSkill) {
+	CDClientDatabase::Connect(":memory:"); // the entity manager looks the new entity up
+	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	auto* const caster = Game::entityManager->CreateEntity(info, nullptr, nullptr, false, 0x40040000000bdb5LL);
+	ASSERT_NE(caster, nullptr);
+	auto* const destroyable = caster->AddComponent<DestroyableComponent>(-1);
+	auto* const skills = caster->AddComponent<SkillComponent>(-1);
+	RakNet::BitStream empty;
+	skills->CastPlayerSkill(0, 1, empty, player->GetObjectID());
+	skills->CastPlayerSkill(0, 2, empty, player->GetObjectID());
+
+	GameMessages::CasterDead msg;
+	msg.i64Caster = caster->GetObjectID();
+	msg.uiSkillHandle = 1;
+	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS);
+	EXPECT_TRUE(skills->HasSkill(1)); // alive: a client can't cancel it
+
+	destroyable->SetIsDead(true);
+	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS);
+	EXPECT_FALSE(skills->HasSkill(1));
+	EXPECT_TRUE(skills->HasSkill(2));
 }

@@ -169,6 +169,7 @@ namespace {
 		{ SELECT_SKILL, []() { return std::make_unique<SelectSkill>(); } },
 		{ START_SKILL, []() { return std::make_unique<StartSkill>(); } },
 		{ SYNC_SKILL, []() { return std::make_unique<SyncSkill>(); } },
+		{ CASTER_DEAD, []() { return std::make_unique<CasterDead>(); } },
 		{ REQUEST_SERVER_PROJECTILE_IMPACT, []() { return std::make_unique<RequestServerProjectileImpact>(); } },
 
 		// Combat

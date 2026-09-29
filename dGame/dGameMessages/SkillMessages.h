@@ -49,6 +49,19 @@ namespace GameMessages {
 		int32_t skillID{};
 	};
 
+	// Client -> server. A client got EchoStartSkill (or SyncSkill) from a caster it sees as dead, aimed at another
+	// object (LWOSkillComponent::msgEchoStartSkill 0x00d5dc90), and tells the server through that target object.
+	// The server ends the caster's skill with that handle if the caster is dead there too.
+	struct CasterDead : public NetGameMsg {
+		CasterDead() : NetGameMsg(MessageType::Game::CASTER_DEAD) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		LWOOBJID i64Caster{ LWOOBJID_EMPTY }; // optional
+		uint32_t uiSkillHandle{}; // optional
+	};
+
 	// Client -> server. The player picked a skill; DLU only uses it to fix invisible items on first load.
 	struct SelectSkill : public NetGameMsg {
 		SelectSkill() : NetGameMsg(MessageType::Game::SELECT_SKILL) {}

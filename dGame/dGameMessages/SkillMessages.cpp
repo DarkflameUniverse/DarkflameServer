@@ -8,6 +8,7 @@
 #include "dServer.h"
 #include "eMissionTaskType.h"
 #include "Entity.h"
+#include "EntityManager.h"
 #include "Game.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
@@ -55,6 +56,27 @@ namespace GameMessages {
 	bool UncastSkill::Deserialize(RakNet::BitStream& bitStream) {
 		VALIDATE_READ(bitStream.Read(skillID));
 		return true;
+	}
+
+	void CasterDead::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteOptional(bitStream, i64Caster, LWOOBJID_EMPTY);
+		BitStreamUtils::WriteOptional(bitStream, uiSkillHandle, 0u);
+	}
+
+	bool CasterDead::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, i64Caster, LWOOBJID_EMPTY));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, uiSkillHandle, 0u));
+		return true;
+	}
+
+	void CasterDead::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// Only for a caster the server also sees as dead: a client can't cancel a living enemy's attack
+		auto* const caster = Game::entityManager->GetEntity(i64Caster);
+		if (!caster) return;
+		const auto* const destroyable = caster->GetComponent<DestroyableComponent>();
+		if (!destroyable || !destroyable->GetIsDead()) return;
+		auto* const skillComponent = caster->GetComponent<SkillComponent>();
+		if (skillComponent) skillComponent->EndSkill(uiSkillHandle);
 	}
 
 	void SelectSkill::Serialize(RakNet::BitStream& bitStream) const {

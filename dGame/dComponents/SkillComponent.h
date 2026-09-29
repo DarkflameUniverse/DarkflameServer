@@ -89,6 +89,18 @@ public:
 	void Interrupt();
 
 	/**
+	 * Ends a skill this entity is running: drops its behaviors (and their pending hits and projectiles) with that
+	 * skill handle
+	 * @param skillUid the skill handle
+	 */
+	void EndSkill(uint32_t skillUid);
+
+	/**
+	 * @return whether this entity runs a skill with that handle
+	 */
+	bool HasSkill(uint32_t skillUid) const { return m_managedBehaviors.contains(skillUid); }
+
+	/**
 	 * Starts a player skill. Should only be called when the server receives a start skill message from the client.
 	 * @param behaviorId the root behavior ID of the skill
 	 * @param skillUid the unique ID of the skill given by the client
