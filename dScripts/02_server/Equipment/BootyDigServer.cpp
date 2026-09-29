@@ -45,7 +45,9 @@ BootyDigServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string 
 				if (renderComponent != nullptr)
 					renderComponent->PlayEffect(7730, u"cast", "bootyshine");
 
-				Loot::DropLoot(player, self->GetObjectID(), 231, 75, 75);
+				// Live dropped the booty chest's items before its coins (5 of 5), unlike other drops
+				Loot::DropLoot(player, self->GetObjectID(), 231, 0, 0);
+				Loot::DropLoot(player, self->GetObjectID(), 0, 75, 75);
 			}
 		}
 	} else if (args == "ChestDead") {
