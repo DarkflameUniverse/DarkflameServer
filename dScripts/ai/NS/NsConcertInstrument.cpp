@@ -267,26 +267,31 @@ void NsConcertInstrument::UnEquipInstruments(Entity* self, Entity* player) {
 }
 
 void NsConcertInstrument::RepositionPlayer(Entity* self, Entity* player) {
-	auto position = self->GetPosition();
-	auto rotation = self->GetRotation();
-	position.SetY(0.0f);
+	// As l_ns_concert_instrument_qb.lua: the offset is in the instrument's own frame (GetParallelPosition), the
+	// instrument's height is kept, the player faces the way the instrument does, and at the keyboard turns -0.8
+	// further (OrientToAngle relative to that)
+	const auto rotation = self->GetRotation();
+	float right = 0.0f;
+	float forward = 0.0f;
+	auto playerRotation = rotation;
 
 	switch (GetInstrumentLot(self)) {
 	case Bass:
 	case Guitar:
-		position.SetX(position.GetX() + 5.0f);
+		right = 5.0f;
 		break;
 	case Keyboard:
-		position.SetX(position.GetX() - 0.45f);
-		position.SetZ(position.GetZ() + 0.75f);
-		rotation = QuatUtils::AxisAngle(position, -0.8f); // Slight rotation to make the animation sensible
+		right = -0.45f;
+		forward = 0.75f;
+		playerRotation = rotation * QuatUtils::AxisAngle(NiPoint3Constant::UNIT_Y, -0.8f);
 		break;
 	case Drum:
-		position.SetZ(position.GetZ() - 0.5f);
+		forward = -0.5f;
 		break;
 	}
 
-	GameMessages::Teleport(player->GetObjectID(), position, rotation).SendToClient(player->GetSystemAddress());
+	const NiPoint3 position = self->GetPosition() + NiPoint3(QuatUtils::Right(rotation)) * right + NiPoint3(QuatUtils::Forward(rotation)) * forward;
+	GameMessages::Teleport(player->GetObjectID(), position, playerRotation).SendToClient(player->GetSystemAddress());
 }
 
 InstrumentLot NsConcertInstrument::GetInstrumentLot(Entity* self) {
