@@ -128,3 +128,54 @@ function(dlu_fetch_curl)
 	FetchContent_MakeAvailable(curl)
 endfunction()
 dlu_fetch_curl()
+
+# Embree 4 (Apache-2.0), the ray queries of the UGC server's hidden face removal and ambient occlusion. A static
+# library with its own task scheduler (no TBB), triangles only, single rays only, no ISPC, tutorials or tests.
+# Options are set inside a function so they don't leak into our own build.
+function(dlu_fetch_embree)
+	# Embree asks for CMake 3.5's behaviour: let the variables below win over its option() and set(CACHE) defaults
+	set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+	set(CMAKE_POLICY_DEFAULT_CMP0126 NEW)
+	set(BUILD_TESTING OFF)
+	set(EMBREE_STATIC_LIB ON)
+	set(EMBREE_TASKING_SYSTEM "INTERNAL")
+	set(EMBREE_ISPC_SUPPORT OFF)
+	set(EMBREE_TUTORIALS OFF)
+	set(EMBREE_ZIP_MODE OFF)
+	set(EMBREE_INSTALL_DEPENDENCIES OFF)
+	set(EMBREE_SYCL_SUPPORT OFF)
+	set(EMBREE_FILTER_FUNCTION ON)
+	set(EMBREE_RAY_MASK OFF)
+	set(EMBREE_RAY_PACKETS OFF)
+	set(EMBREE_BACKFACE_CULLING OFF)
+	set(EMBREE_GEOMETRY_TRIANGLE ON)
+	foreach(geometry QUAD CURVE SUBDIVISION USER INSTANCE INSTANCE_ARRAY GRID POINT)
+		set(EMBREE_GEOMETRY_${geometry} OFF)
+	endforeach()
+	# Kernels for SSE2 (any x86-64), AVX and AVX2 (picked at run time by what the CPU has; AVX2 needs AVX's 8 wide
+	# hierarchy). SSE4.2 and AVX-512 would only add build time. ARM builds use NEON whatever these say.
+	set(EMBREE_MAX_ISA "NONE")
+	set(EMBREE_ISA_SSE2 ON)
+	set(EMBREE_ISA_SSE42 OFF)
+	set(EMBREE_ISA_AVX ON)
+	set(EMBREE_ISA_AVX2 ON)
+	set(EMBREE_ISA_AVX512 OFF)
+
+	FetchContent_Declare(
+		embree
+		GIT_REPOSITORY https://github.com/RenderKit/embree.git
+		GIT_TAG ff9381774dc99fea81a932ad276677aad6a3d4dd #refs/tags/v4.4.0
+		GIT_PROGRESS TRUE
+		GIT_SHALLOW 1
+	)
+	FetchContent_MakeAvailable(embree)
+
+	# Embree's Debug build is optimized but turns its assertions on, which slows it down a lot: off in every build
+	foreach(target embree embree_avx embree_avx2 sys math simd tasking lexers)
+		if(TARGET ${target})
+			target_compile_options(${target} PRIVATE "$<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/UDEBUG,-UDEBUG>>"
+				"$<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/UTBB_USE_DEBUG,-UTBB_USE_DEBUG>>")
+		endif()
+	endforeach()
+endfunction()
+dlu_fetch_embree()
