@@ -78,6 +78,23 @@
 			fmt.badge(c.done + ' made', 'success') + ' ' + fmt.badge(c.pending + ' waiting', 'secondary') + ' ' + fmt.badge(c.failed + ' failed', c.failed ? 'danger' : 'secondary') +
 			(c.empty ? ' ' + fmt.badge(c.empty + ' empty', 'light') : '') + '</div></div></div>';
 	}
+	// What making them all took, and what it saved (the rows' recorded stats; ones made before a stat existed don't count)
+	function totalsCard(title, t) {
+		if (!t || !t.made) return '';
+		var saved = t.trianglesBefore ? t.trianglesBefore - t.trianglesAfter : 0;
+		var rows = [
+			['Time spent making', duration(t.ms) + (t.timed < t.made ? ' <span class="text-body-secondary">(' + esc(t.timed) + ' of ' + esc(t.made) + ' timed)</span>' : '')],
+			['CPU time', duration(t.cpuMs)],
+			['Average / slowest', duration(t.averageMs) + ' / ' + duration(t.maxMs)],
+			['Memory (est.) average / most', mb(t.memoryKbAverage * 1024) + ' / ' + mb(t.memoryKbMax * 1024)]
+		];
+		if (t.bricks) rows.push(['Bricks', Number(t.bricks).toLocaleString()]);
+		if (t.triangles) rows.push(['Triangles (most detailed level)', Number(t.triangles).toLocaleString()]);
+		if (saved) rows.push(['Triangles saved', Number(saved).toLocaleString() + ' (' + (saved / t.trianglesBefore * 100).toFixed(1) + '% of ' + Number(t.trianglesBefore).toLocaleString() + ')']);
+		return '<div class="col-md-6"><div class="card"><div class="card-body py-2"><div class="small text-body-secondary mb-1">' + esc(title) + ': totals</div>' +
+			'<table class="table table-sm mb-0 small"><tbody>' + rows.map(function (r) { return '<tr><th class="fw-normal text-body-secondary">' + r[0] + '</th><td>' + r[1] + '</td></tr>'; }).join('') +
+			'</tbody></table></div></div></div>';
+	}
 	function owner(i) {
 		return i.characterName ? '<a href="/characters/' + esc(i.characterId) + '">' + esc(i.characterName) + '</a>' : '<span class="text-body-secondary">' + esc(i.characterId) + '</span>';
 	}
@@ -215,7 +232,8 @@
 		}
 		$('manageButtons').classList.toggle('d-none', !canManage);
 		$('cacheCard').classList.toggle('d-none', !canManage);
-		$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular);
+		$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular) +
+			(d.totals ? totalsCard('Models', d.totals.model) + totalsCard('Cars and rockets', d.totals.modular) : '');
 	}
 	function filterQuery() {
 		return 'kind=' + list.kind + '&q=' + encodeURIComponent(list.q) + '&state=' + list.state + '&type=' + encodeURIComponent(list.kind === 'modular' ? list.type : '');
@@ -646,6 +664,8 @@
 
 	function loadPresets() {
 		UgcIconEditor.kinds().then(function (kinds) {
+			// Player models have no shared preset (each is fitted to its icon): only cars and rockets have presets
+			kinds = kinds.filter(function (k) { return k.kind !== 'model'; });
 			$('presetsList').innerHTML = kinds.map(function (k) {
 				var sample = k.sample ? (k.kind === 'model' ? 'model ' + k.sample : 'modules ' + k.sample + (k.sampleBuilds ? ' (' + k.sampleBuilds + ' builds)' : '')) : 'nothing made yet';
 				return '<button type="button" class="btn btn-sm btn-outline-primary text-start" data-preset="' + esc(k.kind) + '"' + (k.sample ? '' : ' disabled') + '>' +

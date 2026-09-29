@@ -94,7 +94,11 @@
 			if (!d.success) throw new Error(d.error || 'No settings');
 			layers = { kind: d.kind, settings: d.settings, preset: d.preset, own: d.own };
 			$('framingKind').textContent = kindLabel();
-			setAll(layered(3), d.own ? 'This item has its own values.' : d.preset ? 'The type’s preset.' : 'The default settings.');
+			// Player models have no shared preset: each is fitted to its icon; only its own values change it
+			var shared = d.presets !== false;
+			$('framingSaveType').classList.toggle('d-none', !shared);
+			$('framingResetType').classList.toggle('d-none', !shared);
+			setAll(layered(3), d.own ? 'This item has its own values.' : d.preset ? 'The type’s preset.' : shared ? 'The default settings.' : 'Fitted to the icon from the default settings.');
 		});
 	}
 

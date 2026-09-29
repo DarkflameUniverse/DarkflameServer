@@ -683,7 +683,11 @@ nlohmann::json UgcProcessor::Status() const {
 
 UgcIconParams::Values UgcProcessor::IconValues(const std::string& kind, const std::string& itemTarget) {
 	UgcIconParams::Values values;
-	if (const auto preset = Database::Get()->GetUgcIconSettings(UgcIconParams::KindTarget(kind))) values = UgcIconParams::Parse(*preset);
+	// Player models have no shared preset: every one is a different size and shape, so each is fitted to the icon from
+	// the defaults, and only its own settings change it. Cars and rockets of a build type share a preset.
+	if (kind != UgcIconParams::ModelKind()) {
+		if (const auto preset = Database::Get()->GetUgcIconSettings(UgcIconParams::KindTarget(kind))) values = UgcIconParams::Parse(*preset);
+	}
 	if (const auto own = Database::Get()->GetUgcIconSettings(itemTarget)) {
 		for (const auto& [key, value] : UgcIconParams::Parse(*own)) values[key] = value;
 	}

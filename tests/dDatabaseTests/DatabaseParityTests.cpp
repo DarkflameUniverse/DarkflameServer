@@ -772,6 +772,17 @@ TEST_F(ParitySeeded, UgcModel) {
 		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
 		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), infoJson(db.GetUgcProcessInfo(1)) };
 	});
+	Both("GetUgcProcessTotals", [&](GameDatabase& db) {
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
+		db.SetUgcModelStats(1152921510000500001LL, 12, 300, 500);
+		db.SetUgcModelProcessStats(1152921510000500001LL, { 1500, 1200, 2048 });
+		const auto totals = db.GetUgcProcessTotals(false);
+		const auto modular = db.GetUgcProcessTotals(true);
+		const auto json = [](const IUgc::ProcessTotals& t) {
+			return nlohmann::json{ t.made, t.timed, t.milliseconds, t.cpuMilliseconds, t.maxMilliseconds, t.memoryKbAverage, t.memoryKbMax, t.bricks, t.triangles, t.trianglesBefore, t.trianglesAfter };
+		};
+		return nlohmann::json{ json(totals), json(modular) };
+	});
 	Both("ResetPropertyUgcModelProcessing", [&](GameDatabase& db) {
 		IPropertyContents::Model model;
 		model.id = 1152921510000400009LL; model.lot = 14; model.ugcId = 1152921510000500001LL;

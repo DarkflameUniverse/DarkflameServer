@@ -174,8 +174,10 @@ and the notices (see Threads). Cars and rockets are made once per combination of
    `icon_ambient`, `icon_sun_strength` and `icon_shadows` lines of existing ugcconfig.ini files, with the darker
    values, are no longer read). Every framing and light value (key, `icon_*` setting, range, default) is listed once in `UgcIconParams`; the
    settings, the dashboard's settings page and its icon editor are built from that list. Values come from the settings,
-   then the kind's preset (player models, or a car or rocket build type from the client's `ModularBuildComponent`),
-   then the item's own (a model, or a combination of car or rocket modules), the last two in `ugc_icon_settings`.
+   then the kind's preset (a car or rocket build type from the client's `ModularBuildComponent`; player models have none:
+   each is a different size and shape, so its icon is fitted to it from the settings, and the dashboard refuses a player
+   model preset), then the item's own (a model, or a combination of car or rocket modules), the last two in
+   `ugc_icon_settings`.
 
    **The pose.** The camera, the model's turn and the crop are worked out in `UgcIconPose` (shared with the
    dashboard's editor, see below), in this order: the model is turned about its origin by `modelYaw` (around +Y),

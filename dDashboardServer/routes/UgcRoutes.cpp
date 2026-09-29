@@ -250,6 +250,13 @@ namespace {
 		return GeneralUtils::TryParse<LWOOBJID>(it->is_string() ? it->get<std::string>() : it->dump());
 	}
 
+	// Sums over what the UGC server has made (IUgc::GetUgcProcessTotals)
+	nlohmann::json Totals(const IUgc::ProcessTotals& t) {
+		return { { "made", t.made }, { "timed", t.timed }, { "ms", t.milliseconds }, { "cpuMs", t.cpuMilliseconds }, { "maxMs", t.maxMilliseconds },
+			{ "averageMs", t.timed ? t.milliseconds / t.timed : 0 }, { "memoryKbAverage", t.memoryKbAverage }, { "memoryKbMax", t.memoryKbMax },
+			{ "bricks", t.bricks }, { "triangles", t.triangles }, { "trianglesBefore", t.trianglesBefore }, { "trianglesAfter", t.trianglesAfter } };
+	}
+
 	nlohmann::json Counts(const std::vector<std::pair<IUgc::eProcessState, uint64_t>>& counts) {
 		nlohmann::json out = nlohmann::json::object();
 		for (const auto state : magic_enum::enum_values<IUgc::eProcessState>()) out[IUgc::ProcessStateName(state)] = 0;
@@ -351,6 +358,7 @@ namespace UgcRoutes {
 					}
 				}
 				JsonSuccess(reply, { { "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } },
+					{ "totals", { { "model", Totals(Database::Get()->GetUgcProcessTotals(false)) }, { "modular", Totals(Database::Get()->GetUgcProcessTotals(true)) } } },
 					{ "items", items }, { "total", total }, { "page", page }, { "size", size }, { "more", static_cast<uint64_t>(page + 1) * size < total }, { "kinds", kinds },
 					{ "ugcPublicUrl", Game::config->GetValue("ugc_public_url") }, { "canManage", Can(context, "ugc_manage") } });
 			});
@@ -605,7 +613,8 @@ namespace UgcRoutes {
 					const auto value = UgcSetting(param.setting);
 					settings[param.key] = std::clamp(value ? GeneralUtils::TryParse<float>(*value).value_or(param.defaultValue) : param.defaultValue, param.min, param.max);
 				}
-				JsonSuccess(reply, { { "kind", kind }, { "target", target }, { "settings", settings }, { "preset", StoredValues(UgcIconParams::KindTarget(kind)) },
+				JsonSuccess(reply, { { "kind", kind }, { "target", target }, { "settings", settings }, { "preset", kind == UgcIconParams::ModelKind() ? nlohmann::json() : StoredValues(UgcIconParams::KindTarget(kind)) },
+					{ "presets", kind != UgcIconParams::ModelKind() },
 					{ "own", target.empty() ? nlohmann::json(nullptr) : StoredValues(target) } });
 			});
 
@@ -659,6 +668,9 @@ namespace UgcRoutes {
 					bool known = false;
 					for (const auto& entry : IconKinds()) known = known || entry["kind"] == kind;
 					if (!known) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Unknown kind");
+					if (kind == UgcIconParams::ModelKind()) {
+						return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Player models have no shared icon preset: each is fitted to its icon. Change one model's icon instead.");
+					}
 					target = UgcIconParams::KindTarget(kind);
 					what = "the " + kind + " icon preset";
 				} else if (body->value("kind", std::string()) == "modular") {

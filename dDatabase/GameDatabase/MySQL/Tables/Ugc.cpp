@@ -1,6 +1,7 @@
 #include "MySQLDatabase.h"
 
 #include <chrono>
+#include <cmath>
 
 namespace {
 	IUgc::ProcessInfo ReadUgcProcessInfo(PreparedStmtResultSet& result, bool modular) {
@@ -144,6 +145,24 @@ uint64_t MySQLDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> id
 	if (id) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0 WHERE id = ?;", *id);
 	if (failedOnly) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0 WHERE is_optimized = 2;");
 	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0;");
+}
+
+IUgc::ProcessTotals MySQLDatabase::GetUgcProcessTotals(const bool modular) {
+	const std::string sql = modular
+		? "SELECT COUNT(*) AS made, SUM(CASE WHEN process_ms > 0 THEN 1 ELSE 0 END) AS timed, COALESCE(SUM(process_ms), 0) AS ms, COALESCE(SUM(process_cpu_ms), 0) AS cpu, "
+		  "COALESCE(MAX(process_ms), 0) AS maxms, COALESCE(AVG(NULLIF(process_memory_kb, 0)), 0) AS memavg, COALESCE(MAX(process_memory_kb), 0) AS memmax, "
+		  "0 AS bricks, 0 AS tris, 0 AS before_tris, 0 AS after_tris FROM ugc_modular_build WHERE is_optimized = 1;"
+		: "SELECT COUNT(*) AS made, SUM(CASE WHEN process_ms > 0 THEN 1 ELSE 0 END) AS timed, COALESCE(SUM(process_ms), 0) AS ms, COALESCE(SUM(process_cpu_ms), 0) AS cpu, "
+		  "COALESCE(MAX(process_ms), 0) AS maxms, COALESCE(AVG(NULLIF(process_memory_kb, 0)), 0) AS memavg, COALESCE(MAX(process_memory_kb), 0) AS memmax, "
+		  "COALESCE(SUM(brick_count), 0) AS bricks, COALESCE(SUM(triangle_count), 0) AS tris, "
+		  "COALESCE(SUM(CASE WHEN triangle_count_before > 0 THEN triangle_count_before ELSE 0 END), 0) AS before_tris, "
+		  "COALESCE(SUM(CASE WHEN triangle_count_before > 0 THEN triangle_count ELSE 0 END), 0) AS after_tris FROM ugc WHERE is_optimized = 1;";
+	auto result = ExecuteSelect(sql);
+	IUgc::ProcessTotals totals;
+	if (!result->next()) return totals;
+	const auto field = [&](const char* name) { return static_cast<uint64_t>(std::llround(result->getDouble(name))); };
+	totals = { field("made"), field("timed"), field("ms"), field("cpu"), field("maxms"), field("memavg"), field("memmax"), field("bricks"), field("tris"), field("before_tris"), field("after_tris") };
+	return totals;
 }
 
 uint64_t MySQLDatabase::ResetPropertyUgcModelProcessing(const LWOOBJID propertyId) {

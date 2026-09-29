@@ -123,6 +123,24 @@ public:
 	// How many models are in each state
 	virtual std::vector<std::pair<eProcessState, uint64_t>> GetUgcProcessCounts() = 0;
 
+	// Sums over the made items (is_optimized 1) of the model table, or of the car and rocket builds (`modular`; they
+	// have no bricks or triangles). Items made before a stat was recorded have 0 for it and are left out of its averages
+	// and of the triangles saved.
+	struct ProcessTotals {
+		uint64_t made{};
+		uint64_t timed{};          // made ones with a recorded time
+		uint64_t milliseconds{};   // wall time, summed
+		uint64_t cpuMilliseconds{};
+		uint64_t maxMilliseconds{};
+		uint64_t memoryKbAverage{}; // estimate
+		uint64_t memoryKbMax{};
+		uint64_t bricks{};
+		uint64_t triangles{};
+		uint64_t trianglesBefore{}; // of the models whose count before hidden-face removal is known
+		uint64_t trianglesAfter{};  // the same models' after
+	};
+	virtual ProcessTotals GetUgcProcessTotals(const bool modular) = 0;
+
 	// ---- Checksums of the files the UGC server made (ugc_file_checksums), for the client's manifest requests ----
 
 	// What the files are stored under: a player model's ugc id, or a combination of car or rocket modules
