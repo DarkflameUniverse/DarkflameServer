@@ -585,15 +585,16 @@ std::optional<StatisticID> CharacterComponent::GetPowerUpStatistic(const LOT lot
 }
 
 void CharacterComponent::TrackHealthDelta(int32_t health) {
+	// Live sent no TotalDamageHealed or TotalDamageTaken of 0
 	if (health > 0) {
 		UpdatePlayerStatistic(TotalDamageHealed, health);
-	} else {
+	} else if (health < 0) {
 		UpdatePlayerStatistic(TotalDamageTaken, -health);
 	}
 }
 
 void CharacterComponent::TrackImaginationDelta(int32_t imagination) {
-	if (imagination > 0) {
+	if (imagination >= 0) {
 		UpdatePlayerStatistic(TotalImaginationRestored, imagination);
 	} else {
 		UpdatePlayerStatistic(TotalImaginationUsed, -imagination);
@@ -601,7 +602,7 @@ void CharacterComponent::TrackImaginationDelta(int32_t imagination) {
 }
 
 void CharacterComponent::TrackArmorDelta(int32_t armor) {
-	if (armor > 0) {
+	if (armor >= 0) {
 		UpdatePlayerStatistic(TotalArmorRepaired, armor);
 	}
 }

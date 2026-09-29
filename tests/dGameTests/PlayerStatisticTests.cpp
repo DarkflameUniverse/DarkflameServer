@@ -174,3 +174,33 @@ TEST_F(PlayerStatisticTest, SmashingCountsEnemiesAndSmashables) {
 	EXPECT_TRUE(Statistics(smash(false, false)).empty());
 	killer->SetCharacter(nullptr);
 }
+
+// Live: what a heal, repair or restore applied, 0 included for armor and imagination (a power-up picked up when full);
+// no TotalDamageHealed of 0
+TEST_F(PlayerStatisticTest, HealsRepairsAndRestoresCountWhatTheyApplied) {
+	auto* destroyable = entity->AddComponent<DestroyableComponent>(-1);
+	destroyable->SetMaxHealth(10.0f);
+	destroyable->SetMaxArmor(10.0f);
+	destroyable->SetMaxImagination(10.0f);
+	destroyable->SetHealth(10);
+	destroyable->SetArmor(8);
+	destroyable->SetImagination(10);
+
+	const auto sent = [&](const std::function<void()>& action) {
+		std::vector<std::pair<int32_t, int64_t>> out;
+		for (const auto& statistic : Statistics(Capture(action))) out.emplace_back(statistic.updateID, statistic.updateValue);
+		return out;
+	};
+	using Sent = std::vector<std::pair<int32_t, int64_t>>;
+
+	EXPECT_EQ(sent([&] { destroyable->Heal(5); }), Sent{});
+	EXPECT_EQ(sent([&] { destroyable->Repair(5); }), (Sent{ { TotalArmorRepaired, 2 } }));
+	EXPECT_EQ(sent([&] { destroyable->Repair(5); }), (Sent{ { TotalArmorRepaired, 0 } }));
+	EXPECT_EQ(sent([&] { destroyable->Imagine(3); }), (Sent{ { TotalImaginationRestored, 0 } }));
+	EXPECT_EQ(sent([&] { destroyable->Imagine(-4); }), (Sent{ { TotalImaginationUsed, 4 } }));
+	EXPECT_EQ(sent([&] { destroyable->Imagine(6); }), (Sent{ { TotalImaginationRestored, 4 } }));
+	EXPECT_EQ(sent([&] { destroyable->SetHealth(7); }), (Sent{ { TotalDamageTaken, 3 } }));
+	EXPECT_EQ(sent([&] { destroyable->Heal(1); }), (Sent{ { TotalDamageHealed, 1 } }));
+	// Setting stats up (loading, respawning) isn't healing
+	EXPECT_EQ(sent([&] { destroyable->SetHealth(10); destroyable->SetArmor(10); destroyable->SetImagination(10); }), Sent{});
+}

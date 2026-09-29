@@ -208,8 +208,9 @@ void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 void DestroyableComponent::SetHealth(int32_t value) {
 	m_DirtyHealth = true;
 
+	// Health lost counts as damage taken; healing counts where it is applied (Heal)
 	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
+	if (characterComponent != nullptr && value < m_iHealth) {
 		characterComponent->TrackHealthDelta(value - m_iHealth);
 	}
 
@@ -251,11 +252,6 @@ void DestroyableComponent::SetArmor(int32_t value) {
 	// If Destroyable Component already has zero armor do not trigger the passive ability again.
 	bool hadArmor = m_iArmor > 0;
 
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
-		characterComponent->TrackArmorDelta(value - m_iArmor);
-	}
-
 	m_iArmor = value;
 
 	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
@@ -294,8 +290,9 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 void DestroyableComponent::SetImagination(int32_t value) {
 	m_DirtyHealth = true;
 
+	// Imagination spent counts as used; restoring counts where it is applied (Imagine)
 	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
+	if (characterComponent != nullptr && value < m_iImagination) {
 		characterComponent->TrackImaginationDelta(value - m_iImagination);
 	}
 
@@ -499,7 +496,11 @@ void DestroyableComponent::Heal(const uint32_t health) {
 
 	current = std::min(current, max);
 
+	const auto before = GetHealth();
 	SetHealth(current);
+
+	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->TrackHealthDelta(GetHealth() - before);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 }
@@ -517,7 +518,12 @@ void DestroyableComponent::Imagine(const int32_t deltaImagination) {
 		current = 0;
 	}
 
+	const auto before = GetImagination();
 	SetImagination(current);
+
+	// What was restored, 0 included (live sent TotalImaginationRestored 0 for a power-up picked up when full)
+	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	if (characterComponent && deltaImagination > 0) characterComponent->TrackImaginationDelta(GetImagination() - before);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 }
@@ -531,7 +537,12 @@ void DestroyableComponent::Repair(const uint32_t armor) {
 
 	current = std::min(current, max);
 
+	const auto before = GetArmor();
 	SetArmor(current);
+
+	// What was repaired, 0 included (live sent TotalArmorRepaired 0 when the armor was already full)
+	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->TrackArmorDelta(GetArmor() - before);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 }

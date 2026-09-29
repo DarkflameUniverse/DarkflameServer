@@ -201,19 +201,20 @@ public:
 	static std::optional<StatisticID> GetPowerUpStatistic(LOT lot);
 
 	/**
-	 * Handles a change in health and updates the statistics
+	 * Handles a change in health and updates the statistics: healing applied (DestroyableComponent::Heal) or health lost
 	 * @param health the health delta
 	 */
 	void TrackHealthDelta(int32_t health);
 
 	/**
-	 * Handles a change in imagination and updates the statistics
+	 * Handles a change in imagination and updates the statistics: restored (DestroyableComponent::Imagine, 0 included)
+	 * or spent
 	 * @param imagination the imagination delta
 	 */
 	void TrackImaginationDelta(int32_t imagination);
 
 	/**
-	 * Handles a change in armor and updates the statistics
+	 * Handles armor repaired (DestroyableComponent::Repair, 0 included) and updates the statistics
 	 * @param armor the armor delta
 	 */
 	void TrackArmorDelta(int32_t armor);
