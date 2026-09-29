@@ -12,7 +12,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 185 | BUG: Assembly Engineer Fortress Knockback | partial | `2d76c81b` feat: server side knockback for AI moved objects |
 | 225 | ENH: "bind_ip" config option | done | `e36f894f` feat: bind_ip setting for the server sockets |
 | 257 | EH: Crux Prime shields stun instead of knockback | done | `2d76c81b` feat: server side knockback for AI moved objects |
-| 307 | Spider Queen scream on spiderling death | done | `d608446c` fix(scripts): the Spider Queen screams from the mountain when a spiderling dies (issue 307) |
+| 307 | Spider Queen scream on spiderling death | done | `4900f11c` fix(scripts): the Spider Queen screams from the mountain when a spiderling dies (issue 307) |
 | 536 | BUG: Pet Bouncer incomplete implementation | done | `4b13c98f` fix(pets): pet bouncers wait for the owner and cost imagination<br>`bcc47ca2` wire: add the Help game message |
 | 537 | BUG: Pet Digs missing interaction step and imagination cost | done | `eb7370ba` fix(pets): pet digs wait for the owner and cost imagination<br>`bcc47ca2` wire: add the Help game message |
 | 539 | BUG: Client thinks pet is active after automatically de-spawning | done | `f53ca094` fix(pets): the backpack lets go of a pet that went away on its own |
@@ -32,7 +32,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 957 | Username approved popup | partial | `57925d1e` feat(moderation): a name decision shows as a popup to the player, as live did (issue 957) (online players; offline players not told at next login) |
 | 960 | ENH: Make use of `minNumRequired` when deleting items | done | `02108055` feat(inventory): enforce DeletionRestrictions when deleting items |
 | 1021 | BUG: Crux Prime daily mission objectives for smashables don't always complete | partial | `b9d5ef99` fix: Skullkin drill credits the player who breaks it |
-| 1045 | TacArc not deserialized correctly | done | `0f85d19d` fix(combat): TacArc targets are read and written in the client's order (issue 1045) |
+| 1045 | TacArc not deserialized correctly | done | `3300784c` fix(combat): TacArc targets are read and written in the client's order (issue 1045) |
 | 1113 | ENH: Add data validation to user editable strings in .ini's | partial | `040d7ec0` fix: ignore whitespace around config keys and values<br>`9ee1431a` feat(master): say which folder setting is wrong at startup (issue 1113) |
 | 1127 | BUG: Enemies at Cavalry Hill take 1 damage from too far away on spawn | done | `5d3c2e6f` fix: filter physics volumes like the client's collision groups |
 | 1129 | BUG: Vendor selling window does not replicate live behavior | done | `c759bd1a` fix(vendor): keep 27 buyback items and drop the oldest |
@@ -43,11 +43,11 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 1428 | BUG: enemies, summons etc stay aggro'd onto other entities that have died | done | `363e02e9` fix: enemies and summons drop targets that have died |
 | 1563 | ENH: Admin defined "contraband" detection and removal | done | `b2403b09` feat: contraband list with flagging and optional removal |
 | 1565 | BUG: Removing Brick from Property | done | `6ce261c5` fix: brick by brick and model placement work the way the client expects |
-| 1568 | `delete this` in Item | done | `554f3e0d` fix(inventory): a removed item is freed by its inventory, not by itself (issue 1568) |
+| 1568 | `delete this` in Item | done | `585e2a6a` fix(inventory): a removed item is freed by its inventory, not by itself (issue 1568) |
 | 1632 | BUG: Getting kicked/disconnected while in Brick-By-Brick building mode causes the currently selected model to be wiped | done | `6ce261c5` fix: brick by brick and model placement work the way the client expects<br>`9256b31b` feat(db): bbb_autosave table for the client's BBB autosave |
-| 1970 | Spider Queen stuck in ground slam animation | done | `8cb2d06d` fix(scripts): Spider Queen specials follow her stage and wait out the smash (issue 1970) |
+| 1970 | Spider Queen stuck in ground slam animation | done | `990cc74a` fix(scripts): Spider Queen specials follow her stage and wait out the smash (issue 1970) |
 | 1971 | BUG: Avant Gardens Survival boundary incorrectly triggers | partial | `5d3c2e6f` fix: filter physics volumes like the client's collision groups |
-| 2016 | Spider Queen multi-shot broken | done | `8f77a545` fix(scripts): Spider Queen rapid fire sweeps the three zone target groups around a player (issue 2016)<br>`c6eed7c3` fix(scripts): Spider Queen rain of fire hits two spots in each outer ring (issue 2016) |
+| 2016 | Spider Queen multi-shot broken | done | `300932c6` fix(scripts): Spider Queen rapid fire sweeps the three zone target groups around a player (issue 2016)<br>`5dba7d51` fix(scripts): Spider Queen rain of fire hits two spots in each outer ring (issue 2016) |
 | 2035 | BUG: Unbounded AMF3 associative-array entries use predictable hashing (potential HashDoS) | done | `8a2ccb1a` fix: bound AMF3 decoding and stop hashing client keys |
 
 ## Waiting on other work
