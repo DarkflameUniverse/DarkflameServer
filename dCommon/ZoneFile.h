@@ -178,7 +178,7 @@ struct SpawnerPath {
 	int32_t maxToSpawn{};
 	uint32_t amountMaintained{};
 	LWOOBJID spawnerObjID;
-	uint8_t spawnerNetActive{};
+	uint8_t spawnerNetActive = 1; // not in paths before version 9; the client then activates it on load
 };
 
 

@@ -227,7 +227,7 @@ void ZoneFile::ReadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
 		BinaryIO::BinaryRead(file, path.spawner.amountMaintained);
 		BinaryIO::BinaryRead(file, path.spawner.spawnerObjID);
-		BinaryIO::BinaryRead(file, path.spawner.spawnerNetActive);
+		if (path.pathVersion >= 9) BinaryIO::BinaryRead(file, path.spawner.spawnerNetActive);
 	}
 
 	// Read waypoints

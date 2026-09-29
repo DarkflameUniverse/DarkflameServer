@@ -204,6 +204,33 @@ TEST(ZoneFileTests, ReadsLegacyPaths) {
 	EXPECT_EQ(platform.pathWaypoints[0].movingPlatform.wait, 1.5f);
 }
 
+// Spawner paths before version 9 have no activate-on-load byte; the client then activates them on load
+TEST(ZoneFileTests, SpawnerNetActiveFromVersion9) {
+	ZoneBytes w;
+	w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150);
+	w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+	w.Put<uint32_t>(1);
+	w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(2);
+	for (const uint32_t version : { 8u, 9u }) {
+		w.Put<uint32_t>(version).Wide("Spawner").Put<uint32_t>(4).Put<uint32_t>(0).Put<uint32_t>(0);
+		w.Put<int32_t>(6010).Put<uint32_t>(10).Put<int32_t>(1).Put<uint32_t>(1).Put<int64_t>(123);
+		if (version >= 9) w.Put<uint8_t>(0);
+		w.Put<uint32_t>(1).Point(1, 1, 1).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put<uint32_t>(0);
+	}
+
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	EXPECT_EQ(stream.peek(), std::char_traits<char>::eof());
+	ASSERT_EQ(zone.paths.size(), 2u);
+	EXPECT_EQ(zone.paths[0].spawner.spawnerNetActive, 1);
+	EXPECT_EQ(zone.paths[0].pathWaypoints.at(0).position, NiPoint3(1, 1, 1));
+	EXPECT_EQ(zone.paths[1].spawner.spawnerNetActive, 0);
+}
+
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {
 	const auto zone = SampleZone();
 	for (const size_t length : { size_t{ 3 }, size_t{ 40 }, zone.size() / 2, zone.size() - 1 }) {
