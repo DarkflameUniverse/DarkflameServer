@@ -35,11 +35,19 @@ namespace GameMessages {
 		return bitStream.Read(playerID);
 	}
 
+	void SendPlayerReady(const LWOOBJID player, const LWOOBJID zoneControl, const SystemAddress& sysAddr) {
+		PlayerReady playerReady;
+		playerReady.target = player;
+		playerReady.SendToClient(sysAddr);
+		if (zoneControl == LWOOBJID_EMPTY) return;
+		playerReady.target = zoneControl;
+		playerReady.SendToClient(sysAddr);
+	}
+
 	void PlayerLoaded::Handle(Entity& entityRef, const SystemAddress& sysAddr) {
 		auto* entity = &entityRef;
-		PlayerReady playerReady;
-		playerReady.target = entity->GetObjectID();
-		playerReady.SendToClient(sysAddr);
+		const auto* const zoneControlEntity = Game::entityManager->GetZoneControlEntity();
+		SendPlayerReady(entity->GetObjectID(), zoneControlEntity ? zoneControlEntity->GetObjectID() : LWOOBJID_EMPTY, sysAddr);
 		entity->SetPlayerReadyForUpdates();
 
 		auto* ghostComponent = entity->GetComponent<GhostComponent>();

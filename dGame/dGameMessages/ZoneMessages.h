@@ -33,6 +33,10 @@ namespace GameMessages {
 		PlayerReady() : NetGameMsg(MessageType::Game::PLAYER_READY) {}
 	};
 
+	// Answers PlayerLoaded the way live did (235 of 237 loads): PlayerReady to the player, then to the zone control
+	// object, whose client scripts wait for it. zoneControl is LWOOBJID_EMPTY when the zone has none.
+	void SendPlayerReady(LWOOBJID player, LWOOBJID zoneControl, const SystemAddress& sysAddr);
+
 	// Server -> client, to one client. No payload.
 	struct RestoreToPostLoadStats : public NetGameMsg {
 		RestoreToPostLoadStats() : NetGameMsg(MessageType::Game::RESTORE_TO_POST_LOAD_STATS) {}
