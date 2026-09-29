@@ -12,8 +12,8 @@
 #include "UgcModel.h"
 
 /**
- * Rays against a mesh's triangles, for the hidden faces' paths (the nearest hit) and the ambient occlusion rays
- * (whether anything is hit), by one of several backends (the ugc_ray_backend setting, or per job):
+ * Rays against a mesh's triangles: the nearest hit (never the triangle a ray leaves) and, for the ambient occlusion
+ * rays, whether anything is hit, by one of several backends (the ray_backend setting, or per job):
  *   builtin: the UGC server's own bounding volume hierarchies (the ones it always had)
  *   embree:  Intel's Embree 4 on the CPU, on the thread that asks (no threads of its own)
  *   hiprt:   AMD's HIPRT on the GPU (AMD through HIP, NVIDIA through CUDA, loaded when first asked for by Orochi),

@@ -155,15 +155,9 @@ namespace {
 		settings.build.satinWhiten = std::clamp(Setting<float>("satin_whiten", 20.0f), 0.0f, 100.0f);
 		settings.hsr.enabled = Setting<int32_t>("remove_hidden_faces", 1) != 0;
 		settings.hsr.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
-		settings.hsr.samples = std::clamp(Setting<int32_t>("hsr_samples", 8), 1, 256);
-		settings.hsr.bounces = std::clamp(Setting<int32_t>("hsr_bounces", 8), 0, 64);
-		settings.hsr.spacing = std::clamp(Setting<float>("hsr_sample_spacing", 0.1143f), 0.01f, 10.0f);
-		settings.hsr.minPoints = std::clamp(Setting<int32_t>("hsr_min_points", 28), 1, 4096);
-		settings.hsr.method = UgcHsr::Parse(Game::config->GetValue("hsr_method")).value_or(UgcHsr::eMethod::TOOLBOX);
-		settings.hsr.fastResolution = std::clamp(Setting<int32_t>("hsr_fast_resolution", 1024), 64, 4096);
-		// What traces the rays of the hidden faces' paths and of the occlusion (the icon's too)
-		settings.hsr.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::BUILTIN);
-		settings.ao.rays = settings.hsr.rays;
+		settings.hsr.resolution = std::clamp(Setting<int32_t>("hsr_resolution", 1024), 64, 4096);
+		// What traces the occlusion rays (the icon's too)
+		settings.ao.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::BUILTIN);
 		// The GPU hiprt uses (read before it is first used; changing it takes a restart)
 		UgcRays::SetGpuDevice(std::max(Setting<int32_t>("hiprt_device", 0), 0));
 		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
@@ -180,7 +174,7 @@ namespace {
 		settings.icon.glowEmissive = settings.shaders.glowEmissive;
 		settings.icon.glitter = settings.shaders.glitterParams;
 		settings.icon.ao.distance = settings.ao.distance;
-		settings.icon.ao.rays = settings.hsr.rays;
+		settings.icon.ao.rays = settings.ao.rays;
 		settings.icon.denoise = UgcRender::ParseDenoise(Game::config->GetValue("denoise")).value_or(UgcRender::eDenoise::OFF);
 		settings.icon.denoiseSamples = std::clamp(Setting<int32_t>("denoise_samples", 4), 1, 256);
 		settings.icon.bakedAo = settings.ao.enabled ? std::clamp(settings.ao.strength, 0.0f, 1.0f) : 0.0f;
@@ -193,8 +187,8 @@ namespace {
 	void LogProcessingOptions(const UgcJobs::Settings& settings) {
 		const auto made = UgcJobs::MadeWith(settings);
 		LOG("Processing options: %s", UgcProcessOptions::ToString(made).c_str());
-		if (UgcRays::Resolve(settings.hsr.rays) != settings.hsr.rays) {
-			LOG("ray_backend=%s can't be used (%s): embree instead", std::string(UgcRays::Name(settings.hsr.rays)).c_str(), UgcRays::Problem(settings.hsr.rays).c_str());
+		if (UgcRays::Resolve(settings.ao.rays) != settings.ao.rays) {
+			LOG("ray_backend=%s can't be used (%s): embree instead", std::string(UgcRays::Name(settings.ao.rays)).c_str(), UgcRays::Problem(settings.ao.rays).c_str());
 		}
 		if (!UgcRender::Available(settings.icon.denoise)) LOG("denoise=%s can't be used (the server was built without DLU_OIDN): off instead", std::string(UgcRender::Name(settings.icon.denoise)).c_str());
 	}
@@ -579,7 +573,7 @@ namespace {
 		auto settings = ReadSettings();
 		UgcProcessOptions::Choice choice;
 		if (!UgcProcessOptions::Parse(options, choice)) {
-			std::cerr << "Unknown processing options \"" << options << "\" (ray backend builtin, embree or hiprt; hidden faces toolbox or fast; denoise off or oidn)\n";
+			std::cerr << "Unknown processing options \"" << options << "\" (ray backend builtin, embree or hiprt; denoise off or oidn)\n";
 			return EXIT_FAILURE;
 		}
 		UgcJobs::ApplyOptions(settings, choice);

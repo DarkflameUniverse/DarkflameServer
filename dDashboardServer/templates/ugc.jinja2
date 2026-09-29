@@ -35,9 +35,9 @@
 	<details class="card mb-3" id="optionsCard">
 		<summary class="card-header py-2 small fw-semibold">Processing options compared</summary>
 		<div class="card-body py-2 small">
-			<p class="text-body-secondary mb-2">The ways of making models to compare: the ray tracer (built in, Embree on the CPU, HIPRT on the GPU), how
-				hidden faces are found (LU Toolbox's paths, or fast renders from around the model) and denoising of icons. The settings pick the
-				defaults; <b>Make again</b> can use others for a make (the options next to it, or <code>/reprocessproperty embree fast</code> in game).
+			<p class="text-body-secondary mb-2">The ways of making models to compare: the ray tracer of the occlusion (built in, Embree on the CPU,
+				HIPRT on the GPU) and denoising of icons. The settings pick the defaults; <b>Make again</b> can use others for a make (the options next
+				to it, or <code>/reprocessproperty embree oidn</code> in game).
 				Every make is counted under what made it: the averages per make below, each model's in the List view's Options column.</p>
 			<div class="table-responsive"><table class="table table-sm align-middle mb-0" id="optionsTable">
 				<thead><tr><th>Options</th><th>Makes</th><th>Models</th><th>Took</th><th>CPU</th><th>Hidden faces</th><th>Occlusion</th><th>Icon</th><th>Bricks</th><th>Triangles removed</th></tr></thead>
@@ -83,7 +83,6 @@
 		<div class="ms-auto d-none d-flex flex-wrap gap-1 align-items-center" id="manageButtons">
 			<span class="d-flex gap-1" id="remakeOptions" title="How Make again makes models (the settings' way unless picked here)">
 				<select class="form-select form-select-sm w-auto" id="optRays" aria-label="Ray tracer for Make again"><option value="">Ray tracer: settings</option></select>
-				<select class="form-select form-select-sm w-auto" id="optHsr" aria-label="Hidden faces for Make again"><option value="">Hidden faces: settings</option></select>
 				<select class="form-select form-select-sm w-auto" id="optDenoise" aria-label="Denoise for Make again"><option value="">Denoise: settings</option></select>
 			</span>
 			<button type="button" class="btn btn-sm btn-outline-warning" id="retryFailed">Try the failed ones again</button>

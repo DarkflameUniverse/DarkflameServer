@@ -224,7 +224,7 @@ TEST(UgcRender, RemovesWhatIsInsideAndDrawsIcons) {
 		</Bricks></LXFML>)", error);
 	auto model = UgcModel::Build(parts, library);
 	ASSERT_EQ(model.opaque.TriangleCount(), 24u);
-	const auto result = UgcHsr::RemoveHiddenFaces(model, UgcHsr::Options{});
+	const auto result = UgcHsr::RemoveHiddenFaces(model, UgcHsr::Options{ .resolution = 256 });
 	EXPECT_EQ(result.trianglesRemoved, 12u);
 	EXPECT_EQ(model.opaque.TriangleCount(), 12u);
 	EXPECT_EQ(model.opaque.positions.size(), 8u);
@@ -1785,8 +1785,8 @@ TEST(UgcModel, SatinColors) {
 }
 
 TEST(UgcHsr, OffIsByteIdenticalToBefore) {
-	// remove_hidden_faces=0 makes exactly the files made before the path traced hidden faces replaced the renders.
-	// The hashes were taken with GCC on x86-64 Linux.
+	// remove_hidden_faces=0 makes the same files whatever removes hidden faces. The hashes were taken with GCC on
+	// x86-64 Linux.
 	UgcBricks::BrickLibrary library(MakeRes(), 0);
 	auto settings = SmallSettings();
 	settings.hsr.enabled = false;
@@ -1847,84 +1847,24 @@ namespace {
 	}
 }
 
-TEST(UgcHsr, KeepsWhatIsSeenThroughADoorwayOrOnlyByBouncedLight) {
-	const auto open = UgcHsr::Visible(Room(false), UgcHsr::Options{});
-	// Every face of the box in the room, the one turned away from the doorway too (only light bounced off the back
-	// wall reaches it), and every wall
-	for (size_t t = 0; t < open.size(); t++) EXPECT_TRUE(open[t]) << t;
-	const auto closed = UgcHsr::Visible(Room(true), UgcHsr::Options{});
-	for (size_t t = 0; t < 12; t++) EXPECT_FALSE(closed[t]) << t;
-}
-
-TEST(UgcHsr, IsTheSameEveryTime) {
-	auto options = UgcHsr::Options{};
-	options.seed = 1234;
-	options.samples = 1; // few paths, so chance matters
-	options.bounces = 3;
-	const auto mesh = Room(false);
-	const auto first = UgcHsr::Visible(mesh, options);
-	EXPECT_EQ(UgcHsr::Visible(mesh, options), first);
-	uint64_t points = 0, paths = 0;
-	UgcHsr::Visible(mesh, options, &points, &paths);
-	EXPECT_GT(points, 0u);
-	EXPECT_GT(paths, 0u);
-}
-
 TEST(UgcHsr, GroundPlaneHidesTheUnderside) {
-	UgcModel::Mesh mesh;
-	AddBox(mesh, glm::vec3(0.0f), glm::vec3(0.8f, 0.96f, 0.8f)); // a brick on LDD's floor
-	auto options = UgcHsr::Options{};
-	const auto without = UgcHsr::Visible(mesh, options);
-	for (size_t t = 0; t < without.size(); t++) EXPECT_TRUE(without[t]) << t;
+	// An upside down box open at the bottom: its ceiling (the slab's underside, triangles 4 and 5) is only seen from
+	// below
+	UgcModel::Model model;
+	AddBox(model.opaque, glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 1.2f, 1.0f));
+	AddBox(model.opaque, glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(-0.8f, 1.0f, 1.0f));
+	AddBox(model.opaque, glm::vec3(0.8f, 0.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+	AddBox(model.opaque, glm::vec3(-0.8f, 0.0f, -1.0f), glm::vec3(0.8f, 1.0f, -0.8f));
+	AddBox(model.opaque, glm::vec3(-0.8f, 0.0f, 0.8f), glm::vec3(0.8f, 1.0f, 1.0f));
+	UgcHsr::Options options;
+	options.resolution = 256;
+	auto without = model;
+	const auto seen = UgcHsr::RemoveHiddenFaces(without, options);
+	EXPECT_TRUE(seen.kept[4] && seen.kept[5]);
 	options.groundPlane = true;
-	const auto with = UgcHsr::Visible(mesh, options);
-	for (size_t t = 0; t < with.size(); t++) EXPECT_EQ(with[t], t != 4 && t != 5) << t; // triangles 4 and 5: the bottom
-}
-
-TEST(UgcHsr, RemovesTrianglesWithoutArea) {
-	UgcModel::Mesh mesh;
-	AddBox(mesh, glm::vec3(0.0f), glm::vec3(0.8f));
-	const auto base = static_cast<uint32_t>(mesh.positions.size());
-	for (int i = 0; i < 3; i++) {
-		mesh.positions.push_back(glm::vec3(5.0f));
-		mesh.normals.push_back(glm::vec3(0, 1, 0));
-	}
-	mesh.indices.insert(mesh.indices.end(), { base, base + 1, base + 2 });
-	const auto visible = UgcHsr::Visible(mesh, UgcHsr::Options{});
-	ASSERT_EQ(visible.size(), 13u);
-	for (size_t t = 0; t < 12; t++) EXPECT_TRUE(visible[t]) << t;
-	EXPECT_FALSE(visible[12]);
-}
-
-TEST(UgcHsr, SamplePointsFollowTheTrianglesSize) {
-	const auto check = [](const std::vector<glm::vec3>& points) {
-		for (const auto& w : points) {
-			EXPECT_NEAR(w.x + w.y + w.z, 1.0f, 1e-5f);
-			EXPECT_GT(std::min({ w.x, w.y, w.z }), 0.0f);
-		}
-	};
-	// Half a stud-sized square: 7 x 7 points on the square
-	const auto half = UgcHsr::SamplePoints({ 0, 0, 0 }, { 0.8f, 0, 0 }, { 0.8f, 0, 0.8f }, 0.1143f);
-	check(half);
-	EXPECT_EQ(half.size(), 25u);
-	// Four times the area, about four times the points
-	const auto big = UgcHsr::SamplePoints({ 0, 0, 0 }, { 1.6f, 0, 0 }, { 1.6f, 0, 1.6f }, 0.1143f);
-	check(big);
-	EXPECT_EQ(big.size(), 100u);
-	// A tiny triangle: its centre and one towards each corner
-	const auto tiny = UgcHsr::SamplePoints({ 0, 0, 0 }, { 0.01f, 0, 0 }, { 0, 0.01f, 0 }, 0.1143f);
-	check(tiny);
-	EXPECT_EQ(tiny.size(), 4u);
-	// A long sliver: points along its length
-	const auto sliver = UgcHsr::SamplePoints({ 0, 0, 0 }, { 3.2f, 0, 0 }, { 1.6f, 0.01f, 0 }, 0.1143f);
-	check(sliver);
-	EXPECT_EQ(sliver.size(), 14u);
-	// With a minimum (LU Toolbox's 28 texels a triangle) small triangles get their points closer together
-	const auto dense = UgcHsr::SamplePoints({ 0, 0, 0 }, { 0.01f, 0, 0 }, { 0, 0.01f, 0 }, 0.1143f, 28);
-	check(dense);
-	EXPECT_GE(dense.size(), 28u);
-	EXPECT_LE(dense.size(), 40u);
-	EXPECT_EQ(UgcHsr::SamplePoints({ 0, 0, 0 }, { 1.6f, 0, 0 }, { 1.6f, 0, 1.6f }, 0.1143f, 28).size(), 100u); // bigger ones as before
+	const auto with = UgcHsr::RemoveHiddenFaces(model, options);
+	EXPECT_FALSE(with.kept[4] || with.kept[5]);
+	EXPECT_TRUE(with.kept[6] && with.kept[7]); // the roof
 }
 
 // Stopping the server cancels the jobs being made: Checkpoint throws until the cancel is cleared
@@ -2002,10 +1942,7 @@ namespace {
 	}
 }
 
-TEST(UgcHsr, FastMethodRendersFromAround) {
-	EXPECT_EQ(UgcHsr::Parse("fast"), UgcHsr::eMethod::FAST);
-	EXPECT_EQ(UgcHsr::Parse("toolbox"), UgcHsr::eMethod::TOOLBOX);
-	EXPECT_FALSE(UgcHsr::Parse("slow"));
+TEST(UgcHsr, RendersFromAround) {
 	EXPECT_EQ(UgcRender::SphereDirections().size(), 42u);
 
 	// A small box inside the big one: its faces can't be seen
@@ -2017,16 +1954,13 @@ TEST(UgcHsr, FastMethodRendersFromAround) {
 		</Bricks></LXFML>)", error);
 	auto model = UgcModel::Build(parts, library);
 	UgcHsr::Options options;
-	options.method = UgcHsr::eMethod::FAST;
-	options.fastResolution = 256;
+	options.resolution = 256;
 	const auto result = UgcHsr::RemoveHiddenFaces(model, options);
 	EXPECT_EQ(result.trianglesRemoved, 12u);
 	EXPECT_EQ(model.opaque.TriangleCount(), 12u);
-	EXPECT_EQ(result.paths, 0u);
 
 	// A small box in a closed chamber whose only opening is a narrow chimney at the other end: nothing outside sees it
-	// straight, so the fast method removes it; light bounced in through the chimney reaches some of it, so the toolbox
-	// method keeps that
+	// straight, so it is removed (it would only be seen by light bounced in through the chimney)
 	UgcModel::Model chamber;
 	auto& mesh = chamber.opaque;
 	AddBox(mesh, glm::vec3(-0.9f, 0.0f, -0.15f), glm::vec3(-0.6f, 0.2f, 0.15f)); // the small box
@@ -2046,15 +1980,9 @@ TEST(UgcHsr, FastMethodRendersFromAround) {
 	const auto seen = UgcRender::VisibleFromAround(chamber, 512, false);
 	ASSERT_EQ(seen.size(), mesh.TriangleCount());
 	for (size_t t = 0; t < 12; t++) EXPECT_FALSE(seen[t]) << t;
-	UgcHsr::Options toolbox;
-	toolbox.samples = 32;
-	const auto traced = UgcHsr::Visible(mesh, toolbox);
-	EXPECT_TRUE(std::any_of(traced.begin(), traced.begin() + 12, [](bool kept) { return kept; }));
 
 	// Its files are the same every time
 	auto settings = SmallSettings();
-	settings.hsr.method = UgcHsr::eMethod::FAST;
-	settings.hsr.fastResolution = 128;
 	const auto first = UgcJobs::ProcessModel(LXFML5, library, settings, 7);
 	ASSERT_TRUE(first.ok) << first.error;
 	EXPECT_EQ(first.files.at("model.nif.checksum"), UgcJobs::ProcessModel(LXFML5, library, settings, 7).files.at("model.nif.checksum"));
@@ -2065,33 +1993,34 @@ TEST(UgcHsr, FastMethodRendersFromAround) {
 
 TEST(UgcProcessOptions, ParseApplyAndRecord) {
 	UgcProcessOptions::Choice choice;
-	ASSERT_TRUE(UgcProcessOptions::Parse("fast  embree", choice));
+	ASSERT_TRUE(UgcProcessOptions::Parse("oidn  embree", choice));
 	EXPECT_EQ(choice.rays, "embree");
-	EXPECT_EQ(choice.hsr, "fast");
-	EXPECT_EQ(choice.denoise, "");
-	EXPECT_EQ(UgcProcessOptions::ToString(choice), "embree fast");
+	EXPECT_EQ(choice.denoise, "oidn");
+	EXPECT_EQ(UgcProcessOptions::ToString(choice), "embree oidn");
 	ASSERT_TRUE(UgcProcessOptions::Parse("default - oidn", choice));
 	EXPECT_EQ(UgcProcessOptions::ToString(choice), "oidn");
 	ASSERT_TRUE(UgcProcessOptions::Parse("", choice));
 	EXPECT_TRUE(choice.Empty());
 	EXPECT_FALSE(UgcProcessOptions::Parse("embree hiprt", choice)); // two backends
 	EXPECT_FALSE(UgcProcessOptions::Parse("optix", choice));
+	// Options stored by earlier versions named a hidden-face method: still read, the method ignored
+	ASSERT_TRUE(UgcProcessOptions::Parse("embree toolbox off", choice));
+	EXPECT_EQ(UgcProcessOptions::ToString(choice), "embree off");
+	ASSERT_TRUE(UgcProcessOptions::Parse("fast", choice));
+	EXPECT_TRUE(choice.Empty());
 
 	// The shared names are the UGC server's
 	for (const auto name : UgcProcessOptions::RAYS) EXPECT_EQ(UgcRays::Name(*UgcRays::Parse(name)), name);
-	for (const auto name : UgcProcessOptions::HSR) EXPECT_EQ(UgcHsr::Name(*UgcHsr::Parse(name)), name);
 	for (const auto name : UgcProcessOptions::DENOISE) EXPECT_EQ(UgcRender::Name(*UgcRender::ParseDenoise(name)), name);
 
 	// Applied over the settings; what made a model is recorded as it was used
 	UgcJobs::Settings settings;
-	EXPECT_EQ(UgcProcessOptions::ToString(UgcJobs::MadeWith(settings)), "builtin toolbox off");
-	ASSERT_TRUE(UgcProcessOptions::Parse("embree fast", choice));
+	EXPECT_EQ(UgcProcessOptions::ToString(UgcJobs::MadeWith(settings)), "builtin off");
+	ASSERT_TRUE(UgcProcessOptions::Parse("embree", choice));
 	UgcJobs::ApplyOptions(settings, choice);
-	EXPECT_EQ(settings.hsr.rays, UgcRays::eBackend::EMBREE);
 	EXPECT_EQ(settings.ao.rays, UgcRays::eBackend::EMBREE);
 	EXPECT_EQ(settings.icon.ao.rays, UgcRays::eBackend::EMBREE);
-	EXPECT_EQ(settings.hsr.method, UgcHsr::eMethod::FAST);
-	EXPECT_EQ(UgcProcessOptions::ToString(UgcJobs::MadeWith(settings)), "embree fast off");
+	EXPECT_EQ(UgcProcessOptions::ToString(UgcJobs::MadeWith(settings)), "embree off");
 	ASSERT_TRUE(UgcProcessOptions::Parse("hiprt oidn", choice));
 	UgcJobs::ApplyOptions(settings, choice);
 	const auto made = UgcJobs::MadeWith(settings);
@@ -2107,8 +2036,8 @@ TEST(UgcProcessOptions, ParseApplyAndRecord) {
 	EXPECT_EQ(outcome.options, UgcProcessOptions::ToString(UgcJobs::MadeWith(small)));
 	const auto stats = nlohmann::json::parse(outcome.stats);
 	EXPECT_EQ(stats["settings"]["rays"], made.rays);
-	EXPECT_EQ(stats["settings"]["hsrMethod"], "toolbox");
 	EXPECT_EQ(stats["settings"]["denoise"], made.denoise);
+	EXPECT_FALSE(stats["settings"].contains("hsrMethod"));
 }
 
 TEST(UgcRender, DenoisedIconsTraceTheOcclusionPerPixel) {
@@ -2215,49 +2144,14 @@ TEST(UgcRays, BackendsFindTheSameHits) {
 	}
 }
 
-TEST(UgcHsr, SideBySideDecidesTheSameAsOneByOne) {
-	// The paths traced side by side (as for a GPU) are the same paths, so the same triangles stay; ground plane too
-	for (const bool ground : { false, true }) {
-		UgcHsr::Options options;
-		options.seed = 5;
-		options.samples = 2;
-		options.groundPlane = ground;
-		const auto mesh = Clutter();
-		uint64_t points = 0, paths = 0, sidePoints = 0, sidePaths = 0;
-		const auto oneByOne = UgcHsr::Visible(mesh, options, &points, &paths);
-		options.sideBySide = true;
-		EXPECT_EQ(UgcHsr::Visible(mesh, options, &sidePoints, &sidePaths), oneByOne) << ground;
-		EXPECT_EQ(sidePoints, points);
-		EXPECT_GE(sidePaths, paths); // it traces a round's other paths too once one escaped
-		EXPECT_EQ(UgcHsr::Visible(Room(true), options), UgcHsr::Visible(Room(true), UgcHsr::Options{ .groundPlane = ground, .samples = 2, .seed = 5 }));
-	}
-}
-
-TEST(UgcRays, OtherBackendsMakeTheSameModels) {
-	// The hidden faces and the occlusion with each backend. The paths bounce, so a hit found a rounding further away
-	// sends a path on from a slightly different point: the rare triangle decided by a path that only just gets out
-	// may go the other way. The small test model's files are the same.
+TEST(UgcRays, OtherBackendsMakeTheSameOcclusion) {
+	// The occlusion with each backend, within rounding of builtin's; the small test model's files are the same
 	const auto mesh = Clutter();
-	UgcHsr::Options hsr;
-	hsr.seed = 99;
-	const auto expected = UgcHsr::Visible(mesh, hsr);
 	const auto aoExpected = UgcRender::AmbientOcclusion(mesh, mesh, 2.0f, 64);
 	UgcBricks::BrickLibrary library(MakeRes(), 0);
 	const auto builtinModel = UgcJobs::ProcessModel(LOOKS_LXFML, library, SmallSettings(), 7);
 	ASSERT_TRUE(builtinModel.ok) << builtinModel.error;
 	for (const auto backend : OtherBackends()) {
-		hsr.rays = backend;
-		const auto visible = UgcHsr::Visible(mesh, hsr);
-		ASSERT_EQ(visible.size(), expected.size());
-		size_t differ = 0;
-		for (size_t t = 0; t < visible.size(); t++) differ += visible[t] != expected[t] ? 1 : 0;
-		EXPECT_LE(differ, visible.size() / 50) << UgcRays::Name(backend);
-		// The room's closed-off box is removed and what the doorway shows is kept, as with builtin
-		const auto closed = UgcHsr::Visible(Room(true), hsr);
-		for (size_t t = 0; t < 12; t++) EXPECT_FALSE(closed[t]) << UgcRays::Name(backend) << " " << t;
-		const auto open = UgcHsr::Visible(Room(false), hsr);
-		for (size_t t = 0; t < open.size(); t++) EXPECT_TRUE(open[t]) << UgcRays::Name(backend) << " " << t;
-
 		const auto ao = UgcRender::AmbientOcclusion(mesh, mesh, 2.0f, 64, backend);
 		ASSERT_EQ(ao.size(), aoExpected.size());
 		double total = 0.0;
@@ -2268,7 +2162,6 @@ TEST(UgcRays, OtherBackendsMakeTheSameModels) {
 		EXPECT_LT(total / static_cast<double>(ao.size()), 0.002) << UgcRays::Name(backend);
 
 		auto settings = SmallSettings();
-		settings.hsr.rays = backend;
 		settings.ao.rays = backend;
 		const auto made = UgcJobs::ProcessModel(LOOKS_LXFML, library, settings, 7);
 		ASSERT_TRUE(made.ok) << made.error;

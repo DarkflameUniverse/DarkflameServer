@@ -1990,10 +1990,10 @@ namespace DEVGMCommands {
 			ChatPackets::SendSystemMessage(sysAddr, u"You aren't on a property.");
 			return;
 		}
-		// Optional processing options for this make: ray backend, hidden-face method, denoising, in any order
+		// Optional processing options for this make: ray backend and denoising, in any order
 		UgcProcessOptions::Choice choice;
 		if (!UgcProcessOptions::Parse(args, choice)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reprocessproperty [builtin|embree|hiprt] [toolbox|fast] [off|oidn] (left out: the UGC settings')");
+			ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reprocessproperty [builtin|embree|hiprt] [off|oidn] (left out: the UGC settings')");
 			return;
 		}
 		const auto options = UgcProcessOptions::ToString(choice);

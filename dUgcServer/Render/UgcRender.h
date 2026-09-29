@@ -93,8 +93,7 @@ namespace UgcRender {
 	Image RenderIcon(const UgcModel::Model& model, const IconOptions& options, const std::vector<float>* opaqueAo = nullptr, const UgcModel::Model* plain = nullptr);
 
 	/**
-	 * The fast hidden-face test (hsr_method=fast, what the UGC server did before it traced LU Toolbox's paths): the
-	 * opaque mesh rendered from 42 directions around the whole model (SphereDirections), `resolution` pixels square;
+	 * The hidden-face test (UgcHsr): the opaque mesh rendered from 42 directions around the whole model (SphereDirections), `resolution` pixels square;
 	 * per opaque triangle whether it shows in any of them (with a conservative test, so small visible ones stay).
 	 * Faces seen only by bounced light (interiors, recesses) don't show. `groundPlane`: nothing is seen from below.
 	 */

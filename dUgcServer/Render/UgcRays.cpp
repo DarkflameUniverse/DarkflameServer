@@ -21,8 +21,7 @@ namespace {
 	using UgcRays::INF;
 
 	/**
-	 * A bounding volume hierarchy (binned surface area heuristic) over a mesh's triangles, for the paths' rays: the
-	 * nearest hit. A ray never hits the triangle it leaves (`skip`), as in Cycles.
+	 * A bounding volume hierarchy (binned surface area heuristic) over a mesh's triangles, for the nearest hit. A ray never hits the triangle it leaves (`skip`), as in Cycles.
 	 */
 	class ClosestBvh {
 	public:

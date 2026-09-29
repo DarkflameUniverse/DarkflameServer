@@ -54,12 +54,12 @@ namespace UgcJobs {
 	}
 
 	uint64_t EstimateMemory(size_t parts, const Settings& settings) {
-		// Measured: the icon's buffers, and per brick its mesh in each LOD (positions, normals, colors, indices,
-		// the occlusion tree and copies made along the way), about 40 KB at LOD 0, and the hidden faces' ray tree
-		// (about 60 bytes a triangle, one LOD at a time)
+		// Measured: the renders' buffers, and per brick its mesh in each LOD (positions, normals, colors, indices,
+		// the occlusion tree and copies made along the way), about 40 KB at LOD 0
+		const uint64_t resolution = static_cast<uint64_t>(std::clamp(settings.hsr.resolution, 64, 4096));
 		const uint64_t icon = static_cast<uint64_t>(settings.icon.size) * settings.icon.supersample;
-		const uint64_t fixed = icon * icon * 20 + 1024 * 1024 * 4 + 16 * 1024 * 1024;
-		return fixed + static_cast<uint64_t>(parts) * (40 * 1024 * (1 + settings.lods.size()) + 16 * 1024);
+		const uint64_t fixed = resolution * resolution * 8 + icon * icon * 20 + 1024 * 1024 * 4 + 16 * 1024 * 1024;
+		return fixed + static_cast<uint64_t>(parts) * 40 * 1024 * (1 + settings.lods.size());
 	}
 
 	namespace {
@@ -177,15 +177,13 @@ namespace UgcJobs {
 	}
 
 	void ApplyOptions(Settings& settings, const UgcProcessOptions::Choice& choice) {
-		if (const auto rays = UgcRays::Parse(choice.rays)) settings.hsr.rays = settings.ao.rays = settings.icon.ao.rays = *rays;
-		if (const auto method = UgcHsr::Parse(choice.hsr)) settings.hsr.method = *method;
+		if (const auto rays = UgcRays::Parse(choice.rays)) settings.ao.rays = settings.icon.ao.rays = *rays;
 		if (const auto denoise = UgcRender::ParseDenoise(choice.denoise)) settings.icon.denoise = *denoise;
 	}
 
 	UgcProcessOptions::Choice MadeWith(const Settings& settings) {
 		const auto denoise = UgcRender::Available(settings.icon.denoise) ? settings.icon.denoise : UgcRender::eDenoise::OFF;
-		return { std::string(UgcRays::Name(UgcRays::Resolve(settings.hsr.rays))), std::string(UgcHsr::Name(settings.hsr.method)),
-			std::string(UgcRender::Name(denoise)) };
+		return { std::string(UgcRays::Name(UgcRays::Resolve(settings.ao.rays))), std::string(UgcRender::Name(denoise)) };
 	}
 
 	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed, const UgcIconParams::Values& iconValues) {
@@ -257,9 +255,7 @@ namespace UgcJobs {
 			nlohmann::json entry{ { "lod", lods[i] }, { "near", ranges[i].first }, { "far", ranges[i].second },
 				{ "opaqueBefore", model.opaque.TriangleCount() }, { "transparent", model.transparent.TriangleCount() } };
 			step = std::chrono::steady_clock::now();
-			auto hsr = settings.hsr;
-			hsr.seed = seed;
-			const auto optimized = UgcHsr::RemoveHiddenFaces(model, hsr);
+			const auto optimized = UgcHsr::RemoveHiddenFaces(model, settings.hsr);
 			hsrMs += Since(step);
 			if (i == 0 && optimized.trianglesRemoved > 0) {
 				if (!outcome.note.empty()) outcome.note += "; ";
@@ -373,14 +369,11 @@ namespace UgcJobs {
 			{ "icon", std::lround(iconMs) }, { "total", std::lround(Since(started)) } };
 		stats["settings"] = { { "palette", settings.build.palette == UgcModel::ePalette::LU_TOOLBOX ? "lu_toolbox" : "brickdb" },
 			{ "colorVariation", settings.build.colorVariation }, { "transparentOpacity", settings.build.transparentOpacity },
-			{ "removeHiddenFaces", settings.hsr.enabled }, { "groundPlane", settings.hsr.groundPlane }, { "hsrSamples", settings.hsr.samples },
-			{ "hsrBounces", settings.hsr.bounces }, { "hsrSampleSpacing", settings.hsr.spacing }, { "hsrMinPoints", settings.hsr.minPoints },
+			{ "removeHiddenFaces", settings.hsr.enabled }, { "groundPlane", settings.hsr.groundPlane }, { "hsrResolution", settings.hsr.resolution },
 			{ "ao", settings.ao.enabled }, { "aoDistance", settings.ao.distance }, { "aoSamples", settings.ao.samples }, { "aoStrength", settings.ao.strength } };
 		const auto madeWith = MadeWith(settings);
 		stats["settings"]["rays"] = madeWith.rays;
-		stats["settings"]["hsrMethod"] = madeWith.hsr;
 		stats["settings"]["denoise"] = madeWith.denoise;
-		if (settings.hsr.method == UgcHsr::eMethod::FAST) stats["settings"]["hsrFastResolution"] = settings.hsr.fastResolution;
 		outcome.options = UgcProcessOptions::ToString(madeWith);
 		outcome.stats = stats.dump();
 		outcome.files["stats.json"] = outcome.stats;

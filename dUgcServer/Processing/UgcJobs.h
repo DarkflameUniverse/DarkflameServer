@@ -59,21 +59,20 @@ namespace UgcJobs {
 		std::string shaderOpaque{ "01" };      // S<shader>_Opaque_...; transparent shapes are always S01
 		bool combineTransparent{ false };      // one shape for all transparent bricks, else one per brick (Combine Transparent)
 		Shaders shaders;                       // metal and glow groups (all off by default)
-		UgcHsr::Options hsr;                   // hidden surface removal (Remove Hidden Faces)
+		UgcHsr::Options hsr;                   // hidden surface removal
 		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
 		UgcRender::IconOptions icon;           // from the icon_* settings (UgcIconParams); presets and overrides go over it
 		uint32_t maxBricks{};                  // a model with more fails; 0: no limit
 	};
 
 	/**
-	 * The processing options (UgcProcessOptions) staff picked for one make, over the settings: ray backend (the hidden
-	 * faces' paths and the occlusion rays, the icon's too), hidden-face method and denoising. Choices left empty keep
-	 * the settings'.
+	 * The processing options (UgcProcessOptions) staff picked for one make, over the settings: ray backend (the
+	 * occlusion rays, the icon's too) and denoising. Choices left empty keep the settings'.
 	 */
 	void ApplyOptions(Settings& settings, const UgcProcessOptions::Choice& choice);
 
 	// What the settings make with, as it is used: the ray backend after its fallback (UgcRays::Resolve), off for a
-	// denoiser the build doesn't have; every choice filled ("embree toolbox off")
+	// denoiser the build doesn't have; every choice filled ("embree off")
 	UgcProcessOptions::Choice MadeWith(const Settings& settings);
 
 	struct Outcome {

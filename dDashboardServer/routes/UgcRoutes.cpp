@@ -477,8 +477,8 @@ namespace UgcRoutes {
 						{ "triangles", average(summary.triangles) },
 						{ "removed", summary.trianglesBefore > 0 ? 1.0 - static_cast<double>(summary.triangles) / static_cast<double>(summary.trianglesBefore) : 0.0 } });
 				}
-				JsonSuccess(reply, { { "choices", { { "rays", names(UgcProcessOptions::RAYS) }, { "hsr", names(UgcProcessOptions::HSR) }, { "denoise", names(UgcProcessOptions::DENOISE) } } },
-					{ "defaults", { { "rays", UgcSetting("ray_backend").value_or("builtin") }, { "hsr", UgcSetting("hsr_method").value_or("toolbox") },
+				JsonSuccess(reply, { { "choices", { { "rays", names(UgcProcessOptions::RAYS) }, { "denoise", names(UgcProcessOptions::DENOISE) } } },
+					{ "defaults", { { "rays", UgcSetting("ray_backend").value_or("builtin") },
 						{ "denoise", UgcSetting("denoise").value_or("off") } } },
 					{ "combinations", combos }, { "canManage", Can(context, "ugc_manage") } });
 			});
@@ -772,7 +772,7 @@ namespace UgcRoutes {
 
 		Route(eHTTPMethod::POST, "/api/ugc/reprocess", Perm("ugc_manage"),
 			"Have the UGC server make items again. Body: {kind: model|modular, id} for one, {kind: model, property} for every model placed on a property, {kind, failedOnly: true} for the failed ones, {kind} for all; "
-			"models: options (processing options for this make, e.g. \"embree fast oidn\": ray backend, hidden-face method, denoising; left out: the UGC settings')",
+			"models: options (processing options for this make, e.g. \"embree oidn\": ray backend, denoising; left out: the UGC settings')",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
