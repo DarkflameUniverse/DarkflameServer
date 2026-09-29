@@ -62,7 +62,7 @@ What people can do depends on their account's GM level. Out of the box:
 | 4+ | Ban and lock accounts; email password reset links |
 | 5+ | Moderate pet names, properties and leaderboards; revoke strikes; change a character's missions; change the chat filter's words; send and schedule announcements |
 | 8+ | Manage accounts (create, change email or password, reset two-factor login) and GM levels; edit characters and replace their XML; give items back; read whispers and team chat; send chat into the game; attach items to mail, to one player or everyone; import models; shut down worlds; schedule restarts and events; run economy checks; play keys, client files and the vanity files; see scheduled tasks, the audit log, server logs, crash dumps, server health and instance load; the developer tools |
-| 9 | Delete accounts; change scheduled tasks, instance limits, settings and permissions (these two are always GM 9 only), webhooks and email settings; backups; data maintenance |
+| 9 | Delete accounts; change scheduled tasks, instance limits, settings and permissions (these two are always GM 9 only), webhooks and email settings; backups |
 
 Each of these is a named permission, and you can change the lowest GM level allowed for any of them without rebuilding
 or restarting:

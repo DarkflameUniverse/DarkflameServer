@@ -626,7 +626,6 @@ TEST_F(ParitySeeded, PetNames) {
 		Both("GetPetNamesTable order " + std::to_string(column), [&](GameDatabase& db) { return db.GetPetNamesTable(0, 10, "", column, false); });
 	}
 	Both("GetPetsWithUnknownOwner", [](GameDatabase& db) { return db.GetPetsWithUnknownOwner(); });
-	Both("GetAllPetNames", [](GameDatabase& db) { auto names = db.GetAllPetNames(); std::sort(names.begin(), names.end()); return names; });
 	Both("ApprovePreviouslyApprovedPetNames", [](GameDatabase& db) { return db.ApprovePreviouslyApprovedPetNames(); });
 	Both("SetPetOwner", [](GameDatabase& db) { db.SetPetOwner(PET3, 0); return json{ db.GetPetsWithUnknownOwner(), db.GetPetNameInfo(PET3) }; });
 	Both("ApprovePetName", [](GameDatabase& db) { db.ApprovePetName(PET3); return db.GetPetNameInfo(PET3); });
@@ -708,7 +707,6 @@ TEST_F(ParitySeeded, Properties) {
 	Both("GetPropertiesOwnedBy", [](GameDatabase& db) { return db.GetPropertiesOwnedBy(CHAR_ALICE); });
 	Both("GetPropertyRecord", [](GameDatabase& db) { return json{ db.GetPropertyRecord(PROP1), db.GetPropertyRecord(1) }; });
 	Both("GetPropertyModelRecords", [](GameDatabase& db) { return db.GetPropertyModelRecords(PROP1); });
-	Both("FixPropertyCloneIds", [](GameDatabase& db) { return db.FixPropertyCloneIds(); });
 	Both("GetDashboardSnapshot", [](GameDatabase& db) { return db.GetDashboardSnapshot(); });
 }
 

@@ -9,23 +9,17 @@
 
 #include "dCommonVars.h"
 
-// Bulk data repairs run from the dashboard's maintenance page
+// Bulk data reads and repairs for dashboard reports and scheduled tasks
 class IDashboardMaintenance {
 public:
 	// Approve pending pet names that an earlier pet with the same name was approved for. Returns rows changed.
 	virtual uint32_t ApprovePreviouslyApprovedPetNames() = 0;
-
-	// Every pet name as (id, name)
-	virtual std::vector<std::pair<LWOOBJID, std::string>> GetAllPetNames() = 0;
 
 	// Call visit for every character's XML, one row at a time
 	virtual void ForEachCharacterXml(const std::function<void(LWOOBJID, const std::string&)>& visit) = 0;
 
 	// Same, but only characters whose XML contains `needle`; the database does the filtering
 	virtual void ForEachCharacterXmlContaining(const std::string& needle, const std::function<void(LWOOBJID, const std::string&)>& visit) = 0;
-
-	// Set each property's clone id to its owner's prop_clone_id where they differ. Returns rows changed.
-	virtual uint32_t FixPropertyCloneIds() = 0;
 };
 
 #endif  //!__IDASHBOARDMAINTENANCE__H__

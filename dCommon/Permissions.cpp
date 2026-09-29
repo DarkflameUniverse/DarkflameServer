@@ -102,7 +102,6 @@ namespace {
 		{ "events_manage", "Server", "Scheduled events: features", "Scheduled events that switch game features (event_1..event_8) on and off", 8 },
 		{ "server_live_update", "Server", "Live updates", "Move every server and world instance onto a new build without a restart (players see a short loading screen), and cancel one", 9 },
 		{ "instances_manage", "Server", "Instance limits", "Change players per instance and spare instances per zone (the master server applies them)", 9 },
-		{ "maintenance", "Server", "Data maintenance", "Repair tools on the Maintenance page", 9 },
 		{ "backups", "Server", "Database backups", "Make, download and delete database backups (downloads also need your password)", 9 },
 		{ "webhooks", "Server", "Webhooks", "Add and change outgoing alert webhooks", 9 },
 		{ "email_settings", "Server", "Email settings", "Connect the mail account and send test emails", 9 },

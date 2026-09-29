@@ -333,10 +333,8 @@ public:
 	nlohmann::json GetCloneOwners(const std::vector<uint32_t>& clones) override;
 	nlohmann::json GetCloneVisitors(uint32_t zoneId, uint32_t cloneId, int64_t from, int64_t to, uint32_t limit) override;
 	uint32_t ApprovePreviouslyApprovedPetNames() override;
-	std::vector<std::pair<LWOOBJID, std::string>> GetAllPetNames() override;
 	void ForEachCharacterXml(const std::function<void(LWOOBJID, const std::string&)>& visit) override;
 	void ForEachCharacterXmlContaining(const std::string& needle, const std::function<void(LWOOBJID, const std::string&)>& visit) override;
-	uint32_t FixPropertyCloneIds() override;
 	std::optional<IAccountEmails::EmailInfo> GetAccountEmail(const uint32_t accountId) override;
 	void SetAccountEmail(const uint32_t accountId, const std::string_view email, const bool confirmed) override;
 	std::optional<uint32_t> GetAccountIdByConfirmedEmail(const std::string_view email) override;

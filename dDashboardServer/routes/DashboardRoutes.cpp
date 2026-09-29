@@ -443,7 +443,6 @@ void RegisterDashboardRoutes() {
 	SimplePage("/pet_names", Perm("moderate_pet_names"), "pet_names.jinja2", "pet_names", "Pet names");
 	SimplePage("/send_mail", Perm("mail_send"), "send_mail.jinja2", "send_mail", "Send mail");
 	SimplePage("/api_docs", 0, "api_docs.jinja2", "api_docs", "API documentation");
-	SimplePage("/maintenance", Perm("maintenance"), "maintenance.jinja2", "maintenance", "Data maintenance tools");
 	SimplePage("/webhooks", Perm("webhooks"), "webhooks.jinja2", "webhooks", "Outgoing webhooks for alerts");
 	SimplePage("/tasks", Perm("tasks_view"), "tasks.jinja2", "tasks", "Scheduled tasks: schedules, runs and logs");
 	Route(eHTTPMethod::GET, "/api/zones", Perm("characters_rescue"), "Every zone with its name, for pickers: {zones: [{id, name}]}", [](HTTPReply& reply, const HTTPContext&) {

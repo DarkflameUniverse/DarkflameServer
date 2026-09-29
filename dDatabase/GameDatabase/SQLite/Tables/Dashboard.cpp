@@ -344,16 +344,6 @@ uint32_t SQLiteDatabase::ApprovePreviouslyApprovedPetNames() {
 		"(SELECT name FROM (SELECT pet_name AS name FROM pet_names WHERE approved = 2) AS approved_names);"));
 }
 
-std::vector<std::pair<LWOOBJID, std::string>> SQLiteDatabase::GetAllPetNames() {
-	std::vector<std::pair<LWOOBJID, std::string>> pets;
-	auto [_, result] = ExecuteSelect("SELECT id, pet_name FROM pet_names;");
-	while (!result.eof()) {
-		pets.emplace_back(result.getInt64Field("id"), result.getStringField("pet_name"));
-		result.nextRow();
-	}
-	return pets;
-}
-
 void SQLiteDatabase::ForEachCharacterXml(const std::function<void(LWOOBJID, const std::string&)>& visit) {
 	auto [_, result] = ExecuteSelect("SELECT id, xml_data FROM charxml;");
 	while (!result.eof()) {
@@ -368,11 +358,4 @@ void SQLiteDatabase::ForEachCharacterXmlContaining(const std::string& needle, co
 		visit(result.getInt64Field("id"), result.getStringField("xml_data"));
 		result.nextRow();
 	}
-}
-
-uint32_t SQLiteDatabase::FixPropertyCloneIds() {
-	return static_cast<uint32_t>(ExecuteUpdate(
-		"UPDATE properties SET clone_id = (SELECT c.prop_clone_id FROM charinfo c WHERE c.id = properties.owner_id) "
-		"WHERE EXISTS (SELECT 1 FROM charinfo c WHERE c.id = properties.owner_id AND c.prop_clone_id IS NOT NULL "
-		"AND (properties.clone_id IS NULL OR c.prop_clone_id != properties.clone_id));"));
 }

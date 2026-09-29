@@ -367,10 +367,8 @@ class TestSQLDatabase : public GameDatabase {
 	nlohmann::json GetCloneOwners(const std::vector<uint32_t>& clones) override { return { {"owners", nlohmann::json::array()}, {"properties", nlohmann::json::array()} }; }
 	nlohmann::json GetCloneVisitors(uint32_t zoneId, uint32_t cloneId, int64_t from, int64_t to, uint32_t limit) override { return nlohmann::json::array(); }
 	uint32_t ApprovePreviouslyApprovedPetNames() override { return 0; };
-	std::vector<std::pair<LWOOBJID, std::string>> GetAllPetNames() override { return {}; };
 	void ForEachCharacterXml(const std::function<void(LWOOBJID, const std::string&)>& visit) override {};
 	void ForEachCharacterXmlContaining(const std::string& needle, const std::function<void(LWOOBJID, const std::string&)>& visit) override {};
-	uint32_t FixPropertyCloneIds() override { return 0; };
 	std::optional<IAccountEmails::EmailInfo> GetAccountEmail(const uint32_t accountId) override { return std::nullopt; };
 	void SetAccountEmail(const uint32_t accountId, const std::string_view email, const bool confirmed) override {};
 	std::optional<uint32_t> GetAccountIdByConfirmedEmail(const std::string_view email) override { return std::nullopt; };

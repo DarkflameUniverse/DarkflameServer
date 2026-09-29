@@ -339,13 +339,6 @@ uint32_t MySQLDatabase::ApprovePreviouslyApprovedPetNames() {
 		"(SELECT name FROM (SELECT pet_name AS name FROM pet_names WHERE approved = 2) AS approved_names);"));
 }
 
-std::vector<std::pair<LWOOBJID, std::string>> MySQLDatabase::GetAllPetNames() {
-	std::vector<std::pair<LWOOBJID, std::string>> pets;
-	auto result = ExecuteSelect("SELECT id, pet_name FROM pet_names;");
-	while (result->next()) pets.emplace_back(result->getInt64("id"), std::string(result->getString("pet_name").c_str()));
-	return pets;
-}
-
 void MySQLDatabase::ForEachCharacterXml(const std::function<void(LWOOBJID, const std::string&)>& visit) {
 	auto result = ExecuteSelect("SELECT id, xml_data FROM charxml;");
 	while (result->next()) visit(result->getInt64("id"), std::string(result->getString("xml_data").c_str()));
@@ -354,11 +347,4 @@ void MySQLDatabase::ForEachCharacterXml(const std::function<void(LWOOBJID, const
 void MySQLDatabase::ForEachCharacterXmlContaining(const std::string& needle, const std::function<void(LWOOBJID, const std::string&)>& visit) {
 	auto result = ExecuteSelect("SELECT id, xml_data FROM charxml WHERE LOCATE(?, xml_data) > 0;", needle);
 	while (result->next()) visit(result->getInt64("id"), std::string(result->getString("xml_data").c_str()));
-}
-
-uint32_t MySQLDatabase::FixPropertyCloneIds() {
-	return static_cast<uint32_t>(ExecuteUpdate(
-		"UPDATE properties SET clone_id = (SELECT c.prop_clone_id FROM charinfo c WHERE c.id = properties.owner_id) "
-		"WHERE EXISTS (SELECT 1 FROM charinfo c WHERE c.id = properties.owner_id AND c.prop_clone_id IS NOT NULL "
-		"AND (properties.clone_id IS NULL OR c.prop_clone_id != properties.clone_id));"));
 }
