@@ -174,7 +174,7 @@ async function loadGeneratedModel(url) {
 // ---- Viewer ----
 
 const materialCache = new Map();
-// The glitter colours' moving flecks (window.LDD_GLITTER, the UGC server's glitter settings), updated each frame
+// The glitter colours' flecks (window.LDD_GLITTER, the UGC server's glitter settings)
 const glitterMaterials = [];
 function material(id) {
 	if (!materialCache.has(id)) {
@@ -192,9 +192,8 @@ function material(id) {
 		});
 		const glitter = window.LDD_GLITTER;
 		if (glitter && (glitter.colors || []).includes(Number(id))) {
-			// Moving as the game moves its fleck texture: a tile in U in 7 s and in V in 11 s at speed 1
-			const speed = glitter.speed || 0;
-			glitterMaterials.push(addGlitter(created, { coordinates: 'position', tile: glitter.tile || 1.6, flecks: glitter.flecks || 50, scroll: [speed / 7, speed / 11] }));
+			// Still, as the game draws them on a placed model
+			glitterMaterials.push(addGlitter(created, { coordinates: 'position', tile: glitter.tile || 1.6, flecks: glitter.flecks || 50 }));
 		}
 		materialCache.set(id, created);
 	}

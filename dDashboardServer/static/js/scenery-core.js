@@ -56,7 +56,7 @@ export function shaderOf(manifest, asset, mesh) {
 
 // NifFile::eShaderLook bits
 export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATERIAL_COLOR: 8, TWO_LAYERS_BLENDED: 16, TWO_LAYERS_ADDED: 32, REFLECTIVE: 64, BRUSHED: 128, EMISSIVE: 256,
-	GLITTER: 512 };
+	GLITTER: 512, SPARKLE: 1024 };
 
 /**
  * Glitter for a three.js material (the UGC server's glitter colors, UgcGlitter): white flecks over the color before

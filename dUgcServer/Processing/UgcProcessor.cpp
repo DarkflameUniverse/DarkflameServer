@@ -242,7 +242,7 @@ void UgcProcessor::Worker() {
 					const auto nif = m_Storage.ReadNif(Kind::MODEL, job.id, "model.nif");
 					auto options = settings.icon;
 					UgcIconParams::Apply(options, job.iconValues);
-					outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, outcome.files, outcome.error, settings.shaders.TagLooks());
+					outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, outcome.files, outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags());
 					if (!nif) outcome.error = "the model has no stored .nif yet";
 				}
 				if (outcome.ok && outcome.files.contains("assembly.nif")) {
@@ -289,7 +289,7 @@ void UgcProcessor::Worker() {
 				const auto nif = m_Storage.ReadNif(Kind::MODEL, job.id, "model.nif");
 				auto options = settings.icon;
 				UgcIconParams::Apply(options, job.iconValues);
-				done.outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, done.outcome.files, done.outcome.error, settings.shaders.TagLooks());
+				done.outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, done.outcome.files, done.outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags());
 				if (!nif) done.outcome.error = "no stored .nif";
 			} else {
 				done.outcome = job.kind == Kind::MODEL

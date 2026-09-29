@@ -145,8 +145,9 @@ namespace UgcModel {
 
 	// A client .nif's meshes as one model (vertex colors times material color; transparent when blended). `tagLooks`:
 	// the look of the opaque shapes whose multishader tag (NifFile::ShaderTag, a mapShaders id) is listed, and of the
-	// transparent ones when it is GLITTER
-	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks = {});
+	// transparent ones when it is GLITTER. `overlayTags`: alpha tested shapes with these tags are left out (the UGC
+	// server's glitter sparkles, drawn over the glitter bricks)
+	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks = {}, const std::set<int32_t>& overlayTags = {});
 
 	/**
 	 * The mesh's triangles by look ([eLook] -> its triangles; a triangle's look is its first vertex's), the looks not

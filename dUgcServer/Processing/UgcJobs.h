@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -33,8 +34,11 @@ namespace UgcJobs {
 		uint32_t brushed{};      // shader_brushed: 89 Brushed Steel
 		uint32_t glow{};         // shader_glow: 46 LEGO-Emissive
 		uint32_t glitter{};      // shader_glitter: 21 LEGO-AnimUV (opaque and transparent glitter, each a group)
+		// shader_glitter_sparkle: 79 Distortion Directional (Ocean), the glitter bricks' sparkles, a group over both
+		// glitter groups (so only with shader_glitter)
+		uint32_t sparkle{};
 		float glowEmissive{ 1.0f }; // glow_emissive: the glow shapes' NiMaterialProperty emissive (how much the vertex color shows unlit)
-		UgcGlitter::Params glitterParams; // glitter_size, glitter_density, glitter_speed
+		UgcGlitter::Params glitterParams; // glitter_* (flecks and sparkles)
 
 		// The mapShaders id of a look's group, 0 for the plastic S01_Opaque_Model
 		uint32_t TagOf(UgcModel::eLook look) const;
@@ -42,6 +46,9 @@ namespace UgcJobs {
 		// client's Polished Metal (88), Brushed Steel (89), LEGO-Emissive (46) and LEGO-AnimUV (21) for .nifs made with
 		// other settings
 		std::map<int32_t, UgcModel::eLook> TagLooks() const;
+		// The tags of groups drawn over others (the sparkles: this setting's id and the client's 79), which the icon
+		// leaves out (UgcModel::FromNif)
+		std::set<int32_t> OverlayTags() const;
 	};
 
 	struct Settings {
@@ -81,13 +88,17 @@ namespace UgcJobs {
 
 	// A model's icon files (icon.png, icon.dds download) drawn from its .nif (LOD 0), its metal and glow groups by
 	// `tagLooks` (Shaders::TagLooks); false (and `error`) when the .nif can't be read
+	// (the groups drawn over others, `overlayTags` (Shaders::OverlayTags), left out)
 	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error,
-		const std::map<int32_t, UgcModel::eLook>& tagLooks = {});
+		const std::map<int32_t, UgcModel::eLook>& tagLooks = {}, const std::set<int32_t>& overlayTags = {});
 
 	// The name of a group of shapes (its NiLODNode and shapes): S01_Opaque_Model, S01_Alpha_Model, S88_Metal_Model,
 	// S89_Brushed_Model, S46_Glow_Model, S21_Glitter_Model and S21_GlitterAlpha_Model (transparent glitter; the ids from
 	// the settings), at most 60 characters as LU Toolbox cuts them
 	std::string ShapeName(const Settings& settings, UgcModel::eLook look, bool transparent);
+
+	// The name of the glitter sparkles' group, S79_GlitterSparkle_Model (the id from the settings)
+	std::string SparkleName(const Settings& settings);
 
 	// How many bricks (parts) an LXFML has, counted cheaply (for the memory estimate before a job starts)
 	size_t CountParts(std::string_view lxfml);

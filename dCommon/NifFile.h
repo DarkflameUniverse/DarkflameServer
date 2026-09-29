@@ -106,7 +106,10 @@ namespace NifFile {
 		// Not a shader's: the UGC server's glitter groups (LEGO-AnimUV with the fleck texture it stores in the .nif,
 		// UgcGlitter), white flecks by the texture's alpha over the lit vertex color, moving with the texture. Set by
 		// the dashboard's UGC mesh route, not by ShaderLookFor.
-		GLITTER = 512
+		GLITTER = 512,
+		// Not a shader's: the UGC server's glitter sparkles (Distortion Directional with its sparkle texture, alpha
+		// tested, UgcGlitter), drawn over the glitter bricks. Set by the dashboard's UGC mesh route.
+		SPARKLE = 1024
 	};
 
 	// eShaderLook bits of a shader (mapShaders.gameValue); 0 for the usual lit look and for fixed function

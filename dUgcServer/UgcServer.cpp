@@ -117,11 +117,17 @@ namespace {
 		settings.shaders.brushed = std::min(Setting<uint32_t>("shader_brushed", 89), 9999u);
 		settings.shaders.glow = std::min(Setting<uint32_t>("shader_glow", 46), 9999u);
 		settings.shaders.glowEmissive = std::clamp(Setting<float>("glow_emissive", 1.0f), 0.0f, 10.0f);
-		// Glitter colors in S<id>_Glitter_Model and S<id>_GlitterAlpha_Model with drifting flecks (LEGO-AnimUV)
+		// Glitter colors in S<id>_Glitter_Model and S<id>_GlitterAlpha_Model with flecks (LEGO-AnimUV), and sparkles
+		// over them in S<id>_GlitterSparkle_Model (Distortion Directional, which moves on its own)
 		settings.shaders.glitter = std::min(Setting<uint32_t>("shader_glitter", 21), 9999u);
+		settings.shaders.sparkle = std::min(Setting<uint32_t>("shader_glitter_sparkle", 79), 9999u);
 		settings.shaders.glitterParams.tile = std::clamp(Setting<float>("glitter_size", 1.6f), 0.1f, 100.0f);
 		settings.shaders.glitterParams.flecks = std::min(Setting<uint32_t>("glitter_density", 50), 2000u);
-		settings.shaders.glitterParams.speed = std::clamp(Setting<float>("glitter_speed", 1.0f), 0.0f, 100.0f);
+		settings.shaders.glitterParams.sparkleSize = std::clamp(Setting<float>("glitter_sparkle_size", 0.1f), 0.01f, 1.0f);
+		settings.shaders.glitterParams.sparkleAmount = std::clamp(Setting<float>("glitter_sparkle_amount", 5.0f), 0.0f, 50.0f);
+		settings.shaders.glitterParams.speed = std::clamp(Setting<float>("glitter_speed", 1.0f), 0.1f, 4.0f);
+		settings.shaders.glitterParams.sparkleTint = std::clamp(Setting<float>("glitter_sparkle_tint", 30.0f), 0.0f, 100.0f);
+		settings.shaders.glitterParams.sparkleBrightness = std::clamp(Setting<float>("glitter_sparkle_brightness", 100.0f), 0.0f, 100.0f);
 		settings.shaders.glitterParams.random = Setting<int32_t>("glitter_random", 1) != 0;
 		// Which Materials.xml MaterialTypes are metal, brushed steel and glitter
 		for (const auto& [key, look] : { std::pair{ "metal_material_types", UgcModel::eLook::METAL }, std::pair{ "brushed_material_types", UgcModel::eLook::BRUSHED },

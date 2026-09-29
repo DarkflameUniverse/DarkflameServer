@@ -1381,37 +1381,28 @@ namespace {
 	}
 }
 
-// The client updates an object's scene graph every frame only when its root has the selective update bit (0x02), so
-// a model with moving glitter has it on its root, the glitter group's nodes and shapes (as the client's own animated
-// files); still glitter and everything else keep the game's brick model flags
-TEST(UgcFormats, MovingGlitterIsUpdatedEveryFrame) {
+// Nothing in a placed player model's .nif can move (the client never updates it: LWOSkinnedRenderComponent::Run with
+// animation off for modelType 2), so a glitter .nif has no controllers and every node and shape keeps the game's brick
+// model flags
+TEST(UgcFormats, GlitterNifIsStatic) {
 	const auto mesh = Quad({ 0.2f, 0.4f, 0.8f, 0.6f });
-	const UgcGlitter::Params moving{ 1.6f, 50, 1.0f };
-	const UgcGlitter::Params still{ 1.6f, 50, 0.0f };
-	for (const auto* glitter : { &moving, &still }) {
-		const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", {
-			{ "S01_Opaque_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } } },
-			{ "S21_Glitter_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, glitter } });
-		const auto blocks = BlockFlags(nif);
-		const bool animated = glitter == &moving;
-		ASSERT_EQ(blocks[0].first, "NiNode");
-		EXPECT_EQ(blocks[0].second, animated ? 0x102 : 0x110) << "root";
-		std::vector<uint16_t> shapes;
-		for (const auto& [type, flags] : blocks) if (type == "NiTriShape") shapes.push_back(flags);
-		ASSERT_EQ(shapes.size(), 2u);
-		EXPECT_EQ(shapes[0], 0x10); // plastic
-		EXPECT_EQ(shapes[1], animated ? 0x1A : 0x10);
-		std::vector<uint16_t> lods;
-		for (const auto& [type, flags] : blocks) if (type == "NiLODNode") lods.push_back(flags);
-		ASSERT_EQ(lods.size(), 2u);
-		EXPECT_EQ(lods[0], 0x110);
-		EXPECT_EQ(lods[1], animated ? 0x102 : 0x110);
+	const UgcGlitter::Params glitter;
+	const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", {
+		{ "S01_Opaque_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } } },
+		{ "S21_Glitter_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, &glitter },
+		{ "S79_GlitterSparkle_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, &glitter, true } });
+	for (const auto* type : { "NiTextureTransformController", "NiFloatInterpolator", "NiFloatData" }) EXPECT_EQ(nif.find(type), std::string::npos) << type;
+	const auto blocks = BlockFlags(nif);
+	ASSERT_EQ(blocks[0].first, "NiNode");
+	for (const auto& [type, flags] : blocks) {
+		if (type == "NiNode" || type == "NiLODNode") EXPECT_EQ(flags, 0x110) << type;
+		if (type == "NiTriShape") EXPECT_EQ(flags, 0x10) << type;
 	}
 }
 
 TEST(UgcFormats, GlitterNifReadsBack) {
 	const auto mesh = Quad({ 0.2f, 0.4f, 0.8f, 0.6f });
-	const UgcGlitter::Params glitter{ 1.6f, 50, 2.0f };
+	const UgcGlitter::Params glitter;
 	const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", { { "S21_GlitterAlpha_Model", true, { { 0.0f, 100.0f, "LOD_0", { &mesh, &mesh } } }, 0.0f, &glitter } });
 	std::string error;
 	const auto read = NifFile::Parse(nif, 0, error);
@@ -1430,9 +1421,8 @@ TEST(UgcFormats, GlitterNifReadsBack) {
 		EXPECT_FALSE(shape.material.clampU);
 		EXPECT_FALSE(shape.material.clampV);
 		EXPECT_TRUE(shape.material.alphaBlend);
-		// A tile in 7 s and 11 s at speed 1: twice as fast at 2
-		EXPECT_NEAR(shape.material.uvScroll[0], 2.0f / 7.0f, 1e-6f);
-		EXPECT_NEAR(shape.material.uvScroll[1], 2.0f / 11.0f, 1e-6f);
+		EXPECT_FALSE(shape.material.alphaTest);
+		EXPECT_EQ(shape.material.uvScroll, (std::array<float, 2>{})); // still
 		// Vertex colors and the white material as the other groups
 		EXPECT_EQ(shape.colors[3], 153);
 		EXPECT_EQ(shape.material.diffuse, (std::array<float, 3>{ 1.0f, 1.0f, 1.0f }));
@@ -1454,27 +1444,101 @@ TEST(UgcFormats, GlitterNifReadsBack) {
 		ASSERT_EQ(static_cast<uint8_t>((*dds)[128 + i * 4]), 255);
 		ASSERT_EQ(static_cast<uint8_t>((*dds)[128 + i * 4 + 3]), alpha[i]) << i;
 	}
-	// The block types, as the client's own animated textures (res/mesh/env/env_ag_ocean-maelstrom.nif)
-	for (const auto* type : { "NiTexturingProperty", "NiTextureTransformController", "NiFloatInterpolator", "NiFloatData", "NiSourceTexture", "NiPersistentSrcTextureRendererData" }) {
-		EXPECT_NE(nif.find(type), std::string::npos) << type;
-	}
+	for (const auto* type : { "NiTexturingProperty", "NiSourceTexture", "NiPersistentSrcTextureRendererData" }) EXPECT_NE(nif.find(type), std::string::npos) << type;
 
-	// Still (speed 0): the texture without controllers
-	const UgcGlitter::Params still{ 1.6f, 50, 0.0f };
-	const auto stillNif = UgcFormats::WriteLodNif("SceneNode_Model", { { "S21_Glitter_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, &still } });
-	const auto stillRead = NifFile::Parse(stillNif, 0, error);
-	ASSERT_TRUE(stillRead) << error;
-	EXPECT_EQ(stillRead->meshes[0].material.uvScroll, (std::array<float, 2>{}));
-	EXPECT_GE(stillRead->meshes[0].material.embeddedTexture, 0);
-	EXPECT_EQ(stillNif.find("NiTextureTransformController"), std::string::npos);
-
-	// The dashboard's encoding carries the motion
+	// The dashboard's encoding carries the UVs
 	const auto encoded = NifFile::Encode(*read, { "glitter", "glitter" });
 	uint32_t length = 0;
 	std::memcpy(&length, encoded.data(), 4);
 	const auto header2 = nlohmann::json::parse(encoded.substr(4, length));
-	EXPECT_NEAR(header2["meshes"][0]["uvScroll"][0].get<float>(), 2.0f / 7.0f, 1e-6f);
 	EXPECT_TRUE(header2["meshes"][0]["uv"].get<bool>());
+}
+
+// The sparkle texture: the same every time, flat sparkles at SPARKLE_ALPHA covering about the amount asked for, a
+// sparkle 3 pixels wide; its first mipmaps keep the sparkles' alpha. The tile (how fast the client's fixed layer motion
+// crosses sparkles) grows with the speed, the texture with it.
+TEST(UgcGlitter, SparkleTexture) {
+	const UgcGlitter::Params params;
+	EXPECT_FLOAT_EQ(params.SparkleTile(), 7.5f);
+	EXPECT_EQ(params.SparkleTextureSize(), 256);
+	const auto alpha = UgcGlitter::SparkleAlpha(params);
+	ASSERT_EQ(alpha.size(), 256u * 256u);
+	EXPECT_EQ(alpha, UgcGlitter::SparkleAlpha(params));
+	EXPECT_EQ(*std::max_element(alpha.begin(), alpha.end()), UgcGlitter::SPARKLE_ALPHA);
+	double covered = 0;
+	for (const auto a : alpha) covered += a / static_cast<double>(UgcGlitter::SPARKLE_ALPHA);
+	EXPECT_NEAR(covered / alpha.size(), 0.05, 0.015); // overlaps make it a little less
+	// One sparkle alone stays under the client's alpha test (GREATEREQUAL 127) with 2 or 3 layers averaged, two meet it
+	EXPECT_LT(UgcGlitter::SPARKLE_ALPHA / 2, 127);
+	EXPECT_GE(UgcGlitter::SPARKLE_ALPHA * 2 / 3, 127);
+	EXPECT_LT(UgcGlitter::SPARKLE_ALPHA / 3, 127);
+	const auto mips = UgcGlitter::Mipmaps(alpha, 2);
+	ASSERT_EQ(mips.size(), 9u); // 256 .. 1
+	EXPECT_EQ(*std::max_element(mips[1].begin(), mips[1].end()), UgcGlitter::SPARKLE_ALPHA);
+	EXPECT_EQ(*std::max_element(mips[2].begin(), mips[2].end()), UgcGlitter::SPARKLE_ALPHA);
+	EXPECT_LT(*std::max_element(mips[8].begin(), mips[8].end()), 127);
+	// Faster: a bigger tile and texture; more: more covered
+	UgcGlitter::Params fast = params;
+	fast.speed = 2.0f;
+	EXPECT_FLOAT_EQ(fast.SparkleTile(), 15.0f);
+	EXPECT_EQ(fast.SparkleTextureSize(), 512);
+	UgcGlitter::Params more = params;
+	more.sparkleAmount = 10.0f;
+	const auto moreAlpha = UgcGlitter::SparkleAlpha(more);
+	EXPECT_GT(std::count(moreAlpha.begin(), moreAlpha.end(), UgcGlitter::SPARKLE_ALPHA), std::count(alpha.begin(), alpha.end(), UgcGlitter::SPARKLE_ALPHA));
+	// Colors: white taking the tint of the brick's color, at the brightness
+	EXPECT_EQ(UgcGlitter::SparkleColor({ 0.0f, 0.5f, 1.0f, 0.4f }, params), glm::vec4(0.7f, 0.85f, 1.0f, 1.0f));
+	UgcGlitter::Params dim = params;
+	dim.sparkleTint = 0.0f;
+	dim.sparkleBrightness = 50.0f;
+	EXPECT_EQ(UgcGlitter::SparkleColor({ 0.0f, 0.5f, 1.0f, 0.4f }, dim), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
+}
+
+// The sparkle group as the client's own Distortion Directional shapes (S79__pond_ripplesShape): the glitter bricks'
+// triangles lifted off them along their normals, the sparkles' vertex colors, UVs on the sparkle tile placed per
+// brick apart from the flecks, the sparkle texture stored in the file (no transform), alpha tested
+TEST(UgcFormats, SparkleNifReadsBack) {
+	auto mesh = Quad({ 0.0f, 0.5f, 1.0f, 0.6f });
+	mesh.brickSeeds.assign(4, 99);
+	const UgcGlitter::Params glitter;
+	const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", {
+		{ "S21_GlitterAlpha_Model", true, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, &glitter },
+		{ "S79_GlitterSparkle_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } }, 0.0f, &glitter, true } });
+	std::string error;
+	const auto read = NifFile::Parse(nif, 0, error);
+	ASSERT_TRUE(read) << error;
+	ASSERT_EQ(read->meshes.size(), 2u);
+	EXPECT_TRUE(read->skipped.empty());
+	const auto& flecks = read->meshes[0];
+	const auto& sparkles = read->meshes[1];
+	EXPECT_EQ(sparkles.material.shaderTag, 79);
+	EXPECT_TRUE(sparkles.material.alphaTest);
+	EXPECT_EQ(sparkles.material.alphaThreshold, 127);
+	EXPECT_FALSE(sparkles.material.alphaBlend);
+	EXPECT_FLOAT_EQ(sparkles.material.alpha, 1.0f);
+	ASSERT_GE(sparkles.material.embeddedTexture, 0);
+	EXPECT_NE(sparkles.material.embeddedTexture, flecks.material.embeddedTexture);
+	ASSERT_EQ(sparkles.positions.size(), 12u);
+	for (size_t v = 0; v < 4; v++) {
+		EXPECT_FLOAT_EQ(sparkles.positions[v * 3 + 2], UgcGlitter::SPARKLE_LIFT); // off the quad, along its normal
+		const auto uv = UgcGlitter::Uv(mesh.positions[v], mesh.normals[v], glitter.SparkleTile(), 99, UgcGlitter::eLayer::SPARKLES);
+		EXPECT_FLOAT_EQ(sparkles.uvs[v * 2], uv.x);
+		EXPECT_FLOAT_EQ(sparkles.uvs[v * 2 + 1], uv.y);
+		EXPECT_NE(sparkles.uvs[v * 2], flecks.uvs[v * 2]);
+		// White taking 30% of the brick's color, opaque
+		EXPECT_EQ(sparkles.colors[v * 4], 179);
+		EXPECT_EQ(sparkles.colors[v * 4 + 2], 255);
+		EXPECT_EQ(sparkles.colors[v * 4 + 3], 255);
+	}
+	const auto dds = NifFile::EmbeddedTexture(nif, sparkles.material.embeddedTexture);
+	ASSERT_TRUE(dds);
+	uint32_t header[31];
+	std::memcpy(header, dds->data() + 4, sizeof(header));
+	EXPECT_EQ(header[2], 256u);
+	EXPECT_EQ(header[6], 9u);
+	// The icon leaves the sparkles out
+	EXPECT_EQ(UgcModel::FromNif(*read, {}, { 79 }).transparent.TriangleCount() + UgcModel::FromNif(*read, {}, { 79 }).opaque.TriangleCount(), 2u);
+	EXPECT_EQ(UgcModel::FromNif(*read).opaque.TriangleCount() + UgcModel::FromNif(*read).transparent.TriangleCount(), 4u);
 }
 
 // Glitter colors (a Materials.xml glitter type or glitter_colors) get groups of their own, opaque and transparent,
@@ -1493,6 +1557,7 @@ TEST(UgcShaders, GlitterGroups) {
 	auto settings = SmallSettings();
 	settings.build.colorVariation = 0.0f;
 	settings.shaders.glitter = 21;
+	settings.shaders.sparkle = 79;
 	const auto outcome = UgcJobs::ProcessModel(lxfml, library, settings, 7);
 	ASSERT_TRUE(outcome.ok) << outcome.error;
 	const auto nif = *ZCompression::Gunzip(outcome.files.at("model.nif.gz"));
@@ -1500,16 +1565,19 @@ TEST(UgcShaders, GlitterGroups) {
 	for (const uint32_t level : { 0u, 1u }) {
 		const auto read = NifFile::Parse(nif, level, error);
 		ASSERT_TRUE(read) << error;
-		for (const auto* name : { "S01_Opaque_Model", "S21_Glitter_Model", "S01_Alpha_Model", "S21_GlitterAlpha_Model" }) EXPECT_TRUE(read->nodes.contains(name)) << name;
+		for (const auto* name : { "S01_Opaque_Model", "S21_Glitter_Model", "S01_Alpha_Model", "S21_GlitterAlpha_Model", "S79_GlitterSparkle_Model" }) EXPECT_TRUE(read->nodes.contains(name)) << name;
 		std::map<std::pair<int32_t, bool>, size_t> triangles; // (tag, transparent) -> triangles
 		for (const auto& mesh : read->meshes) {
 			bool seeThrough = false;
 			for (size_t i = 3; i < mesh.colors.size(); i += 4) seeThrough = seeThrough || mesh.colors[i] < 250;
 			triangles[{ mesh.material.shaderTag, seeThrough }] += mesh.indices.size() / 3;
-			// Only the glitter shapes are textured
-			EXPECT_EQ(mesh.material.embeddedTexture >= 0, mesh.material.shaderTag == 21);
-			EXPECT_EQ(!mesh.uvs.empty(), mesh.material.shaderTag == 21);
+			// Only the glitter and sparkle shapes are textured, only the sparkles alpha tested
+			EXPECT_EQ(mesh.material.embeddedTexture >= 0, mesh.material.shaderTag == 21 || mesh.material.shaderTag == 79);
+			EXPECT_EQ(!mesh.uvs.empty(), mesh.material.shaderTag == 21 || mesh.material.shaderTag == 79);
+			EXPECT_EQ(mesh.material.alphaTest, mesh.material.shaderTag == 79);
 		}
+		// The sparkles: over every glitter brick, opaque and transparent, one shape per piece
+		EXPECT_EQ((triangles[{ 79, false }]), 36u);
 		EXPECT_EQ((triangles[{ 21, false }]), 12u);
 		EXPECT_EQ((triangles[{ 21, true }]), 24u); // one shape per brick, as the other transparent bricks
 		EXPECT_EQ((triangles[{ 1, false }]), 12u);
@@ -1518,11 +1586,22 @@ TEST(UgcShaders, GlitterGroups) {
 	EXPECT_NE(outcome.stats.find("\"S21_Glitter_Model\":12"), std::string::npos) << outcome.stats;
 	EXPECT_NE(outcome.stats.find("\"S21_GlitterAlpha_Model\":24"), std::string::npos) << outcome.stats;
 	EXPECT_NE(outcome.stats.find("\"S01_Alpha_Model\":12"), std::string::npos) << outcome.stats;
+	EXPECT_NE(outcome.stats.find("\"S79_GlitterSparkle_Model\":36"), std::string::npos) << outcome.stats;
 
 	// The icon reads the glitter back by the tag (transparent too)
 	const auto read = NifFile::Parse(nif, 0, error);
-	const auto back = UgcModel::FromNif(*read, settings.shaders.TagLooks());
+	const auto back = UgcModel::FromNif(*read, settings.shaders.TagLooks(), settings.shaders.OverlayTags());
 	EXPECT_EQ(std::count(back.opaque.looks.begin(), back.opaque.looks.end(), UgcModel::eLook::GLITTER), 8);
+	EXPECT_EQ(back.opaque.TriangleCount() + back.transparent.TriangleCount(), 60u); // no sparkles
+	// No sparkles (shader_glitter_sparkle 0): the glitter groups alone
+	settings.shaders.sparkle = 0;
+	const auto noSparkles = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	ASSERT_TRUE(noSparkles.ok);
+	const auto noSparklesRead = NifFile::Parse(*ZCompression::Gunzip(noSparkles.files.at("model.nif.gz")), 0, error);
+	ASSERT_TRUE(noSparklesRead);
+	EXPECT_FALSE(noSparklesRead->nodes.contains("S79_GlitterSparkle_Model"));
+	EXPECT_EQ(noSparkles.files.at("icon.png"), outcome.files.at("icon.png"));
+	settings.shaders.sparkle = 79;
 	EXPECT_EQ(std::count(back.transparent.looks.begin(), back.transparent.looks.end(), UgcModel::eLook::GLITTER), 16);
 
 	// Combined transparent bricks: one glitter shape
@@ -1540,7 +1619,9 @@ TEST(UgcShaders, GlitterGroups) {
 	settings.shaders.glitter = 0;
 	const auto off = UgcJobs::ProcessModel(lxfml, library, settings, 7);
 	settings.build.looks.materialTypes.erase("glitter");
-	settings.shaders.glitterParams = { 3.0f, 7, 5.0f };
+	settings.shaders.glitterParams.tile = 3.0f;
+	settings.shaders.glitterParams.flecks = 7;
+	settings.shaders.glitterParams.speed = 3.0f;
 	settings.icon.glitter = settings.shaders.glitterParams;
 	const auto noRules = UgcJobs::ProcessModel(lxfml, library, settings, 7);
 	ASSERT_TRUE(off.ok && noRules.ok);
@@ -1629,7 +1710,8 @@ TEST(UgcShaders, IconsDrawGlitterFlecks) {
 	options.yawDegrees = 0.0f;
 	options.pitchDegrees = 0.0f;
 	options.shadows = 0.0f;
-	options.glitter = { 0.5f, 60, 1.0f };
+	options.glitter.tile = 0.5f;
+	options.glitter.flecks = 60;
 	const auto plain = UgcRender::RenderIcon(model, options);
 	model.opaque.looks.assign(4, UgcModel::eLook::GLITTER);
 	const auto glitter = UgcRender::RenderIcon(model, options);

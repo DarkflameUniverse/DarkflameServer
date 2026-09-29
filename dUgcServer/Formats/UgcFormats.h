@@ -44,11 +44,13 @@ namespace UgcFormats {
 		// NiMaterialProperty's emissive color (grey) of the group's shapes; 0 the shared white material with none.
 		// The client's emissive shader (S46) lerps from the lit color to the vertex color by vertex alpha times its red.
 		float emissive{};
-		// The glitter of the UGC server's glitter groups (docs/UgcServer.md, "Metal and glow"): the shapes get UVs
+		// The glitter of the UGC server's glitter groups (docs/UgcServer.md, "Glitter"): the shapes get UVs
 		// (UgcGlitter::Uv) and an NiTexturingProperty whose base map is the fleck texture stored in the file
-		// (NiSourceTexture, NiPersistentSrcTextureRendererData), its texture transform's translation looped by an
-		// NiTextureTransformController for U and one for V. Null: none.
+		// (NiSourceTexture, NiPersistentSrcTextureRendererData). Null: none.
 		const UgcGlitter::Params* glitter{};
+		// With `glitter`: the group is the sparkles over its pieces (the glitter bricks) instead: each piece lifted off
+		// along its normals, the sparkles' vertex colors, UVs for the sparkle texture, alpha tested (UgcGlitter.h)
+		bool sparkle{};
 	};
 
 	/**

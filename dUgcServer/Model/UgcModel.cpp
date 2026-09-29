@@ -363,9 +363,10 @@ namespace UgcModel {
 		return ranges;
 	}
 
-	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks) {
+	Model FromNif(const NifFile::Model& nif, const std::map<int32_t, eLook>& tagLooks, const std::set<int32_t>& overlayTags) {
 		Model model;
 		for (const auto& source : nif.meshes) {
+			if (source.material.alphaTest && overlayTags.contains(source.material.shaderTag)) continue;
 			Mesh mesh;
 			const size_t count = source.positions.size() / 3;
 			const bool vertexColors = source.material.vertexColorMode == 2 && source.colors.size() == count * 4;

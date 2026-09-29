@@ -305,7 +305,12 @@ all of its levels, so each look needs a group of its own.
 | `glitter_colors` | 114,117 | LEGO color ids that are glitter whatever their type (as `brushed_colors`). The default: the two colors LEGO's own color data (Studio's color categories, "Glitter Colors") files as glitter that the client's Materials.xml types `shinyPlastic` (114 Tr. Medium Reddish-Violet w. Glitter, 117 Transparent Glitter). |
 | `glitter_size` | 1.6 | The glitter texture's tile, in model units (a stud is 0.8): the flecks' spacing, the same on every brick. |
 | `glitter_density` | 50 | Flecks in one tile. |
-| `glitter_speed` | 1 | How fast the flecks drift: a tile in U in 7 s and in V in 11 s at 1; 0 keeps them still (no controllers). |
+| `shader_glitter_sparkle` | 79 | `S<id>_GlitterSparkle_Model`, the glitter bricks' sparkles (only with `shader_glitter`): 79 is Distortion Directional (Ocean) (gameValue 89), whose layers the client moves on its own; 0: no sparkles. See Glitter below. |
+| `glitter_sparkle_size` | 0.1 | A sparkle's diameter in model units. |
+| `glitter_sparkle_amount` | 5 | Percent of each moving layer covered by sparkles (about its square's share of a brick sparkles at once). |
+| `glitter_speed` | 1 | How fast sparkles flash and go out (0.1 to 4; 1: about half a second each): the sparkle tile is 75 sparkle sizes times it. It used to be how fast the flecks drift, which never showed in game. |
+| `glitter_sparkle_tint` | 30 | Percent of the brick's color the sparkles take (0: white). |
+| `glitter_sparkle_brightness` | 100 | Percent: the sparkles' vertex color. |
 | `glitter_random` | 1 | Each glitter brick its own fleck pattern (turned and moved by the brick); 0: the same pattern on every brick. |
 | `satin_colors` | 360,362,363,364,365,366,367,376 | Satin (opal) colors, see Satin below. The default: LEGO's color data's "Satin Colors" category (the Transparent ... Opal colors). Empty: the default; `none`: off. |
 | `satin_opacity` | 75 | Percent: the vertex alpha of transparent satin bricks, instead of `transparent_opacity` or the Materials.xml alpha. |
@@ -342,15 +347,39 @@ LEGO-Emissive objects going to their vertex color by its alpha (metal there stay
 
 #### Glitter
 
-The client has no glitter shader. LEGO-AnimUV (mapShaders 21, gameValue 30, `LEGOPPLighting.fx` and its `_low`,
-`_noenv`, `_noenv_nospec` versions) is the LEGO lighting with the UVs multiplied by `TEXTRANSFORMBASE` (the base map's
-texture transform) in the vertex shader. A shape with vertex colors and a base texture gets
+Glitter is two layers: still flecks in the brick (LEGO-AnimUV) and sparkles over it that flash and go out
+(Distortion Directional). The client has no glitter shader, and nothing in a placed model's .nif can move:
+
+**Why a placed model never animates** (checked in the 1.10.64 client; Ghidra comments at the addresses). Player models
+(LOT 14) have `RenderComponentWrapper` 9845 (`animations\pets\weeble\weeblewobble.kfm`), so
+`ObjectLoader2::LoadRenderComponent` (0x010536b0) always makes them an `LWOSkinnedRenderComponent` with the UGC .nif as
+the wrapped node. Its per-frame `Run` (0x00d6d3d0) calls `NiAVObject::Update` (the only update of the object's scene
+graph, and of its property controllers) only when the position changed or `ShouldAnimate` (0x00bd3860) is true, which
+needs `animationEnabled`. `LWOModelBehaviorComponent::EnableAnimation` (0x00be2740, on render ready and whenever the
+serialized model type changes) sends `SetAnimationEnabled(modelType != 2)`, and every placed property model is
+modelType 2 (`ModelComponent::Serialize` writes 2, as live did). So an `NiTextureTransformController` in the file
+never runs, whatever the node flags (`LWOBaseRenderComponent::Run`'s selective update check is not used for these
+objects). Glitter made with texture controllers (and root flags 0x102) before this was still in game.
+
+What does move on its own are shader globals that a shader class's own `Run` sets every frame for all its objects:
+Distortion Directional (Ocean) (mapShaders 79, gameValue 89, class at vtable 0x015695a0, `Run` 0x010b90c0) adds
+`dt/4/6`, `dt/4/12` and `dt/4/18` to the U of `g_vDirectionalMotionLayer1..3` every frame (wrapping at 1; the V of
+layers 2 and 3 swing back and forth), which its vertex shader adds to the layers' UVs (`Ocean.fx`
+`Technique_Ocean_Distort_Directional_2Layers`: `uv * 0.75 + layer1`, `uv + layer2`; `_3Layers`: `uv * 0.5`, `* 0.75`,
+`* 1`; the class's constructor 0x00464500 names the 2-layer technique twice and the 3-layer one once among its six
+technique slots, which the graphics settings pick between). Its pixel shader averages the layers' texels (each later layer's
+UV moved by `(earlier texel's rg) * 0.2 - 0.5`), multiplied by `(N.L * sun + ambient) * vertex color`; alpha =
+average alpha * vertex alpha * fade. The game's own pond ripples use it the same way
+(`S79__pond_ripplesShape`, `mesh/env/env_won_gnar_croc_pondfx.nif`).
+
+**Flecks.** LEGO-AnimUV (mapShaders 21, gameValue 30, `LEGOPPLighting.fx` and its `_low`, `_noenv`,
+`_noenv_nospec` versions) is the LEGO lighting with the UVs multiplied by `TEXTRANSFORMBASE` (the base map's texture
+transform) in the vertex shader. A shape with vertex colors and a base texture gets
 `Technique_LEGOPPLightingVertColorTextured_AnimUV` (technique names set up at 0x010ac110), whose pixel shader
 (`LEGOPPLighting_PS_VertColorTextured`) is `lerp(vertex color, texture rgb, texture alpha)`, then the LEGO lighting
 (`LEGOPP_PixelCommon4`), alpha = vertex alpha times the fade. So a white texture with flecks in its alpha puts white
-flecks on a brick that is otherwise lit as plastic, and moving the texture transform moves them.
-
-What a glitter shape has, beside what plastic shapes have (white material, alpha, specular, vertex colors):
+flecks on a brick that is otherwise lit as plastic. What a glitter shape has, beside what plastic shapes have (white
+material, alpha, specular, vertex colors):
 
 - A UV set: each vertex's position on the axis plane its normal faces most, divided by `glitter_size`
   (`UgcGlitter::Uv`), so the flecks are as dense on every brick and every side, then turned by an angle and moved by
@@ -360,43 +389,51 @@ What a glitter shape has, beside what plastic shapes have (white material, alpha
   icon draws the flecks on the UVs the .nif has (`Mesh::uvs`, read back by `UgcModel::FromNif`).
 - An `NiTexturingProperty` (one per file, shared by both glitter groups): apply mode decal (fixed function would do
   what the shader does), 9 slots, the base map only: wrap S and T, trilinear, UV set 0, a texture transform
-  (translation 0, scale 1, Maya method, center 0.5).
-- Its source, stored in the file as the client's own animated textures store theirs
-  (`res/mesh/env/env_ag_ocean-maelstrom.nif`, RenderComponent 14356): `NiSourceTexture` (use external 0, name
-  `ugc_glitter.dds`, pixel layout 6, mipmaps 2, alpha 3, static, persist render data) and
-  `NiPersistentSrcTextureRendererData`: RGBA 32 bit, channels blue, green, red, alpha, platform DX9, 128 x 128 with 8
-  mipmaps. RGB is white; the alpha is `glitter_density` soft dots (radius 1.2 to 2.2 px, peak 0.65 to 1) at places
-  from a fixed seed, wrapping at the edges (`UgcGlitter::FleckAlpha`), each mipmap the 2x2 mean of the one above.
-- Two `NiTextureTransformController`s on the property (the property's controller, the first linking the second):
-  flags 0x48 (active, loop, app time), frequency 1, phase 0, start 0, stop the period, target the property,
-  base map, operation translate U and translate V, each with an `NiFloatInterpolator` and `NiFloatData` of two linear
-  keys (0, 0) and (period, 1): a tile in `7 / glitter_speed` s in U and `11 / glitter_speed` s in V, looping, and
-  wrapping makes the loop seamless. The block layouts are the ocean file's (its controllers are 39 bytes, the property
-  70). With `glitter_speed` 0 the property has no controllers. The client updates an object's scene graph every frame only when its root
-  NiNode has the selective update bit (0x02; `LWOBaseRenderComponent::Run` 0x00d5d770 calls `NiAVObject::Update` when
-  `NiAVObject::GetSelectiveUpdate` 0x00413050 is set); otherwise only once when it loads, and the controllers never
-  move. So a model with moving glitter has flags 0x102 on its root, the glitter NiLODNode and its `LOD_n` nodes, and
-  0x1A on the glitter shapes, as the client's own AG ocean (`mesh/env/env_ag_ocean-maelstrom.nif`); every other
-  node keeps 0x110 and shape 0x10.
-
-The client finds the animation: `SetupRenderNodeExtraData` (0x00c746c0) sets `RenderNodeExtraData.flags0` bit 2 from
-`NifHasAnimatedControllers` (0x00bf4160), which returns true for a shape whose `NiTexturingProperty`'s first
-controller is an `NiTextureTransformController`. No node transform controllers are added (they would clear the
-object's static flag).
+  (translation 0, scale 1, Maya method, center 0.5). No controllers.
+- Its source, stored in the file as the client's own stored textures (`res/mesh/env/env_ag_ocean-maelstrom.nif`):
+  `NiSourceTexture` (use external 0, name `ugc_glitter.dds`, pixel layout 6, mipmaps 2, alpha 3, static, persist
+  render data) and `NiPersistentSrcTextureRendererData`: RGBA 32 bit, channels blue, green, red, alpha, platform DX9,
+  128 x 128 with 8 mipmaps. RGB is white; the alpha is `glitter_density` soft dots (radius 1.2 to 2.2 px, peak 0.65
+  to 1) at places from a fixed seed, wrapping at the edges (`UgcGlitter::FleckAlpha`), each mipmap the 2x2 mean of
+  the one above.
 
 Transparent glitter: every UGC shape has the same `NiAlphaProperty` (blend source alpha over one minus source alpha)
 and transparent bricks are transparent by their vertex alpha; the LEGO-AnimUV techniques declare
 `UsesNiRenderState = true` and their pixel shader outputs the vertex alpha, the same as the LEGO shader's that
-`S01_Alpha_Model` is drawn with, so transparent glitter gets a group of its own. There is no shimmer:
-LEGO-AnimUV's pixel shaders don't read the material's emissive (only the `_Emissive` ones do), so an
-`NiMaterialColorController` would change nothing.
+`S01_Alpha_Model` is drawn with, so transparent glitter gets a group of its own.
 
-The icon draws the flecks where they are at the start (the same texture and UVs, before the light; `glitter_size`
-and `glitter_density`), opaque and transparent. The UGC page's 3D view marks glitter meshes (`/api/ugc/mesh`: look
-`GLITTER` 512, a mesh with a stored texture in a group tagged `shader_glitter` or 21) and draws moving flecks from
-their UVs and `uvScroll` (what `NifFile` reads from the controllers); the property and zone views, which draw bricks
-from the LXFML, draw them on the colors in `window.LDD_GLITTER` (`/api/bricks/materials.js`: the glitter colors by
-the current settings) from their positions.
+**Sparkles** (`shader_glitter_sparkle`, 79; 0: none; only with `shader_glitter` on). A group
+`S79_GlitterSparkle_Model` after all the others, with every LOD, whose shapes are the glitter bricks' pieces (opaque
+and transparent) again:
+
+- Lifted off the brick along the normals by 0.005 (`UgcGlitter::SPARKLE_LIFT`), so they are in front of its surface:
+  a transparent brick, drawn later in the blended phase, doesn't cover them, and they don't fight it for the depth.
+- Vertex colors: white taking `glitter_sparkle_tint` percent of the brick's color, times `glitter_sparkle_brightness`,
+  alpha 1 (`UgcGlitter::SparkleColor`).
+- UVs as the flecks' but on the sparkle tile and placed apart from them (`UgcGlitter::eLayer::SPARKLES`).
+- Material white, alpha 1. An `NiAlphaProperty` with the test bit (flags 0x1A00: test, GREATEREQUAL; threshold 127):
+  `ShaderCommon::GetAlphaFlags` (0x0109f5a0) puts a shape whose alpha property has the test bit in the alpha test
+  phase, whose states (`ShaderCommon__SetupPhaseRenderStates` 0x00463300) are blending off, alpha test GREATEREQUAL
+  0x7f, depth test and write.
+- An `NiTexturingProperty`: the base map only, wrapping, trilinear, no texture transform (as the pond ripples), its
+  source `ugc_sparkle.dds` stored like the flecks'. Its alpha (`UgcGlitter::SparkleAlpha`): flat sparkles of
+  `glitter_sparkle_size` at 230, covering `glitter_sparkle_amount` percent. Averaged over 2 layers one sparkle alone
+  is 115 and over 3 it is 77, under the test's 127; two sparkles meeting are 230 or 153. So a sparkle shows only where
+  two moving layers' sparkles cross: it appears, grows, shrinks and goes out as the layers slide past each other at
+  different speeds. The first two mipmaps take the brightest of each 2x2 (the sparkles keep their alpha a little
+  further away), the rest the mean.
+- The sparkle tile (`UgcGlitter::Params::SparkleTile`) is `75 * glitter_sparkle_size * glitter_speed` model units: the
+  layers move a fixed share of a tile a second, so a bigger tile crosses sparkles faster; at speed 1 each flash lasts
+  about half a second. The texture is the power of two (128 to 1024) that keeps a sparkle 3 pixels wide (256 at the
+  defaults).
+
+The icon draws the flecks where they are (the same texture and the .nif's UVs, before the light; `glitter_size` and
+`glitter_density`), opaque and transparent, and leaves the sparkles out (`Shaders::OverlayTags`: alpha tested shapes
+tagged `shader_glitter_sparkle` or 79). The UGC page's 3D view marks glitter meshes (`/api/ugc/mesh`: look
+`GLITTER` 512, a mesh with a stored texture in a group tagged `shader_glitter` or 21) and draws flecks from their
+UVs, and marks the sparkles (look `SPARKLE` 1024); the property and zone views, which draw bricks from the LXFML, draw
+flecks on the colors in `window.LDD_GLITTER` (`/api/bricks/materials.js`: the glitter colors by the current settings)
+from their positions.
 
 #### Satin
 

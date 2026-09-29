@@ -128,6 +128,17 @@ namespace UgcJobs {
 		return looks;
 	}
 
+	std::set<int32_t> Shaders::OverlayTags() const {
+		std::set<int32_t> tags{ 79 };
+		if (sparkle != 0) tags.insert(static_cast<int32_t>(sparkle));
+		return tags;
+	}
+
+	std::string SparkleName(const Settings& settings) {
+		const auto tag = std::to_string(settings.shaders.sparkle);
+		return ("S" + std::string(tag.size() < 2 ? "0" : "") + tag + "_GlitterSparkle_Model").substr(0, 60);
+	}
+
 	std::string ShapeName(const Settings& settings, UgcModel::eLook look, bool transparent) {
 		if (transparent && look != UgcModel::eLook::GLITTER) return "S01_Alpha_Model";
 		if (look == UgcModel::eLook::PLASTIC) return ("S" + settings.shaderOpaque + "_Opaque_Model").substr(0, 60);
@@ -138,10 +149,10 @@ namespace UgcJobs {
 	}
 
 	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error,
-		const std::map<int32_t, UgcModel::eLook>& tagLooks) {
+		const std::map<int32_t, UgcModel::eLook>& tagLooks, const std::set<int32_t>& overlayTags) {
 		const auto readBack = NifFile::Parse(nif, 0, error);
 		if (!readBack) return false;
-		AddIcon(files, UgcModel::FromNif(*readBack, tagLooks), options);
+		AddIcon(files, UgcModel::FromNif(*readBack, tagLooks, overlayTags), options);
 		return true;
 	}
 
@@ -189,6 +200,8 @@ namespace UgcJobs {
 		std::array<bool, UgcModel::LOOK_COUNT> separate{};
 		for (size_t look = 1; look < UgcModel::LOOK_COUNT; look++) separate[look] = settings.shaders.TagOf(static_cast<UgcModel::eLook>(look)) != 0;
 		const bool glowApart = separate[static_cast<size_t>(UgcModel::eLook::GLOW)];
+		// The glitter bricks' sparkles, a group over both glitter groups
+		const bool sparkles = separate[static_cast<size_t>(UgcModel::eLook::GLITTER)] && settings.shaders.sparkle != 0;
 		UgcModel::Model preview; // LOD 0 before the lighting bake, for the dashboard
 		for (size_t i = 0; i < lods.size(); i++) {
 			auto options = settings.build;
@@ -251,6 +264,12 @@ namespace UgcJobs {
 					for (const auto& piece : transparentPieces.back()[kind]) triangles += piece.TriangleCount();
 					if (triangles > 0) byGroup[ShapeName(settings, kind ? UgcModel::eLook::GLITTER : UgcModel::eLook::PLASTIC, true)] = triangles;
 				}
+				if (sparkles) {
+					size_t triangles = 0;
+					for (const auto& piece : opaquePieces.back()[static_cast<size_t>(UgcModel::eLook::GLITTER)]) triangles += piece.TriangleCount();
+					for (const auto& piece : transparentPieces.back()[1]) triangles += piece.TriangleCount();
+					if (triangles > 0) byGroup[SparkleName(settings)] = triangles;
+				}
 			}
 			lodStats.push_back(entry);
 		}
@@ -277,6 +296,21 @@ namespace UgcJobs {
 				}
 				if (any) out.push_back(std::move(group));
 			}
+			// Last, over everything: the sparkles over the opaque and the transparent glitter bricks
+			if (sparkles) {
+				UgcFormats::NifLodGroup group{ SparkleName(settings), false, {} };
+				group.glitter = &settings.shaders.glitterParams;
+				group.sparkle = true;
+				bool any = false;
+				for (size_t i = 0; i < levels; i++) {
+					UgcFormats::NifLod lod{ ranges[i].first, ranges[i].second, "LOD_" + std::to_string(lods[i]), {} };
+					for (const auto& piece : opaque[i][static_cast<size_t>(UgcModel::eLook::GLITTER)]) lod.pieces.push_back(&piece);
+					for (const auto& piece : transparent[i][1]) lod.pieces.push_back(&piece);
+					any = any || !lod.pieces.empty();
+					group.lods.push_back(std::move(lod));
+				}
+				if (any) out.push_back(std::move(group));
+			}
 			return out;
 		};
 		const auto nif = UgcFormats::WriteLodNif("SceneNode_Model", groups(lods.size(), opaquePieces, transparentPieces));
@@ -295,7 +329,7 @@ namespace UgcJobs {
 		auto iconOptions = settings.icon;
 		UgcIconParams::Apply(iconOptions, iconValues);
 		std::string nifError;
-		if (!IconFromNif(nif, iconOptions, outcome.files, nifError, settings.shaders.TagLooks())) {
+		if (!IconFromNif(nif, iconOptions, outcome.files, nifError, settings.shaders.TagLooks(), settings.shaders.OverlayTags())) {
 			outcome.error = "the .nif made can't be read back for the icon: " + nifError;
 			return outcome;
 		}

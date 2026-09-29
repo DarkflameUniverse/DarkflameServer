@@ -123,6 +123,8 @@ export function createNifViewer(container) {
 				let seeThrough = !!mesh.blend && mesh.alpha < 0.99;
 				if (mesh.blend && hasColors) for (let i = 3; i < mesh.colors.length && !seeThrough; i += 4) seeThrough = mesh.colors[i] < 250;
 				const look = mesh.look || 0;
+				// The glitter sparkles (drawn over the glitter bricks) aren't drawn here
+				if (look & SHADER_LOOK.SPARKLE) continue;
 				const metal = metalOf(look);
 				// Glow: the emissive shader's vertex color, unlit (its vertex alpha is the glow, not opacity)
 				const material = look & SHADER_LOOK.EMISSIVE

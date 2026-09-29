@@ -491,7 +491,7 @@ namespace UgcRoutes {
 
 		Route(eHTTPMethod::GET, "/api/ugc/mesh/:id", Perm("properties_view"),
 			"A player model's generated .nif converted for the 3D view (NifFile::Encode, as the scenery meshes, with each mesh's shader look; the glitter "
-			"groups' meshes have the GLITTER look, their UVs and uvScroll, and the texture name \"glitter\"). Query: ?lod=0 (most detailed) "
+			"groups' meshes have the GLITTER look, their UVs and the texture name \"glitter\"; the glitter sparkles the SPARKLE look and \"sparkle\"). Query: ?lod=0 (most detailed) "
 			"to 3, &version=current|previous, &ao=0 for the mesh before the lighting bake. The header adds triangles and vertices",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto id = PathId<LWOOBJID>(context.path, 3);
@@ -501,9 +501,11 @@ namespace UgcRoutes {
 				const bool baked = QueryValue(context.queryString, "ao") != "0";
 				const std::string file = std::string(previous ? "previous." : "") + (baked ? "model.nif" : "model.noao.nif");
 				const auto url = InternalUrl() + "/files/model/" + std::to_string(*id) + "/" + file;
-				// The glitter groups' tag: the setting's, and the client's LEGO-AnimUV (21) for models made with another
+				// The glitter groups' tag: the setting's, and the client's LEGO-AnimUV (21) for models made with another;
+				// the sparkles' likewise (Distortion Directional, 79), alpha tested
 				const auto glitterTag = GeneralUtils::TryParse<int32_t>(UgcSetting("shader_glitter").value_or("21")).value_or(21);
-				Workers::Reply(reply, context, false, [url, lod, glitterTag](HTTPReply& out) {
+				const auto sparkleTag = GeneralUtils::TryParse<int32_t>(UgcSetting("shader_glitter_sparkle").value_or("79")).value_or(79);
+				Workers::Reply(reply, context, false, [url, lod, glitterTag, sparkleTag](HTTPReply& out) {
 					const auto fetched = CachedGet(url);
 					if (fetched->status != 200) return ReplyError(out, *fetched, url);
 					std::string error;
@@ -513,6 +515,11 @@ namespace UgcRoutes {
 					std::vector<std::string> textures(model->meshes.size());
 					for (size_t i = 0; i < model->meshes.size(); i++) {
 						const auto& material = model->meshes[i].material;
+						if (material.embeddedTexture >= 0 && material.alphaTest && (material.shaderTag == sparkleTag || material.shaderTag == 79)) {
+							looks[i] |= NifFile::SPARKLE;
+							textures[i] = "sparkle";
+							continue;
+						}
 						if (material.embeddedTexture < 0 || (material.shaderTag != glitterTag && material.shaderTag != 21)) continue;
 						looks[i] |= NifFile::GLITTER;
 						textures[i] = "glitter";
