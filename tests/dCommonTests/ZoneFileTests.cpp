@@ -119,6 +119,25 @@ TEST(ZoneFileTests, ReadsZoneBoundaries) {
 	EXPECT_EQ(zone.zoneDesc, "Description");
 }
 
+// From LateAlpha (37) on the scene count is a u32 (some LUP zones are 37)
+TEST(ZoneFileTests, LateAlphaSceneCountIsAU32) {
+	ZoneBytes w;
+	w.Put<uint32_t>(37).Put<uint32_t>(1).Put<uint32_t>(20022); // version, revision, world; no spawn point before 38
+	w.Put<uint32_t>(1);
+	w.Text("scene.lvl").Put<uint32_t>(5).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0).Put<uint32_t>(8).Put<uint32_t>(1).Put<uint32_t>(0); // no transitions, no paths
+
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	ASSERT_EQ(zone.scenes.size(), 1u);
+	EXPECT_EQ(zone.scenes[0].filename, "scene.lvl");
+	EXPECT_EQ(zone.scenes[0].id, 5u);
+	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
+}
+
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {
 	const auto zone = SampleZone();
 	for (const size_t length : { size_t{ 3 }, size_t{ 40 }, zone.size() / 2, zone.size() - 1 }) {

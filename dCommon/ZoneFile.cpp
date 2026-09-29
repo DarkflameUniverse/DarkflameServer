@@ -20,8 +20,9 @@ void ZoneFile::ReadHeader(std::istream& file) {
 		BinaryIO::BinaryRead(file, spawnpointRotation);
 	}
 
+	// A u8 before LateAlpha, a u32 from it on (LuzFile::ReadLUZFile)
 	uint32_t sceneCount = 0;
-	if (fileFormatVersion <= FileFormatVersion::LateAlpha) {
+	if (fileFormatVersion < FileFormatVersion::LateAlpha) {
 		uint8_t count;
 		BinaryIO::BinaryRead(file, count);
 		sceneCount = count;
