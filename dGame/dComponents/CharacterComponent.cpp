@@ -290,6 +290,9 @@ void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 	character->QueryInt64Attribute("ls", &m_Uscore);
 
+	m_TooltipFlags = 0;
+	character->QueryUnsigned64Attribute("ttip", &m_TooltipFlags);
+
 	// Load the statistics
 	const auto* statisticsAttribute = character->FindAttribute("stt");
 	if (statisticsAttribute) {
@@ -420,6 +423,8 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	if (m_ClaimCodes[3] != 0) character->SetAttribute("co3", m_ClaimCodes[3]);
 
 	character->SetAttribute("ls", m_Uscore);
+	// Live wrote ttip on every character, 0 when no tooltip was flagged
+	character->SetAttribute("ttip", m_TooltipFlags);
 	// Custom attribute to keep track of reputation.
 	character->SetAttribute("rpt", GetReputation());
 	character->SetAttribute("stt", StatisticsToString().c_str());
@@ -469,6 +474,15 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	character->SetAttribute("time", m_TotalTimePlayed);
 
 	m_LastUpdateTimestamp = newUpdateTimestamp;
+}
+
+void CharacterComponent::SetTooltipFlag(const int32_t tooltip, const bool flag) {
+	if (tooltip > 127) return;
+	// x86 64-bit shifts (__allshl) by 64 or more give 0; the shift count is the tooltip's low byte
+	const auto shift = static_cast<uint8_t>(tooltip);
+	const auto shifted = [shift](const uint64_t value) { return shift < 64 ? value << shift : 0; };
+	if (flag) m_TooltipFlags |= shifted(1);
+	else m_TooltipFlags &= shifted(~uint64_t{ 1 });
 }
 
 void CharacterComponent::SetLastRocketConfig(std::u16string config) {

@@ -3,6 +3,8 @@
 #include "GameDependencies.h"
 
 #include "CDClientDatabase.h"
+#include "Character.h"
+#include "CharacterComponent.h"
 #include "Entity.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
@@ -71,4 +73,39 @@ TEST_F(CharacterSaveFieldsTests, MissionTypeStatesMissingInOldSave) {
 	EXPECT_TRUE(missions->GetMissionTypeStates().empty());
 	missions->UpdateXml(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><mis><done/><cur/><ts/></mis></obj>)");
+}
+
+// char@ttip: the tooltip bits (the client reads it with GetLongLongValue). Live wrote it on every character.
+TEST_F(CharacterSaveFieldsTests, TooltipFlagsRoundTrip) {
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"><mf/><char ls="0" ttip="16777216"/></obj>)");
+
+	Character character(1, nullptr);
+	Entity player(23, info);
+	auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	characterComponent->LoadFromXml(doc);
+	EXPECT_EQ(characterComponent->GetTooltipFlags(), 16777216u);
+
+	characterComponent->SetTooltipFlag(2, true);
+	characterComponent->UpdateXml(doc);
+	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("ttip"), "16777220");
+
+	Entity reloaded(24, info);
+	auto* const reloadedComponent = reloaded.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	reloadedComponent->LoadFromXml(doc);
+	EXPECT_EQ(reloadedComponent->GetTooltipFlags(), 16777220u);
+}
+
+// Saves from before ttip was written load with no tooltips flagged and gain ttip="0".
+TEST_F(CharacterSaveFieldsTests, TooltipFlagsMissingInOldSave) {
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"><mf/><char ls="0"/></obj>)");
+
+	Character character(1, nullptr);
+	Entity player(25, info);
+	auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	characterComponent->LoadFromXml(doc);
+	EXPECT_EQ(characterComponent->GetTooltipFlags(), 0u);
+	characterComponent->UpdateXml(doc);
+	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("ttip"), "0");
 }

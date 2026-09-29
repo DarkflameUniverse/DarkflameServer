@@ -67,6 +67,18 @@ namespace GameMessages {
 		int64_t reputation{};
 	};
 
+	// Client -> server. The client sets or clears a tooltip's bit in its own flags, then sends SetFlag for the same
+	// ID; the server keeps the bits and saves them as char@ttip, which the client reads on load.
+	struct SetTooltipFlag : public NetGameMsg {
+		SetTooltipFlag() : NetGameMsg(MessageType::Game::SET_TOOLTIP_FLAG) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		bool bFlag{};
+		int32_t iToolTip{};
+	};
+
 	// Server -> client, broadcast.
 	struct ToggleGMInvis : public NetGameMsg {
 		ToggleGMInvis() : NetGameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}

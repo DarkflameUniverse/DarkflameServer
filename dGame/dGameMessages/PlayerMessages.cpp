@@ -75,6 +75,22 @@ namespace GameMessages {
 		return bitStream.Read(reputation);
 	}
 
+	void SetTooltipFlag::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(bFlag);
+		bitStream.Write(iToolTip);
+	}
+
+	bool SetTooltipFlag::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(bFlag));
+		VALIDATE_READ(bitStream.Read(iToolTip));
+		return true;
+	}
+
+	void SetTooltipFlag::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* const characterComponent = entity.GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SetTooltipFlag(iToolTip, bFlag);
+	}
+
 	void ToggleGMInvis::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(bStateOut);
 	}

@@ -327,6 +327,14 @@ public:
 
 	const std::u16string& GetLastRocketConfig() const { return m_LastRocketConfig; };
 
+	/**
+	 * Sets or clears a tooltip's "seen" bit as the client's SetTooltipFlag does (LWOCharacterComponent::SendMessage
+	 * 0x00d34330): tooltips above 127 are ignored; setting shifts 1 left by the tooltip (nothing at 64 or more);
+	 * clearing masks with ~1 shifted left by the tooltip, which also clears every lower bit. Saved as char@ttip.
+	 */
+	void SetTooltipFlag(int32_t tooltip, bool flag);
+	uint64_t GetTooltipFlags() const { return m_TooltipFlags; }
+
 	uint64_t GetTotalTimePlayed() const { return m_TotalTimePlayed; };
 
 	/**
@@ -363,6 +371,9 @@ private:
 	 * Universe score of the entity
 	 */
 	int64_t m_Uscore;
+
+	// The tooltips the player has seen, one bit each (char@ttip)
+	uint64_t m_TooltipFlags{};
 
 	/**
 	 * The lifetime reputation earned by the entity

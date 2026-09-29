@@ -193,6 +193,7 @@ namespace {
 		{ PICKUP_CURRENCY, []() { return std::make_unique<PickupCurrency>(); } },
 		{ MODIFY_PLAYER_ZONE_STATISTIC, []() { return std::make_unique<ModifyPlayerZoneStatistic>(); } },
 		{ UPDATE_PLAYER_STATISTIC, []() { return std::make_unique<UpdatePlayerStatistic>(); } },
+		{ SET_TOOLTIP_FLAG, []() { return std::make_unique<SetTooltipFlag>(); } },
 		{ REPORT_BUG, []() { return std::make_unique<ReportBug>(); } },
 		{ VERIFY_ACK, []() { return std::make_unique<VerifyAck>(); } },
 
