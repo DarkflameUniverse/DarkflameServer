@@ -1,6 +1,7 @@
 #include "GameDependencies.h"
 #include "GameMessageTestUtils.h"
 
+#include "Mail.h"
 #include "MovementMessages.h"
 #include "ZoneMessages.h"
 
@@ -62,4 +63,18 @@ TEST_F(LoadSequenceTests, SavedCheckpointIsSentUnrotated) {
 	ASSERT_EQ(checkpoints.size(), 1u);
 	EXPECT_EQ(checkpoints[0].pos, saved);
 	EXPECT_EQ(checkpoints[0].rot, QuatUtils::IDENTITY);
+}
+
+// Unread mail is announced during the load without the client asking; nothing is sent without unread mail.
+// Live's packet (56 bytes) also fills the three fields DLU leaves 0 with object IDs the client does not use here.
+TEST_F(LoadSequenceTests, UnreadMailIsAnnouncedOnLoad) {
+	auto sent = Capture([&] { Mail::NotifyUnreadMailOnLoad(0, ClientAddress()); });
+	EXPECT_TRUE(sent.empty());
+
+	sent = Capture([&] { Mail::NotifyUnreadMailOnLoad(1, ClientAddress()); });
+	ASSERT_EQ(sent.size(), 1u);
+	EXPECT_EQ(sent[0].sysAddr, ClientAddress());
+	EXPECT_PACKET_EQ(FromHex(
+		"53 05 00 31 00 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "
+		"00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00"), FromCapture(sent[0]));
 }

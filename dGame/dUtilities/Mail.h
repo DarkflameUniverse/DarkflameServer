@@ -210,6 +210,10 @@ namespace Mail {
 
 	void HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player);
 
+	// Part of a player's load: live told the client about unread mail right after the respawn checkpoint, without
+	// being asked (NotificationResponse NewMail with the count), and sent nothing when there was none.
+	void NotifyUnreadMailOnLoad(uint32_t unreadCount, const SystemAddress& sysAddr);
+
 	// Tells the receiver about their unread mail if they are a player in this world. Returns false if they are not.
 	bool NotifyNewMailHere(LWOOBJID receiver);
 

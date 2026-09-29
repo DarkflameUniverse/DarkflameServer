@@ -443,6 +443,14 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	response.Send(sysAddr);
 }
 
+void Mail::NotifyUnreadMailOnLoad(const uint32_t unreadCount, const SystemAddress& sysAddr) {
+	if (unreadCount == 0) return;
+	NotificationResponse response;
+	response.status = eNotificationResponse::NewMail;
+	response.mailCount = unreadCount;
+	response.Send(sysAddr);
+}
+
 bool Mail::NotifyNewMailHere(LWOOBJID receiver) {
 	// Mail stores the character ID; the player's object ID also carries the character bit
 	GeneralUtils::SetBit(receiver, eObjectBits::CHARACTER);

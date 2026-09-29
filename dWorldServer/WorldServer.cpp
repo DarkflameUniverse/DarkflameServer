@@ -1136,10 +1136,7 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			invalidTransferList.bCustomerFeedbackOnInvalidMapTransfer = false;
 			invalidTransferList.SendToClient(sysAddr);
 			GameMessages::SendDoneLoading(player->GetObjectID(), respawnPoint, spawnPosition, spawnRotation, sysAddr);
-
-			//Send the player it's mail count:
-			//update: this might not be needed so im going to try disabling this here.
-			//Mail::HandleNotificationRequest(sysAddr, player->GetObjectID());
+			Mail::NotifyUnreadMailOnLoad(Database::Get()->GetUnreadMailCount(c->GetID()), sysAddr);
 
 			//Notify chat that a player has loaded:
 			auto* character = player->GetCharacter();
