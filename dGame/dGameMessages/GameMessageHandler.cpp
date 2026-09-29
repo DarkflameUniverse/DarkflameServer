@@ -215,6 +215,7 @@ namespace {
 		{ CLIENT_RAIL_MOVEMENT_READY, []() { return std::make_unique<ClientRailMovementReady>(); } },
 		{ CANCEL_RAIL_MOVEMENT, []() { return std::make_unique<CancelRailMovement>(); } },
 		{ PLAYER_RAIL_ARRIVED_NOTIFICATION, []() { return std::make_unique<PlayerRailArrivedNotification>(); } },
+		{ REQUEST_RAIL_ACTIVATOR_STATE, []() { return std::make_unique<RequestRailActivatorState>(); } },
 		{ DISMOUNT_COMPLETE, []() { return std::make_unique<DismountComplete>(); } },
 		{ ACKNOWLEDGE_POSSESSION, []() { return std::make_unique<AcknowledgePossession>(); } },
 		{ TOGGLE_GHOST_REFERENCE_OVERRIDE, []() { return std::make_unique<ToggleGhostReferenceOverride>(); } },

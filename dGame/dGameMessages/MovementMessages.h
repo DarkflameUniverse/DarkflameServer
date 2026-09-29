@@ -197,6 +197,22 @@ namespace GameMessages {
 		bool bImmediate{};
 	};
 
+	// Client -> server, no payload. The client's rail activator asks for its state when it is added to the world
+	// (LWORailActivatorComponent::SendMessage 0x00c00da0); live answered NotifyRailActivatorStateChange to that client.
+	struct RequestRailActivatorState : public NetGameMsg {
+		RequestRailActivatorState() : NetGameMsg(MessageType::Game::REQUEST_RAIL_ACTIVATOR_STATE) {}
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+	};
+
+	// Server -> client. The client sets rail_activator_active and updates the rail's pick type (usable or not).
+	struct NotifyRailActivatorStateChange : public NetGameMsg {
+		NotifyRailActivatorStateChange() : NetGameMsg(MessageType::Game::NOTIFY_RAIL_ACTOVATOR_STATE_CHANGE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		bool bActive{ true };
+	};
+
 	// Client -> server.
 	struct PlayerRailArrivedNotification : public NetGameMsg {
 		PlayerRailArrivedNotification() : NetGameMsg(MessageType::Game::PLAYER_RAIL_ARRIVED_NOTIFICATION) {}

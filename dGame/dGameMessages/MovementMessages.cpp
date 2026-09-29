@@ -295,6 +295,24 @@ namespace GameMessages {
 		}
 	}
 
+	void RequestRailActivatorState::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		const auto* const rail = entity.GetComponent<RailActivatorComponent>();
+		if (!rail) return;
+		NotifyRailActivatorStateChange notify;
+		notify.target = entity.GetObjectID();
+		notify.bActive = rail->GetActive();
+		notify.SendToClient(sysAddr);
+	}
+
+	void NotifyRailActivatorStateChange::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(bActive);
+	}
+
+	bool NotifyRailActivatorStateChange::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(bActive));
+		return true;
+	}
+
 	void PlayerRailArrivedNotification::Serialize(RakNet::BitStream& bitStream) const {
 		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, pathName);
 		bitStream.Write(waypointNumber);

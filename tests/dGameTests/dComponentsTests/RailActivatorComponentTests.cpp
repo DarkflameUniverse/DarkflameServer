@@ -4,6 +4,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDRailActivatorComponent.h"
 #include "Entity.h"
+#include "MovementMessages.h"
+#include "dGameMessagesTests/GameMessageTestUtils.h"
 #include "RailActivatorComponent.h"
 
 #include <gtest/gtest.h>
@@ -56,4 +58,27 @@ TEST_F(RailActivatorComponentTests, NoRowAndNoKeysIsNotImmune) {
 	const auto* const rail = entity->AddComponent<RailActivatorComponent>(COMPONENT_ID + 1);
 	EXPECT_FALSE(rail->GetDamageImmune());
 	EXPECT_FALSE(rail->GetNoAggro());
+}
+
+// Live answered the client's RequestRailActivatorState (1479, no payload; 152 packets) with
+// NotifyRailActivatorStateChange (1478) to that client: every one of the 413 live packets was bActive = true (80).
+TEST_F(RailActivatorComponentTests, RequestRailActivatorStateIsAnswered) {
+	using namespace GameMessageTestUtils;
+	entity->AddComponent<RailActivatorComponent>(COMPONENT_ID);
+	GameMessages::RequestRailActivatorState request;
+	const auto packets = Capture([&] { request.Handle(*entity, ClientAddress()); });
+	ASSERT_EQ(packets.size(), 1u);
+	EXPECT_EQ(packets[0].sysAddr, ClientAddress());
+	EXPECT_FALSE(packets[0].broadcast);
+	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 01 00 00 00 00 00 00 00 c6 05 80", 145), FromCapture(packets[0]));
+}
+
+TEST_F(RailActivatorComponentTests, InactiveRailIsReportedInactive) {
+	using namespace GameMessageTestUtils;
+	entity->SetVar<bool>(u"rail_activator_active", false);
+	const auto* const rail = entity->AddComponent<RailActivatorComponent>(COMPONENT_ID);
+	EXPECT_FALSE(rail->GetActive());
+	GameMessages::NotifyRailActivatorStateChange notify;
+	notify.bActive = false;
+	EXPECT_FALSE(RoundTrip(notify).bActive);
 }

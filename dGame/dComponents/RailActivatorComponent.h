@@ -38,6 +38,11 @@ public:
 	void OnCancelRailMovement(Entity* originator);
 
 	bool GetDamageImmune() const { return m_DamageImmune; }
+
+	/**
+	 * Whether the rail can be used (level key rail_activator_active; every rail in the live levels has it set)
+	 */
+	bool GetActive() const { return m_Active; }
 	bool GetNoAggro() const { return m_NoAggro; }
 	bool GetShowNameBillboard() const { return m_ShowNameBillboard; }
 private:
@@ -110,6 +115,8 @@ private:
 	 * Client flag
 	 */
 	bool m_DamageImmune;
+
+	bool m_Active{ true };
 
 	/**
 	 * Client flag

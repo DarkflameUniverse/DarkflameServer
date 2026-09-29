@@ -44,6 +44,7 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, const int32_t com
 	m_NotifyArrived = parent->GetVar<bool>(u"rail_notify_activator_arrived");
 	m_ShowNameBillboard = levelOr(u"rail_show_name_billboard", tableData.showNameBillboard);
 	m_UseDB = parent->GetVar<bool>(u"rail_use_db");
+	m_Active = levelOr(u"rail_activator_active", true);
 	m_CameraLocked = tableData.cameraLocked;
 	m_CollisionEnabled = tableData.playerCollision;
 }
