@@ -228,8 +228,8 @@ namespace {
 			m_VertexColor = nif.Add("NiVertexColorProperty", std::move(vertexColor.Data()));
 		}
 
-		// A white NiMaterialProperty with this emissive color (grey)
-		static std::string Material(float emissive) {
+		// A white NiMaterialProperty with this emissive color (grey) and alpha
+		static std::string Material(float emissive, float alpha = 1.0f) {
 			Writer material;
 			WriteNet(material, -1);
 			for (int i = 0; i < 3; i++) material.Float(1.0f); // ambient
@@ -237,7 +237,7 @@ namespace {
 			for (int i = 0; i < 3; i++) material.Float(0.0f); // specular
 			for (int i = 0; i < 3; i++) material.Float(emissive);
 			material.Float(4.0f);  // glossiness, as the game's brick models
-			material.Float(1.0f);  // alpha
+			material.Float(alpha);
 			return std::move(material.Data());
 		}
 
@@ -383,8 +383,15 @@ namespace {
 				specular.U16(0); // off
 				m_Specular = m_Nif.Add("NiSpecularProperty", std::move(specular.Data()));
 			}
-			(void)transparent;
+			// The client draws a shape in its sorted, blended pass only when the material's alpha is under 0.99999
+			// (ShaderCommon::GetAlphaFlags 0x0109f5a0; the NiAlphaProperty's blend flag isn't read): at 1.0 a
+			// transparent brick is drawn solid, with blending off. The game's own brick models give their S01_Alpha
+			// shapes 0.9999, and so do we (made once a file, only when there is a transparent shape).
 			int32_t material = m_Material;
+			if (transparent) {
+				if (m_MaterialAlpha < 0) m_MaterialAlpha = m_Nif.Add("NiMaterialProperty", Material(0.0f, 0.9999f));
+				material = m_MaterialAlpha;
+			}
 			if (emissive > 0.0f) {
 				auto [it, added] = m_Emissive.try_emplace(emissive, -1);
 				if (added) it->second = m_Nif.Add("NiMaterialProperty", Material(emissive));
@@ -409,6 +416,7 @@ namespace {
 	private:
 		NifBuilder& m_Nif;
 		int32_t m_Material{ -1 };
+		int32_t m_MaterialAlpha{ -1 }; // transparent shapes' (alpha 0.9999)
 		int32_t m_VertexColor{ -1 };
 		int32_t m_Alpha{ -1 };
 		int32_t m_Specular{ -1 };

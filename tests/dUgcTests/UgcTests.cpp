@@ -1097,8 +1097,8 @@ TEST(UgcShaders, OffIsByteIdenticalToBefore) {
 	// The floating point results (color variation, occlusion) are the same on one platform and compiler; the hashes
 	// were taken with GCC on x86-64 Linux
 #if defined(__linux__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
-	EXPECT_EQ(UgcFormats::Md5Hex(nif), "b0fcb707d36ccdb62e951bf50593e633");
-	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz"))), "db55bd2c8567a862b2c96942aa5a2617");
+	EXPECT_EQ(UgcFormats::Md5Hex(nif), "7a7176731afd837da83450d260ed6832");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz"))), "19d8a2f748015e1f9d680a60fb7565d5");
 	EXPECT_EQ(UgcFormats::Md5Hex(outcome.files.at("icon.png")), "032ff7df236a636a4c609071d9b46181");
 #endif
 }
@@ -1624,10 +1624,10 @@ TEST(UgcHsr, OffIsByteIdenticalToBefore) {
 	const auto other = UgcJobs::ProcessModel(LXFML5, library, settings, 99);
 	ASSERT_TRUE(other.ok) << other.error;
 #if defined(__linux__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
-	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.nif.gz"))), "f91b88e46a92e9472710854902b25c9a");
-	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz"))), "58a779933695da04bf9b3459c8369528");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.nif.gz"))), "a8f6b7022a7c087d1659d67a16e9791f");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(outcome.files.at("model.noao.nif.gz"))), "2da0810cbd2470732e4732a8128da2ab");
 	EXPECT_EQ(UgcFormats::Md5Hex(outcome.files.at("icon.png")), "032ff7df236a636a4c609071d9b46181");
-	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(other.files.at("model.nif.gz"))), "7eddc020a3e4bf22ed1df0183b042ced");
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(other.files.at("model.nif.gz"))), "289088a76248d35203cd961f2772ae21");
 #endif
 }
 
@@ -1763,4 +1763,32 @@ TEST(UgcThrottle, CancelStopsJobsAtTheirNextCheckpoint) {
 	EXPECT_THROW(UgcThrottle::Checkpoint(), UgcThrottle::Cancelled);
 	UgcThrottle::Cancel(false);
 	EXPECT_NO_THROW(UgcThrottle::Checkpoint());
+}
+
+// Transparent shapes get a material alpha of 0.9999 as the game's own brick models' S01_Alpha shapes: the client only
+// blends a shape whose material alpha is under 0.99999 (ShaderCommon::GetAlphaFlags); opaque shapes keep 1.0
+TEST(UgcFormats, TransparentShapesHaveTheGamesAlphaMaterial) {
+	const auto mesh = Quad({ 0.2f, 0.4f, 0.8f, 0.6f });
+	const auto alphaOf = [](const std::string& nif) {
+		std::vector<float> alphas;
+		// Every NiMaterialProperty block ends with glossiness 4.0 and the alpha: find glossiness then read the alpha
+		for (size_t i = 0; i + 8 <= nif.size(); i++) {
+			float gloss = 0.0f;
+			std::memcpy(&gloss, nif.data() + i, 4);
+			if (gloss != 4.0f) continue;
+			float alpha = 0.0f;
+			std::memcpy(&alpha, nif.data() + i + 4, 4);
+			if (alpha > 0.9f && alpha <= 1.0f) alphas.push_back(alpha);
+		}
+		return alphas;
+	};
+	const auto mixed = UgcFormats::WriteLodNif("SceneNode_Model", {
+		{ "S01_Opaque_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } } },
+		{ "S01_Alpha_Model", true, { { 0.0f, 100.0f, "LOD_0", { &mesh } } } } });
+	const auto alphas = alphaOf(mixed);
+	EXPECT_NE(std::find(alphas.begin(), alphas.end(), 1.0f), alphas.end());
+	EXPECT_NE(std::find(alphas.begin(), alphas.end(), 0.9999f), alphas.end());
+	const auto opaque = UgcFormats::WriteLodNif("SceneNode_Model", { { "S01_Opaque_Model", false, { { 0.0f, 100.0f, "LOD_0", { &mesh } } } } });
+	const auto opaqueAlphas = alphaOf(opaque);
+	EXPECT_EQ(std::find(opaqueAlphas.begin(), opaqueAlphas.end(), 0.9999f), opaqueAlphas.end());
 }
