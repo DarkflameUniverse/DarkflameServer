@@ -27,7 +27,6 @@
 #include "MessageType/Chat.h"
 #include "ObjectIDManager.h"
 
-#include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
 #include "CDActivitiesTable.h"
 #include "LeaderboardManager.h"
@@ -532,16 +531,7 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([this](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
-		uint32_t minCoins = 0;
-		uint32_t maxCoins = 0;
-
-		auto* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
-		std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == activityRewards[0].CurrencyIndex && entry.npcminlevel == 1); });
-
-		if (!currencyTable.empty()) {
-			minCoins = currencyTable[0].minvalue;
-			maxCoins = currencyTable[0].maxvalue;
-		}
+		const auto [minCoins, maxCoins] = Loot::GetActivityCoinRange(activityRewards[0]);
 
 		Loot::DropLoot(participant, m_Parent->GetObjectID(), activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
 	}

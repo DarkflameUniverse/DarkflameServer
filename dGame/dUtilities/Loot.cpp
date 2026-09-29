@@ -547,6 +547,24 @@ void Loot::GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType 
 	}
 }
 
+std::pair<uint32_t, uint32_t> Loot::GetActivityCoinRange(const std::vector<CDCurrencyTable>& currencyRows, const uint32_t challengeRating) {
+	const auto atLevel = [&currencyRows](const uint32_t level) {
+		return std::ranges::find_if(currencyRows, [level](const CDCurrencyTable& row) { return row.npcminlevel == level; });
+	};
+
+	auto row = atLevel(challengeRating);
+	if (row == currencyRows.end()) row = atLevel(1);
+	if (row == currencyRows.end()) return { 0, 0 };
+	return { row->minvalue, row->maxvalue };
+}
+
+std::pair<uint32_t, uint32_t> Loot::GetActivityCoinRange(const CDActivityRewards& reward) {
+	auto* const currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
+	const auto currencyIndex = reward.CurrencyIndex;
+	const auto rows = currencyTableTable->Query([currencyIndex](const CDCurrencyTable& entry) { return entry.currencyIndex == currencyIndex; });
+	return GetActivityCoinRange(rows, reward.ChallengeRating);
+}
+
 void Loot::GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating) {
 	CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
@@ -561,16 +579,7 @@ void Loot::GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t acti
 	if (!selectedReward)
 		return;
 
-	uint32_t minCoins = 0;
-	uint32_t maxCoins = 0;
-
-	CDCurrencyTableTable* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
-	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
-
-	if (currencyTable.size() > 0) {
-		minCoins = currencyTable[0].minvalue;
-		maxCoins = currencyTable[0].maxvalue;
-	}
+	const auto [minCoins, maxCoins] = GetActivityCoinRange(*selectedReward);
 
 	GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::ACTIVITY);
 
@@ -612,16 +621,7 @@ void Loot::DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t acti
 		return;
 	}
 
-	uint32_t minCoins = 0;
-	uint32_t maxCoins = 0;
-
-	CDCurrencyTableTable* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
-	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
-
-	if (currencyTable.size() > 0) {
-		minCoins = currencyTable[0].minvalue;
-		maxCoins = currencyTable[0].maxvalue;
-	}
+	const auto [minCoins, maxCoins] = GetActivityCoinRange(*selectedReward);
 
 	DropLoot(player, source, selectedReward->LootMatrixIndex, minCoins, maxCoins);
 }
