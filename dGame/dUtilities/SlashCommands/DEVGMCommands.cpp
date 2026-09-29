@@ -1993,7 +1993,7 @@ namespace DEVGMCommands {
 		// Optional processing options for this make: ray backend and denoising, in any order
 		UgcProcessOptions::Choice choice;
 		if (!UgcProcessOptions::Parse(args, choice)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reprocessproperty [builtin|embree|hiprt] [off|oidn] (left out: the UGC settings')");
+			ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reprocessproperty [embree|hiprt] [off|oidn] (left out: the UGC settings')");
 			return;
 		}
 		const auto options = UgcProcessOptions::ToString(choice);

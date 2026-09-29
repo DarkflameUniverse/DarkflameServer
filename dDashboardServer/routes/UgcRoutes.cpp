@@ -478,7 +478,7 @@ namespace UgcRoutes {
 						{ "removed", summary.trianglesBefore > 0 ? 1.0 - static_cast<double>(summary.triangles) / static_cast<double>(summary.trianglesBefore) : 0.0 } });
 				}
 				JsonSuccess(reply, { { "choices", { { "rays", names(UgcProcessOptions::RAYS) }, { "denoise", names(UgcProcessOptions::DENOISE) } } },
-					{ "defaults", { { "rays", UgcSetting("ray_backend").value_or("builtin") },
+					{ "defaults", { { "rays", UgcSetting("ray_backend").value_or("embree") },
 						{ "denoise", UgcSetting("denoise").value_or("off") } } },
 					{ "combinations", combos }, { "canManage", Can(context, "ugc_manage") } });
 			});

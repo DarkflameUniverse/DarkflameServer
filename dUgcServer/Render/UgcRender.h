@@ -108,7 +108,7 @@ namespace UgcRender {
 	 * 1 is open, 0 fully hidden.
 	 */
 	std::vector<float> AmbientOcclusion(const UgcModel::Mesh& mesh, const UgcModel::Mesh& occluders, float distance, int samples,
-		UgcRays::eBackend rays = UgcRays::eBackend::BUILTIN);
+		UgcRays::eBackend rays = UgcRays::eBackend::EMBREE);
 
 	/**
 	 * LU Toolbox's Bake Lighting with AO Only (its defaults): the opaque mesh's occlusion (transparent bricks are hidden

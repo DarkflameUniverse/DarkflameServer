@@ -14,8 +14,7 @@
 /**
  * Rays against a mesh's triangles: the nearest hit (never the triangle a ray leaves) and, for the ambient occlusion
  * rays, whether anything is hit, by one of several backends (the ray_backend setting, or per job):
- *   builtin: the UGC server's own bounding volume hierarchies (the ones it always had)
- *   embree:  Intel's Embree 4 on the CPU, on the thread that asks (no threads of its own)
+ *   embree:  Intel's Embree 4 on the CPU, on the thread that asks (no threads of its own); always there
  *   hiprt:   AMD's HIPRT on the GPU (AMD through HIP, NVIDIA through CUDA, loaded when first asked for by Orochi),
  *            when built with DLU_HIPRT and a GPU is there; else embree. One GPU for the process, used by one thread
  *            at a time; its time is not CPU time.
@@ -26,13 +25,13 @@ namespace UgcRays {
 	constexpr uint32_t NONE = std::numeric_limits<uint32_t>::max();
 	constexpr float INF = std::numeric_limits<float>::infinity();
 
-	enum class eBackend : uint8_t { BUILTIN = 0, EMBREE, HIPRT };
+	enum class eBackend : uint8_t { EMBREE = 0, HIPRT };
 
-	// The setting's name of a backend (builtin, embree, hiprt)
+	// The setting's name of a backend (embree, hiprt)
 	std::string_view Name(eBackend backend);
-	// A backend by its name (case sensitive); nullopt for anything else
+	// A backend by its name (case sensitive; builtin, the backend Embree replaced, is embree); nullopt for anything else
 	std::optional<eBackend> Parse(std::string_view name);
-	// Whether this build and machine can use the backend (builtin and embree always)
+	// Whether this build and machine can use the backend (embree always)
 	bool Available(eBackend backend);
 	// The backend that is used when `wanted` is asked for: itself, or embree when it isn't available
 	eBackend Resolve(eBackend wanted);

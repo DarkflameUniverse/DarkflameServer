@@ -79,7 +79,7 @@ namespace UgcDebounce {
  * chosen names in this order, separated by spaces ("embree oidn"); a choice left out is the setting's.
  */
 namespace UgcProcessOptions {
-	inline constexpr std::string_view RAYS[] = { "builtin", "embree", "hiprt" };
+	inline constexpr std::string_view RAYS[] = { "embree", "hiprt" };
 	inline constexpr std::string_view DENOISE[] = { "off", "oidn" };
 	// Hidden-face methods earlier versions' options named (stored options still have them): read and ignored
 	inline constexpr std::string_view RETIRED[] = { "toolbox", "fast" };
@@ -97,7 +97,7 @@ namespace UgcProcessOptions {
 	}
 
 	// The words, in any order ("oidn embree"); "default" or "-" leave a choice to the setting, retired words are
-	// skipped. False on an unknown word or two words for one choice.
+	// skipped and builtin is embree. False on an unknown word or two words for one choice.
 	inline bool Parse(std::string_view text, Choice& choice) {
 		choice = {};
 		size_t start = 0;
@@ -105,9 +105,11 @@ namespace UgcProcessOptions {
 			while (start < text.size() && (text[start] == ' ' || text[start] == ',')) start++;
 			size_t end = start;
 			while (end < text.size() && text[end] != ' ' && text[end] != ',') end++;
-			const auto word = text.substr(start, end - start);
+			auto word = text.substr(start, end - start);
 			start = end;
 			if (word.empty() || word == "default" || word == "-" || Contains(RETIRED, word)) continue;
+			// builtin, the ray backend Embree replaced, is embree
+			if (word == "builtin") word = "embree";
 			std::string* slot = Contains(RAYS, word) ? &choice.rays : Contains(DENOISE, word) ? &choice.denoise : nullptr;
 			if (!slot || !slot->empty()) return false;
 			*slot = std::string(word);

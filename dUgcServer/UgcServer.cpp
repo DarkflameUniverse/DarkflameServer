@@ -157,7 +157,7 @@ namespace {
 		settings.hsr.groundPlane = Setting<int32_t>("hsr_ground_plane", 0) != 0;
 		settings.hsr.resolution = std::clamp(Setting<int32_t>("hsr_resolution", 1024), 64, 4096);
 		// What traces the occlusion rays (the icon's too)
-		settings.ao.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::BUILTIN);
+		settings.ao.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::EMBREE);
 		// The GPU hiprt uses (read before it is first used; changing it takes a restart)
 		UgcRays::SetGpuDevice(std::max(Setting<int32_t>("hiprt_device", 0), 0));
 		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
@@ -573,7 +573,7 @@ namespace {
 		auto settings = ReadSettings();
 		UgcProcessOptions::Choice choice;
 		if (!UgcProcessOptions::Parse(options, choice)) {
-			std::cerr << "Unknown processing options \"" << options << "\" (ray backend builtin, embree or hiprt; denoise off or oidn)\n";
+			std::cerr << "Unknown processing options \"" << options << "\" (ray backend embree or hiprt; denoise off or oidn)\n";
 			return EXIT_FAILURE;
 		}
 		UgcJobs::ApplyOptions(settings, choice);
