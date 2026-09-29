@@ -21,6 +21,7 @@
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
 #include "TeamContainer.h"
+#include "MinimumChatMode.h"
 
 void ChatPacketHandler::SendRouted(const LWOOBJID target, const SystemAddress& world, const LUBitStream& msg, const bool broadcast) {
 	ChatPackets::WorldRoutePacket route;
@@ -349,6 +350,41 @@ void ChatPacketHandler::HandleGMLevelUpdate(const ChatPackets::GMLevelUpdate& up
 	player.gmLevel = update.gmLevel;
 }
 
+
+void ChatPacketHandler::HandleRequestMinimumChatMode(const ChatPackets::RequestMinimumChatMode& request, const SystemAddress& sysAddr) {
+	const auto& sender = Game::playerContainer.GetPlayerData(request.playerID);
+	if (!sender) return;
+
+	// Everyone on the team who is online reads team chat; without a team only the sender does
+	std::vector<eGameMasterLevel> readers{ sender.gmLevel };
+	if (const auto* const team = TeamContainer::GetTeam(sender.playerID)) {
+		for (const auto memberID : team->memberIDs) {
+			const auto& member = Game::playerContainer.GetPlayerData(memberID);
+			if (member && member.playerID != sender.playerID) readers.push_back(member.gmLevel);
+		}
+	}
+
+	ClientPackets::MinimumChatModeResponse response;
+	response.chatMode = MinimumChatMode::Of(readers);
+	response.chatChannel = request.chatChannel;
+	SendRouted(sender.playerID, sender.worldServerSysAddr, response);
+}
+
+void ChatPacketHandler::HandleRequestMinimumChatModePrivate(const ChatPackets::RequestMinimumChatModePrivate& request, const SystemAddress& sysAddr) {
+	const auto& sender = Game::playerContainer.GetPlayerData(request.playerID);
+	if (!sender) return;
+
+	const auto& recipient = Game::playerContainer.GetPlayerData(request.recipientName.GetAsString());
+	std::vector<eGameMasterLevel> readers{ sender.gmLevel };
+	if (recipient) readers.push_back(recipient.gmLevel);
+
+	ClientPackets::MinimumChatModeResponsePrivate response;
+	response.chatMode = MinimumChatMode::Of(readers);
+	response.chatChannel = request.chatChannel;
+	response.recipientName = request.recipientName;
+	response.recipientGMLevel = recipient ? static_cast<uint8_t>(recipient.gmLevel) : 0;
+	SendRouted(sender.playerID, sender.worldServerSysAddr, response);
+}
 
 void ChatPacketHandler::HandleWho(const ChatPackets::FindPlayerRequest& request, const SystemAddress& sysAddr) {
 

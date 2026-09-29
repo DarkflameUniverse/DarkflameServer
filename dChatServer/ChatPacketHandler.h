@@ -25,6 +25,8 @@ namespace ChatPacketHandler {
 	void HandleFriendResponse(const ChatPackets::AddFriendResponse& response, const SystemAddress& sysAddr);
 	void HandleRemoveFriend(const ChatPackets::RemoveFriend& request, const SystemAddress& sysAddr);
 	void HandleGMLevelUpdate(const ChatPackets::GMLevelUpdate& update, const SystemAddress& sysAddr);
+	void HandleRequestMinimumChatMode(const ChatPackets::RequestMinimumChatMode& request, const SystemAddress& sysAddr);
+	void HandleRequestMinimumChatModePrivate(const ChatPackets::RequestMinimumChatModePrivate& request, const SystemAddress& sysAddr);
 	void HandleWho(const ChatPackets::FindPlayerRequest& request, const SystemAddress& sysAddr);
 	void HandleShowAll(const ChatPackets::ShowAllRequest& request, const SystemAddress& sysAddr);
 	void HandleChatMessage(const ChatPackets::GeneralChatMessage& chatMessage, const SystemAddress& sysAddr);

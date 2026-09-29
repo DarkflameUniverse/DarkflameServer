@@ -352,6 +352,29 @@ namespace ChatPackets {
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
+	// The lowest chat mode among who would read the player's team chat (chatChannel 8 team, 10 local team)
+	struct RequestMinimumChatMode : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+		uint8_t chatChannel{};
+
+		RequestMinimumChatMode() : LUBitStream(ServiceType::CHAT, MessageType::Chat::REQUEST_MINIMUM_CHAT_MODE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The same for a private message to recipientName (chatChannel 7)
+	struct RequestMinimumChatModePrivate : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+		uint8_t chatChannel{};
+		LUWString recipientName;
+
+		RequestMinimumChatModePrivate() : LUBitStream(ServiceType::CHAT, MessageType::Chat::REQUEST_MINIMUM_CHAT_MODE_PRIVATE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
 	/**
 	 * Chat-service packets the client receives, from the chat server (routed through the player's world) or from its world.
 	 */

@@ -290,6 +290,29 @@ namespace ClientPackets {
  * list and team responses, and the team game messages. SendCannedText comes from the world.
  */
 namespace ClientPackets {
+	// The answer to ChatPackets::RequestMinimumChatMode; the client hands both values to its chat UI
+	// (PacketHandler_MSG_CLIENT_MINIMUM_CHAT_MODE_RESPONSE)
+	struct MinimumChatModeResponse : public LUBitStream {
+		uint8_t chatMode{};
+		uint8_t chatChannel{};
+
+		MinimumChatModeResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::MINIMUM_CHAT_MODE_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The answer to ChatPackets::RequestMinimumChatModePrivate
+	struct MinimumChatModeResponsePrivate : public LUBitStream {
+		uint8_t chatMode{};
+		uint8_t chatChannel{};
+		LUWString recipientName;
+		uint8_t recipientGMLevel{};
+
+		MinimumChatModeResponsePrivate() : LUBitStream(ServiceType::CLIENT, MessageType::Client::MINIMUM_CHAT_MODE_RESPONSE_PRIVATE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
 	// World -> client: chat is off (0: "Chat is currently disabled.", 1: "Upgrade to a full LEGO Universe
 	// Membership to chat with other players.")
 	struct SendCannedText : public LUBitStream {

@@ -1,6 +1,8 @@
 #include "ChatPackets.h"
 #include "ClientPackets.h"
 #include "WorldRoutePacket.h"
+#include "WorldPackets.h"
+#include "MinimumChatMode.h"
 #include "GameDependencies.h"
 #include "PacketTestUtils.h"
 #include "dGameMessagesTests/GameMessageTestUtils.h"
@@ -925,4 +927,81 @@ TEST_F(ChatPacketsTests, MailNotifyRoundTrips) {
 	EXPECT_PACKET_EQ(FromHex("53 02 00 24 00 00 00 00 42 00 00 00 00 00 00 10"), StructPacket(notify));
 	EXPECT_EQ(RoundTrip(notify).receiverID, notify.receiverID);
 	ExpectTruncatedFails(notify);
+}
+
+// Minimum chat mode: the client's requests, as the chat server receives them from the world, and the answers.
+namespace {
+	// What the chat server gets when the client routes routedData (the client's packet after its header) through
+	// its world with this message ID
+	template<typename T>
+	T ReadRoutedFromClient(uint32_t routedMessageID, const std::vector<uint8_t>& routedData, LWOOBJID sender) {
+		WorldPackets::RoutePacket route;
+		route.size = static_cast<uint32_t>(routedData.size());
+		route.routedService = ServiceType::CHAT;
+		route.routedMessageID = routedMessageID;
+		route.routedData = routedData;
+		RakNet::BitStream bitStream;
+		route.ToChat(sender).WritePacket(bitStream);
+		bitStream.IgnoreBytes(8);
+		T read;
+		EXPECT_TRUE(read.Deserialize(bitStream));
+		return read;
+	}
+}
+
+// The client's request: an empty object ID, then the channel (lu_packets' RequestMinimumChatMode sample, team chat)
+TEST_F(ChatPacketsTests, RequestMinimumChatModeReadsTheChannel) {
+	const std::vector<uint8_t> clientData = { 0, 0, 0, 0, 0, 0, 0, 0, 0x08 };
+	const auto read = ReadRoutedFromClient<ChatPackets::RequestMinimumChatMode>(50, clientData, 0x1000000000000001LL);
+	EXPECT_EQ(read.playerID, 0x1000000000000001LL);
+	EXPECT_EQ(read.chatChannel, 8);
+	RoundTrip(read);
+	ExpectTruncatedFails(read);
+}
+
+TEST_F(ChatPacketsTests, RequestMinimumChatModePrivateReadsTheRecipient) {
+	std::vector<uint8_t> clientData = { 0, 0, 0, 0, 0, 0, 0, 0, 0x07 };
+	const std::u16string name = u"Recipient";
+	for (size_t i = 0; i < 33; i++) {
+		const char16_t c = i < name.size() ? name[i] : u'\0';
+		clientData.push_back(static_cast<uint8_t>(c & 0xff));
+		clientData.push_back(static_cast<uint8_t>(c >> 8));
+	}
+	const auto read = ReadRoutedFromClient<ChatPackets::RequestMinimumChatModePrivate>(51, clientData, 0x1000000000000001LL);
+	EXPECT_EQ(read.playerID, 0x1000000000000001LL);
+	EXPECT_EQ(read.chatChannel, 7);
+	EXPECT_EQ(read.recipientName.GetAsString(), "Recipient");
+	RoundTrip(read);
+}
+
+// The live answer to team chat (74 of 74 in the captures): chat mode 0, channel 8
+TEST_F(ChatPacketsTests, MinimumChatModeResponseMatchesLive) {
+	ClientPackets::MinimumChatModeResponse response;
+	response.chatMode = MinimumChatMode::Of({ eGameMasterLevel::CIVILIAN, eGameMasterLevel::CIVILIAN });
+	response.chatChannel = 8;
+	EXPECT_PACKET_EQ(FromHex("53 05 00 39 00 00 00 00 00 08"), StructPacket(response));
+	RoundTrip(response);
+	ExpectTruncatedFails(response);
+}
+
+TEST_F(ChatPacketsTests, MinimumChatModePrivateResponseLayout) {
+	ClientPackets::MinimumChatModeResponsePrivate response;
+	response.chatMode = 0;
+	response.chatChannel = 7;
+	response.recipientName = LUWString(u"Bob");
+	response.recipientGMLevel = 0;
+	const auto packet = StructPacket(response);
+	// header, mode, channel, 33 wide characters, GM level (lu_packets MinimumChatModeResponsePrivate)
+	ASSERT_EQ(packet.bytes.size(), 8u + 2u + 66u + 1u);
+	EXPECT_EQ(packet.bytes[3], 0x3a);
+	EXPECT_EQ(packet.bytes[9], 7);
+	EXPECT_EQ(packet.bytes[10], 'B');
+	const auto copy = RoundTrip(response);
+	EXPECT_EQ(copy.recipientName.GetAsString(), "Bob");
+}
+
+TEST_F(ChatPacketsTests, MinimumChatModeIsTheLowestReader) {
+	EXPECT_EQ(MinimumChatMode::Of({}), 0);
+	EXPECT_EQ(MinimumChatMode::Of({ eGameMasterLevel::OPERATOR }), static_cast<uint8_t>(eGameMasterLevel::OPERATOR));
+	EXPECT_EQ(MinimumChatMode::Of({ eGameMasterLevel::OPERATOR, eGameMasterLevel::CIVILIAN }), 0);
 }

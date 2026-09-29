@@ -260,6 +260,8 @@ namespace {
 			handlers.On<TeamKick>(Chat::TEAM_KICK, TeamContainer::HandleTeamKick);
 			handlers.On<TeamSetLoot>(Chat::TEAM_SET_LOOT, TeamContainer::HandleTeamLootOption);
 			handlers.On<GMLevelUpdate>(Chat::GMLEVEL_UPDATE, ChatPacketHandler::HandleGMLevelUpdate);
+			handlers.On<RequestMinimumChatMode>(Chat::REQUEST_MINIMUM_CHAT_MODE, ChatPacketHandler::HandleRequestMinimumChatMode);
+			handlers.On<RequestMinimumChatModePrivate>(Chat::REQUEST_MINIMUM_CHAT_MODE_PRIVATE, ChatPacketHandler::HandleRequestMinimumChatModePrivate);
 			handlers.On<LoginSessionNotify>(Chat::LOGIN_SESSION_NOTIFY, [](const LoginSessionNotify& notify, const SystemAddress& sysAddr) { Game::playerContainer.InsertPlayer(notify, sysAddr); });
 			// we just forward this packet to every connected server
 			handlers.On<ChatPackets::Announcement>(Chat::GM_ANNOUNCE, [](const ChatPackets::Announcement& announcement, const SystemAddress& sysAddr) {

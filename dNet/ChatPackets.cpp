@@ -424,6 +424,32 @@ namespace ChatPackets {
 		VALIDATE_READ(bitStream.Read(playerID));
 		return true;
 	}
+
+	void RequestMinimumChatMode::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(chatChannel);
+	}
+
+	bool RequestMinimumChatMode::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		return true;
+	}
+
+	void RequestMinimumChatModePrivate::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(playerID);
+		bitStream.Write(unknown);
+		bitStream.Write(chatChannel);
+		bitStream.Write(recipientName);
+	}
+
+	bool RequestMinimumChatModePrivate::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadPlayerHeader(bitStream, playerID, unknown));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		VALIDATE_READ(bitStream.Read(recipientName));
+		return true;
+	}
 }
 
 namespace ChatPackets::Client {

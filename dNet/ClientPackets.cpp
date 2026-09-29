@@ -533,6 +533,32 @@ namespace ClientPackets {
 		return true;
 	}
 
+	void MinimumChatModeResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(chatMode);
+		bitStream.Write(chatChannel);
+	}
+
+	bool MinimumChatModeResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(chatMode));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		return true;
+	}
+
+	void MinimumChatModeResponsePrivate::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(chatMode);
+		bitStream.Write(chatChannel);
+		bitStream.Write(recipientName);
+		bitStream.Write(recipientGMLevel);
+	}
+
+	bool MinimumChatModeResponsePrivate::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(chatMode));
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		VALIDATE_READ(bitStream.Read(recipientName));
+		VALIDATE_READ(bitStream.Read(recipientGMLevel));
+		return true;
+	}
+
 	void GetFriendsListResponse::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(responseCode);
 		bitStream.Write(packetLength);
