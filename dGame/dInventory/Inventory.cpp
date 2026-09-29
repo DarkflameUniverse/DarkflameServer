@@ -236,6 +236,14 @@ void Inventory::RemoveManagedItem(Item* item) {
 	free++;
 }
 
+void Inventory::RetireItem(Item* item) {
+	m_RetiredItems.emplace_back(item);
+}
+
+void Inventory::FreeRetiredItems() {
+	m_RetiredItems.clear();
+}
+
 eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 	auto itemComponent = FindItemComponent(lot);
 

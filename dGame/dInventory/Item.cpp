@@ -580,7 +580,9 @@ void Item::RemoveFromInventory() {
 
 	inventory->RemoveManagedItem(this);
 
-	delete this;
+	// The inventory frees the item at its next update, so callers still holding it (SetCount(0) and the loops that
+	// remove several items) are not left with a freed item
+	inventory->RetireItem(this);
 }
 
 Item::~Item() {

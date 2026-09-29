@@ -964,6 +964,11 @@ void InventoryComponent::Update(float deltaTime) {
 	for (auto* set : m_Itemsets) {
 		set->Update(deltaTime);
 	}
+
+	// Items removed during the last frame are no longer in use
+	for (auto* const inventory : m_Inventories | std::views::values) {
+		inventory->FreeRetiredItems();
+	}
 }
 
 void InventoryComponent::UpdateSlot(const std::string& location, const EquippedItem& item, bool keepCurrent) {

@@ -4,6 +4,7 @@
 #define INVENTORY_H
 
 #include <map>
+#include <memory>
 #include <vector>
 
 #include "CDItemComponentTable.h"
@@ -127,6 +128,23 @@ public:
 	void RemoveManagedItem(Item* item);
 
 	/**
+	 * Takes ownership of an item that was taken out of the inventory. Code still holding the item can use it until
+	 * FreeRetiredItems runs (the inventory component's next update), so an item never frees itself.
+	 * @param item the removed item
+	 */
+	void RetireItem(Item* item);
+
+	/**
+	 * Frees the items retired since the last call
+	 */
+	void FreeRetiredItems();
+
+	/**
+	 * @return whether removed items are waiting to be freed
+	 */
+	bool HasRetiredItems() const { return !m_RetiredItems.empty(); }
+
+	/**
 	 * Returns the inventory type an item of the specified lot should be placed in
 	 * @param lot the lot to find the inventory type for
 	 * @return the inventory type an item of the specified lot should be placed in
@@ -182,6 +200,11 @@ private:
 	 * The items stored in this inventory
 	 */
 	std::map<LWOOBJID, Item*> items;
+
+	/**
+	 * Items taken out of this inventory, freed by FreeRetiredItems
+	 */
+	std::vector<std::unique_ptr<Item>> m_RetiredItems;
 
 	/**
 	 * The inventory component this inventory belongs to
