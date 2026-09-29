@@ -76,6 +76,7 @@
 #include "NsConcertInstrument.h"
 #include "NsJohnnyMissionServer.h"
 #include "StinkyFishTarget.h"
+#include "ImmovableTurret.h"
 #include "ZoneNsProperty.h"
 #include "ZoneNsMedProperty.h"
 #include "NsTokenConsoleServer.h"
@@ -434,6 +435,7 @@ namespace {
 		{"scripts\\ai\\NS\\L_NS_CONCERT_INSTRUMENT_QB.lua", []() {return new NsConcertInstrument();}},
 		{"scripts\\ai\\NS\\L_NS_JONNY_FLAG_MISSION_SERVER.lua", []() {return new NsJohnnyMissionServer();}},
 		{"scripts\\02_server\\Objects\\L_STINKY_FISH_TARGET.lua", []() {return new StinkyFishTarget();}},
+		{"scripts\\02_server\\Objects\\L_TURRET.lua", []() {return new ImmovableTurret();}},
 		{"scripts\\02_server\\Objects\\Hatchlings\\L_HATCHLING_PETS.lua", []() {return new HatchlingPets();}},
 		{"scripts\\zone\\PROPERTY\\NS\\L_ZONE_NS_PROPERTY.lua", []() {return new ZoneNsProperty();}},
 		{"scripts\\02_server\\Map\\Property\\NS_Med\\L_ZONE_NS_MED_PROPERTY.lua", []() {return new ZoneNsMedProperty();}},
