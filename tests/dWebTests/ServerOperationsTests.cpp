@@ -255,6 +255,7 @@ TEST(LevelGatingTests, CountsGatedObjects) {
 	w.Put<uint32_t>(41).Put<uint32_t>(1).Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
 	w.End(info);
 	auto objects = w.Chunk(2001);
+	w.At<uint32_t>(info + 32, static_cast<uint32_t>(objects)); // the file info chunk says where the objects start, as in real files
 	w.Put<uint32_t>(5);
 	w.Object(1000, "gatingOnFeature=13:oct2011content");
 	w.Object(1001, "custom_config_names=0:\ngatingOnFeature=13:oct2011content\r");

@@ -416,6 +416,7 @@ TEST(LevelFileTests, ReadsChunkedObjects) {
 	w.Put<uint32_t>(41).Put<uint32_t>(9).Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
 	end(info);
 	const auto objects = chunk(LevelFile::SceneObjectData);
+	w.At<uint32_t>(info + 20 + 12, static_cast<uint32_t>(objects)); // the file info gives where the objects start
 	w.Put<uint32_t>(2);
 	w.Object(41, 4945, 10, "respawnname=0:NS_LW_Portal\nloadOnClientOnly=7:1");
 	w.Object(41, 176, -4, "spawntemplate=1:6010");
@@ -472,6 +473,36 @@ TEST(LevelFileTests, ReadsObjectsAsTheClient) {
 	EXPECT_EQ(level.objects[0].glomId, 1u);
 	EXPECT_EQ(level.objects[1].lot, 2);
 	EXPECT_EQ(level.objects[1].position.x, 5.0f);
+}
+
+// Editor settings are skipped by their size; a file older than version 3 has no objects for the client
+TEST(LevelFileTests, SkipsEditorSettingsBySize) {
+	ZoneBytes w;
+	w.Put<uint16_t>(37).Put<uint16_t>(0).Put<uint8_t>(0).Put<uint32_t>(4); // version, type, important, revision
+	w.data.append(48 + 8 + 12 + 12 + 12 + 16, '\0');                     // lighting
+	w.Put<uint32_t>(0);                                                   // skydome
+	for (int i = 0; i < 5; i++) w.Put<uint32_t>(0);
+	w.Put<uint32_t>(7);
+	w.data.append(7, '\x55');                                            // editor settings
+	w.Put<uint32_t>(1);
+	w.Object(37, 4945, 3, "a=0:b");
+
+	std::istringstream stream(w.Done());
+	LevelFile level;
+	level.Read(stream);
+	ASSERT_EQ(level.objects.size(), 1u);
+	EXPECT_EQ(level.objects[0].lot, 4945);
+	EXPECT_EQ(level.chunkHeaders.begin()->second.fileInfo.revision, 4u);
+
+	ZoneBytes old;
+	old.Put<uint16_t>(2).Put<uint16_t>(0);
+	old.data.append(48 + 12, '\0');
+	old.Put<uint32_t>(0).Put<uint32_t>(1);
+	old.Object(2, 1, 0, "a=0:b");
+	std::istringstream oldStream(old.Done());
+	LevelFile oldLevel;
+	oldLevel.Read(oldStream);
+	EXPECT_TRUE(oldLevel.objects.empty());
 }
 
 TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {

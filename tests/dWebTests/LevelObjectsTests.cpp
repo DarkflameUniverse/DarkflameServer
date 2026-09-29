@@ -32,6 +32,7 @@ namespace {
 		w.Put<uint32_t>(41).Put<uint32_t>(1).Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
 		w.End(info);
 		auto objects = w.Chunk(2001);
+		w.At<uint32_t>(info + 32, static_cast<uint32_t>(objects)); // the file info chunk says where the objects start, as in real files
 		w.Put<uint32_t>(4);
 		w.Object(4945, 10, 20, 30, "respawnname=0:NS_LW_Portal\ncustom_config_names=0:");
 		w.Object(6010, 1, 1, 1, "spawntemplate=1:6010");                                   // not a spawn point

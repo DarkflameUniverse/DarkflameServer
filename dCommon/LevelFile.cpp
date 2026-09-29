@@ -9,109 +9,114 @@
 void LevelFile::Read(std::istream& file) {
 	const uint32_t CHNK_HEADER = ('C' + ('H' << 8) + ('N' << 16) + ('K' << 24));
 
-	while (!file.eof()) {
-		uint32_t initPos = uint32_t(file.tellg());
-		uint32_t header = 0;
-		BinaryIO::BinaryRead(file, header);
-		if (header == CHNK_HEADER) { //Make sure we're reading a valid CHNK
-			ChunkHeader header;
-			BinaryIO::BinaryRead(file, header.id);
-			BinaryIO::BinaryRead(file, header.chunkVersion);
-			BinaryIO::BinaryRead(file, header.chunkType);
-			BinaryIO::BinaryRead(file, header.size);
-			BinaryIO::BinaryRead(file, header.startPosition);
-
-			uint32_t target = initPos + header.size;
+	uint32_t magic = 0;
+	BinaryIO::BinaryRead(file, magic);
+	if (magic == CHNK_HEADER) {
+		// SceneLoader::ReadLvlFile / DoLvlChunk: the file info chunk starts the file and gives where the environment,
+		// object and particle chunks start (0 for none); only the objects are read here
+		ChunkHeader fileInfo = ReadChunkHeader(file, 0);
+		file.seekg(fileInfo.startPosition);
+		ReadFileInfoChunk(file, fileInfo);
+		chunkHeaders.insert({ fileInfo.id, fileInfo });
+		for (const auto start : { fileInfo.fileInfo.enviromentChunkStart, fileInfo.fileInfo.objectChunkStart, fileInfo.fileInfo.particleChunkStart }) {
+			if (start == 0) continue;
+			const auto header = ReadChunkHeader(file, start);
+			chunkHeaders.insert({ header.id, header });
+			if (start != fileInfo.fileInfo.objectChunkStart) continue;
+			// The objects are laid out by the file's version, from its file info chunk
 			file.seekg(header.startPosition);
+			ReadSceneObjectDataChunk(file, fileInfo.fileInfo.version);
+		}
+		return;
+	}
 
-			//We're currently not loading env or particle data
-			if (header.id == ChunkTypeID::FileInfo) {
-				ReadFileInfoChunk(file, header);
-			} else if (header.id == ChunkTypeID::SceneObjectData) {
-				// The objects are laid out by the file's version, from its file info chunk
-				const auto fileInfo = chunkHeaders.find(ChunkTypeID::FileInfo);
-				ReadSceneObjectDataChunk(file, fileInfo == chunkHeaders.end() ? 0 : fileInfo->second.fileInfo.version);
+	// Scenes from before chunks (SceneLoader::ReadLvlSections): a header, then lighting, skydome and editor settings
+	// the world skips, then the objects
+	file.seekg(0);
+	ChunkHeader header;
+	header.id = ChunkTypeID::FileInfo;
+	BinaryIO::BinaryRead(file, header.chunkVersion);
+	BinaryIO::BinaryRead(file, header.chunkType);
+	// Only from version 32 (SceneLoader::ReadLvlHeader)
+	uint8_t important = 0;
+	if (header.chunkVersion >= 32) BinaryIO::BinaryRead(file, important);
+	if (header.chunkVersion > 36) {
+		BinaryIO::BinaryRead(file, header.fileInfo.revision);
+	}
+	// Lighting (SceneLoader::ReadLightingInfo)
+	if (header.chunkVersion >= 45) file.ignore(4);
+	file.ignore(4 * (4 * 3));
+
+	if (header.chunkVersion >= 31) {
+		if (header.chunkVersion >= 39) {
+			file.ignore(12 * 4);
+
+			if (header.chunkVersion >= 40) {
+				uint32_t s = 0;
+				BinaryIO::BinaryRead(file, s);
+				for (uint32_t i = 0; i < s; ++i) {
+					file.ignore(4 * 3); //a uint and two floats
+				}
 			}
-
-			chunkHeaders.insert(std::make_pair(header.id, header));
-			file.seekg(target);
 		} else {
-			if (initPos == std::streamoff(0)) { //Really old chunk version
-				file.seekg(0);
-				ChunkHeader header;
-				header.id = ChunkTypeID::FileInfo;
-				BinaryIO::BinaryRead(file, header.chunkVersion);
-				BinaryIO::BinaryRead(file, header.chunkType);
-				// Only from version 32 (SceneLoader::ReadLvlHeader)
-				uint8_t important = 0;
-				if (header.chunkVersion >= 32) BinaryIO::BinaryRead(file, important);
-				if (header.chunkVersion > 36) {
-					BinaryIO::BinaryRead(file, header.fileInfo.revision);
-				}
-				// HARDCODED 3
-				if (header.chunkVersion >= 45) file.ignore(4);
-				file.ignore(4 * (4 * 3));
+			file.ignore(8);
+		}
 
-				if (header.chunkVersion >= 31) {
-					if (header.chunkVersion >= 39) {
-						file.ignore(12 * 4);
+		file.ignore(3 * 4);
+	}
 
-						if (header.chunkVersion >= 40) {
-							uint32_t s = 0;
-							BinaryIO::BinaryRead(file, s);
-							for (uint32_t i = 0; i < s; ++i) {
-								file.ignore(4 * 3); //a uint and two floats
-							}
-						}
-					} else {
-						file.ignore(8);
-					}
+	if (header.chunkVersion >= 36) {
+		file.ignore(3 * 4);
+	}
 
-					file.ignore(3 * 4);
-				}
+	if (header.chunkVersion < 42) {
+		file.ignore(3 * 4);
 
-				if (header.chunkVersion >= 36) {
-					file.ignore(3 * 4);
-				}
-
-				if (header.chunkVersion < 42) {
-					file.ignore(3 * 4);
-
-					if (header.chunkVersion >= 33) {
-						file.ignore(4 * 4);
-					}
-				}
-
-				// skydome info
-				uint32_t count = 0;
-				BinaryIO::BinaryRead(file, count);
-				file.ignore(count);
-
-				// Five more strings from version 34 (SceneLoader::ReadSkydomeInfo)
-				if (header.chunkVersion >= 34) {
-					for (uint32_t i = 0; i < 5; ++i) {
-						uint32_t count = 0;
-						BinaryIO::BinaryRead(file, count);
-						file.ignore(count);
-					}
-				}
-				// editor settings
-				if (!important && header.chunkVersion >= 37){
-					file.ignore(4);
-
-					uint32_t count = 0;
-					BinaryIO::BinaryRead(file, count);
-					file.ignore(count * 12);
-
-				}
-
-				header.id = ChunkTypeID::SceneObjectData;
-				header.fileInfo.version = header.chunkVersion;
-				ReadSceneObjectDataChunk(file, header.fileInfo.version);
-				chunkHeaders.insert(std::make_pair(header.id, header));
-			} break;
+		if (header.chunkVersion >= 33) {
+			file.ignore(4 * 4);
 		}
 	}
+
+	// skydome info; five more strings from version 34 (SceneLoader::ReadSkydomeInfo)
+	uint32_t count = 0;
+	BinaryIO::BinaryRead(file, count);
+	file.ignore(count);
+
+	if (header.chunkVersion >= 34) {
+		for (uint32_t i = 0; i < 5; ++i) {
+			uint32_t count = 0;
+			BinaryIO::BinaryRead(file, count);
+			file.ignore(count);
+		}
+	}
+	// editor settings: their size and then that many bytes (SceneLoader::ReadEditorSettings)
+	if (!important && header.chunkVersion >= 37) {
+		uint32_t size = 0;
+		BinaryIO::BinaryRead(file, size);
+		file.ignore(size);
+	}
+
+	// The client has no objects for a file older than version 3 ("Level file is unsupported")
+	header.fileInfo.version = header.chunkVersion;
+	if (header.chunkVersion >= 3) {
+		header.id = ChunkTypeID::SceneObjectData;
+		ReadSceneObjectDataChunk(file, header.fileInfo.version);
+	}
+	chunkHeaders.insert(std::make_pair(header.id, header));
+}
+
+LevelFile::ChunkHeader LevelFile::ReadChunkHeader(std::istream& file, uint32_t start) {
+	// No check of the magic, as in the client (0x01063a00)
+	file.seekg(start);
+	uint32_t magic = 0;
+	ChunkHeader header;
+	BinaryIO::BinaryRead(file, magic);
+	BinaryIO::BinaryRead(file, header.id);
+	BinaryIO::BinaryRead(file, header.chunkVersion);
+	BinaryIO::BinaryRead(file, header.chunkType);
+	BinaryIO::BinaryRead(file, header.size);
+	BinaryIO::BinaryRead(file, header.startPosition);
+	return header;
 }
 
 void LevelFile::ReadFileInfoChunk(std::istream& file, ChunkHeader& header) {

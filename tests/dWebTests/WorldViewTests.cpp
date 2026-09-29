@@ -33,6 +33,7 @@ namespace {
 		w.Put<uint32_t>(41).Put<uint32_t>(1).Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
 		w.End(info);
 		auto objects = w.Chunk(2001);
+		w.At<uint32_t>(info + 32, static_cast<uint32_t>(objects)); // the file info chunk says where the objects start, as in real files
 		w.Put<uint32_t>(3);
 		w.Object(10, 4945, 1, 2, 3, "respawnname=0:NS_Portal\r");
 		w.Object(11, 176, -4, 0, 8, "spawntemplate=1:6010\nspawner_name=0:Crates");
@@ -121,6 +122,7 @@ TEST(WorldSceneTests, ClientDrawsWhatTheGameDraws) {
 	w.Put<uint32_t>(41).Put<uint32_t>(1).Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
 	w.End(info);
 	auto objects = w.Chunk(2001);
+	w.At<uint32_t>(info + 32, static_cast<uint32_t>(objects)); // the file info chunk says where the objects start, as in real files
 	w.Put<uint32_t>(6);
 	w.Object(1, 4630, 0, 0, 0, "carver_only=7:1\ncreate_physics=7:1");     // an invisible trigger cube
 	w.Object(2, 5651, 0, 0, 0, "carver_only=7:0");                         // loaded, so drawn
