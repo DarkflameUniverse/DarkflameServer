@@ -93,3 +93,28 @@ TEST_F(SpiderQueenTest, OnlySpiderlingsMakeTheBossScream) {
 	const auto packets = Capture([&] { bossScript.OnNotifyObject(boss, other, "SpiderlingDied", 0, 0); });
 	EXPECT_TRUE(packets.empty());
 }
+
+TEST_F(SpiderQueenTest, TheMeleeSmashLocksTheSpecialsForItsLength) {
+	bossScript.OnSkillCast(boss, 303);
+	EXPECT_FALSE(boss->GetBoolean(u"bSpecialLock"));
+
+	bossScript.OnSkillCast(boss, 322);
+	EXPECT_TRUE(boss->GetBoolean(u"bSpecialLock"));
+	boss->Update(0.0f);
+	EXPECT_TRUE(boss->HasTimer("UnlockSpecials"));
+
+	// A special due during the smash waits for it
+	bossScript.SpiderSkillManager(boss, true);
+	EXPECT_TRUE(boss->GetBoolean(u"bSpecialQueued"));
+
+	bossScript.OnTimerDone(boss, "UnlockSpecials");
+	EXPECT_FALSE(boss->GetBoolean(u"bSpecialLock"));
+	EXPECT_FALSE(boss->GetBoolean(u"bSpecialQueued"));
+}
+
+TEST_F(SpiderQueenTest, NoSpecialsBeforeTheFirstWave) {
+	// Stage 1 has no special attack; the skill manager does nothing
+	const auto packets = Capture([&] { bossScript.SpiderSkillManager(boss, true); });
+	EXPECT_TRUE(packets.empty());
+	EXPECT_FALSE(boss->GetBoolean(u"isSpecialAttacking"));
+}

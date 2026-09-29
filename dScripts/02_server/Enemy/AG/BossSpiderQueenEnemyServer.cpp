@@ -101,6 +101,8 @@ void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 		}
 	}
 
+	SpiderSkillManager(self, false);
+
 	// There is suppose to be a 0.1 second delay here but that may be admitted?
 	auto* controller = Game::entityManager->GetZoneControlEntity();
 
@@ -299,19 +301,55 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::ToggleForSpecial(Entity* self, const bool state) {
-	self->SetBoolean(u"stoppedFlag", state);
-
-	combat->SetDisabled(state);
+	// Kept apart from "stoppedFlag", which is the no-players-around attack stop (ToggleAttacking)
+	self->SetBoolean(u"isSpecialAttacking", state);
+	UpdateSpecialStun(self);
 }
 
-void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
-	if (self->GetBoolean(u"stoppedFlag")) {
-		self->AddTimer("ROF", GeneralUtils::GenerateRandomNumber<float>(10, 20));
+void BossSpiderQueenEnemyServer::SetRainOfFireStun(Entity* self, const bool state) {
+	// Live: a separate "can't attack" stun from the start of a rain of fire until its last impact
+	self->SetBoolean(u"rainOfFireStun", state);
+	UpdateSpecialStun(self);
+}
 
+void BossSpiderQueenEnemyServer::UpdateSpecialStun(Entity* self) {
+	combat->SetDisabled(self->GetBoolean(u"isSpecialAttacking") || self->GetBoolean(u"rainOfFireStun"));
+}
+
+void BossSpiderQueenEnemyServer::SpiderSkillManager(Entity* self, const bool active) {
+	if (!active) {
+		self->CancelTimer("PollSpiderSkillManager");
 		return;
 	}
 
+	// Within smashSkillLength of the melee smash: run the special once the smash is over
+	if (self->GetBoolean(u"bSpecialLock")) {
+		self->SetBoolean(u"bSpecialQueued", true);
+		return;
+	}
+
+	if (self->GetBoolean(u"isWithdrawn")) return;
+
+	// Stage 2 only fires the rapid fire shooter, stage 3 only the rain of fire
+	if (m_CurrentBossStage == 2) {
+		RunRapidFireShooter(self);
+	} else if (m_CurrentBossStage == 3) {
+		RunRainOfFire(self);
+	}
+}
+
+void BossSpiderQueenEnemyServer::OnSkillCast(Entity* self, const uint32_t skillID) {
+	if (skillID != bossSmashSkill) return;
+
+	// The melee smash locks the specials for as long as it lasts
+	self->SetBoolean(u"bSpecialLock", true);
+	self->CancelTimer("UnlockSpecials");
+	self->AddTimer("UnlockSpecials", smashSkillLength);
+}
+
+void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 	ToggleForSpecial(self, true);
+	SetRainOfFireStun(self, true);
 
 	impactList.clear();
 
@@ -370,9 +408,9 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		return;
 	}
 
-	ToggleForSpecial(self, false);
+	SetRainOfFireStun(self, false);
 
-	self->AddTimer("ROF", GeneralUtils::GenerateRandomNumber<float>(20, 40));
+	self->AddTimer("PollSpiderSkillManager", static_cast<float>(GeneralUtils::GenerateRandomNumber<int32_t>(s2DelayMin, s2DelayMax)));
 }
 
 void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
@@ -380,8 +418,6 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 		const auto animationTime = PlayAnimAndReturnTime(self, spiderJeerAnim);
 
 		self->AddTimer("RFSTauntComplete", animationTime);
-
-		ToggleForSpecial(self, false);
 
 		return;
 	}
@@ -400,16 +436,10 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	const auto targets = self->GetTargetsInPhantom();
 
-	if (self->GetBoolean(u"stoppedFlag")) {
-		self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(5, 10));
-
-		return;
-	}
-
 	if (targets.empty()) {
 		LOG("Failed to find RFS targets");
 
-		self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(5, 10));
+		self->AddTimer("PollSpiderSkillManager", static_cast<float>(GeneralUtils::GenerateRandomNumber<int32_t>(s1DelayMin, s1DelayMax)));
 
 		return;
 	}
@@ -429,8 +459,6 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	RapidFireShooterManager(self);
 
 	PlayAnimAndReturnTime(self, spiderSingleShot);
-
-	self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(10, 15));
 }
 
 void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string timerName) {
@@ -477,31 +505,21 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 
 	} else if (timerName == "StartROF") {
 		//Re-enable Spider Boss
-		//ToggleForSpecial(self, false);
+		ToggleForSpecial(self, false);
 
 		RainOfFireManager(self);
 
 	} else if (timerName == "PollSpiderSkillManager") {
 		//Call the skill manager again to attempt to run the current Spider Boss
 		//stage's special attack again
-		//SpiderSkillManager(self, true);
-		PlayAnimAndReturnTime(self, spiderJeerAnim);
+		SpiderSkillManager(self, true);
 
-	} else if (timerName == "RFS") {
-		RunRapidFireShooter(self);
-	} else if (timerName == "ROF") {
-		RunRainOfFire(self);
 	} else if (timerName == "RFSTauntComplete") {
-		//Determine an appropriate random time to check our manager again
-	   // local spiderCooldownDelay = math.random(s1DelayMin, s1DelayMax)
-
-		//Set a timer based on our random cooldown determination
-		//to pulse the SpiderSkillManager again
-
-		//GAMEOBJ:GetTimer():AddTimerWithCancel(spiderCooldownDelay, "PollSpiderSkillManager", self)
+		//Set a timer based on a random cooldown to pulse the SpiderSkillManager again
+		self->AddTimer("PollSpiderSkillManager", static_cast<float>(GeneralUtils::GenerateRandomNumber<int32_t>(s1DelayMin, s1DelayMax)));
 
 		//Re-enable Spider Boss
-		//ToggleForSpecial(self, false);
+		ToggleForSpecial(self, false);
 
 	} else if (timerName == "WithdrawComplete") {
 		//Play the Spider Boss' mountain idle anim
@@ -591,19 +609,12 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		//Did we queue a spcial attack?
 		if (self->GetBoolean(u"bSpecialQueued")) {
 			self->SetBoolean(u"bSpecialQueued", false);
+			SpiderSkillManager(self, true);
 		}
 	}
 }
 
 void BossSpiderQueenEnemyServer::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {
-	if (m_CurrentBossStage > 0 && !self->HasTimer("RFS")) {
-		self->AddTimer("RFS", 5.0f);
-	}
-
-	if (m_CurrentBossStage > 0 && !self->HasTimer("ROF")) {
-		self->AddTimer("ROF", 10.0f);
-	}
-
 	if (m_CurrentBossStage > ThresholdTable.size()) {
 		return;
 	}
@@ -616,8 +627,13 @@ void BossSpiderQueenEnemyServer::OnHitOrHealResult(Entity* self, Entity* attacke
 		if (!isWithdrawn) {
 			self->CancelAllTimers();
 
+			// Stop whatever special was running
+			attackTargetTable.clear();
+			impactList.clear();
 			self->SetBoolean(u"isSpecialAttacking", false);
+			self->SetBoolean(u"rainOfFireStun", false);
 			self->SetBoolean(u"bSpecialLock", false);
+			self->SetBoolean(u"bSpecialQueued", false);
 
 			WithdrawSpider(self, true);
 		}

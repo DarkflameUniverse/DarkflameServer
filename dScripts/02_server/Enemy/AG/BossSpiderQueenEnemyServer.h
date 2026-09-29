@@ -34,6 +34,13 @@ public:
 
 	void ToggleForSpecial(Entity* self, bool state);
 
+	void SetRainOfFireStun(Entity* self, bool state);
+
+	// Runs the special attack of the current stage (live SpiderSkillManager); false stops polling
+	void SpiderSkillManager(Entity* self, bool active);
+
+	void OnSkillCast(Entity* self, uint32_t skillID) override;
+
 	void RunRainOfFire(Entity* self);
 
 	void RainOfFireManager(Entity* self);
@@ -56,6 +63,7 @@ public:
 
 private:
 	void ToggleAttacking(Entity& self, bool on);
+	void UpdateSpecialStun(Entity* self);
 	//Regular variables:
 	DestroyableComponent* destroyable = nullptr;
 	ControllablePhysicsComponent* controllable = nullptr;
@@ -102,10 +110,11 @@ private:
 
 	const float smashSkillLength = 3.1f;		//Time (in seconds) the boss smash skill lasts
 
-	const float s1DelayMin = 10.0f;				//Minimum time until calling for another Rapid Fire Shot
-	const float s1DelayMax = 15.0f;				//Maximum time until calling for another Rapid Fire Shot
-	const float s2DelayMin = 10.0f;				//Minimum time until calling for another Rain Of Fire
-	const float s2DelayMax = 15.0f;				//Maximum time until calling for another Rain Of Fire
+	// Whole seconds, as live's math.random(min, max)
+	const int32_t s1DelayMin = 10;				//Minimum time until calling for another Rapid Fire Shot
+	const int32_t s1DelayMax = 15;				//Maximum time until calling for another Rapid Fire Shot
+	const int32_t s2DelayMin = 10;				//Minimum time until calling for another Rain Of Fire
+	const int32_t s2DelayMax = 15;				//Maximum time until calling for another Rain Of Fire
 
 	const unsigned int instanceZoneID = 1102;			//Zone ID for the Spider Queen fight instance
 	const unsigned int instanceMissionID = 1941;			//Achievement to update for beating the instanced Boss
