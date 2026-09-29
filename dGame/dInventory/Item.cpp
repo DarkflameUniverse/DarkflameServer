@@ -400,7 +400,8 @@ void Item::UseNonEquip(Item* item) {
 					}
 
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
-						Loot::GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
+						// Live added package contents with the loot source Pickup (all 98 items added after a live UseNonEquipmentItem)
+						Loot::GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::PICKUP);
 						item->SetCount(item->GetCount() - 1);
 					} else {
 						success = false;
