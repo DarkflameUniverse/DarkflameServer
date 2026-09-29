@@ -23,6 +23,7 @@ set(DCOMMONTEST_SOURCES
 	"ScheduleRulesTests.cpp"
 	"VanityEventsTests.cpp"
 	"ZoneFileTests.cpp"
+	"ClientZoneFilesTests.cpp"
 	"ZoneScenesTests.cpp"
 	"LiveOpsRulesTests.cpp"
 	"ProcessAndLimitsTests.cpp"
