@@ -68,6 +68,20 @@ TEST_F(DestroyableLevelConfigTests, LootMatrixWithTheSetKeyFalseIsIgnored) {
 	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
 }
 
+// A luz spawner path's waypoint config reaches the spawned entity: the waypoint's name/value pairs are parsed as
+// "name=value" into the spawner node's config, which a spawner copies into the entity's settings. The GF Large Crate
+// (LOT 1859, path CrateMast) and the FV small white shrine (LOT 3141, path gate_statue_quickbuild) set matrix 29.
+TEST_F(DestroyableLevelConfigTests, SpawnerPathLootMatrixReachesTheEntity) {
+	LwoNameValue waypointConfig;
+	waypointConfig.ParseInsert(std::string("smashable_loot_matrix") + "=" + "1:29");
+	waypointConfig.ParseInsert(std::string("smashable_loot_matrix_set") + "=" + "7:1");
+
+	EntityInfo spawnedInfo = info;
+	spawnedInfo.settings = waypointConfig;
+	const Entity spawned(2, spawnedInfo);
+	EXPECT_EQ(DestroyableComponent::GetLevelLootMatrix(spawned), 29);
+}
+
 TEST_F(DestroyableLevelConfigTests, LootMatrixMinusOneIsIgnored) {
 	entity->SetVar<int32_t>(u"smashable_loot_matrix", -1);
 	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
