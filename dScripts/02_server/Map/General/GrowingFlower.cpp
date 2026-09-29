@@ -16,7 +16,8 @@ void GrowingFlower::OnSkillEventFired(Entity* self, Entity* target, const std::s
 
 		auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
 		if (scriptedActivityComponent != nullptr) {
-			Loot::DropActivityLoot(target, self->GetObjectID(), scriptedActivityComponent->GetActivityID(), 0);
+			// No live samples of this drop: kept sourced from the flower
+			Loot::DropActivityLoot(target, self->GetObjectID(), scriptedActivityComponent->GetActivityID(), 0, false);
 		}
 
 		auto* missionComponent = target->GetComponent<MissionComponent>();

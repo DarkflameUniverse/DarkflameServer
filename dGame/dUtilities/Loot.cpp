@@ -335,7 +335,8 @@ void DropRegularLoot(Team& team, GameMessages::DropClientLoot& lootMsg, const bo
 	DistrbuteMsgToTeam(lootMsg, team);
 }
 
-void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDropInfo>& rolledItems, uint32_t minCoins, uint32_t maxCoins, const bool noTeamLootOnDeath) {
+// source: the DropClientLoot source object; spawnPosition: where the loot spawns
+void DropLoot(Entity* player, const LWOOBJID source, const NiPoint3& spawnPosition, const std::map<LOT, LootDropInfo>& rolledItems, uint32_t minCoins, uint32_t maxCoins, const bool noTeamLootOnDeath) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 	const auto playerID = player->GetObjectID();
 	if (!player->IsPlayer()) {
@@ -352,11 +353,6 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 	// if Free for all, drop everything with NO owner, except tokens which follow the same logic as above
 	auto* team = TeamManager::Instance()->GetTeam(playerID);
 
-	GameMessages::GetPosition posMsg;
-	posMsg.target = source;
-	posMsg.Send();
-
-	const auto spawnPosition = posMsg.pos;
 	auto* const objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
 	for (const auto& [lootLot, info] : rolledItems) {
@@ -590,23 +586,36 @@ void Loot::GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t acti
 	character->SetCoins(character->GetCoins() + coins, eLootSourceType::ACTIVITY, CoinSource::Object(*player));
 }
 
-void Loot::DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
-	player = player->GetOwner(); // if the owner is overwritten, we collect that here
+namespace {
+	NiPoint3 GetDropSpawnPosition(const LWOOBJID object) {
+		GameMessages::GetPosition posMsg;
+		posMsg.target = object;
+		posMsg.Send();
+		return posMsg.pos;
+	}
 
-	auto* scriptedActivityComponent = Game::entityManager->GetZoneControlEntity()->GetComponent<ScriptedActivityComponent>();
-	const bool noTeamLootOnDeath = scriptedActivityComponent ? scriptedActivityComponent->GetNoTeamLootOnDeath() : false;
+	void RollAndDropLoot(Entity* player, const LWOOBJID source, const NiPoint3& spawnPosition, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
+		player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+		auto* scriptedActivityComponent = Game::entityManager->GetZoneControlEntity()->GetComponent<ScriptedActivityComponent>();
+		const bool noTeamLootOnDeath = scriptedActivityComponent ? scriptedActivityComponent->GetNoTeamLootOnDeath() : false;
 
-	if (!inventoryComponent)
-		return;
+		auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 
-	const auto result = ::RollLootMatrix(matrixIndex, LiveEvents::LootChanceMultiplier());
+		if (!inventoryComponent)
+			return;
 
-	::DropLoot(player, source, result, minCoins, maxCoins, noTeamLootOnDeath);
+		const auto result = ::RollLootMatrix(matrixIndex, LiveEvents::LootChanceMultiplier());
+
+		::DropLoot(player, source, spawnPosition, result, minCoins, maxCoins, noTeamLootOnDeath);
+	}
 }
 
-void Loot::DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating) {
+void Loot::DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
+	RollAndDropLoot(player, source, GetDropSpawnPosition(source), matrixIndex, minCoins, maxCoins);
+}
+
+void Loot::DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating, const bool fromPlayer) {
 	CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
@@ -623,5 +632,7 @@ void Loot::DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t acti
 
 	const auto [minCoins, maxCoins] = GetActivityCoinRange(*selectedReward);
 
-	DropLoot(player, source, selectedReward->LootMatrixIndex, minCoins, maxCoins);
+	// Live sent activity rewards from the player who earned them, spawning at the activity object
+	const auto dropSource = fromPlayer ? player->GetOwner()->GetObjectID() : source;
+	RollAndDropLoot(player, dropSource, GetDropSpawnPosition(source), selectedReward->LootMatrixIndex, minCoins, maxCoins);
 }

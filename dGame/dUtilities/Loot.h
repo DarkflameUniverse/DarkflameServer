@@ -31,7 +31,12 @@ namespace Loot {
 	void GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating = 0);
 	void DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins);
 	void DropItem(Entity& player, GameMessages::DropClientLoot& lootMsg, bool useTeam = false, bool forceFfa = false);
-	void DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating = 0);
+	/**
+	 * Drops the loot of an activity's reward for the given rating, spawning at the source object.
+	 * fromPlayer: the DropClientLoot source is the player instead of the object, as live sent quickbuild, chest and
+	 * wishing well rewards (use_position true, spawn position the object's).
+	 */
+	void DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating = 0, bool fromPlayer = true);
 
 	/**
 	 * The coin range {min, max} of an ActivityRewards row, as live rolled it: the reward's ChallengeRating is the

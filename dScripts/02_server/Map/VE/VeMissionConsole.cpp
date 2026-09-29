@@ -7,7 +7,8 @@
 #include "eTerminateType.h"
 
 void VeMissionConsole::OnUse(Entity* self, Entity* user) {
-	Loot::DropActivityLoot(user, self->GetObjectID(), 12551);
+	// No live samples of this drop: kept sourced from the console
+	Loot::DropActivityLoot(user, self->GetObjectID(), 12551, 0, false);
 
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 	if (inventoryComponent != nullptr) {
