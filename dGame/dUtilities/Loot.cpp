@@ -391,7 +391,9 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 		EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::COIN_DROPS, 0, spawnPosition, static_cast<int64_t>(droppedCoins) * lootEarners.size(), player);
 	}
 
-	// Drops coins for each alive member of a team (or just a player)
+	// Drops coins for each alive member of a team (or just a player).
+	// Live sent no currency drop for loot without coins (none of 3163 live currency drops was for 0 coins).
+	if (droppedCoins == 0) lootEarners.clear();
 	for (auto member : lootEarners) {
 		GameMessages::DropClientLoot lootMsg{};
 		lootMsg.target = member;
