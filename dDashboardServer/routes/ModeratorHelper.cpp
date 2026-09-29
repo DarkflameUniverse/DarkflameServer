@@ -216,6 +216,8 @@ namespace {
 			query.characterId = character;
 			query.since = center - window;
 			query.includePrivate = Can(context, "chat_private");
+		query.includeWhispers = Can(context, "chat_dms");
+			query.includeWhispers = Can(context, "chat_dms");
 			query.limit = 200;
 			for (auto& m : Database::Get()->GetChatMessages(query)) {
 				if (m.time <= center + window) found[m.id] = std::move(m);
@@ -317,6 +319,7 @@ namespace {
 		query.afterId = id - 1;
 		query.limit = 1;
 		query.includePrivate = Can(context, "chat_private");
+		query.includeWhispers = Can(context, "chat_dms");
 		const auto found = Database::Get()->GetChatMessages(query);
 		if (found.empty() || found.front().id != id) return std::nullopt;
 		return found.front();
@@ -354,6 +357,7 @@ namespace {
 		IChatLog::ChatQuery query;
 		query.characterId = characterId;
 		query.includePrivate = Can(context, "chat_private");
+		query.includeWhispers = Can(context, "chat_dms");
 		query.newestFirst = true;
 		query.limit = MAX_CHAT_LINES;
 		auto messages = Database::Get()->GetChatMessages(query);

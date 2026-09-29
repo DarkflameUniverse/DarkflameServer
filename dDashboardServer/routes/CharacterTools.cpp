@@ -130,6 +130,7 @@ namespace {
 		q.characterId = characterId;
 		q.accountId = accountId;
 		q.includePrivate = Can(context, "chat_private");
+		q.includeWhispers = Can(context, "chat_dms");
 		q.newestFirst = true;
 		q.limit = 100;
 		nlohmann::json rows = nlohmann::json::array();

@@ -383,6 +383,7 @@ namespace {
 				IChatLog::ChatQuery query;
 				query.search = *word;
 				query.includePrivate = Can(context, "chat_private");
+				query.includeWhispers = Can(context, "chat_dms");
 				query.blockedOnly = allowed;
 				query.newestFirst = true;
 				query.limit = CHECK_MESSAGES;

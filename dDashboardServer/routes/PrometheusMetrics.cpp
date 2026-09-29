@@ -157,6 +157,7 @@ namespace {
 		}
 		IChatLog::ChatQuery q;
 		q.includePrivate = true;
+		q.includeWhispers = true;
 		q.limit = CHAT_PAGE;
 		for (uint32_t page = 0; page < CHAT_PAGES && g_ChatSeen < newest; page++) {
 			q.afterId = g_ChatSeen;
