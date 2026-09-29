@@ -31,8 +31,9 @@ void ZoneFile::ReadHeader(std::istream& file) {
 		ReadScene(file);
 	}
 
+	ReadZoneBoundaries(file);
+
 	//Read generic zone info:
-	BinaryIO::ReadString<uint8_t>(file, zonePath, BinaryIO::ReadType::String);
 	BinaryIO::ReadString<uint8_t>(file, zoneRawPath, BinaryIO::ReadType::String);
 	BinaryIO::ReadString<uint8_t>(file, zoneName, BinaryIO::ReadType::String);
 	BinaryIO::ReadString<uint8_t>(file, zoneDesc, BinaryIO::ReadType::String);
@@ -87,6 +88,26 @@ void ZoneFile::ReadScene(std::istream& file) {
 	}
 
 	scenes.push_back(std::move(scene));
+}
+
+void ZoneFile::ReadZoneBoundaries(std::istream& file) {
+	uint8_t count = 0;
+	BinaryIO::BinaryRead(file, count);
+	zoneBoundaries.reserve(count);
+	for (uint8_t i = 0; i < count; ++i) {
+		ZoneBoundary boundary;
+		BinaryIO::BinaryRead(file, boundary.normal);
+		BinaryIO::BinaryRead(file, boundary.point);
+		// The client reads one u32 of map ID (low 16 bits) and instance ID (high 16 bits)
+		LWOMAPID mapID = 0;
+		LWOINSTANCEID instanceID = 0;
+		BinaryIO::BinaryRead(file, mapID);
+		BinaryIO::BinaryRead(file, instanceID);
+		boundary.destZoneID = LWOZONEID(mapID, instanceID, 0);
+		BinaryIO::BinaryRead(file, boundary.destSceneID);
+		BinaryIO::BinaryRead(file, boundary.spawnLocation);
+		zoneBoundaries.push_back(boundary);
+	}
 }
 
 void ZoneFile::ReadSceneTransition(std::istream& file) {

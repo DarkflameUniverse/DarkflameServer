@@ -35,6 +35,15 @@ struct ZoneScene {
 	uint8_t color_b{};
 };
 
+// A line the player crosses to leave the zone (the client's LuzReader::ReadZoneBoundaryLines)
+struct ZoneBoundary {
+	NiPoint3 normal;
+	NiPoint3 point;
+	LWOZONEID destZoneID; // clone 0
+	uint32_t destSceneID{};
+	NiPoint3 spawnLocation;
+};
+
 struct SceneTransitionInfo {
 	uint64_t sceneID{}; //id of the scene being transitioned to.
 	NiPoint3 position;
@@ -209,7 +218,8 @@ struct ZoneFile {
 
 	std::vector<ZoneScene> scenes;
 
-	std::string zonePath; //Path to the .luz's folder as written in the file
+	std::vector<ZoneBoundary> zoneBoundaries;
+
 	std::string zoneRawPath; //Path to the .raw file of this zone.
 	std::string zoneName; //Name given to the zone by a level designer
 	std::string zoneDesc; //Description of the zone by a level designer
@@ -234,6 +244,7 @@ struct ZoneFile {
 
 private:
 	void ReadScene(std::istream& file);
+	void ReadZoneBoundaries(std::istream& file);
 	void ReadSceneTransition(std::istream& file);
 	SceneTransitionInfo ReadSceneTransitionInfo(std::istream& file);
 	void ReadPath(std::istream& file);

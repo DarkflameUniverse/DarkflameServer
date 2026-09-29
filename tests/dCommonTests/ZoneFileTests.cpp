@@ -32,7 +32,7 @@ namespace {
 		w.Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);  // spawn point and rotation
 		w.Put<uint32_t>(1);
 		w.Text("scene.lvl").Put<uint32_t>(7).Put<uint32_t>(2).Text("Global").Put<uint8_t>(1).Put<uint8_t>(2).Put<uint8_t>(3);
-		w.Text("zone").Text("zone.raw").Text("Name").Text("Description");
+		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description"); // no zone boundaries
 		w.Put<uint32_t>(1);
 		for (int i = 0; i < 2; i++) w.Put<uint64_t>(1).Point(0, 0, 0);
 		w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(3);
@@ -87,6 +87,36 @@ TEST(ZoneFileTests, ReadsScenesAndPaths) {
 	EXPECT_EQ(property.property.displayDesc, "Desc");
 	EXPECT_EQ(property.property.maxBuildHeight, 128.0f);
 	EXPECT_EQ(property.pathWaypoints.size(), 3u);
+}
+
+// Boundary lines sit between the scenes and the terrain file's name
+TEST(ZoneFileTests, ReadsZoneBoundaries) {
+	ZoneBytes w;
+	w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150);
+	w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+	w.Put<uint32_t>(1);
+	w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(2);
+	w.Point(1, 0, 0).Point(10, 20, 30).Put<uint16_t>(1100).Put<uint16_t>(7).Put<uint32_t>(4).Point(5, 6, 7);
+	w.Point(0, 0, -1).Point(-1, -2, -3).Put<uint16_t>(1200).Put<uint16_t>(0).Put<uint32_t>(0).Point(0, 0, 0);
+	w.Text("zone.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(0); // no transitions, no paths
+
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	ASSERT_EQ(zone.zoneBoundaries.size(), 2u);
+	const auto& boundary = zone.zoneBoundaries[0];
+	EXPECT_EQ(boundary.normal, NiPoint3(1, 0, 0));
+	EXPECT_EQ(boundary.point, NiPoint3(10, 20, 30));
+	EXPECT_EQ(boundary.destZoneID, LWOZONEID(1100, 7, 0));
+	EXPECT_EQ(boundary.destSceneID, 4u);
+	EXPECT_EQ(boundary.spawnLocation, NiPoint3(5, 6, 7));
+	EXPECT_EQ(zone.zoneBoundaries[1].destZoneID, LWOZONEID(1200, 0, 0));
+	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
+	EXPECT_EQ(zone.zoneName, "Name");
+	EXPECT_EQ(zone.zoneDesc, "Description");
 }
 
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {

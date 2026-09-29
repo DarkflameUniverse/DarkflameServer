@@ -18,7 +18,7 @@ namespace {
 		w.Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);  // spawn point and rotation
 		w.Put<uint32_t>(1);                                        // one scene
 		w.Text("scene.lvl").Put<uint32_t>(1).Put<uint32_t>(0).Text("Global").Put<uint8_t>(1).Put<uint8_t>(2).Put<uint8_t>(3);
-		w.Text("zone").Text("zone.raw").Text("Name").Text("Description");
+		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description"); // no zone boundaries
 		w.Put<uint32_t>(1);                                        // one transition: 2 points in this version
 		for (int i = 0; i < 2; i++) w.Put<uint64_t>(1).Point(0, 0, 0);
 		w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(3);      // path data length, chunk version, 3 paths
