@@ -123,8 +123,28 @@ Statistic ids live sent (updateID = DLU `StatisticID`; "value" = share of messag
 | 26 | RacesFinished | 3 | never | NotifyRacingClient |
 | 27 | FirstPlaceRaceFinishes | 2 | never | NotifyRacingClient |
 
-All C. The MetersTraveled interval could not be measured (capture file times are not packet times). Sending these is
-backlog 68.
+All C. The MetersTraveled interval could not be measured (capture file times are not packet times).
+
+What DLU sends (`CharacterComponent::UpdatePlayerStatistic` / `SendPlayerStatistic`), from the captures:
+
+| Statistic | When | Amount | Source |
+|---|---|---|---|
+| CurrencyCollected | right after a SetCurrency that raised the coins (any source); none for losses | coins gained | C (15,815 pickups, all mission / achievement / vendor / activity gains) |
+| BricksCollected | after each add to the bricks inventory the client is told about | the count | C (999 of 1,010) |
+| EnemiesSmashed / SmashablesSmashed | to the killer right after Die, before the loot: isnpc set -> Enemies, else a smashable -> Smashables; neither while racing | 1 | C (2,766 / 538; faction and AI don't decide it) |
+| TimesSmashed | after the player's Die and coin loss | 1 | C |
+| MissionsCompleted | after NotifyMission(Completed), missions only | 1 | C (229 of 235) |
+| QuickBuildsCompleted | after RebuildNotifyState(Completed) and effect 507, before EnableRebuild | 1 | C (218 of 227) |
+| RocketsUsed | when the client fires "ZonePlayer", before TransferToZone | 1 | C (94 of 117) |
+| *PowerUpsCollected | on pickup | 1 | C |
+| TotalArmorRepaired / TotalImaginationRestored | what a repair / restore applied, 0 included | amount | C (1,050 / 2,148 zeros) |
+| TotalDamageHealed / TotalDamageTaken / TotalImaginationUsed | health healed or lost, imagination spent; never 0 | amount | C |
+| MetersTraveled | once 25 whole meters have gathered; the rest (0 included) when the player is taken down leaving the world | meters | C (values 25-33 while moving; low values only at leave) |
+| DistanceDriven | every 10 s while racing, the rest on leave | units | I (interval inferred from ~1,300 per message) |
+| Racing*, PetsTamed, RacesFinished, FirstPlaceRaceFinishes | where DLU already counted them | 1 | not re-checked |
+
+The client's ModifyPlayerZoneStatistic (CoinsCollected, BricksCollected, EnemiesSmashed) only updates the zone counts,
+so the totals aren't counted twice. TimeAirborneInCar is not tracked.
 
 ## 4. Client -> server messages DLU ignores
 
