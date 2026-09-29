@@ -4,7 +4,7 @@
 
 {% block css %}
 <style>
-	/* Load of a link against its own peak of the last 5 minutes */
+	/* Load of a link against the busiest link right now */
 	.nf { --nf-idle: var(--bs-secondary-color); --nf-low: var(--bs-info); --nf-mid: var(--bs-warning); --nf-high: var(--bs-danger); }
 	.nf-box { position: relative; }
 	.nf-svg { display: block; width: 100%; }
@@ -17,7 +17,8 @@
 	.nf-svg .load-high { stroke: var(--nf-high); }
 	.nf-svg .edge .hit { fill: none; stroke: transparent; stroke-width: 16; cursor: help; }
 	.nf-svg .node rect { fill: var(--bs-body-bg); stroke: var(--bs-border-color); stroke-width: 1.5; }
-	.nf-svg .node { cursor: pointer; }
+	.nf-svg .node { cursor: grab; touch-action: none; }
+	.nf-svg.dragging, .nf-svg.dragging .node { cursor: grabbing; }
 	.nf-svg .node:hover rect, .nf-svg .node:focus rect { stroke: var(--bs-primary); }
 	.nf-svg .node.selected rect { stroke: var(--bs-primary); stroke-width: 2.5; }
 	.nf-svg .node.gone rect { stroke-dasharray: 4 3; }
@@ -48,7 +49,7 @@
 	<div>
 		<h2 class="mb-1">Network</h2>
 		<p class="text-body-secondary mb-0 small">What goes between the players, the servers and web clients right now: each line is a link, one lane each way,
-			as thick as its bytes per second and coloured by its load against its own peak of the last 5 minutes. Rates are over each server's last report (5 seconds).
+			as thick as its bytes per second and coloured by its load against the busiest link right now. Drag the boxes to arrange them; the layout is kept in this browser. Rates are over each server's last report (5 seconds).
 			Hover a line for its numbers, click a box for its details. History is on <a href="/diagnostics">Diagnostics</a>.</p>
 	</div>
 	<div class="d-flex flex-wrap gap-2 align-items-center">
@@ -65,11 +66,11 @@
 	<div class="col-xxl-9">
 		<div class="card">
 			<div class="card-header py-2 d-flex flex-wrap justify-content-between gap-2">
-				<h5 class="mb-0 fs-6">Traffic flow</h5>
+				<h5 class="mb-0 fs-6">Traffic flow <button type="button" class="btn btn-link btn-sm p-0 ms-2 align-baseline" id="nfResetLayout" title="Put every box back where it started">Reset layout</button></h5>
 				<span class="nf-legend">
 					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-low)"></span>light</span>
 					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-mid)"></span>busy</span>
-					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-high)"></span>at its peak</span>
+					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-high)"></span>busiest</span>
 					<span class="me-2 text-nowrap"><span class="key" style="background:repeating-linear-gradient(90deg,var(--nf-idle) 0 5px,transparent 5px 8px)"></span>estimated (worked out from totals)</span>
 				</span>
 			</div>
@@ -178,13 +179,20 @@
 		return lines.filter(Boolean);
 	}
 
+	// Boxes the viewer dragged, kept in this browser: {id: {fx, y}}
+	var moved = {}, lastLayout = null;
+	try { moved = JSON.parse(localStorage.getItem('network.positions') || '{}') || {}; } catch (e) { moved = {}; }
+	function saveMoved() { try { localStorage.setItem('network.positions', JSON.stringify(moved)); } catch (e) { /* private window */ } }
+	var busiest = 0;
 	function renderDiagram(width) {
-		var L = G.layout(graph, width);
+		var L = G.layout(graph, width, moved);
+		lastLayout = L;
+		busiest = graph.edges.reduce(function (m, e) { return Math.max(m, edgeValue(e)); }, 0);
 		var html = '';
 		graph.edges.forEach(function (e) {
 			var p = L.paths[e.id];
 			if (!p) return;
-			var load = G.loadClass(edgeValue(e), peakOf(e.id));
+			var load = G.loadClass(edgeValue(e), busiest);
 			var lanes = [['fwd', e.fwd, e.bytesKnown.fwd], ['back', e.back, e.bytesKnown.back]];
 			html += '<g class="edge' + (e.exact ? '' : ' estimated') + '" data-edge="' + esc(e.id) + '">';
 			lanes.forEach(function (lane) {
@@ -225,7 +233,7 @@
 			var links = graph.edges.filter(function (e) { return e.from === n.id; }).sort(function (a, b) { return edgeValue(b) - edgeValue(a); });
 			return '<div class="nf-row" data-node="' + esc(n.id) + '" role="button" tabindex="0"><div class="d-flex justify-content-between"><b>' + esc(n.label) + '</b><span class="small text-body-secondary">' + esc(nodeMeta(n).join(' · ')) + '</span></div>' +
 				links.map(function (e) {
-					var load = G.loadClass(edgeValue(e), peakOf(e.id));
+					var load = G.loadClass(edgeValue(e), graph.edges.reduce(function (m, x) { return Math.max(m, edgeValue(x)); }, 0));
 					return '<div class="small mt-1">→ ' + esc(labelOf(e.to)) + (e.exact ? '' : ' <span class="badge text-bg-secondary">estimated</span>') +
 						'<div class="text-body-secondary">out ' + esc(rateText(e.fwd, e, e.bytesKnown.fwd)) + ' · back ' + esc(rateText(e.back, e, e.bytesKnown.back)) + '</div>' +
 						'<div class="nf-bar" style="width:' + Math.max(2, edgeValue(e) / max * 100).toFixed(1) + '%;background:var(--nf-' + load + ')"></div></div>';
@@ -275,7 +283,37 @@
 		render();
 		showDetail(n);
 	}
-	svg.addEventListener('click', onNode);
+	// Dragging a box moves it (a short press is still a click)
+	var drag = null, justDragged = false;
+	function svgPoint(ev) {
+		var r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+		return { x: (ev.clientX - r.left) * (vb.width / r.width), y: (ev.clientY - r.top) * (vb.height / r.height) };
+	}
+	svg.addEventListener('pointerdown', function (ev) {
+		var el = ev.target.closest('[data-node]');
+		if (!el || ev.button !== 0 || ev.target.closest('[data-toggle]') || !lastLayout) return;
+		var id = el.getAttribute('data-node'), at = lastLayout.nodes[id], p = svgPoint(ev);
+		if (!at) return;
+		drag = { id: id, dx: at.x - p.x, dy: at.y - p.y, startX: ev.clientX, startY: ev.clientY, moving: false, pointer: ev.pointerId };
+	});
+	svg.addEventListener('pointermove', function (ev) {
+		if (!drag || ev.pointerId !== drag.pointer) return;
+		if (!drag.moving && Math.abs(ev.clientX - drag.startX) + Math.abs(ev.clientY - drag.startY) < 5) return;
+		if (!drag.moving) { drag.moving = true; svg.classList.add('dragging'); try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ } }
+		var p = svgPoint(ev);
+		moved[drag.id] = { fx: (p.x + drag.dx) / lastLayout.width, y: p.y + drag.dy };
+		renderDiagram(lastLayout.width);
+	});
+	function endDrag(ev) {
+		if (!drag || (ev && ev.pointerId !== drag.pointer)) return;
+		if (drag.moving) { justDragged = true; saveMoved(); setTimeout(function () { justDragged = false; }, 0); }
+		svg.classList.remove('dragging');
+		drag = null;
+	}
+	svg.addEventListener('pointerup', endDrag);
+	svg.addEventListener('pointercancel', endDrag);
+	document.getElementById('nfResetLayout').addEventListener('click', function () { moved = {}; saveMoved(); render(); });
+	svg.addEventListener('click', function (ev) { if (justDragged) { ev.stopPropagation(); return; } onNode(ev); });
 	stack.addEventListener('click', onNode);
 	[svg, stack].forEach(function (el) {
 		el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onNode(ev); } });

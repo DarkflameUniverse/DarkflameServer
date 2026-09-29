@@ -86,6 +86,14 @@ same(G.speed(1e6) < G.speed(1), true, 'busier moves faster');
 // Layout: columns left to right, every link a path each way
 const L = G.layout(graph, 1000);
 same(L.nodes.clients.x < L.nodes.auth.x && L.nodes.auth.x < L.nodes.master.x && L.nodes.master.x < L.nodes.dashboard.x && L.nodes.dashboard.x < L.nodes.web.x, true, 'columns, web clients right of the dashboard');
+
+// A dragged box goes where it was put, its links follow, and the box grows the canvas if needed
+{
+	const M = G.layout(graph, 1000, { master: { fx: 0.5, y: 900 } });
+	same(M.nodes.master.x === 500 && M.nodes.master.y === 900, true, 'dragged node placed');
+	same(M.height >= 900 + M.nodeHeight / 2, true, 'canvas grows for a dragged node');
+	same(Object.keys(M.paths).length === Object.keys(L.paths).length, true, 'links still drawn');
+}
 same(graph.edges.every((e) => L.paths[e.id] && /^M/.test(L.paths[e.id].fwd) && /^M/.test(L.paths[e.id].back)), true, 'paths');
 same(G.layout(graph, 1000), L, 'the same layout every time');
 

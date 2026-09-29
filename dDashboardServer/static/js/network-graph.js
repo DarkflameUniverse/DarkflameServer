@@ -188,9 +188,10 @@
 
 	/**
 	 * Positions: columns across `width` (node centres), rows in each column spread over the tallest column's height.
+	 * `moved` ({id: {fx, y}}, optional) places nodes the viewer dragged: fx is a fraction of the width, y in pixels.
 	 * Returns {width, height, nodeWidth, nodeHeight, nodes: {id: {x, y}}, paths: {edgeId: {fwd, back}}}.
 	 */
-	function layout(graph, totalWidth) {
+	function layout(graph, totalWidth, moved) {
 		var nodeWidth = Math.max(110, Math.min(170, Math.floor(totalWidth / 6.4))), nodeHeight = 54, rowHeight = 74, pad = 16;
 		var byColumn = COLUMNS.map(function () { return []; });
 		graph.nodes.forEach(function (n) { byColumn[n.column].push(n); });
@@ -202,6 +203,13 @@
 		byColumn.forEach(function (column, c) {
 			var step = (height - pad * 2) / Math.max(column.length, 1);
 			column.forEach(function (n, i) { at[n.id] = { x: xs[c], y: Math.round(pad + step * (i + 0.5)), column: c }; });
+		});
+		Object.keys(moved || {}).forEach(function (id) {
+			var m = moved[id], a = at[id];
+			if (!a || !(m.fx >= 0) || !(m.y >= 0)) return;
+			a.x = Math.round(Math.min(totalWidth - pad - nodeWidth / 2, Math.max(pad + nodeWidth / 2, m.fx * totalWidth)));
+			a.y = Math.round(Math.max(pad + nodeHeight / 2, m.y));
+			height = Math.max(height, a.y + nodeHeight / 2 + pad);
 		});
 		var paths = {};
 		graph.edges.forEach(function (e) {
@@ -215,7 +223,7 @@
 	// A curve from a's side to b's side, moved `offset` px to its left (so the two directions sit side by side)
 	function curve(a, b, nodeWidth, offset) {
 		var half = nodeWidth / 2, x1, x2, c1, c2;
-		if (a.x === b.x) {
+		if (Math.abs(a.x - b.x) < nodeWidth) {
 			// Same column: bulge out on the side with room (left of the rightmost column, right of the others)
 			var side = a.column === COLUMNS.length - 1 ? -1 : 1;
 			x1 = x2 = a.x + side * half;
