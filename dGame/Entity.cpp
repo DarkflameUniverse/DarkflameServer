@@ -623,6 +623,10 @@ void Entity::Initialize() {
 				if (entity) GameMessages::PlatformResync(*entity, false, 0, 1, 1, eMovementPlatformState::Moving, true).Send(UNASSIGNED_SYSTEM_ADDRESS);
 				});
 
+			// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
+			// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
+			// the AM Center draw bridge (LOT 12047: level activityID 12047 without actIDovrd, template activity 6,
+			// the quickbuild rewards) dropped no loot in 4 of 4 live completions.
 			const auto activityID = GetVar<int32_t>(u"activityID");
 
 			if (activityID > 0) {
