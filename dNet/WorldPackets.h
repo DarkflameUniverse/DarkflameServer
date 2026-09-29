@@ -213,6 +213,22 @@ namespace WorldPackets {
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
+	// Client -> server. Sent by the client's resource manager (LWOResMgr2Interface::FinishResourceRequest 0x0105e5c0)
+	// for every blueprint file (a player's model, or a car or rocket's build) whose request did not end with HTTP
+	// status 200. Status 0: the file was not downloaded (live: 1520 of 1525 packets, all four file types, on load);
+	// otherwise the HTTP status (live: 5 were 404). Live answered nothing. When the downloads keep failing, the client
+	// itself logs out with NET_DISCONNECT_FAILED_DOWNLOAD_UGC (MainThread_LogoutDueToConnectionFailures 0x0102b9c0).
+	struct UgcDownloadFailed : public WorldLUBitStream {
+		uint32_t resType{}; // eUgcResourceType, as a u32
+		LWOOBJID blueprintId{};
+		uint32_t statusCode{};
+		LWOOBJID charId{};
+
+		UgcDownloadFailed() : WorldLUBitStream(MessageType::World::UGC_DOWNLOAD_FAILED) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
 	// Client -> server. The help screen wants its top 5 issues.
 	struct UIHelpTop5 : public WorldLUBitStream {
 		int32_t language{}; // 0: en_US, 1: pl_US, 2: de_DE, 3: en_GB

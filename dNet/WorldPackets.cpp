@@ -351,6 +351,21 @@ namespace WorldPackets {
 		return true;
 	}
 
+	void UgcDownloadFailed::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(resType);
+		bitStream.Write(blueprintId);
+		bitStream.Write(statusCode);
+		bitStream.Write(charId);
+	}
+
+	bool UgcDownloadFailed::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(resType));
+		VALIDATE_READ(bitStream.Read(blueprintId));
+		VALIDATE_READ(bitStream.Read(statusCode));
+		VALIDATE_READ(bitStream.Read(charId));
+		return true;
+	}
+
 	void UIHelpTop5::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(language);
 	}

@@ -38,12 +38,13 @@ namespace MessageType {
 		FAKE_PRG_CSR_MESSAGE,
 		REQUEST_FREE_TRIAL_REFRESH,
 		GM_SET_FREE_TRIAL_STATUS,
-		UI_HELP_TOP_5 = 91
+		UI_HELP_TOP_5 = 91,
+		UGC_DOWNLOAD_FAILED = 120
 	};
 }
 
 template <>
 struct magic_enum::customize::enum_range<MessageType::World> {
 	static constexpr int min = 0;
-	static constexpr int max = 91;
+	static constexpr int max = 120;
 };

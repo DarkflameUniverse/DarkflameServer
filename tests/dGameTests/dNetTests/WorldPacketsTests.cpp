@@ -718,6 +718,26 @@ TEST_F(WorldPacketsTests, SmallRequestsMatchLegacy) {
 	EXPECT_PACKET_EQ(FromBitStream(mail.data), FromBitStream(mailRead.data));
 }
 
+// A packet from a 2011/2012 live capture (IDs replaced): UgcDownloadFailed (world 120) for a DDS (3) with status 0.
+// The client sends 31 bytes after the 0x53: resType u32, blueprint, status u32, character.
+TEST_F(WorldPacketsTests, UgcDownloadFailedMatchesLiveCapture) {
+	auto live = FromHex("53 04 00 78 00 00 00 00 03 00 00 00 07 06 05 04 03 02 01 10 00 00 00 00 01 00 00 00 00 00 00 10");
+	RakNet::BitStream bitStream(live.bytes.data(), live.bytes.size(), false);
+	WorldPackets::UgcDownloadFailed failed;
+	ASSERT_TRUE(failed.ReadHeader(bitStream));
+	ASSERT_TRUE(failed.Deserialize(bitStream));
+	EXPECT_EQ(bitStream.GetNumberOfUnreadBits(), 0u);
+	EXPECT_EQ(failed.resType, 3u);
+	EXPECT_EQ(failed.blueprintId, 0x1001020304050607LL);
+	EXPECT_EQ(failed.statusCode, 0u);
+	EXPECT_EQ(failed.charId, 0x1000000000000001LL);
+	RakNet::BitStream again;
+	failed.WritePacket(again);
+	EXPECT_PACKET_EQ(live, FromBitStream(again));
+	EXPECT_EQ(again.GetNumberOfBytesUsed() - 1, 31u);
+	ExpectTruncatedFails(failed);
+}
+
 // The layouts the 1.10.64 client uses without 3D services (UGCUSE3DSERVICES=7:0): it sends 16 bytes after the 0x53
 // (SendRequestUGCManifestInfoPacket) and only reads an answer that is exactly 37 bytes after it
 // (PacketHandler_MSG_CLIENT_UGC_MANIFEST_RESPONSE: 21 bytes of manifest info after the blueprint and type).

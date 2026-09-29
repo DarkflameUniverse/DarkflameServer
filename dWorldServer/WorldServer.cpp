@@ -1689,6 +1689,18 @@ namespace {
 		}
 	};
 
+	struct UgcDownloadFailedPacket final : public WorldPackets::UgcDownloadFailed {
+		void Handle() override {
+			// Live sent nothing back; the client already fell back to its own copy or gave up. Log real HTTP
+			// failures (a missing or unreadable file on the UGC server).
+			if (statusCode == 0) {
+				LOG_DEBUG("Client %s did not download blueprint %llu file type %u (character %llu)", sysAddr.ToString(), blueprintId, resType, charId);
+				return;
+			}
+			LOG("Client %s failed to download blueprint %llu file type %u: HTTP status %u (character %llu)", sysAddr.ToString(), blueprintId, resType, statusCode, charId);
+		}
+	};
+
 	template<typename T>
 	std::unique_ptr<WorldPackets::WorldLUBitStream> Create() { return std::make_unique<T>(); }
 
@@ -1709,6 +1721,7 @@ namespace {
 		{ MessageType::World::HANDLE_FUNNESS, Create<HandleFunnessPacket> },
 		{ MessageType::World::UI_HELP_TOP_5, Create<UIHelpTop5Packet> },
 		{ MessageType::World::REQUEST_UGC_MANIFEST_INFO, Create<RequestUgcManifestInfoPacket> },
+		{ MessageType::World::UGC_DOWNLOAD_FAILED, Create<UgcDownloadFailedPacket> },
 	};
 }
 

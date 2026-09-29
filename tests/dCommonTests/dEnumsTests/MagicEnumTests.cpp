@@ -55,6 +55,7 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	ENUM_EQ(MessageType::World, 32, REQUEST_FREE_TRIAL_REFRESH);
 	ENUM_EQ(MessageType::World, 33, GM_SET_FREE_TRIAL_STATUS);
 	ENUM_EQ(MessageType::World, 91, UI_HELP_TOP_5);
+	ENUM_EQ(MessageType::World, 120, UGC_DOWNLOAD_FAILED);
 	ENUM_NE(MessageType::World, 37);
 	ENUM_NE(MessageType::World, 123);
 
