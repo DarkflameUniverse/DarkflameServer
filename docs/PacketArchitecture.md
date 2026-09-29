@@ -329,8 +329,23 @@ is dropped instead of truncated; `PLAYER_LOADED` (`0x00dc36f0`), `READY_FOR_UPDA
 
 | Packet | DLU | Client / reference |
 |---|---|---|
-| `VERSION_CONFIRM` (server -> client) | Sends 8 trailing bytes. | |
+| `VERSION_CONFIRM` (server -> client) | Fixed (labelled wire change): after `serviceType` it sends the build identifier (below) instead of the old fixed 8 bytes (ASCII "0.1.3"). `unknown` stays `861228100` ("DLU3"). | Reads only `netVersion` (+0x7) and `serviceType` (+0xf) (`0x00b30c90`); `unknown` (+0xb) is never read and `packetLength` is unused, so trailing bytes are ignored. The only length check is payload > 6 bytes in `LwoNetClient::Update` (`0x00b34730`). |
 | `LoadStaticZone` | Always sends clone 0. | The zone's clone ID. |
 | `ChatModerationString` | The accepted byte is `segments.empty()`. | |
 | `StringCheck` | Keeps 42 narrowed characters, including whatever garbage follows the text. | |
 | Route packets | Forwarded from byte 23, using the low byte of the routed packet ID. | |
+
+`VERSION_CONFIRM` build identifier (`CommonPackets::ServerVersionConfirm`, values from `dCommon/BuildInfo.h`):
+
+| Offset (after header) | Size | Field |
+|---|---|---|
+| 0 | u32 | `netVersion` (`client_net_version`, default 171022) |
+| 4 | u32 | `unknown` = 861228100 ("DLU3") |
+| 8 | u32 | `serviceType` |
+| 12 | 3 x u8 | version major, minor, patch (`CMakeVariables.txt`) |
+| 15 | u8 | flags: bits 0-1 build kind (0 unknown, 1 local, 2 CI, 3 release), bit 2 dirty |
+| 16 | 4 bytes | first 32 bits of the commit hash, most significant byte first (0 without git) |
+| 20 | u16 + chars | build string, e.g. `3.0.0-experimental+g1a2b3c4d-dirty`; optional when reading |
+
+The build kind comes from `DLU_BUILD_KIND=release|ci|local` in the build's environment, else `CI=true` means CI,
+else local. `cmake/BuildInfo.cmake` regenerates the data on every build and only rewrites it when it changed.
