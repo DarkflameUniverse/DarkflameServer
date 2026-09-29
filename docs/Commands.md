@@ -56,6 +56,19 @@ These commands are registered by the server so they appear in help, but their be
 |team|`/team <message>`|Send a message to your teammates. Aliases: `/t`.|0|
 |tell|`/tell <name> <message>`|Send a private message to another player. Aliases: `/w`, `/whisper`.|0|
 
+### Guilds
+
+The client has no guild commands (docs/Guilds.md); these are the server's. Its guild chat tab sends `/g`.
+
+|Command|Usage|Description|Admin Level Requirement|
+|--- |--- |--- |--- |
+|g|`/g <message>`|Send a message to your guild. Aliases: `/guild`.|0|
+|guildcreate|`/guildcreate`|Open the window to create a guild. Aliases: `/createguild`.|0|
+|gkick|`/gkick <name>`|Remove a player from your guild: the leader can remove anyone, officers veterans and recruits. Aliases: `/guildkick`.|0|
+|grank|`/grank <name> <officer\|veteran\|recruit>`|Set a guild member's rank. The leader sets any rank; officers move members between veteran and recruit. Aliases: `/guildrank`.|0|
+|gleader|`/gleader <name>`|Make another member the guild's leader; you become an officer. Aliases: `/guildleader`.|0|
+|gdisband|`/gdisband confirm`|The leader removes every member and the guild itself. Aliases: `/guilddisband`.|0|
+
 
 ### Actions
 |Command|Usage|Description|Admin Level Requirement|

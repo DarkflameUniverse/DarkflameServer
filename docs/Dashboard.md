@@ -60,8 +60,8 @@ What people can do depends on their account's GM level. Out of the box:
 | 2+ | Kick and mute; read and write the moderation history; read player reports |
 | 3+ | Approve names; handle player reports and bug reports; give strikes; see linked accounts, mailboxes, character history and who is online; rescue, teleport and restrict characters; read the chat log; send mail; economy reports and the world map |
 | 4+ | Ban and lock accounts; email password reset links |
-| 5+ | Moderate pet names, properties and leaderboards; revoke strikes; change a character's missions; change the chat filter's words; send and schedule announcements |
-| 8+ | Manage accounts (create, change email or password, reset two-factor login) and GM levels; edit characters and replace their XML; give items back; read whispers and team chat; send chat into the game; attach items to mail, to one player or everyone; import models; shut down worlds; schedule restarts and events; run economy checks; play keys, client files and the vanity files; see scheduled tasks, the audit log, server logs, crash dumps, server health and instance load; the developer tools |
+| 5+ | Moderate pet names, guilds, properties and leaderboards; revoke strikes; change a character's missions; change the chat filter's words; send and schedule announcements |
+| 8+ | Manage accounts (create, change email or password, reset two-factor login) and GM levels; edit characters and replace their XML; give items back; read whispers, team and guild chat; send chat into the game; attach items to mail, to one player or everyone; import models; shut down worlds; schedule restarts and events; run economy checks; play keys, client files and the vanity files; see scheduled tasks, the audit log, server logs, crash dumps, server health and instance load; the developer tools |
 | 9 | Delete accounts; grant permissions to single accounts and characters; change scheduled tasks, instance limits, settings and permissions (these two are always GM 9 only), webhooks and email settings; backups |
 
 Each of these is a named permission, and you can change the lowest GM level allowed for any of them without rebuilding
@@ -893,6 +893,11 @@ them, pet names (`moderate_pet_names`, GM 5+, also on their own **Pet Names** pa
 tells the player in game if they're online. Rejecting asks for an optional reason, which the player sees on their own
 account page next to what they asked for. The queues show only what the game itself would still review: rejected
 properties and names whose player must pick a new one no longer appear.
+
+Guild names the chat filter doesn't allow wait there too (`guilds_manage`, GM 5+). The **Guilds** page (Moderation)
+lists every guild with its members and history; staff approve or reject a pending name (a rejected guild becomes
+"Guild <id>"), rename a guild, remove a member or disband a guild. Online members see the change at once (the chat
+server is told through master). See docs/Guilds.md.
 
 Pet names show what kind of pet each one is (its icon and name from the CDClient), from the pet's LOT that the game
 stores with the name (`pet_names.pet_lot`). Names set before that column existed get their LOT the next time the pet's

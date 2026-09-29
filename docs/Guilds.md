@@ -160,3 +160,38 @@ routes 10 to the guild tab [G][F]. Channel 11 has no UI box [F].
 
 `MSG_GUILD_*` (41 ids) and `UI_GUILD_*`, `UI_GUILDCREATE_*`, `UI_CHAT_CHGUILD`, `UI_CHAT_GUILD_CHAT` in `locale.xml`.
 No cdclient table is about guilds (besides `FeatureGating`, which lacks the row).
+
+## DLU implementation
+
+- **The chat server is the guild authority** (`dChatServer/GuildManager`, connected in `ChatGuilds`): create, invite,
+  answer, leave, kick, ranks, disband, online status, guild chat. State is in the database (`guilds`, `guild_members`,
+  `guild_invites`, `guild_events`; MySQL migration 97, SQLite 80); client packets go to members through their worlds
+  (`WorldRoutePacket`).
+- World → chat: `GUILD_CREATE` (from the client's `TMP_GUILD_CREATE`), `GUILD_KICK`, `GUILD_SET_RANK` and
+  `GUILD_DISBAND` (DLU ids appended to `MessageType::Chat`), guild chat as `GENERAL_CHAT_MESSAGE` channel 10. Chat → world:
+  `GUILD_GET_STATUS` with a character's guild id and the name others may see; the world puts it in the character
+  component. The character component reads the guild from the database when the character loads.
+- Ranks: leader and officers invite; the leader kicks anyone, officers kick veterans and recruits; the leader sets any
+  rank, officers move members between veteran and recruit. New members are recruits. A leader who leaves hands the
+  guild to the highest-ranked, longest-serving member; the last member out ends it. A guild whose leader's character was
+  deleted gets the next member as leader. Rank changes send every online member `GUILD_DATA` again.
+- A new member's inviter gets `GUILD_INVITE_FINAL_RESPONSE` joined and the list again; the other online members get
+  `GUILD_ADD_PLAYER` (both would print "has joined" for the inviter). Disbanding sends each online member a
+  `GUILD_REMOVE_PLAYER` about themselves, which makes their client drop the guild.
+- One pending invite per character, answerable for `guild_invite_timeout` seconds (600) and dropped when the character
+  logs off. `guild_max_members` (100) per guild. Both in chatconfig.ini.
+- Names: `GuildNameRules` (3-30 of letters, digits, space ' - ., no space at either end or twice; surrounding spaces the
+  player typed are dropped); unique without regard to case; the chat filter's deny list refuses a name (`BAD_NAME`); a
+  name the allow list doesn't cover makes the guild but waits for moderation, and until it is approved other players see
+  no guild name (members see it in the guild window).
+- `GUILD_DATA` dates are `MM/DD/YYYY` (UTC): the member's join date and the guild's creation date.
+- Slash commands (the client has none for guilds): `/g` or `/guild <text>` (what the guild chat tab sends; chat filter
+  and mute as zone chat), `/guildcreate` (opens the create box), `/gkick <name>`, `/grank <name>
+  <officer|veteran|recruit>`, `/gleader <name>`, `/gdisband confirm`. The Guild Master script (LOT 3001) opens the
+  create box when used.
+- Dashboard: **Guilds** page (`guilds_manage`): list, members, history, approve or reject a name (rejected: renamed
+  "Guild <id>"), rename, remove a member, disband; pending names also in the Review Queue. Changes are audited, added to
+  the guild's history, and sent to the chat server (`ePlayerAction::GUILD_CHANGED` through master), which tells online
+  members. Guild chat is logged as channel "guild" and is private chat (`chat_private`).
+- Not done: the client has no packet for a member's name change (`GuildUpdatePlayerName` is local), so a renamed
+  character shows under the new name after the members' next `GUILD_DATA`; the guild reputation field is always 0.
