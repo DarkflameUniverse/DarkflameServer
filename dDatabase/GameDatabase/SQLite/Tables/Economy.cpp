@@ -183,7 +183,7 @@ nlohmann::json SQLiteDatabase::GetTransfersForItems(const std::vector<LWOOBJID>&
 }
 
 void SQLiteDatabase::ForEachMailAttachment(const std::function<void(const MailAttachment&)>& visit) {
-	auto [_, result] = ExecuteSelect("SELECT id, receiver_id, attachment_id, attachment_lot, attachment_count FROM mail WHERE attachment_lot > 0 AND attachment_count > 0;");
+	auto [_, result] = ExecuteSelect("SELECT id, receiver_id, attachment_id, attachment_lot, attachment_count FROM mail WHERE attachment_lot > 0 AND attachment_count > 0 AND deleted_at = 0;");
 	while (!result.eof()) {
 		visit({ static_cast<uint64_t>(result.getInt64Field("id")), result.getInt64Field("receiver_id"), result.getInt64Field("attachment_id"),
 			result.getIntField("attachment_lot"), static_cast<uint32_t>(result.getIntField("attachment_count")) });

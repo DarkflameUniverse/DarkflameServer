@@ -22,7 +22,7 @@ void SQLiteDatabase::InsertNewMail(const MailInfo& mail) {
 std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) {
 	auto [_, res] = ExecuteSelect(
 		"SELECT id, subject, body, sender_name, attachment_id, attachment_lot, attachment_subkey, attachment_count, was_read, time_sent"
-		" FROM mail WHERE receiver_id=? limit ?;",
+		" FROM mail WHERE receiver_id=? AND deleted_at=0 limit ?;",
 		characterId, numberOfMail);
 
 	std::vector<MailInfo> toReturn;
@@ -48,7 +48,7 @@ std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const LWOOBJID characterI
 }
 
 std::optional<MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
-	auto [_, res] = ExecuteSelect("SELECT sender_id, attachment_id, attachment_lot, attachment_subkey, attachment_count, attachment_config, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
+	auto [_, res] = ExecuteSelect("SELECT sender_id, attachment_id, attachment_lot, attachment_subkey, attachment_count, attachment_config, receiver_id FROM mail WHERE id=? AND deleted_at=0 LIMIT 1;", mailId);
 
 	if (res.eof()) {
 		return std::nullopt;
@@ -68,7 +68,7 @@ std::optional<MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
 }
 
 uint32_t SQLiteDatabase::GetUnreadMailCount(const LWOOBJID characterId) {
-	auto [_, res] = ExecuteSelect("SELECT COUNT(*) AS number_unread FROM mail WHERE receiver_id=? AND was_read=0;", characterId);
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) AS number_unread FROM mail WHERE receiver_id=? AND was_read=0 AND deleted_at=0;", characterId);
 
 	if (res.eof()) {
 		return 0;
@@ -86,5 +86,6 @@ void SQLiteDatabase::ClaimMailItem(const uint64_t mailId) {
 }
 
 void SQLiteDatabase::DeleteMail(const uint64_t mailId) {
-	ExecuteDelete("DELETE FROM mail WHERE id=?;", mailId);
+	// Kept for staff (the dashboard shows it as deleted); every read for the game skips it
+	ExecuteUpdate("UPDATE mail SET deleted_at=? WHERE id=? AND deleted_at=0;", static_cast<int64_t>(time(NULL)), mailId);
 }

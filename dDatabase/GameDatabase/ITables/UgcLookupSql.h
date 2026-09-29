@@ -112,7 +112,7 @@ namespace UgcLookupSql {
 	}
 
 	inline std::string Mail(const std::vector<LWOOBJID>& subkeys, LOT modelItemLot) {
-		return "SELECT id, receiver_id, receiver_name, attachment_lot, attachment_subkey, attachment_config FROM mail WHERE attachment_count > 0 AND "
+		return "SELECT id, receiver_id, receiver_name, attachment_lot, attachment_subkey, attachment_config FROM mail WHERE attachment_count > 0 AND deleted_at = 0 AND "
 			"(attachment_lot = " + std::to_string(modelItemLot) + (subkeys.empty() ? "" : " OR attachment_subkey IN (" + IdList(subkeys) + ")") +
 			") ORDER BY id DESC LIMIT 500;";
 	}

@@ -919,6 +919,19 @@ TEST_F(ParitySeeded, Mail) {
 		return rows;
 	});
 	Both("GetDashboardSnapshot", [](GameDatabase& db) { return db.GetDashboardSnapshot(); });
+	// A player deleting mail keeps the row for staff; the game's reads skip it
+	Both("DeleteMail", [](GameDatabase& db) {
+		db.DeleteMail(2);
+		db.DeleteMail(1); // still has its attachment: the game refuses this, but the database hides it all the same
+		json out{ db.GetMail(1), db.GetMail(2), db.GetMailForPlayer(CHAR_BOB, 20), db.GetUnreadMailCount(CHAR_BOB) };
+		json rows = json::array();
+		db.ForEachMailAttachment([&](const IEconomyLedger::MailAttachment& attachment) { rows.push_back(attachment); });
+		out.push_back(rows);
+		EXPECT_EQ(out[2], json::array());
+		EXPECT_EQ(out[3], 0);
+		EXPECT_EQ(rows, json::array());
+		return out;
+	});
 }
 
 TEST_F(ParitySeeded, Friends) {

@@ -15,7 +15,7 @@ public:
 	// Insert a new mail into the database.
 	virtual void InsertNewMail(const MailInfo& mail) = 0;
 
-	// Get the mail for the given character id.
+	// Get the mail for the given character id. Mail the player deleted is left out (as in every read below).
 	virtual std::vector<MailInfo> GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) = 0;
 
 	// Get the mail for the given mail id.
@@ -30,7 +30,7 @@ public:
 	// Claim the item from the given mail.
 	virtual void ClaimMailItem(const uint64_t mailId) = 0;
 
-	// Delete the given mail.
+	// A player deleted the mail: it is marked deleted (deleted_at) and kept for staff, and the game never shows it again.
 	virtual void DeleteMail(const uint64_t mailId) = 0;
 };
 

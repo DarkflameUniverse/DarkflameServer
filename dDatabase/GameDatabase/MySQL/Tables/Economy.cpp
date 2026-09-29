@@ -179,7 +179,7 @@ nlohmann::json MySQLDatabase::GetTransfersForItems(const std::vector<LWOOBJID>& 
 }
 
 void MySQLDatabase::ForEachMailAttachment(const std::function<void(const MailAttachment&)>& visit) {
-	auto result = ExecuteSelect("SELECT id, receiver_id, attachment_id, attachment_lot, attachment_count FROM mail WHERE attachment_lot > 0 AND attachment_count > 0;");
+	auto result = ExecuteSelect("SELECT id, receiver_id, attachment_id, attachment_lot, attachment_count FROM mail WHERE attachment_lot > 0 AND attachment_count > 0 AND deleted_at = 0;");
 	while (result->next()) {
 		visit({ result->getUInt64("id"), result->getInt64("receiver_id"), result->getInt64("attachment_id"),
 			result->getInt("attachment_lot"), static_cast<uint32_t>(result->getInt("attachment_count")) });
