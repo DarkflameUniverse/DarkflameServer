@@ -457,7 +457,10 @@ Modular builds (`ugc_modular_build` rows, `ldf_config` like `1:4713+1:4714+1:471
 1. Each module LOT's `ModuleComponent` (component type 28) gives its part code and build
    type; the build type's `ModularBuildComponent.xml` gives the topology (root part, and which part connects to which
    named location) and `Placement/AdditionalModelRotation`.
-2. Each module's mesh is its render asset (`RenderComponent.render_asset`, the NIF the client assembles in game). A
+2. Each module's mesh is its render asset (`RenderComponent.render_asset`, the NIF the client assembles in game).
+   The modules have no textures: none of the 399 render assets of the client's `ModuleComponent` LOTs (1.10.64) has
+   an `NiSourceTexture` or `NiTexturingProperty`; their look is their vertex colors and `NiMaterialProperty`, which
+   the icon draws (the client's own module icons, `textures/ui/rebuilding/`, show the same colors). A
    connection places the connecting part so its node with the location's name (when it has one) sits on the parent
    part's node of that name, or its origin on that node; `ModuleComponent.xml`'s `connection` translation is used when
    the parent's NIF has no such node. (Module LXFMLs in `res/BrickModels` exist for only some modules and are
