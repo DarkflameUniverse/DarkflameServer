@@ -13,7 +13,8 @@
  * the NifTools project's format description (nif.xml). Pure (bytes in, meshes out) so it can be unit tested.
  *
  * The client's files are versions 20.2.0.8 and 20.3.0.9 with user version 0. What is drawn: the scene graph
- * (NiNode, NiLODNode, NiBillboardNode and other nodes) with its transforms baked into the vertices, NiTriShape and
+ * (NiNode, NiLODNode, NiBillboardNode and other nodes) with its transforms baked into the vertices (except a root
+ * node's rotation and translation, which the client replaces with the object's own), NiTriShape and
  * NiTriStrips geometry (positions, normals, the first UV set, vertex colors), and the properties Gamebryo passes down
  * the tree: NiMaterialProperty, NiAlphaProperty, NiTexturingProperty's base texture (an external NiSourceTexture),
  * NiVertexColorProperty and NiStencilProperty's draw mode (double sided), and how fast NiTextureTransformControllers move

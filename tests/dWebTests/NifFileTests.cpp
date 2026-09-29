@@ -5,6 +5,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <map>
 
 #include "NifFile.h"
@@ -152,9 +153,16 @@ TEST(NifFileTests, ReadsATriangleWithItsVertexData) {
 
 TEST(NifFileTests, BakesNodeTransformsIntoVertices) {
 	NifBuilder nif;
-	// 90 degrees about y (x goes to -z), then scaled by 2 and moved 10 along x
+	// A node under the root: 90 degrees about y (x goes to -z), then scaled by 2 and moved 10 along x
 	const std::array<float, 9> yaw{ 0, 0, 1, 0, 1, 0, -1, 0, 0 };
-	const auto file = OneTriangle(nif, Av(0, { 10, 0, 0 }, yaw, 2.0f, {}));
+	const auto root = nif.Add("NiNode", {});
+	const auto node = nif.Add("NiNode", {});
+	const auto shape = nif.Add("NiTriShape", {});
+	const auto data = nif.Add("NiTriShapeData", TriShapeData());
+	nif.Set(root, Node(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {}), { node }));
+	nif.Set(node, Node(Av(0, { 10, 0, 0 }, yaw, 2.0f, {}), { shape }));
+	nif.Set(shape, Geometry(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {}), data));
+	const auto file = nif.Build();
 	std::string error;
 	const auto model = NifFile::Parse(file, 0, error);
 	ASSERT_TRUE(model) << error;
@@ -166,6 +174,45 @@ TEST(NifFileTests, BakesNodeTransformsIntoVertices) {
 	const auto& n = model->meshes[0].normals;
 	EXPECT_NEAR(n[0], 1.0f, 1e-5);
 	EXPECT_NEAR(n[2], 0.0f, 1e-5);
+}
+
+TEST(NifFileTests, LeavesOutTheRootsRotationAndTranslation) {
+	// The client sets the object's own position and rotation on the root node it loads, so the root's stored ones
+	// never show; its scale does
+	NifBuilder nif;
+	const std::array<float, 9> yaw{ 0, 0, 1, 0, 1, 0, -1, 0, 0 };
+	const auto file = OneTriangle(nif, Av(0, { 10, 0, 0 }, yaw, 2.0f, {}));
+	std::string error;
+	const auto model = NifFile::Parse(file, 0, error);
+	ASSERT_TRUE(model) << error;
+	EXPECT_EQ(model->meshes.at(0).positions, (std::vector<float>{ 0, 0, 0, 2, 0, 0, 0, 2, 0 }));
+	EXPECT_EQ(model->meshes[0].normals[2], 1.0f);
+}
+
+TEST(NifFileTests, StandsUpAModelWhoseRootIsTurned) {
+	// Laid out as LU Toolbox's .nif (niftools from Blender, Z up): the root turned 90 degrees about x, the NiLODNode
+	// turned back and the shape turned again, so without the root's turn the vertices stay as stored (Y up)
+	NifBuilder nif;
+	const std::array<float, 9> up{ 1, 0, 0, 0, 0, -1, 0, 1, 0 };   // +90 about x: y goes to z, z to -y
+	const std::array<float, 9> down{ 1, 0, 0, 0, 0, 1, 0, -1, 0 }; // -90 about x
+	const auto root = nif.Add("NiNode", {});
+	const auto lodNode = nif.Add("NiLODNode", {});
+	const auto level = nif.Add("NiNode", {});
+	const auto shape = nif.Add("NiTriShape", {});
+	const auto data = nif.Add("NiTriShapeData", TriShapeData());
+	const auto ranges = nif.Add("NiRangeLODData", Bytes{}.Floats({ 0, 0, 0 }).Put<uint32_t>(1).Floats({ 0, 100 }));
+	nif.Set(root, Node(Av(0, { 0, 0, 0 }, down, 1.0f, {}), { lodNode }));
+	nif.Set(lodNode, Node(Av(0, { 0, 0, 0 }, up, 1.0f, {}), { level }).Put<uint16_t>(3).Put<uint32_t>(0).Put(ranges));
+	nif.Set(level, Node(Av(0, { 0, 0, 0 }, IDENTITY, 1.0f, {}), { shape }));
+	nif.Set(shape, Geometry(Av(0, { 0, 0, 0 }, down, 1.0f, {}), data));
+	std::string error;
+	const auto model = NifFile::Parse(nif.Build(), 0, error);
+	ASSERT_TRUE(model) << error;
+	const auto& p = model->meshes.at(0).positions;
+	// The vertex (0, 1, 0) still points up (with the root's turn it would lie along -z)
+	EXPECT_NEAR(p[6], 0.0f, 1e-6);
+	EXPECT_NEAR(p[7], 1.0f, 1e-6);
+	EXPECT_NEAR(p[8], 0.0f, 1e-6);
 }
 
 TEST(NifFileTests, SkipsHiddenSubtrees) {
@@ -551,15 +598,41 @@ TEST(NifFileTests, EncodesEachMeshsLook) {
 
 // The game client's own meshes, when a client is configured (DLU_CLIENT_RES, else client_location in the build's
 // sharedconfig.ini): the first 300 .nif files under res/mesh/env read, and most have something to draw
-TEST(NifFileTests, ReadsTheClientsMeshes) {
-	std::filesystem::path res;
-	if (const char* env = std::getenv("DLU_CLIENT_RES")) res = env;
-	else {
-		std::ifstream config(std::filesystem::path(DLU_SOURCE_DIR) / "build" / "sharedconfig.ini");
-		for (std::string line; std::getline(config, line);) {
-			if (line.starts_with("client_location=")) res = std::filesystem::path(line.substr(16)) / "res";
+namespace {
+	// The game client's res folder (DLU_CLIENT_RES, else the build's sharedconfig.ini), empty when there is none
+	std::filesystem::path ClientRes() {
+		std::filesystem::path res;
+		if (const char* env = std::getenv("DLU_CLIENT_RES")) res = env;
+		else {
+			std::ifstream config(std::filesystem::path(DLU_SOURCE_DIR) / "build" / "sharedconfig.ini");
+			for (std::string line; std::getline(config, line);) {
+				if (line.starts_with("client_location=")) res = std::filesystem::path(line.substr(16)) / "res";
+			}
 		}
+		return res;
 	}
+}
+
+TEST(NifFileTests, ReadsAClientModelWhereItStands) {
+	// A game model (the pirate raft reward) reads where it stood before roots' turns were left out: upright on y 0
+	const auto path = ClientRes() / "mesh" / "reward" / "rew_pirate-raft.nif";
+	std::ifstream file(path, std::ios::binary);
+	if (!file) GTEST_SKIP() << "No game client configured";
+	const std::string data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	std::string error;
+	const auto model = NifFile::Parse(data, 0, error);
+	ASSERT_TRUE(model) << error;
+	ASSERT_EQ(model->meshes.size(), 1u);
+	EXPECT_NEAR(model->min[0], -1.6f, 1e-4);
+	EXPECT_NEAR(model->min[1], 0.0f, 1e-4);
+	EXPECT_NEAR(model->min[2], -3.32814f, 1e-4);
+	EXPECT_NEAR(model->max[0], 1.6f, 1e-4);
+	EXPECT_NEAR(model->max[1], 5.12f, 1e-4);
+	EXPECT_NEAR(model->max[2], 4.04143f, 1e-4);
+}
+
+TEST(NifFileTests, ReadsTheClientsMeshes) {
+	const auto res = ClientRes();
 	std::error_code ec;
 	const auto folder = res / "mesh" / "env";
 	if (res.empty() || !std::filesystem::is_directory(folder, ec)) GTEST_SKIP() << "No game client configured";

@@ -387,7 +387,14 @@ namespace {
 			reader.Skip(static_cast<uint64_t>(effectCount) * 4);
 			if (!reader.Ok()) return;
 
-			const auto world = parent.Then(av.transform);
+			// The client puts the object's own position and rotation in place of the root node's (the render component
+			// sets them on the loaded root), so a root's stored rotation and translation are never seen; its scale is kept
+			auto local = av.transform;
+			if (depth == 0) {
+				local.r = Transform{}.r;
+				local.t = {};
+			}
+			const auto world = parent.Then(local);
 			// Recorded even when hidden: attach points often are
 			if (!av.name.empty() && !m_Model.nodes.contains(av.name)) {
 				NifFile::NodeTransform node;
