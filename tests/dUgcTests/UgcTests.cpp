@@ -252,6 +252,7 @@ TEST(UgcFormats, NifReadsBack) {
 	EXPECT_TRUE(model->skipped.empty());
 	ASSERT_EQ(model->meshes.size(), 2u);
 	EXPECT_EQ(model->meshes[0].indices.size(), 3u);
+	EXPECT_EQ(model->meshes[0].positions, (std::vector<float>{ 0, 0, 0, 1, 0, 0, 0, 1, 0 })); // where they were, upright
 	EXPECT_EQ(model->meshes[0].colors[0], 255);
 	// Every shape blends by its vertex alpha, as the game's own brick models do
 	EXPECT_TRUE(model->meshes[0].material.alphaBlend);
@@ -627,6 +628,7 @@ TEST(UgcFormats, LodNifReadsBack) {
 	EXPECT_TRUE(lod0->skipped.empty());
 	ASSERT_EQ(lod0->meshes.size(), 1u);
 	EXPECT_EQ(lod0->meshes[0].indices.size(), 6u);
+	EXPECT_EQ(lod0->meshes[0].positions, (std::vector<float>{ 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0 }));
 	EXPECT_TRUE(lod0->nodes.contains("S01_Opaque_Model"));
 	EXPECT_TRUE(lod0->nodes.contains("LOD_0"));
 	const auto lod1 = NifFile::Parse(nif, 1, error);
