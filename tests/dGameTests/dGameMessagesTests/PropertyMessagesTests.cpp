@@ -221,6 +221,32 @@ TEST_F(PropertyMessagesTests, DownloadPropertyDataMatchesLegacy) {
 	}
 }
 
+// A packet from a 2011/2012 live capture: DownloadPropertyData (716) for an unclaimed Nimbus Station medium
+// property (no owner, so no player data). Every complete 716 packet in the captures decodes with this layout.
+TEST_F(PropertyMessagesTests, DownloadPropertyDataMatchesLiveCapture) {
+	const auto msg = FromLiveCapture<GameMessages::DownloadPropertyData>(
+		"5305000c000000009847000000400004cc02000000000000000065620000e304b004000000000000000000000000000000000000"
+		"0000000000000000000000000000e8030000010000000000000000000000e803000000000000000000000d0000004e0053004d00"
+		"65006400500072006f007000650072007400790000000000000000000600000000000000010000000000000000000000000000"
+		"000000000000000000000000000000000000000000000080b4c3000090430000e0420000004300000000000000000004000000"
+		"cdcc8a42cd8ce343cd4c1f4300008ac2cd8ce343cd4c1f4300008ac2cd8ce343cdcc0242cdcc8a42cd8ce343cdcc0242");
+	EXPECT_EQ(msg.target, 0x0400400000004798LL);
+	EXPECT_EQ(msg.propertyId, LWOOBJID_EMPTY);
+	EXPECT_EQ(msg.templateId, 25189);
+	EXPECT_EQ(msg.mapId, 1251);
+	EXPECT_EQ(msg.vendorMapId, 1200);
+	EXPECT_EQ(msg.ownerId, LWOOBJID_EMPTY);
+	EXPECT_EQ(msg.rent, 1000u);
+	EXPECT_EQ(msg.rentalPeriod, 1u);
+	EXPECT_EQ(msg.rentAmount, 1000u);
+	EXPECT_EQ(msg.spawnName, u"NSMedProperty");
+	EXPECT_EQ(msg.rentDuration, 6u);
+	EXPECT_EQ(msg.durationType, 1u);
+	EXPECT_EQ(msg.zonePosition, NiPoint3(-361.0f, 288.0f, 112.0f));
+	EXPECT_EQ(msg.maxBuildHeight, 128.0f);
+	EXPECT_EQ(msg.pathPositions.size(), 4u);
+}
+
 TEST_F(PropertyMessagesTests, PropertyRentalResponseMatchesLegacy) {
 	for (const auto target : g_Targets) {
 		for (const auto value : g_Ints) {

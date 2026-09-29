@@ -79,6 +79,24 @@ namespace GameMessageTestUtils {
 		return copy;
 	}
 
+	// Reads a whole game message packet copied from a live capture (hex), requires its header to carry T's message ID
+	// and the payload to be consumed up to the byte padding, and requires the struct to write the same bytes back.
+	template<typename T>
+	T FromLiveCapture(const std::string& hex) {
+		auto live = FromHex(hex);
+		RakNet::BitStream bitStream(live.bytes.data(), live.bytes.size(), false);
+		T msg;
+		LWOOBJID target{};
+		MessageType::Game msgId{};
+		EXPECT_TRUE(GameMessages::NetGameMsg::ReadPacketHeader(bitStream, target, msgId));
+		EXPECT_EQ(msgId, msg.msgId);
+		EXPECT_TRUE(msg.Deserialize(bitStream));
+		EXPECT_LT(bitStream.GetNumberOfUnreadBits(), 8u);
+		msg.target = target;
+		EXPECT_EQ(StructPacket(msg).bytes, live.bytes);
+		return msg;
+	}
+
 	// Checks that every strict prefix of msg's serialized payload fails to deserialize.
 	template<typename T>
 	void ExpectTruncatedFails(const T& msg) {
