@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
+#include <string_view>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -21,13 +23,23 @@ namespace UgcRender {
 		std::vector<uint8_t> rgba;
 	};
 
+	// Whether an icon is denoised (the denoise setting): off, or with Intel Open Image Denoise when the build has it
+	enum class eDenoise : uint8_t { OFF = 0, OIDN };
+
+	// The setting's name (off, oidn)
+	std::string_view Name(eDenoise denoise);
+	// A value by its name; nullopt for anything else
+	std::optional<eDenoise> ParseDenoise(std::string_view name);
+	// Whether this build can denoise that way (off always)
+	bool Available(eDenoise denoise);
+
 	struct AoOptions {
 		bool enabled{ true };
 		float distance{ 5.0f };     // LU Toolbox's AO distance (Bake Lighting, AO Only)
 		int samples{ 64 };          // rays per vertex (AO Samples)
 		float strength{ 1.0f };     // 0 leaves the colors, 1 is the full bake
 		float glowStrength{ 6.0f }; // what glowing colors add to the light (Glow Strength 3 x Glow Multiplier 2)
-		UgcRays::eBackend rays{};   // what traces the occlusion rays (ugc_ray_backend)
+		UgcRays::eBackend rays{};   // what traces the occlusion rays (ray_backend)
 	};
 
 	/**
@@ -60,6 +72,7 @@ namespace UgcRender {
 		AoOptions ao{ false, 5.0f, 32, 1.0f, 0.0f };
 		float glowEmissive{ 1.0f };  // how far glowing shapes go from lit to their plain color (the glow_emissive setting)
 		UgcGlitter::Params glitter;  // the glitter's flecks (glitter_size, glitter_density), drawn where they are at the start
+		eDenoise denoise{};          // the finished icon denoised (denoise); off when the build can't
 	};
 
 	// The model drawn from the icon's camera, framed to fit, on a transparent background. `opaqueAo`: the opaque mesh's

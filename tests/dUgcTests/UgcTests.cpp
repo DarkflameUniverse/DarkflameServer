@@ -2063,6 +2063,54 @@ TEST(UgcHsr, FastMethodRendersFromAround) {
 #endif
 }
 
+TEST(UgcProcessOptions, ParseApplyAndRecord) {
+	UgcProcessOptions::Choice choice;
+	ASSERT_TRUE(UgcProcessOptions::Parse("fast  embree", choice));
+	EXPECT_EQ(choice.rays, "embree");
+	EXPECT_EQ(choice.hsr, "fast");
+	EXPECT_EQ(choice.denoise, "");
+	EXPECT_EQ(UgcProcessOptions::ToString(choice), "embree fast");
+	ASSERT_TRUE(UgcProcessOptions::Parse("default - oidn", choice));
+	EXPECT_EQ(UgcProcessOptions::ToString(choice), "oidn");
+	ASSERT_TRUE(UgcProcessOptions::Parse("", choice));
+	EXPECT_TRUE(choice.Empty());
+	EXPECT_FALSE(UgcProcessOptions::Parse("embree hiprt", choice)); // two backends
+	EXPECT_FALSE(UgcProcessOptions::Parse("optix", choice));
+
+	// The shared names are the UGC server's
+	for (const auto name : UgcProcessOptions::RAYS) EXPECT_EQ(UgcRays::Name(*UgcRays::Parse(name)), name);
+	for (const auto name : UgcProcessOptions::HSR) EXPECT_EQ(UgcHsr::Name(*UgcHsr::Parse(name)), name);
+	for (const auto name : UgcProcessOptions::DENOISE) EXPECT_EQ(UgcRender::Name(*UgcRender::ParseDenoise(name)), name);
+
+	// Applied over the settings; what made a model is recorded as it was used
+	UgcJobs::Settings settings;
+	EXPECT_EQ(UgcProcessOptions::ToString(UgcJobs::MadeWith(settings)), "builtin toolbox off");
+	ASSERT_TRUE(UgcProcessOptions::Parse("embree fast", choice));
+	UgcJobs::ApplyOptions(settings, choice);
+	EXPECT_EQ(settings.hsr.rays, UgcRays::eBackend::EMBREE);
+	EXPECT_EQ(settings.ao.rays, UgcRays::eBackend::EMBREE);
+	EXPECT_EQ(settings.icon.ao.rays, UgcRays::eBackend::EMBREE);
+	EXPECT_EQ(settings.hsr.method, UgcHsr::eMethod::FAST);
+	EXPECT_EQ(UgcProcessOptions::ToString(UgcJobs::MadeWith(settings)), "embree fast off");
+	ASSERT_TRUE(UgcProcessOptions::Parse("hiprt oidn", choice));
+	UgcJobs::ApplyOptions(settings, choice);
+	const auto made = UgcJobs::MadeWith(settings);
+	EXPECT_EQ(made.rays, UgcRays::Available(UgcRays::eBackend::HIPRT) ? "hiprt" : "embree");
+	EXPECT_EQ(made.denoise, UgcRender::Available(UgcRender::eDenoise::OIDN) ? "oidn" : "off");
+
+	// The make records it, in its stats too
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	auto small = SmallSettings();
+	UgcJobs::ApplyOptions(small, choice);
+	const auto outcome = UgcJobs::ProcessModel(LXFML5, library, small, 7);
+	ASSERT_TRUE(outcome.ok) << outcome.error;
+	EXPECT_EQ(outcome.options, UgcProcessOptions::ToString(UgcJobs::MadeWith(small)));
+	const auto stats = nlohmann::json::parse(outcome.stats);
+	EXPECT_EQ(stats["settings"]["rays"], made.rays);
+	EXPECT_EQ(stats["settings"]["hsrMethod"], "toolbox");
+	EXPECT_EQ(stats["settings"]["denoise"], made.denoise);
+}
+
 TEST(UgcRays, NamesAndFallback) {
 	for (const auto backend : { UgcRays::eBackend::BUILTIN, UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
 		EXPECT_EQ(UgcRays::Parse(UgcRays::Name(backend)), backend);

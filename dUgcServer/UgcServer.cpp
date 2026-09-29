@@ -159,6 +159,11 @@ namespace {
 		settings.hsr.bounces = std::clamp(Setting<int32_t>("hsr_bounces", 8), 0, 64);
 		settings.hsr.spacing = std::clamp(Setting<float>("hsr_sample_spacing", 0.1143f), 0.01f, 10.0f);
 		settings.hsr.minPoints = std::clamp(Setting<int32_t>("hsr_min_points", 28), 1, 4096);
+		settings.hsr.method = UgcHsr::Parse(Game::config->GetValue("hsr_method")).value_or(UgcHsr::eMethod::TOOLBOX);
+		settings.hsr.fastResolution = std::clamp(Setting<int32_t>("hsr_fast_resolution", 1024), 64, 4096);
+		// What traces the rays of the hidden faces' paths and of the occlusion (the icon's too)
+		settings.hsr.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::BUILTIN);
+		settings.ao.rays = settings.hsr.rays;
 		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
 		settings.ao.distance = Setting<float>("ao_distance", 5.0f);
 		settings.ao.samples = std::clamp(Setting<int32_t>("ao_samples", 64), 1, 1024);
@@ -173,6 +178,8 @@ namespace {
 		settings.icon.glowEmissive = settings.shaders.glowEmissive;
 		settings.icon.glitter = settings.shaders.glitterParams;
 		settings.icon.ao.distance = settings.ao.distance;
+		settings.icon.ao.rays = settings.hsr.rays;
+		settings.icon.denoise = UgcRender::ParseDenoise(Game::config->GetValue("denoise")).value_or(UgcRender::eDenoise::OFF);
 		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
 		return settings;
 	}
@@ -552,13 +559,20 @@ namespace {
 	}
 
 	// Command line tools: make one model's or modular build's files into a folder, without a database
-	int MakeFromCommandLine(const std::string& mode, const std::string& input, const std::filesystem::path& output) {
+	int MakeFromCommandLine(const std::string& mode, const std::string& input, const std::filesystem::path& output, const std::string& options) {
 		const auto res = ResPath();
-		const auto settings = ReadSettings();
+		auto settings = ReadSettings();
+		UgcProcessOptions::Choice choice;
+		if (!UgcProcessOptions::Parse(options, choice)) {
+			std::cerr << "Unknown processing options \"" << options << "\" (ray backend builtin, embree or hiprt; hidden faces toolbox or fast; denoise off or oidn)\n";
+			return EXIT_FAILURE;
+		}
+		UgcJobs::ApplyOptions(settings, choice);
 		UgcBricks::BrickLibrary library(res, 0, ClientReader());
 		if (!library.LoadMaterials()) std::cerr << "Couldn't read Materials.xml from " << (res / "brickdb.zip") << "; bricks will be grey\n";
 		UgcJobs::Outcome outcome;
 		const auto start = std::chrono::steady_clock::now();
+		const double cpuStart = UgcThrottle::ThreadCpuSeconds();
 		if (mode == "--make-model") {
 			const auto data = UgcBricks::ReadFile(input);
 			if (!data) {
@@ -585,7 +599,9 @@ namespace {
 		for (const auto& [name, data] : outcome.files) {
 			std::ofstream(output / name, std::ios::binary).write(data.data(), static_cast<std::streamsize>(data.size()));
 		}
-		std::cout << "Made " << outcome.files.size() << " files in " << ms << " ms" << (outcome.note.empty() ? "" : ": " + outcome.note) << "\n";
+		const double cpuMs = (UgcThrottle::ThreadCpuSeconds() - cpuStart) * 1000.0;
+		std::cout << "Made " << outcome.files.size() << " files in " << ms << " ms (" << cpuMs << " ms CPU)" << (outcome.options.empty() ? "" : " with " + outcome.options) <<
+			(outcome.note.empty() ? "" : ": " + outcome.note) << "\n";
 		return EXIT_SUCCESS;
 	}
 }
@@ -602,9 +618,12 @@ int main(int argc, char** argv) {
 
 	Game::config = new dConfig("ugcconfig.ini");
 
-	// UgcServer --make-model <file.lxfml> <folder> or --make-modular "1:4713+1:4714+1:4715" <folder>
-	if (argc == 4 && (std::string(argv[1]) == "--make-model" || std::string(argv[1]) == "--make-modular")) {
-		return MakeFromCommandLine(argv[1], argv[2], argv[3]);
+	// UgcServer --make-model <file.lxfml> <folder> [options] or --make-modular "1:4713+1:4714+1:4715" <folder> [options];
+	// options: processing options over the settings (UgcProcessOptions), e.g. embree fast
+	if (argc >= 4 && (std::string(argv[1]) == "--make-model" || std::string(argv[1]) == "--make-modular")) {
+		std::string options;
+		for (int i = 4; i < argc; i++) options += std::string(options.empty() ? "" : " ") + argv[i];
+		return MakeFromCommandLine(argv[1], argv[2], argv[3], options);
 	}
 
 	// Like the other servers: logs/UgcServer/UgcServer_<start time>.log

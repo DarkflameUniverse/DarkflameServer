@@ -12,6 +12,7 @@
 #include "UgcBricks.h"
 #include "UgcHsr.h"
 #include "UgcIconParams.h"
+#include "UgcKeys.h"
 #include "UgcRender.h"
 #include "UgcStorage.h"
 
@@ -64,6 +65,17 @@ namespace UgcJobs {
 		uint32_t maxBricks{};                  // a model with more fails; 0: no limit
 	};
 
+	/**
+	 * The processing options (UgcProcessOptions) staff picked for one make, over the settings: ray backend (the hidden
+	 * faces' paths and the occlusion rays, the icon's too), hidden-face method and denoising. Choices left empty keep
+	 * the settings'.
+	 */
+	void ApplyOptions(Settings& settings, const UgcProcessOptions::Choice& choice);
+
+	// What the settings make with, as it is used: the ray backend after its fallback (UgcRays::Resolve), off for a
+	// denoiser the build doesn't have; every choice filled ("embree toolbox off")
+	UgcProcessOptions::Choice MadeWith(const Settings& settings);
+
 	struct Outcome {
 		bool ok{};
 		std::string error;       // why it failed
@@ -72,6 +84,7 @@ namespace UgcJobs {
 		bool aoBaked{};
 		bool empty{};            // nothing to make (no bricks): not a failure
 		std::string stats;       // stats.json: bricks, triangles before and after per LOD, timings
+		std::string options;     // players' models: what made them (MadeWith, as UgcProcessOptions::ToString)
 	};
 
 	// The client's download of `data` (`name` + ".gz" and ".checksum") added to `files`

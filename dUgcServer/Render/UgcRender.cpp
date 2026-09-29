@@ -94,6 +94,21 @@ namespace {
 }
 
 namespace UgcRender {
+	std::string_view Name(eDenoise denoise) {
+		return denoise == eDenoise::OIDN ? "oidn" : "off";
+	}
+
+	std::optional<eDenoise> ParseDenoise(std::string_view name) {
+		for (const auto denoise : { eDenoise::OFF, eDenoise::OIDN }) {
+			if (Name(denoise) == name) return denoise;
+		}
+		return std::nullopt;
+	}
+
+	bool Available(eDenoise denoise) {
+		return denoise == eDenoise::OFF;
+	}
+
 	std::vector<glm::vec3> SphereDirections() {
 		const float t = (1.0f + std::sqrt(5.0f)) / 2.0f;
 		const std::vector<glm::vec3> corners = {

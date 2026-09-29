@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -68,5 +69,61 @@ namespace UgcDebounce {
 	// Whether a waiting model is due: its quiet period is over, or someone asked for its files
 	inline bool Due(int64_t processAfter, int64_t now, bool requested) {
 		return requested || processAfter <= now;
+	}
+}
+
+/**
+ * How a model is made, where there is more than one way to try (docs/UgcServer.md, "Processing options"): what traces
+ * the rays (ray_backend), how hidden faces are found (hsr_method) and whether icons are denoised
+ * (denoise). The UGC settings give the defaults; staff may pick others for one make (the dashboard, /reprocessproperty),
+ * and each made model records what made it. Written as the chosen names in this order, separated by spaces
+ * ("embree fast oidn"); a choice left out is the setting's.
+ */
+namespace UgcProcessOptions {
+	inline constexpr std::string_view RAYS[] = { "builtin", "embree", "hiprt" };
+	inline constexpr std::string_view HSR[] = { "toolbox", "fast" };
+	inline constexpr std::string_view DENOISE[] = { "off", "oidn" };
+
+	struct Choice {
+		std::string rays;    // one of RAYS, or empty for the setting
+		std::string hsr;     // one of HSR, or empty
+		std::string denoise; // one of DENOISE, or empty
+
+		bool Empty() const { return rays.empty() && hsr.empty() && denoise.empty(); }
+	};
+
+	template<size_t N>
+	inline bool Contains(const std::string_view (&names)[N], std::string_view word) {
+		return std::find(std::begin(names), std::end(names), word) != std::end(names);
+	}
+
+	// The words, in any order ("fast embree"); "default" or "-" leave a choice to the setting. False on an unknown
+	// word or two words for one choice.
+	inline bool Parse(std::string_view text, Choice& choice) {
+		choice = {};
+		size_t start = 0;
+		while (start < text.size()) {
+			while (start < text.size() && (text[start] == ' ' || text[start] == ',')) start++;
+			size_t end = start;
+			while (end < text.size() && text[end] != ' ' && text[end] != ',') end++;
+			const auto word = text.substr(start, end - start);
+			start = end;
+			if (word.empty() || word == "default" || word == "-") continue;
+			std::string* slot = Contains(RAYS, word) ? &choice.rays : Contains(HSR, word) ? &choice.hsr : Contains(DENOISE, word) ? &choice.denoise : nullptr;
+			if (!slot || !slot->empty()) return false;
+			*slot = std::string(word);
+		}
+		return true;
+	}
+
+	// The choices made, in order ("embree oidn"); empty when all are the settings'
+	inline std::string ToString(const Choice& choice) {
+		std::string text;
+		for (const auto* part : { &choice.rays, &choice.hsr, &choice.denoise }) {
+			if (part->empty()) continue;
+			if (!text.empty()) text += ' ';
+			text += *part;
+		}
+		return text;
 	}
 }

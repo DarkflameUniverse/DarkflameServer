@@ -169,6 +169,18 @@ namespace UgcJobs {
 		return parsed.dump();
 	}
 
+	void ApplyOptions(Settings& settings, const UgcProcessOptions::Choice& choice) {
+		if (const auto rays = UgcRays::Parse(choice.rays)) settings.hsr.rays = settings.ao.rays = settings.icon.ao.rays = *rays;
+		if (const auto method = UgcHsr::Parse(choice.hsr)) settings.hsr.method = *method;
+		if (const auto denoise = UgcRender::ParseDenoise(choice.denoise)) settings.icon.denoise = *denoise;
+	}
+
+	UgcProcessOptions::Choice MadeWith(const Settings& settings) {
+		const auto denoise = UgcRender::Available(settings.icon.denoise) ? settings.icon.denoise : UgcRender::eDenoise::OFF;
+		return { std::string(UgcRays::Name(UgcRays::Resolve(settings.hsr.rays))), std::string(UgcHsr::Name(settings.hsr.method)),
+			std::string(UgcRender::Name(denoise)) };
+	}
+
 	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed, const UgcIconParams::Values& iconValues) {
 		Outcome outcome;
 		const auto started = std::chrono::steady_clock::now();
@@ -355,6 +367,12 @@ namespace UgcJobs {
 			{ "removeHiddenFaces", settings.hsr.enabled }, { "groundPlane", settings.hsr.groundPlane }, { "hsrSamples", settings.hsr.samples },
 			{ "hsrBounces", settings.hsr.bounces }, { "hsrSampleSpacing", settings.hsr.spacing }, { "hsrMinPoints", settings.hsr.minPoints },
 			{ "ao", settings.ao.enabled }, { "aoDistance", settings.ao.distance }, { "aoSamples", settings.ao.samples }, { "aoStrength", settings.ao.strength } };
+		const auto madeWith = MadeWith(settings);
+		stats["settings"]["rays"] = madeWith.rays;
+		stats["settings"]["hsrMethod"] = madeWith.hsr;
+		stats["settings"]["denoise"] = madeWith.denoise;
+		if (settings.hsr.method == UgcHsr::eMethod::FAST) stats["settings"]["hsrFastResolution"] = settings.hsr.fastResolution;
+		outcome.options = UgcProcessOptions::ToString(madeWith);
 		outcome.stats = stats.dump();
 		outcome.files["stats.json"] = outcome.stats;
 		outcome.ok = true;

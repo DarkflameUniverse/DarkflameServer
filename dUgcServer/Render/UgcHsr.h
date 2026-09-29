@@ -37,7 +37,7 @@ namespace UgcHsr {
 		float spacing{ 0.1143f };       // hsr_sample_spacing: LDD units between points (a stud is 0.8: 7 points along it)
 		int minPoints{ 28 };            // hsr_min_points: points on a triangle at least (LU Toolbox bakes 28 texels a triangle)
 		uint64_t seed{};                // of the paths' random numbers (the same seed gives the same result)
-		UgcRays::eBackend rays{};       // what traces the paths' rays (ugc_ray_backend)
+		UgcRays::eBackend rays{};       // what traces the paths' rays (ray_backend)
 		int fastResolution{ 1024 };     // hsr_fast_resolution: pixels square of each of the fast method's renders
 	};
 
