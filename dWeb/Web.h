@@ -58,6 +58,8 @@ struct WSAuth {
 	uint32_t accountId{};
 	// Connected with an API key: subscriptions also need their permission in its scope
 	std::shared_ptr<const ApiKeys::Scope> apiKey{};
+	// The account's permission grants (PermissionGrants.h): subscriptions guarded by a permission follow them too
+	std::shared_ptr<const PermissionGrants::Held> grants{};
 };
 
 // WebSocket authentication callback function type
@@ -102,8 +104,8 @@ public:
 	void AddGlobalMiddleware(MiddlewarePtr middleware);
 	// Set WebSocket authentication callback for token validation
 	void SetWSAuthCallback(WSAuthCallback callback) { wsAuthCallback = callback; }
-	// Whether a GM level may connect with an API token (Authorization: Bearer) rather than the browser's cookie
-	void SetWSApiAccessCallback(std::function<bool(uint8_t)> callback) { wsApiAccessCallback = std::move(callback); }
+	// Whether an account may connect with an API token (Authorization: Bearer) rather than the browser's cookie
+	void SetWSApiAccessCallback(std::function<bool(const WSAuth&)> callback) { wsApiAccessCallback = std::move(callback); }
 	// Returns if the web server is enabled
 	bool IsEnabled() const { return enabled; };
 	/**
@@ -126,7 +128,7 @@ public:
 	mg_mgr& GetManager() { return mgr; };
 	// Get WebSocket auth callback (used during WebSocket upgrade)
 	WSAuthCallback GetWSAuthCallback() const { return wsAuthCallback; }
-	const std::function<bool(uint8_t)>& GetWSApiAccessCallback() const { return wsApiAccessCallback; }
+	const std::function<bool(const WSAuth&)>& GetWSApiAccessCallback() const { return wsApiAccessCallback; }
 private:
 	// Send the answers of deferred requests that have arrived
 	void SendDeferredReplies();
@@ -138,7 +140,7 @@ private:
 	bool managerFreed = false;
 	// WebSocket authentication callback
 	WSAuthCallback wsAuthCallback = nullptr;
-	std::function<bool(uint8_t)> wsApiAccessCallback = nullptr;
+	std::function<bool(const WSAuth&)> wsApiAccessCallback = nullptr;
 	std::vector<std::string> defaultHeaders{};
 };
 

@@ -8,6 +8,7 @@
 #include "JSONUtils.h"
 #include "HTTPContext.h"
 #include "IHTTPMiddleware.h"
+#include "Permissions.h"
 #include <ranges>
 #include <set>
 #include <vector>
@@ -40,17 +41,22 @@ namespace {
 		bool apiToken{};   // connected with Authorization: Bearer (subject to the API access rule)
 		std::chrono::steady_clock::time_point nextCheck;
 		std::shared_ptr<const ApiKeys::Scope> apiKey{}; // connected with an API key: its scope
+		std::shared_ptr<const PermissionGrants::Held> grants{}; // the account's permission grants
 	};
+
+	constexpr uint8_t INTERNAL_WS_LEVEL = UINT8_MAX;
 
 	// Whether a connection may subscribe to (and receive) a subscription
 	bool MayReceive(const WSClient& client, size_t index, uint8_t minLevel) {
-		if (client.level < minLevel) return false;
-		if (!client.apiKey) return true;
 		const auto& permission = g_WSSubscriptionPermissions[index];
+		// Guarded by a permission: its level or a grant (internal connections have every level)
+		const bool allowed = permission.empty() || client.level == INTERNAL_WS_LEVEL ? client.level >= minLevel
+			: Permissions::Allowed(client.level, permission, nullptr, client.grants.get());
+		if (!allowed) return false;
+		if (!client.apiKey) return true;
 		return permission.empty() ? (minLevel == 0 || client.apiKey->allPermissions) : client.apiKey->Has(permission);
 	}
 	std::map<mg_connection*, WSClient> g_AuthenticatedWSConnections;
-	constexpr uint8_t INTERNAL_WS_LEVEL = UINT8_MAX;
 	constexpr auto WS_RECHECK_INTERVAL = std::chrono::seconds(60);
 
 	// Close a WebSocket whose session is no longer valid (logged out everywhere, banned, demoted below dashboard access)
@@ -71,13 +77,14 @@ namespace {
 			if (client.token.empty() || client.nextCheck > now) continue;
 			client.nextCheck = now + WS_RECHECK_INTERVAL;
 			auto auth = callback(client.token);
-			if (auth && client.apiToken && Game::web.GetWSApiAccessCallback() && !Game::web.GetWSApiAccessCallback()(auth->level)) auth.reset();
+			if (auth && client.apiToken && Game::web.GetWSApiAccessCallback() && !Game::web.GetWSApiAccessCallback()(*auth)) auth.reset();
 			if (!auth || auth->accountId != client.accountId) {
 				expired.push_back(connection);
 				continue;
 			}
 			client.level = auth->level;
 			client.apiKey = auth->apiKey;
+			client.grants = auth->grants;
 		}
 		for (auto* connection : expired) {
 			LOG_DEBUG("Closing a WebSocket whose session is no longer valid");
@@ -344,7 +351,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 				// Bots and scripts: an API token, like the REST API takes it (and subject to the same API access rule)
 				const std::string token(authHeader->buf + 7, authHeader->len - 7);
 				level = Game::web.GetWSAuthCallback()(token);
-				if (level && Game::web.GetWSApiAccessCallback() && !Game::web.GetWSApiAccessCallback()(level->level)) level.reset();
+				if (level && Game::web.GetWSApiAccessCallback() && !Game::web.GetWSApiAccessCallback()(*level)) level.reset();
 				connectToken = token;
 				apiToken = true;
 			} else {
@@ -376,7 +383,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 			if (level) {
 				mg_ws_upgrade(connection, const_cast<mg_http_message*>(http_msg), NULL);
 				g_AuthenticatedWSConnections[connection] = { level->level, level->accountId, connectToken, apiToken,
-					std::chrono::steady_clock::now() + WS_RECHECK_INTERVAL, level->apiKey };
+					std::chrono::steady_clock::now() + WS_RECHECK_INTERVAL, level->apiKey, level->grants };
 				const char* connType = isInternal ? "internal" : "external";
 				LOG_DEBUG("Upgraded %s connection to websocket: %d.%d.%d.%d:%i", connType, MG_IPADDR_PARTS(&connection->rem.ip), connection->rem.port);
 			} else {

@@ -10,6 +10,7 @@
 #include "json.hpp"
 
 namespace ApiKeys { struct Scope; }
+namespace PermissionGrants { struct Held; }
 
 /**
  * What each GM level may do on the dashboard, and in the game for the slash commands paired with a permission. Every
@@ -54,18 +55,19 @@ namespace Permissions {
 	bool Allowed(uint8_t gmLevel, const std::string& key);
 
 	// For a request made with an API key: the owner's level must allow it AND the key's scope must name it.
-	// scope nullptr (a browser session) is the plain check.
-	bool Allowed(uint8_t gmLevel, const std::string& key, const ApiKeys::Scope* scope);
+	// scope nullptr (a browser session) is the plain check. grants: the account's permission grants (PermissionGrants.h),
+	// which can allow what the level doesn't or deny what it does; nullptr: the level alone.
+	bool Allowed(uint8_t gmLevel, const std::string& key, const ApiKeys::Scope* scope, const PermissionGrants::Held* grants = nullptr);
 
 	// The permissions in a requested API key scope that a GM level may not give it (unknown ones, or ones it doesn't
 	// have): a key can never be made with more than its maker has. Empty: all of them may be given.
-	std::set<std::string> NotGrantable(uint8_t gmLevel, const std::set<std::string>& requested);
+	std::set<std::string> NotGrantable(uint8_t gmLevel, const std::set<std::string>& requested, const PermissionGrants::Held* grants = nullptr);
 
 	// characters_view for anyone's character, or own_characters for the viewer's own (account 0 owns nothing)
-	bool CanViewCharacter(uint8_t gmLevel, uint32_t viewerAccountId, uint32_t ownerAccountId, const ApiKeys::Scope* scope = nullptr);
+	bool CanViewCharacter(uint8_t gmLevel, uint32_t viewerAccountId, uint32_t ownerAccountId, const ApiKeys::Scope* scope = nullptr, const PermissionGrants::Held* grants = nullptr);
 
 	// {key: bool} for every permission, for templates and scripts
-	nlohmann::json ForLevel(uint8_t gmLevel, const ApiKeys::Scope* scope = nullptr);
+	nlohmann::json ForLevel(uint8_t gmLevel, const ApiKeys::Scope* scope = nullptr, const PermissionGrants::Held* grants = nullptr);
 
 	// Pure: the level a config value gives a permission (bad or out-of-range values fall back to the default)
 	uint8_t Resolve(const Permission& permission, const std::string& configValue);

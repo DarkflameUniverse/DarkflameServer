@@ -319,8 +319,8 @@ namespace {
 	bool AccountAllowed(const HTTPContext& context) {
 		if (!context.isAuthenticated || context.userData.contains("needs_2fa")) return false;
 		const auto source = context.userData.find("auth_source");
-		if (source != context.userData.end() && source->second == "header" && !Permissions::Allowed(context.gmLevel, "api_access")) return false;
-		return Permissions::Allowed(context.gmLevel, "metrics_view", context.apiKey.get());
+		if (source != context.userData.end() && source->second == "header" && !Permissions::Allowed(context.gmLevel, "api_access", nullptr, context.grants.get())) return false;
+		return Permissions::Allowed(context.gmLevel, "metrics_view", context.apiKey.get(), context.grants.get());
 	}
 }
 

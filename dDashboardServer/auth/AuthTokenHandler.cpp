@@ -1,4 +1,5 @@
 #include "AuthTokenHandler.h"
+#include "PermissionGrantsLoader.h"
 #include "ApiKeyService.h"
 #include "DashboardAuthService.h"
 #include "Game.h"
@@ -82,6 +83,7 @@ bool AuthTokenHandler::ProcessHTTPContext(HTTPContext& context, HTTPReply& reply
 	if (source == eTokenSource::HEADER && ApiKeyService::LooksLikeKey(token)) {
 		const auto keyResult = ApiKeyService::Authenticate(token, context, reply);
 		if (keyResult == ApiKeyService::eResult::INVALID) LOG_DEBUG("API key validation failed from %s", context.clientIP.c_str());
+		if (context.isAuthenticated) context.grants = PermissionGrants::Load(context.accountId);
 		return keyResult != ApiKeyService::eResult::REFUSED;
 	}
 
@@ -95,6 +97,8 @@ bool AuthTokenHandler::ProcessHTTPContext(HTTPContext& context, HTTPReply& reply
 	context.authenticatedUser = result.username;
 	context.accountId = result.accountId;
 	context.gmLevel = result.gmLevel;
+	// Read on every request like the GM level, so a grant given or taken away applies at once
+	context.grants = PermissionGrants::Load(result.accountId);
 	context.userData["auth_source"] = source == eTokenSource::COOKIE ? "cookie" : "header";
 	if (DashboardAuthService::NeedsTwoFactorSetup(result.accountId, result.gmLevel)) context.userData["needs_2fa"] = "1";
 	return true;

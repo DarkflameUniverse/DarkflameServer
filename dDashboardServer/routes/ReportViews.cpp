@@ -6,6 +6,7 @@
 
 #include "RouteUtils.h"
 #include "Permissions.h"
+#include "PermissionGrantsLoader.h"
 #include "Scheduler.h"
 #include "Background.h"
 #include "EmailService.h"
@@ -185,7 +186,7 @@ namespace {
 		std::vector<Delivery> deliveries;
 		for (const auto accountId : Subscribers()) {
 			const auto account = Database::Get()->GetAccountById(accountId);
-			if (account.contains("error") || account.value("banned", 0) || !Permissions::Allowed(static_cast<uint8_t>(account.value("gm_level", 0)), "reports_view")) {
+			if (account.contains("error") || account.value("banned", 0) || !Permissions::Allowed(static_cast<uint8_t>(account.value("gm_level", 0)), "reports_view", nullptr, PermissionGrants::Load(accountId).get())) {
 				run->Log("Skipping account " + std::to_string(accountId) + ": no longer allowed to see reports");
 				continue;
 			}

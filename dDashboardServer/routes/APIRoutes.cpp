@@ -482,7 +482,8 @@ namespace {
 				nlohmann::json routes = nlohmann::json::array();
 				for (const auto& doc : GetRouteDocs()) {
 					const int16_t level = doc.permission.empty() ? doc.minGmLevel : Permissions::Level(doc.permission);
-					if (level > context.gmLevel || !doc.path.starts_with("/api/") || !KeyMayUse(context, doc)) continue;
+					const bool allowed = doc.permission.empty() ? level <= context.gmLevel : Permissions::Allowed(context.gmLevel, doc.permission, nullptr, context.grants.get());
+					if (!allowed || !doc.path.starts_with("/api/") || !KeyMayUse(context, doc)) continue;
 					routes.push_back({ {"method", doc.method}, {"path", doc.path}, {"minGmLevel", level}, {"permission", doc.permission}, {"description", doc.description} });
 				}
 				JsonReply(reply, eHTTPStatusCode::OK, {
@@ -497,7 +498,8 @@ namespace {
 				std::vector<OpenApi::Route> routes;
 				for (const auto& doc : GetRouteDocs()) {
 					const int16_t level = doc.permission.empty() ? doc.minGmLevel : Permissions::Level(doc.permission);
-					if (level > context.gmLevel || !doc.path.starts_with("/api/") || !KeyMayUse(context, doc)) continue;
+					const bool allowed = doc.permission.empty() ? level <= context.gmLevel : Permissions::Allowed(context.gmLevel, doc.permission, nullptr, context.grants.get());
+					if (!allowed || !doc.path.starts_with("/api/") || !KeyMayUse(context, doc)) continue;
 					routes.push_back({ doc.method, doc.path, doc.description, level, doc.permission });
 				}
 				JsonReply(reply, eHTTPStatusCode::OK, OpenApi::Build(routes, "DarkflameServer dashboard"));

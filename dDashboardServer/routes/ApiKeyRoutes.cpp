@@ -11,6 +11,7 @@
 #include "GeneralUtils.h"
 #include "HTTPContext.h"
 #include "Permissions.h"
+#include "PermissionGrantsLoader.h"
 #include "RequireAuthMiddleware.h"
 #include "RouteUtils.h"
 
@@ -61,14 +62,14 @@ namespace {
 		return "active";
 	}
 
-	nlohmann::json KeyJson(const IApiKeys::ApiKey& key, uint8_t ownerLevel, int64_t sessionsValidAfter) {
+	nlohmann::json KeyJson(const IApiKeys::ApiKey& key, uint8_t ownerLevel, const PermissionGrants::Held* ownerGrants, int64_t sessionsValidAfter) {
 		const auto now = Now();
 		bool all = false;
 		std::set<std::string> permissions;
 		ApiKeys::ParsePermissions(key.permissions, all, permissions);
 		// What the key names that its owner can't do any more (a demotion or a changed permission): it doesn't work
 		nlohmann::json lost = nlohmann::json::array();
-		for (const auto& permission : permissions) if (!Permissions::Allowed(ownerLevel, permission)) lost.push_back(permission);
+		for (const auto& permission : permissions) if (!Permissions::Allowed(ownerLevel, permission, nullptr, ownerGrants)) lost.push_back(permission);
 
 		auto requests = key.requestCount;
 		auto lastUsed = key.lastUsedAt;
@@ -163,11 +164,11 @@ namespace ApiKeyRoutes {
 				nlohmann::json permissions = nlohmann::json::array();
 				for (const auto& permission : Permissions::All()) {
 					permissions.push_back({ {"key", permission.key}, {"category", permission.category}, {"title", permission.title},
-						{"description", permission.description}, {"allowed", Permissions::Allowed(context.gmLevel, permission.key)} });
+						{"description", permission.description}, {"allowed", Permissions::Allowed(context.gmLevel, permission.key, nullptr, context.grants.get())} });
 				}
 				JsonSuccess(reply, { {"permissions", permissions}, {"defaultRateLimit", ApiKeyService::DefaultRateLimit()},
 					{"maxRateLimit", ApiKeyService::MAX_RATE_LIMIT}, {"maxDailyQuota", ApiKeyService::MAX_DAILY_QUOTA},
-					{"apiAccess", Permissions::Allowed(context.gmLevel, "api_access")} });
+					{"apiAccess", Permissions::Allowed(context.gmLevel, "api_access", nullptr, context.grants.get())} });
 			});
 
 		Route(eHTTPMethod::GET, "/api/accounts/:id/api_keys", 0,
@@ -185,7 +186,8 @@ namespace ApiKeyRoutes {
 				const auto ownerLevel = static_cast<uint8_t>(account.value("gm_level", 0));
 				const auto validAfter = Database::Get()->GetSessionsValidAfter(*accountId);
 				nlohmann::json keys = nlohmann::json::array();
-				for (const auto& key : Database::Get()->GetApiKeys(*accountId)) keys.push_back(KeyJson(key, ownerLevel, validAfter));
+				const auto ownerGrants = PermissionGrants::Load(*accountId);
+				for (const auto& key : Database::Get()->GetApiKeys(*accountId)) keys.push_back(KeyJson(key, ownerLevel, ownerGrants.get(), validAfter));
 				JsonSuccess(reply, { {"keys", keys}, {"own", own} });
 			});
 
@@ -214,7 +216,7 @@ namespace ApiKeyRoutes {
 					for (const auto& permission : requested) if (permission.is_string()) permissions.insert(permission.get<std::string>());
 					if (permissions.empty()) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Pick at least one permission");
 					// Staff can't hand a key more than they have
-					const auto refused = Permissions::NotGrantable(context.gmLevel, permissions);
+					const auto refused = Permissions::NotGrantable(context.gmLevel, permissions, context.grants.get());
 					if (!refused.empty()) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "You can't give a key permissions you don't have: " + *refused.begin());
 					key.permissions = ApiKeys::JoinPermissions(false, permissions);
 				} else {

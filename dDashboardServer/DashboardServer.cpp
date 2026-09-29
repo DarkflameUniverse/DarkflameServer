@@ -100,6 +100,8 @@
 #include "AuthTokenHandler.h"
 #include "ApiKeyService.h"
 #include "ApiKeyRoutes.h"
+#include "GrantRoutes.h"
+#include "PermissionGrantsLoader.h"
 #include "JWTUtils.h"
 #include "GeneralUtils.h"
 #include <fstream>
@@ -488,13 +490,13 @@ int main(int argc, char** argv) {
 			const auto key = ApiKeyService::Verify(token);
 			if (!key) return std::nullopt;
 			if (key->needsTwoFactorSetup) return WSAuth{ 0, key->accountId, key->scope };
-			return WSAuth{ key->gmLevel, key->accountId, key->scope };
+			return WSAuth{ key->gmLevel, key->accountId, key->scope, PermissionGrants::Load(key->accountId) };
 		}
 		const auto result = AuthTokenHandler::ValidateToken(token);
 		if (!result.isValid) return std::nullopt;
 		// Until required two-factor login is set up the session only reaches its own account page
 		if (DashboardAuthService::NeedsTwoFactorSetup(result.accountId, result.gmLevel)) return WSAuth{ 0, result.accountId };
-		return WSAuth{ result.gmLevel, result.accountId };
+		return WSAuth{ result.gmLevel, result.accountId, nullptr, PermissionGrants::Load(result.accountId) };
 	});
 
 	if (!Totp::LoadKey()) LOG("Two-factor login is unavailable: no usable key");
@@ -533,11 +535,12 @@ int main(int argc, char** argv) {
 	RegisterServerRoutes();
 	RegisterLeaderboardRoutes();
 	ApiKeyRoutes::RegisterRoutes();
-	RequireAuthMiddleware::SetApiAccessCheck([](uint8_t gmLevel) { return Permissions::Allowed(gmLevel, "api_access"); });
+	GrantRoutes::RegisterRoutes();
+	RequireAuthMiddleware::SetApiAccessCheck([](const HTTPContext& context) { return Permissions::Allowed(context.gmLevel, "api_access", nullptr, context.grants.get()); });
 	RequireAuthMiddleware::SetForbiddenPage([](const HTTPContext& context, HTTPReply& reply) {
 		RouteUtils::RenderError(reply, context, eHTTPStatusCode::FORBIDDEN, "You don't have permission to open this page.");
 	});
-	Game::web.SetWSApiAccessCallback([](uint8_t gmLevel) { return Permissions::Allowed(gmLevel, "api_access"); });
+	Game::web.SetWSApiAccessCallback([](const WSAuth& auth) { return Permissions::Allowed(auth.level, "api_access", nullptr, auth.grants.get()); });
 	RegisterVanityRoutes();
 	RegisterChatRoutes();
 	RegisterStrikeRoutes();

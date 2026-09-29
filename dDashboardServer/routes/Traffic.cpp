@@ -393,7 +393,7 @@ namespace Traffic {
 	}
 
 	void RegisterRoutes() {
-		Game::web.RegisterWSSubscription(TOPIC, std::function<uint8_t()>([] { return Permissions::Level(PERMISSION); }));
+		Game::web.RegisterWSSubscription(TOPIC, std::function<uint8_t()>([] { return Permissions::Level(PERMISSION); }), PERMISSION);
 
 		// The dashboard's own report stays here; the worker pool is what its deferred requests wait for
 		Game::server->SetTrafficSink([](ServerTraffic& report) { Ingest(report); });

@@ -1,6 +1,9 @@
 #include "Permissions.h"
 #include "AccountRules.h"
 #include "ApiKeyScope.h"
+#include "PermissionGrants.h"
+
+#include <ctime>
 
 #include <map>
 
@@ -107,6 +110,7 @@ namespace {
 		{ "email_settings", "Server", "Email settings", "Connect the mail account and send test emails", 9 },
 		{ "settings", "Server", "Server settings", "Change any server setting on the Settings page (always GM 9)", 9, true },
 		{ "permissions_manage", "Server", "Permissions", "Change what each GM level may do (always GM 9)", 9, true },
+		{ "grants_manage", "Accounts", "Grant permissions", "Give or take away dashboard permissions and in-game commands for one account or character, with an optional expiry (only ones they have themselves, and only on accounts they may manage)", 9 },
 
 		{ "dev_message_inspector", "Developer tools", "Game message inspector", "Capture the game messages an online player sends and receives, live (every capture is audited)", 8 },
 		{ "dev_cdclient", "Developer tools", "CDClient browser", "Read the game's CDClient tables as they are: page, sort, search and filter any table", 8 },
@@ -153,38 +157,42 @@ namespace Permissions {
 		return gmLevel >= Level(key);
 	}
 
-	bool Allowed(uint8_t gmLevel, const std::string& key, const ApiKeys::Scope* scope) {
-		return Allowed(gmLevel, key) && (!scope || scope->Has(key));
+	bool Allowed(uint8_t gmLevel, const std::string& key, const ApiKeys::Scope* scope, const PermissionGrants::Held* grants) {
+		bool allowed = Allowed(gmLevel, key);
+		if (grants && Find(key)) {
+			allowed = PermissionGrants::Decide(allowed, PermissionGrants::ForPermission(*grants, key, static_cast<int64_t>(std::time(nullptr))), gmLevel);
+		}
+		return allowed && (!scope || scope->Has(key));
 	}
 
-	std::set<std::string> NotGrantable(uint8_t gmLevel, const std::set<std::string>& requested) {
+	std::set<std::string> NotGrantable(uint8_t gmLevel, const std::set<std::string>& requested, const PermissionGrants::Held* grants) {
 		std::set<std::string> refused;
 		for (const auto& permission : requested) {
-			if (!Find(permission) || !Allowed(gmLevel, permission)) refused.insert(permission);
+			if (!Find(permission) || !Allowed(gmLevel, permission, nullptr, grants)) refused.insert(permission);
 		}
 		return refused;
 	}
 
-	bool CanViewCharacter(uint8_t gmLevel, uint32_t viewerAccountId, uint32_t ownerAccountId, const ApiKeys::Scope* scope) {
+	bool CanViewCharacter(uint8_t gmLevel, uint32_t viewerAccountId, uint32_t ownerAccountId, const ApiKeys::Scope* scope, const PermissionGrants::Held* grants) {
 		const bool own = viewerAccountId != 0 && viewerAccountId == ownerAccountId;
-		return Allowed(gmLevel, "characters_view", scope) || (own && Allowed(gmLevel, "own_characters", scope));
+		return Allowed(gmLevel, "characters_view", scope, grants) || (own && Allowed(gmLevel, "own_characters", scope, grants));
 	}
 
-	nlohmann::json ForLevel(uint8_t gmLevel, const ApiKeys::Scope* scope) {
+	nlohmann::json ForLevel(uint8_t gmLevel, const ApiKeys::Scope* scope, const PermissionGrants::Held* grants) {
 		nlohmann::json can = nlohmann::json::object();
-		for (const auto& permission : PERMISSIONS) can[permission.key] = Allowed(gmLevel, permission.key, scope);
+		for (const auto& permission : PERMISSIONS) can[permission.key] = Allowed(gmLevel, permission.key, scope, grants);
 		return can;
 	}
 }
 
 namespace AccountRules {
 	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action) {
-		return ManageDenial(actorLevel, actorAccountId, targetLevel, targetAccountId,
-			Permissions::Allowed(actorLevel, SelfPermission(action)), Permissions::Allowed(actorLevel, EQUAL_RANK_PERMISSION));
+		return ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, action, nullptr, nullptr);
 	}
 
-	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action, const ApiKeys::Scope* scope) {
-		const auto denial = ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, action);
+	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action, const ApiKeys::Scope* scope, const PermissionGrants::Held* grants) {
+		const auto denial = ManageDenial(actorLevel, actorAccountId, targetLevel, targetAccountId,
+			Permissions::Allowed(actorLevel, SelfPermission(action), nullptr, grants), Permissions::Allowed(actorLevel, EQUAL_RANK_PERMISSION, nullptr, grants));
 		if (!scope) return denial;
 		return ScopedManageDenial(denial, actorLevel, actorAccountId, targetLevel, targetAccountId,
 			scope->Has(SelfPermission(action)), scope->Has(EQUAL_RANK_PERMISSION));

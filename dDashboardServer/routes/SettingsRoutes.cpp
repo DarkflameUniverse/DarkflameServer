@@ -322,6 +322,27 @@ namespace {
 	}
 }
 
+std::vector<SlashCommandNow> CurrentSlashCommands() {
+	std::vector<SlashCommandNow> commands;
+	std::vector<ISlashCommands::SlashCommand> rows;
+	try {
+		rows = Database::Get()->GetSlashCommands();
+	} catch (const std::exception&) {
+		return commands; // no slash_commands table yet: no world has started
+	}
+	const auto levels = CommandLevelRows();
+	for (auto& row : rows) {
+		SlashCommandNow command;
+		command.rules = { row.name, ResolveCommandLevel(row, levels).level, row.minLevel, row.fixed,
+			Permissions::Find(row.dashboardPermission) ? row.dashboardPermission : "" };
+		command.aliases = std::move(row.aliases);
+		command.help = std::move(row.help);
+		command.clientHandled = row.clientHandled;
+		commands.push_back(std::move(command));
+	}
+	return commands;
+}
+
 std::optional<std::string> SaveSetting(const HTTPContext& context, const nlohmann::json& body, uint64_t revertOf) {
 	std::string error;
 	const auto change = ParseChange(body, error);
@@ -455,7 +476,7 @@ void RegisterSettingsRoutes() {
 
 	Route(eHTTPMethod::GET, "/api/account/permissions", 0, "What you may do: {permissions: {name: bool}}",
 		[](HTTPReply& reply, const HTTPContext& context) {
-			JsonSuccess(reply, { {"gmLevel", context.gmLevel}, {"permissions", Permissions::ForLevel(context.gmLevel, context.apiKey.get())} });
+			JsonSuccess(reply, { {"gmLevel", context.gmLevel}, {"permissions", Permissions::ForLevel(context.gmLevel, context.apiKey.get(), context.grants.get())} });
 		});
 
 	Route(eHTTPMethod::GET, "/api/permissions", Perm("permissions_manage"), "Every permission with its default and current minimum GM level, and where that comes from",

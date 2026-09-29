@@ -4,6 +4,7 @@
 #include <string>
 
 namespace ApiKeys { struct Scope; }
+namespace PermissionGrants { struct Held; }
 
 /**
  * Who staff may use their tools on: the self and rank rules shared by the dashboard (RouteUtils) and the in-game slash
@@ -109,6 +110,7 @@ namespace AccountRules {
 		return eManageDenial::NONE;
 	}
 
-	// ManageDenialNow for a request made with an API key (scope nullptr: a browser session, the plain rules)
-	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action, const ApiKeys::Scope* scope);
+	// ManageDenialNow for a request made with an API key (scope nullptr: a browser session, the plain rules). grants: the
+	// actor's permission grants (PermissionGrants.h), which count for self_* and manage_equal_rank; nullptr: the level alone.
+	eManageDenial ManageDenialNow(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action, const ApiKeys::Scope* scope, const PermissionGrants::Held* grants = nullptr);
 }

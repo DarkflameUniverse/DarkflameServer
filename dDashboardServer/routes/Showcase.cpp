@@ -60,9 +60,14 @@ namespace {
 			JsonError(reply, eHTTPStatusCode::TOO_MANY_REQUESTS, "Too many requests, try again in a minute");
 			return false;
 		}
-		static RequireAuthMiddleware gate(std::function<uint8_t()>([] { return Permissions::Level("showcase_view"); }));
+		// Signed in (and the checks every route makes), then the permission: its level or a grant
+		static RequireAuthMiddleware gate(0);
 		auto copy = context;
-		return gate.Process(copy, reply);
+		if (!gate.Process(copy, reply)) return false;
+		if (Permissions::Allowed(context.gmLevel, "showcase_view", nullptr, context.grants.get())) return true;
+		if (context.path.starts_with("/api/")) JsonError(reply, eHTTPStatusCode::FORBIDDEN, "Insufficient permissions");
+		else RenderError(reply, context, eHTTPStatusCode::FORBIDDEN, "You don't have permission to open this page.");
+		return false;
 	}
 
 	bool Showable(const IProperty::Info& info) {

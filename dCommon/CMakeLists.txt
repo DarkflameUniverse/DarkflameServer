@@ -33,6 +33,7 @@ set(DCOMMON_SOURCES
 		"ZoneScenes.cpp"
 		"Process.cpp"
 		"Permissions.cpp"
+		"PermissionGrants.cpp"
 		"NifFile.cpp"
 )
 

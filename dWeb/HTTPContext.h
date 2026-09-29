@@ -8,6 +8,8 @@
 #include "json.hpp"
 #include "ApiKeyScope.h"
 
+namespace PermissionGrants { struct Held; }
+
 /**
  * HTTP Request Context
  * 
@@ -38,6 +40,9 @@ struct HTTPContext {
 	// Set when an API key authenticated the request: the key's scope, on top of what the account may do (gmLevel).
 	// Every permission check must honour it (RouteUtils::Can and friends do).
 	std::shared_ptr<const ApiKeys::Scope> apiKey{};
+	// The account's permission grants in force (PermissionGrants.h), loaded with the sign-in; every permission check
+	// passes them on (RouteUtils::Can and friends do). nullptr: none were loaded, the GM level alone counts.
+	std::shared_ptr<const PermissionGrants::Held> grants{};
 	
 	// Custom data for middleware to communicate
 	std::map<std::string, std::string> userData{};

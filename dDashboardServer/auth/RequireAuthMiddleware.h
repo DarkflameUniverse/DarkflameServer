@@ -30,9 +30,9 @@ public:
 
 	bool Process(HTTPContext& context, HTTPReply& reply) override;
 
-	// Whether a GM level may use the API (requests signed in with a token in the Authorization header rather than
-	// the browser's cookie). Set by the dashboard from its api_access permission; unset allows everyone.
-	static void SetApiAccessCheck(std::function<bool(uint8_t gmLevel)> check);
+	// Whether a signed-in account may use the API (requests signed in with a token in the Authorization header rather
+	// than the browser's cookie). Set by the dashboard from its api_access permission; unset allows everyone.
+	static void SetApiAccessCheck(std::function<bool(const HTTPContext& context)> check);
 
 	// Renders the page a signed-in account gets when it may not open a page (not /api/); unset replies with JSON
 	static void SetForbiddenPage(std::function<void(const HTTPContext& context, HTTPReply& reply)> render);

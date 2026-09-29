@@ -225,7 +225,7 @@ void RegisterAuthRoutes() {
 		.method = eHTTPMethod::POST,
 		.middleware = { std::make_shared<RequireAuthMiddleware>(0) },
 		.handle = [](HTTPReply& reply, const HTTPContext& context) {
-			if (!Permissions::Allowed(context.gmLevel, "api_access")) return RouteUtils::JsonError(reply, eHTTPStatusCode::FORBIDDEN, "API access isn't allowed for your account");
+			if (!Permissions::Allowed(context.gmLevel, "api_access", nullptr, context.grants.get())) return RouteUtils::JsonError(reply, eHTTPStatusCode::FORBIDDEN, "API access isn't allowed for your account");
 			// Only a signed-in browser session may make tokens: a leaked token must not be able to renew itself for a year
 			const auto source = context.userData.find("auth_source");
 			if (source == context.userData.end() || source->second != "cookie") {

@@ -5,6 +5,7 @@ set(DASHBOARDROUTES_SOURCES
 	"WSRoutes.cpp"
 	"AuthRoutes.cpp"
 	"ApiKeyRoutes.cpp"
+	"GrantRoutes.cpp"
 	"RouteUtils.cpp"
 	"PlayerActions.cpp"
 	"AccountRoutes.cpp"

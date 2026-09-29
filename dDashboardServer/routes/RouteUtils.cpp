@@ -81,7 +81,7 @@ namespace RouteUtils {
 	}
 
 	bool Can(const HTTPContext& context, const std::string& permission) {
-		return context.isAuthenticated && Permissions::Allowed(context.gmLevel, permission, context.apiKey.get());
+		return context.isAuthenticated && Permissions::Allowed(context.gmLevel, permission, context.apiKey.get(), context.grants.get());
 	}
 
 	std::optional<LWOOBJID> ResolveCharacter(std::string_view text) {
@@ -95,7 +95,7 @@ namespace RouteUtils {
 	}
 
 	bool CanViewCharacter(const HTTPContext& context, uint32_t ownerAccountId) {
-		return context.isAuthenticated && Permissions::CanViewCharacter(context.gmLevel, context.accountId, ownerAccountId, context.apiKey.get());
+		return context.isAuthenticated && Permissions::CanViewCharacter(context.gmLevel, context.accountId, ownerAccountId, context.apiKey.get(), context.grants.get());
 	}
 
 	const std::vector<RouteDoc>& GetRouteDocs() {
@@ -243,7 +243,7 @@ namespace RouteUtils {
 	}
 
 	bool CanManageAccount(const HTTPContext& context, uint8_t targetLevel, uint32_t targetAccountId, eAccountAction action) {
-		return context.isAuthenticated && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, context.apiKey.get()) == eManageDenial::NONE;
+		return context.isAuthenticated && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, context.apiKey.get(), context.grants.get()) == eManageDenial::NONE;
 	}
 
 	nlohmann::json ManageJson(const HTTPContext& context, uint8_t targetLevel, uint32_t targetAccountId) {
@@ -261,10 +261,10 @@ namespace RouteUtils {
 			return std::nullopt;
 		}
 		const uint8_t targetLevel = target.value("gm_level", 0);
-		const auto denial = AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, context.apiKey.get());
+		const auto denial = AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, context.apiKey.get(), context.grants.get());
 		if (denial == eManageDenial::NONE) return targetLevel;
 		// The owner may do it, but the key's scope doesn't let it
-		if (context.apiKey && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action) == eManageDenial::NONE) {
+		if (context.apiKey && AccountRules::ManageDenialNow(context.gmLevel, context.accountId, targetLevel, targetAccountId, action, nullptr, context.grants.get()) == eManageDenial::NONE) {
 			ApiKeyService::NoteDenied(context, AccountRules::DenialMessage(denial, action));
 			JsonError(reply, eHTTPStatusCode::FORBIDDEN, "This API key may not do this: " + AccountRules::DenialMessage(denial, action));
 			return std::nullopt;
@@ -288,7 +288,7 @@ namespace RouteUtils {
 		try {
 			data.merge_patch(context.GetUserDataJson());
 			data["current_page"] = page;
-			data["can"] = Permissions::ForLevel(context.isAuthenticated ? context.gmLevel : 0, context.apiKey.get());
+			data["can"] = Permissions::ForLevel(context.isAuthenticated ? context.gmLevel : 0, context.apiKey.get(), context.isAuthenticated ? context.grants.get() : nullptr);
 			// The account's view choices, on <body> so each page's toggles start as they were left (static/js/common.js)
 			// Names for the game's numbered values, from the server's enums (GameLabels.h)
 			data["labels"] = GameLabels::Json();

@@ -3,6 +3,7 @@
 #include "Web.h"
 #include "Game.h"
 #include "Logger.h"
+#include "Permissions.h"
 
 namespace {
 	bool IsApiRequest(const HTTPContext& context) {
@@ -17,7 +18,7 @@ namespace {
 			path.starts_with("/js/") || path.starts_with("/css/") || path == "/favicon.ico";
 	}
 
-	std::function<bool(uint8_t)> g_ApiAccessAllowed;
+	std::function<bool(const HTTPContext&)> g_ApiAccessAllowed;
 	std::function<void(const HTTPContext&, HTTPReply&)> g_ForbiddenPage;
 	std::function<void(const HTTPContext&, const std::string&)> g_ApiKeyDenied;
 
@@ -34,7 +35,7 @@ namespace {
 	}
 }
 
-void RequireAuthMiddleware::SetApiAccessCheck(std::function<bool(uint8_t gmLevel)> check) {
+void RequireAuthMiddleware::SetApiAccessCheck(std::function<bool(const HTTPContext& context)> check) {
 	g_ApiAccessAllowed = std::move(check);
 }
 
@@ -83,7 +84,7 @@ bool RequireAuthMiddleware::Process(HTTPContext& context, HTTPReply& reply) {
 	}
 
 	// A token in the Authorization header is API use, which a GM level may not be allowed
-	if (authSource != context.userData.end() && authSource->second == "header" && g_ApiAccessAllowed && !g_ApiAccessAllowed(context.gmLevel)) {
+	if (authSource != context.userData.end() && authSource->second == "header" && g_ApiAccessAllowed && !g_ApiAccessAllowed(context)) {
 		reply.status = eHTTPStatusCode::FORBIDDEN;
 		reply.message = "{\"success\":false,\"error\":\"API access isn't allowed for your account\"}";
 		reply.contentType = eContentType::APPLICATION_JSON;
@@ -105,7 +106,9 @@ bool RequireAuthMiddleware::Process(HTTPContext& context, HTTPReply& reply) {
 	}
 
 	const auto minGmLevel = requiredLevel();
-	if (context.gmLevel < minGmLevel) {
+	// A route guarded by a permission: the level, or a grant for this account (a deny takes it away)
+	const bool allowed = permission.empty() ? context.gmLevel >= minGmLevel : Permissions::Allowed(context.gmLevel, permission, nullptr, context.grants.get());
+	if (!allowed) {
 		LOG_DEBUG("Forbidden access attempt by user %s (GM level %d < %d required) to %s from %s",
 			context.authenticatedUser.c_str(), context.gmLevel, minGmLevel,
 			context.path.c_str(), context.clientIP.c_str());
