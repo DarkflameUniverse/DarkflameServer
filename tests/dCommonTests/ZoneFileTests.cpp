@@ -164,6 +164,46 @@ TEST(ZoneFileTests, PrePreAlphaHasNoZoneName) {
 	EXPECT_TRUE(zone.zoneDesc.empty());
 }
 
+// Before path version 3 the type is a name and every waypoint has a platform's data and name/value pairs
+TEST(ZoneFileTests, ReadsLegacyPaths) {
+	ZoneBytes w;
+	w.Put<uint32_t>(35).Put<uint32_t>(137).Put<uint8_t>(1); // version, world, scene count
+	w.Text("lup.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(0).Text("lup.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0); // no transitions
+	w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(2);
+	w.Put<uint32_t>(2).Wide("LavaPath").Wide("npc").Put<uint32_t>(1).Put<uint32_t>(0);
+	w.Put<uint32_t>(1).Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put<uint8_t>(0).Put(3.0f).Put(0.5f);
+	w.Put<uint32_t>(1).Wide("delay").Wide("2");
+	w.Put<uint32_t>(2).Wide("Mower").Wide("platform").Put<uint32_t>(0).Put<uint32_t>(2);
+	w.Put<uint32_t>(1).Point(4, 5, 6).Put(0.0f).Put(1.0f).Put(0.0f).Put(0.0f).Put<uint8_t>(1).Put(7.0f).Put(1.5f).Put<uint32_t>(0);
+
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	EXPECT_EQ(stream.peek(), std::char_traits<char>::eof());
+	ASSERT_EQ(zone.paths.size(), 2u);
+
+	const auto& npc = zone.paths[0];
+	EXPECT_EQ(npc.pathType, PathType::Movement);
+	EXPECT_EQ(npc.flags, 1u);
+	ASSERT_EQ(npc.pathWaypoints.size(), 1u);
+	EXPECT_EQ(npc.pathWaypoints[0].position, NiPoint3(1, 2, 3));
+	EXPECT_EQ(npc.pathWaypoints[0].speed, 3.0f);
+	ASSERT_EQ(npc.pathWaypoints[0].commands.size(), 1u);
+	EXPECT_EQ(npc.pathWaypoints[0].commands[0].command, eWaypointCommandType::DELAY);
+
+	const auto& platform = zone.paths[1];
+	EXPECT_EQ(platform.pathType, PathType::MovingPlatform);
+	EXPECT_EQ(platform.pathBehavior, PathBehavior::Once);
+	ASSERT_EQ(platform.pathWaypoints.size(), 1u);
+	EXPECT_EQ(platform.pathWaypoints[0].rotation.x, 1.0f);
+	EXPECT_EQ(platform.pathWaypoints[0].movingPlatform.lockPlayer, 1);
+	EXPECT_EQ(platform.pathWaypoints[0].speed, 7.0f);
+	EXPECT_EQ(platform.pathWaypoints[0].movingPlatform.wait, 1.5f);
+}
+
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {
 	const auto zone = SampleZone();
 	for (const size_t length : { size_t{ 3 }, size_t{ 40 }, zone.size() / 2, zone.size() - 1 }) {

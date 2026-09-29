@@ -176,7 +176,12 @@ void ZoneFile::ReadPath(std::istream& file) {
 
 	BinaryIO::ReadString<uint8_t>(file, path.pathName, BinaryIO::ReadType::WideString);
 
-	BinaryIO::BinaryRead(file, path.pathType);
+	if (path.pathVersion < 3) {
+		// Before version 3 the type is a name, "platform" or "npc" (LevelPath::FromBuffer)
+		std::string typeName;
+		BinaryIO::ReadString<uint8_t>(file, typeName, BinaryIO::ReadType::WideString);
+		path.pathType = typeName == "platform" ? PathType::MovingPlatform : PathType::Movement;
+	} else BinaryIO::BinaryRead(file, path.pathType);
 	BinaryIO::BinaryRead(file, path.flags);
 	BinaryIO::BinaryRead(file, path.pathBehavior);
 
@@ -236,6 +241,19 @@ void ZoneFile::ReadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, waypoint.position.y);
 		BinaryIO::BinaryRead(file, waypoint.position.z);
 
+		if (path.pathVersion < 3) {
+			// Before version 3 every waypoint has a moving platform's data and then name/value pairs, whatever its path's type
+			BinaryIO::BinaryRead(file, waypoint.rotation.w);
+			BinaryIO::BinaryRead(file, waypoint.rotation.x);
+			BinaryIO::BinaryRead(file, waypoint.rotation.y);
+			BinaryIO::BinaryRead(file, waypoint.rotation.z);
+			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
+			BinaryIO::BinaryRead(file, waypoint.speed);
+			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
+			ReadLdfConfig(file, path.pathType, waypoint);
+			path.pathWaypoints.push_back(waypoint);
+			continue;
+		}
 
 		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
 			BinaryIO::BinaryRead(file, waypoint.rotation.w);
