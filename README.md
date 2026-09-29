@@ -193,34 +193,25 @@ If you are going to be using an Ubuntu environment to run the server, you may ne
 The general approach to do so would be to obtain a copy of the signing key and then add the CMake repository to your apt.
 You can do so with the following commands.
 
-[Source of the below commands](https://askubuntu.com/questions/355565/how-do-i-install-the-latest-version-of-cmake-from-the-command-line)
+[Source of the below commands](https://apt.kitware.com/)
 
 ```bash
 # Remove the old version of CMake
 sudo apt purge --auto-remove cmake
 
-# Prepare for installation
-sudo apt update && sudo apt install -y software-properties-common lsb-release && sudo apt clean all
+# Tools the steps below use
+sudo apt update && sudo apt install -y ca-certificates gpg wget
 
-# Obtain a copy of the signing key
-wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+# Kitware's signing key, as a keyring only its repository uses
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
 
-# Add the repository to your sources list.
-sudo apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+# Kitware's repository for this Ubuntu release
+. /etc/os-release
+echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ ${VERSION_CODENAME} main" | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
 
-# Next you'll want to ensure that Kitware's keyring stays up to date
+# Install CMake, and the package that keeps Kitware's key up to date
 sudo apt update
-sudo apt install kitware-archive-keyring
-sudo rm /etc/apt/trusted.gpg.d/kitware.gpg
-
-# If sudo apt update above returned an error, copy the public key at the end of the error message and run the following command
-# if the error message was "The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6AF7F09730B3F0A4"
-# then the below command would be "sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6AF7F09730B3F0A4"
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys <TheCopiedPublicKey>
-
-# Finally update and install
-sudo apt update
-sudo apt install cmake
+sudo apt install -y kitware-archive-keyring cmake
 ```
 
 ## Database setup
