@@ -18,7 +18,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 546 | BUG: (Most?) spawned Pets don't play their summoning/hibernating Animation/VFX/Audio | done | `d1e0f215` fix(pets): summoned pets play their spawn animation and effect |
 | 547 | BUG: Pet Taming Mini-Game uses poor/invalid positions | done | `6819c670` fix(pets): place the taming minigame where live did |
 | 596 | BUG: Crux Prime Computer does not respawn if it is killed by an Area of Effect attack | done | `b3166865` fix: Crux Prime dropship computer respawns and no longer crashes |
-| 611 | Venture Vision not shown on the minimap after logging in | done | `7e0ec590` fix(minimap): venture vision shows again after logging in (issue 611) |
+| 611 | Venture Vision not shown on the minimap after logging in | done | `154ff1f1` fix(minimap): venture vision shows again after logging in (issue 611) |
 | 636 | BUG: Reputation system not working correctly on Properties | done | `d95eab12` feat: property reputation from visitors, resistant to farming |
 | 637 | BUG: Today's Top Properties not showing any properties | done | `d95eab12` feat: property reputation from visitors, resistant to farming |
 | 639 | ENH: Implement saving checks to prevent overwriting of saves | done | `341ce89a` feat: refuse stale character saves with a save generation |
