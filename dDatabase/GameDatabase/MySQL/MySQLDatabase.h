@@ -227,6 +227,13 @@ public:
 	std::vector<UgcPlacement> GetUgcPlacements(const std::vector<LWOOBJID>& ugcIds) override;
 	std::vector<UgcMail> GetUgcMail(const std::vector<LWOOBJID>& subkeys, const LOT modelItemLot) override;
 
+	// IPermissionGrants
+	uint64_t InsertPermissionGrant(const Grant& grant) override;
+	std::optional<Grant> GetPermissionGrant(uint64_t id) override;
+	std::vector<Grant> GetPermissionGrants(const std::string& targetType, int64_t targetId) override;
+	std::vector<Grant> GetActivePermissionGrants(uint32_t accountId, int64_t characterId, int64_t now) override;
+	std::vector<Grant> GetRecentPermissionGrants(bool activeOnly, int64_t now, uint32_t limit) override;
+	bool RevokePermissionGrant(uint64_t id, const std::string& revokedBy, int64_t time) override;
 	// IApiKeys
 	uint64_t InsertApiKey(const ApiKey& key) override;
 	std::optional<ApiKey> GetApiKey(uint64_t id) override;

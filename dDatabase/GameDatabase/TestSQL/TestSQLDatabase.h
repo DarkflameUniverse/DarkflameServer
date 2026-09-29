@@ -214,6 +214,12 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<AccountNote> GetAccountNotes(uint32_t accountId) override { return {}; }
 	std::optional<AccountNote> GetAccountNote(uint64_t id) override { return {}; }
 	void DeleteAccountNote(uint64_t id) override {}
+	uint64_t InsertPermissionGrant(const Grant& grant) override { return 0; }
+	std::optional<Grant> GetPermissionGrant(uint64_t id) override { return {}; }
+	std::vector<Grant> GetPermissionGrants(const std::string& targetType, int64_t targetId) override { return {}; }
+	std::vector<Grant> GetActivePermissionGrants(uint32_t accountId, int64_t characterId, int64_t now) override { return {}; }
+	std::vector<Grant> GetRecentPermissionGrants(bool activeOnly, int64_t now, uint32_t limit) override { return {}; }
+	bool RevokePermissionGrant(uint64_t id, const std::string& revokedBy, int64_t time) override { return false; }
 	uint64_t InsertApiKey(const ApiKey& key) override { return 0; }
 	std::optional<ApiKey> GetApiKey(uint64_t id) override { return {}; }
 	std::optional<ApiKey> GetApiKeyByHash(const std::string& keyHash) override { return {}; }

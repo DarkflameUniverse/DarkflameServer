@@ -12,6 +12,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"AccountNotes.cpp"
 	"AccountStrikes.cpp"
 	"ApiKeys.cpp"
+	"PermissionGrants.cpp"
 	"Moderation.cpp"
 	"ServerHealth.cpp"
 	"PlayerPositions.cpp"

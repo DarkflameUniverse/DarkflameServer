@@ -64,6 +64,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountEmails::EmailInfo, email, confirmed);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountEmails::AccountToken, accountId, data);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountNotes::AccountNote, id, accountId, kind, text, actor, createdAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountStrikes::Strike, id, accountId, characterId, source, subject, reason, givenById, givenBy, createdAt, revokedAt, revokedBy, revokeReason);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPermissionGrants::Grant, id, targetType, targetId, kind, name, deny, expiresAt, note, grantedAt, grantedById, grantedBy, revokedAt, revokedBy);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IApiKeys::ApiKey, id, accountId, name, note, keyHash, keyPrefix, permissions, readOnly, allowedIps, allowedPaths, rateLimit, dailyQuota, createdAt, createdBy, issuedAt, expiresAt, revokedAt, revokedBy, lastUsedAt, lastIp, requestCount, quotaDay, dayCount);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ICharacterSnapshots::CharacterSnapshot, id, characterId, takenAt, reason, actor, size, hash, compressed);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatMessage, id, time, channel, senderId, senderName, accountId, recipientId, recipientName, zoneId, instanceId, cloneId, message, blocked);
@@ -1259,6 +1260,33 @@ TEST_F(ParitySeeded, AccountNotesAndStrikes) {
 	Both("CountActiveStrikes", [](GameDatabase& db) { return json{ db.CountActiveStrikes(2, 0), db.CountActiveStrikes(2, 1700000050), db.CountActiveStrikes(1, 1650000000) }; });
 	Both("SetStrikeStep", [](GameDatabase& db) { db.SetStrikeStep(1, "WARN", 1); db.SetStrikeStep(2, "MUTE", 2); });
 	Both("GetAppliedStrikeSteps", [](GameDatabase& db) { return json{ db.GetAppliedStrikeSteps(2, 0), db.GetAppliedStrikeSteps(2, 1700000050), db.GetAppliedStrikeSteps(1, 0) }; });
+}
+
+TEST_F(ParitySeeded, PermissionGrants) {
+	Both("InsertPermissionGrant", [](GameDatabase& db) {
+		json ids = json::array();
+		ids.push_back(db.InsertPermissionGrant({ 0, "account", 2, "permission", "accounts_kick", false, 0, "helps with events", 1700000000, 1, "alice" }));
+		ids.push_back(db.InsertPermissionGrant({ 0, "account", 2, "command", "spawn", false, 1700001000, "", 1700000100, 1, "alice" }));
+		ids.push_back(db.InsertPermissionGrant({ 0, "character", CHAR_BOB, "permission_group", "Accounts", true, 0, "no tools", 1700000200, 1, "alice" }));
+		ids.push_back(db.InsertPermissionGrant({ 0, "account", 1, "command_group", "3", false, 0, "", 1700000300, 1, "alice" }));
+		ids.push_back(db.InsertPermissionGrant({ 0, "character", CHAR_ALICE, "command", "fly", false, 0, "", 1700000400, 1, "alice" }));
+		return ids;
+	});
+	Both("GetPermissionGrant", [](GameDatabase& db) { return json{ db.GetPermissionGrant(1), db.GetPermissionGrant(99) }; });
+	Both("GetPermissionGrants", [](GameDatabase& db) { return json{ db.GetPermissionGrants("account", 2), db.GetPermissionGrants("character", CHAR_BOB), db.GetPermissionGrants("account", 7) }; });
+	Both("GetActivePermissionGrants", [](GameDatabase& db) {
+		return json{ db.GetActivePermissionGrants(2, 0, 1700000500), db.GetActivePermissionGrants(2, CHAR_BOB, 1700000500),
+			db.GetActivePermissionGrants(2, CHAR_BOB, 1700001000), db.GetActivePermissionGrants(1, CHAR_ALICE, 1700000500) };
+	});
+	Both("GetRecentPermissionGrants", [](GameDatabase& db) {
+		return json{ db.GetRecentPermissionGrants(true, 1700001000, 10), db.GetRecentPermissionGrants(false, 1700001000, 2) };
+	});
+	Both("RevokePermissionGrant", [](GameDatabase& db) {
+		const bool first = db.RevokePermissionGrant(1, "bob", 1700000600);
+		const bool again = db.RevokePermissionGrant(1, "late", 1700000700);
+		const bool missing = db.RevokePermissionGrant(99, "bob", 1700000600);
+		return json{ first, again, missing, db.GetPermissionGrant(1), db.GetActivePermissionGrants(2, 0, 1700000600), db.GetRecentPermissionGrants(true, 1700000600, 10) };
+	});
 }
 
 TEST_F(ParitySeeded, ApiKeys) {
