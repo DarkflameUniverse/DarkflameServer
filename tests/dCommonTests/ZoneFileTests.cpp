@@ -130,10 +130,10 @@ TEST(ZoneFileTests, ReadsZoneBoundaries) {
 	EXPECT_EQ(zone.zoneDesc, "Description");
 }
 
-// From LateAlpha (37) on the scene count is a u32 (some LUP zones are 37)
+// From LateAlpha (37) on the scene count is a u32
 TEST(ZoneFileTests, LateAlphaSceneCountIsAU32) {
 	ZoneBytes w;
-	w.Put<uint32_t>(37).Put<uint32_t>(1).Put<uint32_t>(20022); // version, revision, world; no spawn point before 38
+	w.Put<uint32_t>(37).Put<uint32_t>(1).Put<uint32_t>(1000); // version, revision, world; no spawn point before 38
 	w.Put<uint32_t>(1);
 	w.Text("scene.lvl").Put<uint32_t>(5).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
 	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
@@ -226,15 +226,15 @@ TEST(ZoneFileTests, KeepsTheScenesTheClientLoads) {
 // A PrePreAlpha (30) file ends at its terrain file's name: no zone name, description, transitions or paths
 TEST(ZoneFileTests, PrePreAlphaHasNoZoneName) {
 	ZoneBytes w;
-	w.Put<uint32_t>(30).Put<uint32_t>(72).Put<uint8_t>(1).Text("scale.lvl"); // version, world, one scene: only its file
-	w.Put<uint8_t>(0).Text("scale.raw");
+	w.Put<uint32_t>(30).Put<uint32_t>(1000).Put<uint8_t>(1).Text("scene.lvl"); // version, world, one scene: only its file
+	w.Put<uint8_t>(0).Text("zone.raw");
 	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
 	ASSERT_EQ(zone.scenes.size(), 1u);
-	EXPECT_EQ(zone.scenes[0].filename, "scale.lvl");
-	EXPECT_EQ(zone.zoneRawPath, "scale.raw");
+	EXPECT_EQ(zone.scenes[0].filename, "scene.lvl");
+	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
 	EXPECT_TRUE(zone.zoneName.empty());
 	EXPECT_TRUE(zone.zoneDesc.empty());
 }
@@ -242,15 +242,15 @@ TEST(ZoneFileTests, PrePreAlphaHasNoZoneName) {
 // Before path version 3 the type is a name and every waypoint has a platform's data and name/value pairs
 TEST(ZoneFileTests, ReadsLegacyPaths) {
 	ZoneBytes w;
-	w.Put<uint32_t>(35).Put<uint32_t>(137).Put<uint8_t>(1); // version, world, scene count
-	w.Text("lup.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
-	w.Put<uint8_t>(0).Text("lup.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(35).Put<uint32_t>(1000).Put<uint8_t>(1); // version, world, scene count
+	w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
 	w.Put<uint32_t>(0); // no transitions
 	w.Paths().Put<uint32_t>(1).Put<uint32_t>(2);
-	w.Put<uint32_t>(2).Wide("LavaPath").Wide("npc").Put<uint32_t>(1).Put<uint32_t>(0);
+	w.Put<uint32_t>(2).Wide("Patrol").Wide("npc").Put<uint32_t>(1).Put<uint32_t>(0);
 	w.Put<uint32_t>(1).Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put<uint8_t>(0).Put(3.0f).Put(0.5f);
 	w.Put<uint32_t>(1).Wide("delay").Wide("2");
-	w.Put<uint32_t>(2).Wide("Mower").Wide("platform").Put<uint32_t>(0).Put<uint32_t>(2);
+	w.Put<uint32_t>(2).Wide("Lift").Wide("platform").Put<uint32_t>(0).Put<uint32_t>(2);
 	w.Put<uint32_t>(1).Point(4, 5, 6).Put(0.0f).Put(1.0f).Put(0.0f).Put(0.0f).Put<uint8_t>(1).Put(7.0f).Put(1.5f).Put<uint32_t>(0);
 
 	std::istringstream stream(w.Done());
