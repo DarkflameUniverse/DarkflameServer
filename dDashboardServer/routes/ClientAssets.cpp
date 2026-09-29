@@ -457,7 +457,7 @@ void RegisterClientAssetRoutes() {
 	Route(eHTTPMethod::GET, "/api/bricks/materials.js", 0,
 		"The brick colours (MatID -> [r, g, b, a]) from Materials.xml in the client's res/brickdb.zip, as a script setting "
 		"window.LDD_MATERIALS for the 3D viewers, and window.LDD_GLITTER: the colours the UGC server makes glitter with its settings "
-		"(shader_glitter on: glitter_material_types and glitter_colors) and the glitter's glitter_size and glitter_density. "
+		"(shader_glitter on: glitter_material_types and glitter_colors) and the glitter's settings (flecks, and sparkles when shader_glitter_sparkle is on). "
 		"The colours are read once; an empty table when the client's brick database can't be read",
 		[](HTTPReply& reply, const HTTPContext&) {
 			// Read on first use (thread-safe static init); the client only changes with a restart
@@ -505,11 +505,17 @@ void RegisterClientAssetRoutes() {
 				{ "flecks", GeneralUtils::TryParse<uint32_t>(UgcRoutes::Setting("glitter_density").value_or("")).value_or(80) },
 				{ "fleckSize", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_fleck_size").value_or("")).value_or(0.05f) },
 				{ "fleckOpacity", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_fleck_opacity").value_or("")).value_or(80.0f) },
-				{ "speed", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_speed").value_or("")).value_or(1.0f) } };
+				{ "speed", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_speed").value_or("")).value_or(1.0f) },
+				{ "sparkles", GeneralUtils::TryParse<uint32_t>(UgcRoutes::Setting("shader_glitter_sparkle").value_or("")).value_or(79) != 0 },
+				{ "sparkleSize", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_sparkle_size").value_or("")).value_or(0.1f) },
+				{ "sparkleAmount", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_sparkle_amount").value_or("")).value_or(5.0f) },
+				{ "sparkleTint", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_sparkle_tint").value_or("")).value_or(30.0f) },
+				{ "sparkleBrightness", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_sparkle_brightness").value_or("")).value_or(100.0f) } };
 			reply.status = eHTTPStatusCode::OK;
 			reply.message = colours.script + "window.LDD_GLITTER = " + settings.dump() + ";\n";
 			reply.contentType = eContentType::TEXT_JAVASCRIPT;
-			reply.headers.push_back("Cache-Control: private, max-age=3600");
+			// Not kept: the glitter settings change from the settings page, and the preview should follow
+			reply.headers.push_back("Cache-Control: private, no-cache");
 		});
 
 	Route(eHTTPMethod::GET, "/api/icon/:lot", 0, "PNG icon for an item LOT (requires client_location and ImageMagick)",

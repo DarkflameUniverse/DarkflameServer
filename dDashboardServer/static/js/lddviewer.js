@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { parseModel, mergeMeshes, linearColors, nearPlaneFor, addGlitter } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, linearColors, nearPlaneFor, addGlitter, glitterSettings } from '/js/scenery-core.js';
 
 const GEOMETRY_MAGIC = 0x42473031; // "10GB"
 const MAX_PARALLEL_FETCHES = 6;
@@ -174,7 +174,8 @@ async function loadGeneratedModel(url) {
 // ---- Viewer ----
 
 const materialCache = new Map();
-// The glitter colours' flecks (window.LDD_GLITTER, the UGC server's glitter settings)
+// The glitter colours' flecks and sparkles (window.LDD_GLITTER, the UGC server's current glitter settings), the
+// sparkles moved each frame
 const glitterMaterials = [];
 function material(id) {
 	if (!materialCache.has(id)) {
@@ -192,8 +193,13 @@ function material(id) {
 		});
 		const glitter = window.LDD_GLITTER;
 		if (glitter && (glitter.colors || []).includes(Number(id))) {
-			// Still, as the game draws them on a placed model
-			glitterMaterials.push(addGlitter(created, { coordinates: 'position', tile: glitter.tile || 1.6, flecks: glitter.flecks || 50 }));
+			// The flecks still and the sparkles flashing, as the game draws them on a placed model; the sparkles white
+			// taking the tint of the brick's color (UgcGlitter::SparkleColor)
+			const settings = glitterSettings();
+			const tint = Math.min(Math.max(settings.sparkleTint / 100, 0), 1), bright = Math.min(Math.max(settings.sparkleBrightness / 100, 0), 1);
+			const sparkleColor = [0, 1, 2].map((i) => Math.min(1, ((1 - tint) + tint * c[i] / 255) * bright));
+			const linear = new THREE.Color().setRGB(sparkleColor[0], sparkleColor[1], sparkleColor[2], THREE.SRGBColorSpace);
+			glitterMaterials.push(addGlitter(created, { coordinates: 'position', ...settings, sparkleColor: [linear.r, linear.g, linear.b] }));
 		}
 		materialCache.set(id, created);
 	}

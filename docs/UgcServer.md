@@ -434,10 +434,14 @@ and transparent) again:
 The icon draws the flecks where they are (the same texture and the .nif's UVs, before the light; `glitter_size` and
 `glitter_density`), opaque and transparent, and leaves the sparkles out (`Shaders::OverlayTags`: alpha tested shapes
 tagged `shader_glitter_sparkle` or 79). The UGC page's 3D view marks glitter meshes (`/api/ugc/mesh`: look
-`GLITTER` 512, a mesh with a stored texture in a group tagged `shader_glitter` or 21) and draws flecks from their
-UVs, and marks the sparkles (look `SPARKLE` 1024); the property and zone views, which draw bricks from the LXFML, draw
-flecks on the colors in `window.LDD_GLITTER` (`/api/bricks/materials.js`: the glitter colors by the current settings)
-from their positions.
+`GLITTER` 512, a mesh with a stored texture in a group tagged `shader_glitter` or 21) and draws flecks on their UVs,
+and marks the sparkles (look `SPARKLE` 1024, alpha tested and tagged `shader_glitter_sparkle` or 79), which it draws
+flashing on theirs as the client does (`addGlitter` in `static/js/scenery-core.js`: two layers of sparkles in cells,
+one at three quarters the scale sliding a tile in 24 s, the other a tile in 48 s, shown where both have one). The
+LXFML views (the UGC page's second view, the property and zone views) draw flecks and sparkles on the glitter colors
+from their positions, by `window.LDD_GLITTER` (`/api/bricks/materials.js`: the glitter colors and every glitter
+setting as they are now, not cached): a live preview of the settings without making the model again (a brick's own
+placement, `glitter_random`, is only in the made model).
 
 #### Satin
 

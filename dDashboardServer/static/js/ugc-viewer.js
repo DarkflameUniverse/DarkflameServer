@@ -2,13 +2,14 @@
  * A 3D view of a .nif the UGC server made, from /api/ugc/mesh/:id (the dashboard converts it with NifFile::Encode,
  * as it does the scenery's models), with wireframe and vertex color switches and triangle counts. The metal and glow
  * groups (the UGC server's shader settings; each mesh's "look" is its shader's eShaderLook bits) are drawn as metal
- * reflecting the view's environment and as unlit glow, the glitter groups with moving white flecks (their UVs and
- * uvScroll, as the game moves its fleck texture).
+ * reflecting the view's environment and as unlit glow, the glitter groups with their flecks on their UVs and the
+ * glitter sparkles flashing as the game's Distortion Directional shader makes them (addGlitter), by the UGC server's
+ * current glitter settings (window.LDD_GLITTER, when the page has /api/bricks/materials.js).
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { parseModel, mergeMeshes, linearColors, metalOf, addGlitter, SHADER_LOOK } from '/js/scenery-core.js';
+import { parseModel, mergeMeshes, linearColors, metalOf, addGlitter, glitterSettings, SHADER_LOOK } from '/js/scenery-core.js';
 
 export function createNifViewer(container) {
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -123,19 +124,23 @@ export function createNifViewer(container) {
 				let seeThrough = !!mesh.blend && mesh.alpha < 0.99;
 				if (mesh.blend && hasColors) for (let i = 3; i < mesh.colors.length && !seeThrough; i += 4) seeThrough = mesh.colors[i] < 250;
 				const look = mesh.look || 0;
-				// The glitter sparkles (drawn over the glitter bricks) aren't drawn here
-				if (look & SHADER_LOOK.SPARKLE) continue;
 				const metal = metalOf(look);
 				// Glow: the emissive shader's vertex color, unlit (its vertex alpha is the glow, not opacity)
-				const material = look & SHADER_LOOK.EMISSIVE
+				const sparkles = !!(look & SHADER_LOOK.SPARKLE);
+				const material = sparkles ? new THREE.MeshLambertMaterial({ color: baseColor.clone(), vertexColors: hasColors })
+					: look & SHADER_LOOK.EMISSIVE
 					? new THREE.MeshBasicMaterial({ color: baseColor.clone(), vertexColors: hasColors })
 					: new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough,
 						roughness: metal === 'polished' ? 0.18 : metal === 'brushed' ? 0.45 : 0.6, metalness: metal ? 1 : 0 });
-				// Glitter: the fleck texture's UVs, one tile of it each, moving as the game moves it
+				// Glitter: the fleck texture's UVs, one tile of it each; the sparkle shapes' UVs, one sparkle tile each
 				let glitter = null;
+				const settings = glitterSettings();
 				if (look & SHADER_LOOK.GLITTER && mesh.uvs) {
 					geometry.setAttribute('glitterUv', new THREE.BufferAttribute(mesh.uvs, 2));
-					glitter = addGlitter(material, { coordinates: 'uv', scroll: mesh.uvScroll || [0, 0] });
+					glitter = addGlitter(material, { coordinates: 'uv', ...settings, sparkles: false });
+				} else if (sparkles && mesh.uvs) {
+					geometry.setAttribute('glitterSparkleUv', new THREE.BufferAttribute(mesh.uvs, 2));
+					glitter = addGlitter(material, { coordinates: 'uv', ...settings, sparkles: true, sparklesOnly: true });
 				}
 				const object = new THREE.Mesh(geometry, material);
 				if (seeThrough) object.renderOrder = 1;

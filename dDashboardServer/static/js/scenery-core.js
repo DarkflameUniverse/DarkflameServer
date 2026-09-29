@@ -59,18 +59,41 @@ export const SHADER_LOOK = { UNLIT: 1, NO_TEXTURE: 2, NO_VERTEX_COLORS: 4, MATER
 	GLITTER: 512, SPARKLE: 1024 };
 
 /**
- * Glitter for a three.js material (the UGC server's glitter colors, UgcGlitter): white flecks over the color before
- * the light, as the game's LEGO-AnimUV shader lays its fleck texture over the vertex color. The flecks are drawn in
- * the shader from a hash of cells of `coordinates` ('uv': the mesh's UVs, one tile of the texture each; 'position':
- * a box projection of the object's position, `tile` units a tile, for meshes without UVs), `flecks` a tile, moving
- * `scroll` tiles a second. Returns {update(seconds)} to animate it.
+ * The UGC server's glitter (UgcGlitter) for a three.js material, drawn in the shader from hashes of cells:
+ *
+ * Flecks ({flecks}): flat flakes over the color before the light, as the game's LEGO-AnimUV shader lays its fleck
+ * texture over the vertex color: `flecks` a tile, `fleckSize` model units across (0.7 to 1.3 of it), each as bright as
+ * its facet catches the light (0.3 to 1 of `fleckOpacity` percent, mostly dim). On `coordinates` 'uv' (the mesh's
+ * 'glitterUv' attribute, in tiles) or 'position' (a box projection of the object's position, `tile` units a tile).
+ *
+ * Sparkles ({sparkles}): what the game's Distortion Directional shader does with the sparkle texture: two layers of
+ * sparkles (`sparkleAmount` percent covered, `sparkleSize` across) sliding at the client's rates (a tile in 24 s at
+ * three quarters the scale, and in 48 s), drawn only where both have one (the alpha test), in `sparkleColor`. On
+ * 'glitterSparkleUv' (in sparkle tiles) or the projected position (`sparkleTile` units a tile). With `sparklesOnly`
+ * the rest of the surface is discarded and the sparkles keep the material's color (the made model's sparkle shapes,
+ * whose vertex colors are the sparkles').
+ *
+ * Returns {update(seconds)} to move the sparkles.
  */
-export function addGlitter(material, { coordinates = 'uv', tile = 1.6, flecks = 50, scroll = [0, 0] } = {}) {
-	const uniforms = { glitterTime: { value: 0 }, glitterScroll: { value: scroll }, glitterTile: { value: tile }, glitterCells: { value: Math.max(1, Math.sqrt(flecks)) } };
+export function addGlitter(material, { coordinates = 'uv', tile = 1.6, flecks = 80, fleckSize = 0.05, fleckOpacity = 80, sparkles = false,
+	sparkleTile = 7.5, sparkleSize = 0.1, sparkleAmount = 5, sparkleColor = [1, 1, 1], sparklesOnly = false } = {}) {
+	const fleckCells = Math.max(1, Math.sqrt(flecks));
+	// A sparkle's radius in sparkle tiles, and cells of one sparkle each covering `sparkleAmount` percent
+	const sparkleRadius = sparkleSize / Math.max(sparkleTile, 1e-3) / 2;
+	const sparkleShare = Math.min(Math.max(sparkleAmount / 100, 0), 0.5);
+	const sparkleCells = sparkleShare > 0 ? Math.sqrt(sparkleShare / (Math.PI * sparkleRadius * sparkleRadius)) : 1;
+	const uniforms = {
+		glitterTime: { value: 0 }, glitterTile: { value: tile }, glitterCells: { value: fleckCells },
+		glitterFleckRadius: { value: fleckSize / Math.max(tile, 1e-3) / 2 * fleckCells }, glitterOpacity: { value: Math.min(Math.max(fleckOpacity / 100, 0), 1) },
+		glitterFlecksOn: { value: sparklesOnly ? 0 : 1 },
+		sparkleOn: { value: sparkles && sparkleShare > 0 ? 1 : 0 }, sparkleTileSize: { value: sparkleTile }, sparkleCells: { value: sparkleCells },
+		sparkleCellRadius: { value: sparkleRadius * sparkleCells }, sparkleColor: { value: new Float32Array(sparkleColor) }, sparklesOnly: { value: sparklesOnly ? 1 : 0 }
+	};
 	material.onBeforeCompile = (shader) => {
 		Object.assign(shader.uniforms, uniforms);
 		const byPosition = coordinates === 'position';
-		shader.vertexShader = 'varying vec3 vGlitterPosition;\nvarying vec3 vGlitterNormal;\n' + (byPosition ? '' : 'attribute vec2 glitterUv;\nvarying vec2 vGlitterUv;\n') +
+		shader.vertexShader = 'varying vec3 vGlitterPosition;\nvarying vec3 vGlitterNormal;\n' +
+			(byPosition ? '' : 'attribute vec2 glitterUv;\nvarying vec2 vGlitterUv;\nattribute vec2 glitterSparkleUv;\nvarying vec2 vGlitterSparkleUv;\n') +
 			shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' +
 				(byPosition ? `vec4 glitterAt = vec4(transformed, 1.0);
 vec3 glitterNormal = objectNormal;
@@ -80,24 +103,73 @@ glitterNormal = mat3(instanceMatrix) * glitterNormal;
 #endif
 vGlitterPosition = glitterAt.xyz;
 vGlitterNormal = glitterNormal;
-` : 'vGlitterUv = glitterUv;\n'));
-		shader.fragmentShader = 'uniform float glitterTime;\nuniform vec2 glitterScroll;\nuniform float glitterTile;\nuniform float glitterCells;\nvarying vec3 vGlitterPosition;\nvarying vec3 vGlitterNormal;\n' +
-			(byPosition ? '' : 'varying vec2 vGlitterUv;\n') + `
+` : 'vGlitterUv = glitterUv;\nvGlitterSparkleUv = glitterSparkleUv;\n'));
+		shader.fragmentShader = `uniform float glitterTime;
+uniform float glitterTile;
+uniform float glitterCells;
+uniform float glitterFleckRadius;
+uniform float glitterOpacity;
+uniform float glitterFlecksOn;
+uniform float sparkleOn;
+uniform float sparkleTileSize;
+uniform float sparkleCells;
+uniform float sparkleCellRadius;
+uniform vec3 sparkleColor;
+uniform float sparklesOnly;
+varying vec3 vGlitterPosition;
+varying vec3 vGlitterNormal;
+` + (byPosition ? '' : 'varying vec2 vGlitterUv;\nvarying vec2 vGlitterSparkleUv;\n') + `
 float glitterHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// A flat disc of radius r (in cells) at a random place in each cell, its edge a pixel wide
+float glitterDisc(vec2 uv, float cells, float r, float salt) {
+	vec2 at = uv * cells;
+	vec2 cell = floor(at);
+	vec2 centre = r + (1.0 - 2.0 * r) * vec2(glitterHash(cell + salt), glitterHash(cell + salt + 17.0));
+	float d = length(fract(at) - centre);
+	float edge = max(fwidth(d), 1e-4);
+	return clamp((r - d) / edge + 0.5, 0.0, 1.0);
+}
 float glitterFleck(vec2 uv) {
 	vec2 cell = floor(uv * glitterCells);
-	vec2 centre = vec2(glitterHash(cell), glitterHash(cell + 17.0));
-	float d = length(fract(uv * glitterCells) - centre) * 128.0 / glitterCells;
-	return (0.65 + 0.35 * glitterHash(cell + 41.0)) * (1.0 - smoothstep(0.0, 1.7, d));
+	float size = 0.7 + 0.6 * glitterHash(cell + 29.0);
+	float facet = glitterHash(cell + 41.0);
+	return glitterOpacity * (0.3 + 0.7 * facet * facet) * glitterDisc(uv, glitterCells, min(glitterFleckRadius * size, 0.45), 0.0);
+}
+// Two layers sliding as Distortion Directional's (2-layer technique): uv * 0.75 + a tile in 24 s, uv - 0.3 + a tile in 48 s
+float glitterSparkle(vec2 uv) {
+	float r = min(sparkleCellRadius, 0.45);
+	float a = glitterDisc(uv * 0.75 + vec2(glitterTime / 24.0, 0.0), sparkleCells, r, 3.0);
+	float b = glitterDisc(uv - 0.3 + vec2(glitterTime / 48.0, 0.0), sparkleCells, r, 7.0);
+	return step(0.996, a + b);
 }
 ` + shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + (byPosition ? `
 	vec3 glitterN = abs(vGlitterNormal);
-	vec2 glitterUv = (glitterN.x >= glitterN.y && glitterN.x >= glitterN.z ? vGlitterPosition.zy : glitterN.y >= glitterN.z ? vGlitterPosition.xz : vGlitterPosition.xy) / glitterTile;
-` : 'vec2 glitterUv = vGlitterUv;\n') + 'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), glitterFleck(glitterUv + glitterScroll * glitterTime));\n');
+	vec2 glitterPlane = glitterN.x >= glitterN.y && glitterN.x >= glitterN.z ? vGlitterPosition.zy : glitterN.y >= glitterN.z ? vGlitterPosition.xz : vGlitterPosition.xy;
+	vec2 glitterUv = glitterPlane / glitterTile;
+	vec2 glitterSparkleUv = glitterPlane / sparkleTileSize;
+` : 'vec2 glitterUv = vGlitterUv;\nvec2 glitterSparkleUv = vGlitterSparkleUv;\n') + `
+	if (glitterFlecksOn > 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), glitterFleck(glitterUv));
+	if (sparkleOn > 0.5) {
+		float glitterSparkles = glitterSparkle(glitterSparkleUv);
+		if (sparklesOnly > 0.5 && glitterSparkles < 0.5) discard;
+		if (sparklesOnly < 0.5) diffuseColor = mix(diffuseColor, vec4(sparkleColor, 1.0), glitterSparkles);
+	}
+`);
 	};
 	material.customProgramCacheKey = () => 'glitter-' + coordinates;
 	material.needsUpdate = true;
 	return { update(seconds) { uniforms.glitterTime.value = seconds; } };
+}
+
+// The UGC server's glitter settings for addGlitter (window.LDD_GLITTER), its defaults without them
+export function glitterSettings() {
+	const g = window.LDD_GLITTER || {};
+	const speed = g.speed > 0 ? g.speed : 1, sparkleSize = g.sparkleSize > 0 ? g.sparkleSize : 0.1;
+	return {
+		tile: g.tile || 1.6, flecks: g.flecks ?? 80, fleckSize: g.fleckSize || 0.05, fleckOpacity: g.fleckOpacity ?? 80,
+		sparkles: !!g.sparkles, sparkleSize, sparkleAmount: g.sparkleAmount ?? 5, sparkleTile: 75 * sparkleSize * speed,
+		sparkleTint: g.sparkleTint ?? 30, sparkleBrightness: g.sparkleBrightness ?? 100
+	};
 }
 
 // NifFile::eTechniqueFlag bits (what a technique does besides its family and eShaderLook bits)
