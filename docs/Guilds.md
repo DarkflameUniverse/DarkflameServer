@@ -11,9 +11,11 @@ for chat ids 0x16-0x1c, client ids 0x25-0x30 and game message 626: none).
 
 - Everything guild related in the client is gated by `FeatureGating::GetIsFeatureEnabled("guilds")` [G]: the guild
   component registers no handlers, the create/invite/leave UI does nothing and `PlayerReady` sends nothing.
-- The feature is read from the **client's** `cdclient.fdb` table `FeatureGating` (`LWODataCache::Load`) [G]. The shipped
-  1.10.64 table has no `guilds` row [D], so guilds are off in a stock client. A row `featureName=guilds, major=1,
-  current=0, minor=0` turns them on (any version at or below the client's). DLU cannot send this; it is client data.
+- `GetIsFeatureEnabled` (0x00a32ef0) is true when the name is in either of `FeatureGating`'s two name sets [G]. They are
+  filled by `AddFeatureGate` (0x00402670) from the client's `cdclient.fdb` table `FeatureGating` (`LWODataCache::Load`)
+  and from every event string in the login response (`PacketHandler_MSG_CLIENT_LOGIN_RESPONSE`, call at 0x00b33466) [G].
+  The shipped 1.10.64 table has no `guilds` row [D], so a stock client turns guilds on only when the login response
+  names it: set one of `event_1` … `event_8` in sharedconfig.ini to `guilds`. No client file needs changing.
 - The Guild Master NPC (LOT 3001, script `scripts\ai\FV\L_GUILD_CREATE.lua`: `onUse` → `DisplayGuildCreateBox`) exists
   in the cdclient [D] but is placed in no 1.10.64 `.lvl` file [D].
 
@@ -159,7 +161,7 @@ routes 10 to the guild tab [G][F]. Channel 11 has no UI box [F].
 ## Locale strings [D]
 
 `MSG_GUILD_*` (41 ids) and `UI_GUILD_*`, `UI_GUILDCREATE_*`, `UI_CHAT_CHGUILD`, `UI_CHAT_GUILD_CHAT` in `locale.xml`.
-No cdclient table is about guilds (besides `FeatureGating`, which lacks the row).
+No cdclient table is about guilds (besides `FeatureGating`, which lacks the row; the login response's events turn it on).
 
 ## DLU implementation
 
