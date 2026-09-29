@@ -913,3 +913,175 @@ namespace ClientPackets {
 		return true;
 	}
 }
+
+namespace ClientPackets {
+	LUWString Guild::FixedName(const std::string& name, const uint32_t size) {
+		auto wide = GeneralUtils::UTF8ToUTF16(name);
+		if (size > 0 && wide.size() >= size) wide.resize(size - 1);
+		return LUWString(wide, size);
+	}
+
+	namespace {
+		void WriteName(RakNet::BitStream& bitStream, const std::string& name, const uint32_t size) {
+			bitStream.Write(Guild::FixedName(name, size));
+		}
+
+		bool ReadName(RakNet::BitStream& bitStream, std::string& name, const uint32_t size) {
+			LUWString value(size);
+			VALIDATE_READ(bitStream.Read(value));
+			name = value.GetAsString();
+			return true;
+		}
+
+		bool ReadByteBool(RakNet::BitStream& bitStream, bool& value) {
+			uint8_t byte{};
+			VALIDATE_READ(bitStream.Read(byte));
+			value = byte != 0;
+			return true;
+		}
+	}
+
+	void GuildCreateResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(result);
+		bitStream.Write(guildID);
+		WriteName(bitStream, guildName, Guild::NAME_SIZE);
+	}
+
+	bool GuildCreateResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(result));
+		VALIDATE_READ(bitStream.Read(guildID));
+		return ReadName(bitStream, guildName, Guild::NAME_SIZE);
+	}
+
+	void GuildInvite::Serialize(RakNet::BitStream& bitStream) const {
+		WriteName(bitStream, inviterName, Guild::PLAYER_NAME_SIZE);
+		WriteName(bitStream, guildName, Guild::NAME_SIZE);
+	}
+
+	bool GuildInvite::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadName(bitStream, inviterName, Guild::PLAYER_NAME_SIZE));
+		return ReadName(bitStream, guildName, Guild::NAME_SIZE);
+	}
+
+	void GuildInviteInitialResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(response);
+		WriteName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+	}
+
+	bool GuildInviteInitialResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(response));
+		return ReadName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+	}
+
+	void GuildInviteFinalResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(response);
+		WriteName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+	}
+
+	bool GuildInviteFinalResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(response));
+		return ReadName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+	}
+
+	void GuildInviteConfirm::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint8_t>(failed);
+		WriteName(bitStream, guildName, Guild::PLAYER_NAME_SIZE);
+	}
+
+	bool GuildInviteConfirm::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadByteBool(bitStream, failed));
+		return ReadName(bitStream, guildName, Guild::PLAYER_NAME_SIZE);
+	}
+
+	void GuildAddPlayer::Serialize(RakNet::BitStream& bitStream) const {
+		WriteName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+		bitStream.Write(playerID);
+		bitStream.Write(rank);
+		WriteZone(bitStream, zoneID);
+		bitStream.Write<uint8_t>(online);
+	}
+
+	bool GuildAddPlayer::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadName(bitStream, playerName, Guild::PLAYER_NAME_SIZE));
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(bitStream.Read(rank));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		return ReadByteBool(bitStream, online);
+	}
+
+	void GuildRemovePlayer::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(reason);
+		WriteName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+		bitStream.Write(playerID);
+		bitStream.Write(newLeaderID);
+	}
+
+	bool GuildRemovePlayer::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(reason));
+		VALIDATE_READ(ReadName(bitStream, playerName, Guild::PLAYER_NAME_SIZE));
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(bitStream.Read(newLeaderID));
+		return true;
+	}
+
+	void GuildLoginLogout::Serialize(RakNet::BitStream& bitStream) const {
+		WriteName(bitStream, playerName, Guild::PLAYER_NAME_SIZE);
+		bitStream.Write(playerID);
+		bitStream.Write<uint8_t>(online);
+		WriteZone(bitStream, zoneID);
+		bitStream.Write<uint8_t>(worldUpdateOnly);
+	}
+
+	bool GuildLoginLogout::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(ReadName(bitStream, playerName, Guild::PLAYER_NAME_SIZE));
+		VALIDATE_READ(bitStream.Read(playerID));
+		VALIDATE_READ(ReadByteBool(bitStream, online));
+		VALIDATE_READ(ReadZone(bitStream, zoneID));
+		return ReadByteBool(bitStream, worldUpdateOnly);
+	}
+
+	void GuildData::Serialize(RakNet::BitStream& bitStream) const {
+		constexpr uint32_t DATE_SIZE = 11;
+		bitStream.Write(status);
+		WriteName(bitStream, guildName, Guild::NAME_SIZE);
+		WriteName(bitStream, joinDate, DATE_SIZE);
+		WriteName(bitStream, foundDate, DATE_SIZE);
+		bitStream.Write(reputation);
+		bitStream.Write(unknown1);
+		bitStream.Write(unknown2);
+		bitStream.Write(unknown3);
+		bitStream.Write<uint16_t>(members.size());
+		for (const auto& member : members) {
+			bitStream.Write(member.rank);
+			bitStream.Write<uint8_t>(member.online);
+			WriteZone(bitStream, member.zoneID);
+			bitStream.Write(member.playerID);
+			WriteName(bitStream, member.name, Guild::PLAYER_NAME_SIZE);
+		}
+	}
+
+	bool GuildData::Deserialize(RakNet::BitStream& bitStream) {
+		constexpr uint32_t DATE_SIZE = 11;
+		VALIDATE_READ(bitStream.Read(status));
+		VALIDATE_READ(ReadName(bitStream, guildName, Guild::NAME_SIZE));
+		VALIDATE_READ(ReadName(bitStream, joinDate, DATE_SIZE));
+		VALIDATE_READ(ReadName(bitStream, foundDate, DATE_SIZE));
+		VALIDATE_READ(bitStream.Read(reputation));
+		VALIDATE_READ(bitStream.Read(unknown1));
+		VALIDATE_READ(bitStream.Read(unknown2));
+		VALIDATE_READ(bitStream.Read(unknown3));
+		uint16_t count{};
+		VALIDATE_READ(bitStream.Read(count));
+		members.clear();
+		for (uint16_t i = 0; i < count; i++) {
+			Member member;
+			VALIDATE_READ(bitStream.Read(member.rank));
+			VALIDATE_READ(ReadByteBool(bitStream, member.online));
+			VALIDATE_READ(ReadZone(bitStream, member.zoneID));
+			VALIDATE_READ(bitStream.Read(member.playerID));
+			VALIDATE_READ(ReadName(bitStream, member.name, Guild::PLAYER_NAME_SIZE));
+			members.push_back(std::move(member));
+		}
+		return true;
+	}
+}

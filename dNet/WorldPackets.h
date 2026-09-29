@@ -192,6 +192,17 @@ namespace WorldPackets {
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
+	// Client -> server. The name the player typed in the guild create box (docs/Guilds.md); the client sends it only
+	// when it is not in a guild. The client's name for it: MSG_WORLD_CLIENT_TMP_GUILD_CREATE.
+	struct TmpGuildCreate : public WorldLUBitStream {
+		static constexpr uint32_t NAME_SIZE = 31; // characters on the wire; the client puts at most 30 and a NUL
+		std::u16string guildName;
+
+		TmpGuildCreate() : WorldLUBitStream(MessageType::World::TMP_GUILD_CREATE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
 	// Client -> server. The client's anti cheat noticed something.
 	struct HandleFunness : public WorldLUBitStream {
 		float cheatInfo{};

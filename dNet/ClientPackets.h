@@ -19,6 +19,9 @@
 #include "eAddFriendResponseType.h"
 #include "eAddIgnoreResponse.h"
 #include "eBlueprintSaveResponseType.h"
+#include "eGuildCreateResponse.h"
+#include "eGuildInviteResponse.h"
+#include "eGuildRank.h"
 #include "eUgcResourceType.h"
 #include "MessageType/Client.h"
 #include "MessageType/Game.h"
@@ -546,6 +549,133 @@ namespace ClientPackets {
 		LWOZONEID zoneID{}; // clone 0 when it's the receiver's clone
 
 		TeamSetOffWorldFlag() : TeamGameMsg(MessageType::Game::TEAM_SET_OFF_WORLD_FLAG) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	/**
+	 * Guild packets (docs/Guilds.md), written by the chat server and routed through the player's world. The client
+	 * copies them into packed structs: every string is a fixed-size UTF-16 buffer it reads up to the first NUL, so
+	 * DLU writes at most size - 1 characters.
+	 */
+	namespace Guild {
+		// Guild names are 31 characters on the wire (30 and a NUL); player names 33
+		constexpr uint32_t NAME_SIZE = 31;
+		constexpr uint32_t PLAYER_NAME_SIZE = 33;
+		// A UTF-8 name as a buffer of `size` characters, cut so a NUL is always left
+		LUWString FixedName(const std::string& name, uint32_t size);
+	}
+
+	// The answer to the player's TMP_GUILD_CREATE
+	struct GuildCreateResponse : public LUBitStream {
+		eGuildCreateResponse result{};
+		LWOOBJID guildID{}; // the client doesn't read it
+		std::string guildName; // 31 characters on the wire
+
+		GuildCreateResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_CREATE_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Someone invites the player to their guild; the client asks the player with a message box
+	struct GuildInvite : public LUBitStream {
+		std::string inviterName; // 33 characters on the wire
+		std::string guildName;   // 31
+
+		GuildInvite() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_INVITE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// What happened to the invite the player sent
+	struct GuildInviteInitialResponse : public LUBitStream {
+		eGuildInviteResponse response{};
+		std::string playerName; // the invited player; 33 characters on the wire
+
+		GuildInviteInitialResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_INVITE_INITIAL_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The invited player's answer, to the inviter
+	struct GuildInviteFinalResponse : public LUBitStream {
+		eGuildInviteFinalResponse response{};
+		std::string playerName; // the invited player; 33 characters on the wire
+
+		GuildInviteFinalResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_INVITE_FINAL_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// To the player who accepted an invite: whether they are in the guild now (the client then asks for its data)
+	struct GuildInviteConfirm : public LUBitStream {
+		bool failed{}; // one byte
+		std::string guildName; // 33 characters on the wire
+
+		GuildInviteConfirm() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_INVITE_CONFIRM) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Someone joined the player's guild
+	struct GuildAddPlayer : public LUBitStream {
+		std::string playerName; // 33 characters on the wire
+		LWOOBJID playerID{};
+		eGuildRank rank{};
+		LWOZONEID zoneID{};
+		bool online{}; // one byte
+
+		GuildAddPlayer() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_ADD_PLAYER) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Someone left or was kicked from the player's guild (the player themself: the client drops the guild)
+	struct GuildRemovePlayer : public LUBitStream {
+		eGuildLeaveReason reason{};
+		std::string playerName; // 33 characters on the wire
+		LWOOBJID playerID{};
+		LWOOBJID newLeaderID{}; // 0: the leader didn't change; otherwise that member's rank becomes leader
+
+		GuildRemovePlayer() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_REMOVE_PLAYER) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// A guildmate logged in or out, or changed worlds (worldUpdateOnly: no chat line)
+	struct GuildLoginLogout : public LUBitStream {
+		std::string playerName; // 33 characters on the wire
+		LWOOBJID playerID{};
+		bool online{};          // one byte
+		LWOZONEID zoneID{};
+		bool worldUpdateOnly{}; // one byte
+
+		GuildLoginLogout() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_LOGIN_LOGOUT) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The player's guild and every member (the answer to GUILD_GET_ALL)
+	struct GuildData : public LUBitStream {
+		struct Member {
+			eGuildRank rank{};
+			bool online{};       // one byte
+			LWOZONEID zoneID{};  // the client reads it only for online members
+			LWOOBJID playerID{};
+			std::string name;    // 33 characters on the wire
+		};
+
+		uint8_t status{}; // the client only takes 0 (DLU sends 1 to a player in no guild)
+		std::string guildName; // 31 characters on the wire
+		std::string joinDate;  // 11 characters on the wire; the client doesn't show it
+		std::string foundDate; // 11
+		int32_t reputation{};  // the client doesn't use it
+		int32_t unknown1{};
+		int32_t unknown2{};
+		uint16_t unknown3{};
+		std::vector<Member> members; // u16 count; the client ignores data with none
+
+		GuildData() : LUBitStream(ServiceType::CLIENT, MessageType::Client::GUILD_DATA) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};

@@ -183,6 +183,16 @@ namespace GameMessages {
 
 		eHelpType helpId{ eHelpType::NONE };
 	};
+
+	// Server -> client, to one client. Opens the guild create box (the client ignores bShow and always opens it).
+	// Live sent it from the Guild Master NPC's script (LOT 3001, L_GUILD_CREATE.lua); see docs/Guilds.md.
+	struct DisplayGuildCreateBox : public NetGameMsg {
+		DisplayGuildCreateBox() : NetGameMsg(MessageType::Game::DISPLAY_GUILD_CREATE_BOX) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		bool bShow{ true };
+	};
 }
 
 #endif // PLAYERMESSAGES_H

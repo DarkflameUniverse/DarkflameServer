@@ -227,6 +227,19 @@ namespace WorldPackets {
 		return true;
 	}
 
+	void TmpGuildCreate::Serialize(RakNet::BitStream& bitStream) const {
+		auto name = guildName;
+		if (name.size() >= NAME_SIZE) name.resize(NAME_SIZE - 1);
+		bitStream.Write(LUWString(name, NAME_SIZE));
+	}
+
+	bool TmpGuildCreate::Deserialize(RakNet::BitStream& bitStream) {
+		LUWString name(NAME_SIZE);
+		VALIDATE_READ(bitStream.Read(name));
+		guildName = name.string;
+		return true;
+	}
+
 	void MailPacket::Serialize(RakNet::BitStream& bitStream) const {
 		WriteAll(bitStream, data);
 	}

@@ -74,5 +74,7 @@ namespace MessageType {
 		UPDATE_FREE_TRIAL_STATUS,
 		// CUSTOM DLU MESSAGE ID FOR INTERNAL USE
 		CREATE_TEAM,
+		GUILD_SET_RANK, // world -> chat: /gpromote, /gdemote, /gleader
+		GUILD_DISBAND,  // world -> chat: /gdisband
 	};
 }

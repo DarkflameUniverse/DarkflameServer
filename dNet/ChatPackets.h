@@ -375,6 +375,104 @@ namespace ChatPackets {
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
+	// Guilds (docs/Guilds.md). The client sends GUILD_INVITE, GUILD_INVITE_RESPONSE, GUILD_LEAVE and GUILD_GET_ALL
+	// (routed like the ones above); the others are DLU's world <-> chat packets.
+
+	// Invite a player (by name) to the sender's guild
+	struct GuildInvite : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+		LUWString invitedPlayer{ 33 };
+
+		GuildInvite() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_INVITE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The answer to the invite in the message box (button 1 accepts: declined 0)
+	struct GuildInviteResponse : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+		uint8_t declined{};
+
+		GuildInviteResponse() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_INVITE_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Leave the guild. The client sends 66 more bytes of whatever was on its stack; they are not read.
+	struct GuildLeave : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+
+		GuildLeave() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_LEAVE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The player's guild and its members (answered with ClientPackets::GuildData)
+	struct GuildGetAll : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+
+		GuildGetAll() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_GET_ALL) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// World -> chat: the name from the client's TMP_GUILD_CREATE
+	struct GuildCreate : public LUBitStream {
+		LWOOBJID playerID{};
+		LUWString guildName{ 31 };
+
+		GuildCreate() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_CREATE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// World -> chat: /gkick (the client never sends GUILD_KICK; the layout is the team kick's)
+	struct GuildKick : public LUBitStream {
+		LWOOBJID playerID{};
+		uint32_t unknown{};
+		LUWString kickedPlayer{ 33 };
+
+		GuildKick() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_KICK) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// World -> chat: change a member's rank (eGuildRank; LEADER hands the guild over)
+	struct GuildSetRank : public LUBitStream {
+		LWOOBJID playerID{};
+		LUWString targetPlayer{ 33 };
+		uint8_t rank{};
+
+		GuildSetRank() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_SET_RANK) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// World -> chat: the leader disbands the guild
+	struct GuildDisband : public LUBitStream {
+		LWOOBJID playerID{};
+
+		GuildDisband() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_DISBAND) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Chat -> the character's world: its guild changed; the world puts it in the character component (guild 0: none).
+	// guildName is what other players may see (empty while the name waits for moderation).
+	struct GuildStatus : public LUBitStream {
+		LWOOBJID characterID{};
+		LWOOBJID guildID{};
+		LUWString guildName{ 31 };
+
+		GuildStatus() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GUILD_GET_STATUS) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
 	/**
 	 * Chat-service packets the client receives, from the chat server (routed through the player's world) or from its world.
 	 */

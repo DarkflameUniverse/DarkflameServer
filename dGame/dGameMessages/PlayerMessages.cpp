@@ -251,4 +251,12 @@ namespace GameMessages {
 	bool Help::Deserialize(RakNet::BitStream& bitStream) {
 		return bitStream.Read(helpId);
 	}
+
+	void DisplayGuildCreateBox::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(bShow);
+	}
+
+	bool DisplayGuildCreateBox::Deserialize(RakNet::BitStream& bitStream) {
+		return bitStream.Read(bShow);
+	}
 }

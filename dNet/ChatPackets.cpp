@@ -539,3 +539,112 @@ bool ChatPackets::RoutedFromClient::Deserialize(RakNet::BitStream& bitStream) {
 	if (!data.empty()) VALIDATE_READ(bitStream.ReadBits(data.data(), BYTES_TO_BITS(data.size()), true));
 	return true;
 }
+
+// ---- Guilds ----
+
+void ChatPackets::GuildInvite::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(unknown);
+	bitStream.Write(invitedPlayer);
+}
+
+bool ChatPackets::GuildInvite::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(unknown));
+	VALIDATE_READ(bitStream.Read(invitedPlayer));
+	return true;
+}
+
+void ChatPackets::GuildInviteResponse::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(unknown);
+	bitStream.Write(declined);
+}
+
+bool ChatPackets::GuildInviteResponse::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(unknown));
+	VALIDATE_READ(bitStream.Read(declined));
+	return true;
+}
+
+void ChatPackets::GuildLeave::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(unknown);
+}
+
+bool ChatPackets::GuildLeave::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(unknown));
+	return true;
+}
+
+void ChatPackets::GuildGetAll::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(unknown);
+}
+
+bool ChatPackets::GuildGetAll::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(unknown));
+	return true;
+}
+
+void ChatPackets::GuildCreate::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(guildName);
+}
+
+bool ChatPackets::GuildCreate::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(guildName));
+	return true;
+}
+
+void ChatPackets::GuildKick::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(unknown);
+	bitStream.Write(kickedPlayer);
+}
+
+bool ChatPackets::GuildKick::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(unknown));
+	VALIDATE_READ(bitStream.Read(kickedPlayer));
+	return true;
+}
+
+void ChatPackets::GuildSetRank::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(targetPlayer);
+	bitStream.Write(rank);
+}
+
+bool ChatPackets::GuildSetRank::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(targetPlayer));
+	VALIDATE_READ(bitStream.Read(rank));
+	return true;
+}
+
+void ChatPackets::GuildDisband::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+}
+
+bool ChatPackets::GuildDisband::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	return true;
+}
+
+void ChatPackets::GuildStatus::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(characterID);
+	bitStream.Write(guildID);
+	bitStream.Write(guildName);
+}
+
+bool ChatPackets::GuildStatus::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(characterID));
+	VALIDATE_READ(bitStream.Read(guildID));
+	VALIDATE_READ(bitStream.Read(guildName));
+	return true;
+}

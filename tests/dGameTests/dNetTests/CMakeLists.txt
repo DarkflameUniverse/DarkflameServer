@@ -1,5 +1,6 @@
 SET(DNET_TESTS
 	"ChatPacketsTests.cpp"
+	"GuildPacketsTests.cpp"
 	"CommonAuthPacketsTests.cpp"
 	"MasterPacketsTests.cpp"
 	"ServerTrafficTests.cpp"
