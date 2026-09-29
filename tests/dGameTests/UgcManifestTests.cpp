@@ -120,3 +120,104 @@ TEST_F(UgcManifestRequestTests, LxfmlChecksumIsOfTheInflatedLxfml) {
 	EXPECT_FALSE(UgcManifest::LxfmlChecksum("").has_value());
 	EXPECT_FALSE(UgcManifest::LxfmlChecksum("not an sd0 stream").has_value());
 }
+
+namespace {
+	SystemAddress Address(uint16_t port) {
+		SystemAddress address;
+		address.binaryAddress = 0x0100007f;
+		address.port = port;
+		return address;
+	}
+}
+
+// A client never sent the model's LXFML (it built the model long ago, or never): switched at once
+TEST(UgcServedMeshSwitchesTests, SwitchedAtOnceWithoutARecentLxfml) {
+	UgcManifest::ServedMeshSwitches switches;
+	const auto t0 = UgcManifest::Clock::time_point{} + std::chrono::hours(1);
+	switches.Schedule(Address(1), 1234, t0);
+	const auto due = switches.TakeDue(t0);
+	ASSERT_EQ(due.size(), 1);
+	EXPECT_EQ(due[0].sysAddr, Address(1));
+	EXPECT_EQ(due[0].blueprintId, 1234);
+	EXPECT_EQ(switches.Pending(), 0);
+	EXPECT_TRUE(switches.TakeDue(t0 + std::chrono::minutes(5)).empty()); // once
+}
+
+// A client sent the model's LXFML lately is building the model, and its build writes its own NIF and caches its checksum
+// over the served one (LWOBBBInterface::GenerateModelFromLxfml, 0x00b6c220; MainThread_ProcessModelResponse,
+// 0x00b5a1e0): it's switched BUILD_SETTLE after that send, not before
+TEST(UgcServedMeshSwitchesTests, WaitsForTheClientsOwnBuild) {
+	UgcManifest::ServedMeshSwitches switches;
+	const auto t0 = UgcManifest::Clock::time_point{} + std::chrono::hours(1);
+	switches.LxfmlSent(Address(1), 1234, t0);
+	switches.Schedule(Address(1), 1234, t0 + std::chrono::seconds(5));
+	switches.Schedule(Address(2), 1234, t0 + std::chrono::seconds(5)); // another client: never sent it
+
+	auto due = switches.TakeDue(t0 + std::chrono::seconds(5));
+	ASSERT_EQ(due.size(), 1);
+	EXPECT_EQ(due[0].sysAddr, Address(2));
+	EXPECT_TRUE(switches.TakeDue(t0 + UgcManifest::BUILD_SETTLE - std::chrono::seconds(1)).empty());
+	due = switches.TakeDue(t0 + UgcManifest::BUILD_SETTLE);
+	ASSERT_EQ(due.size(), 1);
+	EXPECT_EQ(due[0].sysAddr, Address(1));
+	EXPECT_EQ(due[0].blueprintId, 1234);
+}
+
+// The LXFML sent again while a switch waits (the client asked again): it starts another build, so the switch waits again
+TEST(UgcServedMeshSwitchesTests, AnotherLxfmlPushesTheSwitchBack) {
+	UgcManifest::ServedMeshSwitches switches;
+	const auto t0 = UgcManifest::Clock::time_point{} + std::chrono::hours(1);
+	switches.LxfmlSent(Address(1), 1234, t0);
+	switches.Schedule(Address(1), 1234, t0);
+	switches.LxfmlSent(Address(1), 1234, t0 + std::chrono::seconds(20));
+	EXPECT_TRUE(switches.TakeDue(t0 + UgcManifest::BUILD_SETTLE).empty());
+	EXPECT_EQ(switches.TakeDue(t0 + std::chrono::seconds(20) + UgcManifest::BUILD_SETTLE).size(), 1);
+
+	// Another model's LXFML doesn't hold this one
+	switches.LxfmlSent(Address(1), 5678, t0 + std::chrono::minutes(2));
+	switches.Schedule(Address(1), 1234, t0 + std::chrono::minutes(2));
+	EXPECT_EQ(switches.TakeDue(t0 + std::chrono::minutes(2)).size(), 1);
+}
+
+// SentWithin is the 10 second guard against sending the LXFML for each of a model's three requests
+TEST(UgcServedMeshSwitchesTests, SentWithin) {
+	UgcManifest::ServedMeshSwitches switches;
+	const auto t0 = UgcManifest::Clock::time_point{} + std::chrono::hours(1);
+	EXPECT_FALSE(switches.SentWithin(Address(1), 1234, std::chrono::seconds(10), t0));
+	switches.LxfmlSent(Address(1), 1234, t0);
+	EXPECT_TRUE(switches.SentWithin(Address(1), 1234, std::chrono::seconds(10), t0 + std::chrono::seconds(9)));
+	EXPECT_FALSE(switches.SentWithin(Address(1), 1234, std::chrono::seconds(10), t0 + std::chrono::seconds(10)));
+	EXPECT_FALSE(switches.SentWithin(Address(2), 1234, std::chrono::seconds(10), t0));
+}
+
+// A client that leaves loses its pending switches and sends
+TEST(UgcServedMeshSwitchesTests, ForgetDropsTheClient) {
+	UgcManifest::ServedMeshSwitches switches;
+	const auto t0 = UgcManifest::Clock::time_point{} + std::chrono::hours(1);
+	switches.LxfmlSent(Address(1), 1234, t0);
+	switches.Schedule(Address(1), 1234, t0);
+	switches.Schedule(Address(2), 1234, t0 + std::chrono::seconds(1));
+	switches.Forget(Address(1));
+	EXPECT_FALSE(switches.SentWithin(Address(1), 1234, UgcManifest::BUILD_SETTLE, t0));
+	const auto due = switches.TakeDue(t0 + std::chrono::hours(1));
+	ASSERT_EQ(due.size(), 1);
+	EXPECT_EQ(due[0].sysAddr, Address(2));
+}
+
+// The switch of one client: the served NIF's checksum first (the client's cached one is its own build's), then
+// NotifyClientUGCModelReady to each placed model, all to that client only
+TEST_F(UgcManifestRequestTests, SwitchSendsTheChecksumThenModelReady) {
+	Settings("1", "1");
+	const IUgc::FileChecksum checksum{ "00112233445566778899aabbccddeeff", 0x01020304 };
+	const auto sent = Capture([&] { UgcManifest::SwitchClient(Client(), 0x0102030405060708, checksum, { 0x1122334455667788, 0x1122334455667799 }); });
+	ASSERT_EQ(sent.size(), 3);
+	for (const auto& packet : sent) {
+		EXPECT_EQ(packet.sysAddr, Client());
+		EXPECT_FALSE(packet.broadcast);
+	}
+	// UGC_MANIFEST_RESPONSE: blueprint, type 1 (NIF), valid, size, MD5
+	EXPECT_PACKET_EQ(FromHex("53 05 00 3c 00 00 00 00 08 07 06 05 04 03 02 01 01 01 04 03 02 01 "
+		"00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff"), FromCapture(sent[0]));
+	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 88 77 66 55 44 33 22 11 8d 03 08 07 06 05 04 03 02 01"), FromCapture(sent[1]));
+	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 99 77 66 55 44 33 22 11 8d 03 08 07 06 05 04 03 02 01"), FromCapture(sent[2]));
+}

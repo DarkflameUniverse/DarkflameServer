@@ -1,8 +1,11 @@
 #ifndef UGCMANIFEST_H
 #define UGCMANIFEST_H
 
+#include <chrono>
+#include <map>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "dCommonVars.h"
@@ -25,12 +28,47 @@
  *   and HKX itself and caches their checksums, which answers its own requests, so a model is never left waiting.
  * * Served meshes with the client's own physics: the client shows the served NIF it downloaded, and asks for the HKX,
  *   which is answered with the model's LXFML: it builds the model from it and loads its own HKX. The mesh it has drawn
- *   stays the served one. (Built from the LXFML first, the client kept showing its own build even after
- *   NotifyClientUGCModelReady and the model constructed again.)
+ *   stays the served one.
+ * * A client building a model from its LXFML writes its own .nif over the served one and caches that file's MD5 as the
+ *   NIF's manifest info when it's done (LWOBBBInterface::GenerateModelFromLxfml, 0x00b6c220;
+ *   MainThread_ProcessModelResponse, 0x00b5a1e0). So a client is switched to a served mesh only once it can't still be
+ *   building that model (ServedMeshSwitches).
  *
  * Main thread only: each lookup is one indexed query and the answers are sent from here. See docs/UgcServer.md.
  */
 namespace UgcManifest {
+	using Clock = std::chrono::steady_clock;
+
+	// How long after a client was sent a model's LXFML it may still be building the model from it
+	constexpr auto BUILD_SETTLE = std::chrono::seconds(30);
+
+	// Which clients get switched to which served meshes, and when: at once, or BUILD_SETTLE after the model's LXFML was
+	// last sent to that client (a switch made while it builds is undone by its build). Main thread only.
+	class ServedMeshSwitches {
+	public:
+		struct Switch {
+			SystemAddress sysAddr;
+			LWOOBJID blueprintId{};
+		};
+
+		// The model's LXFML was sent to the client: a switch waiting for it waits BUILD_SETTLE from now
+		void LxfmlSent(const SystemAddress& sysAddr, LWOOBJID blueprintId, Clock::time_point now);
+		// The model's LXFML was sent to the client less than `within` ago
+		bool SentWithin(const SystemAddress& sysAddr, LWOOBJID blueprintId, Clock::duration within, Clock::time_point now) const;
+		// The client is to be switched to the model's served mesh once it can't be building it any more
+		void Schedule(const SystemAddress& sysAddr, LWOOBJID blueprintId, Clock::time_point now);
+		// The switches that are due, removed from the pending ones
+		std::vector<Switch> TakeDue(Clock::time_point now);
+		// The client left
+		void Forget(const SystemAddress& sysAddr);
+		size_t Pending() const { return m_Due.size(); }
+
+	private:
+		using Key = std::pair<SystemAddress, LWOOBJID>;
+		std::map<Key, Clock::time_point> m_LxfmlSent;
+		std::map<Key, Clock::time_point> m_Due;
+	};
+
 	// What a request gets
 	enum class eAction {
 		NONE,          // not answered (ugc_manifest off, or not a UGC type)
@@ -68,9 +106,18 @@ namespace UgcManifest {
 	// A client left (or went back to character select): its waiting requests and pending switches are dropped
 	void OnDisconnect(const SystemAddress& sysAddr);
 
-	// The UGC server made these models' meshes (again, with a new checksum): each one placed in this world is sent the
-	// new checksum and NotifyClientUGCModelReady, so clients load the served mesh
+	// The UGC server made these models' meshes (again, with a new checksum): every client this world shows one of them
+	// to is switched to the served mesh (SwitchClient), at once or once it can't be building that model any more
 	void OnModelsMade(const std::vector<LWOOBJID>& blueprintIds);
+
+	// A model's LXFML was sent to a client another way (a brick by brick save, a property load): it builds the model
+	void OnLxfmlSent(const SystemAddress& sysAddr, LWOOBJID blueprintId);
+
+	// Switches one client to a model's served mesh: the served NIF's checksum (the client's cached one is its own build's),
+	// then NotifyClientUGCModelReady to each of `modelIds` (flushes the cached NIF, HKX and LXFML and preloads the NIF,
+	// which is downloaded, and the HKX, still the client's own), then each model taken down and constructed again for
+	// that client (Update) so its render loads the served NIF
+	void SwitchClient(const SystemAddress& sysAddr, LWOOBJID blueprintId, const IUgc::FileChecksum& checksum, const std::vector<LWOOBJID>& modelIds);
 }
 
 #endif  //!UGCMANIFEST_H

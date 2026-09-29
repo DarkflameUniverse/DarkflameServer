@@ -26,6 +26,7 @@
 #include "PropertyMessages.h"
 #include "Sd0.h"
 #include "UgcKeys.h"
+#include "UgcManifest.h"
 #include "User.h"
 
 #include <algorithm>
@@ -276,6 +277,8 @@ void BrickByBrick::Save(Entity& player, const LWOOBJID localId, const std::strin
 		responseModel.data = model.sd0;
 	}
 	response.Send(player.GetSystemAddress());
+	// The client builds the models from it: the switch to their served meshes waits for that (UgcManifest)
+	for (const auto& model : models) UgcManifest::OnLxfmlSent(player.GetSystemAddress(), model.blueprintId);
 
 	for (auto* item : ItemsIn(*inventory, eInventoryType::MODELS_IN_BBB)) {
 		item->SetCount(0, false, false, false, eLootSourceType::INVENTORY);

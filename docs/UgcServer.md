@@ -537,7 +537,8 @@ What the 1.10.64 client does with a placed player model (LOT 14, spawned with `b
   0x00c75220). There's no choice between LXFML and NIF on the render side, and the world needn't send `renderUserGen`.
   The ModelBehaviorComponent loads the blueprint's LXFML (type 0) as well (`RequestBlueprintData`, 0x00c24640).
 * Every such request first needs the blueprint's manifest info (`UGCManifest_Base::GetOrRequestManifestInfo`,
-  0x0101e0e0): a cached entry (kept 300 seconds; stored in `res/BrickModels/UserMade/manifest.cache`) is used at once,
+  0x0101e0e0): a cached entry is used at once (an entry with valid 1 never expires; one with valid 0 expires after
+  300 seconds, `UGCManifest_Client::IsEntryExpired`, 0x010186d0),
   else the request waits and the client sends `REQUEST_UGC_MANIFEST_INFO`. **There is no timeout**: a manifest request
   the world never answers leaves that file, and the model, waiting for good
   (`LWOResMgr2Interface::RequestBlueprintManifestThenLoad`, 0x0105a910).
@@ -548,7 +549,14 @@ What the 1.10.64 client does with a placed player model (LOT 14, spawned with `b
 * The LXFML the world sends when a property loads (`BlueprintSaveResponse` with local id 0) makes the client build the
   NIF and HKX itself and cache the manifest info of the LXFML, NIF and HKX with its own files' MD5s
   (`LWOBBBInterface::MainThread_ProcessModelResponse`, 0x00b5a1e0), which answers its own requests, so nothing is
-  downloaded. That's how DLU always showed models.
+  downloaded. That's how DLU always showed models. The build runs on the client's BBB thread and writes
+  `BrickModels/UserMade/<bucket>/<id>.lxfml`, `.nif` and `.hkx`, the paths a download uses
+  (`LWOBBBInterface::GenerateModelFromLxfml`, 0x00b6c220). So every LXFML sent to a client replaces a served `.nif` it
+  downloaded, on disk and in its manifest cache, once that build is done; a mesh already drawn stays.
+* A single-asset flush (ResMgr2 0x2b06, what `NotifyClientUGCModelReady` sends) erases the path from every resource
+  cache at once (`ResourceCache::FlushCachedAsset`, 0x010372a0); objects already drawn keep their mesh.
+* A download is tried 3 times; after that the client uses the file it has, if any (its own build), else the model has
+  no file (`LWOResMgr2Interface::GetResource`, 0x0105ca50).
 * `NotifyClientUGCModelReady` (game message 909, the blueprint id only) to a model: its BlueprintComponent flushes the
   cached NIF, HKX and LXFML of that blueprint and requests the NIF and HKX again
   (`LWOBlueprintComponent::OnNotifyClientUGCModelReady`, 0x00ca6430). It doesn't clear the manifest cache, so the new
@@ -562,8 +570,9 @@ serving), the worlds:
 * **Property load**: send the LXFML (one `BlueprintSaveResponse`) only for the models whose mesh the UGC server hasn't
   made (no `model.nif` in `ugc_file_checksums`). Made ones are left out: the client asks for their files, downloads
   the served mesh and draws it. Tried and dropped: sending every model's LXFML (the client builds its own NIF and HKX)
-  and then switching to the served mesh with the served NIF's checksum, `NotifyClientUGCModelReady` and the model
-  constructed again: the client kept drawing its own build.
+  and switching to the served mesh 3 s later with the served NIF's checksum, `NotifyClientUGCModelReady` and the model
+  constructed again: the client kept drawing its own build (most likely because its builds of those LXFMLs finished
+  after the switch and cached their own NIFs again; see "Waiting for the client's own build").
 * **NIF** of a made model: the UGC server's checksum; the client downloads `<id>.nif.sd0` from the UGC server.
 * **LXFML** of a made model: the MD5 and size of the stored LXFML inflated (what the UGC server serves as
   `<id>.lxfml.sd0`), worked out once per model and kept.
@@ -574,9 +583,17 @@ serving), the worlds:
   never left waiting. A blueprint that isn't a player model gets valid 0.
 * **Made again**: when the UGC server writes a model's mesh with a different checksum than before (made for the first
   time, or remade after a change), it sends `UGC_MODELS_MADE` (master message 37, the blueprint ids) to the master,
-  which passes it to every world. A world with that model placed sends every player the new NIF checksum, then
-  `NotifyClientUGCModelReady` and the model constructed again to each player it's shown to, so the served mesh
-  replaces what the client showed.
+  which passes it to every world. A world with that model placed switches each player the model is shown to
+  (`UgcManifest::SwitchClient`): the served NIF's checksum, `NotifyClientUGCModelReady` to each placed copy (the
+  client flushes its cached NIF, HKX and LXFML and downloads the served NIF), and 1.5 s later each copy taken down for
+  that player and constructed again 1 s after that; the new object draws the served NIF and loads the client's own HKX
+  (still cached), so it keeps collision.
+* **Waiting for the client's own build**: a player sent the model's LXFML less than 30 s before (`BUILD_SETTLE`: the
+  property load, a request for a model not made yet, the owner's brick by brick save) may still be building it, and
+  that build would put its own NIF and checksum back after the switch. Such a player is switched 30 s after the last
+  LXFML sent to them (`UgcManifest::ServedMeshSwitches`); another LXFML sent meanwhile starts the 30 s again. The
+  others are switched at once. This is the common case: another player's client asks for a model the owner just
+  placed, gets its LXFML, and the UGC server is told to make that model now (`ExpediteUgcModel`).
   A model made again unchanged (after eviction) isn't sent. Nothing polls: one message per batch of made models.
 
 * **`/reprocessproperty`** (GM 8): every model placed on the property the player is on goes back to the UGC server's

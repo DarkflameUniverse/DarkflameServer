@@ -1118,6 +1118,8 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				}
 				if (served > 0) LOG("%zu of the property's %zu models come from the UGC server", served, bbbModels.size());
 				if (!response.models.empty()) response.Send(sysAddr);
+				// The client builds these models: a switch to their served meshes waits for that (UgcManifest)
+				for (const auto& model : response.models) UgcManifest::OnLxfmlSent(sysAddr, model.blueprintId);
 			}
 
 		noBBB:
