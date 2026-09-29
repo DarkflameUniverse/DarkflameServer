@@ -8,10 +8,12 @@
 #include "dCommonVars.h"
 #include "eFunnessTypes.h"
 
+#include <memory>
 #include <unordered_map>
 
 class Character;
 enum class eGameMasterLevel : uint8_t;
+namespace PermissionGrants { struct Held; }
 
 struct BehaviorParams {
 	uint32_t behavior;
@@ -59,6 +61,13 @@ public:
 
 	void UserOutOfSync(const CaughtFunness& funness);
 
+	// The permission grants of this account and of the character they were loaded for (SlashCommandHandler loads them
+	// when first needed; nullptr until then, and again after ForgetGrants when the dashboard changed them)
+	const std::shared_ptr<const PermissionGrants::Held>& GetGrants() const { return m_Grants; }
+	LWOOBJID GetGrantsCharacter() const { return m_GrantsCharacter; }
+	void SetGrants(std::shared_ptr<const PermissionGrants::Held> grants, LWOOBJID characterId) { m_Grants = std::move(grants); m_GrantsCharacter = characterId; }
+	void ForgetGrants() { m_Grants.reset(); }
+
 private:
 	uint32_t m_AccountID;
 	std::string m_Username;
@@ -78,6 +87,8 @@ private:
 	uint64_t m_MuteExpire;
 	std::chrono::steady_clock::time_point m_LastMuteCheck{};
 	std::vector<CaughtFunness> m_CaughtFunness{};
+	std::shared_ptr<const PermissionGrants::Held> m_Grants{};
+	LWOOBJID m_GrantsCharacter{};
 };
 
 #endif // USER_H

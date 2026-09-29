@@ -267,3 +267,117 @@ TEST_F(SlashCommandCatalogTest, NewServerFollowsThePermissions) {
 	Game::config->SetDatabaseValues({}, {});
 	EXPECT_EQ(static_cast<uint8_t>(SlashCommandHandler::GetRequiredLevel(*SlashCommandHandler::FindCommand("mute"))), Permissions::Level("accounts_mute"));
 }
+
+#include "Character.h"
+#include "Entity.h"
+#include "PermissionGrants.h"
+#include "User.h"
+
+// Grants and denies from the dashboard (PermissionGrants.h), as a player using commands sees them
+class SlashCommandGrantsTest : public GameDependenciesTest {
+protected:
+	static constexpr LWOOBJID CHARACTER_ID = 42;
+
+	void SetUp() override {
+		SetUpDependencies();
+		static bool started = false;
+		if (!started) SlashCommandHandler::Startup();
+		started = true;
+		user = std::make_unique<User>(UNASSIGNED_SYSTEM_ADDRESS, "tester", "key");
+		character = std::make_unique<Character>(CHARACTER_ID, user.get());
+		entity = std::make_unique<Entity>(1, info);
+		entity->SetCharacter(character.get());
+		character->SetEntity(entity.get());
+	}
+
+	void TearDown() override {
+		entity->SetCharacter(nullptr);
+		entity.reset();
+		character.reset();
+		user.reset();
+		TearDownDependencies();
+	}
+
+	// Play at a GM level (the account's is at least that) with these grants loaded for the character
+	void Play(eGameMasterLevel level, std::vector<PermissionGrants::Rule> rules, eGameMasterLevel accountLevel = eGameMasterLevel::CIVILIAN) {
+		user->SetMaxGMLevel(std::max(level, accountLevel));
+		entity->SetGMLevel(level);
+		auto held = std::make_shared<PermissionGrants::Held>();
+		held->rules = std::move(rules);
+		user->SetGrants(held, CHARACTER_ID);
+	}
+
+	bool MayUse(const std::string& alias) {
+		const auto* command = SlashCommandHandler::FindCommand(alias);
+		EXPECT_NE(command, nullptr) << alias;
+		return command && SlashCommandHandler::MayUse(entity.get(), *command);
+	}
+
+	std::unique_ptr<User> user;
+	std::unique_ptr<Character> character;
+	std::unique_ptr<Entity> entity;
+};
+
+TEST_F(SlashCommandGrantsTest, GrantsLetAPlayerUseACommand) {
+	using PermissionGrants::eKind;
+	Play(eGameMasterLevel::MODERATOR, {});
+	EXPECT_FALSE(MayUse("spawn"));
+	EXPECT_TRUE(MayUse("kick")); // accounts_kick: GM 2
+
+	Play(eGameMasterLevel::MODERATOR, { { eKind::COMMAND, "spawn", false, 0 } });
+	EXPECT_TRUE(MayUse("spawn"));
+	EXPECT_FALSE(MayUse("gmadditem"));
+
+	// A grant of a dashboard permission covers the commands that follow it
+	Play(eGameMasterLevel::CIVILIAN, { { eKind::PERMISSION, "accounts_kick", false, 0 } });
+	EXPECT_TRUE(MayUse("kick"));
+	// Every command up to a GM level
+	Play(eGameMasterLevel::CIVILIAN, { { eKind::COMMAND_GROUP, "8", false, 0 } });
+	EXPECT_TRUE(MayUse("spawn"));
+	EXPECT_TRUE(MayUse("gmadditem"));
+	// ...but never /execute below its floor
+	Play(eGameMasterLevel::MODERATOR, { { eKind::COMMAND_GROUP, "9", false, 0 }, { eKind::COMMAND, "execute", false, 0 } });
+	EXPECT_FALSE(MayUse("execute"));
+	// Past its expiry a grant does nothing
+	Play(eGameMasterLevel::MODERATOR, { { eKind::COMMAND, "spawn", false, 1 } });
+	EXPECT_FALSE(MayUse("spawn"));
+}
+
+TEST_F(SlashCommandGrantsTest, DeniesTakeCommandsAwayExceptFromOperators) {
+	using PermissionGrants::eKind;
+	Play(eGameMasterLevel::DEVELOPER, { { eKind::COMMAND, "spawn", true, 0 }, { eKind::PERMISSION, "accounts_kick", true, 0 } });
+	EXPECT_FALSE(MayUse("spawn"));
+	EXPECT_FALSE(MayUse("kick"));
+	EXPECT_TRUE(MayUse("gmadditem"));
+	// A GM 9 account playing at GM 8 keeps everything
+	Play(eGameMasterLevel::DEVELOPER, { { eKind::COMMAND, "spawn", true, 0 } }, eGameMasterLevel::OPERATOR);
+	EXPECT_TRUE(MayUse("spawn"));
+	// A player command can be taken from a player
+	Play(eGameMasterLevel::CIVILIAN, { { eKind::COMMAND, "pvp", true, 0 } });
+	EXPECT_FALSE(MayUse("pvp"));
+}
+
+TEST_F(SlashCommandGrantsTest, ForgottenGrantsAreReadAgain) {
+	using PermissionGrants::eKind;
+	Play(eGameMasterLevel::MODERATOR, { { eKind::COMMAND, "spawn", false, 0 } });
+	EXPECT_TRUE(MayUse("spawn"));
+	// The dashboard changed them: read from the database again (none there)
+	user->ForgetGrants();
+	EXPECT_FALSE(MayUse("spawn"));
+	ASSERT_NE(user->GetGrants(), nullptr);
+	EXPECT_EQ(user->GetGrantsCharacter(), CHARACTER_ID);
+}
+
+TEST(SlashCommandPermissionTests, TargetRulesFollowGrants) {
+	using SlashCommandLevels::eTargetRule;
+	using AccountRules::eManageDenial;
+	using PermissionGrants::eKind;
+	ScopedConfig config({});
+	PermissionGrants::Held held;
+	held.rules = { { eKind::PERMISSION, "self_moderation", false, 0 }, { eKind::PERMISSION, "manage_equal_rank", false, 0 } };
+	EXPECT_EQ(SlashCommandHandler::TargetDenial(8, 1, 8, 1, eTargetRule::MODERATION), eManageDenial::SELF);
+	EXPECT_EQ(SlashCommandHandler::TargetDenial(8, 1, 8, 1, eTargetRule::MODERATION, &held), eManageDenial::NONE);
+	EXPECT_EQ(SlashCommandHandler::TargetDenial(4, 1, 4, 2, eTargetRule::MODERATION, &held), eManageDenial::NONE);
+	// Never a higher GM level
+	EXPECT_EQ(SlashCommandHandler::TargetDenial(4, 1, 5, 2, eTargetRule::MODERATION, &held), eManageDenial::HIGHER_RANK);
+}

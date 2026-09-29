@@ -11,6 +11,7 @@
 #include "dCommonVars.h"
 #include "AccountRules.h"
 #include "SlashCommandLevels.h"
+#include "PermissionGrants.h"
 #include <functional>
 #include <optional>
 #include <string>
@@ -80,7 +81,8 @@ namespace SlashCommandHandler {
 	 * their own level only with manage_equal_rank, and on themselves only with the self_* permission for the rule
 	 * (OTHERS: on themselves always, as before).
 	 */
-	AccountRules::eManageDenial TargetDenial(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, SlashCommandLevels::eTargetRule rule);
+	AccountRules::eManageDenial TargetDenial(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, SlashCommandLevels::eTargetRule rule,
+		const PermissionGrants::Held* actorGrants = nullptr);
 
 	// Why a command may not be used on someone, for the chat; empty when it may
 	std::string TargetRefusal(AccountRules::eManageDenial denial, SlashCommandLevels::eTargetRule rule, std::string_view command);
@@ -93,6 +95,20 @@ namespace SlashCommandHandler {
 
 	// The account of the player using a command (0 if unknown)
 	uint32_t AccountOf(Entity* player);
+
+	/**
+	 * The permission grants of a player's account and logged-in character (PermissionGrants.h), loaded from the database
+	 * the first time they are needed and kept on the User until the dashboard changes them (DashboardActions). nullptr:
+	 * not a player.
+	 */
+	const PermissionGrants::Held* GrantsOf(Entity* player);
+
+	// Whether a player may use a command now: its level, or a grant for it (the command, a command group, or the
+	// dashboard permission it follows), unless a deny takes it away (PermissionGrants::MayUseCommand)
+	bool MayUse(Entity* player, const Command& command);
+
+	// The command as the grant rules see it: its name, level now, floor, and the dashboard permission it follows
+	PermissionGrants::Command GrantRules(const Command& command);
 };
 
 namespace GMZeroCommands {

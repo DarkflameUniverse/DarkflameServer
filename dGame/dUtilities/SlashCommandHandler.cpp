@@ -10,6 +10,8 @@
 #include "ChatPackets.h"
 #include "WorldMigration.h"
 
+#include <algorithm>
+#include <ctime>
 #include <iomanip>
 #include <ranges>
 #include <set>
@@ -26,6 +28,8 @@
 #include "dConfig.h"
 #include "SlashCommandLevels.h"
 #include "Permissions.h"
+#include "PermissionGrants.h"
+#include "PermissionGrantsLoader.h"
 #include "Character.h"
 #include "ChatPackets.h"
 #include "PlayerManager.h"
@@ -123,17 +127,45 @@ std::optional<CommandTarget> SlashCommandHandler::FindTarget(const std::string& 
 	return target;
 }
 
-AccountRules::eManageDenial SlashCommandHandler::TargetDenial(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, SlashCommandLevels::eTargetRule rule) {
+AccountRules::eManageDenial SlashCommandHandler::TargetDenial(uint8_t actorLevel, uint32_t actorAccountId, uint8_t targetLevel, uint32_t targetAccountId, SlashCommandLevels::eTargetRule rule,
+	const PermissionGrants::Held* actorGrants) {
 	using SlashCommandLevels::eTargetRule;
+	using AccountRules::eAccountAction;
+	const auto denial = [&](eAccountAction action) { return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, action, nullptr, actorGrants); };
 	switch (rule) {
 	case eTargetRule::NONE: return AccountRules::eManageDenial::NONE;
 	case eTargetRule::OTHERS:
 		if (actorAccountId != 0 && actorAccountId == targetAccountId) return AccountRules::eManageDenial::NONE;
-		return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::TOOLS);
-	case eTargetRule::ITEMS: return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::ITEMS);
-	case eTargetRule::MODERATION: return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::MODERATION);
-	default: return AccountRules::ManageDenialNow(actorLevel, actorAccountId, targetLevel, targetAccountId, AccountRules::eAccountAction::TOOLS);
+		return denial(eAccountAction::TOOLS);
+	case eTargetRule::ITEMS: return denial(eAccountAction::ITEMS);
+	case eTargetRule::MODERATION: return denial(eAccountAction::MODERATION);
+	default: return denial(eAccountAction::TOOLS);
 	}
+}
+
+const PermissionGrants::Held* SlashCommandHandler::GrantsOf(Entity* player) {
+	auto* character = player ? player->GetCharacter() : nullptr;
+	auto* user = character ? character->GetParentUser() : nullptr;
+	if (!user) return nullptr;
+	if (!user->GetGrants() || user->GetGrantsCharacter() != character->GetID()) {
+		user->SetGrants(PermissionGrants::Load(user->GetAccountID(), character->GetID()), character->GetID());
+	}
+	return user->GetGrants().get();
+}
+
+PermissionGrants::Command SlashCommandHandler::GrantRules(const Command& command) {
+	return { command.name, static_cast<uint8_t>(GetRequiredLevel(command)), static_cast<uint8_t>(command.minLevel.value_or(eGameMasterLevel::CIVILIAN)),
+		command.fixedLevel, Permissions::Find(command.dashboardPermission) ? command.dashboardPermission : "" };
+}
+
+bool SlashCommandHandler::MayUse(Entity* player, const Command& command) {
+	if (!player) return false;
+	auto* character = player->GetCharacter();
+	auto* user = character ? character->GetParentUser() : nullptr;
+	const auto playerLevel = static_cast<uint8_t>(player->GetGMLevel());
+	// Denies never apply to a GM 9 account, even while it plays at a lower level
+	const auto accountLevel = std::max(playerLevel, static_cast<uint8_t>(user ? user->GetMaxGMLevel() : eGameMasterLevel::CIVILIAN));
+	return PermissionGrants::MayUseCommand(playerLevel, accountLevel, GrantRules(command), GrantsOf(player), static_cast<int64_t>(std::time(nullptr)));
 }
 
 std::string SlashCommandHandler::TargetRefusal(AccountRules::eManageDenial denial, SlashCommandLevels::eTargetRule rule, std::string_view command) {
@@ -146,7 +178,7 @@ std::string SlashCommandHandler::TargetRefusal(AccountRules::eManageDenial denia
 
 bool SlashCommandHandler::MayActOn(Entity* actor, const SystemAddress& sysAddr, const CommandTarget& target, SlashCommandLevels::eTargetRule rule, std::string_view command) {
 	if (!actor) return false;
-	const auto denial = TargetDenial(static_cast<uint8_t>(actor->GetGMLevel()), AccountOf(actor), target.gmLevel, target.accountId, rule);
+	const auto denial = TargetDenial(static_cast<uint8_t>(actor->GetGMLevel()), AccountOf(actor), target.gmLevel, target.accountId, rule, GrantsOf(actor));
 	if (denial == AccountRules::eManageDenial::NONE) return true;
 	ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(TargetRefusal(denial, rule, command)));
 	return false;
@@ -249,9 +281,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	if (commandItr != RegisteredCommands.end()) {
 		auto& [alias, commandHandle] = *commandItr;
 		const auto requiredLevel = GetRequiredLevel(commandHandle);
-		if (entity->GetGMLevel() >= requiredLevel) {
+		if (MayUse(entity, commandHandle)) {
 			if (requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			commandHandle.handle(entity, sysAddr, args);
+		} else if (entity->GetGMLevel() >= requiredLevel) {
+			// The level allows it, but a deny on the dashboard took it away
+			error = "You may not use \"" + command + "\": it was taken away from you";
 		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
 			error = "You are not high enough GM level to use \"" + command + "\"";
 		}
@@ -282,7 +317,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 		std::map<std::string, Command> accessibleCommands;
 		for (const auto& [commandName, command] : CommandInfos) {
-			if (SlashCommandHandler::GetRequiredLevel(command) <= entity->GetGMLevel()) {
+			if (SlashCommandHandler::MayUse(entity, command)) {
 				accessibleCommands.emplace(commandName, command);
 			}
 		}
@@ -312,7 +347,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	}
 
 	const auto it = RegisteredCommands.find(trimmedArgs);
-	if (it != RegisteredCommands.end() && entity->GetGMLevel() >= SlashCommandHandler::GetRequiredLevel(it->second)) {
+	if (it != RegisteredCommands.end() && SlashCommandHandler::MayUse(entity, it->second)) {
 		const auto& command = it->second;
 		feedback << "----- " << it->first << " Info -----\n";
 		feedback << command.info << "\n";
