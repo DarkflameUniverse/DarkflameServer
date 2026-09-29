@@ -363,6 +363,8 @@ public:
 	void MarkMailRead(const uint64_t mailId) override;
 	void DeleteMail(const uint64_t mailId) override;
 	void ClaimMailItem(const uint64_t mailId) override;
+	std::vector<MailRecord> GetMailHistory(const MailQuery& query) override;
+	uint64_t CountMailHistory(const MailQuery& query) override;
 	void InsertSlashCommandUsage(const LWOOBJID characterId, const std::string_view command) override;
 	void UpdateAccountUnmuteTime(const uint32_t accountId, const uint64_t timeToUnmute) override;
 	void UpdateAccountBan(const uint32_t accountId, const bool banned) override;

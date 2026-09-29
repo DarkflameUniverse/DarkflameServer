@@ -1,4 +1,6 @@
 #include "SQLiteDatabase.h"
+#include "GeneralUtils.h"
+#include "MailSql.h"
 
 void SQLiteDatabase::InsertNewMail(const MailInfo& mail) {
 	ExecuteInsert(
@@ -88,4 +90,26 @@ void SQLiteDatabase::ClaimMailItem(const uint64_t mailId) {
 void SQLiteDatabase::DeleteMail(const uint64_t mailId) {
 	// Kept for staff (the dashboard shows it as deleted); every read for the game skips it
 	ExecuteUpdate("UPDATE mail SET deleted_at=? WHERE id=? AND deleted_at=0;", static_cast<int64_t>(time(NULL)), mailId);
+}
+
+std::vector<IMail::MailRecord> SQLiteDatabase::GetMailHistory(const MailQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto [_, res] = ExecuteSelect(MailSql::Select() + MailSql::Where(q, "'%' || ? || '%'") + " ORDER BY m.id DESC LIMIT ? OFFSET ?;",
+		q.characterId, q.characterId, q.characterId, q.accountId, q.accountId, q.accountId, q.search, pattern, pattern, pattern, pattern, q.limit, q.offset);
+	std::vector<MailRecord> rows;
+	for (; !res.eof(); res.nextRow()) {
+		rows.push_back({ static_cast<uint64_t>(res.getInt64Field("id")), res.getInt64Field("sender_id"), res.getStringField("sender_name"),
+			static_cast<uint32_t>(res.getIntField("sender_account")), res.getInt64Field("receiver_id"), res.getStringField("receiver_name"),
+			static_cast<uint32_t>(res.getIntField("receiver_account")), res.getInt64Field("time_sent"), res.getStringField("subject"), res.getStringField("body"),
+			res.getInt64Field("attachment_id"), res.getIntField("attachment_lot"), res.getInt64Field("attachment_subkey"), res.getIntField("attachment_count"),
+			res.fieldIsNull("attachment_config") ? "" : res.getStringField("attachment_config"), res.getIntField("was_read") != 0, res.getInt64Field("deleted_at") });
+	}
+	return rows;
+}
+
+uint64_t SQLiteDatabase::CountMailHistory(const MailQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) AS count FROM mail AS m" + MailSql::Where(q, "'%' || ? || '%'") + ";",
+		q.characterId, q.characterId, q.characterId, q.accountId, q.accountId, q.accountId, q.search, pattern, pattern, pattern, pattern);
+	return res.eof() ? 0 : static_cast<uint64_t>(res.getInt64Field("count"));
 }

@@ -71,6 +71,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardAdmin::Webhook, id, name, url, form
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardAdmin::Totp, encryptedSecret, enabledAt, lastStep);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IDashboardStats::Snapshot, accounts, accountsMaxId, characters, pendingNames, properties, pendingProperties, playKeys, bugReports, unresolvedBugReports, petNames, pendingPetNames, activityLogMaxId, chatLogMaxId, commandLogMaxId, auditLogMaxId, mailMaxId, openEconomyFlags, economyFlagsMaxId);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IEconomyLedger::MailAttachment, mailId, receiverId, itemId, lot, count);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IMail::MailRecord, id, senderId, senderName, senderAccountId, receiverId, receiverName, receiverAccountId, timeSent, subject, body, attachmentId, attachmentLot, attachmentSubkey, attachmentCount, attachmentConfig, read, deletedAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IModeration::AppliedStrikeStep, step, count, time);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IModeration::PlayerReport, id, createdAt, kind, reporterId, reporterAccountId, objectId, objectLot, targetCharacterId, targetAccountId, propertyId, zoneId, instanceId, cloneId, body, status, handledBy, handledAt, resolution);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IModeration::ChatFilterWord, word, allowed, addedBy, addedAt);
@@ -930,6 +931,58 @@ TEST_F(ParitySeeded, Mail) {
 		EXPECT_EQ(out[2], json::array());
 		EXPECT_EQ(out[3], 0);
 		EXPECT_EQ(rows, json::array());
+		return out;
+	});
+	// The dashboard still sees deleted mail, and can filter it
+	Both("GetMailHistory", [](GameDatabase& db) {
+		MailInfo game;
+		game.senderUsername = "%[MAIL_SYSTEM_NOTIFICATION]"; game.recipient = "Alice"; game.subject = "%[MissionEmail_1_subjectText]"; game.body = "100% done_";
+		game.receiverId = CHAR_ALICE; game.itemLOT = 1727; game.itemCount = 2;
+		db.InsertNewMail(game); // id 3
+		db.ClaimMailItem(3);
+		db.MarkMailRead(3);
+		using eMailState = IMail::eMailState;
+		const auto ids = [&db](IMail::MailQuery q) {
+			json out = json::array();
+			for (const auto& row : db.GetMailHistory(q)) out.push_back(row.id);
+			out.push_back(db.CountMailHistory(q));
+			return out;
+		};
+		// Times are when the rows were written, which may differ by a second between the backends
+		json rows = db.GetMailHistory({});
+		for (auto& row : rows) { row["timeSent"] = row["timeSent"] != 0; row["deletedAt"] = row["deletedAt"] != 0; }
+		json out = json::array();
+		out.push_back(rows);
+		out.push_back(ids({ .characterId = CHAR_BOB }));
+		out.push_back(ids({ .characterId = CHAR_ALICE }));
+		out.push_back(ids({ .accountId = 2 }));
+		out.push_back(ids({ .accountId = 3 }));
+		out.push_back(ids({ .search = "gift" }));
+		out.push_back(ids({ .search = "100%" }));
+		out.push_back(ids({ .search = "1_0" })); // LIKE wildcards are matched as themselves
+		out.push_back(ids({ .state = eMailState::DELETED }));
+		out.push_back(ids({ .state = eMailState::CLAIMED }));
+		out.push_back(ids({ .state = eMailState::READ }));
+		out.push_back(ids({ .state = eMailState::UNREAD }));
+		out.push_back(ids({ .includeDeleted = false }));
+		out.push_back(ids({ .offset = 1, .limit = 1 }));
+		EXPECT_EQ(rows.size(), 3u);
+		EXPECT_EQ(rows[2]["senderAccountId"], 1);
+		EXPECT_EQ(rows[2]["receiverAccountId"], 2);
+		EXPECT_EQ(rows[0]["senderAccountId"], 0);
+		EXPECT_EQ(out[1], json({ 2, 1, 2 }));
+		EXPECT_EQ(out[2], json({ 3, 2, 1, 3 }));
+		EXPECT_EQ(out[3], json({ 2, 1, 2 }));
+		EXPECT_EQ(out[4], json({ 0 }));
+		EXPECT_EQ(out[5], json({ 1, 1 }));
+		EXPECT_EQ(out[6], json({ 3, 1 }));
+		EXPECT_EQ(out[7], json({ 0 }));
+		EXPECT_EQ(out[8], json({ 2, 1, 2 }));
+		EXPECT_EQ(out[9], json({ 3, 1 }));
+		EXPECT_EQ(out[10], json({ 3, 1 }));
+		EXPECT_EQ(out[11], json({ 0 }));
+		EXPECT_EQ(out[12], json({ 3, 1 }));
+		EXPECT_EQ(out[13], json({ 2, 3 }));
 		return out;
 	});
 }

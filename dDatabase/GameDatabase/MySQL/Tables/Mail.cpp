@@ -1,4 +1,6 @@
 #include "MySQLDatabase.h"
+#include "GeneralUtils.h"
+#include "MailSql.h"
 
 
 void MySQLDatabase::InsertNewMail(const MailInfo& mail) {
@@ -89,4 +91,27 @@ void MySQLDatabase::ClaimMailItem(const uint64_t mailId) {
 void MySQLDatabase::DeleteMail(const uint64_t mailId) {
 	// Kept for staff (the dashboard shows it as deleted); every read for the game skips it
 	ExecuteUpdate("UPDATE mail SET deleted_at=? WHERE id=? AND deleted_at=0 LIMIT 1;", static_cast<int64_t>(time(NULL)), mailId);
+}
+
+std::vector<IMail::MailRecord> MySQLDatabase::GetMailHistory(const MailQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto res = ExecuteSelect(MailSql::Select() + MailSql::Where(q, "CONCAT('%', ?, '%')") + " ORDER BY m.id DESC LIMIT ? OFFSET ?;",
+		q.characterId, q.characterId, q.characterId, q.accountId, q.accountId, q.accountId, q.search, pattern, pattern, pattern, pattern, q.limit, q.offset);
+	std::vector<MailRecord> rows;
+	while (res->next()) {
+		rows.push_back({ res->getUInt64("id"), res->getInt64("sender_id"), std::string(res->getString("sender_name").c_str()), res->getUInt("sender_account"),
+			res->getInt64("receiver_id"), std::string(res->getString("receiver_name").c_str()), res->getUInt("receiver_account"), res->getInt64("time_sent"),
+			std::string(res->getString("subject").c_str()), std::string(res->getString("body").c_str()), res->getInt64("attachment_id"),
+			res->getInt("attachment_lot"), res->getInt64("attachment_subkey"), res->getInt("attachment_count"),
+			res->isNull("attachment_config") ? "" : std::string(res->getString("attachment_config").c_str()), res->getBoolean("was_read"),
+			res->getInt64("deleted_at") });
+	}
+	return rows;
+}
+
+uint64_t MySQLDatabase::CountMailHistory(const MailQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto res = ExecuteSelect("SELECT COUNT(*) AS count FROM mail AS m" + MailSql::Where(q, "CONCAT('%', ?, '%')") + ";",
+		q.characterId, q.characterId, q.characterId, q.accountId, q.accountId, q.accountId, q.search, pattern, pattern, pattern, pattern);
+	return res->next() ? res->getUInt64("count") : 0;
 }
