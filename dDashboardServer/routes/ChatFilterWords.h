@@ -4,6 +4,7 @@
 #include <cstring>
 #include <functional>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -63,5 +64,59 @@ namespace ModerationTools {
 	inline bool HasFilterWord(const std::string& message, const std::string& word) {
 		const auto words = dChatFilter::Words(message);
 		return std::find(words.begin(), words.end(), word) != words.end();
+	}
+
+	// What the filter decides about one word of a message, and why
+	struct WordVerdict {
+		std::string text;   // as typed
+		std::string word;   // as the filter compares it
+		bool stopped{};
+		std::string reason; // blocked_here, allowed_here, allow_file, character_name, not_allowed, block_file, not_in_block_file, no_block_file
+	};
+
+	// Where the filter finds its words (callbacks keep this pure; the route reads the files and the database)
+	struct WordSources {
+		std::function<std::optional<bool>(const std::string&)> dashboard; // true allowed here, false blocked here, nullopt neither
+		std::function<bool(const std::string&)> allowFile;                // chatplus_en_us.txt
+		std::function<bool(const std::string&)> characterName;            // approved character names count as allowed words
+		std::function<bool(const std::string&)> blockFile;                // blocklist.dcf (by hash)
+		bool blockFileLoaded{};
+	};
+
+	/**
+	 * Each word of a message with what dChatFilter::IsSentenceOkay decides about it for a player below GM level 2 (higher
+	 * levels skip the filter). Normal chat (allowList) needs every word allowed; best friends' free chat (!allowList) stops
+	 * only blocked words, or every word when there is no blocked words file. Words are split at spaces as the filter
+	 * splits them. Pure; unit tested.
+	 */
+	inline std::vector<WordVerdict> ExplainMessage(const std::string& message, bool allowList, const WordSources& sources) {
+		std::vector<WordVerdict> verdicts;
+		std::stringstream stream(message);
+		std::string segment;
+		while (std::getline(stream, segment, ' ')) {
+			WordVerdict verdict{ segment, dChatFilter::NormalizeWord(segment) };
+			const auto here = sources.dashboard(verdict.word);
+			if (!allowList && !sources.blockFileLoaded) {
+				verdict.stopped = true;
+				verdict.reason = "no_block_file";
+			} else if (here && !*here) {
+				verdict.stopped = true;
+				verdict.reason = "blocked_here";
+			} else if (!allowList) {
+				verdict.stopped = sources.blockFile(verdict.word);
+				verdict.reason = verdict.stopped ? "block_file" : "not_in_block_file";
+			} else if (sources.allowFile(verdict.word)) {
+				verdict.reason = "allow_file";
+			} else if (here) {
+				verdict.reason = "allowed_here";
+			} else if (sources.characterName(verdict.word)) {
+				verdict.reason = "character_name";
+			} else {
+				verdict.stopped = true;
+				verdict.reason = "not_allowed";
+			}
+			verdicts.push_back(std::move(verdict));
+		}
+		return verdicts;
 	}
 }

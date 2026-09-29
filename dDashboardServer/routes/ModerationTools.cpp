@@ -4,6 +4,7 @@
 #include <ctime>
 #include <fstream>
 #include <map>
+#include <set>
 
 #include "RouteUtils.h"
 #include "DashboardRoutes.h"
@@ -332,6 +333,43 @@ namespace {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				Audit(context, "chat_filter_reload", "Reloaded the chat filter's words in running worlds");
 				JsonSuccess(reply, { {"requestId", ReloadWorlds(context.accountId)} });
+			});
+
+		Route(eHTTPMethod::GET, "/api/chat_filter/test", Perm("chat_filter_manage"),
+			"Whether the filter would stop a message from a player below GM level 2, and why, word by word. Query: message (up to 300 characters), "
+			"chat (normal, or free: best friends' free chat). Returns {stopped, words: [{text, word, stopped, reason}]}; reason is one of blocked_here, "
+			"allowed_here, allow_file, character_name, not_allowed, block_file, not_in_block_file, no_block_file",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto message = QueryValue(context.queryString, "message");
+				if (message.empty() || message.size() > 300) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type a message of 1 to 300 characters");
+				const bool allowList = QueryValue(context.queryString, "chat") != "free";
+				const auto all = AllowFileWords();
+				const auto blocked = BlockFileHashes();
+				const auto dashboard = DashboardWords();
+				std::set<std::string> names;
+				for (auto name : Database::Get()->GetApprovedCharacterNames()) {
+					std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+					names.insert(std::move(name));
+				}
+				ModerationTools::WordSources sources;
+				sources.dashboard = [&dashboard](const std::string& word) -> std::optional<bool> {
+					const auto it = dashboard.find(word);
+					return it == dashboard.end() ? std::nullopt : std::optional<bool>(it->second);
+				};
+				sources.allowFile = [&all](const std::string& word) { return std::binary_search(all.begin(), all.end(), word); };
+				sources.characterName = [&names](const std::string& word) { return names.contains(word); };
+				sources.blockFile = [&blocked](const std::string& word) {
+					return blocked && std::find(blocked->begin(), blocked->end(), ModerationTools::WordHash(word)) != blocked->end();
+				};
+				sources.blockFileLoaded = blocked && !blocked->empty();
+				nlohmann::json words = nlohmann::json::array();
+				bool stopped = false;
+				for (const auto& verdict : ModerationTools::ExplainMessage(message, allowList, sources)) {
+					stopped |= verdict.stopped;
+					words.push_back({ {"text", verdict.text}, {"word", verdict.word}, {"stopped", verdict.stopped}, {"reason", verdict.reason} });
+				}
+				JsonSuccess(reply, { {"message", message}, {"chat", allowList ? "normal" : "free"}, {"stopped", stopped}, {"words", words},
+					{"allowFileFound", !all.empty()}, {"blockFileFound", blocked.has_value()} });
 			});
 
 		Route(eHTTPMethod::GET, "/api/chat_filter/check", Perm("chat_filter_manage"),
