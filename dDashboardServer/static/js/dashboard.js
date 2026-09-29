@@ -130,7 +130,8 @@
 			'pet_names': counts.pendingPetNames || 0,
 			'guilds': counts.pendingGuildNames || 0,
 			'bug_reports': counts.unresolvedBugReports || 0,
-			'reports': counts.openEconomyFlags || 0
+			'reports': counts.openEconomyFlags || 0,
+			'chat_flags': counts.openChatFlags || 0
 		};
 		Object.keys(map).forEach(function (key) {
 			var el = document.querySelector('[data-badge="' + key + '"]');

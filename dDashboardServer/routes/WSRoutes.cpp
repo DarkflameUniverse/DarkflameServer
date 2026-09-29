@@ -25,7 +25,8 @@ namespace {
 			{"pendingGuildNames", snapshot.pendingGuildNames},
 			{"pendingProperties", snapshot.pendingProperties},
 			{"unresolvedBugReports", snapshot.unresolvedBugReports},
-			{"openEconomyFlags", snapshot.openEconomyFlags}
+			{"openEconomyFlags", snapshot.openEconomyFlags},
+			{"openChatFlags", snapshot.openChatFlags}
 		};
 	}
 
@@ -47,6 +48,7 @@ namespace {
 		changed("command_log", previous.commandLogMaxId != current.commandLogMaxId);
 		changed("audit_log", previous.auditLogMaxId != current.auditLogMaxId);
 		changed("economy_flags", previous.openEconomyFlags != current.openEconomyFlags || previous.economyFlagsMaxId != current.economyFlagsMaxId);
+		changed("chat_flags", previous.openChatFlags != current.openChatFlags || previous.chatFlagsMaxId != current.chatFlagsMaxId || previous.chatFlagsUpdatedAt != current.chatFlagsUpdatedAt);
 	}
 }
 

@@ -55,6 +55,7 @@
 #include "Permissions.h"
 #include "VanityRoutes.h"
 #include "ChatRoutes.h"
+#include "ChatFlagRoutes.h"
 #include "Strikes.h"
 #include "ModerationTools.h"
 #include "ModeratorHelper.h"
@@ -547,6 +548,7 @@ int main(int argc, char** argv) {
 	Game::web.SetWSApiAccessCallback([](const WSAuth& auth) { return Permissions::Allowed(auth.level, "api_access", nullptr, auth.grants.get()); });
 	RegisterVanityRoutes();
 	RegisterChatRoutes();
+	ChatFlagRoutes::RegisterRoutes();
 	RegisterStrikeRoutes();
 	RegisterModerationToolRoutes();
 	ModeratorHelper::RegisterRoutes();

@@ -474,7 +474,8 @@ namespace {
 					{"pendingGuildNames", snapshot.pendingGuildNames},
 					{"pendingProperties", snapshot.pendingProperties},
 					{"unresolvedBugReports", snapshot.unresolvedBugReports},
-					{"openEconomyFlags", snapshot.openEconomyFlags}
+					{"openEconomyFlags", snapshot.openEconomyFlags},
+					{"openChatFlags", snapshot.openChatFlags}
 				});
 			});
 

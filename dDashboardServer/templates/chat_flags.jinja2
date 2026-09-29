@@ -1,0 +1,76 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Chat Flags - DarkflameServer{% endblock %}
+
+{% block content %}
+<div id="chatFlagsPage">
+	<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+		<div>
+			<h2 class="mb-1">Chat Flags</h2>
+			<p class="text-body-secondary mb-0">Chat staff flagged for review, newest first. Flag messages from the <a href="/chat_log">Chat Log</a> or a guild, team or whisper history.
+				Each flag keeps a copy of the flagged messages and the chat around them. Mute, warn or ban from the account page, then mark the flag actioned; dismiss it when nothing needs doing.</p>
+		</div>
+		<div class="btn-group flex-wrap" role="group" id="statusFilter" aria-label="Status">
+			<input type="radio" class="btn-check" name="flagStatus" id="flagStatusOpen" value="open" checked><label class="btn btn-outline-primary" for="flagStatusOpen">Open</label>
+			<input type="radio" class="btn-check" name="flagStatus" id="flagStatusActioned" value="actioned"><label class="btn btn-outline-primary" for="flagStatusActioned">Actioned</label>
+			<input type="radio" class="btn-check" name="flagStatus" id="flagStatusDismissed" value="dismissed"><label class="btn btn-outline-primary" for="flagStatusDismissed">Dismissed</label>
+			<input type="radio" class="btn-check" name="flagStatus" id="flagStatusAll" value=""><label class="btn btn-outline-primary" for="flagStatusAll">All</label>
+		</div>
+	</div>
+
+	<div class="card mb-4">
+		<div class="card-header">
+			<div class="row g-2 align-items-end">
+				<div class="col-sm-6 col-lg-4"><label class="form-label small mb-1" for="flagCharacter">About character</label>
+					<input class="form-control form-control-sm" id="flagCharacter" placeholder="Name or ID"></div>
+				<div class="col-sm-6 col-lg-3"><label class="form-label small mb-1" for="flagAccount">About account ID</label>
+					<input class="form-control form-control-sm" id="flagAccount" inputmode="numeric" placeholder="Any"></div>
+			</div>
+		</div>
+		<div class="card-body">
+			<table id="flagsTable" class="table table-sm table-hover align-middle w-100 table-stack">
+				<thead><tr><th>#</th><th>Flagged</th><th>Channel</th><th>About</th><th>Messages</th><th>Note</th><th>Status</th><th></th></tr></thead>
+				<tbody></tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="card d-none" id="flagDetail">
+		<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+			<div><h5 class="mb-0" id="flagTitle"></h5><div class="small text-body-secondary" id="flagSubtitle"></div></div>
+			<div class="d-flex flex-wrap gap-2" id="flagLinks"></div>
+		</div>
+		<div class="card-body">
+			<div class="row g-4">
+				<div class="col-lg-8">
+					<h6>Messages <span class="small text-body-secondary fw-normal">(flagged ones highlighted; the chat around them as it was)</span></h6>
+					<table class="table table-sm align-middle"><tbody id="flagMessages"></tbody></table>
+				</div>
+				<div class="col-lg-4">
+					<form id="flagReview" class="mb-4 d-none">
+						<h6>Review</h6>
+						<div class="btn-group w-100 mb-2" role="group" aria-label="Status">
+							<input type="radio" class="btn-check" name="reviewStatus" id="reviewOpen" value="open"><label class="btn btn-sm btn-outline-warning" for="reviewOpen">Open</label>
+							<input type="radio" class="btn-check" name="reviewStatus" id="reviewActioned" value="actioned"><label class="btn btn-sm btn-outline-success" for="reviewActioned">Actioned</label>
+							<input type="radio" class="btn-check" name="reviewStatus" id="reviewDismissed" value="dismissed"><label class="btn btn-sm btn-outline-secondary" for="reviewDismissed">Dismissed</label>
+						</div>
+						<label class="form-label small mb-1" for="reviewNote">Note</label>
+						<textarea class="form-control form-control-sm mb-2" id="reviewNote" rows="3" maxlength="2000"></textarea>
+						<label class="form-label small mb-1" for="reviewReport">Player report ID <span class="text-body-secondary">(optional)</span></label>
+						<input class="form-control form-control-sm mb-2" id="reviewReport" inputmode="numeric" placeholder="None">
+						<label class="form-label small mb-1" for="reviewComment">Comment for the history <span class="text-body-secondary">(optional, e.g. "muted 3 days")</span></label>
+						<input class="form-control form-control-sm mb-2" id="reviewComment" maxlength="2000">
+						<button class="btn btn-sm btn-primary">Save</button>
+					</form>
+					<h6>History</h6>
+					<ul class="list-unstyled small mb-0" id="flagEvents"></ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/chat-flags.js"></script>
+{% endblock %}
