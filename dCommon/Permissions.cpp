@@ -30,6 +30,7 @@ namespace {
 		{ "accounts_mute", "Accounts", "Mute", "Mute and unmute accounts", 2 },
 		{ "accounts_ban", "Accounts", "Ban and lock", "Ban, unban, lock and unlock accounts", 4 },
 		{ "accounts_links", "Accounts", "Linked accounts", "See other accounts that share a play key, email address or login address with an account", 3 },
+		{ "client_sysinfo", "Accounts", "Client system info", "See the system description each account's game client sent at login (Windows version, video card, processors, memory) and the spread across players. As reported by the client: often compatibility values, not the real hardware. The address each came from also needs logs_audit", 5 },
 		{ "accounts_send_reset", "Accounts", "Send password reset", "Email an account a password reset link", 4 },
 		{ "accounts_manage", "Accounts", "Manage accounts", "Create accounts, change their email or password, reset their two-factor login", 8 },
 		{ "accounts_gm_level", "Accounts", "Set GM levels", "Change GM levels (never to your own level or above, unless GM 9; their own only with self_moderation, and only lower)", 8 },

@@ -213,6 +213,7 @@ namespace {
 			std::tuple{ std::optional(eLog::COMMAND), "log_command_days", 365 }, std::tuple{ std::optional(eLog::AUDIT), "log_audit_days", 730 },
 			std::tuple{ std::optional(eLog::CHEAT_DETECTION), "log_cheat_detection_days", 365 }, std::tuple{ std::optional(eLog::CHAT), "log_chat_days", 30 },
 			std::tuple{ std::optional(eLog::LOGIN_ADDRESS), "log_login_address_days", 90 },
+			std::tuple{ std::optional(eLog::CLIENT_SYSINFO), "log_client_sysinfo_days", 90 },
 			std::tuple{ std::optional<eLog>(), "log_task_days", 90 },
 			std::tuple{ std::optional<eLog>(), "health_days", 30 },
 			std::tuple{ std::optional<eLog>(), "traffic_days", 30 },
