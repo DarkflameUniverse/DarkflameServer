@@ -7,6 +7,7 @@ set(DSCRIPTS_SOURCES_AI_FV
 	"FvPandaSpawnerServer.cpp"
 	"FvPandaServer.cpp"
 	"FvBrickPuzzleServer.cpp"
+	"FvGuildCreate.cpp"
 	"FvConsoleLeftQuickbuild.cpp"
 	"FvConsoleRightQuickbuild.cpp"
 	"FvFacilityBrick.cpp"

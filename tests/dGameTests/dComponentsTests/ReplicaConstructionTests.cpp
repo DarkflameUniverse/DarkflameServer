@@ -130,6 +130,46 @@ TEST_F(ReplicaConstructionTest, CharacterConstructionAlwaysWritesGmActivityAndSo
 	player.SetCharacter(nullptr);
 }
 
+// A guild change (docs/Guilds.md) is written once: the client reads guild id, a u8 length and 16-bit characters, and
+// redraws the name billboard every time it reads a name.
+TEST_F(ReplicaConstructionTest, CharacterGuildChangeIsWrittenOnce) {
+	User user(UNASSIGNED_SYSTEM_ADDRESS, "tester", "key");
+	Character character(1, &user);
+	info.lot = 1;
+	Entity player(1152921506064087004, info);
+	player.SetCharacter(&character);
+	character.SetEntity(&player);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	RakNet::BitStream construction;
+	component->Serialize(construction, true);
+
+	component->SetGuild(7, u"Brick");
+	EXPECT_EQ(component->GetGuildID(), 7);
+	RakNet::BitStream serialization;
+	component->Serialize(serialization, false);
+	RakNet::BitStream expected;
+	expected.Write0(); // gm_pvp_info
+	expected.Write0(); // current_activity
+	expected.Write1(); // social_info
+	expected.Write<LWOOBJID>(7);
+	expected.Write<uint8_t>(5);
+	for (const char16_t c : std::u16string(u"Brick")) expected.Write<uint16_t>(c);
+	expected.Write1();
+	expected.Write<uint32_t>(0);
+	ExpectSameBits(serialization, expected);
+
+	RakNet::BitStream again;
+	component->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 3u);
+	// The same guild again changes nothing
+	component->SetGuild(7, u"Brick");
+	RakNet::BitStream same;
+	component->Serialize(same, false);
+	EXPECT_EQ(same.GetNumberOfBitsUsed(), 3u);
+
+	player.SetCharacter(nullptr);
+}
+
 // Live wrote the cheat block (gravity scale, speed multiplier) on construction only when one of them was changed: 216
 // of 20,617 controllable-physics constructions had it (players at run speed 1.05, enemies with gravity 0), never 1/1.
 TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionWritesCheatsOnlyWhenChanged) {

@@ -669,6 +669,15 @@ namespace {
 				Game::server->Send(bitStream, sysAddr, false); //send routed packet to player
 			});
 
+			// A player's guild changed (docs/Guilds.md): it shows under their name
+			handlers.On<ChatPackets::GuildStatus>(MessageType::Chat::GUILD_GET_STATUS, [](const ChatPackets::GuildStatus& status, const SystemAddress&) {
+				auto* player = Game::entityManager->GetEntity(status.characterID);
+				auto* characterComponent = player ? player->GetComponent<CharacterComponent>() : nullptr;
+				if (!characterComponent) return;
+				characterComponent->SetGuild(status.guildID, status.guildName.string);
+				Game::entityManager->SerializeEntity(player);
+			});
+
 			// New mail for a player the chat server says is in this world
 			handlers.On<ChatPackets::MailNotify>(MessageType::Chat::MAIL, [](const ChatPackets::MailNotify& notify, const SystemAddress&) {
 				Mail::NotifyNewMailHere(notify.receiverID);
@@ -1425,6 +1434,19 @@ namespace {
 		}
 	};
 
+	// The guild create box (docs/Guilds.md): the chat server makes the guild
+	struct TmpGuildCreatePacket final : public WorldPackets::TmpGuildCreate {
+		void Handle() override {
+			auto* user = UserManager::Instance()->GetUser(sysAddr);
+			const auto* const lastChar = user ? user->GetLastUsedChar() : nullptr;
+			if (!lastChar) return;
+			ChatPackets::GuildCreate create;
+			create.playerID = lastChar->GetObjectID();
+			create.guildName = LUWString(guildName, ChatPackets::GuildCreate().guildName.size);
+			ChatServerLink::Send(create);
+		}
+	};
+
 	struct StringCheckPacket final : public WorldPackets::StringCheck {
 		void Handle() override {
 			const auto receiver = GetNarrowReceiver();
@@ -1707,6 +1729,7 @@ namespace {
 		{ MessageType::World::ROUTE_PACKET, Create<RoutePacket> },
 		{ MessageType::World::STRING_CHECK, Create<StringCheckPacket> },
 		{ MessageType::World::GENERAL_CHAT_MESSAGE, Create<GeneralChatMessagePacket> },
+		{ MessageType::World::TMP_GUILD_CREATE, Create<TmpGuildCreatePacket> },
 		{ MessageType::World::HANDLE_FUNNESS, Create<HandleFunnessPacket> },
 		{ MessageType::World::UI_HELP_TOP_5, Create<UIHelpTop5Packet> },
 		{ MessageType::World::REQUEST_UGC_MANIFEST_INFO, Create<RequestUgcManifestInfoPacket> },

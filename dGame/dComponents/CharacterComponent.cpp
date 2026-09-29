@@ -91,8 +91,8 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 	cmptType.PushDebug<AMFBoolValue>("Has PVP flag turned on") = m_PvpEnabled;
 	cmptType.PushDebug<AMFIntValue>("GM Level") = GeneralUtils::ToUnderlying(m_GMLevel);
 	cmptType.PushDebug<AMFIntValue>("Editor level") = GeneralUtils::ToUnderlying(m_EditorLevel);
-	cmptType.PushDebug<AMFStringValue>("Guild ID") = "0";
-	cmptType.PushDebug<AMFStringValue>("Guild Name") = "";
+	cmptType.PushDebug<AMFStringValue>("Guild ID") = std::to_string(m_GuildID);
+	cmptType.PushDebug<AMFStringValue>("Guild Name") = GeneralUtils::UTF16ToWTF8(m_GuildName);
 	cmptType.PushDebug<AMFDoubleValue>("Reputation") = m_Reputation;
 	cmptType.PushDebug<AMFIntValue>("Current Activity Type") = GeneralUtils::ToUnderlying(m_CurrentActivity);
 	cmptType.PushDebug<AMFDoubleValue>("Property Clone ID") = m_Character->GetPropertyCloneID();
@@ -253,7 +253,26 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 
 		outBitStream.Write(m_IsLEGOClubMember);
 		outBitStream.Write(m_CountryCode);
+		// Written once per change: the client redraws the name billboard each time it reads a guild name
+		if (!bIsInitialUpdate) m_DirtySocialInfo = false;
 	}
+}
+
+void CharacterComponent::LoadGuild() {
+	// The chat server owns guilds (docs/Guilds.md); the character's is read when it loads and GUILD_GET_STATUS brings
+	// changes. A name waiting for moderation is not shown to other players.
+	const auto characterID = m_Character ? m_Character->GetObjectID() : m_Parent->GetObjectID();
+	const auto member = Database::Get()->GetGuildMember(characterID);
+	const auto guild = member ? Database::Get()->GetGuild(member->guildId) : std::nullopt;
+	if (!guild) return;
+	SetGuild(guild->id, guild->nameStatus == IGuilds::NAME_APPROVED ? GeneralUtils::UTF8ToUTF16(guild->name) : u"");
+}
+
+void CharacterComponent::SetGuild(const LWOOBJID guildID, const std::u16string& guildName) {
+	if (m_GuildID == guildID && m_GuildName == guildName) return;
+	m_GuildID = guildID;
+	m_GuildName = guildName;
+	m_DirtySocialInfo = true;
 }
 
 bool CharacterComponent::GetPvpEnabled() const {
@@ -359,19 +378,7 @@ void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 		m_EditorEnabled = false; //We're not currently in HF if we're loading in
 	}
 
-	//Annoying guild bs:
-	const tinyxml2::XMLAttribute* guildName = character->FindAttribute("gn");
-	if (guildName) {
-		const char* gn = guildName->Value();
-		int64_t gid = 0;
-		character->QueryInt64Attribute("gid", &gid);
-		if (gid != 0) {
-			std::string guildname(gn);
-			m_GuildName = GeneralUtils::UTF8ToUTF16(guildname);
-			m_GuildID = gid;
-			m_DirtySocialInfo = true;
-		}
-	}
+	LoadGuild();
 
 	if (character->FindAttribute("time")) {
 		character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);

@@ -158,6 +158,7 @@
 #include "FvNinjaGuard.h"
 #include "FvPassThroughWall.h"
 #include "FvBounceOverWall.h"
+#include "FvGuildCreate.h"
 #include "FvFong.h"
 #include "FvMaelstromGeyser.h"
 #include "FvRaceDragon.h"
@@ -515,6 +516,7 @@ namespace {
 		{"scripts\\ai\\FV\\L_FV_FACILITY_PIPES.lua", []() {return new FvFacilityPipes();}},
 		{"scripts\\02_server\\Map\\FV\\L_IMG_BRICK_CONSOLE_QB.lua", []() {return new ImgBrickConsoleQB();}},
 		{"scripts\\ai\\FV\\L_ACT_PARADOX_PIPE_FIX.lua", []() {return new ActParadoxPipeFix();}},
+		{"scripts\\ai\\FV\\L_GUILD_CREATE.lua", []() {return new FvGuildCreate();}},
 		{"scripts\\ai\\FV\\L_FV_NINJA_GUARDS.lua", []() {return new FvNinjaGuard();}},
 		{"scripts\\ai\\FV\\L_ACT_PASS_THROUGH_WALL.lua", []() {return new FvPassThroughWall();}},
 		{"scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua", []() {return new FvBounceOverWall();}},

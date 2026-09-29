@@ -19,6 +19,7 @@
 #include "DEVGMCommands.h"
 #include "GMGreaterThanZeroCommands.h"
 #include "GMZeroCommands.h"
+#include "GuildCommands.h"
 #include "LiveEvents.h"
 
 #include "Amf3.h"
@@ -1327,6 +1328,61 @@ void SlashCommandHandler::Startup() {
 		.dashboardPermission = "health_view"
 	};
 	RegisterCommand(ServerUptimeCommand);
+
+	// Guilds (docs/Guilds.md): the client has no guild commands; its guild chat tab sends /g
+	Command guildChatCommand{
+		.help = "Send a message to your guild.",
+		.info = "Send a message to your guild. The guild chat tab sends this.",
+		.aliases = { "g", "guild" },
+		.handle = GuildCommands::Chat,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(guildChatCommand);
+
+	Command guildCreateCommand{
+		.help = "Open the window to create a guild.",
+		.info = "Open the window to create a guild (live opened it from the Guild Master NPC).",
+		.aliases = { "guildcreate", "createguild" },
+		.handle = GuildCommands::OpenCreateBox,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(guildCreateCommand);
+
+	Command guildKickCommand{
+		.help = "Remove a player from your guild.",
+		.info = "Remove a player from your guild: the leader can remove anyone, officers veterans and recruits.",
+		.aliases = { "gkick", "guildkick" },
+		.handle = GuildCommands::Kick,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(guildKickCommand);
+
+	Command guildRankCommand{
+		.help = "Set a guild member's rank: /grank <name> <officer|veteran|recruit>",
+		.info = "Set a guild member's rank. The leader sets any rank; officers move members between veteran and recruit.",
+		.aliases = { "grank", "guildrank" },
+		.handle = GuildCommands::Rank,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(guildRankCommand);
+
+	Command guildLeaderCommand{
+		.help = "Hand your guild over to another member: /gleader <name>",
+		.info = "Make another member the guild's leader; you become an officer.",
+		.aliases = { "gleader", "guildleader" },
+		.handle = GuildCommands::Leader,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(guildLeaderCommand);
+
+	Command guildDisbandCommand{
+		.help = "Disband your guild: /gdisband confirm",
+		.info = "The leader removes every member and the guild itself.",
+		.aliases = { "gdisband", "guilddisband" },
+		.handle = GuildCommands::Disband,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(guildDisbandCommand);
 
 	//Commands that are handled by the client
 

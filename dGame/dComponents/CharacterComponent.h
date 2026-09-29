@@ -130,6 +130,14 @@ public:
 	bool GetPvpEnabled() const;
 
 	/**
+	 * The character's guild as other players see it (docs/Guilds.md): guildName is empty while the name waits for
+	 * moderation, and guildID 0 is no guild. Serializes again when it changed.
+	 */
+	void SetGuild(LWOOBJID guildID, const std::u16string& guildName);
+	LWOOBJID GetGuildID() const { return m_GuildID; }
+	const std::u16string& GetGuildName() const { return m_GuildName; }
+
+	/**
 	 * Returns the characters lifetime reputation
 	 * @return The lifetime reputation of this character.
 	 */
@@ -448,6 +456,9 @@ private:
 	 * Whether the social info has been changed
 	 */
 	bool m_DirtySocialInfo = false;
+
+	// Reads the character's guild from the database (on load)
+	void LoadGuild();
 
 	/**
 	 * The guild this character is in
