@@ -1,5 +1,6 @@
 set(DCOMMONTEST_SOURCES
 	"AMFDeserializeTests.cpp"
+	"ClientSysInfoTests.cpp"
 	"Amf3Tests.cpp"
 	"ToUnderlyingTests.cpp"
 	"InstanceMigrationTests.cpp"
