@@ -253,6 +253,17 @@ namespace GameMessages {
 		LWOOBJID possessedObjID{ LWOOBJID_EMPTY }; // optional
 	};
 
+	// Client -> server. LWOCharacterComponent sends it on load: a scale for the distance at which objects are ghosted
+	// for this player. All 239 live packets left the optional scale at its default (1), so the server keeps its own
+	// ghosting distances.
+	struct ModifyGhostingDistance : public NetGameMsg {
+		ModifyGhostingDistance() : NetGameMsg(MessageType::Game::MODIFY_GHOSTING_DISTANCE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		float fDistanceScalar{ 1.0f }; // optional
+	};
+
 	// Client -> server.
 	struct ToggleGhostReferenceOverride : public NetGameMsg {
 		ToggleGhostReferenceOverride() : NetGameMsg(MessageType::Game::TOGGLE_GHOST_REFERENCE_OVERRIDE) {}

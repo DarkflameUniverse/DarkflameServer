@@ -12,6 +12,7 @@
 #include "Entity.h"
 #include "InventoryComponent.h"
 #include "InventoryMessages.h"
+#include "MovementMessages.h"
 #include "PlayerMessages.h"
 
 #include <memory>
@@ -143,4 +144,14 @@ TEST_F(ClientMessagesTests, ResyncEquipmentResendsTheEquipment) {
 	inventory->Serialize(resent, false);
 	ASSERT_TRUE(resent.Read(equipmentSent));
 	EXPECT_TRUE(equipmentSent);
+}
+
+// ModifyGhostingDistance (1485): an optional scale, default 1. Every one of the 239 live packets was the default.
+TEST_F(ClientMessagesTests, ModifyGhostingDistanceMatchesLiveCapture) {
+	auto msg = FromLiveClientCapture<GameMessages::ModifyGhostingDistance>(std::string(PLAYER_HEADER) + "cd05" + "00");
+	EXPECT_EQ(msg.fDistanceScalar, 1.0f);
+	msg.fDistanceScalar = 0.5f;
+	EXPECT_EQ(RoundTrip(msg).fDistanceScalar, 0.5f);
+	ExpectTruncatedFails(msg);
+	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS); // nothing to do
 }

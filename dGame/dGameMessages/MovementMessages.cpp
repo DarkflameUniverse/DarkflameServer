@@ -396,6 +396,15 @@ namespace GameMessages {
 		return ReadPoint(bitStream, pos);
 	}
 
+	void ModifyGhostingDistance::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteOptional(bitStream, fDistanceScalar, 1.0f);
+	}
+
+	bool ModifyGhostingDistance::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, fDistanceScalar, 1.0f));
+		return true;
+	}
+
 	void SetGhostReferencePosition::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* player = PlayerManager::GetPlayer(sysAddr);
 		if (player == nullptr) return;

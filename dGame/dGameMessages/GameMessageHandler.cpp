@@ -220,6 +220,7 @@ namespace {
 		{ ACKNOWLEDGE_POSSESSION, []() { return std::make_unique<AcknowledgePossession>(); } },
 		{ TOGGLE_GHOST_REFERENCE_OVERRIDE, []() { return std::make_unique<ToggleGhostReferenceOverride>(); } },
 		{ SET_GHOST_REFERENCE_POSITION, []() { return std::make_unique<SetGhostReferencePosition>(); } },
+		{ MODIFY_GHOSTING_DISTANCE, []() { return std::make_unique<ModifyGhostingDistance>(); } },
 	};
 };
 
