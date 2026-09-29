@@ -462,6 +462,14 @@ void MovementAIComponent::SetDestination(const NiPoint3 destination) {
 		}
 	}
 
+	// The path is walked without collision, so an enemy's stops at walls it can't cross (navmesh carvers, enemy only
+	// blockers); with nothing left to walk it stays where it is. A patrol along its level path is left as designed.
+	const bool patrolling = m_Path && m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle;
+	if (m_BaseCombatAI && !patrolling) {
+		computedPath = dpWorld::ClampPath(m_Parent->GetPosition(), std::move(computedPath), static_cast<uint32_t>(m_Parent->GetCollisionGroup()));
+		if (computedPath.empty()) computedPath.push_back(m_Parent->GetPosition());
+	}
+
 	m_InterpolatedWaypoints.clear();
 
 	// Simply path

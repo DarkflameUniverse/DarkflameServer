@@ -9,6 +9,7 @@ set(DCOMPONENTS_TESTS
 	"DestroyableComponentTests.cpp"
 	"PetComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
+	"MovementBlockerScenarioTests.cpp"
 	"SavingTests.cpp"
 	"CharacterSaveFieldsTests.cpp"
 	"CollectibleComponentTests.cpp"
