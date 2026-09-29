@@ -138,7 +138,8 @@ and the notices (see Threads). Cars and rockets are made once per combination of
    model again gives the same colors, and every LOD the same (LU Toolbox restarts its random sequence per LOD).
 4. Faces nobody can see are removed from the opaque bricks as LU Toolbox's Remove Hidden Faces decides it: paths are
    traced from points on each triangle, bouncing off the model, and a triangle none of whose paths reaches the sky is
-   removed (see "Hidden faces" below). Transparent bricks hide nothing and aren't touched. `hsr_ground_plane=1` also
+   removed (see "Hidden faces" below; `hsr_method=fast` renders from around the model instead, see "Processing
+   options"). Transparent bricks hide nothing and aren't touched. `hsr_ground_plane=1` also
    drops what can only be seen from below.
 5. Ambient occlusion is baked like LU Toolbox's Bake Lighting with AO Only: 64 rays per vertex (`ao_samples`) over
    the hemisphere around the vertex normal (cosine weighted, the same pattern every time, so a model made again comes
@@ -275,6 +276,62 @@ samples, 12 bounces) and leaves out of the texture bake every face with a corner
 kept without the texture bake's test, so with it LU Toolbox keeps somewhat more (for example 1865 instead of 2529
 triangles removed from a 61-brick model); it saves LU Toolbox baking texels for faces that are seen, which the paths
 here already stop early for.
+
+### Processing options
+
+Ways of making models to try side by side and compare, none replacing another. The settings pick the defaults; staff
+can make models again with others (the UGC page's options next to **Make again**, `/api/ugc/reprocess` with
+`options`, `/reprocessproperty [builtin|embree|hiprt] [toolbox|fast] [off|oidn]` in game, `UgcServer --make-model
+<file> <folder> [options]`). The choices are written as their names in any order (`UgcProcessOptions` in
+`dCommon/UgcKeys.h`); one left out is the setting's.
+
+| Setting | Choices | What it changes |
+|---|---|---|
+| `ray_backend` | `builtin` (default), `embree`, `hiprt` | What traces the hidden faces' paths and the occlusion rays (`UgcRays`) |
+| `hsr_method` | `toolbox` (default), `fast` | How hidden faces are found |
+| `denoise` | `off` (default), `oidn` | How a model's icon gets its occlusion |
+
+* `builtin`: the UGC server's own bounding volume hierarchies (the ones it always had; its files are byte for byte what
+  they were). `embree`: Intel Embree 4 (Apache-2.0), fetched and built with the servers (SSE2, AVX and AVX2 kernels
+  picked by the CPU, its own task scheduler, no TBB), on the worker's thread only. `hiprt`: AMD's HIPRT on the GPU
+  (below). The backends find the same hits but for rounding (a hit a rounding further away sends a bounced path on
+  from a slightly different point), so a few triangles decided by a path that only just gets out can go the other
+  way; the tests compare them with builtin (the same nearest triangle for 99.9% of rays, the same distances, the same
+  hidden faces but for 2% at most on a cluttered scene, occlusion within 0.002 on average).
+* `toolbox`: LU Toolbox's Remove Hidden Faces, as under "Hidden faces". `fast`: what the UGC server did before, the
+  opaque mesh rendered from 42 directions around the model (`hsr_fast_resolution`, 1024 pixels square) and the
+  triangles that show in none removed. Much faster, but it removes faces seen only by bounced light (insides seen
+  through openings, recesses, the undersides of overhangs that aren't in direct view) which LU Toolbox keeps. It
+  doesn't trace rays, so the ray backend only changes its occlusion bake.
+* `oidn`: a model's icon is drawn from `model.noao.nif` (its colors before the occlusion bake) with the occlusion
+  traced per pixel of the supersampled icon (`denoise_samples` rays from each, default 4, 64 per icon pixel; the bake's
+  distance and strength) and denoised with Intel Open Image Denoise 2 (Apache-2.0), guided by the colors and normals,
+  instead of showing the per-vertex bake. The model keeps its baked occlusion: a denoiser only removes noise that
+  differs from pixel to pixel, and the bake is per vertex (checked: OIDN takes white noise from 17% to 0.6% spread and
+  leaves per-vertex blocks as they are), so there is no image of the bake to denoise and it can't use fewer samples.
+  The denoiser works on a thread of its own; its time is counted as the worker's CPU time. Icons drawn again from
+  stored files use the stored `model.noao.nif` the same way.
+
+`hiprt` and `oidn` are optional in the build (CMake options, off by default; without them the setting falls back to
+`embree` and `off`, and the UGC server logs why at start):
+
+* `-DDLU_OIDN=ON`: an installed OIDN 2 is used when CMake finds it, else Intel's release package (Linux x86-64 and
+  Windows, pinned by hash, with its TBB) is downloaded and its libraries copied next to the servers.
+* `-DDLU_HIPRT=ON`: needs HIPRT's headers (`HIPRT_ROOT`, else ROCm's `/opt/rocm/include`); HIPRT's library is loaded
+  when first used, and HIP (AMD) or CUDA (NVIDIA; when the CUDA toolkit is found at build time) by Orochi (MIT,
+  fetched). AMD RDNA 1 or newer or NVIDIA Maxwell or newer; `hiprt_device` picks the GPU (0: the first; restart to
+  change). The trace kernels are compiled from the headers copied next to the servers the first time (a second or
+  two) and kept in `cache/hiprt`. One GPU context for the process, the workers take turns on it; GPU time isn't CPU
+  time, so `max_cpu_percent` doesn't hold it back. A GPU wants many rays at once, so with it the hidden faces' paths
+  are traced side by side, a bounce at a time (the same paths with the same random numbers as one by one, so the same
+  triangles are decided; it traces a round's other paths too after one escaped), and the occlusion rays in batches.
+
+Every make records what made it: `stats.json` (`settings.rays`, `hsrMethod`, `denoise`, after fallbacks),
+`ugc.made_options` and a row in `ugc_process_runs` with its times. The UGC page shows each model's in the List view's
+Options column (and what its next make will use), and **Processing options compared** averages per combination:
+makes, models, time, CPU, hidden faces', occlusion's and icon's time, bricks and share of triangles removed
+(`GET /api/ugc/options`). Compare combinations on the same models (Make again on a set of models with each); the
+averages mix whatever models each was used on.
 
 ### Metal and glow (on by default, not how live looked)
 
@@ -558,6 +615,12 @@ Migrations `dlu/mysql/92_ugc_triangles_before.sql` and `dlu/sqlite/75_ugc_triang
 Migrations `dlu/mysql/94_ugc_priority.sql` and `dlu/sqlite/77_ugc_priority.sql`: `ugc.priority`, 1 for models staff
 asked to be made again (made before any other, cleared once made).
 
+Migrations `dlu/mysql/99_ugc_process_options.sql` and `dlu/sqlite/82_ugc_process_options.sql` (see "Processing
+options"): `ugc.process_options`, the options staff picked for a model's next make (empty: the settings'; cleared once
+it isn't pending), `ugc.made_options`, what made its current files, and the table `ugc_process_runs`, one row per
+successful make of a model (`ugc_id`, `options`, `made_at`, `process_ms`, `process_cpu_ms`, `hsr_ms`, `ao_ms`,
+`icon_ms` from its `stats.json`, `bricks`, `triangles_before`, `triangles`).
+
 ### Cars and rockets from before builds were stored
 
 Migrations `dlu/mysql/98_modular_build_ids.sql` and `dlu/sqlite/81_modular_build_ids.sql` (run by
@@ -670,8 +733,9 @@ serving), the worlds:
   placed, gets its LXFML, and the UGC server is told to make that model now (`ExpediteUgcModel`).
   A model made again unchanged (after eviction) isn't sent. Nothing polls: one message per batch of made models.
 
-* **`/reprocessproperty`** (GM 8): every model placed on the property the player is on goes back to the UGC server's
-  queue (`ResetPropertyUgcModelProcessing`). The world checks every 5 seconds; once none is pending (or after 15
+* **`/reprocessproperty [options]`** (GM 8): every model placed on the property the player is on goes back to the UGC
+  server's queue (`ResetPropertyUgcModelProcessing`), with the processing options given for that make (see
+  "Processing options"; none: the settings'). The world checks every 5 seconds; once none is pending (or after 15
   minutes) it sends every player in the world the new `model.nif` checksums and transfers them back into the same
   zone and clone. The client loads the property again and downloads the new meshes (its manifest cache has the new
   checksums, which its files don't match). Models of a reprocess skip the "made again" switch.
@@ -769,8 +833,9 @@ files are what every player on a property sees anyway):
 
 Files are sent from disk (mongoose streams them, with its own ETag) with `Cache-Control: public, max-age=3600`.
 
-`UgcServer --make-model <file.lxfml or sd0> <folder>` and `UgcServer --make-modular "1:4713+1:4714+1:4715" <folder>`
-make one item's files into a folder without a database, for trying settings.
+`UgcServer --make-model <file.lxfml or sd0> <folder> [options]` and `UgcServer --make-modular "1:4713+1:4714+1:4715"
+<folder> [options]` make one item's files into a folder without a database, for trying settings; the options are
+processing options over the settings (e.g. `embree fast`), and it prints the time, the CPU time and what made it.
 
 ## Dashboard
 
@@ -806,7 +871,8 @@ name; assemblies the same (most modules for most bricks, no triangles or saved) 
 search, filters, sort, page and view are kept in the address, so Back and Forward and shared links work. The search
 is `UgcLookupSql` (the same on MySQL and SQLite, `IUgcLookup::ListUgc`); assemblies are grouped
 from the builds (`UgcAssemblies`). Buttons make one item, the failed ones or everything again (these only reset the
-columns; the UGC server picks the rows up).
+columns; the UGC server picks the rows up), for models with the processing options picked next to them (see
+"Processing options").
 
 An assembly opens with its modules, the icon editor and **References**: the builds that use it (`GET
 /api/ugc/assembly/builds?modules=&q=&page=`), with owner character and account, state and where each is (placed on a
