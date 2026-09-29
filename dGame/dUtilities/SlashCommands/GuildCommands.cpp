@@ -56,7 +56,9 @@ void GuildCommands::Chat(Entity* entity, const SystemAddress& sysAddr, const std
 		return;
 	}
 
+	// With its terminating zero, as the client sends chat: members' clients read the text up to that zero
 	auto text = GeneralUtils::UTF8ToUTF16(message);
+	text.push_back(u'\0');
 	ChatPackets::GeneralChatMessage chat;
 	chat.playerID = entity->GetObjectID();
 	chat.chatChannel = eChatChannel::GUILD;
