@@ -35,6 +35,7 @@ void ZoneFile::ReadHeader(std::istream& file) {
 	for (uint32_t i = 0; i < sceneCount; ++i) {
 		ReadScene(file, i);
 	}
+	KeepLoadedScenes();
 
 	ReadZoneBoundaries(file);
 
@@ -104,6 +105,21 @@ void ZoneFile::ReadScene(std::istream& file, uint32_t index) {
 	}
 
 	scenes.push_back(std::move(scene));
+}
+
+void ZoneFile::KeepLoadedScenes() {
+	if (fileFormatVersion < FileFormatVersion::PrePreAlpha) return; // ResolveSceneTable does this for those
+	// LuzReader::ReadScenes keeps the scenes by scene ID and layer, a later one replacing an earlier one.
+	// ZoneLoader::ReadZoneFile then goes through them by scene ID: a scene ID with no General layer is left out, and
+	// before Latest only the General layer is loaded
+	std::map<std::pair<uint32_t, eSceneType>, ZoneScene> byID;
+	for (auto& scene : scenes) byID.insert_or_assign({ scene.id, scene.sceneType }, std::move(scene));
+	scenes.clear();
+	for (auto& [key, scene] : byID) {
+		if (!byID.contains({ key.first, eSceneType::General })) continue;
+		if (key.second != eSceneType::General && fileFormatVersion < FileFormatVersion::Latest) continue;
+		scenes.push_back(std::move(scene));
+	}
 }
 
 void ZoneFile::ResolveSceneTable(const std::function<std::optional<std::string>(uint32_t)>& sceneName) {

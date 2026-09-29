@@ -256,6 +256,7 @@ struct ZoneFile {
 
 private:
 	void ReadScene(std::istream& file, uint32_t index);
+	void KeepLoadedScenes();
 	void ReadZoneBoundaries(std::istream& file);
 	void ReadSceneTransition(std::istream& file);
 	SceneTransitionInfo ReadSceneTransitionInfo(std::istream& file);

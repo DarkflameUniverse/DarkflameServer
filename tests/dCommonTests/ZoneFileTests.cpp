@@ -31,7 +31,7 @@ namespace {
 		w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150); // version, revision, world
 		w.Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);  // spawn point and rotation
 		w.Put<uint32_t>(1);
-		w.Text("scene.lvl").Put<uint32_t>(7).Put<uint32_t>(2).Text("Global").Put<uint8_t>(1).Put<uint8_t>(2).Put<uint8_t>(3);
+		w.Text("scene.lvl").Put<uint32_t>(7).Put<uint32_t>(0).Text("Global").Put<uint8_t>(1).Put<uint8_t>(2).Put<uint8_t>(3);
 		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description"); // no zone boundaries
 		w.Put<uint32_t>(1);
 		for (int i = 0; i < 2; i++) w.Put<uint64_t>(1).Point(0, 0, 0);
@@ -65,7 +65,7 @@ TEST(ZoneFileTests, ReadsScenesAndPaths) {
 	ASSERT_EQ(zone.scenes.size(), 1u);
 	EXPECT_EQ(zone.scenes[0].filename, "scene.lvl");
 	EXPECT_EQ(zone.scenes[0].id, 7u);
-	EXPECT_EQ(zone.scenes[0].sceneType, eSceneType::FX);
+	EXPECT_EQ(zone.scenes[0].sceneType, eSceneType::General);
 	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
 	ASSERT_EQ(zone.sceneTransitions.size(), 1u);
 	EXPECT_EQ(zone.sceneTransitions[0].points.size(), 2u);
@@ -181,6 +181,35 @@ TEST(ZoneFileTests, EarlyScenesAreNumberedInOrder) {
 	EXPECT_EQ(zone.scenes[1].id, 1u);
 	EXPECT_EQ(zone.scenes[2].id, 2u);
 	EXPECT_EQ(zone.scenes[2].filename, "c.lvl");
+}
+
+// The scenes the client loads: by scene ID and layer, a later one replacing an earlier one; none without a General
+// layer; before version 41 only the General layer
+TEST(ZoneFileTests, KeepsTheScenesTheClientLoads) {
+	for (const uint32_t version : { 40u, 41u }) {
+		ZoneBytes w;
+		w.Put<uint32_t>(version).Put<uint32_t>(1).Put<uint32_t>(1100);
+		w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+		w.Put<uint32_t>(5);
+		const auto scene = [&w](const std::string& file, uint32_t id, uint32_t layer) {
+			w.Text(file).Put<uint32_t>(id).Put<uint32_t>(layer).Text("n").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+		};
+		scene("b.lvl", 2, 0);
+		scene("b_audio.lvl", 2, 1);
+		scene("orphan_audio.lvl", 3, 1);
+		scene("a.lvl", 1, 0);
+		scene("b2.lvl", 2, 0);
+		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
+		w.Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(0);
+		std::istringstream stream(w.data);
+		ZoneFile zone;
+		zone.Read(stream);
+		EXPECT_FALSE(stream.fail());
+		std::vector<std::string> files;
+		for (const auto& read : zone.scenes) files.push_back(read.filename);
+		if (version == 41) EXPECT_EQ(files, (std::vector<std::string>{ "a.lvl", "b2.lvl", "b_audio.lvl" }));
+		else EXPECT_EQ(files, (std::vector<std::string>{ "a.lvl", "b2.lvl" }));
+	}
 }
 
 // A PrePreAlpha (30) file ends at its terrain file's name: no zone name, description, transitions or paths
