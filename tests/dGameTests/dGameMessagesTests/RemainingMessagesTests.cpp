@@ -6,6 +6,7 @@
 #include "ObjectMessages.h"
 #include "PlayerMessages.h"
 #include "QuickBuildMessages.h"
+#include "StatisticID.h"
 #include "ZoneMessages.h"
 
 #include <array>
@@ -721,4 +722,24 @@ TEST_F(RemainingMessagesTests, LeaderboardMessagesMatchLegacy) {
 	data.target = 0x1000000000000001LL;
 	data.leaderboard = &leaderboard;
 	ExpectSameAsLegacy([&](const SystemAddress& address) { LegacyGameMessages::SendActivitySummaryLeaderboardData(0x1000000000000001LL, &leaderboard, address); }, data, SendMode::SendToClient);
+}
+
+// Packets from 2011/2012 live captures: live sent UpdatePlayerStatistic (1481) server -> client. The client reads
+// a u32 statistic and an optional i64 amount that defaults to 1 (0x00d8c870 in 1.10.64).
+TEST_F(RemainingMessagesTests, UpdatePlayerStatisticMatchesLiveCapture) {
+	// CurrencyCollected after a SetCurrency, amount left at the default.
+	const auto currency = FromLiveCapture<GameMessages::UpdatePlayerStatistic>("5305000c000000005e7dea8e00000010c9050100000000");
+	EXPECT_EQ(currency.target, 0x100000008eea7d5eLL);
+	EXPECT_EQ(currency.updateID, static_cast<int32_t>(StatisticID::CurrencyCollected));
+	EXPECT_EQ(currency.updateValue, 1);
+
+	// CurrencyCollected with an amount.
+	const auto coins = FromLiveCapture<GameMessages::UpdatePlayerStatistic>("5305000c000000005e7dea8e00000010c90501000000fa0080000000000000");
+	EXPECT_EQ(coins.updateID, static_cast<int32_t>(StatisticID::CurrencyCollected));
+	EXPECT_EQ(coins.updateValue, 500);
+
+	// MetersTraveled, sent periodically while the player moves.
+	const auto meters = FromLiveCapture<GameMessages::UpdatePlayerStatistic>("5305000c000000005e7dea8e00000010c9050c0000008e8000000000000000");
+	EXPECT_EQ(meters.updateID, static_cast<int32_t>(StatisticID::MetersTraveled));
+	EXPECT_EQ(meters.updateValue, 29);
 }
