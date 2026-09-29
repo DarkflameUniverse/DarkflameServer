@@ -33,6 +33,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 1127 | BUG: Enemies at Cavalry Hill take 1 damage from too far away on spawn | done | `5d3c2e6f` fix: filter physics volumes like the client's collision groups |
 | 1129 | BUG: Vendor selling window does not replicate live behavior | done | `c759bd1a` fix(vendor): keep 27 buyback items and drop the oldest |
 | 1179 | BUG: enemies aren't affected by speed alterations | done | `86ee6de5` fix: slows and speed buffs change enemy movement speed |
+| 1256 | Red Blocks piano position | done | `c120be0b` fix(scripts): concert instruments place the player as live did (issue 1256) |
 | 1332 | ENH: make saving code safer | partial | `4443d981` fix: read character flags the way they are written again<br>`d671d266` fix: character xml load and save no longer crash on bad data |
 | 1428 | BUG: enemies, summons etc stay aggro'd onto other entities that have died | done | `363e02e9` fix: enemies and summons drop targets that have died |
 | 1563 | ENH: Admin defined "contraband" detection and removal | done | `b2403b09` feat: contraband list with flagging and optional removal |
