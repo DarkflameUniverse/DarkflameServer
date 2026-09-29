@@ -373,9 +373,10 @@ them load normally. Leaving a page with unsaved changes (Settings, Vanity) asks 
 For page scripts (`static/js/nav.js`): listeners a page adds to `document` or `window`, its `setInterval` timers, its
 `Live` watchers and its DataTables are removed when another page is swapped in; its scripts run again when it's opened
 again, and `DOMContentLoaded`/`load` handlers they add run once they have all run. Elements a page appends to `<body>`
-are removed unless marked `data-nav-keep`. `Nav.go(url)` opens a page, `Nav.refresh()` updates the current one in place.
-`document` gets `dash:page` after a page is swapped in, `dash:leave` before, and `dash:refreshed` after an in-place
-update. A page that must always load on its own adds `data-nav="reload"` to any element; a link with `data-nav="off"`
+are removed unless marked `data-nav-keep`. `Nav.go(url)` opens a page, `Nav.refresh()` updates the current one in place;
+`goTo(url)` and `reloadInPlace()` (`common.js`) do the same, or load normally without `nav.js`. `document` gets
+`dash:page` after a page is swapped in, `dash:leave` before, and `dash:refreshed` after an in-place update (pages that
+format server values in the browser, like times, do it again then). A page that must always load on its own adds `data-nav="reload"` to any element; a link with `data-nav="off"`
 always loads normally.
 
 View choices you make on the pages (show staff, filters, the 3D viewer's switches, ...) are saved to your account, so
