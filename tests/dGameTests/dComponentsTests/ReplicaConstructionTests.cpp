@@ -242,6 +242,25 @@ TEST_F(ReplicaConstructionTest, TemplateFactionMinusOneIsReplicated) {
 	EXPECT_EQ(smashableDestroyable->GetFactionIDs(), std::vector<int32_t>{ 6 });
 }
 
+// An object with an item component (and no model component): live wrote the UGC info on every construction (99 of 99
+// constructions of LOT 14535): ug_id 0, NoStatus, no description. DLU wrote none.
+TEST_F(ReplicaConstructionTest, ItemConstructionWritesEmptyUgcInfo) {
+	Entity item(15, info);
+	auto* const component = item.AddComponent<ItemComponent>(-1);
+	RakNet::BitStream construction;
+	component->Serialize(construction, true);
+	RakNet::BitStream expected;
+	expected.Write1();
+	expected.Write<LWOOBJID>(0);
+	expected.Write<uint32_t>(0);
+	expected.Write0();
+	ExpectSameBits(construction, expected);
+
+	RakNet::BitStream serialization;
+	component->Serialize(serialization, false);
+	EXPECT_EQ(serialization.GetNumberOfBitsUsed(), 1u);
+}
+
 class InventoryConstructionTest : public GameDependenciesTest {
 protected:
 	// The items of the live sample below (CDClient 1.10.64 values)

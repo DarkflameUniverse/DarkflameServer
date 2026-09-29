@@ -172,11 +172,6 @@ namespace {
 			characterComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 
-		ItemComponent* itemComponent;
-		if (TryGet(entity, itemComponent)) {
-			itemComponent->Serialize(outBitStream, bIsInitialUpdate);
-		}
-
 		InventoryComponent* inventoryComponent;
 		if (TryGet(entity, inventoryComponent)) {
 			inventoryComponent->Serialize(outBitStream, bIsInitialUpdate);
@@ -195,6 +190,14 @@ namespace {
 		BaseCombatAIComponent* baseCombatAiComponent;
 		if (TryGet(entity, baseCombatAiComponent)) {
 			baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate);
+		}
+
+		// The item comes after the skill and combat AI components, as the client reads them (ComponentOrderVector::Initialize
+		// 0x0101f8e0; live constructions of LOT 14535). It used to come before the inventory, which was harmless while
+		// it wrote a single 0 bit.
+		ItemComponent* itemComponent;
+		if (TryGet(entity, itemComponent)) {
+			itemComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 
 		QuickBuildComponent* quickBuildComponent;
