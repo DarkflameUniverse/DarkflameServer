@@ -2,10 +2,12 @@
 #define COMMONPACKETS_H
 
 #include "BitStreamUtils.h"
+#include "BuildInfo.h"
 #include "MessageType/Server.h"
 #include "RakNetTypes.h"
 
 #include <cstdint>
+#include <string>
 
 enum class eServerDisconnectIdentifiers : uint32_t;
 
@@ -32,17 +34,27 @@ namespace CommonPackets {
 	};
 
 	// Server -> client. The answer to ClientVersionConfirm.
-	// The client (ServerHandShakePacket, 1.10.64) only reads netVersion, unknown and serviceType; the trailing
-	// 8 bytes are what DLU has always sent after them.
+	// The client (1.10.64, PacketHandler_MSG_SERVER_VERSION_CONFIRM) reads only netVersion and serviceType; it never
+	// reads unknown and ignores anything after serviceType (no length check). DLU uses those bytes to say which build
+	// the server is:
+	//   u32 netVersion | u32 unknown ("DLU3") | u32 serviceType
+	//   | u8 major | u8 minor | u8 patch | u8 flags (bits 0-1 BuildInfo::eBuildKind, bit 2 dirty)
+	//   | 4 bytes: first 32 bits of the commit hash, in hash order (a hex dump shows the hash)
+	//   | u16 length + build string, e.g. "3.0.0-experimental+g1a2b3c4d-dirty" (optional on read)
 	struct ServerVersionConfirm : public LUBitStream {
 		static constexpr uint32_t DEFAULT_NET_VERSION = 171022;
-		static constexpr uint32_t UNKNOWN_VALUE = 861228100;
-		static constexpr uint64_t TRAILING_VALUE = 219818307120;
+		static constexpr uint32_t UNKNOWN_VALUE = 861228100; // "DLU3"
+		static constexpr uint32_t MAX_BUILD_STRING_LENGTH = 1024;
 
 		uint32_t netVersion = DEFAULT_NET_VERSION;
 		uint32_t unknown = UNKNOWN_VALUE;
 		uint32_t serviceType{}; // The server's ServiceType, written as 4 bytes
-		uint64_t trailing = TRAILING_VALUE;
+		uint8_t versionMajor = BuildInfo::versionMajor;
+		uint8_t versionMinor = BuildInfo::versionMinor;
+		uint8_t versionPatch = BuildInfo::versionPatch;
+		uint8_t buildFlags = BuildInfo::Flags();
+		uint32_t commitPrefix = BuildInfo::CommitPrefix();
+		std::string buildString{ BuildInfo::buildString };
 
 		ServerVersionConfirm() : LUBitStream(ServiceType::COMMON, MessageType::Server::VERSION_CONFIRM) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

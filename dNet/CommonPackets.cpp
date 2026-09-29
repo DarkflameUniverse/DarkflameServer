@@ -52,15 +52,32 @@ namespace CommonPackets {
 		bitStream.Write(netVersion);
 		bitStream.Write(unknown);
 		bitStream.Write(serviceType);
-		bitStream.Write(trailing);
+		bitStream.Write(versionMajor);
+		bitStream.Write(versionMinor);
+		bitStream.Write(versionPatch);
+		bitStream.Write(buildFlags);
+		for (int shift = 24; shift >= 0; shift -= 8) bitStream.Write<uint8_t>(commitPrefix >> shift);
+		BitStreamUtils::WriteLengthPrefixed<uint16_t>(bitStream, buildString);
 	}
 
 	bool ServerVersionConfirm::Deserialize(RakNet::BitStream& bitStream) {
 		VALIDATE_READ(bitStream.Read(netVersion));
 		VALIDATE_READ(bitStream.Read(unknown));
 		VALIDATE_READ(bitStream.Read(serviceType));
-		VALIDATE_READ(bitStream.Read(trailing));
-		return true;
+		VALIDATE_READ(bitStream.Read(versionMajor));
+		VALIDATE_READ(bitStream.Read(versionMinor));
+		VALIDATE_READ(bitStream.Read(versionPatch));
+		VALIDATE_READ(bitStream.Read(buildFlags));
+		commitPrefix = 0;
+		for (int i = 0; i < 4; i++) {
+			uint8_t byte{};
+			VALIDATE_READ(bitStream.Read(byte));
+			commitPrefix = (commitPrefix << 8) | byte;
+		}
+		// Older DLU servers stop after the 12 fixed bytes.
+		buildString.clear();
+		if (bitStream.GetNumberOfUnreadBits() == 0) return true;
+		return BitStreamUtils::ReadLengthPrefixed<uint16_t>(bitStream, buildString, MAX_BUILD_STRING_LENGTH);
 	}
 
 	void DisconnectNotify::Serialize(RakNet::BitStream& bitStream) const {

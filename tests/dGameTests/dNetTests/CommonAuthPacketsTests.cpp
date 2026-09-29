@@ -1,4 +1,5 @@
 #include "AuthPackets.h"
+#include "BuildInfo.h"
 #include "ClientPackets.h"
 #include "CommonPackets.h"
 #include "GameDependencies.h"
@@ -10,6 +11,7 @@
 #include "eServerDisconnectIdentifiers.h"
 #include "magic_enum.hpp"
 
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <functional>
@@ -71,6 +73,32 @@ namespace {
 		FAIL() << "the clock kept changing seconds while comparing";
 	}
 
+	// VERSION_CONFIRM replies: the header, netVersion, unknown and serviceType (the 20 bytes the client reads up to)
+	// must match the legacy reply; the build identifier after them replaced the legacy's 8 fixed bytes.
+	constexpr size_t VERSION_CONFIRM_LEGACY_PREFIX = 20;
+
+	void ExpectSameVersionConfirmPrefix(const std::function<void()>& legacy, const std::function<void()>& converted) {
+		const auto expected = Capture(legacy);
+		const auto actual = Capture(converted);
+		ASSERT_FALSE(expected.empty());
+		ASSERT_EQ(expected.size(), actual.size());
+		RakNet::BitStream thisBuild;
+		CommonPackets::ServerVersionConfirm{}.WritePacket(thisBuild);
+		const auto build = FromBitStream(thisBuild);
+		const std::vector<uint8_t> expectedTail(build.bytes.begin() + VERSION_CONFIRM_LEGACY_PREFIX, build.bytes.end());
+		for (size_t i = 0; i < expected.size(); i++) {
+			ASSERT_GE(expected[i].bytes.size(), VERSION_CONFIRM_LEGACY_PREFIX);
+			ASSERT_GE(actual[i].bytes.size(), VERSION_CONFIRM_LEGACY_PREFIX);
+			const std::vector<uint8_t> expectedPrefix(expected[i].bytes.begin(), expected[i].bytes.begin() + VERSION_CONFIRM_LEGACY_PREFIX);
+			const std::vector<uint8_t> actualPrefix(actual[i].bytes.begin(), actual[i].bytes.begin() + VERSION_CONFIRM_LEGACY_PREFIX);
+			EXPECT_EQ(expectedPrefix, actualPrefix);
+			const std::vector<uint8_t> actualTail(actual[i].bytes.begin() + VERSION_CONFIRM_LEGACY_PREFIX, actual[i].bytes.end());
+			EXPECT_EQ(expectedTail, actualTail);
+			EXPECT_EQ(expected[i].sysAddr, actual[i].sysAddr);
+			EXPECT_EQ(expected[i].broadcast, actual[i].broadcast);
+		}
+	}
+
 	template<typename T>
 	T RoundTrip(const T& packet) {
 		RakNet::BitStream first;
@@ -122,7 +150,7 @@ TEST_F(CommonAuthPacketsTests, VersionConfirmHandshakeMatchesLegacy) {
 				request.WritePacket(bytes);
 				const auto sysAddr = TestAddress();
 
-				ExpectSameOutput(
+				ExpectSameVersionConfirmPrefix(
 					[&] { auto packet = MakePacket(bytes, sysAddr); LegacyAuthPackets::HandleHandshake(Game::server, &packet); },
 					[&] { Dispatch(bytes, sysAddr, CommonPackets::Handle); });
 
@@ -136,10 +164,10 @@ TEST_F(CommonAuthPacketsTests, VersionConfirmHandshakeMatchesLegacy) {
 	}
 }
 
-TEST_F(CommonAuthPacketsTests, ServerVersionConfirmMatchesLegacy) {
+TEST_F(CommonAuthPacketsTests, ServerVersionConfirmKeepsLegacyPrefix) {
 	for (const auto serviceType : { ServiceType::AUTH, ServiceType::WORLD, ServiceType::CHAT }) {
 		const auto sysAddr = TestAddress();
-		ExpectSameOutput(
+		ExpectSameVersionConfirmPrefix(
 			[&] { LegacyAuthPackets::SendHandshake(Game::server, sysAddr, "ignored", 1, serviceType); },
 			[&] {
 				CommonPackets::ServerVersionConfirm response;
@@ -152,11 +180,21 @@ TEST_F(CommonAuthPacketsTests, ServerVersionConfirmMatchesLegacy) {
 TEST_F(CommonAuthPacketsTests, VersionConfirmGoldenBytes) {
 	CommonPackets::ServerVersionConfirm response;
 	response.serviceType = static_cast<uint32_t>(ServiceType::WORLD);
+	response.versionMajor = 3;
+	response.versionMinor = 0;
+	response.versionPatch = 1;
+	response.buildFlags = static_cast<uint8_t>(BuildInfo::eBuildKind::CI) | BuildInfo::DIRTY_FLAG;
+	response.commitPrefix = 0x1a2b3c4d;
+	response.buildString = "3.0.1-main+g1a2b3c4d";
 	RakNet::BitStream bytes;
 	response.WritePacket(bytes);
-	// 0x53 | COMMON u16 | VERSION_CONFIRM u32 | pad | 171022 | 861228100 | WORLD u32 | 219818307120 u64
-	EXPECT_PACKET_EQ(FromHex("53 00 00 00 00 00 00 00 0e 9c 02 00 44 4c 55 33 04 00 00 00 30 2e 31 2e 33 00 00 00"), FromBitStream(bytes));
-	RoundTrip(response);
+	// 0x53 | COMMON u16 | VERSION_CONFIRM u32 | pad | 171022 | 861228100 ("DLU3") | WORLD u32
+	// | 3 0 1 | flags (CI | dirty) | commit 1a2b3c4d | u16 20 | "3.0.1-main+g1a2b3c4d"
+	EXPECT_PACKET_EQ(FromHex("53 00 00 00 00 00 00 00 0e 9c 02 00 44 4c 55 33 04 00 00 00 03 00 01 06 1a 2b 3c 4d 14 00"
+		" 33 2e 30 2e 31 2d 6d 61 69 6e 2b 67 31 61 32 62 33 63 34 64"), FromBitStream(bytes));
+	const auto copy = RoundTrip(response);
+	EXPECT_EQ(copy.commitPrefix, 0x1a2b3c4du);
+	EXPECT_EQ(copy.buildString, "3.0.1-main+g1a2b3c4d");
 
 	CommonPackets::ClientVersionConfirm request;
 	request.netVersion = 171022;
@@ -170,6 +208,86 @@ TEST_F(CommonAuthPacketsTests, VersionConfirmGoldenBytes) {
 	// ... | 171022 | unknown 0 | CLIENT u16 | pad u16 | process id | port | 33 byte string
 	EXPECT_PACKET_EQ(FromHex("53 00 00 00 00 00 00 00 0e 9c 02 00 00 00 00 00 05 00 00 00 44 33 22 11 66 55" + zeros), FromBitStream(requestBytes));
 	ExpectTruncatedFails(request);
+}
+
+TEST_F(CommonAuthPacketsTests, ServerVersionConfirmRoundTrip) {
+	CommonPackets::ServerVersionConfirm response;
+	response.netVersion = 0xFFFFFFFF;
+	response.serviceType = static_cast<uint32_t>(ServiceType::CHAT);
+	response.versionMajor = 0xFF;
+	response.versionMinor = 0x7F;
+	response.versionPatch = 0;
+	response.buildFlags = static_cast<uint8_t>(BuildInfo::eBuildKind::RELEASE);
+	response.commitPrefix = 0xDEADBEEF;
+	for (const auto& buildString : g_Strings) {
+		response.buildString = buildString;
+		const auto copy = RoundTrip(response);
+		EXPECT_EQ(copy.netVersion, response.netVersion);
+		EXPECT_EQ(copy.unknown, CommonPackets::ServerVersionConfirm::UNKNOWN_VALUE);
+		EXPECT_EQ(copy.serviceType, response.serviceType);
+		EXPECT_EQ(copy.versionMajor, response.versionMajor);
+		EXPECT_EQ(copy.versionMinor, response.versionMinor);
+		EXPECT_EQ(copy.versionPatch, response.versionPatch);
+		EXPECT_EQ(copy.buildFlags, response.buildFlags);
+		EXPECT_EQ(copy.commitPrefix, response.commitPrefix);
+		EXPECT_EQ(copy.buildString, buildString);
+	}
+
+	// The defaults describe this build.
+	const CommonPackets::ServerVersionConfirm current;
+	EXPECT_EQ(current.unknown, 861228100u);
+	EXPECT_EQ(current.versionMajor, BuildInfo::versionMajor);
+	EXPECT_EQ(current.versionMinor, BuildInfo::versionMinor);
+	EXPECT_EQ(current.versionPatch, BuildInfo::versionPatch);
+	EXPECT_EQ(current.buildFlags, BuildInfo::Flags());
+	EXPECT_EQ(current.commitPrefix, BuildInfo::CommitPrefix());
+	EXPECT_EQ(current.buildString, BuildInfo::buildString);
+	EXPECT_EQ(RoundTrip(current).buildString, BuildInfo::buildString);
+}
+
+TEST_F(CommonAuthPacketsTests, ServerVersionConfirmReadsWithoutBuildString) {
+	// A reply that stops after the commit bytes still reads; the build string is optional on read.
+	const auto fixed = FromHex("53 00 00 00 00 00 00 00 0e 9c 02 00 44 4c 55 33 04 00 00 00 03 00 01 06 1a 2b 3c 4d");
+	RakNet::BitStream bytes(const_cast<unsigned char*>(fixed.bytes.data()), fixed.bytes.size(), true);
+	CommonPackets::ServerVersionConfirm copy;
+	copy.buildString = "stale";
+	ASSERT_TRUE(copy.ReadHeader(bytes));
+	ASSERT_TRUE(copy.Deserialize(bytes));
+	EXPECT_EQ(copy.netVersion, 171022u);
+	EXPECT_EQ(copy.serviceType, static_cast<uint32_t>(ServiceType::WORLD));
+	EXPECT_EQ(copy.versionMajor, 3);
+	EXPECT_EQ(copy.versionPatch, 1);
+	EXPECT_EQ(copy.buildFlags, 6);
+	EXPECT_EQ(copy.commitPrefix, 0x1a2b3c4du);
+	EXPECT_TRUE(copy.buildString.empty());
+
+	// Cut inside the fixed bytes or inside the string: fails.
+	CommonPackets::ServerVersionConfirm full;
+	full.buildString = "3.0.0";
+	RakNet::BitStream fullBytes;
+	full.WritePacket(fullBytes);
+	for (const uint32_t cut : { 8u, 19u, 27u, 29u, 32u }) {
+		RakNet::BitStream truncated(fullBytes.GetData(), cut, true);
+		CommonPackets::ServerVersionConfirm partial;
+		ASSERT_TRUE(partial.ReadHeader(truncated));
+		EXPECT_FALSE(partial.Deserialize(truncated)) << "cut at " << cut;
+	}
+}
+
+TEST(BuildInfoTests, FlagsAndCommitPrefix) {
+	EXPECT_EQ(BuildInfo::Flags() & BuildInfo::BUILD_KIND_MASK, static_cast<uint8_t>(BuildInfo::buildKind));
+	EXPECT_EQ((BuildInfo::Flags() & BuildInfo::DIRTY_FLAG) != 0, BuildInfo::dirty);
+	EXPECT_EQ(BuildInfo::Flags() & ~(BuildInfo::BUILD_KIND_MASK | BuildInfo::DIRTY_FLAG), 0);
+	if (BuildInfo::commit.size() >= 8) {
+		char hex[9];
+		std::snprintf(hex, sizeof(hex), "%08x", BuildInfo::CommitPrefix());
+		EXPECT_EQ(std::string(hex), std::string(BuildInfo::commit.substr(0, 8)));
+		EXPECT_NE(BuildInfo::buildString.find("+g" + std::string(hex)), std::string_view::npos);
+	} else {
+		EXPECT_EQ(BuildInfo::CommitPrefix(), 0u);
+	}
+	const auto version = std::to_string(BuildInfo::versionMajor) + "." + std::to_string(BuildInfo::versionMinor) + "." + std::to_string(BuildInfo::versionPatch);
+	EXPECT_TRUE(BuildInfo::buildString.starts_with(version));
 }
 
 TEST_F(CommonAuthPacketsTests, DisconnectNotifyMatchesLegacy) {
