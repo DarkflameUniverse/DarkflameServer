@@ -5,6 +5,8 @@
 #include "CharacterComponent.h"
 #include "Entity.h"
 #include "PlayerMessages.h"
+#include "DestroyableComponent.h"
+#include "CDClientDatabase.h"
 #include "dGameMessagesTests/GameMessageTestUtils.h"
 
 // Live sent UpdatePlayerStatistic (1481) server -> client for the statistics the server counted (docs/CaptureUnknowns.md).
@@ -108,4 +110,67 @@ TEST_F(PlayerStatisticTest, MetersTraveledGoOutInBatches) {
 	statistics = Statistics(Capture([&] { characterComponent->FlushMovementStatistics(); }));
 	ASSERT_EQ(statistics.size(), 1);
 	EXPECT_EQ(statistics[0].updateValue, 0);
+}
+
+TEST_F(PlayerStatisticTest, BricksAddedAreCollected) {
+	auto statistics = Statistics(Capture([&] { characterComponent->TrackItemsAdded(eInventoryType::BRICKS, 3); }));
+	ASSERT_EQ(statistics.size(), 1);
+	EXPECT_EQ(statistics[0].updateID, static_cast<int32_t>(BricksCollected));
+	EXPECT_EQ(statistics[0].updateValue, 3);
+	EXPECT_TRUE(Statistics(Capture([&] { characterComponent->TrackItemsAdded(eInventoryType::ITEMS, 1); })).empty());
+}
+
+TEST_F(PlayerStatisticTest, ZoneStatisticsFromTheClientLeaveThePassportTotalsAlone) {
+	// The client reports these per zone; the totals come from what the server sent (not counted twice)
+	characterComponent->HandleZoneStatisticsUpdate(1100, u"CoinsCollected", 10);
+	characterComponent->HandleZoneStatisticsUpdate(1100, u"BricksCollected", 2);
+	characterComponent->HandleZoneStatisticsUpdate(1100, u"EnemiesSmashed", 1);
+	EXPECT_EQ(characterComponent->StatisticsToString().substr(0, 10), "0;0;0;0;0;");
+}
+
+// Live: Die, then (to the killer) EnemiesSmashed for an NPC or SmashablesSmashed for another smashable, then the loot
+TEST_F(PlayerStatisticTest, SmashingCountsEnemiesAndSmashables) {
+	// Smash finds the killer through the entity manager, which looks the new entity up in the CDClient
+	CDClientDatabase::Connect(":memory:");
+	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	ASSERT_NE(Game::entityManager->CreateEntity(info, nullptr, nullptr, true, 0x3FFFFFFFFFFELL), nullptr); // the zone control object loot asks
+	auto* killer = Game::entityManager->CreateEntity(info, nullptr, nullptr, false, PLAYER + 1);
+	ASSERT_NE(killer, nullptr);
+	auto* killerCharacter = killer->AddComponent<CharacterComponent>(-1, character.get(), ClientAddress());
+	killerCharacter->InitializeStatisticsFromString("");
+
+	LWOOBJID victimID = 0x3FFF000000000001LL;
+	const auto smash = [&](bool npc, bool smashable) {
+		auto* victim = Game::entityManager->CreateEntity(info, nullptr, nullptr, false, victimID++);
+		auto* destroyable = victim->AddComponent<DestroyableComponent>(-1);
+		destroyable->SetMaxHealth(10.0f);
+		destroyable->SetHealth(10);
+		destroyable->SetIsNPC(npc);
+		destroyable->SetIsSmashable(smashable);
+		return Capture([&] { destroyable->Smash(killer->GetObjectID()); });
+	};
+
+	for (const auto& [npc, smashable, expected] : { std::tuple{ true, true, EnemiesSmashed }, std::tuple{ false, true, SmashablesSmashed } }) {
+		const auto packets = smash(npc, smashable);
+		size_t die = packets.size(), statistic = packets.size();
+		for (size_t i = 0; i < packets.size(); i++) {
+			RakNet::BitStream bitStream(const_cast<uint8_t*>(packets[i].bytes.data()), packets[i].bytes.size(), false);
+			LWOOBJID target{};
+			MessageType::Game msgId{};
+			if (!GameMessages::NetGameMsg::ReadPacketHeader(bitStream, target, msgId)) continue;
+			if (msgId == MessageType::Game::DIE && die == packets.size()) die = i;
+			if (msgId == MessageType::Game::UPDATE_PLAYER_STATISTIC) statistic = i;
+		}
+		ASSERT_LT(die, packets.size());
+		ASSERT_LT(statistic, packets.size());
+		EXPECT_LT(die, statistic);
+		const auto statistics = Statistics({ packets[statistic] });
+		ASSERT_EQ(statistics.size(), 1);
+		EXPECT_EQ(statistics[0].target, killer->GetObjectID());
+		EXPECT_EQ(statistics[0].updateID, static_cast<int32_t>(expected));
+	}
+
+	// Neither an NPC nor smashable (e.g. a collectible spawner): nothing
+	EXPECT_TRUE(Statistics(smash(false, false)).empty());
+	killer->SetCharacter(nullptr);
 }

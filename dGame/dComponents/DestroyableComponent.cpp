@@ -743,6 +743,16 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	die.lootOwnerID = source;
 	die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
+	// Live told the killer right after Die, before the loot: EnemiesSmashed for an NPC, SmashablesSmashed for another
+	// smashable. Racing counts its own (RacingSmashablesSmashed).
+	if (owner && owner != m_Parent) {
+		auto* killerCharacter = owner->GetComponent<CharacterComponent>();
+		if (killerCharacter && !killerCharacter->GetIsRacing()) {
+			if (m_IsNPC) killerCharacter->UpdatePlayerStatistic(EnemiesSmashed);
+			else if (m_IsSmashable) killerCharacter->UpdatePlayerStatistic(SmashablesSmashed);
+		}
+	}
+
 	//NANI?!
 	if (!isPlayer) {
 		if (owner != nullptr) {

@@ -226,6 +226,13 @@ public:
 	bool GetIsSmashable() const { return m_IsSmashable; }
 
 	/**
+	 * Whether this is an NPC (the DestructibleComponent's isnpc): live counted smashing one as EnemiesSmashed, other
+	 * smashables as SmashablesSmashed
+	 */
+	void SetIsNPC(bool value) { m_IsNPC = value; }
+	bool GetIsNPC() const { return m_IsNPC; }
+
+	/**
 	 * Returns the current is-dead value, this is mostly unused
 	 * @return the current is-dead value, this is mostly unused
 	 */
@@ -573,6 +580,8 @@ private:
 	 * Whether this entity is smasahble, mostly unused
 	 */
 	bool m_IsSmashable;
+
+	bool m_IsNPC = false;
 
 	/**
 	 * Whether this entity is dead. Unused, here for serialization

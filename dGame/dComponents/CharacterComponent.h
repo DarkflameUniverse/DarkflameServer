@@ -13,6 +13,7 @@
 #include <set>
 #include "Loot.h"
 #include "StatisticID.h"
+#include "eInventoryType.h"
 #include <optional>
 #include <chrono>
 
@@ -216,6 +217,12 @@ public:
 	 * @param armor the armor delta
 	 */
 	void TrackArmorDelta(int32_t armor);
+
+	/**
+	 * Counts items added to the inventory the client was told about (AddItemToInventoryClientSync): live followed
+	 * every add to the bricks inventory with BricksCollected (the count), whatever the source.
+	 */
+	void TrackItemsAdded(eInventoryType inventoryType, uint32_t count);
 
 	/**
 	 * Handles completing a rebuild by updating the statistics

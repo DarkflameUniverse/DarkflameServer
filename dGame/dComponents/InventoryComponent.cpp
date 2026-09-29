@@ -345,6 +345,7 @@ ReceivedItem InventoryComponent::ReceiveItem(const LWOOBJID id, const LOT lot, c
 		addItem.newObjID = id;
 		addItem.showFlyingLoot = options.showFlyingLoot && !options.equip;
 		addItem.SendToClient(m_Parent->GetSystemAddress());
+		if (auto* characterComponent = m_Parent->GetComponent<CharacterComponent>()) characterComponent->TrackItemsAdded(inventoryType, count);
 		EconomyLedger::RecordItems(m_Parent, lot, count, static_cast<uint32_t>(lootSourceType));
 		Contraband::OnItemAdded(m_Parent, lot, count, lootSourceType, options.sourceInventory);
 		if (options.equip) {

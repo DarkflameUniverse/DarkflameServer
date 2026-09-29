@@ -119,6 +119,7 @@ Item::Item(
 	addItem.newObjID = id;
 	addItem.showFlyingLoot = showFlyingLoot;
 	addItem.SendToClient(entity->GetSystemAddress());
+	if (auto* characterComponent = entity->GetComponent<CharacterComponent>()) characterComponent->TrackItemsAdded(inventory->GetType(), this->count);
 
 	if (isModMoveAndEquip) {
 		Equip();
@@ -206,6 +207,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 			addItem.newObjID = id;
 			addItem.showFlyingLoot = showFlyingLoot;
 			addItem.SendToClient(entity->GetSystemAddress());
+			if (auto* characterComponent = entity->GetComponent<CharacterComponent>()) characterComponent->TrackItemsAdded(inventory->GetType(), delta);
 		} else {
 			GameMessages::RemoveItemFromInventory removeItem;
 			removeItem.target = entity->GetObjectID();

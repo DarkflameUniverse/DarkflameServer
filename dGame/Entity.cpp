@@ -438,6 +438,7 @@ void Entity::Initialize() {
 					comp->SetDeathBehavior(destCompData[0].death_behavior);
 
 					comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
+					comp->SetIsNPC(destCompData[0].isnpc);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
 					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
@@ -1473,13 +1474,6 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		characterComponent->UpdatePlayerStatistic(TimesSmashed);
 	}
 
-	// Track a player smashing something else
-	if (murderer != nullptr) {
-		auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
-		if (murdererCharacterComponent != nullptr) {
-			murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
-		}
-	}
 }
 
 void Entity::AddDieCallback(const std::function<void()>& callback) {

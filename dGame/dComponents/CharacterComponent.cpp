@@ -606,6 +606,10 @@ void CharacterComponent::TrackArmorDelta(int32_t armor) {
 	}
 }
 
+void CharacterComponent::TrackItemsAdded(eInventoryType inventoryType, uint32_t count) {
+	if (inventoryType == eInventoryType::BRICKS && count > 0) UpdatePlayerStatistic(BricksCollected, count);
+}
+
 void CharacterComponent::TrackQuickBuildComplete() {
 	UpdatePlayerStatistic(QuickBuildsCompleted);
 
@@ -670,14 +674,13 @@ void CharacterComponent::SendPlayerStatistic(StatisticID updateID, uint64_t upda
 void CharacterComponent::HandleZoneStatisticsUpdate(LWOMAPID zoneID, const std::u16string& name, int32_t value) {
 	auto zoneStatistics = &GetZoneStatisticsForMap(zoneID);
 
+	// The client's per-zone counts; the passport totals are the server's (UpdatePlayerStatistic), so they aren't
+	// counted twice
 	if (name == u"BricksCollected") {
-		m_BricksCollected += value;
 		zoneStatistics->m_BricksCollected += value;
 	} else if (name == u"CoinsCollected") {
-		m_CurrencyCollected += value;
 		zoneStatistics->m_CoinsCollected += value;
 	} else if (name == u"EnemiesSmashed") {
-		m_EnemiesSmashed += value;
 		zoneStatistics->m_EnemiesSmashed += value;
 	}
 }

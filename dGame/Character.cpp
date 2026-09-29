@@ -10,6 +10,7 @@
 #include <chrono>
 #include "Entity.h"
 #include "EntityManager.h"
+#include "CharacterComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
 #include "MissionMessages.h"
@@ -595,6 +596,7 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 	}
 
 	EconomyLedger::RecordCoins(m_ID, newCoins - m_Coins, lootSource);
+	const auto gained = newCoins > m_Coins ? static_cast<uint64_t>(newCoins - m_Coins) : 0;
 	m_Coins = newCoins;
 
 	auto* entity = Game::entityManager->GetEntity(m_ObjectID);
@@ -607,6 +609,10 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 	setCurrency.sourceTradeID = 0;
 	setCurrency.sourceType = lootSource;
 	setCurrency.SendToClient(entity->GetSystemAddress());
+
+	// Live followed every coin gain with CurrencyCollected (the amount gained); losses had none
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	if (gained > 0 && characterComponent) characterComponent->UpdatePlayerStatistic(CurrencyCollected, gained);
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const {
