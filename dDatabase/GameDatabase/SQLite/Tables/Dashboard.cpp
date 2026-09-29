@@ -19,6 +19,7 @@ namespace {
 		"(SELECT COUNT(*) FROM bug_reports WHERE resolved_time IS NULL) AS unresolved_bug_reports, "
 		"(SELECT COUNT(*) FROM pet_names) AS pet_names, "
 		"(SELECT COUNT(*) FROM pet_names WHERE approved = 1) AS pending_pet_names, "
+		"(SELECT COUNT(*) FROM guilds WHERE name_status = 1) AS pending_guild_names, "
 		"(SELECT COALESCE(MAX(id), 0) FROM activity_log) AS activity_log_max_id, "
 		"(SELECT COALESCE(MAX(id), 0) FROM chat_log) AS chat_log_max_id, "
 		"(SELECT COALESCE(MAX(id), 0) FROM command_log) AS command_log_max_id, "
@@ -260,6 +261,7 @@ IDashboardStats::Snapshot SQLiteDatabase::GetDashboardSnapshot() {
 	snapshot.unresolvedBugReports = result.getInt64Field("unresolved_bug_reports");
 	snapshot.petNames = result.getInt64Field("pet_names");
 	snapshot.pendingPetNames = result.getInt64Field("pending_pet_names");
+	snapshot.pendingGuildNames = result.getInt64Field("pending_guild_names");
 	snapshot.activityLogMaxId = result.getInt64Field("activity_log_max_id");
 	snapshot.chatLogMaxId = result.getInt64Field("chat_log_max_id");
 	snapshot.commandLogMaxId = result.getInt64Field("command_log_max_id");

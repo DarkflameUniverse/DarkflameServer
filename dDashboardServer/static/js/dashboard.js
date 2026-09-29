@@ -126,8 +126,9 @@
 
 	function updateBadges(counts) {
 		var map = {
-			'moderation': (counts.pendingNames || 0) + (DASH.can('moderate_pet_names') ? counts.pendingPetNames || 0 : 0) + (DASH.can('moderate_properties') ? counts.pendingProperties || 0 : 0),
+			'moderation': (counts.pendingNames || 0) + (DASH.can('moderate_pet_names') ? counts.pendingPetNames || 0 : 0) + (DASH.can('guilds_manage') ? counts.pendingGuildNames || 0 : 0) + (DASH.can('moderate_properties') ? counts.pendingProperties || 0 : 0),
 			'pet_names': counts.pendingPetNames || 0,
+			'guilds': counts.pendingGuildNames || 0,
 			'bug_reports': counts.unresolvedBugReports || 0,
 			'reports': counts.openEconomyFlags || 0
 		};

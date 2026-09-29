@@ -19,6 +19,7 @@ public:
 		uint64_t unresolvedBugReports{};
 		uint64_t petNames{};
 		uint64_t pendingPetNames{};
+		uint64_t pendingGuildNames{}; // guilds whose name waits for moderation
 		uint64_t activityLogMaxId{};
 		uint64_t chatLogMaxId{};
 		uint64_t commandLogMaxId{};

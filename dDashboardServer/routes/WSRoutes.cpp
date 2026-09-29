@@ -22,6 +22,7 @@ namespace {
 		return {
 			{"pendingNames", snapshot.pendingNames},
 			{"pendingPetNames", snapshot.pendingPetNames},
+			{"pendingGuildNames", snapshot.pendingGuildNames},
 			{"pendingProperties", snapshot.pendingProperties},
 			{"unresolvedBugReports", snapshot.unresolvedBugReports},
 			{"openEconomyFlags", snapshot.openEconomyFlags}
