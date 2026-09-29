@@ -1,5 +1,6 @@
 set(DSCRIPTS_SOURCES_ZONE_LUPS
 	"WblGenericZone.cpp"
+	"WblStarflies.cpp"
 )
 
 add_subdirectory(RobotCity_Intro)
