@@ -8,6 +8,9 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "SkillComponent.h"
+#include "CDSkillBehaviorTable.h"
+#include "CDClientManager.h"
 #include "eMissionLockState.h"
 
 #include "tinyxml2.h"
@@ -108,4 +111,55 @@ TEST_F(CharacterSaveFieldsTests, TooltipFlagsMissingInOldSave) {
 	EXPECT_EQ(characterComponent->GetTooltipFlags(), 0u);
 	characterComponent->UpdateXml(doc);
 	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("ttip"), "0");
+}
+
+// <skil sc>: the cooldown groups still running and the seconds left, as live wrote them (sc="17:15.6958;") and the
+// client reads them (split on ';' and ':').
+TEST_F(CharacterSaveFieldsTests, SkillCooldownsRoundTrip) {
+	CDSkillBehavior skill{};
+	skill.skillID = 394;
+	skill.cooldowngroup = 17;
+	skill.cooldown = 30.0f;
+	CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>()[394] = skill;
+	CDSkillBehavior ungrouped{};
+	ungrouped.skillID = 395;
+	ungrouped.cooldowngroup = static_cast<uint32_t>(-1);
+	ungrouped.cooldown = 30.0f;
+	CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>()[395] = ungrouped;
+
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"><skil sc="8:26.6559;78:30.7363;"/></obj>)");
+
+	Entity player(26, info);
+	auto* const skills = player.AddComponent<SkillComponent>(-1);
+	skills->LoadFromXml(doc);
+	ASSERT_EQ(skills->GetCooldownGroups().size(), 2u);
+	EXPECT_FLOAT_EQ(skills->GetCooldownGroups().at(8), 26.6559f);
+
+	skills->Update(26.7f); // group 8 runs out
+	skills->StartCooldown(394);
+	skills->StartCooldown(395); // no group: not saved
+	skills->UpdateXml(doc);
+	EXPECT_EQ(Print(doc), R"(<obj v="1"><skil sc="17:30;78:4.0363;"/></obj>)");
+
+	Entity reloaded(27, info);
+	auto* const reloadedSkills = reloaded.AddComponent<SkillComponent>(-1);
+	reloadedSkills->LoadFromXml(doc);
+	EXPECT_EQ(reloadedSkills->GetCooldownGroups().size(), 2u);
+	EXPECT_FLOAT_EQ(reloadedSkills->GetCooldownGroups().at(17), 30.0f);
+
+	CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>().clear();
+}
+
+// Saves without <skil> load with no cooldowns and gain <skil/>, as live wrote it with none running.
+TEST_F(CharacterSaveFieldsTests, SkillCooldownsMissingInOldSave) {
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"/>)");
+
+	Entity player(28, info);
+	auto* const skills = player.AddComponent<SkillComponent>(-1);
+	skills->LoadFromXml(doc);
+	EXPECT_TRUE(skills->GetCooldownGroups().empty());
+	skills->UpdateXml(doc);
+	EXPECT_EQ(Print(doc), R"(<obj v="1"><skil/></obj>)");
 }

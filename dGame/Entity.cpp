@@ -595,7 +595,8 @@ void Entity::Initialize() {
 
 	const auto skillID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1);
 	if (skillID > -1 || m_Character) {
-		AddComponent<SkillComponent>(skillID);
+		auto* const skillComponent = AddComponent<SkillComponent>(skillID);
+		if (m_Character) skillComponent->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
 	const auto combatAiID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);

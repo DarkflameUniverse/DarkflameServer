@@ -74,6 +74,27 @@ public:
 	void Update(float deltaTime) override;
 
 	/**
+	 * Loads the cooldown groups still running at the last save: <skil sc="group:seconds;group:seconds;"/>
+	 */
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+
+	/**
+	 * Saves the running cooldown groups the way live did and the client reads them (LWOSkillComponent::LoadFromSaveData
+	 * 0x00c2a9c0 splits sc on ';' and ':' into a cooldown group and the seconds left)
+	 */
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
+
+	/**
+	 * Starts the cooldown of a skill's cooldown group (SkillBehavior.cooldowngroup, cooldown) when the player casts it
+	 */
+	void StartCooldown(uint32_t skillID);
+
+	/**
+	 * The cooldown groups running and the seconds left on each
+	 */
+	const std::map<int32_t, float>& GetCooldownGroups() const { return m_CooldownGroups; }
+
+	/**
 	 * Computes server-side skill updates.
 	 */
 	void CalculateUpdate(float deltaTime);
@@ -222,6 +243,9 @@ private:
 	 * Unique ID counter.
 	 */
 	uint32_t m_skillUid;
+
+	// Cooldown group -> seconds left, for the player's save
+	std::map<int32_t, float> m_CooldownGroups;
 
 	/**
 	 * Cache for looking up a behavior id via a skill ID

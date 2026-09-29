@@ -4,6 +4,8 @@
  */
 
 #include "SkillComponent.h"
+#include "GeneralUtils.h"
+#include "tinyxml2.h"
 
 #include <sstream>
 #include <vector>
@@ -47,7 +49,49 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 
 	context->ExecuteUpdates();
 
+	if (!context->failed && m_Parent->IsPlayer()) StartCooldown(skillID);
+
 	return !context->failed;
+}
+
+void SkillComponent::StartCooldown(const uint32_t skillID) {
+	const auto& skill = CDClientManager::GetTable<CDSkillBehaviorTable>()->GetSkillByID(skillID);
+	// The client keys cooldown groups 0 and up (a null group is -1); skills without a cooldown have none running
+	const auto group = static_cast<int32_t>(skill.cooldowngroup);
+	if (group < 0 || skill.cooldown <= 0.0f) return;
+	auto& left = m_CooldownGroups[group];
+	left = std::max(left, skill.cooldown);
+}
+
+void SkillComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+	m_CooldownGroups.clear();
+	const auto* const obj = doc.FirstChildElement("obj");
+	const auto* const skil = obj ? obj->FirstChildElement("skil") : nullptr;
+	const char* const cooldowns = skil ? skil->Attribute("sc") : nullptr;
+	if (!cooldowns) return;
+
+	// Alternating group and seconds, split on ';' and ':' as the client does
+	const auto tokens = GeneralUtils::SplitString(std::string(cooldowns), ';');
+	for (const auto& entry : tokens) {
+		const auto pair = GeneralUtils::SplitString(entry, ':');
+		if (pair.size() != 2) continue;
+		const auto group = GeneralUtils::TryParse<int32_t>(pair[0]);
+		const auto left = GeneralUtils::TryParse<float>(pair[1]);
+		if (group && left && *left > 0.0f) m_CooldownGroups[*group] = *left;
+	}
+}
+
+void SkillComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+	auto* const obj = doc.FirstChildElement("obj");
+	if (!obj) return;
+	auto* skil = obj->FirstChildElement("skil");
+	if (!skil) skil = obj->InsertNewChildElement("skil");
+
+	// Live: <skil/> with nothing running, else e.g. <skil sc="17:15.6958;"/>
+	std::ostringstream cooldowns;
+	for (const auto& [group, left] : m_CooldownGroups) cooldowns << group << ':' << left << ';';
+	if (cooldowns.view().empty()) skil->DeleteAttribute("sc");
+	else skil->SetAttribute("sc", cooldowns.str().c_str());
 }
 
 void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syncId, RakNet::BitStream& bitStream) {
@@ -141,6 +185,11 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
+	for (auto it = m_CooldownGroups.begin(); it != m_CooldownGroups.end();) {
+		it->second -= deltaTime;
+		it = it->second <= 0.0f ? m_CooldownGroups.erase(it) : std::next(it);
+	}
+
 	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
 	}
