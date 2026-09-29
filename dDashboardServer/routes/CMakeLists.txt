@@ -34,6 +34,7 @@ set(DASHBOARDROUTES_SOURCES
 	"LogBundle.cpp"
 	"Traffic.cpp"
 	"TrafficHistory.cpp"
+	"NetworkView.cpp"
 	"LeaderboardRoutes.cpp"
 	"VanityRoutes.cpp"
 	"ChatRoutes.cpp"

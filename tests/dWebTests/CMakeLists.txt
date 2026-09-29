@@ -53,6 +53,8 @@ set(DWEBTESTS_SOURCES
 	"MetricsFormatTests.cpp"
 	"TrafficHistoryTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/TrafficHistory.cpp"
+	"NetworkViewTests.cpp"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/NetworkView.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/SettingsCatalog.cpp"
 	"AlertsAndTwoFactorTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/auth/Totp.cpp"

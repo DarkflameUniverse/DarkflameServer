@@ -90,6 +90,38 @@ void TrafficHistory::Point::Add(const Point& other) {
 	latencySum += other.latencySum;
 }
 
+void TrafficHistory::Split::Add(const TrafficStats::Second& second) {
+	for (size_t i = 0; i < peers.size(); i++) peers[i].Merge(second.peers[i]);
+	httpRequests += second.httpRequests;
+	httpBytesOut += second.httpBytesOut;
+	httpFromServers += second.httpFromServers;
+	httpFromServersBytesOut += second.httpFromServersBytesOut;
+	httpOutRequests += second.httpOutRequests;
+	httpOutBytesIn += second.httpOutBytesIn;
+}
+
+void TrafficHistory::Split::Add(const Split& other) {
+	for (size_t i = 0; i < peers.size(); i++) peers[i].Merge(other.peers[i]);
+	httpRequests += other.httpRequests;
+	httpBytesOut += other.httpBytesOut;
+	httpFromServers += other.httpFromServers;
+	httpFromServersBytesOut += other.httpFromServersBytesOut;
+	httpOutRequests += other.httpOutRequests;
+	httpOutBytesIn += other.httpOutBytesIn;
+}
+
+bool TrafficHistory::SplitOf(const std::string& serverKey, int64_t from, int64_t to, Split& out) const {
+	const auto it = m_Servers.find(serverKey);
+	if (it == m_Servers.end()) return false;
+	bool any = false;
+	for (const auto& split : it->second.splits) {
+		if (split.time < from || split.time >= to) continue;
+		out.Add(split);
+		any = true;
+	}
+	return any;
+}
+
 TrafficStats::Histogram TrafficHistory::Point::Latency() const {
 	return TrafficStats::Histogram::FromSparse(latency, latencySum);
 }
@@ -122,6 +154,12 @@ void TrafficHistory::Ingest(uint16_t serviceType, uint32_t zoneId, uint32_t inst
 	server.lastSeen = now;
 	server.link = report.link;
 	server.gauges = report.gauges;
+	server.peerSplit = report.peerSplit;
+	server.hasConnections = report.hasConnections;
+	server.connections = report.connections;
+	server.otherConnections = report.otherConnections;
+	server.otherConnectionCount = report.otherConnectionCount;
+	server.connectionsSeconds = std::max<int64_t>(1, static_cast<int64_t>(report.seconds.size()));
 
 	auto& totals = server.totals;
 	int64_t lastSecond = now;
@@ -133,6 +171,13 @@ void TrafficHistory::Ingest(uint16_t serviceType, uint32_t zoneId, uint32_t inst
 		totals.packetsOut += second.packetsOut;
 		totals.bytesIn += second.bytesIn;
 		totals.bytesOut += second.bytesOut;
+
+		if (report.peerSplit) {
+			auto& splits = server.splits;
+			auto at = std::lower_bound(splits.begin(), splits.end(), second.time, [](const Split& x, int64_t t) { return x.time < t; });
+			if (at == splits.end() || at->time != second.time) at = splits.insert(at, Split{ .time = second.time });
+			at->Add(second);
+		}
 
 		if (server.seconds.empty() || server.seconds.back().time < second.time) {
 			server.seconds.push_back(Point{ .time = second.time });
@@ -154,6 +199,7 @@ void TrafficHistory::Ingest(uint16_t serviceType, uint32_t zoneId, uint32_t inst
 		}
 	}
 	while (!server.seconds.empty() && server.seconds.front().time < now - SECONDS_KEPT) server.seconds.pop_front();
+	while (!server.splits.empty() && server.splits.front().time < now - SPLIT_SECONDS) server.splits.pop_front();
 
 	const auto& link = report.link;
 	totals.datagramsSent += link.datagramsSent;
@@ -198,6 +244,10 @@ void TrafficHistory::Forget(int64_t now) {
 	for (auto it = m_Servers.begin(); it != m_Servers.end();) {
 		auto& seconds = it->second.seconds;
 		while (!seconds.empty() && seconds.front().time < now - SECONDS_KEPT) seconds.pop_front();
+		auto& splits = it->second.splits;
+		while (!splits.empty() && splits.front().time < now - SPLIT_SECONDS) splits.pop_front();
+		// Addresses are only kept while the server reports
+		if (it->second.lastSeen < now - 60) it->second.connections.clear();
 		if (it->second.lastSeen < now - FORGET_AFTER && it->second.minutes.empty()) it = m_Servers.erase(it);
 		else ++it;
 	}

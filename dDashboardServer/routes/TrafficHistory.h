@@ -26,6 +26,7 @@ public:
 	static constexpr size_t MAX_TOTAL_MESSAGES = 256;     // message types a server's totals keep
 	static constexpr size_t MAX_TOTAL_ROUTES = 128;       // routes a server's totals keep
 	static constexpr size_t ROUTE_MINUTES = 60;           // per-minute route stats kept
+	static constexpr int64_t SPLIT_SECONDS = 300;         // per-second splits kept (memory only)
 
 	// One second (or a bucket of them) of one server
 	struct Point {
@@ -46,6 +47,18 @@ public:
 	};
 
 	using MessageCounts = std::map<uint64_t, TrafficStats::MessageCount>; // by MessageKey::Packed
+
+	// One second's packets split by peer, and its HTTP requests from and to other servers (the network page's links)
+	struct Split {
+		int64_t time{};
+		std::array<TrafficStats::PeerCounts, TrafficStats::PEER_CLASSES> peers{};
+		uint64_t httpRequests{}, httpBytesOut{};              // all HTTP requests answered
+		uint64_t httpFromServers{}, httpFromServersBytesOut{}; // of those, from other servers
+		uint64_t httpOutRequests{}, httpOutBytesIn{};          // made to other servers
+
+		void Add(const TrafficStats::Second& second);
+		void Add(const Split& other);
+	};
 
 	struct Totals {
 		uint64_t packetsIn{}, packetsOut{}, bytesIn{}, bytesOut{};
@@ -70,6 +83,14 @@ public:
 		std::deque<std::pair<int64_t, MessageCounts>> messageMinutes;
 		std::deque<std::pair<int64_t, MessageCounts>> messageHours;
 		std::deque<std::pair<int64_t, std::map<std::string, TrafficStats::RouteStats>>> routeMinutes;
+		bool peerSplit{};          // whether the last report had the split (older servers' don't)
+		std::deque<Split> splits;  // oldest first, up to SPLIT_SECONDS
+		// The last report's remote ends (memory only, never written: they hold addresses)
+		bool hasConnections{};
+		std::vector<TrafficStats::Connection> connections;
+		TrafficStats::Connection otherConnections;
+		uint32_t otherConnectionCount{};
+		int64_t connectionsSeconds{}; // the seconds the last report covered, to make rates of them
 	};
 
 	// "master", "auth", "chat", "dashboard", "ugc", "world:<zone>:<instance>"
@@ -93,6 +114,9 @@ public:
 
 	// The busiest message types since `since` (minute counts for the last hour, hour counts before), one server or all ("")
 	std::vector<TrafficStats::MessageCount> TopMessages(const std::string& server, int64_t since, size_t limit) const;
+
+	// A server's seconds from `from` (inclusive) to `to` (exclusive) summed; whether any split was reported in them
+	bool SplitOf(const std::string& server, int64_t from, int64_t to, Split& out) const;
 
 	// The HTTP routes since `since` (the last hour at most) of every server with a web server, as (server, route); busiest first
 	std::vector<std::pair<std::string, TrafficStats::RouteStats>> Routes(int64_t since) const;

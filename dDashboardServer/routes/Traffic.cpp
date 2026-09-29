@@ -5,6 +5,7 @@
 #include <cmath>
 #include <map>
 #include <mutex>
+#include <random>
 
 #include "Background.h"
 #include "Database.h"
@@ -12,6 +13,7 @@
 #include "Logger.h"
 #include "MessageIdentifiers.h"
 #include "MetricsFormat.h"
+#include "NetworkView.h"
 #include "Permissions.h"
 #include "RouteUtils.h"
 #include "ServerState.h"
@@ -37,6 +39,7 @@ using namespace RouteUtils;
 namespace {
 	constexpr const char* PERMISSION = "health_view";
 	constexpr const char* TOPIC = "traffic";
+	constexpr const char* IPS_PERMISSION = "network_ips";
 	constexpr auto PUSH_INTERVAL = std::chrono::seconds(2);
 	constexpr auto WRITE_INTERVAL = std::chrono::seconds(15);
 	constexpr int64_t ONLINE_SECONDS = 20; // a server that reported this recently is shown as up
@@ -275,18 +278,46 @@ namespace {
 			{"messages_since", since}, {"routes", routes} };
 	}
 
-	// What open pages get every few seconds: each server's rates over its last five reported seconds
+	// What open pages get every few seconds (the Network page draws it; Diagnostics reloads on it)
 	nlohmann::json Summary(int64_t now) {
-		nlohmann::json servers = nlohmann::json::object();
-		for (const auto& [key, server] : g_History.Servers()) {
-			if (now - server.lastSeen > ONLINE_SECONDS || server.seconds.empty()) continue;
-			TrafficHistory::Point p;
-			const auto first = server.seconds.back().time - 4;
-			for (auto it = server.seconds.rbegin(); it != server.seconds.rend() && it->time >= first; ++it) p.Add(*it);
-			servers[key] = { {"packets_in", Rate(p.packetsIn, 5)}, {"packets_out", Rate(p.packetsOut, 5)}, {"bytes_in", Rate(p.bytesIn, 5)},
-				{"bytes_out", Rate(p.bytesOut, 5)}, {"http", Rate(p.httpRequests, 5)} };
+		return NetworkView::Summary(g_History, now, ONLINE_SECONDS, LabelOf);
+	}
+
+	uint64_t AddressSalt() {
+		static const uint64_t salt = [] {
+			std::random_device device;
+			return (static_cast<uint64_t>(device()) << 32) ^ device();
+		}();
+		return salt;
+	}
+
+	// One server for the Network page's detail panel: what ServerInfo says, its busiest message types each way over the
+	// last 5 minutes, and its packets and bytes per second over the last 10 minutes (5 second steps)
+	nlohmann::json NetworkServer(const std::string& key, int64_t now) {
+		auto info = ServerInfo(key, now);
+		nlohmann::json messages = nlohmann::json::array();
+		for (const auto& count : g_History.TopMessages(key, now - 300, 8)) {
+			const auto names = NamesOf(count.key);
+			messages.push_back({ {"direction", count.key.outbound ? "out" : "in"}, {"service", names.service}, {"packet", names.packet},
+				{"game_message", names.gameMessage}, {"count", count.count}, {"bytes", count.bytes} });
 		}
-		return { {"time", now}, {"servers", servers} };
+		info["messages"] = messages;
+		constexpr int64_t STEP = 5, SPAN = 600;
+		const int64_t to = now - (now % STEP), from = to - SPAN;
+		nlohmann::json times = nlohmann::json::array(), packetsIn = nlohmann::json::array(), packetsOut = nlohmann::json::array(),
+			bytesIn = nlohmann::json::array(), bytesOut = nlohmann::json::array();
+		const auto buckets = g_History.Buckets(from, to, STEP);
+		const auto it = buckets.find(key);
+		for (int64_t i = 0; i < SPAN / STEP; i++) {
+			times.push_back(from + i * STEP);
+			const auto* p = it != buckets.end() ? &it->second[static_cast<size_t>(i)] : nullptr;
+			packetsIn.push_back(p ? Rate(p->packetsIn, STEP) : 0.0);
+			packetsOut.push_back(p ? Rate(p->packetsOut, STEP) : 0.0);
+			bytesIn.push_back(p ? Rate(p->bytesIn, STEP) : 0.0);
+			bytesOut.push_back(p ? Rate(p->bytesOut, STEP) : 0.0);
+		}
+		info["series"] = { {"step", STEP}, {"times", times}, {"packets_in", packetsIn}, {"packets_out", packetsOut}, {"bytes_in", bytesIn}, {"bytes_out", bytesOut} };
+		return info;
 	}
 
 	void Write() {
@@ -400,6 +431,26 @@ namespace Traffic {
 		TrafficStats::Local().SetGauge("workers_busy", [] { return static_cast<double>(Workers::Pool().Active()); });
 		TrafficStats::Local().SetGauge("workers_queued", [] { return static_cast<double>(Workers::Pool().Queued()); });
 		TrafficStats::Local().SetGauge("workers_threads", [] { return static_cast<double>(Workers::Pool().Threads()); });
+
+		Route(eHTTPMethod::GET, "/api/diagnostics/network", Perm(PERMISSION),
+			"The Network page's live view: every reporting server's packets and bytes per second over its last report, its split by peer (clients, master, other servers; null for servers too old to report one), HTTP requests, RakNet link statistics and gauges",
+			[](HTTPReply& reply, const HTTPContext&) {
+				JsonSuccess(reply, Summary(TrafficStats::Now()));
+			});
+
+		Route(eHTTPMethod::GET, "/api/diagnostics/network/server", Perm(PERMISSION),
+			"One server for the Network page. Query: ?key=world:1200:3 (or master, auth, chat, dashboard, ugc). Its link statistics and gauges, busiest message types over 5 minutes, packets and bytes per second over 10 minutes",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto key = QueryValue(context.queryString, "key");
+				if (key.empty() || key.size() > 64) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "key is required");
+				JsonSuccess(reply, NetworkServer(key, TrafficStats::Now()));
+			});
+
+		Route(eHTTPMethod::GET, "/api/diagnostics/network/connections", Perm(PERMISSION),
+			"Every server's remote ends from its last report, grouped by address (game clients' RakNet connections, HTTP clients, server links), with rates, ping and the logged-in player. Addresses only with network_ips; otherwise a token per address",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				JsonSuccess(reply, NetworkView::Connections(g_History, TrafficStats::Now(), ONLINE_SECONDS, Can(context, IPS_PERMISSION), AddressSalt(), LabelOf));
+			});
 
 		Route(eHTTPMethod::GET, "/api/diagnostics/traffic", Perm(PERMISSION),
 			"Packets, bytes and HTTP requests per second of every server. Query: ?range=5m|1h|24h|7d. Series are per-second rates of each step, latency in ms",
