@@ -227,6 +227,23 @@ public:
 	std::vector<UgcPlacement> GetUgcPlacements(const std::vector<LWOOBJID>& ugcIds) override;
 	std::vector<UgcMail> GetUgcMail(const std::vector<LWOOBJID>& subkeys, const LOT modelItemLot) override;
 
+	// IGuilds
+	int64_t InsertGuild(const Guild& guild) override;
+	std::optional<Guild> GetGuild(int64_t guildId) override;
+	std::optional<Guild> GetGuildByName(const std::string& name) override;
+	void SetGuildName(int64_t guildId, const std::string& name, int32_t nameStatus) override;
+	void DeleteGuild(int64_t guildId) override;
+	void AddGuildMember(const Member& member) override;
+	void RemoveGuildMember(LWOOBJID characterId) override;
+	void SetGuildMemberRank(LWOOBJID characterId, uint8_t rank) override;
+	std::optional<Member> GetGuildMember(LWOOBJID characterId) override;
+	std::vector<Member> GetGuildMembers(int64_t guildId) override;
+	void SetGuildInvite(const Invite& invite) override;
+	std::optional<Invite> GetGuildInvite(LWOOBJID characterId) override;
+	void DeleteGuildInvite(LWOOBJID characterId) override;
+	uint64_t InsertGuildEvent(const Event& event) override;
+	std::vector<Event> GetGuildEvents(int64_t guildId, uint32_t limit) override;
+	GuildPage GetGuildPage(uint32_t start, uint32_t length, const std::string& search, bool pendingOnly) override;
 	// IPermissionGrants
 	uint64_t InsertPermissionGrant(const Grant& grant) override;
 	std::optional<Grant> GetPermissionGrant(uint64_t id) override;

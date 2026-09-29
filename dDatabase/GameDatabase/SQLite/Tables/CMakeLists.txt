@@ -13,6 +13,7 @@ set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
 	"AccountStrikes.cpp"
 	"ApiKeys.cpp"
 	"PermissionGrants.cpp"
+	"Guilds.cpp"
 	"Moderation.cpp"
 	"ServerHealth.cpp"
 	"PlayerPositions.cpp"

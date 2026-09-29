@@ -65,6 +65,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountEmails::AccountToken, accountId, data
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountNotes::AccountNote, id, accountId, kind, text, actor, createdAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IAccountStrikes::Strike, id, accountId, characterId, source, subject, reason, givenById, givenBy, createdAt, revokedAt, revokedBy, revokeReason);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IPermissionGrants::Grant, id, targetType, targetId, kind, name, deny, expiresAt, note, grantedAt, grantedById, grantedBy, revokedAt, revokedBy);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::Guild, id, name, nameStatus, founderId, createdAt);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::Member, characterId, guildId, rank, joinedAt, name);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::Invite, characterId, guildId, inviterId, createdAt);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::Event, id, guildId, time, kind, characterId, characterName, actor, detail);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::GuildSummary, guild, memberCount, leaderId, leaderName);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::GuildPage, total, filtered, guilds);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IApiKeys::ApiKey, id, accountId, name, note, keyHash, keyPrefix, permissions, readOnly, allowedIps, allowedPaths, rateLimit, dailyQuota, createdAt, createdBy, issuedAt, expiresAt, revokedAt, revokedBy, lastUsedAt, lastIp, requestCount, quotaDay, dayCount);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ICharacterSnapshots::CharacterSnapshot, id, characterId, takenAt, reason, actor, size, hash, compressed);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatMessage, id, time, channel, senderId, senderName, accountId, recipientId, recipientName, zoneId, instanceId, cloneId, message, blocked);
@@ -1286,6 +1292,63 @@ TEST_F(ParitySeeded, PermissionGrants) {
 		const bool again = db.RevokePermissionGrant(1, "late", 1700000700);
 		const bool missing = db.RevokePermissionGrant(99, "bob", 1700000600);
 		return json{ first, again, missing, db.GetPermissionGrant(1), db.GetActivePermissionGrants(2, 0, 1700000600), db.GetRecentPermissionGrants(true, 1700000600, 10) };
+	});
+}
+
+TEST_F(ParitySeeded, Guilds) {
+	constexpr LWOOBJID GONE = 1152921510000900001LL; // no charinfo row
+	Both("InsertGuild", [](GameDatabase& db) {
+		return json{ db.InsertGuild({ 0, "Brick Builders", IGuilds::NAME_APPROVED, CHAR_ALICE, 1700000000 }),
+			db.InsertGuild({ 0, "Maelstrom Hunters", IGuilds::NAME_PENDING, CHAR_BOB, 1700000100 }),
+			db.InsertGuild({ 0, "Empty", IGuilds::NAME_APPROVED, CHAR_GM, 1700000200 }) };
+	});
+	Both("GetGuild", [](GameDatabase& db) { return json{ db.GetGuild(1), db.GetGuild(2), db.GetGuild(99) }; });
+	Both("GetGuildByName", [](GameDatabase& db) {
+		return json{ db.GetGuildByName("Brick Builders"), db.GetGuildByName("brick BUILDERS"), db.GetGuildByName("Brick"), db.GetGuildByName("") };
+	});
+	Both("AddGuildMember", [&](GameDatabase& db) {
+		db.AddGuildMember({ CHAR_ALICE, 1, 1, 1700000000 });
+		db.AddGuildMember({ CHAR_GM, 1, 4, 1700000300 });
+		db.AddGuildMember({ GONE, 1, 4, 1700000250 });
+		db.AddGuildMember({ CHAR_BOB, 2, 1, 1700000100 });
+	});
+	Both("GetGuildMember", [&](GameDatabase& db) { return json{ db.GetGuildMember(CHAR_ALICE), db.GetGuildMember(GONE), db.GetGuildMember(CHAR_ALICE2) }; });
+	Both("GetGuildMembers", [](GameDatabase& db) { return json{ db.GetGuildMembers(1), db.GetGuildMembers(2), db.GetGuildMembers(3) }; });
+	Both("SetGuildMemberRank", [&](GameDatabase& db) { db.SetGuildMemberRank(CHAR_GM, 2); return db.GetGuildMembers(1); });
+	Both("GetGuildPage", [](GameDatabase& db) {
+		return json{ db.GetGuildPage(0, 10, "", false), db.GetGuildPage(0, 1, "", false), db.GetGuildPage(1, 10, "", false),
+			db.GetGuildPage(0, 10, "", true), db.GetGuildPage(0, 10, "hunt", false), db.GetGuildPage(0, 10, "1", false),
+			db.GetGuildPage(0, 10, "brick", true) };
+	});
+	Both("SetGuildName", [](GameDatabase& db) {
+		db.SetGuildName(2, "Hunters", IGuilds::NAME_APPROVED);
+		return json{ db.GetGuild(2), db.GetGuildByName("Maelstrom Hunters"), db.GetGuildPage(0, 10, "", true) };
+	});
+	Both("SetGuildInvite", [&](GameDatabase& db) {
+		db.SetGuildInvite({ CHAR_ALICE2, 1, CHAR_ALICE, 1700000400 });
+		const auto first = db.GetGuildInvite(CHAR_ALICE2);
+		db.SetGuildInvite({ CHAR_ALICE2, 2, CHAR_BOB, 1700000500 });
+		return json{ first, db.GetGuildInvite(CHAR_ALICE2), db.GetGuildInvite(CHAR_BOB) };
+	});
+	Both("DeleteGuildInvite", [&](GameDatabase& db) { db.DeleteGuildInvite(CHAR_ALICE2); return db.GetGuildInvite(CHAR_ALICE2); });
+	Both("RemoveGuildMember", [&](GameDatabase& db) { db.RemoveGuildMember(GONE); return json{ db.GetGuildMember(GONE), db.GetGuildMembers(1) }; });
+	Both("InsertGuildEvent", [&](GameDatabase& db) {
+		json ids = json::array();
+		ids.push_back(db.InsertGuildEvent({ 0, 1, 1700000000, "created", CHAR_ALICE, "Alice", "Alice", "Brick Builders" }));
+		ids.push_back(db.InsertGuildEvent({ 0, 2, 1700000100, "created", CHAR_BOB, "Bob", "Bob", "" }));
+		ids.push_back(db.InsertGuildEvent({ 0, 1, 1700000300, "joined", CHAR_GM, "GameMaster", "Alice", "" }));
+		return ids;
+	});
+	Both("GetGuildEvents", [](GameDatabase& db) { return json{ db.GetGuildEvents(1, 10), db.GetGuildEvents(0, 2), db.GetGuildEvents(3, 10) }; });
+	Both("DeleteGuild", [&](GameDatabase& db) {
+		db.SetGuildInvite({ CHAR_ALICE2, 1, CHAR_ALICE, 1700000600 });
+		db.DeleteGuild(1);
+		return json{ db.GetGuild(1), db.GetGuildMembers(1), db.GetGuildMember(CHAR_ALICE), db.GetGuildInvite(CHAR_ALICE2), db.GetGuildEvents(1, 10), db.GetGuildPage(0, 10, "", false) };
+	});
+	Both("Guild name unique", [](GameDatabase& db) {
+		bool threw = false;
+		try { db.InsertGuild({ 0, "hunters", IGuilds::NAME_APPROVED, CHAR_ALICE, 1700000700 }); } catch (...) { threw = true; }
+		return threw;
 	});
 }
 

@@ -113,5 +113,7 @@ void MySQLDatabase::DeleteCharacter(const LWOOBJID characterId) {
 	ExecuteDelete("DELETE FROM ugc_modular_build WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM pet_names WHERE owner_id=?;", characterId);
 	ExecuteDelete("DELETE FROM player_positions WHERE character_id=?;", characterId);
+	ExecuteDelete("DELETE FROM guild_members WHERE character_id=?;", characterId);
+	ExecuteDelete("DELETE FROM guild_invites WHERE character_id=? OR inviter_id=?;", characterId, characterId);
 	ExecuteDelete("DELETE FROM charinfo WHERE id=? LIMIT 1;", characterId);
 }

@@ -214,6 +214,22 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<AccountNote> GetAccountNotes(uint32_t accountId) override { return {}; }
 	std::optional<AccountNote> GetAccountNote(uint64_t id) override { return {}; }
 	void DeleteAccountNote(uint64_t id) override {}
+	int64_t InsertGuild(const Guild& guild) override { return 0; }
+	std::optional<Guild> GetGuild(int64_t guildId) override { return {}; }
+	std::optional<Guild> GetGuildByName(const std::string& name) override { return {}; }
+	void SetGuildName(int64_t guildId, const std::string& name, int32_t nameStatus) override {}
+	void DeleteGuild(int64_t guildId) override {}
+	void AddGuildMember(const Member& member) override {}
+	void RemoveGuildMember(LWOOBJID characterId) override {}
+	void SetGuildMemberRank(LWOOBJID characterId, uint8_t rank) override {}
+	std::optional<Member> GetGuildMember(LWOOBJID characterId) override { return {}; }
+	std::vector<Member> GetGuildMembers(int64_t guildId) override { return {}; }
+	void SetGuildInvite(const Invite& invite) override {}
+	std::optional<Invite> GetGuildInvite(LWOOBJID characterId) override { return {}; }
+	void DeleteGuildInvite(LWOOBJID characterId) override {}
+	uint64_t InsertGuildEvent(const Event& event) override { return 0; }
+	std::vector<Event> GetGuildEvents(int64_t guildId, uint32_t limit) override { return {}; }
+	GuildPage GetGuildPage(uint32_t start, uint32_t length, const std::string& search, bool pendingOnly) override { return {}; }
 	uint64_t InsertPermissionGrant(const Grant& grant) override { return 0; }
 	std::optional<Grant> GetPermissionGrant(uint64_t id) override { return {}; }
 	std::vector<Grant> GetPermissionGrants(const std::string& targetType, int64_t targetId) override { return {}; }
