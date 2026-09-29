@@ -13,12 +13,12 @@
 struct SceneObject {
 	LWOOBJID id;
 	LOT lot;
-	uint32_t nodeType;
-	uint32_t glomId;
+	uint32_t nodeType = 1; // the client's default when the file has none, or one outside 0-10
+	uint32_t glomId = 1;
 	NiPoint3 position;
 	NiQuaternion rotation = QuatUtils::IDENTITY;
 	float scale = 1.0f;
-	uint32_t value3;
+	uint32_t renderTechniqueCount{};
 	LwoNameValue settings;
 };
 

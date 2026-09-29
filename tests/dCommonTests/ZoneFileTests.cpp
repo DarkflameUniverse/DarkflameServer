@@ -451,6 +451,29 @@ TEST(LevelFileTests, ReadsFilesWithoutChunks) {
 	EXPECT_EQ(level.chunkHeaders.count(LevelFile::SceneObjectData), 1u);
 }
 
+// An object's render techniques (from version 7) are skipped; the fields a file has no room for get the client's defaults
+TEST(LevelFileTests, ReadsObjectsAsTheClient) {
+	ZoneBytes w;
+	w.Put<uint16_t>(30).Put<uint16_t>(0);
+	w.data.append(48 + 12, '\0');
+	w.Put<uint32_t>(0).Put<uint32_t>(2);
+	// With two render techniques
+	w.Put<int64_t>(10).Put<int32_t>(1).Point(1, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put(1.0f).Put<uint32_t>(0);
+	w.Put<uint32_t>(2);
+	w.data.append(64 + 2 * 133, '\x7f');
+	w.Object(30, 2, 5, "a=0:b");
+
+	std::istringstream stream(w.Done());
+	LevelFile level;
+	level.Read(stream);
+	ASSERT_EQ(level.objects.size(), 2u);
+	EXPECT_EQ(level.objects[0].renderTechniqueCount, 2u);
+	EXPECT_EQ(level.objects[0].nodeType, 1u);
+	EXPECT_EQ(level.objects[0].glomId, 1u);
+	EXPECT_EQ(level.objects[1].lot, 2);
+	EXPECT_EQ(level.objects[1].position.x, 5.0f);
+}
+
 TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {
 	ZoneBytes w;
 	w.Put<uint16_t>(30).Put<uint16_t>(0);

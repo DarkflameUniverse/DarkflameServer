@@ -146,7 +146,15 @@ void LevelFile::ReadSceneObjectDataChunk(std::istream& file, uint32_t version) {
 		BinaryIO::BinaryRead(file, obj.rotation);
 		BinaryIO::BinaryRead(file, obj.scale);
 		BinaryIO::ReadString<uint32_t>(file, ldfString);
-		BinaryIO::BinaryRead(file, obj.value3);
+		// From version 7 the object's render techniques: a count, and when there are any a 64 byte header and 133 bytes
+		// each (64 byte name, u32, u8, 16 floats) (ReadLvlObjectData)
+		if (version > 6) {
+			BinaryIO::BinaryRead(file, obj.renderTechniqueCount);
+			if (obj.renderTechniqueCount != 0) {
+				std::string techniques(64 + static_cast<size_t>(obj.renderTechniqueCount) * (64 + 4 + 1 + 64), '\0');
+				file.read(techniques.data(), static_cast<std::streamsize>(techniques.size()));
+			}
+		}
 		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
 
 		for (const auto& token : GeneralUtils::SplitString(GeneralUtils::UTF16ToWTF8(ldfString), '\n')) {
