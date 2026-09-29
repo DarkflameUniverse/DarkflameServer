@@ -36,6 +36,10 @@ public:
 	 * @param originator the entity that triggered the event
 	 */
 	void OnCancelRailMovement(Entity* originator);
+
+	bool GetDamageImmune() const { return m_DamageImmune; }
+	bool GetNoAggro() const { return m_NoAggro; }
+	bool GetShowNameBillboard() const { return m_ShowNameBillboard; }
 private:
 	/**
 	 * The entities that are currently traversing the rail
