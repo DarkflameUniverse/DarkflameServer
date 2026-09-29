@@ -12,6 +12,9 @@
 #ifdef DLU_HIPRT
 #include "UgcRaysHiprt.h"
 #endif
+#ifdef DLU_EMBREE_SYCL
+#include "UgcRaysEmbreeGpu.h"
+#endif
 
 namespace {
 	using UgcRays::Hit;
@@ -168,13 +171,17 @@ namespace UgcRays {
 	}
 
 	std::string_view Name(eBackend backend) {
-		return backend == eBackend::HIPRT ? "hiprt" : "embree";
+		switch (backend) {
+		case eBackend::HIPRT: return "hiprt";
+		case eBackend::EMBREE_GPU: return "embree-gpu";
+		default: return "embree";
+		}
 	}
 
 	std::optional<eBackend> Parse(std::string_view name) {
 		// builtin: the UGC server's own hierarchies, which Embree replaced (settings and options that name it)
 		if (name == "builtin") return eBackend::EMBREE;
-		for (const auto backend : { eBackend::EMBREE, eBackend::HIPRT }) {
+		for (const auto backend : { eBackend::EMBREE, eBackend::HIPRT, eBackend::EMBREE_GPU }) {
 			if (Name(backend) == name) return backend;
 		}
 		return std::nullopt;
@@ -183,6 +190,9 @@ namespace UgcRays {
 	bool Available(eBackend backend) {
 #ifdef DLU_HIPRT
 		if (backend == eBackend::HIPRT) return UgcRaysHiprt::Available();
+#endif
+#ifdef DLU_EMBREE_SYCL
+		if (backend == eBackend::EMBREE_GPU) return UgcRaysEmbreeGpu::Available();
 #endif
 		return backend == eBackend::EMBREE;
 	}
@@ -196,7 +206,10 @@ namespace UgcRays {
 #ifdef DLU_HIPRT
 		if (backend == eBackend::HIPRT) return UgcRaysHiprt::Problem();
 #endif
-		return "the server was built without it (DLU_HIPRT)";
+#ifdef DLU_EMBREE_SYCL
+		if (backend == eBackend::EMBREE_GPU) return UgcRaysEmbreeGpu::Problem();
+#endif
+		return backend == eBackend::HIPRT ? "the server was built without it (DLU_HIPRT)" : "the server was built without it (DLU_EMBREE_SYCL)";
 	}
 
 	std::unique_ptr<Scene> Make(eBackend backend, const UgcModel::Mesh& mesh) {
@@ -207,15 +220,23 @@ namespace UgcRays {
 			if (auto scene = UgcRaysHiprt::Make(mesh)) return scene;
 			return std::make_unique<EmbreeScene>(mesh);
 #endif
+#ifdef DLU_EMBREE_SYCL
+		case eBackend::EMBREE_GPU:
+			if (auto scene = UgcRaysEmbreeGpu::Make(mesh)) return scene;
+			return std::make_unique<EmbreeScene>(mesh);
+#endif
 		default: return std::make_unique<EmbreeScene>(mesh);
 		}
 	}
 
-	void SetGpuDevice(int index) {
+	void SetGpuDevice(eBackend backend, int index) {
 #ifdef DLU_HIPRT
-		UgcRaysHiprt::SetDevice(index);
-#else
-		(void)index;
+		if (backend == eBackend::HIPRT) UgcRaysHiprt::SetDevice(index);
 #endif
+#ifdef DLU_EMBREE_SYCL
+		if (backend == eBackend::EMBREE_GPU) UgcRaysEmbreeGpu::SetDevice(index);
+#endif
+		(void)backend;
+		(void)index;
 	}
 }

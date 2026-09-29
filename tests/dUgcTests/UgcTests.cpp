@@ -1932,10 +1932,12 @@ namespace {
 		return mesh;
 	}
 
-	// The backends other than embree that this build and machine can use
+	// The backends other than embree that this build and machine can use (the GPUs')
 	std::vector<UgcRays::eBackend> OtherBackends() {
 		std::vector<UgcRays::eBackend> backends;
-		if (UgcRays::Available(UgcRays::eBackend::HIPRT)) backends.push_back(UgcRays::eBackend::HIPRT);
+		for (const auto backend : { UgcRays::eBackend::HIPRT, UgcRays::eBackend::EMBREE_GPU }) {
+			if (UgcRays::Available(backend)) backends.push_back(backend);
+		}
 		return backends;
 	}
 }
@@ -2087,17 +2089,26 @@ TEST(UgcRender, DenoisedIconsTraceTheOcclusionPerPixel) {
 }
 
 TEST(UgcRays, NamesAndFallback) {
-	for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
+	for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT, UgcRays::eBackend::EMBREE_GPU }) {
 		EXPECT_EQ(UgcRays::Parse(UgcRays::Name(backend)), backend);
 	}
+	EXPECT_EQ(UgcRays::Parse("embree-gpu"), UgcRays::eBackend::EMBREE_GPU);
 	EXPECT_EQ(UgcRays::Parse("builtin"), UgcRays::eBackend::EMBREE); // the backend Embree replaced
 	EXPECT_FALSE(UgcRays::Parse("optix"));
 	EXPECT_TRUE(UgcRays::Available(UgcRays::eBackend::EMBREE));
-	// A backend this machine can't use falls back to embree
-	EXPECT_EQ(UgcRays::Resolve(UgcRays::eBackend::HIPRT), UgcRays::Available(UgcRays::eBackend::HIPRT) ? UgcRays::eBackend::HIPRT : UgcRays::eBackend::EMBREE);
+	// A backend this build or machine can't use falls back to embree, and says why
+	for (const auto backend : { UgcRays::eBackend::HIPRT, UgcRays::eBackend::EMBREE_GPU }) {
+		const bool available = UgcRays::Available(backend);
+		EXPECT_EQ(UgcRays::Resolve(backend), available ? backend : UgcRays::eBackend::EMBREE);
+		EXPECT_EQ(UgcRays::Problem(backend).empty(), available) << UgcRays::Problem(backend);
+		// Made anyway: an Embree scene that works
+		const auto scene = UgcRays::Make(backend, Clutter());
+		EXPECT_NEAR(scene->Closest({ 0.3f, 0.1f, 0.1f }, { 1, 0, 0 }).t, 1.7f, 1e-5f) << UgcRays::Name(backend);
+	}
+	EXPECT_TRUE(UgcRays::Problem(UgcRays::eBackend::EMBREE).empty());
 	EXPECT_EQ(UgcRays::Resolve(UgcRays::eBackend::EMBREE), UgcRays::eBackend::EMBREE);
 	// An empty mesh is hit by nothing
-	for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
+	for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT, UgcRays::eBackend::EMBREE_GPU }) {
 		const auto scene = UgcRays::Make(backend, UgcModel::Mesh{});
 		EXPECT_EQ(scene->Closest(glm::vec3(0.0f), glm::vec3(0, 1, 0)).triangle, UgcRays::NONE);
 		EXPECT_FALSE(scene->Occluded(glm::vec3(0.0f), glm::vec3(0, 1, 0), 0.0f, 10.0f));
@@ -2108,7 +2119,7 @@ TEST(UgcRays, FindsTheExpectedHits) {
 	// The room of the clutter is [-2, 2]^3 (its walls face inwards; triangles 12 on), the box in it [-0.3, 0.3]^3
 	// (triangles 0 to 11): rays whose hits are known
 	const auto mesh = Clutter();
-	for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
+	for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT, UgcRays::eBackend::EMBREE_GPU }) {
 		const auto scene = UgcRays::Make(backend, mesh);
 		const auto name = std::string(UgcRays::Name(UgcRays::Resolve(backend)));
 		// From the box's +X face out along +X: the room's +X wall (triangles 16 and 17) 1.7 away

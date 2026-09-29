@@ -18,6 +18,8 @@
  *   hiprt:   AMD's HIPRT on the GPU (AMD through HIP, NVIDIA through CUDA, loaded when first asked for by Orochi),
  *            when built with DLU_HIPRT and a GPU is there; else embree. One GPU for the process, used by one thread
  *            at a time; its time is not CPU time.
+ *   embree-gpu: Embree 4 on an Intel GPU (Arc, Xe) through SYCL, when built with DLU_EMBREE_SYCL and such a GPU is
+ *            there; else embree. The same way: one GPU for the process, a thread at a time.
  * A scene is built and traced on the thread that asks, so its time counts towards that thread's CPU time
  * (UgcThrottle). Scenes aren't shared between threads. docs/UgcServer.md ("Processing options") has the details.
  */
@@ -25,9 +27,9 @@ namespace UgcRays {
 	constexpr uint32_t NONE = std::numeric_limits<uint32_t>::max();
 	constexpr float INF = std::numeric_limits<float>::infinity();
 
-	enum class eBackend : uint8_t { EMBREE = 0, HIPRT };
+	enum class eBackend : uint8_t { EMBREE = 0, HIPRT, EMBREE_GPU };
 
-	// The setting's name of a backend (embree, hiprt)
+	// The setting's name of a backend (embree, hiprt, embree-gpu)
 	std::string_view Name(eBackend backend);
 	// A backend by its name (case sensitive; builtin, the backend Embree replaced, is embree); nullopt for anything else
 	std::optional<eBackend> Parse(std::string_view name);
@@ -81,6 +83,7 @@ namespace UgcRays {
 	 */
 	std::unique_ptr<Scene> Make(eBackend backend, const UgcModel::Mesh& mesh);
 
-	// Which GPU hiprt uses (hiprt_device: 0 is the first HIP or CUDA device); before it is first used
-	void SetGpuDevice(int index);
+	// Which GPU a GPU backend uses (hiprt_device: 0 is the first HIP or CUDA device; embree_gpu_device: 0 is the first
+	// Intel GPU Embree supports); before it is first used
+	void SetGpuDevice(eBackend backend, int index);
 }

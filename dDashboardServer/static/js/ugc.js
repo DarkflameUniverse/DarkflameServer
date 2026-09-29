@@ -727,7 +727,7 @@
 
 	// ---- processing options: Make again's choices and the comparison of what made the models ----
 
-	var OPTION_LABELS = { embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', off: 'Off', oidn: 'Open Image Denoise' };
+	var OPTION_LABELS = { embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', 'embree-gpu': 'Embree (Intel GPU)', off: 'Off', oidn: 'Open Image Denoise' };
 	function loadOptions() {
 		return api.get('/api/ugc/options').then(function (d) {
 			if (!d.success) throw new Error(d.error || 'Failed');

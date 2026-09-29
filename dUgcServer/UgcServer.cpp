@@ -159,7 +159,8 @@ namespace {
 		// What traces the occlusion rays (the icon's too)
 		settings.ao.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::EMBREE);
 		// The GPU hiprt uses (read before it is first used; changing it takes a restart)
-		UgcRays::SetGpuDevice(std::max(Setting<int32_t>("hiprt_device", 0), 0));
+		UgcRays::SetGpuDevice(UgcRays::eBackend::HIPRT, std::max(Setting<int32_t>("hiprt_device", 0), 0));
+		UgcRays::SetGpuDevice(UgcRays::eBackend::EMBREE_GPU, std::max(Setting<int32_t>("embree_gpu_device", 0), 0));
 		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
 		settings.ao.distance = Setting<float>("ao_distance", 5.0f);
 		settings.ao.samples = std::clamp(Setting<int32_t>("ao_samples", 64), 1, 1024);
@@ -573,10 +574,13 @@ namespace {
 		auto settings = ReadSettings();
 		UgcProcessOptions::Choice choice;
 		if (!UgcProcessOptions::Parse(options, choice)) {
-			std::cerr << "Unknown processing options \"" << options << "\" (ray backend embree or hiprt; denoise off or oidn)\n";
+			std::cerr << "Unknown processing options \"" << options << "\" (ray backend embree, hiprt or embree-gpu; denoise off or oidn)\n";
 			return EXIT_FAILURE;
 		}
 		UgcJobs::ApplyOptions(settings, choice);
+		if (UgcRays::Resolve(settings.ao.rays) != settings.ao.rays) {
+			std::cerr << "ray_backend=" << UgcRays::Name(settings.ao.rays) << " can't be used (" << UgcRays::Problem(settings.ao.rays) << "): embree instead\n";
+		}
 		UgcBricks::BrickLibrary library(res, 0, ClientReader());
 		if (!library.LoadMaterials()) std::cerr << "Couldn't read Materials.xml from " << (res / "brickdb.zip") << "; bricks will be grey\n";
 		UgcJobs::Outcome outcome;

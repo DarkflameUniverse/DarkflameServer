@@ -79,7 +79,7 @@ namespace UgcDebounce {
  * chosen names in this order, separated by spaces ("embree oidn"); a choice left out is the setting's.
  */
 namespace UgcProcessOptions {
-	inline constexpr std::string_view RAYS[] = { "embree", "hiprt" };
+	inline constexpr std::string_view RAYS[] = { "embree", "hiprt", "embree-gpu" };
 	inline constexpr std::string_view DENOISE[] = { "off", "oidn" };
 	// Hidden-face methods earlier versions' options named (stored options still have them): read and ignored
 	inline constexpr std::string_view RETIRED[] = { "toolbox", "fast" };

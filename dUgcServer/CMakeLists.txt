@@ -33,6 +33,37 @@ if(DLU_OIDN)
 	target_link_libraries(dUgc PRIVATE OpenImageDenoise)
 	target_compile_definitions(dUgc PRIVATE DLU_OIDN)
 endif()
+# Embree on Intel GPUs through SYCL (ray_backend=embree-gpu), when built with DLU_EMBREE_SYCL: libdlu_embree_sycl
+# (EmbreeSycl/, Embree built with its SYCL support and the GPU kernels) is its own project built by a SYCL compiler
+# (DLU_SYCL_CXX: Intel oneAPI DPC++'s icpx, or the open source DPC++'s clang++; found through ONEAPI_ROOT or
+# DPCPP_ROOT), put next to the servers and loaded by the UGC server when asked for, so nothing else needs oneAPI.
+option(DLU_EMBREE_SYCL "Build the UGC server's Intel GPU ray tracer (ray_backend=embree-gpu; needs a SYCL compiler)" OFF)
+if(DLU_EMBREE_SYCL)
+	find_program(DLU_SYCL_CXX NAMES icpx clang++ PATHS "$ENV{ONEAPI_ROOT}/compiler/latest/bin" "$ENV{DPCPP_ROOT}/bin" NO_DEFAULT_PATH)
+	if(NOT DLU_SYCL_CXX)
+		find_program(DLU_SYCL_CXX NAMES icpx)
+	endif()
+	if(NOT DLU_SYCL_CXX)
+		message(FATAL_ERROR "DLU_EMBREE_SYCL needs a SYCL compiler: set DLU_SYCL_CXX, ONEAPI_ROOT (Intel oneAPI) or DPCPP_ROOT (open source DPC++)")
+	endif()
+	get_filename_component(DLU_SYCL_BIN "${DLU_SYCL_CXX}" DIRECTORY)
+	find_program(DLU_SYCL_CC NAMES icx clang PATHS "${DLU_SYCL_BIN}" NO_DEFAULT_PATH REQUIRED)
+	include(ExternalProject)
+	set(DLU_EMBREE_SYCL_LIBRARY "${CMAKE_SHARED_LIBRARY_PREFIX}dlu_embree_sycl${CMAKE_SHARED_LIBRARY_SUFFIX}")
+	ExternalProject_Add(dlu_embree_sycl
+		SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/EmbreeSycl"
+		BINARY_DIR "${CMAKE_BINARY_DIR}/embree_sycl"
+		CMAKE_ARGS -DCMAKE_CXX_COMPILER=${DLU_SYCL_CXX} -DCMAKE_C_COMPILER=${DLU_SYCL_CC} -DCMAKE_BUILD_TYPE=Release
+		INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different "<BINARY_DIR>/${DLU_EMBREE_SYCL_LIBRARY}" "${CMAKE_BINARY_DIR}/"
+		BUILD_ALWAYS TRUE
+		USES_TERMINAL_BUILD TRUE)
+	target_sources(dUgc PRIVATE "Render/UgcRaysEmbreeGpu.cpp")
+	target_compile_definitions(dUgc PRIVATE DLU_EMBREE_SYCL)
+	target_link_libraries(dUgc PRIVATE ${CMAKE_DL_LIBS})
+	add_dependencies(dUgc dlu_embree_sycl)
+	message(STATUS "Intel GPU ray tracing (embree-gpu) built with ${DLU_SYCL_CXX}")
+endif()
+
 # HIPRT and Orochi, when built with DLU_HIPRT (thirdparty/CMakeLists.txt): the ray_backend=hiprt setting
 if(DLU_HIPRT)
 	target_sources(dUgc PRIVATE "Render/UgcRaysHiprt.cpp")
