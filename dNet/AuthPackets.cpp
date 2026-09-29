@@ -27,6 +27,7 @@
 #include "MessageType/Master.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
+#include "ClientSysInfo.h"
 
 #include <functional>
 #include <map>
@@ -236,6 +237,31 @@ void AuthPackets::LoginRequest::Handle() {
 			stamps.Add(eStamps::PASSPORT_AUTH_DB_INSERT_START);
 			Database::Get()->RecordLoginAddress(accountInfo->id, system.ToString(false), static_cast<int64_t>(std::time(nullptr)));
 			stamps.Add(eStamps::PASSPORT_AUTH_DB_INSERT_FINISH, 1);
+		}
+
+		// The system description the client sent, as it sent it (log_client_sysinfo, on by default). Only the address
+		// follows log_login_addresses. One row per account while nothing but the memory in use changes.
+		if (Game::config->GetValue("log_client_sysinfo") != "0") {
+			const auto memoryText = memoryStats.GetAsString();
+			const auto memory = ClientSysInfo::ParseMemoryStats(memoryText);
+			IClientSysInfo::SysInfoRow info;
+			info.accountId = accountInfo->id;
+			info.firstSeen = info.lastSeen = static_cast<int64_t>(std::time(nullptr));
+			if (Game::config->GetValue("log_login_addresses") != "0") info.ip = system.ToString(false);
+			info.clientOs = static_cast<uint32_t>(clientOS);
+			info.memoryStats = memoryText;
+			info.memoryTotalKb = memory.totalPhysKb && *memory.totalPhysKb > 0 ? static_cast<uint64_t>(*memory.totalPhysKb) : 0;
+			info.videoCard = videoCard.GetAsString();
+			info.numberOfProcessors = numberOfProcessors;
+			info.processorType = processorType;
+			info.processorLevel = processorLevel;
+			info.processorRevision = processorRevision;
+			info.osVersionInfoSize = osVersionInfoSize;
+			info.majorVersion = majorVersion;
+			info.minorVersion = minorVersion;
+			info.buildNumber = buildNumber;
+			info.platformId = platformID;
+			Database::Get()->RecordClientSysInfo(info);
 		}
 
 		if (!server->GetIsConnectedToMaster()) {

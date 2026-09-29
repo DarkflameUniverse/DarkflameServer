@@ -251,6 +251,9 @@ namespace {
 		c.Add(List(AUTH, "rewardcodes", "Reward codes", "Given to every account at login. 4 opens LEGO Club; 30 stops bricks being used up in build mode. Codes with an item mail it once.", eListOf::REWARD_CODE, "4,30"));
 		c.Add(Bool(AUTH, "log_login_addresses", "Remember login addresses", "Keep the network address each account logs in to the game from, so staff see accounts that share one. "
 			"Addresses are personal data: they're only shown as links between accounts, and deleted after log_login_address_days.", true));
+		c.Add(Bool(AUTH, "log_client_sysinfo", "Remember client system info", "Keep the system description the client sends when it logs in (Windows version, video card, "
+			"processor count, memory), as the client reported it, for staff with client_sysinfo. The client's old Windows calls often report "
+			"compatibility values, not the real hardware. Deleted after log_client_sysinfo_days.", true));
 
 		c.AddSection("Moderation");
 		c.Add(Bool(SHARED, "mute_restrict_mail", "Muted players can't send mail", "", false));
