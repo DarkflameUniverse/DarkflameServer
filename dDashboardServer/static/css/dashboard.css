@@ -237,6 +237,7 @@ details.about-text > :not(summary) { color: var(--bs-secondary-color); font-size
 /* Wide screens: the menu can be hidden (the top bar's menu button; header.jinja2 keeps the choice) */
 @media (min-width: 992px) {
 	html.sidebar-hidden nav.sidebar { display: none !important; }
+	html.sidebar-hidden .topbar-brand { display: inline !important; }
 }
 
 /* Changing pages without a reload (nav.js): a thin bar at the top while the next page loads */
