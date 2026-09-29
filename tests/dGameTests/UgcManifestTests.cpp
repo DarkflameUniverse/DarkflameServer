@@ -221,3 +221,37 @@ TEST_F(UgcManifestRequestTests, SwitchSendsTheChecksumThenModelReady) {
 	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 88 77 66 55 44 33 22 11 8d 03 08 07 06 05 04 03 02 01"), FromCapture(sent[1]));
 	EXPECT_PACKET_EQ(FromHex("53 05 00 0c 00 00 00 00 99 77 66 55 44 33 22 11 8d 03 08 07 06 05 04 03 02 01"), FromCapture(sent[2]));
 }
+
+namespace {
+	// A property with four placed models: 1234 (made) twice, 5678 (not made) and a prefab without a blueprint
+	class PropertyDatabase : public TestSQLDatabase {
+	public:
+		std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID&) override {
+			std::vector<IPropertyContents::Model> models(4);
+			models[0].ugcId = 1234;
+			models[1].ugcId = 1234;
+			models[2].ugcId = 5678;
+			return models;
+		}
+		std::optional<IUgc::FileChecksum> GetUgcFileChecksum(const LWOOBJID blueprintId, const std::string_view file) override {
+			if (blueprintId == 1234 && file == "model.nif") return IUgc::FileChecksum{ "00112233445566778899aabbccddeeff", 0x01020304 };
+			return std::nullopt;
+		}
+	};
+}
+
+// A property load sends the served NIF checksum of each made model once, before the models are constructed: the
+// client's cached one can be its own build's, which it would use as it is
+TEST_F(UgcManifestRequestTests, PropertyLoadSendsTheServedChecksums) {
+	Database::_setDatabase(new PropertyDatabase());
+	Settings("1", "1");
+	const auto sent = Capture([] { EXPECT_EQ(UgcManifest::OnPropertyLoading(Client(), 42), 1); });
+	ASSERT_EQ(sent.size(), 1);
+	EXPECT_EQ(sent[0].sysAddr, Client());
+	EXPECT_PACKET_EQ(FromHex("53 05 00 3c 00 00 00 00 d2 04 00 00 00 00 00 00 01 01 04 03 02 01 "
+		"00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff"), FromCapture(sent[0]));
+
+	// Models not served: nothing
+	Settings("1", "0");
+	EXPECT_TRUE(Capture([] { EXPECT_EQ(UgcManifest::OnPropertyLoading(Client(), 42), 0); }).empty());
+}

@@ -110,6 +110,12 @@ namespace UgcManifest {
 	// to is switched to the served mesh (SwitchClient), at once or once it can't be building that model any more
 	void OnModelsMade(const std::vector<LWOOBJID>& blueprintIds);
 
+	// A player is loading a property (before its models are constructed for them): the client is sent the served NIF
+	// checksum of every placed model whose mesh the UGC server made. Its cached one can be its own build's (the LXFML it
+	// was sent for the HKX, or before the model was made, replaced the served .nif and its checksum), which the client
+	// would use as it is; with the served checksum it downloads the served mesh again. Returns how many were sent.
+	size_t OnPropertyLoading(const SystemAddress& sysAddr, LWOOBJID propertyId);
+
 	// A model's LXFML was sent to a client another way (a brick by brick save, a property load): it builds the model
 	void OnLxfmlSent(const SystemAddress& sysAddr, LWOOBJID blueprintId);
 

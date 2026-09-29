@@ -418,6 +418,22 @@ namespace {
 	}
 }
 
+size_t UgcManifest::OnPropertyLoading(const SystemAddress& sysAddr, const LWOOBJID propertyId) {
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS || !ServesModels()) return 0;
+	std::set<LWOOBJID> blueprintIds;
+	for (const auto& model : Database::Get()->GetPropertyModels(propertyId)) {
+		if (model.ugcId != 0) blueprintIds.insert(model.ugcId);
+	}
+	size_t sent = 0;
+	for (const auto id : blueprintIds) {
+		const auto checksum = Database::Get()->GetUgcFileChecksum(id, "model.nif");
+		if (!checksum || checksum->md5.size() != 32) continue; // not made: its LXFML is sent
+		Send(sysAddr, id, eUgcResourceType::NIF, checksum);
+		sent++;
+	}
+	return sent;
+}
+
 void UgcManifest::OnLxfmlSent(const SystemAddress& sysAddr, const LWOOBJID blueprintId) {
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return;
 	g_Switches.LxfmlSent(sysAddr, blueprintId, std::chrono::steady_clock::now());

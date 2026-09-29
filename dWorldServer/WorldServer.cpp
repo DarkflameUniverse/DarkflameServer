@@ -1062,6 +1062,15 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				respawnCheckpoint.SendToClient(player->GetSystemAddress());
 			}
 
+			// Before the models are constructed: the served meshes' checksums, so a client whose cached checksum is its own
+			// build's downloads the served mesh again (UgcManifest, docs/UgcServer.md)
+			if (g_CloneID != 0 && UgcManifest::ServesModels()) {
+				const auto mapId = Game::zoneManager->GetZone()->GetZoneID().GetMapID();
+				if (const auto property = Database::Get()->GetPropertyInfo(mapId, g_CloneID)) {
+					UgcManifest::OnPropertyLoading(sysAddr, property->id);
+				}
+			}
+
 			Game::entityManager->ConstructAllEntities(sysAddr);
 
 			characterComponent->RocketUnEquip(player);

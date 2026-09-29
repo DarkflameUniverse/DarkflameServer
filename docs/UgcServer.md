@@ -569,7 +569,10 @@ serving), the worlds:
 
 * **Property load**: send the LXFML (one `BlueprintSaveResponse`) only for the models whose mesh the UGC server hasn't
   made (no `model.nif` in `ugc_file_checksums`). Made ones are left out: the client asks for their files, downloads
-  the served mesh and draws it. Tried and dropped: sending every model's LXFML (the client builds its own NIF and HKX)
+  the served mesh and draws it. Before the models are constructed for the player, the world sends them the served NIF
+  checksum of every made model placed there (`UgcManifest::OnPropertyLoading`): after an earlier visit the client's
+  cached NIF checksum is its own build's (from the LXFML it got for the HKX, or before the model was made), which it
+  would use without asking; with the served one it downloads the served mesh again. Tried and dropped: sending every model's LXFML (the client builds its own NIF and HKX)
   and switching to the served mesh 3 s later with the served NIF's checksum, `NotifyClientUGCModelReady` and the model
   constructed again: the client kept drawing its own build (most likely because its builds of those LXFMLs finished
   after the switch and cached their own NIFs again; see "Waiting for the client's own build").
@@ -577,7 +580,10 @@ serving), the worlds:
 * **LXFML** of a made model: the MD5 and size of the stored LXFML inflated (what the UGC server serves as
   `<id>.lxfml.sd0`), worked out once per model and kept.
 * **HKX** of any model: the model's LXFML (the UGC server makes no physics). The client builds the model from it and
-  loads its own HKX, so served models have collision; the mesh already drawn stays the served one.
+  loads its own HKX, so served models have collision; the mesh already drawn stays the served one. The build also
+  replaces the served `.nif` on disk and its cached checksum (see above), so the next load needs the served checksum
+  again (Property load). The HKX's checksum stays cached (valid entries never expire), so the client asks for the
+  HKX, and rebuilds, only while it has no entry for it.
 * **Any model file of a model that isn't made** (e.g. a model someone else just placed, or `ugc_manifest_models=0`):
   the model's LXFML to that client (once per 10 seconds for the three requests), which builds it itself, so a model is
   never left waiting. A blueprint that isn't a player model gets valid 0.
