@@ -243,19 +243,20 @@ took 17 to 100 times as long (for example 45 s instead of 2.6 s for a 140-brick 
 
 Ways of making models to try and compare, none replacing another. The settings pick the defaults; staff can make
 models again with others (the UGC page's options next to **Make again**, `/api/ugc/reprocess` with `options`,
-`/reprocessproperty [embree|hiprt] [off|oidn]` in game, `UgcServer --make-model <file> <folder> [options]`). The
+`/reprocessproperty [embree|hiprt|embree-gpu] [off|oidn]` in game, `UgcServer --make-model <file> <folder> [options]`). The
 choices are written as their names in any order (`UgcProcessOptions` in `dCommon/UgcKeys.h`); one left out is the
 setting's. Options stored by earlier versions still read: `builtin` (the UGC server's own ray hierarchies, which
 Embree replaced) is `embree`, and `toolbox` and `fast` (hidden-face methods) are skipped.
 
 | Setting | Choices | What it changes |
 |---|---|---|
-| `ray_backend` | `embree` (default), `hiprt` | What traces the occlusion rays of the bake (and the denoised icons', `UgcRays`) |
+| `ray_backend` | `embree` (default), `hiprt`, `embree-gpu` | What traces the occlusion rays of the bake (and the denoised icons', `UgcRays`) |
 | `denoise` | `off` (default), `oidn` | How a model's icon gets its occlusion |
 
 * `embree`: Intel Embree 4 (Apache-2.0), fetched and built with the servers (SSE2, AVX and AVX2 kernels picked by the
-  CPU, its own task scheduler, no TBB), on the worker's thread only. `hiprt`: AMD's HIPRT on the GPU (below). They find
-  the same hits but for rounding; the tests compare hiprt with Embree (the same nearest triangle for 99.9% of rays, the
+  CPU, its own task scheduler, no TBB), on the worker's thread only; Intel and AMD x86 CPUs. `hiprt`: AMD's HIPRT on
+  AMD and NVIDIA GPUs (below). `embree-gpu`: Embree on Intel GPUs through SYCL (below). They find the same hits but
+  for rounding; the tests compare the GPU backends with Embree (the same nearest triangle for 99.9% of rays, the
   same distances, occlusion within 0.002 on average), Embree with rays whose hits are known, and the occlusion with
   what the hierarchies Embree replaced worked out.
 * `oidn`: a model's icon is drawn from `model.noao.nif` (its colors before the occlusion bake) with the occlusion
@@ -267,8 +268,8 @@ Embree replaced) is `embree`, and `toolbox` and `fast` (hidden-face methods) are
   The denoiser works on a thread of its own; its time is counted as the worker's CPU time. Icons drawn again from
   stored files use the stored `model.noao.nif` the same way.
 
-`hiprt` and `oidn` are optional in the build (CMake options, off by default; without them the setting falls back to
-`embree` and `off`, and the UGC server logs why at start):
+`hiprt`, `embree-gpu` and `oidn` are optional in the build (CMake options, off by default; without them, or without
+the GPU, the setting falls back to `embree` and `off`, and the UGC server logs why at start; `--make-model` prints it):
 
 * `-DDLU_OIDN=ON`: an installed OIDN 2 is used when CMake finds it, else Intel's release package (Linux x86-64 and
   Windows, pinned by hash, with its TBB) is downloaded and its libraries copied next to the servers.
@@ -278,6 +279,15 @@ Embree replaced) is `embree`, and `toolbox` and `fast` (hidden-face methods) are
   change). The trace kernels are compiled from the headers copied next to the servers the first time (a second or
   two) and kept in `cache/hiprt`. One GPU context for the process, the workers take turns on it; GPU time isn't CPU
   time, so `max_cpu_percent` doesn't hold it back. A GPU wants many rays at once, so the occlusion rays go in batches.
+* `-DDLU_EMBREE_SYCL=ON`: Intel Arc and Xe GPUs (Xe-HPG and newer, with Intel's GPU compute runtime) through Embree's
+  SYCL support. Needs a SYCL compiler at build time: Intel oneAPI DPC++ (`icpx`, found through `ONEAPI_ROOT` or the
+  path) or the open source DPC++ (`clang++`, `DPCPP_ROOT`), or `DLU_SYCL_CXX` set to one. `dUgcServer/EmbreeSycl` is
+  built by it as a project of its own (Embree 4.4 with SYCL, linked in statically and bound inside, and the GPU
+  kernels) into `libdlu_embree_sycl` next to the servers, which the UGC server loads the first time it is asked for;
+  nothing else is built by the SYCL compiler, and the servers don't link oneAPI. At run time it needs the SYCL runtime
+  (oneAPI's `libsycl`, or the one of the open source DPC++ it was built with). The kernels are compiled for the GPU found
+  when first used. `embree_gpu_device` picks the GPU (0: the first Embree supports; restart to change). The same way as
+  hiprt: one GPU for the process, the workers take turns, the occlusion rays in batches.
 
 Every make records what made it: `stats.json` (`settings.rays`, `denoise`, after fallbacks), `ugc.made_options` and a
 row in `ugc_process_runs` with its times. The UGC page shows each model's in the List view's Options column (and what
