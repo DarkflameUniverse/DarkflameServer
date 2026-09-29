@@ -245,6 +245,16 @@
 			{% endif %}
 		</div>
 
+		{% if can.grants_manage or character.is_own %}
+		<div class="card mb-4">
+			<div class="card-header"><h5 class="mb-0">Permission grants</h5></div>
+			<div class="card-body">
+				<p class="small text-body-secondary">In-game commands and permissions given to{% if can.grants_manage %} (or taken from){% endif %} this character on top of its GM level, while it is logged in. The account's own grants count too.</p>
+				<div id="grantsPanel" data-character="{{ character.id }}"></div>
+			</div>
+		</div>
+		{% endif %}
+
 		<div class="card mb-4" id="relatedCard" data-kind="character" data-id="{{ character.id }}"><div class="card-body text-body-secondary">Loading related data&hellip;</div></div>
 	</div>
 	{% endif %}
@@ -760,4 +770,11 @@ function rescueCharacter() {
 <script src="/js/character-missions.js"></script>
 <script src="/js/related.js"></script>
 <script src="/js/mail-view.js"></script>
+<script src="/js/grants.js"></script>
+<script>
+(function () {
+	var panel = document.getElementById('grantsPanel');
+	if (panel) Grants.mount(panel, { type: 'character', id: panel.dataset.character });
+})();
+</script>
 {% endblock %}

@@ -470,7 +470,13 @@ void RegisterDashboardRoutes() {
 	SimplePage("/diagnostics", Perm("health_view"), "diagnostics.jinja2", "diagnostics", "Packets, bytes and HTTP requests per second of every server");
 	SimplePage("/players", Perm("players_view"), "players.jinja2", "players", "Who is online, with kick, rescue and teleport");
 	SimplePage("/backups", Perm("backups"), "backups.jinja2", "backups", "Database backups");
-	SimplePage("/permissions", Perm("permissions_manage"), "permissions.jinja2", "permissions", "What each GM level may do");
+	// The GM level tabs need permissions_manage, the grants tab grants_manage
+	Route(eHTTPMethod::GET, "/permissions", 0, "What each GM level may do, and permission grants", [](HTTPReply& reply, const HTTPContext& context) {
+		if (!Can(context, "permissions_manage") && !Can(context, "grants_manage")) {
+			return RenderError(reply, context, eHTTPStatusCode::FORBIDDEN, "You don't have permission to open this page.");
+		}
+		RenderPage(reply, context, "permissions.jinja2", "permissions");
+	});
 	SimplePage("/settings", Perm("settings"), "settings.jinja2", "settings", "Server settings");
 	SimplePage("/client_assets", Perm("client_files"), "client_assets.jinja2", "client_assets", "Browse the game client's files");
 	Route(eHTTPMethod::GET, "/about", 0, "About this server", [](HTTPReply& reply, const HTTPContext& context) {

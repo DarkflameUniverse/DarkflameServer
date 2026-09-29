@@ -120,7 +120,7 @@
 	{% endif %}
 
 	{% set adminPages = ["settings", "settings_history", "permissions", "tasks", "play_keys", "backups", "webhooks", "client_assets", "ugc"] %}
-	{% if can.settings or can.permissions_manage or can.tasks_view or can.play_keys_manage or can.backups or can.webhooks or can.client_files or can.ugc_manage %}
+	{% if can.settings or can.permissions_manage or can.grants_manage or can.tasks_view or can.play_keys_manage or can.backups or can.webhooks or can.client_files or can.ugc_manage %}
 	<div class="nav-group">
 		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-admin" aria-expanded="{% if current_page in adminPages %}true{% else %}false{% endif %}" aria-controls="nav-admin">
 			Server Admin<span class="nav-group-dot" title="Something in here needs attention"></span>
@@ -128,7 +128,7 @@
 		<div class="collapse{% if current_page in adminPages %} show{% endif %}" id="nav-admin">
 			<div class="list-group list-group-flush">
 				{% if can.settings %}<a href="/settings" class="list-group-item list-group-item-action{% if current_page == "settings" or current_page == "settings_history" %} active{% endif %}">Settings</a>{% endif %}
-				{% if can.permissions_manage %}<a href="/permissions" class="list-group-item list-group-item-action{% if current_page == "permissions" %} active{% endif %}">Permissions</a>{% endif %}
+				{% if can.permissions_manage or can.grants_manage %}<a href="/permissions" class="list-group-item list-group-item-action{% if current_page == "permissions" %} active{% endif %}">Permissions</a>{% endif %}
 				{% if can.tasks_view %}<a href="/tasks" class="list-group-item list-group-item-action{% if current_page == "tasks" %} active{% endif %}">Scheduled Tasks</a>{% endif %}
 				{% if can.play_keys_manage %}<a href="/play_keys" class="list-group-item list-group-item-action{% if current_page == "play_keys" %} active{% endif %}">Play Keys</a>{% endif %}
 				{% if can.backups %}<a href="/backups" class="list-group-item list-group-item-action{% if current_page == "backups" %} active{% endif %}">Backups</a>{% endif %}

@@ -23,16 +23,36 @@
 <div class="mb-3">
 	<h2 class="mb-1">Permissions</h2>
 	<p class="text-body-secondary mb-0">What each GM level may do on the dashboard and in the game. Click a level to make it the lowest one allowed; every level
-		above it is allowed too. Changes apply straight away, no restart needed. GM 9 can always do everything on the dashboard.</p>
+		above it is allowed too. Changes apply straight away, no restart needed. GM 9 can always do everything on the dashboard.
+		<strong>Grants</strong> give (or take away) a permission or command for one account or character.</p>
 </div>
 
 <ul class="nav nav-tabs mb-3" id="permTabs" role="tablist">
+	{% if can.permissions_manage %}
 	<li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabDashboard" data-hash="dashboard" type="button" role="tab">Dashboard <span class="badge rounded-pill text-bg-secondary" id="permCount"></span></button></li>
 	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabCommands" data-hash="commands" type="button" role="tab">In-game commands <span class="badge rounded-pill text-bg-secondary" id="commandCount"></span></button></li>
+	{% endif %}
+	{% if can.grants_manage %}
+	<li class="nav-item" role="presentation"><button class="nav-link{% if not can.permissions_manage %} active{% endif %}" data-bs-toggle="tab" data-bs-target="#tabGrants" data-hash="grants" type="button" role="tab">Grants</button></li>
+	{% endif %}
+	{% if can.permissions_manage %}
 	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabConfig" data-hash="config" type="button" role="tab">Config files</button></li>
+	{% endif %}
 </ul>
 
 <div class="tab-content">
+{% if can.grants_manage %}
+<div class="tab-pane fade{% if not can.permissions_manage %} show active{% endif %}" id="tabGrants" role="tabpanel">
+	<details class="about-text mb-2"><summary>How grants work</summary><p class="mb-0">A grant gives one account or character a dashboard permission, an
+			in-game command, every permission of a category or every command up to a GM level, on top of what its GM level allows. A deny takes one away
+			even when the GM level allows it (never from GM 9). A deny beats a grant. Account grants count on the dashboard and in game; character grants
+			count in game while that character is logged in. A grant of a permission also covers the commands that follow it. Online players get changes
+			at once. You can only grant what you have yourself, on accounts you may manage; <code>settings</code>, <code>permissions_manage</code>,
+			commands with a fixed level and commands that never go below a GM level (<code>/execute</code>) can't be granted.</p></details>
+	<div class="card"><div class="card-body" id="grantsPanel"></div></div>
+</div>
+{% endif %}
+{% if can.permissions_manage %}
 <div class="tab-pane fade show active" id="tabDashboard" role="tabpanel">
 	<div class="perm-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
 		<input type="search" class="form-control form-control-sm" id="permFilter" placeholder="Search permissions" aria-label="Search permissions">
@@ -98,12 +118,29 @@
 	</div>
 	</div>
 </div>
+{% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="/js/grants.js"></script>
 <script>
 (function () {
+	var grantsPanel = document.getElementById('grantsPanel');
+	if (grantsPanel) Grants.mount(grantsPanel, null);
+
+	// The open tab is in the address (#commands, #grants, #config), so it survives a reload and can be linked to
+	var tabs = document.querySelectorAll('#permTabs [data-hash]');
+	Array.prototype.forEach.call(tabs, function (tab) {
+		if (window.location.hash === '#' + tab.dataset.hash) bootstrap.Tab.getOrCreateInstance(tab).show();
+		tab.addEventListener('shown.bs.tab', function () { history.replaceState(null, '', '#' + tab.dataset.hash); });
+	});
+})();
+</script>
+<script>
+(function () {
+	// The GM level tabs: only with permissions_manage
+	if (!document.getElementById('permRows')) return;
 	var permissions = [], commands = [];
 	var SOURCES = { 'default': ['Default', 'secondary'], web: ['This page', 'primary'], file: ['Config file', 'info'], env: ['Environment', 'info'], fixed: ['Fixed', 'dark'], permission: ['Permission', 'success'] };
 	var filter = document.getElementById('commandFilter'), showClient = document.getElementById('showClient'), commandChanged = document.getElementById('commandChanged');
@@ -284,13 +321,6 @@
 	permFilter.addEventListener('input', renderPermissions);
 	permCategory.addEventListener('change', renderPermissions);
 	permChanged.addEventListener('change', renderPermissions);
-
-	// The open tab is in the address (#commands, #config), so it survives a reload and can be linked to
-	var tabs = document.querySelectorAll('#permTabs [data-hash]');
-	Array.prototype.forEach.call(tabs, function (tab) {
-		if (window.location.hash === '#' + tab.dataset.hash) bootstrap.Tab.getOrCreateInstance(tab).show();
-		tab.addEventListener('shown.bs.tab', function () { history.replaceState(null, '', '#' + tab.dataset.hash); });
-	});
 
 	if (window.Live) Live.on('permissions', Live.throttle(load, 500));
 	load();

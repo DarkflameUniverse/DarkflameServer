@@ -307,6 +307,16 @@
 </div>
 {% endif %}
 
+{% if is_self or can.grants_manage %}
+<div class="card mb-4">
+	<div class="card-header"><h5 class="mb-0">Permission grants</h5></div>
+	<div class="card-body">
+		<p class="small text-body-secondary">Dashboard permissions and in-game commands given to{% if can.grants_manage %} (or taken from){% endif %} this account on top of what its GM level allows. They count on the dashboard and in game, on every character; each character can have its own too (on its page).</p>
+		<div id="grantsPanel" data-account="{{ account.id }}"></div>
+	</div>
+</div>
+{% endif %}
+
 {% if is_self or (can.api_keys_manage and can.accounts_view and manage.tools) %}
 <div class="card mb-4" id="apiKeys" data-account="{{ account.id }}" data-self="{% if is_self %}1{% endif %}" data-can-create="{% if is_self and can.api_access %}1{% endif %}">
 	<div class="card-header d-flex align-items-center">
@@ -680,4 +690,11 @@ function disconnectMailAccount() {
 <script src="/js/strikes.js"></script>
 <script src="/js/account-links.js"></script>
 <script src="/js/api-keys.js"></script>
+<script src="/js/grants.js"></script>
+<script>
+(function () {
+	var panel = document.getElementById('grantsPanel');
+	if (panel) Grants.mount(panel, { type: 'account', id: panel.dataset.account });
+})();
+</script>
 {% endblock %}
