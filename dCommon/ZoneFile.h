@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <iosfwd>
 #include <map>
 #include <string>
@@ -27,6 +29,7 @@ struct WaypointCommand {
 struct ZoneScene {
 	std::string filename;
 	uint32_t id{};
+	uint32_t sceneTableID{}; // before PrePreAlpha: the scene's row in the CDClient SceneTable (see ResolveSceneTable)
 	eSceneType sceneType{};
 	std::string name;
 	NiPoint3 unknown1;
@@ -199,6 +202,7 @@ struct Path {
 
 struct ZoneFile {
 	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		Oldest = 20, // the client reads anything older as this
 		PrePreAlpha = 30,
 		PreAlpha = 32,
 		LatePreAlpha = 33,
@@ -242,6 +246,13 @@ struct ZoneFile {
 	 * transitions and paths (most of the file in big zones) unread. Throws as Read does.
 	 */
 	void ReadHeader(std::istream& file);
+
+	/**
+	 * Before PrePreAlpha a scene is only its SceneTable ID. As the client does (ZoneLoader::ReadZoneFile), the scenes
+	 * are taken in SceneTable ID order, each one `sceneName` finds a row for gets that row's sceneName as its file and
+	 * name and the next index as its ID, and the others are left out. Nothing to do for newer files.
+	 */
+	void ResolveSceneTable(const std::function<std::optional<std::string>(uint32_t)>& sceneName);
 
 private:
 	void ReadScene(std::istream& file);

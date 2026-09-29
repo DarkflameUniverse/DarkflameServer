@@ -138,14 +138,33 @@ TEST(ZoneFileTests, LateAlphaSceneCountIsAU32) {
 	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
 }
 
-// Before version 30 a scene is only an ID, with no file to load
-TEST(ZoneFileTests, VersionsBeforePrePreAlphaThrow) {
+// Before version 30 a scene is only its SceneTable ID; below 20 the file reads as 20
+TEST(ZoneFileTests, ReadsVersionsBeforePrePreAlpha) {
 	ZoneBytes w;
-	w.Put<uint32_t>(20).Put<uint32_t>(53).Put<uint8_t>(1).Put<uint32_t>(53).Put<uint8_t>(0).Text(".raw");
+	w.Put<uint32_t>(12).Put<uint32_t>(53).Put<uint8_t>(4); // version, world, scene count
+	w.Put<uint32_t>(9).Put<uint32_t>(3).Put<uint32_t>(7).Put<uint32_t>(3); // SceneTable IDs
+	w.Put<uint8_t>(0).Text("zone.raw");
 	std::istringstream stream(w.data);
 	ZoneFile zone;
-	EXPECT_THROW(zone.Read(stream), std::runtime_error);
-	EXPECT_TRUE(zone.scenes.empty());
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	EXPECT_EQ(stream.peek(), std::char_traits<char>::eof());
+	EXPECT_EQ(zone.fileFormatVersion, ZoneFile::FileFormatVersion::Oldest);
+	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
+	ASSERT_EQ(zone.scenes.size(), 4u);
+	EXPECT_TRUE(zone.scenes[0].filename.empty());
+
+	// In SceneTable ID order, once each; 7 has no row
+	zone.ResolveSceneTable([](uint32_t id) -> std::optional<std::string> {
+		if (id == 7) return std::nullopt;
+		return "scene" + std::to_string(id) + ".lvl";
+	});
+	ASSERT_EQ(zone.scenes.size(), 2u);
+	EXPECT_EQ(zone.scenes[0].id, 0u);
+	EXPECT_EQ(zone.scenes[0].filename, "scene3.lvl");
+	EXPECT_EQ(zone.scenes[0].name, "scene3.lvl");
+	EXPECT_EQ(zone.scenes[1].id, 1u);
+	EXPECT_EQ(zone.scenes[1].filename, "scene9.lvl");
 }
 
 // A PrePreAlpha (30) file ends at its terrain file's name: no zone name, description, transitions or paths

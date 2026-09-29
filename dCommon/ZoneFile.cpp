@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <istream>
-#include <stdexcept>
 #include <string>
 
 #include "BinaryIO.h"
@@ -12,10 +12,8 @@
 
 void ZoneFile::ReadHeader(std::istream& file) {
 	BinaryIO::BinaryRead(file, fileFormatVersion);
-	// Before PrePreAlpha a scene is only its ID, with no file to load it from (LuzReader::ReadScenes)
-	if (fileFormatVersion < FileFormatVersion::PrePreAlpha) {
-		throw std::runtime_error("Zone file version " + std::to_string(static_cast<uint32_t>(fileFormatVersion)) + " is older than " + std::to_string(static_cast<uint32_t>(FileFormatVersion::PrePreAlpha)) + ": its scenes have no files");
-	}
+	// The client reads anything older than 20 as 20 (LuzFile::ReadLUZFile)
+	if (fileFormatVersion < FileFormatVersion::Oldest) fileFormatVersion = FileFormatVersion::Oldest;
 
 	if (fileFormatVersion >= FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
@@ -75,6 +73,14 @@ void ZoneFile::Read(std::istream& file) {
 void ZoneFile::ReadScene(std::istream& file) {
 	ZoneScene scene;
 
+	// Before PrePreAlpha a scene is only its SceneTable ID; ResolveSceneTable finds its file (LuzReader::ReadScenes)
+	if (fileFormatVersion < FileFormatVersion::PrePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.sceneTableID);
+		scene.id = scene.sceneTableID;
+		scenes.push_back(std::move(scene));
+		return;
+	}
+
 	BinaryIO::ReadString<uint8_t>(file, scene.filename, BinaryIO::ReadType::String);
 
 	if (fileFormatVersion >= FileFormatVersion::LatePreAlpha) {
@@ -96,6 +102,26 @@ void ZoneFile::ReadScene(std::istream& file) {
 	}
 
 	scenes.push_back(std::move(scene));
+}
+
+void ZoneFile::ResolveSceneTable(const std::function<std::optional<std::string>(uint32_t)>& sceneName) {
+	if (fileFormatVersion >= FileFormatVersion::PrePreAlpha) return;
+	// ZoneLoader::ReadZoneFile: the scenes go by their SceneTable ID; each one with a row there gets the next index
+	// (0, 1, ...; -1 past 255) as its ID and the row's sceneName as its file, the others are left out
+	std::ranges::stable_sort(scenes, {}, &ZoneScene::sceneTableID);
+	std::vector<ZoneScene> resolved;
+	uint32_t index = 0;
+	for (auto& scene : scenes) {
+		if (!resolved.empty() && resolved.back().sceneTableID == scene.sceneTableID) continue;
+		const auto name = sceneName(scene.sceneTableID);
+		if (!name) continue;
+		scene.id = index < 256 ? index : UINT32_MAX;
+		scene.filename = *name;
+		scene.name = *name;
+		resolved.push_back(std::move(scene));
+		index++;
+	}
+	scenes = std::move(resolved);
 }
 
 void ZoneFile::ReadZoneBoundaries(std::istream& file) {

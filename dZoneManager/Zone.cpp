@@ -12,6 +12,7 @@
 #include "AssetManager.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
+#include "CDClientDatabase.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
 #include "dpWorld.h"
@@ -56,6 +57,14 @@ void Zone::LoadZoneIntoMemory() {
 		// The file itself is read by ZoneFile (dCommon), which the dashboard uses too
 		ZoneFile zoneFile;
 		zoneFile.Read(file);
+		// The oldest files name their scenes by SceneTable ID
+		zoneFile.ResolveSceneTable([](uint32_t sceneTableID) -> std::optional<std::string> {
+			auto query = CDClientDatabase::CreatePreppedStmt("SELECT sceneName FROM SceneTable WHERE sceneID = ?;");
+			query.bind(1, static_cast<int32_t>(sceneTableID));
+			auto result = query.execQuery();
+			if (result.eof() || result.fieldIsNull("sceneName")) return std::nullopt;
+			return std::string(result.getStringField("sceneName"));
+		});
 		m_FileFormatVersion = zoneFile.fileFormatVersion;
 		m_WorldID = zoneFile.worldID;
 		if (static_cast<LWOMAPID>(m_WorldID) != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
