@@ -219,6 +219,9 @@ void Zone::LoadLevelsIntoMemory() {
 
 bool Zone::LoadSceneMap() {
 	if (m_ZoneRawPath.empty()) return false;
+	// Zones older than version 30 have terrain of an older format, whose scene map the game client never reads
+	// (OpenTerrain: only the editor does)
+	if (m_FileFormatVersion < FileFormatVersion::PrePreAlpha) return false;
 	auto file = Game::assetManager->GetFile((m_ZonePath + m_ZoneRawPath).c_str());
 	if (!file) {
 		LOG("Could not open the terrain file %s for its scene map", (m_ZonePath + m_ZoneRawPath).c_str());
