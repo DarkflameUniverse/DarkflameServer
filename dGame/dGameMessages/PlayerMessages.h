@@ -79,6 +79,18 @@ namespace GameMessages {
 		int32_t iToolTip{};
 	};
 
+	// Client -> server. The client's rocket build ("1:LOT;1:LOT;1:LOT;"), sent when it assembles the rocket the
+	// player carries (at the launchpad and when landing). The client keeps it as lastUsedRocketInfo and reads it
+	// back from char@lcbp on load.
+	struct SetLastCustomBuild : public NetGameMsg {
+		SetLastCustomBuild() : NetGameMsg(MessageType::Game::SET_LAST_CUSTOM_BUILD) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		std::u16string tokenizedLOTList{};
+	};
+
 	// Server -> client, broadcast.
 	struct ToggleGMInvis : public NetGameMsg {
 		ToggleGMInvis() : NetGameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}

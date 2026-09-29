@@ -91,6 +91,20 @@ namespace GameMessages {
 		if (characterComponent) characterComponent->SetTooltipFlag(iToolTip, bFlag);
 	}
 
+	void SetLastCustomBuild::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteLengthPrefixed(bitStream, tokenizedLOTList);
+	}
+
+	bool SetLastCustomBuild::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, tokenizedLOTList));
+		return true;
+	}
+
+	void SetLastCustomBuild::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* const characterComponent = entity.GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SetLastCustomBuild(tokenizedLOTList);
+	}
+
 	void ToggleGMInvis::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(bStateOut);
 	}

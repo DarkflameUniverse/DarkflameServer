@@ -67,3 +67,18 @@ TEST_F(ClientMessagesTests, SetTooltipFlagFollowsTheClient) {
 	characterComponent->SetTooltipFlag(100, false);
 	EXPECT_EQ(characterComponent->GetTooltipFlags(), 0u);
 }
+
+// SetLastCustomBuild (890): a u32-length wide string. 202 live packets, sent when the carried rocket is assembled.
+TEST_F(ClientMessagesTests, SetLastCustomBuildMatchesLiveCapture) {
+	auto msg = FromLiveClientCapture<GameMessages::SetLastCustomBuild>(std::string(PLAYER_HEADER) + "7a03" +
+		"1600000031003a00310034003400350034003b0031003a0034003700310034003b0031003a0034003700310035003b00");
+	EXPECT_EQ(msg.tokenizedLOTList, u"1:14454;1:4714;1:4715;");
+	EXPECT_EQ(RoundTrip(msg).tokenizedLOTList, msg.tokenizedLOTList);
+	ExpectTruncatedFails(msg);
+
+	// Kept as the rocket config (saved as char@lcbp) without turning on the landing
+	auto* const characterComponent = player->GetComponent<CharacterComponent>();
+	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS);
+	EXPECT_EQ(characterComponent->GetLastRocketConfig(), u"1:14454;1:4714;1:4715;");
+	EXPECT_FALSE(characterComponent->GetIsLanding());
+}

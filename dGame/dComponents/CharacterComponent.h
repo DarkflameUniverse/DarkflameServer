@@ -60,6 +60,13 @@ public:
 	void SetLastRocketConfig(std::u16string config);
 
 	/**
+	 * Keeps the rocket build the client reports (SetLastCustomBuild) as char@lcbp, without changing whether the
+	 * player lands on the next load
+	 */
+	void SetLastCustomBuild(const std::u16string& tokenizedLOTList) { m_LastRocketConfig = tokenizedLOTList; }
+	bool GetIsLanding() const { return m_IsLanding; }
+
+	/**
 	 * Find a player's rocket
 	 * @param player the entity that triggered the event
 	 * @return rocket
