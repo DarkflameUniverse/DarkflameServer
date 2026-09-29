@@ -178,8 +178,18 @@ namespace {
 		auto* character = entity ? entity->GetCharacter() : nullptr;
 		if (!character) return 0;
 		character->ApplyNameModeration(approved);
-		Tell(entity, approved ? "Your new name \"" + name + "\" was approved. Other players will see it after you next change worlds."
-			: "Your requested name \"" + name + "\" was not approved. You can pick another one at character select.");
+		const std::string text = approved ? "Your new name \"" + name + "\" was approved. Other players will see it after you next change worlds."
+			: "Your requested name \"" + name + "\" was not approved. You can pick another one at character select.";
+		// A private announcement popup, as live told the player, and the same text in chat
+		AMFArrayValue args;
+		args.Insert("title", std::string(approved ? "Name approved" : "Name not approved"));
+		args.Insert("message", text);
+		GameMessages::UIMessageServerToSingleClient uiMessage;
+		uiMessage.target = entity->GetObjectID();
+		uiMessage.strMessageName = "ToggleAnnounce";
+		uiMessage.args = std::move(args);
+		uiMessage.SendToClient(entity->GetSystemAddress());
+		Tell(entity, text);
 		return 1;
 	}
 
