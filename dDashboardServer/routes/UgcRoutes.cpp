@@ -458,8 +458,8 @@ namespace UgcRoutes {
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/options", Perm("properties_view"),
-			"The processing options (docs/UgcServer.md, \"Processing options\"): the choices ({rays, hsr, denoise}: names), the settings' defaults "
-			"({rays, hsr, denoise}) and every combination the made models used, with its makes (runs), models and averages per make "
+			"The processing options (docs/UgcServer.md, \"Processing options\"): the choices ({rays, denoise, processor}: names), the settings' defaults "
+			"({rays, denoise, processor}) and every combination the made models used, with its makes (runs), models and averages per make "
 			"(ms, cpuMs, hsrMs, aoMs, iconMs, bricks, trianglesBefore, triangles, removed: the share of triangles removed)",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto names = [](const auto& list) {
@@ -477,9 +477,10 @@ namespace UgcRoutes {
 						{ "triangles", average(summary.triangles) },
 						{ "removed", summary.trianglesBefore > 0 ? 1.0 - static_cast<double>(summary.triangles) / static_cast<double>(summary.trianglesBefore) : 0.0 } });
 				}
-				JsonSuccess(reply, { { "choices", { { "rays", names(UgcProcessOptions::RAYS) }, { "denoise", names(UgcProcessOptions::DENOISE) } } },
+				JsonSuccess(reply, { { "choices", { { "rays", names(UgcProcessOptions::RAYS) }, { "denoise", names(UgcProcessOptions::DENOISE) },
+						{ "processor", names(UgcProcessOptions::PROCESSOR) } } },
 					{ "defaults", { { "rays", UgcSetting("ray_backend").value_or("embree") },
-						{ "denoise", UgcSetting("denoise").value_or("off") } } },
+						{ "denoise", UgcSetting("denoise").value_or("off") }, { "processor", UgcSetting("processor").value_or("native") } } },
 					{ "combinations", combos }, { "canManage", Can(context, "ugc_manage") } });
 			});
 
@@ -772,7 +773,7 @@ namespace UgcRoutes {
 
 		Route(eHTTPMethod::POST, "/api/ugc/reprocess", Perm("ugc_manage"),
 			"Have the UGC server make items again. Body: {kind: model|modular, id} for one, {kind: model, property} for every model placed on a property, {kind, failedOnly: true} for the failed ones, {kind} for all; "
-			"models: options (processing options for this make, e.g. \"embree oidn\": ray backend, denoising; left out: the UGC settings')",
+			"models: options (processing options for this make, e.g. \"embree oidn\" or \"toolbox-blender\": ray backend, denoising, processor; left out: the UGC settings')",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");

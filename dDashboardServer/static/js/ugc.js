@@ -130,9 +130,9 @@
 		if (!i.processedAt) return '';
 		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '') + (i.madeOptions ? ' \u00b7 with ' + i.madeOptions : '');
 	}
-	// The processing options picked for Make again (ray tracer, denoise), as /api/ugc/reprocess takes them
+	// The processing options picked for Make again (ray tracer, denoise, processor), as /api/ugc/reprocess takes them
 	function remakeOptions() {
-		return ['optRays', 'optDenoise'].map(function (x) { return $(x).value; }).filter(Boolean).join(' ');
+		return ['optRays', 'optDenoise', 'optProcessor'].map(function (x) { return $(x).value; }).filter(Boolean).join(' ');
 	}
 	// A model's file as the player named it: its name with the upload's extension (".lxfml"), else the upload's name
 	function fileName(i) {
@@ -727,11 +727,13 @@
 
 	// ---- processing options: Make again's choices and the comparison of what made the models ----
 
-	var OPTION_LABELS = { embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', 'embree-gpu': 'Embree (Intel GPU)', off: 'Off', oidn: 'Open Image Denoise' };
+	var OPTION_LABELS = { embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', 'embree-gpu': 'Embree (Intel GPU)', off: 'Off', oidn: 'Open Image Denoise',
+		native: 'UGC server', 'toolbox-blender': 'LU Toolbox (Blender)' };
 	function loadOptions() {
 		return api.get('/api/ugc/options').then(function (d) {
 			if (!d.success) throw new Error(d.error || 'Failed');
-			[['optRays', 'rays', 'Ray tracer'], ['optDenoise', 'denoise', 'Denoise']].forEach(function (x) {
+			[['optRays', 'rays', 'Ray tracer'], ['optDenoise', 'denoise', 'Denoise'], ['optProcessor', 'processor', 'Made by']].forEach(function (x) {
+				if (!d.choices[x[1]]) return;
 				var select = $(x[0]), chosen = select.value;
 				select.innerHTML = '<option value="">' + esc(x[2]) + ': settings (' + esc(OPTION_LABELS[d.defaults[x[1]]] || d.defaults[x[1]]) + ')</option>' +
 					d.choices[x[1]].map(function (name) { return '<option value="' + esc(name) + '">' + esc(x[2]) + ': ' + esc(OPTION_LABELS[name] || name) + '</option>'; }).join('');
