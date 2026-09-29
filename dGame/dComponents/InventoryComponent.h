@@ -518,6 +518,12 @@ private:
 	EquipmentMap m_Pushed;
 
 	/**
+	 * Whether the equipped items are pushed (between PushEquippedItems and PopEquippedItems, e.g. in build mode).
+	 * What is equipped then is temporary (the thinking hat, a carried model) and m_Pushed is what gets saved.
+	 */
+	bool m_HasPushed{};
+
+	/**
 	 * If the inventory has changed
 	 */
 	bool m_Dirty;

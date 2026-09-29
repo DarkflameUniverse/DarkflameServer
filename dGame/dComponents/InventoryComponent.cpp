@@ -826,6 +826,13 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 
 	items->DeleteChildren();
 
+	// Saved while the equipped items are pushed (build mode, possibly carrying a model): the character's equipment is
+	// the pushed state, which PopEquippedItems puts back, not the temporary items equipped since.
+	const auto& savedEquipment = m_HasPushed ? m_Pushed : m_Equipped;
+	const auto isSavedEquipped = [&savedEquipment](const LWOOBJID id) {
+		return std::ranges::any_of(savedEquipment, [id](const auto& slot) { return slot.second.id == id; });
+	};
+
 	for (auto* inventory : inventoriesToSave) {
 		if (inventory->GetSize() == 0) {
 			continue;
@@ -845,7 +852,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 			itemElement->SetAttribute("s", static_cast<unsigned int>(item->GetSlot()));
 			itemElement->SetAttribute("c", static_cast<unsigned int>(item->GetCount()));
 			itemElement->SetAttribute("b", item->GetBound());
-			itemElement->SetAttribute("eq", item->IsEquipped());
+			itemElement->SetAttribute("eq", isSavedEquipped(item->GetId()));
 			itemElement->SetAttribute("sk", item->GetSubKey());
 
 			// Begin custom xml
@@ -1197,6 +1204,7 @@ void InventoryComponent::RemoveBuff(Item* item) const {
 
 void InventoryComponent::PushEquippedItems() {
 	m_Pushed = m_Equipped;
+	m_HasPushed = true;
 
 	m_Dirty = true;
 }
@@ -1225,6 +1233,7 @@ void InventoryComponent::PopEquippedItems() {
 	}
 
 	m_Pushed.clear();
+	m_HasPushed = false;
 
 	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
