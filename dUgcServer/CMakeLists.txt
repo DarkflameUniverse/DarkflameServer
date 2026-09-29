@@ -28,6 +28,11 @@ add_library(dUgc STATIC ${DUGC_SOURCES})
 target_include_directories(dUgc PUBLIC "." "Bricks" "Formats" "Model" "Processing" "Render"
 	"${PROJECT_SOURCE_DIR}/thirdparty/MD5" "${PROJECT_SOURCE_DIR}/thirdparty/nlohmann")
 target_link_libraries(dUgc PUBLIC dCommon glm::glm tinyxml2 MD5 PRIVATE embree)
+# Intel Open Image Denoise, when built with DLU_OIDN (thirdparty/CMakeLists.txt): the denoise=oidn setting
+if(DLU_OIDN)
+	target_link_libraries(dUgc PRIVATE OpenImageDenoise)
+	target_compile_definitions(dUgc PRIVATE DLU_OIDN)
+endif()
 
 add_executable(UgcServer "UgcServer.cpp" "Processing/UgcProcessor.cpp" "Bricks/UgcCdClient.cpp")
 

@@ -1,12 +1,19 @@
 #include "UgcRender.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <optional>
+#include <type_traits>
 #include <unordered_map>
 
 #include <glm/gtc/matrix_transform.hpp>
+
+#ifdef DLU_OIDN
+#include <OpenImageDenoise/oidn.hpp>
+#endif
 
 #include "UgcIconPose.h"
 #include "UgcPalette.h"
@@ -81,6 +88,64 @@ namespace {
 		float PixelSize() const { return 2.0f * radius / resolution; }
 	};
 
+#ifdef DLU_OIDN
+	// Open Image Denoise's CPU device for the thread, made the first time: one thread of its own (not all the cores),
+	// whose time Denoise charges to the asking thread (UgcThrottle::Charge); null when it can't be made
+	oidn::DeviceRef* OidnDevice() {
+		thread_local std::optional<oidn::DeviceRef> device;
+		thread_local bool tried = false;
+		if (!tried) {
+			tried = true;
+			auto made = oidn::newDevice(oidn::DeviceType::CPU);
+			if (made) {
+				made.set("numThreads", 1);
+				made.set("setAffinity", false);
+				made.commit();
+				const char* message = nullptr;
+				if (made.getError(message) == oidn::Error::None) device = std::move(made);
+			}
+		}
+		return device ? &*device : nullptr;
+	}
+#endif
+
+	// Denoises `color` (linear, premultiplied, n x n) with Open Image Denoise's ray tracing filter, guided by `albedo`
+	// and `normals` (noise free); false (and `color` as it was) when it can't
+	bool Denoise(std::vector<glm::vec4>& color, const std::vector<glm::vec3>& albedo, const std::vector<glm::vec3>& normals, int n) {
+#ifdef DLU_OIDN
+		auto* device = OidnDevice();
+		if (!device || n <= 0) return false;
+		const size_t pixels = static_cast<size_t>(n) * n;
+		std::vector<glm::vec3> input(pixels), output(pixels);
+		for (size_t i = 0; i < pixels; i++) input[i] = glm::vec3(color[i]);
+		auto filter = device->newFilter("RT");
+		filter.setImage("color", input.data(), oidn::Format::Float3, n, n);
+		filter.setImage("albedo", const_cast<glm::vec3*>(albedo.data()), oidn::Format::Float3, n, n);
+		filter.setImage("normal", const_cast<glm::vec3*>(normals.data()), oidn::Format::Float3, n, n);
+		filter.setImage("output", output.data(), oidn::Format::Float3, n, n);
+		filter.set("hdr", true);
+		filter.set("cleanAux", true);
+		// It works on a thread of its own while this one waits: its time is this job's CPU time
+		const auto started = std::chrono::steady_clock::now();
+		filter.commit();
+		filter.execute();
+		UgcThrottle::Charge(std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
+		const char* message = nullptr;
+		if (device->getError(message) != oidn::Error::None) return false;
+		// The shape's outline and coverage stay as drawn
+		for (size_t i = 0; i < pixels; i++) {
+			if (color[i].a > 0.0f) color[i] = glm::vec4(glm::max(output[i], glm::vec3(0.0f)), color[i].a);
+		}
+		return true;
+#else
+		(void)color;
+		(void)albedo;
+		(void)normals;
+		(void)n;
+		return false;
+#endif
+	}
+
 	void Bounds(const UgcModel::Model& model, glm::vec3& center, float& radius) {
 		glm::vec3 min{}, max{};
 		if (!model.Bounds(min, max)) {
@@ -106,6 +171,9 @@ namespace UgcRender {
 	}
 
 	bool Available(eDenoise denoise) {
+#ifdef DLU_OIDN
+		if (denoise == eDenoise::OIDN) return OidnDevice() != nullptr;
+#endif
 		return denoise == eDenoise::OFF;
 	}
 
@@ -267,14 +335,17 @@ namespace UgcRender {
 		return ao;
 	}
 
-	Image RenderIcon(const UgcModel::Model& source, const IconOptions& options, const std::vector<float>* opaqueAo) {
+	Image RenderIcon(const UgcModel::Model& source, const IconOptions& options, const std::vector<float>* opaqueAo, const UgcModel::Model* plain) {
 		const int size = std::clamp(options.size, 8, 1024);
 		const int supersample = std::clamp(options.supersample, 1, 8);
 		const int n = size * supersample;
 		Image image{ size, size, std::vector<uint8_t>(static_cast<size_t>(size) * size * 4, 0) };
 		if (source.Empty()) return image;
 
-		UgcModel::Model model = source;
+		// Denoised with the model before its bake: its occlusion is traced per pixel (noisy), then denoised
+		const bool denoise = options.denoise != eDenoise::OFF && Available(options.denoise);
+		const bool traced = denoise && plain && !plain->opaque.Empty() && options.denoiseSamples > 0 && options.bakedAo > 0.0f && options.ao.distance > 0.0f;
+		UgcModel::Model model = traced ? *plain : source;
 		const auto rotation = UgcIconPose::ModelRotation(options.modelYawDegrees, options.modelPitchDegrees, options.modelRollDegrees) * options.modelRotation;
 		model.opaque.Transform(rotation);
 		model.transparent.Transform(rotation);
@@ -300,7 +371,7 @@ namespace UgcRender {
 
 		// Ambient occlusion darkens the world light (opaque bricks only, as they are what occludes)
 		std::vector<float> ao;
-		if (options.ao.enabled) {
+		if (options.ao.enabled && !traced) {
 			ao = opaqueAo && opaqueAo->size() == model.opaque.positions.size() ? *opaqueAo : AmbientOcclusion(model.opaque, model.opaque, options.ao.distance, options.ao.samples, options.ao.rays);
 		}
 
@@ -343,7 +414,15 @@ namespace UgcRender {
 		}
 		const auto glitterAlpha = anyGlitter ? UgcGlitter::FleckAlpha(options.glitter) : std::vector<uint8_t>{};
 
-		const auto shade = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
+		// A point's surface: its normal (towards the camera), its color before the light (glitter's flecks on it), where
+		// it is and how it looks
+		struct Surface {
+			glm::vec3 normal;
+			glm::vec4 base;
+			glm::vec3 position;
+			UgcModel::eLook look;
+		};
+		const auto surface = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
 			glm::vec3 normal(0.0f, 1.0f, 0.0f);
 			if (mesh.normals.size() == mesh.positions.size()) {
 				normal = mesh.normals[i0] * w0 + mesh.normals[i1] * w1 + mesh.normals[i2] * w2;
@@ -353,17 +432,7 @@ namespace UgcRender {
 			}
 			glm::vec4 base(0.63f, 0.63f, 0.63f, 1.0f);
 			if (mesh.colors.size() == mesh.positions.size()) base = mesh.colors[i0] * w0 + mesh.colors[i1] * w1 + mesh.colors[i2] * w2;
-			const float occlusion = isOpaque && ao.size() == mesh.positions.size() ? ao[i0] * w0 + ao[i1] * w1 + ao[i2] * w2 : 1.0f;
-			const float strength = std::clamp(options.ao.strength, 0.0f, 1.0f);
 			const auto position = mesh.positions[i0] * w0 + mesh.positions[i1] * w1 + mesh.positions[i2] * w2;
-			const float direct = std::max(0.0f, glm::dot(normal, light));
-			const float sun = direct > 0.0f ? sunlit(position + normal * shadowBias) : 0.0f;
-			// Diffuse: the world's light (radiance `ambient`), a fill from the camera and the sun's (irradiances, over pi)
-			const float lighting = options.ambient * (1.0f - strength * (1.0f - occlusion)) +
-				(options.fill * std::max(0.0f, glm::dot(normal, toCamera)) + options.sunStrength * direct * sun) / 3.14159265f;
-			// The sun's highlight (Blinn-Phong), white, on top of the color
-			const float highlight = direct > 0.0f ? options.specular * options.sunStrength / 3.14159265f * sun * std::pow(std::max(0.0f, glm::dot(normal, halfway)), std::max(options.shininess, 1.0f)) : 0.0f;
-			const float exposure = std::max(options.exposure, 0.0f);
 			const auto look = mesh.looks.size() == mesh.positions.size() && (isOpaque || mesh.looks[i0] == UgcModel::eLook::GLITTER) ? mesh.looks[i0] : UgcModel::eLook::PLASTIC;
 			if (look == UgcModel::eLook::GLITTER) {
 				// LEGO-AnimUV: lerp(vertex color, the texture's white, its alpha), then lit as plastic
@@ -373,6 +442,25 @@ namespace UgcRender {
 				const float fleck = UgcGlitter::Sample(glitterAlpha, uv);
 				base = glm::vec4(glm::mix(glm::vec3(base), glm::vec3(1.0f), fleck), base.a);
 			}
+			return Surface{ normal, base, position, look };
+		};
+
+		const auto shade = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
+			const auto point = surface(mesh, isOpaque, i0, i1, i2, w0, w1, w2);
+			const auto& normal = point.normal;
+			const auto& base = point.base;
+			const auto& position = point.position;
+			const auto look = point.look;
+			const float occlusion = isOpaque && ao.size() == mesh.positions.size() ? ao[i0] * w0 + ao[i1] * w1 + ao[i2] * w2 : 1.0f;
+			const float strength = std::clamp(options.ao.strength, 0.0f, 1.0f);
+			const float direct = std::max(0.0f, glm::dot(normal, light));
+			const float sun = direct > 0.0f ? sunlit(position + normal * shadowBias) : 0.0f;
+			// Diffuse: the world's light (radiance `ambient`), a fill from the camera and the sun's (irradiances, over pi)
+			const float lighting = options.ambient * (1.0f - strength * (1.0f - occlusion)) +
+				(options.fill * std::max(0.0f, glm::dot(normal, toCamera)) + options.sunStrength * direct * sun) / 3.14159265f;
+			// The sun's highlight (Blinn-Phong), white, on top of the color
+			const float highlight = direct > 0.0f ? options.specular * options.sunStrength / 3.14159265f * sun * std::pow(std::max(0.0f, glm::dot(normal, halfway)), std::max(options.shininess, 1.0f)) : 0.0f;
+			const float exposure = std::max(options.exposure, 0.0f);
 			if (look == UgcModel::eLook::PLASTIC || look == UgcModel::eLook::GLITTER) {
 				return glm::vec4((ToLinear(base.r) * lighting + highlight) * exposure, (ToLinear(base.g) * lighting + highlight) * exposure,
 					(ToLinear(base.b) * lighting + highlight) * exposure, std::clamp(base.a, 0.0f, 1.0f));
@@ -397,6 +485,12 @@ namespace UgcRender {
 		};
 
 		// Opaque first, with the depth buffer
+		// Traced: each pixel's point, for the occlusion traced after
+		std::vector<glm::vec3> points, pointNormals;
+		if (traced) {
+			points.assign(color.size(), glm::vec3(0.0f));
+			pointNormals.assign(color.size(), glm::vec3(0.0f));
+		}
 		{
 			const auto& mesh = model.opaque;
 			std::vector<glm::vec3> screen(mesh.positions.size());
@@ -409,7 +503,45 @@ namespace UgcRender {
 					depth[index] = z;
 					const auto shaded = shade(mesh, true, i0, i1, i2, w0, w1, w2);
 					color[index] = glm::vec4(glm::vec3(shaded), 1.0f);
+					if (traced) {
+						const auto point = surface(mesh, true, i0, i1, i2, w0, w1, w2);
+						points[index] = point.position;
+						pointNormals[index] = point.normal;
+					}
 				});
+			}
+		}
+		// Traced: every opaque pixel's occlusion from a few rays (cosine weighted around its normal, a pattern turned
+		// per pixel, so the error differs from pixel to pixel as the denoiser expects), darkening it as the bake darkens
+		// the vertex colors (LU Toolbox's Bake Lighting: the color times 1 - strength x (1 - occlusion))
+		if (traced) {
+			const auto scene = UgcRays::Make(options.ao.rays, model.opaque);
+			const auto count = static_cast<uint32_t>(std::clamp(options.denoiseSamples, 1, 256));
+			for (size_t index = 0; index < color.size(); index++) {
+				if ((index & 0x3FF) == 0) UgcThrottle::Checkpoint();
+				if (color[index].a <= 0.0f) continue;
+				const auto& normal = pointNormals[index];
+				const glm::vec3 helper = std::abs(normal.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+				const auto tangent = glm::normalize(glm::cross(helper, normal));
+				const auto bitangent = glm::cross(normal, tangent);
+				uint32_t hash = static_cast<uint32_t>(index) * 0x9E3779B9u;
+				hash ^= hash >> 16;
+				hash *= 0x85EBCA6Bu;
+				hash ^= hash >> 13;
+				const float turn = static_cast<float>(hash >> 8) / 16777216.0f;
+				const float shift = static_cast<float>((hash * 0xC2B2AE35u) >> 8) / 16777216.0f;
+				const auto origin = points[index] + normal * 1e-3f;
+				uint32_t open = 0;
+				for (uint32_t i = 0; i < count; i++) {
+					const float u = std::fmod((i + shift) / static_cast<float>(count), 1.0f);
+					const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
+					const float r = std::sqrt(u), up = std::sqrt(std::max(0.0f, 1.0f - u));
+					const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * up;
+					if (!scene->Occluded(origin, direction, 1e-4f, options.ao.distance)) open++;
+				}
+				const float occlusion = static_cast<float>(open) / static_cast<float>(count);
+				const float lit = 1.0f - std::clamp(options.bakedAo, 0.0f, 1.0f) * (1.0f - occlusion);
+				color[index] = glm::vec4(glm::vec3(color[index]) * lit, color[index].a);
 			}
 		}
 
@@ -435,15 +567,67 @@ namespace UgcRender {
 			}
 		}
 
-		// Box filter down to the icon's size
+		// Box filter down to the icon's size (linear, premultiplied)
 		const float samples = static_cast<float>(supersample * supersample);
+		const auto boxFilter = [&](const auto& full) {
+			using Pixel = typename std::decay_t<decltype(full)>::value_type;
+			std::vector<Pixel> small(static_cast<size_t>(size) * size, Pixel(0.0f));
+			for (int y = 0; y < size; y++) {
+				for (int x = 0; x < size; x++) {
+					Pixel sum(0.0f);
+					for (int sy = 0; sy < supersample; sy++) {
+						for (int sx = 0; sx < supersample; sx++) sum += full[static_cast<size_t>(y * supersample + sy) * n + (x * supersample + sx)];
+					}
+					sum /= samples;
+					small[static_cast<size_t>(y) * size + x] = sum;
+				}
+			}
+			return small;
+		};
+		auto filtered = boxFilter(color);
+
+		// Denoised at the icon's size (the supersampling has averaged the pixels already; a denoiser's time grows with
+		// the pixels), guided by the colors before the light and the normals of the same view, which have no noise
+		if (denoise) {
+			std::vector<glm::vec3> albedo(static_cast<size_t>(n) * n, glm::vec3(0.0f)), normals(static_cast<size_t>(n) * n, glm::vec3(0.0f));
+			// The colors before the bake when known (traced: the model drawn)
+			UgcModel::Model guide = plain && !traced ? *plain : UgcModel::Model{};
+			if (plain && !traced) {
+				guide.opaque.Transform(rotation);
+				guide.transparent.Transform(rotation);
+			}
+			const auto& drawn = plain && !traced ? guide : model;
+			std::vector<float> guideDepth(static_cast<size_t>(n) * n, INF);
+			for (const bool isOpaque : { true, false }) {
+				const auto& mesh = isOpaque ? drawn.opaque : drawn.transparent;
+				std::vector<glm::vec3> screen(mesh.positions.size());
+				for (size_t v = 0; v < mesh.positions.size(); v++) screen[v] = project(mesh.positions[v]);
+				for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+					const auto i0 = mesh.indices[i], i1 = mesh.indices[i + 1], i2 = mesh.indices[i + 2];
+					Rasterize(n, n, screen[i0], screen[i1], screen[i2], [&](int x, int y, float z, float w0, float w1, float w2) {
+						const size_t index = static_cast<size_t>(y) * n + x;
+						// Transparent surfaces over the opaque ones, in any order (a guide needn't be exact)
+						if (z >= guideDepth[index]) return;
+						const auto point = surface(mesh, isOpaque, i0, i1, i2, w0, w1, w2);
+						const glm::vec3 linear(ToLinear(point.base.r), ToLinear(point.base.g), ToLinear(point.base.b));
+						if (isOpaque) {
+							guideDepth[index] = z;
+							albedo[index] = linear;
+							normals[index] = point.normal;
+						} else {
+							const float alpha = std::clamp(point.base.a, 0.0f, 1.0f);
+							albedo[index] = glm::mix(albedo[index], linear, alpha);
+							normals[index] = glm::normalize(glm::mix(normals[index], point.normal, alpha) + glm::vec3(1e-6f));
+						}
+					});
+				}
+			}
+			Denoise(filtered, boxFilter(albedo), boxFilter(normals), size);
+		}
+
 		for (int y = 0; y < size; y++) {
 			for (int x = 0; x < size; x++) {
-				glm::vec4 sum(0.0f);
-				for (int sy = 0; sy < supersample; sy++) {
-					for (int sx = 0; sx < supersample; sx++) sum += color[static_cast<size_t>(y * supersample + sy) * n + (x * supersample + sx)];
-				}
-				sum /= samples;
+				const auto& sum = filtered[static_cast<size_t>(y) * size + x];
 				uint8_t* out = &image.rgba[(static_cast<size_t>(y) * size + x) * 4];
 				if (sum.a <= 0.0f) continue;
 				// sRGB, then the contrast around its middle grey

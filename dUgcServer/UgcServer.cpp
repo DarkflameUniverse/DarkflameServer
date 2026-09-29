@@ -180,6 +180,8 @@ namespace {
 		settings.icon.ao.distance = settings.ao.distance;
 		settings.icon.ao.rays = settings.hsr.rays;
 		settings.icon.denoise = UgcRender::ParseDenoise(Game::config->GetValue("denoise")).value_or(UgcRender::eDenoise::OFF);
+		settings.icon.denoiseSamples = std::clamp(Setting<int32_t>("denoise_samples", 4), 1, 256);
+		settings.icon.bakedAo = settings.ao.enabled ? std::clamp(settings.ao.strength, 0.0f, 1.0f) : 0.0f;
 		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
 		return settings;
 	}
@@ -572,7 +574,7 @@ namespace {
 		if (!library.LoadMaterials()) std::cerr << "Couldn't read Materials.xml from " << (res / "brickdb.zip") << "; bricks will be grey\n";
 		UgcJobs::Outcome outcome;
 		const auto start = std::chrono::steady_clock::now();
-		const double cpuStart = UgcThrottle::ThreadCpuSeconds();
+		const double cpuStart = UgcThrottle::JobCpuSeconds();
 		if (mode == "--make-model") {
 			const auto data = UgcBricks::ReadFile(input);
 			if (!data) {
@@ -599,7 +601,7 @@ namespace {
 		for (const auto& [name, data] : outcome.files) {
 			std::ofstream(output / name, std::ios::binary).write(data.data(), static_cast<std::streamsize>(data.size()));
 		}
-		const double cpuMs = (UgcThrottle::ThreadCpuSeconds() - cpuStart) * 1000.0;
+		const double cpuMs = (UgcThrottle::JobCpuSeconds() - cpuStart) * 1000.0;
 		std::cout << "Made " << outcome.files.size() << " files in " << ms << " ms (" << cpuMs << " ms CPU)" << (outcome.options.empty() ? "" : " with " + outcome.options) <<
 			(outcome.note.empty() ? "" : ": " + outcome.note) << "\n";
 		return EXIT_SUCCESS;

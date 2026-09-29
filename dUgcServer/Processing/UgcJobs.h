@@ -101,9 +101,10 @@ namespace UgcJobs {
 
 	// A model's icon files (icon.png, icon.dds download) drawn from its .nif (LOD 0), its metal and glow groups by
 	// `tagLooks` (Shaders::TagLooks); false (and `error`) when the .nif can't be read
-	// (the groups drawn over others, `overlayTags` (Shaders::OverlayTags), left out)
+	// (the groups drawn over others, `overlayTags` (Shaders::OverlayTags), left out). `plainNif`: its model.noao.nif, the
+	// denoiser's guide when options.denoise is on.
 	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error,
-		const std::map<int32_t, UgcModel::eLook>& tagLooks = {}, const std::set<int32_t>& overlayTags = {});
+		const std::map<int32_t, UgcModel::eLook>& tagLooks = {}, const std::set<int32_t>& overlayTags = {}, const std::string* plainNif = nullptr);
 
 	/**
 	 * A model's stats.json after its icon was drawn again in `iconMs`: ms.icon becomes that and ms.total changes by the

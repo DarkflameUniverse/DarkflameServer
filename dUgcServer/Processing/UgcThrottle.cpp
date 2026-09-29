@@ -22,6 +22,7 @@ namespace {
 	std::atomic<int64_t> g_LastSleep{ 0 };
 
 	thread_local double t_LastCpu = -1.0;
+	thread_local double t_Charged = 0.0; // CPU seconds libraries used for this thread on threads of their own
 
 	int64_t UnixMs() {
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -53,6 +54,17 @@ namespace UgcThrottle {
 		if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) return static_cast<double>(ts.tv_sec) + ts.tv_nsec / 1e9;
 #endif
 		return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	}
+
+	void Charge(double seconds) {
+		if (!(seconds > 0.0)) return;
+		t_Charged += seconds;
+		// The next Checkpoint sees it as used since the last
+		if (t_LastCpu >= 0.0) t_LastCpu -= seconds;
+	}
+
+	double JobCpuSeconds() {
+		return ThreadCpuSeconds() + t_Charged;
 	}
 
 	void Begin() {

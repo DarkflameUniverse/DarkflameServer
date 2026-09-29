@@ -2111,6 +2111,51 @@ TEST(UgcProcessOptions, ParseApplyAndRecord) {
 	EXPECT_EQ(stats["settings"]["denoise"], made.denoise);
 }
 
+TEST(UgcRender, DenoisedIconsTraceTheOcclusionPerPixel) {
+	// A box standing on a floor, grey: denoised, the icon is drawn from the model before its bake with the occlusion
+	// traced per pixel, so the floor is darker by the box than away from it; with few rays it is about what many give
+	UgcModel::Model model;
+	AddBox(model.opaque, glm::vec3(-4.0f, -0.2f, -4.0f), glm::vec3(4.0f, 0.0f, 4.0f));
+	AddBox(model.opaque, glm::vec3(-0.5f, 0.0f, -0.5f), glm::vec3(0.5f, 1.0f, 0.5f));
+	UgcRender::IconOptions options;
+	options.size = 48;
+	options.supersample = 2;
+	options.pitchDegrees = 60.0f;
+	options.shadows = 0.0f;
+	options.ao.distance = 2.0f;
+	const auto normal = UgcRender::RenderIcon(model, options);
+	options.denoise = UgcRender::eDenoise::OIDN;
+	options.denoiseSamples = 2;
+	const auto few = UgcRender::RenderIcon(model, options, nullptr, &model);
+	if (!UgcRender::Available(UgcRender::eDenoise::OIDN)) {
+		EXPECT_EQ(few.rgba, normal.rgba); // without it the option does nothing
+		GTEST_SKIP() << "built without Open Image Denoise (DLU_OIDN)";
+	}
+	options.denoiseSamples = 64;
+	const auto many = UgcRender::RenderIcon(model, options, nullptr, &model);
+	ASSERT_EQ(few.rgba.size(), normal.rgba.size());
+	double difference = 0.0, count = 0.0;
+	for (size_t i = 0; i < few.rgba.size(); i += 4) {
+		ASSERT_EQ(few.rgba[i + 3], normal.rgba[i + 3]) << i; // the same outline
+		if (few.rgba[i + 3] != 255) continue;
+		difference += std::abs(static_cast<double>(few.rgba[i]) - many.rgba[i]);
+		count++;
+	}
+	EXPECT_LT(difference / count, 4.0);
+	// Darker than the icon without occlusion only by the box (near the middle), not out at the floor's edges
+	size_t darkened = 0, darkenedFar = 0;
+	for (int y = 0; y < 48; y++) {
+		for (int x = 0; x < 48; x++) {
+			const size_t i = (static_cast<size_t>(y) * 48 + x) * 4;
+			if (few.rgba[i + 3] != 255 || few.rgba[i] + 30 > normal.rgba[i]) continue;
+			darkened++;
+			if (std::abs(x - 24) > 14 || std::abs(y - 24) > 14) darkenedFar++;
+		}
+	}
+	EXPECT_GT(darkened, 20u);
+	EXPECT_EQ(darkenedFar, 0u);
+}
+
 TEST(UgcRays, NamesAndFallback) {
 	for (const auto backend : { UgcRays::eBackend::BUILTIN, UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
 		EXPECT_EQ(UgcRays::Parse(UgcRays::Name(backend)), backend);

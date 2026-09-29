@@ -242,7 +242,9 @@ void UgcProcessor::Worker() {
 					const auto nif = m_Storage.ReadNif(Kind::MODEL, job.id, "model.nif");
 					auto options = settings.icon;
 					UgcIconParams::Apply(options, job.iconValues);
-					outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, outcome.files, outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags());
+					const auto plain = options.denoise != UgcRender::eDenoise::OFF ? m_Storage.ReadNif(Kind::MODEL, job.id, "model.noao.nif") : std::nullopt;
+					outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, outcome.files, outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags(),
+						plain ? &*plain : nullptr);
 					if (!nif) outcome.error = "the model has no stored .nif yet";
 				}
 				if (outcome.ok && outcome.files.contains("assembly.nif")) {
@@ -279,7 +281,7 @@ void UgcProcessor::Worker() {
 			continue;
 		}
 		const auto start = std::chrono::steady_clock::now();
-		const double cpuStart = UgcThrottle::ThreadCpuSeconds();
+		const double cpuStart = UgcThrottle::JobCpuSeconds();
 		Done done{ job.kind, job.id, job.attempts };
 		done.memoryEstimate = job.memory;
 		done.iconOnly = job.iconOnly;
@@ -290,7 +292,9 @@ void UgcProcessor::Worker() {
 				auto options = settings.icon;
 				UgcIconParams::Apply(options, job.iconValues);
 				const auto iconStart = std::chrono::steady_clock::now();
-				done.outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, done.outcome.files, done.outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags());
+				const auto plain = options.denoise != UgcRender::eDenoise::OFF ? m_Storage.ReadNif(Kind::MODEL, job.id, "model.noao.nif") : std::nullopt;
+				done.outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, done.outcome.files, done.outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags(),
+					plain ? &*plain : nullptr);
 				if (!nif) done.outcome.error = "no stored .nif";
 				// The make's time keeps its icon's: the stats get the new icon's time, the row the difference (Collect)
 				const auto stats = done.outcome.ok ? m_Storage.ReadNif(Kind::MODEL, job.id, "stats.json") : std::nullopt;
@@ -336,7 +340,7 @@ void UgcProcessor::Worker() {
 		}
 		done.outcome.files.clear();
 		done.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
-		done.cpuMilliseconds = std::max(0.0, UgcThrottle::ThreadCpuSeconds() - cpuStart) * 1000.0;
+		done.cpuMilliseconds = std::max(0.0, UgcThrottle::JobCpuSeconds() - cpuStart) * 1000.0;
 		try {
 			UgcThrottle::Checkpoint();
 		} catch (const UgcThrottle::Cancelled&) {

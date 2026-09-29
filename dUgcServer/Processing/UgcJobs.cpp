@@ -36,8 +36,9 @@ namespace UgcJobs {
 
 	namespace {
 		// The icon files of a model, and false when nothing was drawn
-		bool AddIcon(UgcStorage::Files& files, const UgcModel::Model& model, const UgcRender::IconOptions& options, const std::vector<float>* ao = nullptr) {
-			const auto icon = UgcRender::RenderIcon(model, options, ao);
+		bool AddIcon(UgcStorage::Files& files, const UgcModel::Model& model, const UgcRender::IconOptions& options, const std::vector<float>* ao = nullptr,
+			const UgcModel::Model* plain = nullptr) {
+			const auto icon = UgcRender::RenderIcon(model, options, ao, plain);
 			bool drawn = false;
 			for (size_t i = 3; i < icon.rgba.size(); i += 4) drawn = drawn || icon.rgba[i] != 0;
 			files["icon.png"] = UgcFormats::EncodePng(icon);
@@ -150,10 +151,16 @@ namespace UgcJobs {
 	}
 
 	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error,
-		const std::map<int32_t, UgcModel::eLook>& tagLooks, const std::set<int32_t>& overlayTags) {
+		const std::map<int32_t, UgcModel::eLook>& tagLooks, const std::set<int32_t>& overlayTags, const std::string* plainNif) {
 		const auto readBack = NifFile::Parse(nif, 0, error);
 		if (!readBack) return false;
-		AddIcon(files, UgcModel::FromNif(*readBack, tagLooks, overlayTags), options);
+		// The denoiser's guide: the model before its occlusion was baked in (model.noao.nif), when there is one
+		std::optional<UgcModel::Model> plain;
+		if (options.denoise != UgcRender::eDenoise::OFF && plainNif) {
+			std::string plainError;
+			if (const auto plainRead = NifFile::Parse(*plainNif, 0, plainError)) plain = UgcModel::FromNif(*plainRead, tagLooks, overlayTags);
+		}
+		AddIcon(files, UgcModel::FromNif(*readBack, tagLooks, overlayTags), options, nullptr, plain ? &*plain : nullptr);
 		return true;
 	}
 
@@ -342,10 +349,12 @@ namespace UgcJobs {
 		// Stored compressed only (the client downloads .gz; the dashboard's copies are inflated when asked for). The
 		// LXFML is served from the database.
 		AddDownload(outcome.files, "model.nif", nif);
+		std::string plainNif;
 		{
 			const std::vector<LookPieces> opaque{ DivideByLook(preview.opaque, separate) };
 			const std::vector<TransparentPieces> transparent{ transparentPieces[0] };
-			outcome.files["model.noao.nif.gz"] = ZCompression::Gzip(UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent)));
+			plainNif = UgcFormats::WriteLodNif("SceneNode_Model", groups(1, opaque, transparent));
+			outcome.files["model.noao.nif.gz"] = ZCompression::Gzip(plainNif);
 		}
 
 		// The icon is drawn from the .nif just made (its most detailed LOD, read back like any client .nif), so it
@@ -354,7 +363,7 @@ namespace UgcJobs {
 		auto iconOptions = settings.icon;
 		UgcIconParams::Apply(iconOptions, iconValues);
 		std::string nifError;
-		if (!IconFromNif(nif, iconOptions, outcome.files, nifError, settings.shaders.TagLooks(), settings.shaders.OverlayTags())) {
+		if (!IconFromNif(nif, iconOptions, outcome.files, nifError, settings.shaders.TagLooks(), settings.shaders.OverlayTags(), &plainNif)) {
 			outcome.error = "the .nif made can't be read back for the icon: " + nifError;
 			return outcome;
 		}

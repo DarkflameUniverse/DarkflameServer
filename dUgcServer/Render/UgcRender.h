@@ -73,6 +73,8 @@ namespace UgcRender {
 		float glowEmissive{ 1.0f };  // how far glowing shapes go from lit to their plain color (the glow_emissive setting)
 		UgcGlitter::Params glitter;  // the glitter's flecks (glitter_size, glitter_density), drawn where they are at the start
 		eDenoise denoise{};          // the finished icon denoised (denoise); off when the build can't
+		int denoiseSamples{ 4 };     // denoised: occlusion rays per pixel (of the supersampled image) traced on the model before its bake
+		float bakedAo{ 1.0f };       // denoised: the bake's strength (ao_strength; 0 when bake_ao is off), for the traced occlusion
 	};
 
 	// The model drawn from the icon's camera, framed to fit, on a transparent background. `opaqueAo`: the opaque mesh's
@@ -82,7 +84,13 @@ namespace UgcRender {
 	// sky-and-ground reflection tinted by the color and a highlight, sharp for polished metal and broad for brushed
 	// steel (Polished Metal, Brushed Steel: an environment map tinted by the vertex color). GLITTER vertices (opaque or
 	// transparent) get the glitter texture's white flecks over their color before the light (LEGO-AnimUV), still.
-	Image RenderIcon(const UgcModel::Model& model, const IconOptions& options, const std::vector<float>* opaqueAo = nullptr);
+	// With options.denoise (and a build that has it) the image is denoised by Open Image Denoise, guided by the colors
+	// before the light and the normals (which have no noise). A denoiser only removes noise that differs from pixel to
+	// pixel, not the baked occlusion's (which is per vertex), so with `plain` (the same model with the colors it had
+	// before its occlusion was baked in) that is drawn instead, with its occlusion traced per pixel: options.
+	// denoiseSamples rays (options.ao's distance, strength and ray backend) from each pixel of the supersampled image,
+	// noisy, then denoised. Without `plain` it is only denoised.
+	Image RenderIcon(const UgcModel::Model& model, const IconOptions& options, const std::vector<float>* opaqueAo = nullptr, const UgcModel::Model* plain = nullptr);
 
 	/**
 	 * The fast hidden-face test (hsr_method=fast, what the UGC server did before it traced LU Toolbox's paths): the

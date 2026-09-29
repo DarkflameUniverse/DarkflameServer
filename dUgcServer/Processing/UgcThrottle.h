@@ -36,6 +36,12 @@ namespace UgcThrottle {
 	// This thread's CPU time in seconds
 	double ThreadCpuSeconds();
 
+	// CPU time a library spent for this thread on threads of its own (Open Image Denoise's), counted as this thread's:
+	// by the budget at the next Checkpoint and in JobCpuSeconds
+	void Charge(double seconds);
+	// This thread's CPU time with what was charged to it, in seconds (a job's CPU time is the difference)
+	double JobCpuSeconds();
+
 	// Parses "18-23" (from 18:00 to 23:59; may wrap past midnight, "22-6") into from and to; false when it isn't that
 	bool ParseHours(const std::string& text, int& from, int& to);
 	// Whether `hour` (0-23) is inside the range; never when from or to is negative
