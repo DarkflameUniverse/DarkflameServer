@@ -544,7 +544,10 @@ first, then as a build through its combination.
 Migrations `dlu/mysql/90_ugc_process_time.sql`, `91_ugc_process_diagnostics.sql` and `dlu/sqlite/73`, `74`:
 `ugc.process_ms` (wall time of the last make), `ugc.process_cpu_ms` (the worker thread's CPU time) and
 `ugc.process_memory_kb` (the estimated memory it needed), and the same on `ugc_modular_build`; the dashboard's Took,
-CPU and RAM (est.) columns.
+CPU and RAM (est.) columns. A make's time includes its icon's. When only a model's icon is drawn again (the icon
+editor's Draw all icons of this type again), its `stats.json` gets the new icon's time (`ms.icon`, and `ms.total`
+changed by the difference) and `process_ms` and `process_cpu_ms` change by the same difference (the icon is drawn on
+one thread, so its time is taken as its CPU time).
 
 Migrations `dlu/mysql/92_ugc_triangles_before.sql` and `dlu/sqlite/75_ugc_triangles_before.sql`:
 `ugc.triangle_count_before`, LOD 0's triangles before hidden faces were removed (the dashboard's Saved column).

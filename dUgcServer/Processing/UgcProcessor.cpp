@@ -289,8 +289,13 @@ void UgcProcessor::Worker() {
 				const auto nif = m_Storage.ReadNif(Kind::MODEL, job.id, "model.nif");
 				auto options = settings.icon;
 				UgcIconParams::Apply(options, job.iconValues);
+				const auto iconStart = std::chrono::steady_clock::now();
 				done.outcome.ok = nif && UgcJobs::IconFromNif(*nif, options, done.outcome.files, done.outcome.error, settings.shaders.TagLooks(), settings.shaders.OverlayTags());
 				if (!nif) done.outcome.error = "no stored .nif";
+				// The make's time keeps its icon's: the stats get the new icon's time, the row the difference (Collect)
+				const auto stats = done.outcome.ok ? m_Storage.ReadNif(Kind::MODEL, job.id, "stats.json") : std::nullopt;
+				const double iconMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - iconStart).count();
+				if (const auto updated = stats ? UgcJobs::WithIconTime(*stats, iconMs, done.iconChangeMs) : std::nullopt) done.outcome.files["stats.json"] = *updated;
 			} else {
 				done.outcome = job.kind == Kind::MODEL
 					? UgcJobs::ProcessModel(job.blob, m_Library, settings, static_cast<uint64_t>(job.id), job.iconValues)
@@ -442,6 +447,15 @@ void UgcProcessor::Poll() {
 	m_Wake.notify_all();
 }
 
+void UgcProcessor::RecordIconTime(LWOOBJID id, double changeMs) {
+	for (const auto& entry : Database::Get()->GetUgcEntries({ id })) {
+		if (entry.kind != IUgcLookup::eUgcKind::MODEL || entry.processMs == 0) continue;
+		// The icon is drawn on one thread, so its time is its CPU time too
+		const auto change = [changeMs](uint32_t value) { return static_cast<uint32_t>(std::max(0.0, static_cast<double>(value) + changeMs)); };
+		Database::Get()->SetUgcModelProcessStats(id, { change(entry.processMs), change(entry.processCpuMs), entry.processMemoryKb });
+	}
+}
+
 void UgcProcessor::Record(const Done& done) {
 	// What the make cost (wall time, the worker's CPU time, the estimated memory), for the dashboard
 	const IUgc::ProcessStats cost{ static_cast<uint32_t>(done.milliseconds), static_cast<uint32_t>(done.cpuMilliseconds), static_cast<uint32_t>(done.memoryEstimate / 1024) };
@@ -495,6 +509,7 @@ void UgcProcessor::Collect() {
 				Record(done);
 				continue;
 			}
+			if (done.outcome.ok && done.iconChangeMs != 0.0) RecordIconTime(done.id, done.iconChangeMs);
 			m_Log.push_back({ Kind::MODEL, done.id, done.outcome.ok, done.milliseconds, done.outcome.ok ? "icon drawn again" : done.outcome.error, UnixNow() });
 			while (m_Log.size() > LOG_LENGTH) m_Log.pop_front();
 			continue;

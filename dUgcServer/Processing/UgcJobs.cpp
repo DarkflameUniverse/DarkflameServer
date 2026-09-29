@@ -1,5 +1,6 @@
 #include "UgcJobs.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <sstream>
@@ -154,6 +155,18 @@ namespace UgcJobs {
 		if (!readBack) return false;
 		AddIcon(files, UgcModel::FromNif(*readBack, tagLooks, overlayTags), options);
 		return true;
+	}
+
+	std::optional<std::string> WithIconTime(const std::string& stats, double iconMs, double& change) {
+		auto parsed = nlohmann::json::parse(stats, nullptr, false);
+		if (!parsed.is_object()) return std::nullopt;
+		auto& ms = parsed["ms"];
+		if (!ms.is_object()) ms = nlohmann::json::object();
+		const double before = ms.value("icon", 0.0);
+		change = iconMs - before;
+		ms["icon"] = std::lround(iconMs);
+		ms["total"] = std::max(0L, std::lround(ms.value("total", 0.0) + change));
+		return parsed.dump();
 	}
 
 	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed, const UgcIconParams::Values& iconValues) {

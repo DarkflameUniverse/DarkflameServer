@@ -92,6 +92,13 @@ namespace UgcJobs {
 	bool IconFromNif(const std::string& nif, const UgcRender::IconOptions& options, UgcStorage::Files& files, std::string& error,
 		const std::map<int32_t, UgcModel::eLook>& tagLooks = {}, const std::set<int32_t>& overlayTags = {});
 
+	/**
+	 * A model's stats.json after its icon was drawn again in `iconMs`: ms.icon becomes that and ms.total changes by the
+	 * difference, so the make's time keeps its icon's. `change` is the difference (the icon's time before is 0 when it
+	 * wasn't recorded). nullopt when the stats can't be read.
+	 */
+	std::optional<std::string> WithIconTime(const std::string& stats, double iconMs, double& change);
+
 	// The name of a group of shapes (its NiLODNode and shapes): S01_Opaque_Model, S01_Alpha_Model, S88_Metal_Model,
 	// S89_Brushed_Model, S46_Glow_Model, S21_Glitter_Model and S21_GlitterAlpha_Model (transparent glitter; the ids from
 	// the settings), at most 60 characters as LU Toolbox cuts them

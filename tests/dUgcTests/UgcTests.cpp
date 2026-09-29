@@ -1962,3 +1962,21 @@ TEST(UgcFormats, TransparentShapesHaveTheGamesAlphaMaterial) {
 	const auto opaqueAlphas = alphaOf(opaque);
 	EXPECT_EQ(std::find(opaqueAlphas.begin(), opaqueAlphas.end(), 0.9999f), opaqueAlphas.end());
 }
+
+// An icon drawn again keeps the make's time with its icon's: ms.icon is the new one's, ms.total changes by the difference
+TEST(UgcJobs, IconDrawnAgainChangesTheMakesTime) {
+	double change = 0.0;
+	const auto updated = UgcJobs::WithIconTime(R"({"bricks":3,"ms":{"build":100,"icon":40,"total":500}})", 70.4, change);
+	ASSERT_TRUE(updated);
+	const auto stats = nlohmann::json::parse(*updated);
+	EXPECT_EQ(stats["ms"]["icon"], 70);
+	EXPECT_EQ(stats["ms"]["total"], 530);
+	EXPECT_EQ(stats["ms"]["build"], 100);
+	EXPECT_EQ(stats["bricks"], 3);
+	EXPECT_NEAR(change, 30.4, 1e-9);
+	// Stats from before the icon was timed: all of the new icon's time is added
+	const auto old = UgcJobs::WithIconTime(R"({"ms":{"total":500}})", 20.0, change);
+	ASSERT_TRUE(old);
+	EXPECT_EQ(nlohmann::json::parse(*old)["ms"]["total"], 520);
+	EXPECT_FALSE(UgcJobs::WithIconTime("not json", 20.0, change));
+}

@@ -197,6 +197,7 @@ private:
 		double cpuMilliseconds{};  // the worker thread's CPU time for it
 		uint64_t memoryEstimate{}; // the bytes it was estimated to need (the memory budget's figure)
 		bool iconOnly{};
+		double iconChangeMs{};           // an icon drawn again: how much longer it took than the icon made before
 		std::vector<Checksum> checksums; // of the files written that the client downloads as sd0
 	};
 
@@ -217,6 +218,8 @@ private:
 	UgcIconParams::Values IconValues(const std::string& kind, const std::string& itemTarget);
 	void Collect();
 	void Record(const Done& done);
+	// Main thread: a model whose icon was drawn again took `changeMs` longer to make (its icon's share of the make)
+	void RecordIconTime(LWOOBJID id, double changeMs);
 	void Worker();
 	void SampleUsage();
 
