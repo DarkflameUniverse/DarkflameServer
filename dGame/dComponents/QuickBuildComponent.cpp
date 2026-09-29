@@ -448,7 +448,6 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	auto* characterComponent = user->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
-		characterComponent->TrackQuickBuildComplete();
 		EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::QUICKBUILDS_COMPLETED, m_Parent->GetLOT(), m_Parent->GetPosition(), 1, user);
 	} else {
 		LOG("Some user tried to finish the rebuild but they didn't have a character somehow.");
@@ -466,6 +465,8 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	GameMessages::PlayFXEffect fx(m_Parent->GetObjectID(), 507, u"create", "BrickFadeUpVisCompleteEffect");
 	fx.priority = 0.4f;
 	fx.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	// Live: RebuildNotifyState(Completed), the effect, then QuickBuildsCompleted, then EnableRebuild
+	characterComponent->TrackQuickBuildComplete();
 	GameMessages::EnableRebuild enableRebuild;
 	enableRebuild.target = m_Parent->GetObjectID();
 	enableRebuild.bEnable = false;

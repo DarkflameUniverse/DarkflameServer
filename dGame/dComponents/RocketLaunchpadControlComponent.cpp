@@ -74,8 +74,6 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 		character->SetTargetScene(m_TargetScene);
 	}
 
-	characterComponent->UpdatePlayerStatistic(RocketsUsed);
-
 	character->SaveXMLToDatabase();
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
