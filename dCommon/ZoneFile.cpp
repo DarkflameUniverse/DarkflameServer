@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <istream>
+#include <stdexcept>
+#include <string>
 
 #include "BinaryIO.h"
 #include "Game.h"
@@ -10,6 +12,10 @@
 
 void ZoneFile::ReadHeader(std::istream& file) {
 	BinaryIO::BinaryRead(file, fileFormatVersion);
+	// Before PrePreAlpha a scene is only its ID, with no file to load it from (LuzReader::ReadScenes)
+	if (fileFormatVersion < FileFormatVersion::PrePreAlpha) {
+		throw std::runtime_error("Zone file version " + std::to_string(static_cast<uint32_t>(fileFormatVersion)) + " is older than " + std::to_string(static_cast<uint32_t>(FileFormatVersion::PrePreAlpha)) + ": its scenes have no files");
+	}
 
 	if (fileFormatVersion >= FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
@@ -68,10 +74,8 @@ void ZoneFile::ReadScene(std::istream& file) {
 
 	BinaryIO::ReadString<uint8_t>(file, scene.filename, BinaryIO::ReadType::String);
 
-	if (fileFormatVersion >= FileFormatVersion::LatePreAlpha || fileFormatVersion < FileFormatVersion::PrePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.id);
-	}
 	if (fileFormatVersion >= FileFormatVersion::LatePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.id);
 		BinaryIO::BinaryRead(file, scene.sceneType);
 
 		BinaryIO::ReadString<uint8_t>(file, scene.name, BinaryIO::ReadType::String);

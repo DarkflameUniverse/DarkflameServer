@@ -138,6 +138,16 @@ TEST(ZoneFileTests, LateAlphaSceneCountIsAU32) {
 	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
 }
 
+// Before version 30 a scene is only an ID, with no file to load
+TEST(ZoneFileTests, VersionsBeforePrePreAlphaThrow) {
+	ZoneBytes w;
+	w.Put<uint32_t>(20).Put<uint32_t>(53).Put<uint8_t>(1).Put<uint32_t>(53).Put<uint8_t>(0).Text(".raw");
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	EXPECT_THROW(zone.Read(stream), std::runtime_error);
+	EXPECT_TRUE(zone.scenes.empty());
+}
+
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {
 	const auto zone = SampleZone();
 	for (const size_t length : { size_t{ 3 }, size_t{ 40 }, zone.size() / 2, zone.size() - 1 }) {
