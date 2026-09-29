@@ -911,25 +911,32 @@ character's owner sees only what is still in their mailbox. Deleting a character
 
 ### Chat filter
 
-The **Chat Filter** page (GM 5+, `chat_filter_manage`, under Moderation) adds words on top of the chat filter's files
-(`chatplus_en_us.txt` in the client's `res` folder lists the words normal chat may use, `blocklist.dcf` the words best
-friends' free chat may not). **Block** stops a word in every kind of chat, even where the files allow it; **Allow** lets
-normal chat use a word the files don't list. Words are compared the way the filter compares them: lower case, without
-`! ? ; . ,`. Every change is applied straight away in running worlds and in the chat server's web chat, without a
-restart, and servers that start later read the list.
+The **Chat Filter** page (GM 5+, `chat_filter_manage`, under Moderation) decides which words players below GM 2 may use
+in chat. The filter's files: `chatplus_en_us.txt` (client `res` folder) lists the words normal chat may use,
+`blocklist.dcf` (next to the servers, hashes only) the words best friends' free chat may not. Approved character names
+also count as allowed. Words are compared lower case, without `! ? ; . ,`. Changes apply at once in running worlds and in
+the chat server's web chat; servers that start later read them. Changes are audited and go to the `moderation` webhook
+event.
 
-Before blocking a word, **What would blocking it stop?** lists the recent chat players saw that contains it; **What
-did the filter stop with it?** lists recent stopped messages that contain it. Checking a word also says where it stands:
-in the allowed words file, in the blocked words file, and on the lists here. Changes are audited and go to the
-`moderation` webhook event.
+The page has three sections:
 
-**From the files** lists the allowed words of `chatplus_en_us.txt` (needs `client_location`), searchable, marked when a
-list here also has them. Click one to check it; block it with **Block** as any other word. `blocklist.dcf` keeps only
-hashes of its words, so only how many it has is shown; checking a word tells whether it is one of them. **Copy into the
-Allowed list** copies every word of the file into the Allowed list once (words already on a list are left alone), for
-servers that want to edit the whole list here; the file stays as it is, and a word removed from the Allowed list is
-still allowed by the file until it is blocked. API: `GET /api/chat_filter/files?search=&start=`,
-`GET /api/chat_filter/lookup?word=`, `POST /api/chat_filter/import`.
+- **Test a message**: type a message, pick normal or best friends' free chat, and see whether it would be sent and why,
+  word by word (in the file, allowed or blocked here, a character name, not allowed, in the blocked words file). Each
+  word has a Block, Allow or Remove button.
+- **Staff lists**: **Blocked** words are stopped in all chat, even where a file allows them; **Allowed** words are usable
+  in normal chat. Search, filter by list, 50 per page. Block, Allow (or move to the other list) and Remove each open a
+  confirmation that shows where the word stands now and, for Block and Allow, the recent chat it changes (players' chat
+  containing it that would have been stopped, or stopped messages containing it; the newest 1000 messages with the
+  text; needs `chat_view`).
+- **Word files**: how many words each file has, and the words of `chatplus_en_us.txt` (needs `client_location`),
+  searchable, 200 per page, coloured by whether a staff list also has them. Click one to test it. **Copy file words into
+  Allowed** copies every word of the file into the Allowed list once (words already on a list stay as they are); the file
+  is not changed, and a word removed from Allowed is still allowed by the file until it is blocked.
+
+**Re-apply in running worlds** loads the lists again in every world; changes already do this. API:
+`GET /api/chat_filter`, `GET /api/chat_filter/test?message=&chat=normal|free`, `GET /api/chat_filter/lookup?word=`,
+`GET /api/chat_filter/check?word=&allowed=`, `GET /api/chat_filter/files?search=&start=`, `POST /api/chat_filter/words`,
+`POST /api/chat_filter/words/delete`, `POST /api/chat_filter/import`, `POST /api/chat_filter/reload`.
 
 ### AI moderator helper
 

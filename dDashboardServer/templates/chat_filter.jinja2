@@ -2,67 +2,125 @@
 
 {% block title %}Chat Filter - DarkflameServer{% endblock %}
 
+{% block css %}
+<style>
+	.cf-words .badge { font-size: .85rem; font-weight: 500; }
+	.cf-words button.badge { cursor: pointer; }
+	.cf-explain dt { font-weight: 600; }
+	.cf-explain dd { margin-bottom: .25rem; }
+	#cfWordTable td:first-child { font-weight: 600; word-break: break-all; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div id="chatFilterPage">
+<div id="chatFilterPage" data-can-chat="{% if can.chat_view %}1{% endif %}">
 	<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
 		<div>
 			<h2 class="mb-1">Chat Filter</h2>
-			<p class="text-body-secondary mb-0">Words added here go on top of the filter's files. <strong>Blocked</strong> words are stopped in every kind of chat,
-				even when the files allow them. <strong>Allowed</strong> words can be used in normal (whitelisted) chat, like the words in <code>chatplus_en_us.txt</code>.
-				Running worlds pick up changes straight away. Before blocking a word, check which recent messages it would have stopped.</p>
+			<p class="text-body-secondary mb-0">Which words players may use in chat. Staff lists here override the word files. GM 2 and up skip the filter.</p>
 		</div>
-		<button type="button" class="btn btn-sm btn-outline-secondary" id="reloadWorlds">Apply in running worlds again</button>
+		<button type="button" class="btn btn-sm btn-outline-secondary" id="reloadWorlds" title="Changes apply at once; use this only if a world seems out of date">Re-apply in running worlds</button>
 	</div>
 
 	<div class="card mb-3">
+		<div class="card-header"><h5 class="mb-0">Test a message</h5></div>
 		<div class="card-body">
-			<form class="row g-2 align-items-end" id="wordForm">
-				<div class="col-md-5"><label class="form-label small mb-1" for="wordInput">Word</label>
-					<input class="form-control form-control-sm" id="wordInput" maxlength="64" required autocomplete="off" placeholder="One word, no spaces"></div>
-				<div class="col-md-7 d-flex flex-wrap gap-2">
-					<button type="button" class="btn btn-sm btn-outline-secondary" data-check="0">What would blocking it stop?</button>
-					<button type="button" class="btn btn-sm btn-outline-secondary" data-check="1">What did the filter stop with it?</button>
-					<button type="submit" class="btn btn-sm btn-danger" data-allowed="0">Block</button>
-					<button type="submit" class="btn btn-sm btn-success" data-allowed="1">Allow</button>
-				</div>
+			<form class="row g-2 align-items-end" id="testForm">
+				<div class="col-md-7"><label class="form-label small mb-1" for="testMessage">Message</label>
+					<input class="form-control" id="testMessage" maxlength="300" required autocomplete="off" placeholder="Type a message as a player would"></div>
+				<div class="col-md-3"><label class="form-label small mb-1" for="testChat">Chat</label>
+					<select class="form-select" id="testChat">
+						<option value="normal">Normal chat</option>
+						<option value="free">Best friends' free chat</option>
+					</select></div>
+				<div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Test</button></div>
 			</form>
-			<div class="small mt-2 d-none" id="lookupResult"></div>
-			<div class="mt-3 d-none" id="checkResult">
-				<h6 class="mb-1" id="checkTitle"></h6>
-				<p class="small text-body-secondary mb-2" id="checkHelp"></p>
-				<table class="table table-sm align-middle w-100 table-stack mb-0">
-					<thead><tr><th>Time</th><th>Where</th><th>From</th><th>Message</th><th></th></tr></thead>
-					<tbody id="checkRows"></tbody>
+			<div class="mt-3 d-none" id="testResult">
+				<div class="alert mb-2 py-2" id="testVerdict"></div>
+				<div class="cf-words d-flex flex-wrap gap-1 mb-2" id="testWords"></div>
+				<table class="table table-sm align-middle mb-0 table-stack">
+					<thead><tr><th>Word</th><th>Result</th><th>Why</th><th></th></tr></thead>
+					<tbody id="testRows"></tbody>
 				</table>
 			</div>
 		</div>
 	</div>
 
-	<div class="row g-3">
-		<div class="col-lg-6">
-			<div class="card h-100 panel-fill panel-cap">
-				<div class="card-header"><h5 class="mb-0">Blocked <span class="badge rounded-pill text-bg-danger align-middle" id="blockedCount"></span></h5></div>
-				<ul class="list-group list-group-flush" id="blockedList"></ul>
-			</div>
+	<div class="card mb-3">
+		<div class="card-header d-flex flex-wrap align-items-center gap-2">
+			<h5 class="mb-0 me-auto">Staff lists</h5>
+			<span class="badge rounded-pill text-bg-danger" id="blockedCount">0 blocked</span>
+			<span class="badge rounded-pill text-bg-success" id="allowedCount">0 allowed</span>
 		</div>
-		<div class="col-lg-6">
-			<div class="card h-100 panel-fill panel-cap">
-				<div class="card-header"><h5 class="mb-0">Allowed <span class="badge rounded-pill text-bg-success align-middle" id="allowedCount"></span></h5></div>
-				<ul class="list-group list-group-flush" id="allowedList"></ul>
+		<div class="card-body">
+			<dl class="small cf-explain mb-3 row">
+				<dt class="col-sm-2 text-danger">Blocked</dt><dd class="col-sm-10">Stopped in all chat, even if a word file allows it.</dd>
+				<dt class="col-sm-2 text-success">Allowed</dt><dd class="col-sm-10">Usable in normal chat, like the words in <code>chatplus_en_us.txt</code>.</dd>
+			</dl>
+			<form class="row g-2 align-items-end mb-3" id="addForm">
+				<div class="col-md-6"><label class="form-label small mb-1" for="addWord">Add a word</label>
+					<input class="form-control form-control-sm" id="addWord" maxlength="64" required autocomplete="off" placeholder="One word, no spaces"></div>
+				<div class="col-md-6 d-flex gap-2">
+					<button type="submit" class="btn btn-sm btn-danger" data-list="blocked">Block…</button>
+					<button type="submit" class="btn btn-sm btn-success" data-list="allowed">Allow…</button>
+				</div>
+			</form>
+			<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+				<div class="btn-group btn-group-sm" role="group" aria-label="Which list">
+					<input type="radio" class="btn-check" name="listFilter" id="listAll" value="" checked><label class="btn btn-outline-secondary" for="listAll">All</label>
+					<input type="radio" class="btn-check" name="listFilter" id="listBlocked" value="blocked"><label class="btn btn-outline-secondary" for="listBlocked">Blocked</label>
+					<input type="radio" class="btn-check" name="listFilter" id="listAllowed" value="allowed"><label class="btn btn-outline-secondary" for="listAllowed">Allowed</label>
+				</div>
+				<input type="search" class="form-control form-control-sm w-auto ms-auto" id="listSearch" placeholder="Search the lists" aria-label="Search the lists">
+			</div>
+			<table class="table table-sm table-hover align-middle w-100 table-stack mb-2" id="cfWordTable">
+				<thead><tr><th>Word</th><th>List</th><th>Added by</th><th>Added</th><th></th></tr></thead>
+				<tbody id="listRows"></tbody>
+			</table>
+			<div class="d-flex justify-content-between align-items-center small">
+				<span class="text-body-secondary" id="listRange"></span>
+				<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary" id="listPrev">Previous</button><button type="button" class="btn btn-outline-secondary" id="listNext">Next</button></div>
 			</div>
 		</div>
 	</div>
 
-	<div class="card mt-3">
+	<div class="card">
 		<div class="card-header d-flex flex-wrap align-items-center gap-2">
-			<h5 class="mb-0 me-auto">From the files <span class="badge rounded-pill text-bg-secondary align-middle" id="fileCount"></span></h5>
-			<input type="search" class="form-control form-control-sm w-auto" id="fileSearch" placeholder="Search the allowed words" aria-label="Search the files' words">
-			<button type="button" class="btn btn-sm btn-outline-primary" id="importFile">Copy into the Allowed list</button>
+			<h5 class="mb-0 me-auto">Word files</h5>
+			<button type="button" class="btn btn-sm btn-outline-primary" id="importFile">Copy file words into Allowed…</button>
 		</div>
 		<div class="card-body">
-			<p class="small text-body-secondary mb-2" id="fileHelp"></p>
-			<div class="d-flex flex-wrap gap-1" id="fileWords"></div>
-			<button type="button" class="btn btn-sm btn-link px-0 d-none" id="fileMore">Show more</button>
+			<ul class="small mb-3 ps-3" id="fileSummary"><li class="text-body-secondary">Loading…</li></ul>
+			<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+				<input type="search" class="form-control form-control-sm w-auto" id="fileSearch" placeholder="Search chatplus_en_us.txt" aria-label="Search the allowed words file">
+				<span class="small text-body-secondary">Click a word to test it.
+					<span class="badge text-bg-secondary">file only</span> <span class="badge text-bg-success">also allowed here</span> <span class="badge text-bg-danger">blocked here</span></span>
+			</div>
+			<div class="cf-words d-flex flex-wrap gap-1 mb-2" id="fileWords"></div>
+			<div class="d-flex justify-content-between align-items-center small">
+				<span class="text-body-secondary" id="fileRange"></span>
+				<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary" id="filePrev">Previous</button><button type="button" class="btn btn-outline-secondary" id="fileNext">Next</button></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="cfConfirm" tabindex="-1" aria-labelledby="cfConfirmTitle">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header"><h5 class="modal-title" id="cfConfirmTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+			<div class="modal-body">
+				<p class="mb-2" id="cfConfirmText"></p>
+				<p class="small mb-2" id="cfConfirmStanding"></p>
+				<div class="d-none" id="cfConfirmImpact">
+					<h6 class="small text-uppercase text-body-secondary mb-1" id="cfImpactTitle"></h6>
+					<table class="table table-sm align-middle mb-0 table-stack">
+						<thead><tr><th>Time</th><th>Where</th><th>From</th><th>Message</th></tr></thead>
+						<tbody id="cfImpactRows"></tbody>
+					</table>
+				</div>
+			</div>
+			<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn" id="cfConfirmGo"></button></div>
 		</div>
 	</div>
 </div>
