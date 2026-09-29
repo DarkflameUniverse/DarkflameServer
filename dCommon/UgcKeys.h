@@ -74,21 +74,27 @@ namespace UgcDebounce {
 
 /**
  * How a model is made, where there is more than one way to try (docs/UgcServer.md, "Processing options"): what traces
- * the rays (ray_backend) and whether icons are denoised (denoise). The UGC settings give the defaults; staff may pick
- * others for one make (the dashboard, /reprocessproperty), and each made model records what made it. Written as the
- * chosen names in this order, separated by spaces ("embree oidn"); a choice left out is the setting's.
+ * the rays (ray_backend), whether icons are denoised (denoise) and what makes the model's files (processor: the UGC
+ * server itself, or LU Toolbox in Blender). The UGC settings give the defaults; staff may pick others for one make (the
+ * dashboard, /reprocessproperty), and each made model records what made it. Written as the chosen names in this order,
+ * separated by spaces ("embree oidn", "toolbox-blender"); a choice left out is the setting's.
  */
 namespace UgcProcessOptions {
 	inline constexpr std::string_view RAYS[] = { "embree", "hiprt", "embree-gpu" };
 	inline constexpr std::string_view DENOISE[] = { "off", "oidn" };
+	// native: the UGC server's own pipeline; toolbox-blender: LU Toolbox itself in a headless Blender (UgcToolbox)
+	inline constexpr std::string_view PROCESSOR[] = { "native", "toolbox-blender" };
+	inline constexpr std::string_view NATIVE = PROCESSOR[0];
+	inline constexpr std::string_view TOOLBOX_BLENDER = PROCESSOR[1];
 	// Hidden-face methods earlier versions' options named (stored options still have them): read and ignored
 	inline constexpr std::string_view RETIRED[] = { "toolbox", "fast" };
 
 	struct Choice {
-		std::string rays;    // one of RAYS, or empty for the setting
-		std::string denoise; // one of DENOISE, or empty
+		std::string rays;      // one of RAYS, or empty for the setting
+		std::string denoise;   // one of DENOISE, or empty
+		std::string processor; // one of PROCESSOR, or empty
 
-		bool Empty() const { return rays.empty() && denoise.empty(); }
+		bool Empty() const { return rays.empty() && denoise.empty() && processor.empty(); }
 	};
 
 	template<size_t N>
@@ -110,17 +116,18 @@ namespace UgcProcessOptions {
 			if (word.empty() || word == "default" || word == "-" || Contains(RETIRED, word)) continue;
 			// builtin, the ray backend Embree replaced, is embree
 			if (word == "builtin") word = "embree";
-			std::string* slot = Contains(RAYS, word) ? &choice.rays : Contains(DENOISE, word) ? &choice.denoise : nullptr;
+			std::string* slot = Contains(RAYS, word) ? &choice.rays : Contains(DENOISE, word) ? &choice.denoise
+				: Contains(PROCESSOR, word) ? &choice.processor : nullptr;
 			if (!slot || !slot->empty()) return false;
 			*slot = std::string(word);
 		}
 		return true;
 	}
 
-	// The choices made, in order ("embree oidn"); empty when all are the settings'
+	// The choices made, in order ("embree oidn", "embree off toolbox-blender"); empty when all are the settings'
 	inline std::string ToString(const Choice& choice) {
 		std::string text;
-		for (const auto* part : { &choice.rays, &choice.denoise }) {
+		for (const auto* part : { &choice.rays, &choice.denoise, &choice.processor }) {
 			if (part->empty()) continue;
 			if (!text.empty()) text += ' ';
 			text += *part;
