@@ -628,7 +628,7 @@ character selection aren't affected.
 
 ### Traffic diagnostics
 
-**Diagnostics** (`health_view`, a tab next to Server Health and Instance Load) shows the load on every server: packets
+**Diagnostics** (`health_view`, under Logs & Health in the sidebar) shows the load on every server: packets
 and bytes in and out per second (all servers together, or one picked from the list or by clicking it), packets per
 second of each server, HTTP requests per second of the dashboard and the UGC server with their errors, HTTP latency
 (p50, p95 and p99 of the busiest web server), the busiest packet and game message types, and the HTTP routes with

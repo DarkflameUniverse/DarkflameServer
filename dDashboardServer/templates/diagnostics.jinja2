@@ -26,11 +26,12 @@
 {% endblock %}
 
 {% block content %}
-{% include "health_tabs.jinja2" %}
-
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
-	<p class="text-body-secondary mb-0 small">Packets and bytes every server sends and receives, and the HTTP requests of the dashboard and UGC server.
-		The last hour is kept at one second in memory; minutes are stored for <code>traffic_days</code>. Prometheus: <code>darkflame_net_*</code>, <code>darkflame_http_*</code>.</p>
+	<div>
+		<h2 class="mb-1">Diagnostics</h2>
+		<p class="text-body-secondary mb-0 small">Packets and bytes every server sends and receives, and the HTTP requests of the dashboard and UGC server.
+			The last hour is kept at one second in memory; minutes are stored for <code>traffic_days</code>. Prometheus: <code>darkflame_net_*</code>, <code>darkflame_http_*</code>.</p>
+	</div>
 	<div class="d-flex flex-wrap gap-2 align-items-center">
 		<select class="form-select form-select-sm w-auto" id="serverFilter" aria-label="Server"><option value="">All servers</option></select>
 		<div class="btn-group btn-group-sm text-nowrap" role="group" aria-label="Range">
