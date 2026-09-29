@@ -781,15 +781,20 @@ The UGC Server page (`/ugc`, Server Admin menu; `properties_view` to look, the n
 things again and to save icon values) reads the database: counts per state for models and for cars and rockets, and the
 items as a gallery of their icons or a list. Player models are listed one by one (owner, state, attempts, last attempt,
 bricks and triangles, file name, failure reason). Cars and rockets are listed as **assemblies**, one per combination of
-modules however many builds use it (the UGC server makes one icon per combination): its icon, build type (named after
-the type's assembly object in `ModularBuildComponent`), its modules with their names and icons from the CDClient, its
-state (made when any build of it is) and how many builds and owners use it.
+modules however many builds use it (the UGC server makes one icon per combination). The List view gives both the same
+columns and sorts (assemblies have no Saved): Icon, ID and Owner (an assembly's newest build and its creator, and how
+many other owners), State (an assembly is made when any build of it is), Made, Took, CPU and RAM (an assembly's: the
+latest make of any of its builds, and the cost of the make the UGC server did for it; builds that shared the made icon
+cost nothing), Size (bricks and triangles; an assembly's module count), File (the file name; an assembly's build type,
+named after the type's assembly object in `ModularBuildComponent`, and its modules) and, for assemblies, how many builds
+and owners use it.
 
 Both lists are paged on the server (`GET /api/ugc?kind=model|modular&q=&state=&type=&sort=&page=&size=`, with the
 total), with numbered pages, first and last, a page to jump to and a page size kept per user. The search box takes
 plain text (names, owners, ids) or field prefixes: `owner:`, `account:`, `property:`, `name:`, `lot:` or `module:` (a
 LOT, or for assemblies a module's name), `id:`, `state:` and `kind:` (a car or rocket type). Models sort by newest,
-oldest, most bricks, most triangles, owner or file name; assemblies by newest, oldest, most builds or name. The kind,
+oldest, most bricks, most triangles, recently made, slowest, most CPU, most RAM, most triangles saved, owner or file
+name; assemblies the same (most modules for most bricks, no triangles or saved) and by most builds. The kind,
 search, filters, sort, page and view are kept in the address, so Back and Forward and shared links work. The search
 is the UGC search's SQL (`UgcLookupSql`, the same on MySQL and SQLite, `IUgcLookup::ListUgc`); assemblies are grouped
 from the builds (`UgcAssemblies`). Buttons make one item, the failed ones or everything again (these only reset the

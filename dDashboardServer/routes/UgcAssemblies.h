@@ -33,15 +33,33 @@ namespace UgcAssemblies {
 		IUgc::eProcessState state{ IUgc::eProcessState::PENDING };
 		LWOOBJID iconBuild{};                // a build whose icon is made (the newest made one, else the newest)
 		std::string error;                   // a failed build's error, when none is made
+		// The newest build's creator
+		LWOOBJID characterId{};
+		std::string characterName;
+		uint32_t accountId{};
+		std::string accountName;
+		// The combination's last make: when (the latest any build of it was made or attempted) and what it cost (the
+		// build the UGC server made it for; the builds that shared it after it was made cost nothing)
+		int64_t processedAt{};
+		uint32_t processMs{};
+		uint32_t processCpuMs{};
+		uint32_t processMemoryKb{};
 	};
 
-	enum class eSort : uint8_t { NEWEST, OLDEST, REFERENCES, NAME };
+	// The models list's sorts (IUgcLookup::eSort) that assemblies have: MODULES is the Size column (the most modules first)
+	enum class eSort : uint8_t { NEWEST, OLDEST, REFERENCES, NAME, OWNER, MADE, SLOWEST, CPU, MEMORY, MODULES };
 
 	inline std::optional<eSort> ParseSort(std::string_view text) {
 		if (text.empty() || text == "newest") return eSort::NEWEST;
 		if (text == "oldest") return eSort::OLDEST;
 		if (text == "references" || text == "uses") return eSort::REFERENCES;
 		if (text == "name") return eSort::NAME;
+		if (text == "owner") return eSort::OWNER;
+		if (text == "made") return eSort::MADE;
+		if (text == "slowest") return eSort::SLOWEST;
+		if (text == "cpu") return eSort::CPU;
+		if (text == "memory") return eSort::MEMORY;
+		if (text == "modules" || text == "bricks") return eSort::MODULES;
 		return std::nullopt;
 	}
 
@@ -94,6 +112,22 @@ namespace UgcAssemblies {
 				}
 			}
 			if (!made) assembly.iconBuild = assembly.builds.front();
+			const auto& newest = *byId[assembly.builds.front()];
+			assembly.characterId = newest.characterId;
+			assembly.characterName = newest.characterName;
+			assembly.accountId = newest.accountId;
+			assembly.accountName = newest.accountName;
+			int64_t costAt = -1;
+			for (const auto id : assembly.builds) {
+				const auto& build = *byId[id];
+				assembly.processedAt = std::max(assembly.processedAt, build.processedAt);
+				if (build.processMs > 0 && build.processedAt > costAt) {
+					costAt = build.processedAt;
+					assembly.processMs = build.processMs;
+					assembly.processCpuMs = build.processCpuMs;
+					assembly.processMemoryKb = build.processMemoryKb;
+				}
+			}
 			assembly.state = made ? IUgc::eProcessState::DONE : waiting ? IUgc::eProcessState::PENDING : failed ? IUgc::eProcessState::FAILED : IUgc::eProcessState::EMPTY;
 			if (made) assembly.error.clear();
 			out.push_back(std::move(assembly));
@@ -141,14 +175,25 @@ namespace UgcAssemblies {
 
 	// reverse: the sort's other direction (the order is flipped as a whole)
 	inline void Sort(std::vector<Assembly>& list, eSort sort, const std::map<uint32_t, ModuleInfo>& modules, bool reverse = false) {
+		// The most first, ties the newest first
+		const auto most = [](auto x, auto y, const Assembly& a, const Assembly& b) { return x != y ? x > y : a.builds.front() > b.builds.front(); };
 		std::stable_sort(list.begin(), list.end(), [&](const Assembly& a, const Assembly& b) {
 			switch (sort) {
 			case eSort::OLDEST: return a.builds.back() < b.builds.back();
-			case eSort::REFERENCES: return a.builds.size() != b.builds.size() ? a.builds.size() > b.builds.size() : a.builds.front() > b.builds.front();
+			case eSort::REFERENCES: return most(a.builds.size(), b.builds.size(), a, b);
 			case eSort::NAME: {
 				const auto an = Lower(Name(a, modules)), bn = Lower(Name(b, modules));
 				return an != bn ? an < bn : a.key < b.key;
 			}
+			case eSort::OWNER: {
+				const auto an = Lower(a.characterName), bn = Lower(b.characterName);
+				return an != bn ? an < bn : a.builds.front() > b.builds.front();
+			}
+			case eSort::MADE: return most(a.processedAt, b.processedAt, a, b);
+			case eSort::SLOWEST: return most(a.processMs, b.processMs, a, b);
+			case eSort::CPU: return most(a.processCpuMs, b.processCpuMs, a, b);
+			case eSort::MEMORY: return most(a.processMemoryKb, b.processMemoryKb, a, b);
+			case eSort::MODULES: return most(a.lots.size(), b.lots.size(), a, b);
 			default: return a.builds.front() > b.builds.front();
 			}
 		});

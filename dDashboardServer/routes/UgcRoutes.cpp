@@ -283,8 +283,9 @@ namespace UgcRoutes {
 			"A page of player models (kind=model) or of car and rocket assemblies (kind=modular: one per combination of modules, however many builds use "
 			"it). Query: q= (\"state:\", \"kind:\"/\"type:\" (a build type, e.g. build6), \"owner:\", \"account:\", \"property:\", \"name:\", "
 			"\"lot:\"/\"module:\" (a LOT or a module's name), \"id:\", or plain text across names, owners and ids), state=, type=, sort=newest|oldest|owner|name|"
-			"bricks|triangles|slowest|made|cpu|memory|savings (models) or newest|oldest|references|name (assemblies), reverse=1 (the sort's other direction), page= (from 0), size= (1-200). {items, total, page, size, counts, "
-			"kinds, ugcPublicUrl, canManage}",
+			"bricks|triangles|slowest|made|cpu|memory|savings (models) or newest|oldest|owner|name|modules|made|slowest|cpu|memory|references (assemblies), "
+			"reverse=1 (the sort's other direction), page= (from 0), size= (1-200). {items, total, page, size, counts, totals, kinds, ugcPublicUrl, "
+			"canManage}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const bool modular = QueryValue(context.queryString, "kind") == "modular";
 				auto parsed = ParseListSearch(QueryValue(context.queryString, "q").substr(0, 100));
@@ -294,10 +295,10 @@ namespace UgcRoutes {
 				const auto size = std::clamp(GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "size")).value_or(PAGE_SIZE), 1u, 200u);
 				const auto sortText = QueryValue(context.queryString, "sort");
 				const bool reverse = QueryValue(context.queryString, "reverse") == "1";
-				nlohmann::json items = nlohmann::json::array();
-				uint64_t total = 0;
 				const auto kinds = IconKinds();
-				if (!modular) {
+
+				// A page of models, and how many match
+				const auto models = [&](uint32_t offset, uint32_t limit) {
 					IUgcLookup::UgcListQuery query;
 					query.search = parsed.search;
 					query.state = parsed.state;
@@ -305,12 +306,12 @@ namespace UgcRoutes {
 						{ "owner", IUgcLookup::eSort::OWNER }, { "name", IUgcLookup::eSort::NAME }, { "bricks", IUgcLookup::eSort::BRICKS }, { "triangles", IUgcLookup::eSort::TRIANGLES }, { "slowest", IUgcLookup::eSort::SLOWEST }, { "made", IUgcLookup::eSort::MADE }, { "cpu", IUgcLookup::eSort::CPU }, { "memory", IUgcLookup::eSort::MEMORY }, { "savings", IUgcLookup::eSort::SAVINGS } };
 					if (const auto it = SORTS.find(sortText); it != SORTS.end()) query.sort = it->second;
 					query.reverse = reverse;
-					query.offset = page * size;
-					query.limit = size;
-					const auto [entries, count] = Database::Get()->ListUgc(IUgcLookup::eUgcKind::MODEL, query);
-					total = count;
-					for (const auto& entry : entries) items.push_back(EntryJson(entry));
-				} else {
+					query.offset = offset;
+					query.limit = limit;
+					return Database::Get()->ListUgc(IUgcLookup::eUgcKind::MODEL, query);
+				};
+				// The assemblies matching the search and filters, sorted
+				const auto assemblies = [&]() {
 					UgcAssemblies::Filter filter;
 					filter.state = parsed.state;
 					if (!parsed.kind.empty()) {
@@ -336,12 +337,23 @@ namespace UgcRoutes {
 							if (parsed.search.number) filter.moduleLot = static_cast<uint32_t>(*parsed.search.number);
 						}
 					}
-					auto assemblies = *CachedAssemblies();
-					std::erase_if(assemblies, [&](const auto& a) { return !UgcAssemblies::Matches(a, filter, modules); });
-					UgcAssemblies::Sort(assemblies, UgcAssemblies::ParseSort(sortText).value_or(UgcAssemblies::eSort::NEWEST), modules, reverse);
-					total = assemblies.size();
-					for (size_t i = static_cast<size_t>(page) * size; i < assemblies.size() && i < static_cast<size_t>(page + 1) * size; i++) {
-						const auto& a = assemblies[i];
+					auto list = *CachedAssemblies();
+					std::erase_if(list, [&](const auto& a) { return !UgcAssemblies::Matches(a, filter, modules); });
+					UgcAssemblies::Sort(list, UgcAssemblies::ParseSort(sortText).value_or(UgcAssemblies::eSort::NEWEST), modules, reverse);
+					return list;
+				};
+
+				nlohmann::json items = nlohmann::json::array();
+				uint64_t total = 0;
+				if (!modular) {
+					const auto [entries, count] = models(page * size, size);
+					total = count;
+					for (const auto& entry : entries) items.push_back(EntryJson(entry));
+				} else {
+					const auto list = assemblies();
+					total = list.size();
+					for (size_t i = static_cast<size_t>(page) * size; i < list.size() && i < static_cast<size_t>(page + 1) * size; i++) {
+						const auto& a = list[i];
 						std::string label, kind;
 						for (const auto& k : kinds) {
 							if (k.contains("buildType") && k["buildType"] == a.buildType) {
@@ -354,7 +366,9 @@ namespace UgcRoutes {
 						items.push_back({ { "id", a.key }, { "key", a.key }, { "modules", ldf }, { "moduleList", ModulesJson(a.lots) }, { "buildType", a.buildType },
 							{ "kind", kind }, { "kindLabel", label }, { "state", IUgc::ProcessStateName(a.state) }, { "error", a.error }, { "uses", a.builds.size() },
 							{ "owners", a.owners.size() }, { "iconBuild", std::to_string(a.iconBuild) }, { "newestBuild", std::to_string(a.builds.front()) },
-							{ "storageId", std::to_string(UgcModularKey::StorageId(a.key)) } });
+							{ "storageId", std::to_string(UgcModularKey::StorageId(a.key)) }, { "characterId", std::to_string(a.characterId) },
+							{ "characterName", a.characterName }, { "accountId", a.accountId }, { "accountName", a.accountName }, { "processedAt", a.processedAt },
+							{ "processMs", a.processMs }, { "processCpuMs", a.processCpuMs }, { "processMemoryKb", a.processMemoryKb } });
 					}
 				}
 				JsonSuccess(reply, { { "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } },

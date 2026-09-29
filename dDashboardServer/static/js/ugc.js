@@ -12,7 +12,7 @@
 	var STATES = { pending: ['Waiting', 'secondary'], done: ['Made', 'success'], failed: ['Failed', 'danger'], empty: ['Empty', 'light'] };
 	var SORTS = {
 		model: [['newest', 'Newest'], ['oldest', 'Oldest'], ['bricks', 'Most bricks'], ['triangles', 'Most triangles'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['cpu', 'Most CPU'], ['memory', 'Most RAM'], ['savings', 'Most triangles saved'], ['owner', 'Owner'], ['name', 'File name']],
-		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['name', 'Name']]
+		modular: [['newest', 'Newest'], ['oldest', 'Oldest'], ['references', 'Most builds'], ['modules', 'Most modules'], ['made', 'Recently made'], ['slowest', 'Slowest to make'], ['cpu', 'Most CPU'], ['memory', 'Most RAM'], ['owner', 'Owner'], ['name', 'Name']]
 	};
 	// The list's state, as in the address: ?kind=&q=&state=&type=&sort=&page= (from 1)&view=, and the open item (&item=, &build=)
 	var list = { kind: 'model', q: '', state: '', type: '', sort: 'newest', page: 0, view: 'gallery' };
@@ -157,6 +157,15 @@
 		return { data: null, title: title, orderable: !!sort, sortKey: sort, desc: !!desc, orderSequence: desc ? ['desc', 'asc'] : ['asc', 'desc'],
 			render: function (x, type, i) { return render(i); } };
 	}
+	// When it was made and what that cost: the same columns for models and assemblies
+	function madeColumns() {
+		return [
+			column('Made', function (i) { return '<span class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</span>'; }, 'made', true),
+			column('Took', function (i) { return '<span class="small">' + (i.processMs ? esc(duration(i.processMs)) : '') + '</span>'; }, 'slowest', true),
+			column('CPU', function (i) { return '<span class="small">' + (i.processCpuMs ? esc(duration(i.processCpuMs)) : '') + '</span>'; }, 'cpu', true),
+			column('RAM (est.)', function (i) { return '<span class="small">' + (i.processMemoryKb ? '~' + esc(megabytes(i.processMemoryKb)) : '') + '</span>'; }, 'memory', true)
+		];
+	}
 	var COLUMNS = {
 		model: [
 			column('Icon', function (i) { return iconImg(i, 48); }),
@@ -164,11 +173,8 @@
 			column('Owner', owner, 'owner'),
 			column('State', function (i) {
 				return badge(i.state) + (i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i);
-			}),
-			column('Made', function (i) { return '<span class="small">' + (i.processedAt ? esc(fmt.unix(i.processedAt)) : '') + '</span>'; }, 'made', true),
-			column('Took', function (i) { return '<span class="small">' + (i.processMs ? esc(duration(i.processMs)) : '') + '</span>'; }, 'slowest', true),
-			column('CPU', function (i) { return '<span class="small">' + (i.processCpuMs ? esc(duration(i.processCpuMs)) : '') + '</span>'; }, 'cpu', true),
-			column('RAM (est.)', function (i) { return '<span class="small">' + (i.processMemoryKb ? '~' + esc(megabytes(i.processMemoryKb)) : '') + '</span>'; }, 'memory', true),
+			})
+		].concat(madeColumns(), [
 			column('Saved', function (i) {
 				if (!i.trianglesBefore) return '';
 				var removed = i.trianglesBefore - i.triangles, share = removed / i.trianglesBefore * 100;
@@ -178,17 +184,27 @@
 			column('Size', function (i) { return '<span class="small">' + (i.bricks ? esc(i.bricks) + ' bricks<br>' + esc(i.triangles.toLocaleString()) + ' triangles' : '') + '</span>'; }, 'bricks', true),
 			column('File', function (i) { return '<span class="small" title="' + esc(i.detail || '') + '">' + esc(fileName(i)) + '</span>' + errorText(i); }, 'name'),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.id) + '</div>'; })
-		],
+		]),
+		// The models' columns but Saved: an assembly's ID and owner are its newest build's, its size its modules, its
+		// file its type and modules, and it is where the builds that use it are (References)
 		modular: [
 			column('Icon', function (i) { return iconImg(i, 48); }),
-			column('Newest build', function (i) { return '<span class="small">' + esc(i.newestBuild) + '</span>'; }, 'newest', true),
-			column('Type', function (i) { return esc(i.kindLabel || i.buildType); }),
-			column('Modules', function (i) { return '<span class="small">' + esc(moduleNames(i)) + '</span><div><code>' + esc(i.key) + '</code></div>' + errorText(i); }, 'name'),
-			column('State', function (i) { return badge(i.state); }),
-			column('Builds', function (i) { return esc(i.uses); }, 'references', true),
-			column('Owners', function (i) { return esc(i.owners); }),
+			column('ID', function (i) { return '<span class="small" title="The newest build">' + esc(i.newestBuild) + '</span>'; }, 'newest', true),
+			column('Owner', function (i) {
+				return owner(i) + (i.owners > 1 ? '<div class="small text-body-secondary">and ' + esc(i.owners - 1) + ' other' + (i.owners === 2 ? '' : 's') + '</div>' : '');
+			}, 'owner'),
+			column('State', function (i) { return badge(i.state); })
+		].concat(madeColumns(), [
+			column('Size', function (i) { return '<span class="small">' + esc((i.moduleList || []).length) + ' modules</span>'; }, 'modules', true),
+			column('File', function (i) {
+				return '<span class="small">' + esc(i.kindLabel || i.buildType) + ': ' + esc(moduleNames(i)) + '</span><div><code class="small">' + esc(i.key) + '</code></div>' + errorText(i);
+			}, 'name'),
+			column('Where', function (i) {
+				return '<span class="small">Used by ' + esc(i.uses) + ' build' + (i.uses === 1 ? '' : 's') + ' of ' + esc(i.owners) + ' owner' + (i.owners === 1 ? '' : 's') +
+					'</span><div><button type="button" class="btn btn-link btn-sm p-0" data-preview="' + esc(i.id) + '">References</button></div>';
+			}, 'references', true),
 			column('', function (i) { return '<div class="text-end text-nowrap">' + actions(i, i.iconBuild) + '</div>'; })
-		]
+		])
 	};
 	// The sort a DataTables order asks for, as /api/ugc's sort= and reverse=
 	function orderQuery(columns, order) {

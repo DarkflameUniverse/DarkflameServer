@@ -283,6 +283,55 @@ TEST(UgcAssemblies, GroupsBuildsByTheirModules) {
 	EXPECT_FALSE(UgcAssemblies::ParseSort("nonsense"));
 }
 
+// An assembly has the models' columns: its newest build's owner, and its combination's make (when, and what the make
+// cost: the build it was made for, not the ones that shared it after)
+TEST(UgcAssemblies, HasTheModelsColumns) {
+	using State = IUgc::eProcessState;
+	const auto build = [](LWOOBJID id, const std::string& owner, int64_t at, uint32_t ms) {
+		IUgcLookup::UgcEntry e;
+		e.kind = IUgcLookup::eUgcKind::MODULAR;
+		e.id = id;
+		e.characterId = id * 10;
+		e.characterName = owner;
+		e.accountId = static_cast<uint32_t>(id);
+		e.accountName = owner + "Account";
+		e.detail = id < 20 ? "1:4713+1:4714+1:4715" : "1:8129+1:8130";
+		e.state = State::DONE;
+		e.processedAt = at;
+		e.processMs = ms;
+		e.processCpuMs = ms / 2;
+		e.processMemoryKb = ms * 10;
+		return e;
+	};
+	const std::map<uint32_t, UgcAssemblies::ModuleInfo> modules = {
+		{ 4713, { 3, "Nose" } }, { 4714, { 3, "Cockpit" } }, { 4715, { 3, "Engine" } }, { 8129, { 6, "Chassis" } }, { 8130, { 6, "Wheels" } },
+	};
+	auto list = UgcAssemblies::Group({ build(10, "Zed", 100, 900), build(11, "Amy", 300, 0), build(20, "Bob", 200, 50) }, modules);
+	const auto rocket = std::find_if(list.begin(), list.end(), [](const auto& a) { return a.key == "4713-4714-4715"; });
+	ASSERT_NE(rocket, list.end());
+	EXPECT_EQ(rocket->characterName, "Amy"); // the newest build's
+	EXPECT_EQ(rocket->characterId, 110);
+	EXPECT_EQ(rocket->accountName, "AmyAccount");
+	EXPECT_EQ(rocket->processedAt, 300);     // the latest
+	EXPECT_EQ(rocket->processMs, 900u);      // build 11 shared the made icon and cost nothing
+	EXPECT_EQ(rocket->processCpuMs, 450u);
+	EXPECT_EQ(rocket->processMemoryKb, 9000u);
+
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::OWNER, modules);
+	EXPECT_EQ(list.front().characterName, "Amy");
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::MADE, modules);
+	EXPECT_EQ(list.front().processedAt, 300);
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::SLOWEST, modules);
+	EXPECT_EQ(list.front().processMs, 900u);
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::SLOWEST, modules, true);
+	EXPECT_EQ(list.front().processMs, 50u);
+	UgcAssemblies::Sort(list, UgcAssemblies::eSort::MODULES, modules);
+	EXPECT_EQ(list.front().lots.size(), 3u);
+	EXPECT_EQ(UgcAssemblies::ParseSort("cpu"), UgcAssemblies::eSort::CPU);
+	EXPECT_EQ(UgcAssemblies::ParseSort("memory"), UgcAssemblies::eSort::MEMORY);
+	EXPECT_EQ(UgcAssemblies::ParseSort("bricks"), UgcAssemblies::eSort::MODULES);
+}
+
 TEST_F(UgcLookupSqlTests, FindsByIds) {
 	EXPECT_EQ(Find("1000", false), (std::set<int64_t>{ 1000 }));        // the blueprint id
 	EXPECT_EQ(Find("7000", false), (std::set<int64_t>{ 1000 }));        // the placed model's object id
