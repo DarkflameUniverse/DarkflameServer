@@ -43,6 +43,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 1428 | BUG: enemies, summons etc stay aggro'd onto other entities that have died | done | `363e02e9` fix: enemies and summons drop targets that have died |
 | 1563 | ENH: Admin defined "contraband" detection and removal | done | `b2403b09` feat: contraband list with flagging and optional removal |
 | 1565 | BUG: Removing Brick from Property | done | `6ce261c5` fix: brick by brick and model placement work the way the client expects |
+| 1568 | `delete this` in Item | done | `554f3e0d` fix(inventory): a removed item is freed by its inventory, not by itself (issue 1568) |
 | 1632 | BUG: Getting kicked/disconnected while in Brick-By-Brick building mode causes the currently selected model to be wiped | done | `6ce261c5` fix: brick by brick and model placement work the way the client expects<br>`9256b31b` feat(db): bbb_autosave table for the client's BBB autosave |
 | 1970 | Spider Queen stuck in ground slam animation | done | `8cb2d06d` fix(scripts): Spider Queen specials follow her stage and wait out the smash (issue 1970) |
 | 1971 | BUG: Avant Gardens Survival boundary incorrectly triggers | partial | `5d3c2e6f` fix: filter physics volumes like the client's collision groups |
