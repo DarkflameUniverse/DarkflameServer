@@ -402,10 +402,11 @@ see Hidden faces): 0 to 49% more triangles after. The baked colors are close: th
 most detailed level is within about 10% of the native one (the Toolbox's slightly darker).
 
 LU Toolbox's `.nif` (as niftools writes it) has the root `SceneNode_Collection.001` turned 90 degrees about X, the
-`NiLODNode`s turned back and each shape turned again (Blender's Z up); the UGC server's own models have no turns. Read
-as `NifFile` reads nodes (every node's transform applied), the model lies on its side, so its icon and the dashboard's
-views show it lying. LU Toolbox models shipped as game assets elsewhere have the same turns, so the client may ignore
-the root's own transform; not checked in the client yet.
+`NiLODNode`s turned back and each shape turned again (Blender's Z up); the UGC server's own models have no turns. The
+client never sees the root's turn: its render component puts the object's own position and rotation on the root node
+it loads, over the stored ones (its scale stays). `NifFile` does the same (a root's rotation and translation are left
+out), so the `NiLODNode`'s and the shapes' turns cancel and the model stands up in its icon and the dashboard's views.
+The game's own `.nif`s all have roots that aren't turned or moved, so they read as before.
 
 ### Metal and glow (on by default, not how live looked)
 
