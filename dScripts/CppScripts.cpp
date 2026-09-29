@@ -500,6 +500,7 @@ namespace {
 		{"scripts\\02_server\\Map\\FV\\L_ACT_CANDLE.lua", []() {return new FvCandle();}},
 		{"scripts\\02_server\\Map\\FV\\L_ENEMY_RONIN_SPAWNER.lua", []() {return new EnemyRoninSpawner();}},
 		{"scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_CAVALRY.lua", []() {return new FvMaelstromCavalry();}},
+		{"scripts\\ai\\FV\\L_ACT_HORSEMEN_1.lua", []() {return new FvMaelstromCavalry();}}, // the same as L_FV_MAELSTROM_CAVALRY
 		{"scripts\\ai\\FV\\L_ACT_NINJA_TURRET_1.lua", []() {return new ActNinjaTurret();}},
 		{"scripts\\02_server\\Map\\FV\\L_FV_HORSEMEN_TRIGGER.lua", []() {return new FvHorsemenTrigger();}},
 		{"scripts\\ai\\FV\\L_FV_FLYING_CREVICE_DRAGON.lua", []() {return new FvFlyingCreviceDragon();}},
