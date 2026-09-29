@@ -300,6 +300,7 @@ uint32_t SQLiteDatabase::PruneLog(eLog log, int64_t beforeTime) {
 	case eLog::CHEAT_DETECTION: return static_cast<uint32_t>(ExecuteUpdate("DELETE FROM player_cheat_detections WHERE violation_time < datetime(?, 'unixepoch');", beforeTime));
 	case eLog::CHAT: return static_cast<uint32_t>(ExecuteUpdate("DELETE FROM chat_log WHERE time > 0 AND time < ?;", beforeTime));
 	case eLog::LOGIN_ADDRESS: return static_cast<uint32_t>(ExecuteUpdate("DELETE FROM account_login_addresses WHERE last_seen < ?;", beforeTime));
+	case eLog::CLIENT_SYSINFO: return static_cast<uint32_t>(ExecuteUpdate("DELETE FROM client_sysinfo WHERE last_seen < ?;", beforeTime));
 	}
 	return 0;
 }

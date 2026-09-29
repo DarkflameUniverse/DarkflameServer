@@ -29,6 +29,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"ChatFlags.cpp"
+	"ClientSysInfo.cpp"
 	"RelatedData.cpp"
 	"ActivityLog.cpp"
 	"Behaviors.cpp"

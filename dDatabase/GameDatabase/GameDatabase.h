@@ -41,6 +41,7 @@
 #include "IServerHealth.h"
 #include "IChatLog.h"
 #include "IChatFlags.h"
+#include "IClientSysInfo.h"
 #include "IRelatedData.h"
 #include "IServerOperations.h"
 #include "IPlayerPositions.h"
@@ -70,7 +71,7 @@ class GameDatabase :
 	public IPropertyContents, public IProperty, public IPetNames, public ICharXml,
 	public IMigrationHistory, public IUgc, public IFriends, public ICharInfo,
 	public IAccounts, public IActivityLog, public IAccountsRewardCodes, public IIgnoreList,
-	public IBehaviors, public IUgcModularBuild, public IAuditLog, public IDashboardStats, public IAccountEmails, public IDashboardMaintenance, public IEconomyLedger, public IDashboardAdmin, public IServerConfig, public IScheduledTasks, public ICharacterSnapshots, public IAccountNotes, public IServerHealth, public IRelatedData, public IChatLog, public IChatFlags, public IAccountStrikes, public ISlashCommands, public IModeration, public IServerOperations, public IPlayerPositions, public IAiSuggestions, public ILiveOps, public IFeaturedProperties, public IMessageCaptures, public IContraband, public IPropertyRent, public IPropertyReputation, public IBbbAutosave, public IServerTraffic, public IApiKeys, public IUgcLookup, public IPermissionGrants, public IGuilds {
+	public IBehaviors, public IUgcModularBuild, public IAuditLog, public IDashboardStats, public IAccountEmails, public IDashboardMaintenance, public IEconomyLedger, public IDashboardAdmin, public IServerConfig, public IScheduledTasks, public ICharacterSnapshots, public IAccountNotes, public IServerHealth, public IRelatedData, public IChatLog, public IChatFlags, public IClientSysInfo, public IAccountStrikes, public ISlashCommands, public IModeration, public IServerOperations, public IPlayerPositions, public IAiSuggestions, public ILiveOps, public IFeaturedProperties, public IMessageCaptures, public IContraband, public IPropertyRent, public IPropertyReputation, public IBbbAutosave, public IServerTraffic, public IApiKeys, public IUgcLookup, public IPermissionGrants, public IGuilds {
 public:
 	virtual ~GameDatabase() = default;
 	// TODO: These should be made private.

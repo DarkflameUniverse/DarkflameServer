@@ -201,7 +201,7 @@ void MySQLDatabase::DeleteAccount(const uint32_t accountId) {
 		ExecuteDelete("DELETE FROM character_snapshots WHERE character_id = ?;", characterId);
 	}
 	// Rows about the account itself. Audit log, chat log and reports stay as the record of what happened.
-	for (const auto* table : { "account_tokens", "account_recovery_codes", "account_notes", "account_strikes", "account_login_addresses",
+	for (const auto* table : { "account_tokens", "account_recovery_codes", "account_notes", "account_strikes", "account_login_addresses", "client_sysinfo",
 		"dashboard_preferences", "accounts_rewardcodes", "player_cheat_detections" }) {
 		ExecuteDelete(std::string("DELETE FROM ") + table + " WHERE account_id = ?;", accountId);
 	}

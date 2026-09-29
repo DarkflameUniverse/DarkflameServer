@@ -381,6 +381,9 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertChatFlagEvent(const ChatFlagEvent& event) override {}
 	std::vector<ChatFlagEvent> GetChatFlagEvents(uint64_t flagId) override { return {}; }
 	std::vector<std::pair<uint64_t, uint64_t>> GetFlaggedMessages(const std::vector<uint64_t>& messageIds) override { return {}; }
+	void RecordClientSysInfo(const SysInfoRow& info) override {}
+	std::vector<SysInfoRow> GetClientSysInfo(uint32_t accountId, uint32_t limit) override { return {}; }
+	std::vector<SysInfoRow> GetLatestClientSysInfo(uint32_t limit) override { return {}; }
 	void InsertModerationDecision(const std::string& kind, int64_t subjectId, const std::string& subject, bool approved, const std::string& reason, int64_t time) override {}
 	nlohmann::json GetModerationDecisions(const std::string& kind, int64_t subjectId, uint32_t limit) override { return nlohmann::json::array(); }
 	Totp GetTotp(uint32_t accountId) override { return {}; }

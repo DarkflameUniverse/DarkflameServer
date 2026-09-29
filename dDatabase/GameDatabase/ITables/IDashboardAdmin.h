@@ -100,7 +100,7 @@ public:
 	virtual uint32_t CompactEconomy(uint32_t cutoffDay, uint32_t mapCutoffDay) = 0;
 	virtual uint32_t PruneTransfers(int64_t beforeTime) = 0;
 
-	enum class eLog : uint8_t { ACTIVITY, COMMAND, AUDIT, CHEAT_DETECTION, CHAT, LOGIN_ADDRESS };
+	enum class eLog : uint8_t { ACTIVITY, COMMAND, AUDIT, CHEAT_DETECTION, CHAT, LOGIN_ADDRESS, CLIENT_SYSINFO };
 	// Delete log rows older than a unix time; rows without a time (0) are kept. Returns rows deleted.
 	virtual uint32_t PruneLog(eLog log, int64_t beforeTime) = 0;
 

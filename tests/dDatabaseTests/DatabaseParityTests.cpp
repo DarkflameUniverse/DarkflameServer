@@ -898,7 +898,7 @@ TEST_F(ParitySeeded, LogsAndAudit) {
 	Both("PruneLog", [](GameDatabase& db) {
 		json out = json::array();
 		for (const auto log : { IDashboardAdmin::eLog::ACTIVITY, IDashboardAdmin::eLog::COMMAND, IDashboardAdmin::eLog::AUDIT,
-			IDashboardAdmin::eLog::CHEAT_DETECTION, IDashboardAdmin::eLog::CHAT, IDashboardAdmin::eLog::LOGIN_ADDRESS }) {
+			IDashboardAdmin::eLog::CHEAT_DETECTION, IDashboardAdmin::eLog::CHAT, IDashboardAdmin::eLog::LOGIN_ADDRESS, IDashboardAdmin::eLog::CLIENT_SYSINFO }) {
 			out.push_back(db.PruneLog(log, 1000)); // nothing is that old
 		}
 		return out;
@@ -1446,6 +1446,46 @@ TEST_F(ParitySeeded, Moderation) {
 	Both("GetLinkedAccounts", [](GameDatabase& db) { return json{ db.GetLinkedAccounts(1), db.GetLinkedAccounts(2), db.GetLinkedAccounts(3) }; });
 	Both("PruneLog login addresses", [](GameDatabase& db) { return db.PruneLog(IDashboardAdmin::eLog::LOGIN_ADDRESS, 1700000350); });
 	Both("CountLoginAddresses after prune", [](GameDatabase& db) { return json{ db.CountLoginAddresses(1), db.CountLoginAddresses(2) }; });
+	Both("RecordClientSysInfo", [](GameDatabase& db) {
+		IClientSysInfo::SysInfoRow s;
+		s.accountId = 1;
+		s.firstSeen = s.lastSeen = 1700000000;
+		s.ip = "10.0.0.1";
+		s.clientOs = 1;
+		s.memoryStats = "1 p,2 vbytes.3 n-use.4 TKb-pmem.";
+		s.memoryTotalKb = 4;
+		s.videoCard = "Card (HAL-hw vp)";
+		s.numberOfProcessors = 8;
+		s.processorType = 586;
+		s.processorLevel = 6;
+		s.processorRevision = 0x9e0a;
+		s.osVersionInfoSize = 276;
+		s.majorVersion = 6;
+		s.minorVersion = 2;
+		s.buildNumber = 9200;
+		s.platformId = 2;
+		db.RecordClientSysInfo(s);
+		s.lastSeen = 1700000100;
+		s.memoryStats = "9 p,2 vbytes.3 n-use.4 TKb-pmem.";
+		db.RecordClientSysInfo(s); // same client: the row is kept
+		s.lastSeen = 1700000200;
+		s.buildNumber = 2600;
+		db.RecordClientSysInfo(s); // changed: a new row
+		s.accountId = 2;
+		db.RecordClientSysInfo(s);
+	});
+	Both("GetClientSysInfo", [](GameDatabase& db) {
+		json out = json::array();
+		for (const auto& rows : { db.GetClientSysInfo(1, 10), db.GetLatestClientSysInfo(10) }) {
+			for (const auto& r : rows) {
+				out.push_back({ r.accountId, r.firstSeen, r.lastSeen, r.logins, r.ip, r.clientOs, r.memoryStats, r.memoryTotalKb, r.videoCard,
+					r.numberOfProcessors, r.processorType, r.processorLevel, r.processorRevision, r.osVersionInfoSize, r.majorVersion,
+					r.minorVersion, r.buildNumber, r.platformId });
+			}
+		}
+		return out;
+	});
+	Both("PruneLog client sysinfo", [](GameDatabase& db) { return db.PruneLog(IDashboardAdmin::eLog::CLIENT_SYSINFO, 1700000150); });
 	Both("InsertModerationDecision", [](GameDatabase& db) {
 		db.InsertModerationDecision("name", CHAR_ALICE2, "AliceRenamed", false, "Not allowed", 1700000000);
 		db.InsertModerationDecision("name", CHAR_ALICE2, "AliceOther", true, "", 1700000100);

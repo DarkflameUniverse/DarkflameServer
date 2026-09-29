@@ -1,13 +1,14 @@
 /**
  * The chat history and chat flag tables on SQLite, with no other database needed: a fresh SQLite file gets every
- * migration (MigrationRunner::RunMigrations, as the servers run them), then the IChatLog and IChatFlags methods are
- * checked against what was written. DatabaseParityTests compares the same methods with MySQL when one is set up.
+ * migration (MigrationRunner::RunMigrations, as the servers run them), then the IChatLog, IChatFlags and IClientSysInfo
+ * methods are checked against what was written. DatabaseParityTests compares the same methods with MySQL when one is set up.
  */
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <map>
 #include <unistd.h>
 
 #include "Database.h"
@@ -306,4 +307,85 @@ TEST_F(ChatHistorySqlite, PruningOldChatKeepsFlags) {
 	EXPECT_EQ(g_Db->PruneLog(IDashboardAdmin::eLog::CHAT, 1035), 4u);
 	EXPECT_EQ(g_Db->CountChatMessages(all), before - 4);
 	EXPECT_EQ(g_Db->CountChatFlags({ .includePrivate = true, .includeWhispers = true }), flags);
+}
+
+// The client system info table (IClientSysInfo) shares this SQLite file: its rows don't touch the chat tables
+namespace {
+	IClientSysInfo::SysInfoRow SysInfo(uint32_t account, int64_t time) {
+		IClientSysInfo::SysInfoRow s;
+		s.accountId = account;
+		s.firstSeen = s.lastSeen = time;
+		s.ip = "10.0.0.1";
+		s.clientOs = 1;
+		s.memoryStats = "  12345 p,  67890 vbytes.40 n-use.16717048 TKb-pmem.";
+		s.memoryTotalKb = 16717048;
+		s.videoCard = "NVIDIA GeForce GTX 1080 (HAL-hw vp)";
+		s.numberOfProcessors = 16;
+		s.processorType = 586;
+		s.processorLevel = 6;
+		s.processorRevision = 0x9e0a;
+		s.osVersionInfoSize = 276;
+		s.majorVersion = 6;
+		s.minorVersion = 2;
+		s.buildNumber = 9200;
+		s.platformId = 2;
+		return s;
+	}
+}
+
+TEST(ClientSysInfoSqlite, SameClientKeepsOneRow) {
+	auto s = SysInfo(900, 5000);
+	g_Db->RecordClientSysInfo(s);
+	s.lastSeen = 5100;
+	s.memoryStats = "  99999 p,  67890 vbytes.55 n-use.16717048 TKb-pmem."; // memory in use changes every login
+	g_Db->RecordClientSysInfo(s);
+	auto rows = g_Db->GetClientSysInfo(900, 10);
+	ASSERT_EQ(rows.size(), 1u);
+	EXPECT_EQ(rows[0].firstSeen, 5000);
+	EXPECT_EQ(rows[0].lastSeen, 5100);
+	EXPECT_EQ(rows[0].logins, 2u);
+	EXPECT_EQ(rows[0].memoryStats, s.memoryStats); // the newest login's text, as sent
+	EXPECT_EQ(rows[0].videoCard, s.videoCard);
+	EXPECT_EQ(rows[0].processorRevision, 0x9e0a);
+	EXPECT_EQ(rows[0].memoryTotalKb, 16717048u);
+
+	// Something else changes: a new row, newest first; going back to the old one starts another
+	s.firstSeen = s.lastSeen = 5200;
+	s.ip = "10.0.0.2";
+	g_Db->RecordClientSysInfo(s);
+	s.firstSeen = s.lastSeen = 5300;
+	s.ip = "10.0.0.1";
+	g_Db->RecordClientSysInfo(s);
+	rows = g_Db->GetClientSysInfo(900, 10);
+	ASSERT_EQ(rows.size(), 3u);
+	EXPECT_EQ(rows[0].ip, "10.0.0.1");
+	EXPECT_EQ(rows[0].firstSeen, 5300);
+	EXPECT_EQ(rows[1].ip, "10.0.0.2");
+	EXPECT_EQ(g_Db->GetClientSysInfo(900, 1).size(), 1u);
+}
+
+TEST(ClientSysInfoSqlite, LatestIsEachAccountsNewestRow) {
+	auto a = SysInfo(901, 6000);
+	g_Db->RecordClientSysInfo(a);
+	a.lastSeen = 6100;
+	a.buildNumber = 2600;
+	g_Db->RecordClientSysInfo(a);
+	g_Db->RecordClientSysInfo(SysInfo(902, 6050));
+	std::map<uint32_t, uint32_t> builds;
+	for (const auto& row : g_Db->GetLatestClientSysInfo(1000)) {
+		EXPECT_FALSE(builds.contains(row.accountId)) << row.accountId;
+		builds[row.accountId] = row.buildNumber;
+	}
+	EXPECT_EQ(builds[901], 2600u);
+	EXPECT_EQ(builds[902], 9200u);
+}
+
+TEST(ClientSysInfoSqlite, PruningDropsRowsNotSeenSince) {
+	g_Db->RecordClientSysInfo(SysInfo(903, 100));
+	auto kept = SysInfo(904, 100);
+	kept.lastSeen = 9000;
+	g_Db->RecordClientSysInfo(kept);
+	EXPECT_GE(g_Db->PruneLog(IDashboardAdmin::eLog::CLIENT_SYSINFO, 200), 1u);
+	EXPECT_TRUE(g_Db->GetClientSysInfo(903, 10).empty());
+	EXPECT_EQ(g_Db->GetClientSysInfo(904, 10).size(), 1u);
 }
