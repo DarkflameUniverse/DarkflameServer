@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cstring>
 
 #include "master/ServerTraffic.h"
 
@@ -53,4 +54,66 @@ TEST(ServerTrafficTest, ServerTrafficRoundTrips) {
 	ASSERT_TRUE(skip.ReadHeader(partial));
 	ServerTraffic broken;
 	EXPECT_FALSE(broken.Deserialize(partial));
+}
+
+namespace {
+	ServerTraffic Sample(bool split) {
+		ServerTraffic sent;
+		sent.serverType = ServiceType::AUTH;
+		Second a{ .time = 1700000000, .packetsIn = 4, .packetsOut = 3, .bytesIn = 400, .bytesOut = 300 };
+		a.peers[0] = { 3, 2, 300, 200 };
+		a.peers[1] = { 1, 1, 100, 100 };
+		a.httpFromServers = 2;
+		a.httpFromServersBytesOut = 64;
+		a.httpOutRequests = 1;
+		a.httpOutBytesIn = 9;
+		sent.report.seconds = { a, Second{ .time = 1700000001 } };
+		sent.report.gauges = { { "workers_busy", 1.0 } };
+		sent.report.peerSplit = split;
+		return sent;
+	}
+
+	bool ReadBack(RakNet::BitStream& stream, size_t bytes, ServerTraffic& got) {
+		RakNet::BitStream in(stream.GetData(), bytes, true);
+		LUBitStream header;
+		return header.ReadHeader(in) && got.Deserialize(in);
+	}
+}
+
+TEST(ServerTrafficTest, PeerSplitRoundTrips) {
+	RakNet::BitStream stream;
+	Sample(true).WritePacket(stream);
+	ServerTraffic got;
+	ASSERT_TRUE(ReadBack(stream, stream.GetNumberOfBytesUsed(), got));
+	EXPECT_TRUE(got.report.peerSplit);
+	ASSERT_EQ(got.report.seconds.size(), 2u);
+	EXPECT_EQ(got.report.seconds[0].peers[0], (PeerCounts{ 3, 2, 300, 200 }));
+	EXPECT_EQ(got.report.seconds[0].peers[1], (PeerCounts{ 1, 1, 100, 100 }));
+	EXPECT_TRUE(got.report.seconds[0].peers[2].Empty());
+	EXPECT_EQ(got.report.seconds[0].httpFromServers, 2u);
+	EXPECT_EQ(got.report.seconds[0].httpFromServersBytesOut, 64u);
+	EXPECT_EQ(got.report.seconds[0].httpOutRequests, 1u);
+	EXPECT_EQ(got.report.seconds[0].httpOutBytesIn, 9u);
+	EXPECT_TRUE(got.report.seconds[1].peers[0].Empty());
+	EXPECT_EQ(got.report.gauges.size(), 1u);
+
+	// A cut-off split is refused
+	ServerTraffic broken;
+	EXPECT_FALSE(ReadBack(stream, stream.GetNumberOfBytesUsed() - 2, broken));
+}
+
+TEST(ServerTrafficTest, ReportsWithoutTheSplitStillRead) {
+	// An older server's report is the same bytes without the end: it reads, with no split
+	RakNet::BitStream old, now;
+	Sample(false).WritePacket(old);
+	Sample(true).WritePacket(now);
+	ASSERT_LT(old.GetNumberOfBytesUsed(), now.GetNumberOfBytesUsed());
+	EXPECT_EQ(0, std::memcmp(old.GetData(), now.GetData(), old.GetNumberOfBytesUsed()));
+
+	ServerTraffic got;
+	ASSERT_TRUE(ReadBack(old, old.GetNumberOfBytesUsed(), got));
+	EXPECT_FALSE(got.report.peerSplit);
+	EXPECT_EQ(got.report.seconds[0].packetsIn, 4u);
+	EXPECT_TRUE(got.report.seconds[0].peers[0].Empty());
+	EXPECT_EQ(got.report.gauges.size(), 1u);
 }

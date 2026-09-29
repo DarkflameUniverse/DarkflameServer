@@ -16,6 +16,11 @@
  * SERVER_TRAFFIC (any server -> master -> dashboard): what a server sent and received over the last few seconds, one
  * entry per second, plus the busiest message types, its HTTP routes (dashboard, UGC), RakNet's connection statistics
  * and a few gauges. Sent every REPORT_SECONDS; master sends its own straight to the dashboard.
+ *
+ * Newer servers append optional sections at the end, each after a marker byte, so readers that don't know them stop
+ * before them and reports without them still read: PEER_SPLIT_MARKER, each second's packets by peer (clients, master,
+ * other servers) and its HTTP requests from and to other servers (peerSplit); CONNECTIONS_MARKER, the busiest remote
+ * ends with the rest summed (hasConnections).
  */
 struct ServerTraffic : public LUBitStream {
 	ServerTraffic() : LUBitStream(ServiceType::MASTER, MessageType::Master::SERVER_TRAFFIC) {}
@@ -26,6 +31,10 @@ struct ServerTraffic : public LUBitStream {
 	static constexpr uint16_t MAX_ROUTES = 128;
 	static constexpr uint16_t MAX_GAUGES = 32;
 	static constexpr uint16_t MAX_TEXT = 200;
+	static constexpr uint8_t PEER_SPLIT_MARKER = 1;
+	static constexpr uint8_t HTTP_SPLIT_BIT = 0x80; // in a second's mask: the HTTP split follows the peers
+	static constexpr uint8_t CONNECTIONS_MARKER = 2;
+	static constexpr uint8_t MAX_CONNECTIONS = 64;
 
 	ServiceType serverType{};
 	uint32_t zoneId{};
@@ -125,6 +134,117 @@ struct ServerTraffic : public LUBitStream {
 			WriteText(stream, report.gauges[i].first);
 			stream.Write(report.gauges[i].second);
 		}
+
+		if (report.peerSplit) WritePeerSplit(stream, report.seconds.size() - seconds);
+		if (report.hasConnections) WriteConnections(stream);
+	}
+
+	static uint32_t Clamp(uint64_t value) { return static_cast<uint32_t>(std::min<uint64_t>(value, UINT32_MAX)); }
+
+	// Per second (from `first`, the same ones as above): a bit per peer class with traffic, then its counts
+	void WritePeerSplit(RakNet::BitStream& stream, size_t first) const {
+		stream.Write(PEER_SPLIT_MARKER);
+		for (size_t i = first; i < report.seconds.size(); i++) {
+			const auto& second = report.seconds[i];
+			const auto& peers = second.peers;
+			uint8_t mask = 0;
+			for (size_t p = 0; p < peers.size(); p++) if (!peers[p].Empty()) mask |= static_cast<uint8_t>(1u << p);
+			const bool http = second.httpFromServers || second.httpOutRequests;
+			if (http) mask |= HTTP_SPLIT_BIT;
+			stream.Write(mask);
+			for (size_t p = 0; p < peers.size(); p++) {
+				if (!(mask & (1u << p))) continue;
+				stream.Write(Clamp(peers[p].packetsIn));
+				stream.Write(Clamp(peers[p].packetsOut));
+				stream.Write(Clamp(peers[p].bytesIn));
+				stream.Write(Clamp(peers[p].bytesOut));
+			}
+			if (http) {
+				stream.Write(Clamp(second.httpFromServers));
+				stream.Write(Clamp(second.httpFromServersBytesOut));
+				stream.Write(Clamp(second.httpOutRequests));
+				stream.Write(Clamp(second.httpOutBytesIn));
+			}
+		}
+	}
+
+	bool ReadPeerSplit(RakNet::BitStream& stream) {
+		for (auto& s : report.seconds) {
+			uint8_t mask{};
+			if (!stream.Read(mask)) return false;
+			for (size_t p = 0; p < s.peers.size(); p++) {
+				if (!(mask & (1u << p))) continue;
+				uint32_t pin{}, pout{}, bin{}, bout{};
+				if (!stream.Read(pin) || !stream.Read(pout) || !stream.Read(bin) || !stream.Read(bout)) return false;
+				s.peers[p] = { pin, pout, bin, bout };
+			}
+			if (mask & HTTP_SPLIT_BIT) {
+				uint32_t from{}, fromBytes{}, out{}, outBytes{};
+				if (!stream.Read(from) || !stream.Read(fromBytes) || !stream.Read(out) || !stream.Read(outBytes)) return false;
+				s.httpFromServers = from;
+				s.httpFromServersBytesOut = fromBytes;
+				s.httpOutRequests = out;
+				s.httpOutBytesIn = outBytes;
+			}
+		}
+		report.peerSplit = true;
+		return true;
+	}
+
+	static void WriteConnection(RakNet::BitStream& stream, const TrafficStats::Connection& c) {
+		stream.Write(Clamp(c.packetsIn));
+		stream.Write(Clamp(c.packetsOut));
+		stream.Write(c.bytesIn);
+		stream.Write(c.bytesOut);
+		stream.Write(c.resends);
+	}
+
+	static bool ReadConnection(RakNet::BitStream& stream, TrafficStats::Connection& c) {
+		uint32_t pin{}, pout{};
+		if (!stream.Read(pin) || !stream.Read(pout) || !stream.Read(c.bytesIn) || !stream.Read(c.bytesOut) || !stream.Read(c.resends)) return false;
+		c.packetsIn = pin;
+		c.packetsOut = pout;
+		return true;
+	}
+
+	void WriteConnections(RakNet::BitStream& stream) const {
+		stream.Write(CONNECTIONS_MARKER);
+		const auto count = std::min<size_t>(report.connections.size(), MAX_CONNECTIONS);
+		stream.Write(static_cast<uint8_t>(count));
+		for (size_t i = 0; i < count; i++) {
+			const auto& c = report.connections[i];
+			WriteText(stream, c.address);
+			stream.Write(c.port);
+			stream.Write(static_cast<uint8_t>(static_cast<uint8_t>(c.peer) | (c.http ? 0x80 : 0)));
+			WriteConnection(stream, c);
+			stream.Write(c.pingMs);
+			stream.Write(c.accountId);
+			stream.Write(c.characterId);
+			WriteText(stream, c.account);
+			WriteText(stream, c.character);
+		}
+		// The rest summed (those over MAX_CONNECTIONS too)
+		auto others = report.otherConnections;
+		uint32_t otherCount = report.otherConnectionCount;
+		for (size_t i = count; i < report.connections.size(); i++, otherCount++) others.Merge(report.connections[i]);
+		stream.Write(otherCount);
+		WriteConnection(stream, others);
+	}
+
+	bool ReadConnections(RakNet::BitStream& stream) {
+		uint8_t count{};
+		if (!stream.Read(count) || count > MAX_CONNECTIONS) return false;
+		report.connections.resize(count);
+		for (auto& c : report.connections) {
+			uint8_t flags{};
+			if (!ReadText(stream, c.address) || !stream.Read(c.port) || !stream.Read(flags) || !ReadConnection(stream, c) || !stream.Read(c.pingMs) ||
+				!stream.Read(c.accountId) || !stream.Read(c.characterId) || !ReadText(stream, c.account) || !ReadText(stream, c.character)) return false;
+			c.peer = static_cast<TrafficStats::Peer>(std::min<uint8_t>(flags & 0x7F, TrafficStats::PEER_CLASSES - 1));
+			c.http = (flags & 0x80) != 0;
+		}
+		if (!stream.Read(report.otherConnectionCount) || !ReadConnection(stream, report.otherConnections)) return false;
+		report.hasConnections = true;
+		return true;
 	}
 
 	bool Deserialize(RakNet::BitStream& stream) override {
@@ -164,6 +284,20 @@ struct ServerTraffic : public LUBitStream {
 		report.gauges.resize(count);
 		for (auto& [name, value] : report.gauges) {
 			if (!ReadText(stream, name) || !stream.Read(value)) return false;
+		}
+
+		// Older servers stop here; newer ones add sections, each after its marker (a reader stops at one it doesn't know)
+		report.peerSplit = false;
+		report.hasConnections = false;
+		uint8_t marker{};
+		while (stream.GetNumberOfUnreadBits() >= 8 && stream.Read(marker)) {
+			if (marker == PEER_SPLIT_MARKER && !report.peerSplit) {
+				if (!ReadPeerSplit(stream)) return false;
+			} else if (marker == CONNECTIONS_MARKER && !report.hasConnections) {
+				if (!ReadConnections(stream)) return false;
+			} else {
+				break;
+			}
 		}
 		return true;
 	}
