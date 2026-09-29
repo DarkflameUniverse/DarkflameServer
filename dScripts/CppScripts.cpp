@@ -295,6 +295,7 @@
 #include "CauldronOfLife.h"
 #include "FountainOfImagination.h"
 #include "Sunflower.h"
+#include "Turret.h"
 #include "BootyDigServer.h"
 #include "PersonalFortress.h"
 #include "PropertyDevice.h"
@@ -661,6 +662,7 @@ namespace {
 
 		//Scripted Equipment
 		{"scripts\\EquipmentScripts\\Sunflower.lua", []() {return new Sunflower();}},
+		{"scripts\\EquipmentScripts\\TURRET.lua", []() {return new Turret();}},
 		{"scripts/EquipmentScripts/AnvilOfArmor.lua", []() {return new AnvilOfArmor();}},
 		{"scripts/EquipmentScripts/FountainOfImagination.lua", []() {return new FountainOfImagination();}},
 		{"scripts/EquipmentScripts/CauldronOfLife.lua", []() {return new CauldronOfLife();}},

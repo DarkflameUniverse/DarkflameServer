@@ -1,5 +1,6 @@
 set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS
 	"Sunflower.cpp"
+	"Turret.cpp"
 	"AnvilOfArmor.cpp"
 	"FountainOfImagination.cpp"
 	"CauldronOfLife.cpp"
