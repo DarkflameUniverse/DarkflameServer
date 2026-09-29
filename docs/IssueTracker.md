@@ -32,6 +32,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 957 | Username approved popup | partial | `57925d1e` feat(moderation): a name decision shows as a popup to the player, as live did (issue 957) (online players; offline players not told at next login) |
 | 960 | ENH: Make use of `minNumRequired` when deleting items | done | `02108055` feat(inventory): enforce DeletionRestrictions when deleting items |
 | 1021 | BUG: Crux Prime daily mission objectives for smashables don't always complete | partial | `b9d5ef99` fix: Skullkin drill credits the player who breaks it |
+| 1045 | TacArc not deserialized correctly | done | `0f85d19d` fix(combat): TacArc targets are read and written in the client's order (issue 1045) |
 | 1113 | ENH: Add data validation to user editable strings in .ini's | partial | `040d7ec0` fix: ignore whitespace around config keys and values<br>`9ee1431a` feat(master): say which folder setting is wrong at startup (issue 1113) |
 | 1127 | BUG: Enemies at Cavalry Hill take 1 damage from too far away on spawn | done | `5d3c2e6f` fix: filter physics volumes like the client's collision groups |
 | 1129 | BUG: Vendor selling window does not replicate live behavior | done | `c759bd1a` fix(vendor): keep 27 buyback items and drop the oldest |
