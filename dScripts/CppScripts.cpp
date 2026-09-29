@@ -323,6 +323,7 @@
 // WBL scripts
 #include "WblGenericZone.h"
 #include "WblStarflies.h"
+#include "WblFrogBridge.h"
 
 // Alpha Scripts
 #include "TriggerGas.h"
@@ -690,6 +691,7 @@ namespace {
 		//WBL
 		{"scripts\\zone\\LUPs\\WBL_generic_zone.lua", []() {return new WblGenericZone();}},
 		{"scripts\\zone\\LUPs\\Portabello Intro\\WBL_Starflies.lua", []() {return new WblStarflies();}},
+		{"scripts\\zone\\LUPs\\Portabello Intro\\WBL_Frog_Bridge.lua", []() {return new WblFrogBridge();}},
 		{"scripts\\zone\\LUPs\\Moonbase Intro\\MOONBASE-INTRO_INTRO_CINEMATIC.lua", []() {return new WblGenericZone();}},
 
 		//Alpha
