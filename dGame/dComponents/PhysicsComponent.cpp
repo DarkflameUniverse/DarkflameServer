@@ -1,5 +1,8 @@
 #include "PhysicsComponent.h"
 
+#include <algorithm>
+#include <cctype>
+
 #include "eReplicaComponentType.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -64,6 +67,11 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	auto* info = physComp->GetByID(componentID);
 	if (info == nullptr || info->physicsAsset == "" || info->physicsAsset == "NO_PHYSICS") return nullptr;
 
+	// The file name alone, in lower case: some assets are named by another folder, or case, than the file has
+	const auto slash = info->physicsAsset.find_last_of("\\/");
+	auto assetFile = info->physicsAsset.substr(slash == std::string::npos ? 0 : slash + 1);
+	std::ranges::transform(assetFile, assetFile.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
 	dpEntity* toReturn;
 	if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 10.0f, 5.0f, 1.0f);
@@ -77,8 +85,13 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 10.0f, 25.0f, 1.0f);
 	} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 20.0f, 20.0f, 20.0f);
-	} else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
+	} else if (assetFile == "poi_trigger_wall.hkx") {
+		// test\POI_trigger_wall.hkx in the CDClient (e.g. "Clear threat list Trigger Wall"), env\ in the client's files:
+		// a box 1 wide, 12.98 tall from its base and 20.45 deep
+		toReturn = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.9755f, 20.45f);
+	} else if (assetFile == "trigger_rectangle_box.hkx") {
+		// "Trigger Rectangle Box": a box 8 wide, 8 tall from its base and 4 deep
+		toReturn = new dpEntity(m_Parent->GetObjectID(), 8.0f, 8.0f, 4.0f);
 	} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
 		m_Position += QuatUtils::Forward(m_Rotation) * 7.5f;
