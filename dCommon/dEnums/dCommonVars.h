@@ -54,32 +54,6 @@ constexpr float PI = 3.14159f;
 
 //============ STRUCTS ==============
 
-struct LWOSCENEID {
-public:
-	constexpr LWOSCENEID() noexcept { m_sceneID = -1; m_layerID = 0; }
-	constexpr LWOSCENEID(int32_t sceneID) noexcept { m_sceneID = sceneID; m_layerID = 0; }
-	constexpr LWOSCENEID(int32_t sceneID, uint32_t layerID) noexcept { m_sceneID = sceneID; m_layerID = layerID; }
-
-	constexpr LWOSCENEID& operator=(const LWOSCENEID& rhs) noexcept { m_sceneID = rhs.m_sceneID; m_layerID = rhs.m_layerID; return *this; }
-	constexpr LWOSCENEID& operator=(const int32_t rhs) noexcept { m_sceneID = rhs; m_layerID = 0; return *this; }
-
-	constexpr bool operator<(const LWOSCENEID& rhs) const noexcept { return (m_sceneID < rhs.m_sceneID || (m_sceneID == rhs.m_sceneID && m_layerID < rhs.m_layerID)); }
-	constexpr bool operator<(const int32_t rhs) const noexcept { return m_sceneID < rhs; }
-
-	constexpr bool operator==(const LWOSCENEID& rhs) const noexcept { return (m_sceneID == rhs.m_sceneID && m_layerID == rhs.m_layerID); }
-	constexpr bool operator==(const int32_t rhs) const noexcept { return m_sceneID == rhs; }
-
-	constexpr int32_t GetSceneID() const noexcept { return m_sceneID; }
-	constexpr uint32_t GetLayerID() const noexcept { return m_layerID; }
-
-	constexpr void SetSceneID(const int32_t sceneID) noexcept { m_sceneID = sceneID; }
-	constexpr void SetLayerID(const uint32_t layerID) noexcept { m_layerID = layerID; }
-
-private:
-	int32_t m_sceneID;
-	uint32_t m_layerID;
-};
-
 struct LWOZONEID {
 public:
 	constexpr const LWOMAPID& GetMapID() const noexcept { return m_MapID; }
@@ -99,7 +73,6 @@ private:
 	LWOCLONEID m_CloneID = LWOCLONEID_INVALID; //To differentiate between "your property" and "my property". Always 0 for non-prop worlds.
 };
 
-constexpr LWOSCENEID LWOSCENEID_INVALID = -1;
 
 struct FriendData {
 public:

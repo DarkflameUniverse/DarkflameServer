@@ -701,7 +701,7 @@ std::optional<std::string> ZoneTerrainLayersJson(uint32_t zoneId) {
 		const auto luz = ClientAssets::ReadResFile("maps/" + zone->luzPath);
 		std::string error;
 		if (const auto header = luz ? ZonePaths::ReadHeader(*luz, error) : std::nullopt) {
-			for (const auto& scene : header->scenes) if (scene.sceneType == 0) names.try_emplace(scene.id, scene.name);
+			for (const auto& scene : header->scenes) if (scene.sceneType == eSceneType::General) names.try_emplace(scene.id, scene.name);
 		}
 		std::map<uint8_t, uint64_t> cells;
 		nlohmann::json chunks = nlohmann::json::array();

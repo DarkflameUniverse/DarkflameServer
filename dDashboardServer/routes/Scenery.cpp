@@ -373,7 +373,7 @@ namespace {
 			if (!lvl) continue;
 			const auto objectsBefore = assetOf.size();
 			const auto lighting = WorldScene::ReadLighting(*lvl);
-			if (lighting && scene.sceneType == 0) lightingOf.try_emplace(scene.id, LightingJson(*lighting));
+			if (lighting && scene.sceneType == eSceneType::General) lightingOf.try_emplace(scene.id, LightingJson(*lighting));
 			if (sky < 0) {
 				const auto skydome = JoinPath("", WorldScene::ReadSkydome(*lvl));
 				if (skydome.ends_with(".nif") && Files().paths.contains(skydome)) sky = static_cast<int64_t>(scenery.IndexOf(skydome));

@@ -65,7 +65,7 @@ TEST(ZoneFileTests, ReadsScenesAndPaths) {
 	ASSERT_EQ(zone.scenes.size(), 1u);
 	EXPECT_EQ(zone.scenes[0].filename, "scene.lvl");
 	EXPECT_EQ(zone.scenes[0].id, 7u);
-	EXPECT_EQ(zone.scenes[0].sceneType, 2u);
+	EXPECT_EQ(zone.scenes[0].sceneType, eSceneType::FX);
 	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
 	ASSERT_EQ(zone.sceneTransitions.size(), 1u);
 	EXPECT_EQ(zone.sceneTransitions[0].points.size(), 2u);

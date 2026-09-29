@@ -138,7 +138,7 @@ namespace {
 		size_t index = 0;
 		for (const auto& scene : zoneFile->scenes) {
 			// Audio scenes share their general scene's id; the general one names it
-			if (scene.sceneType == 0 || !scenes.contains(std::to_string(scene.id))) scenes[std::to_string(scene.id)] = scene.name;
+			if (scene.sceneType == eSceneType::General || !scenes.contains(std::to_string(scene.id))) scenes[std::to_string(scene.id)] = scene.name;
 			const auto lvl = ClientAssets::ReadResFile("maps/" + folder + scene.filename);
 			if (!lvl) continue;
 			for (const auto& object : WorldScene::ReadObjects(*lvl)) {

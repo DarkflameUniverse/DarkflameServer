@@ -2,6 +2,7 @@
 
 #include "dZMCommon.h"
 #include "LDFFormat.h"
+#include "LWOSCENEID.h"
 #include "ZoneFile.h"
 #include "ZoneScenes.h"
 #include "tinyxml2.h"

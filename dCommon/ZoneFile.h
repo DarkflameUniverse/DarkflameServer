@@ -10,6 +10,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
+#include "eSceneType.h"
 #include "eWaypointCommandType.h"
 
 /**
@@ -26,7 +27,7 @@ struct WaypointCommand {
 struct ZoneScene {
 	std::string filename;
 	uint32_t id{};
-	uint32_t sceneType{}; //0 = general, 1 = audio?
+	eSceneType sceneType{};
 	std::string name;
 	NiPoint3 unknown1;
 	float unknown2{};

@@ -181,7 +181,7 @@ uint32_t Zone::CalculateChecksum() const {
 		sum2 += sum1 += (sceneID >> 16);
 		sum2 += sum1 += (sceneID & 0xffff);
 
-		uint32_t layerID = scene.GetLayerID();
+		uint32_t layerID = GeneralUtils::ToUnderlying(scene.GetLayerID());
 		sum2 += sum1 += (layerID >> 16);
 		sum2 += sum1 += (layerID & 0xffff);
 
