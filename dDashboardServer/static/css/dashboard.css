@@ -233,3 +233,8 @@ details.about-text > summary::before {
 details.about-text > summary:hover { color: var(--bs-body-color); }
 details.about-text[open] > summary { margin-bottom: .35rem; }
 details.about-text > :not(summary) { color: var(--bs-secondary-color); font-size: .875rem; }
+
+/* Wide screens: the menu can be hidden (the top bar's menu button; header.jinja2 keeps the choice) */
+@media (min-width: 992px) {
+	html.sidebar-hidden nav.sidebar { display: none !important; }
+}

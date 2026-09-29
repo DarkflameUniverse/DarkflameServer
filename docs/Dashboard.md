@@ -366,6 +366,9 @@ unless you're typing, in which case they offer a refresh instead.
 View choices you make on the pages (show staff, filters, the 3D viewer's switches, ...) are saved to your account, so
 they follow you to other browsers.
 
+The menu's groups stay open or closed from page to page (kept in this browser): the group of the page you're on opens
+and stays open until you close it. On wide screens the &#9776; button in the top bar hides the menu, and it stays hidden until you show it again.
+
 On narrow screens the menu folds into a **Menu** button, and the moderation queues and online players show as cards
 with their buttons, so you can approve names or kick someone from a phone.
 

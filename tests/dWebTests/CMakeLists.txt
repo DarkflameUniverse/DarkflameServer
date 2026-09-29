@@ -91,4 +91,7 @@ if(NODE_EXECUTABLE)
 	add_test(NAME SceneryCoreJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scenery-core.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/scenery-core.js" "${PROJECT_SOURCE_DIR}/dCommon/NifFile.h"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/Scenery.cpp")
+	# The sidebar's saved group state (the script at the end of templates/header.jinja2)
+	add_test(NAME SidebarStateJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/sidebar-state.test.mjs"
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/templates/header.jinja2")
 endif()

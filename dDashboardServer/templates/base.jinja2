@@ -5,6 +5,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{% block title %}DarkflameServer{% endblock %}</title>
 	<link rel="icon" href="data:,">
+	{# The menu hidden on wide screens stays hidden from page to page (header.jinja2), set before the first paint #}
+	<script>try { if ((JSON.parse(localStorage.getItem('dash.sidebar') || '{}') || {}).hidden) document.documentElement.classList.add('sidebar-hidden'); } catch (e) {}</script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
 	<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.7/b-3.2.6/fh-4.0.6/sc-2.4.3/datatables.min.css" rel="stylesheet" integrity="sha384-XMNDGLb5fN9IqhIrVXOAtGKcz4KCr+JSHXGZ1TDXQPDukbEAfmLPjHdCXhgK93fv" crossorigin="anonymous">
 	<link rel="stylesheet" href="/css/dashboard.css">
@@ -17,6 +19,7 @@
 		<div class="flex-grow-1 d-flex flex-column min-vh-100 main-column">
 			<header class="topbar d-flex align-items-center gap-2 border-bottom px-3 py-2 sticky-top bg-body-tertiary">
 				<button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">&#9776; Menu</button>
+				<button class="btn btn-sm btn-outline-secondary d-none d-lg-inline-block sidebar-toggle" type="button" data-sidebar-toggle aria-controls="sidebar" title="Show or hide the menu"><span aria-hidden="true">&#9776;</span><span class="visually-hidden">Show or hide the menu</span></button>
 				<a href="/" class="fw-semibold text-body text-decoration-none d-lg-none">DarkflameServer</a>
 				<div class="dropdown ms-auto">
 					<button class="btn btn-sm btn-link text-body text-decoration-none dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">

@@ -1,7 +1,8 @@
 {# Sidebar navigation. Entries show only with the permission their page needs (see Permissions.cpp). #}
 {# Grouped by what staff are doing: the most used pages always show, the rest sit in groups that fold away (the group of #}
 {# the current page starts open). Inbox holds what players sent in and staff still have to answer. #}
-{# On narrow screens this is a slide-out menu opened from the top bar in base.jinja2 #}
+{# On narrow screens this is a slide-out menu opened from the top bar in base.jinja2. Which groups are open, and whether #}
+{# the menu is hidden on wide screens, is kept in this browser (the script at the end, and the <head> of base.jinja2) #}
 <nav class="offcanvas-lg offcanvas-start d-flex flex-column flex-shrink-0 px-2 py-3 border-end sidebar" id="sidebar" tabindex="-1" aria-label="Navigation">
 	<div class="d-flex align-items-center justify-content-between px-2 mb-3">
 		<a href="/" class="text-decoration-none text-body"><span class="fs-5 fw-semibold">DarkflameServer</span></a>
@@ -155,3 +156,57 @@
 	</div>
 	{% endif %}
 </nav>
+<script data-sidebar-state>
+/*
+ * The sidebar's groups open or closed as they were last left, in this browser (localStorage "dash.sidebar":
+ * {groups: {id: open}, hidden}). Runs right after the menu is parsed, before the first paint, so it never shows the
+ * server's default first. The group holding the current page always opens, and stays open on the next page until it
+ * is closed. Sidebar.apply() does it again after the page changes without a reload (nav.js); Sidebar.setHidden()
+ * hides the menu on wide screens.
+ */
+window.Sidebar = (function () {
+	var KEY = 'dash.sidebar';
+	function load() {
+		try { var s = JSON.parse(localStorage.getItem(KEY) || '{}'); return s && typeof s === 'object' ? s : {}; } catch (e) { return {}; }
+	}
+	function save(state) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
+	function setOpen(el, open) {
+		el.classList.toggle('show', open);
+		document.querySelectorAll('[data-bs-target="#' + el.id + '"]').forEach(function (b) {
+			b.classList.toggle('collapsed', !open);
+			b.setAttribute('aria-expanded', open ? 'true' : 'false');
+		});
+	}
+	function apply() {
+		var state = load();
+		var groups = state.groups = state.groups || {};
+		document.querySelectorAll('#sidebar .nav-group > .collapse[id]').forEach(function (el) {
+			var open = (el.id in groups ? !!groups[el.id] : el.classList.contains('show')) || !!el.querySelector('.active');
+			setOpen(el, open);
+			groups[el.id] = open;
+		});
+		save(state);
+	}
+	function remember(e) {
+		var el = e.target;
+		if (!el.id || !el.closest || !el.closest('#sidebar')) return;
+		var state = load();
+		state.groups = state.groups || {};
+		state.groups[el.id] = e.type === 'shown.bs.collapse';
+		save(state);
+	}
+	function setHidden(hidden) {
+		var state = load();
+		state.hidden = !!hidden;
+		save(state);
+		document.documentElement.classList.toggle('sidebar-hidden', !!hidden);
+	}
+	apply();
+	document.addEventListener('shown.bs.collapse', remember);
+	document.addEventListener('hidden.bs.collapse', remember);
+	document.addEventListener('click', function (e) {
+		if (e.target.closest && e.target.closest('[data-sidebar-toggle]')) setHidden(!document.documentElement.classList.contains('sidebar-hidden'));
+	});
+	return { apply: apply, setHidden: setHidden, load: load };
+})();
+</script>
