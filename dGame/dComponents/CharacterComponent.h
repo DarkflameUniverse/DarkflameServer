@@ -315,6 +315,12 @@ public:
 	 */
 	void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
 
+	/**
+	 * Send the client every venture vision effect that is on. Effects from equipped items are added while the
+	 * character loads, before the client's UI exists, so they are sent again once the player has loaded.
+	 */
+	void ResendVentureVision() const;
+
 	void SetCurrentInteracting(LWOOBJID objectID) { m_CurrentInteracting = objectID; };
 
 	LWOOBJID GetCurrentInteracting() { return m_CurrentInteracting; };

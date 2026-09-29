@@ -960,6 +960,12 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 	uiMessage.SendToClient(m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS);
 }
 
+void CharacterComponent::ResendVentureVision() const {
+	for (const auto& [ventureVisionType, count] : m_ActiveVentureVisionEffects) {
+		if (count > 0) UpdateClientMinimap(true, ventureVisionType);
+	}
+}
+
 void CharacterComponent::AwardClaimCodes() {
 	if (!m_Parent || !m_Parent->GetCharacter()) return;
 	auto* user = m_Parent->GetCharacter()->GetParentUser();

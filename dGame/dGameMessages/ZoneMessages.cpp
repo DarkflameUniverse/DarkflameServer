@@ -65,6 +65,9 @@ namespace GameMessages {
 		SendPlayerReady(entity->GetObjectID(), zoneControlEntity ? zoneControlEntity->GetObjectID() : LWOOBJID_EMPTY, sysAddr);
 		entity->SetPlayerReadyForUpdates();
 
+		// Venture vision from equipped items was sent before the client's UI existed on a fresh login
+		if (auto* characterComponent = entity->GetComponent<CharacterComponent>()) characterComponent->ResendVentureVision();
+
 		auto* ghostComponent = entity->GetComponent<GhostComponent>();
 		if (ghostComponent != nullptr) {
 			ghostComponent->ConstructLimboEntities();
