@@ -6,6 +6,7 @@ class FvCandle : public CppScripts::Script
 public:
 	void OnStartup(Entity* self);
 	void OnHit(Entity* self, Entity* attacker);
+	void OnSkillEventFired(Entity* self, Entity* caster, const std::string& message) override;
 	void OnTimerDone(Entity* self, std::string timerName);
 private:
 	void BlowOutCandle(Entity* self, Entity* blower);

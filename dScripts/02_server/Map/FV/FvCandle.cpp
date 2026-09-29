@@ -19,6 +19,11 @@ void FvCandle::OnHit(Entity* self, Entity* attacker) {
 	BlowOutCandle(self, attacker);
 }
 
+// The water gun blows candles out too
+void FvCandle::OnSkillEventFired(Entity* self, Entity* caster, const std::string& message) {
+	if (message == "waterspray" && caster) BlowOutCandle(self, caster);
+}
+
 void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 	if (self->GetBoolean(u"AmHit"))
 		return;
