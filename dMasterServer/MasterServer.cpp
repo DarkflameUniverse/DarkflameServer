@@ -263,11 +263,27 @@ int main(int argc, char** argv) {
 			clientPath = BinaryPathFinder::GetBinaryDir() / clientPath;
 		}
 
+		// Say which setting is wrong instead of failing later on missing client files
+		std::error_code ec;
+		if (!std::filesystem::is_directory(clientPath, ec)) {
+			LOG("client_location is \"%s\", which is %s, and that folder doesn't exist. Set client_location in sharedconfig.ini to your client's folder (the one with res/, or the one with client/ and versions/).",
+				clientPathStr.c_str(), clientPath.string().c_str());
+			return EXIT_FAILURE;
+		}
+
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
 		LOG("Is the provided client_location in Windows Onedrive? If so, remove it from Onedrive.");
 		return EXIT_FAILURE;
+	}
+
+	// Crash dumps are only written where the folder exists
+	if (const auto dumpFolder = Game::config->GetValue("dump_folder"); !dumpFolder.empty()) {
+		std::filesystem::path dumpPath(dumpFolder);
+		if (dumpPath.is_relative()) dumpPath = BinaryPathFinder::GetBinaryDir() / dumpPath;
+		std::error_code ec;
+		if (!std::filesystem::is_directory(dumpPath, ec)) LOG("dump_folder is \"%s\", which is %s, and that folder doesn't exist; crash dumps won't be written until it does.", dumpFolder.c_str(), dumpPath.string().c_str());
 	}
 
 	MigrationRunner::RunMigrations();
