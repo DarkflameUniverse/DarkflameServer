@@ -47,6 +47,14 @@ namespace GameMessages {
 		ServerDoneLoadingAllObjects() : NetGameMsg(MessageType::Game::SERVER_DONE_LOADING_ALL_OBJECTS) {}
 	};
 
+	/**
+	 * Ends a player's load the way live did: ServerDoneLoadingAllObjects, then PlayerReachedRespawnCheckpoint with where
+	 * the player respawns in this zone (143 of 157 captured loads send the pair back to back, with a rotation).
+	 * That is their saved checkpoint for the zone when they have one (DLU saves no rotation for it, so it goes
+	 * unrotated), otherwise the spot and facing they loaded in at.
+	 */
+	void SendDoneLoading(LWOOBJID player, const NiPoint3& savedCheckpoint, const NiPoint3& spawnPosition, const NiQuaternion& spawnRotation, const SystemAddress& sysAddr);
+
 	// Server -> client, to one client.
 	struct InvalidZoneTransferList : public NetGameMsg {
 		InvalidZoneTransferList() : NetGameMsg(MessageType::Game::INVALID_ZONE_TRANSFER_LIST) {}

@@ -1051,16 +1051,10 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			serverStates.Send(sysAddr);
 
 			const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
+			const auto spawnPosition = player->GetPosition();
+			const auto spawnRotation = player->GetRotation();
 
 			Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS);
-
-			if (respawnPoint != NiPoint3Constant::ZERO) {
-				GameMessages::PlayerReachedRespawnCheckpoint respawnCheckpoint;
-				respawnCheckpoint.target = player->GetObjectID();
-				respawnCheckpoint.pos = respawnPoint;
-				respawnCheckpoint.rot = QuatUtils::IDENTITY;
-				respawnCheckpoint.SendToClient(player->GetSystemAddress());
-			}
 
 			// Before the models are constructed: the served meshes' checksums, so a client whose cached checksum is its own
 			// build's downloads the served mesh again (UgcManifest, docs/UgcServer.md)
@@ -1141,9 +1135,7 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			invalidTransferList.bCustomerFeedbackOnExit = false;
 			invalidTransferList.bCustomerFeedbackOnInvalidMapTransfer = false;
 			invalidTransferList.SendToClient(sysAddr);
-			GameMessages::ServerDoneLoadingAllObjects doneLoading;
-			doneLoading.target = player->GetObjectID();
-			doneLoading.SendToClient(sysAddr);
+			GameMessages::SendDoneLoading(player->GetObjectID(), respawnPoint, spawnPosition, spawnRotation, sysAddr);
 
 			//Send the player it's mail count:
 			//update: this might not be needed so im going to try disabling this here.

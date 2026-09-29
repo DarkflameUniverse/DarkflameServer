@@ -1,4 +1,5 @@
 #include "ZoneMessages.h"
+#include "MovementMessages.h"
 
 #include "BitStreamUtils.h"
 #include "CDClientManager.h"
@@ -33,6 +34,19 @@ namespace GameMessages {
 
 	bool PlayerLoaded::Deserialize(RakNet::BitStream& bitStream) {
 		return bitStream.Read(playerID);
+	}
+
+	void SendDoneLoading(const LWOOBJID player, const NiPoint3& savedCheckpoint, const NiPoint3& spawnPosition, const NiQuaternion& spawnRotation, const SystemAddress& sysAddr) {
+		ServerDoneLoadingAllObjects doneLoading;
+		doneLoading.target = player;
+		doneLoading.SendToClient(sysAddr);
+
+		PlayerReachedRespawnCheckpoint checkpoint;
+		checkpoint.target = player;
+		const bool hasSavedCheckpoint = savedCheckpoint != NiPoint3Constant::ZERO;
+		checkpoint.pos = hasSavedCheckpoint ? savedCheckpoint : spawnPosition;
+		checkpoint.rot = hasSavedCheckpoint ? QuatUtils::IDENTITY : spawnRotation;
+		checkpoint.SendToClient(sysAddr);
 	}
 
 	void SendPlayerReady(const LWOOBJID player, const LWOOBJID zoneControl, const SystemAddress& sysAddr) {
