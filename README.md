@@ -1,5 +1,11 @@
 # <img style="float: left; padding-right: 5px" height=35px width=35px src="logo.png"> Darkflame Universe
 
+> [!WARNING]
+> **Back up your database before running this branch.** `dev/aronwk-aaron/experimental` is experimental: it adds
+> database migrations and changes how saved data is written, and those changes can't be undone by switching back to
+> `main`. Take a full backup of your MySQL/MariaDB or SQLite database (and your character data) before starting any
+> server built from this branch, and keep it until you're sure you want to stay on it.
+
 ## Introduction
 Darkflame Universe (DLU) is a server emulator for LEGO® Universe. Development started in 2013 and has gone through multiple iterations and is now able to present a near perfect emulation of the game server.
 
