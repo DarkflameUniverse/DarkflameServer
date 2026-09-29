@@ -564,6 +564,16 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 }
 
 void Item::RemoveFromInventory() {
+	// Live told the client an equipped item taken out of the inventory was unequipped (after RemoveItemFromInventory)
+	if (IsEquipped()) {
+		auto* const entity = inventory->GetComponent()->GetParent();
+		GameMessages::UnEquipInventory unequip;
+		unequip.target = entity->GetObjectID();
+		unequip.bIgnoreCooldown = true;
+		unequip.itemToUnequip = id;
+		if (entity->IsPlayer()) unequip.SendToClient(entity->GetSystemAddress());
+	}
+
 	UnEquip();
 
 	count = 0;

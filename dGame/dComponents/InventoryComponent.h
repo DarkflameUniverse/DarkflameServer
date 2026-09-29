@@ -580,6 +580,17 @@ private:
 	void PurgeProxies(Item* item);
 
 	/**
+	 * Tells everyone an item was equipped or unequipped: ChangeObjectWorldState (ATTACHED / INVENTORY) on the item and
+	 * the equip-<slot> / unequip-<slot> effect on the wearer, as live did
+	 */
+	void SendEquipState(const Item& item, bool equipped) const;
+
+	/**
+	 * Tells the player the item's equip skills (castOnType 1) ended: UncastSkill for each, as live did on unequip
+	 */
+	void SendUncastEquipSkills(const Item& item) const;
+
+	/**
 	 * Saves all the pet information stored in inventory items to the database
 	 * @param document the xml doc to save to
 	 */

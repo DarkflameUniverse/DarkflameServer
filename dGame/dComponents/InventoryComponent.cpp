@@ -21,6 +21,11 @@
 #include "Database.h"
 #include "CDModularBuildComponentTable.h"
 #include "SkillMessages.h"
+#include <string_view>
+#include <array>
+#include "eObjectWorldState.h"
+#include "EffectsMessages.h"
+#include "ZoneMessages.h"
 #include "MovementMessages.h"
 #include "SkillComponent.h"
 #include "Character.h"
@@ -1052,13 +1057,17 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	if (item->GetInfo().isBOE) item->SetBound(true);
 
-	GenerateProxies(item);
+	// Live: the item is attached (and its effect played) first, then the item it replaces is unequipped, then the
+	// skills change and the item's proxies are added
+	SendEquipState(*item, true);
 
 	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig() });
 
 	ApplyBuff(item);
 
 	AddItemSkills(item->GetLot());
+
+	GenerateProxies(item);
 
 	EquipScripts(item);
 
@@ -1082,11 +1091,20 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		set->OnUnEquip(lot);
 	}
 
+	// Taken out of its slot first, so its proxies (purged below) don't unequip it again
+	RemoveSlot(item->GetInfo().equipLocation);
+
+	// Live: back to the inventory (and its effect), its proxies taken away, its equip skills uncast, then its skill
+	// removed
+	SendEquipState(*item, false);
+
+	PurgeProxies(item);
+
+	SendUncastEquipSkills(*item);
+
 	RemoveBuff(item);
 
 	RemoveItemSkills(item->GetLot());
-
-	RemoveSlot(item->GetInfo().equipLocation);
 
 	UnequipScripts(item);
 
@@ -1746,9 +1764,72 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	auto proxies = FindProxies(item->GetId());
 
 	for (auto* proxy : proxies) {
-		proxy->UnEquip();
+		// Live told the client each proxy left the inventory (then UnEquipInventory and ChangeObjectWorldState,
+		// from RemoveFromInventory)
+		GameMessages::RemoveItemFromInventory removeItem;
+		removeItem.target = m_Parent->GetObjectID();
+		removeItem.eInvType = proxy->GetInventory()->GetType();
+		removeItem.eLootTypeSource = static_cast<int32_t>(eLootSourceType::INVENTORY);
+		removeItem.iObjID = proxy->GetId();
+		removeItem.iObjTemplate = proxy->GetLot();
+		removeItem.iRequestingObjID = item->GetId();
+		removeItem.iStackCount = proxy->GetCount();
+		removeItem.iStackRemaining = 0;
+		if (m_Parent->IsPlayer()) removeItem.SendToClient(m_Parent->GetSystemAddress());
 
 		proxy->RemoveFromInventory();
+	}
+}
+
+namespace {
+	// The effect an item plays on its wearer when it is equipped or unequipped, as LWOItemComponent::SendMessage
+	// (0x00cdafb0) picks it from the equip location; none for the other locations
+	std::u16string EquipEffectType(const std::string& equipLocation, const bool equip) {
+		static const std::array<std::pair<std::string_view, std::u16string_view>, 6> SLOTS = { {
+			{ "special_l", u"left" }, { "special_r", u"right" }, { "hair", u"head" },
+			{ "clavicle", u"clavicle" }, { "chest", u"chest" }, { "legs", u"legs" },
+		} };
+		for (const auto& [location, slot] : SLOTS) {
+			if (equipLocation == location) return std::u16string(equip ? u"equip-" : u"unequip-") + std::u16string(slot);
+		}
+		return u"";
+	}
+}
+
+void InventoryComponent::SendEquipState(const Item& item, const bool equipped) const {
+	// Live sent every equip and unequip to everyone, proxies included
+	GameMessages::ChangeObjectWorldState worldState;
+	worldState.target = item.GetId();
+	worldState.newState = equipped ? eObjectWorldState::ATTACHED : eObjectWorldState::INVENTORY;
+	worldState.Send(UNASSIGNED_SYSTEM_ADDRESS);
+
+	// The client plays no equip effect for noEquipAnimation items; live played no unequip effect for proxies (they
+	// go with their item)
+	const auto& info = item.GetInfo();
+	if (equipped ? info.noEquipAnimation : item.GetParent() != LWOOBJID_EMPTY) return;
+
+	GameMessages::PlayFXEffect effect;
+	effect.target = m_Parent->GetObjectID();
+	if (info.equipEffects != 0) {
+		effect.effectID = static_cast<int32_t>(info.equipEffects);
+		effect.effectType = equipped ? u"equip" : u"unequip";
+	} else {
+		effect.effectType = EquipEffectType(info.equipLocation, equipped);
+	}
+	if (effect.effectType.empty()) return;
+	effect.priority = 1.07f;
+	effect.Send(UNASSIGNED_SYSTEM_ADDRESS);
+}
+
+void InventoryComponent::SendUncastEquipSkills(const Item& item) const {
+	// Proxies' equip skills aren't cast (FindBuffs), so there is nothing to uncast
+	if (item.GetParent() != LWOOBJID_EMPTY || !m_Parent->IsPlayer()) return;
+	for (const auto& skill : CDClientManager::GetTable<CDObjectSkillsTable>()->Get(item.GetLot())) {
+		if (skill.castOnType != 1) continue;
+		GameMessages::UncastSkill uncast;
+		uncast.target = m_Parent->GetObjectID();
+		uncast.skillID = static_cast<int32_t>(skill.skillID);
+		uncast.SendToClient(m_Parent->GetSystemAddress());
 	}
 }
 

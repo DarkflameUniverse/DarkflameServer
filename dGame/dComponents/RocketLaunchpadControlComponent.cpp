@@ -78,12 +78,8 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
+	// Equipping the rocket (RocketEquip) sent ChangeObjectWorldState(ATTACHED); live sent it before this event
 	GameMessages::FireEventClientSide(m_Parent->GetObjectID(), u"RocketEquipped", rocket->GetId(), originator->GetObjectID()).SendToClient(originator->GetSystemAddress());
-
-	GameMessages::ChangeObjectWorldState worldState;
-	worldState.target = rocket->GetId();
-	worldState.newState = eObjectWorldState::ATTACHED;
-	worldState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(originator);
 }
