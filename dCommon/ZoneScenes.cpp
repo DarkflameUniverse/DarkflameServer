@@ -58,9 +58,11 @@ namespace ZoneScenes {
 		};
 		for (const auto& transition : transitions) {
 			if (transition.points.size() < 2) continue;
-			// The low half of a point's LWOSCENEID is the scene, the high half its layer
-			const auto a = static_cast<uint32_t>(transition.points[0].sceneID & 0xFFFFFFFF);
-			const auto b = static_cast<uint32_t>(transition.points[1].sceneID & 0xFFFFFFFF);
+			// A transition links the scenes of its first and last points (ZoneLoader::ReadZoneFile; 5-point transitions
+			// of versions 34-38 have 3 more between them). The low half of a point's LWOSCENEID is the scene, the high
+			// half its layer
+			const auto a = static_cast<uint32_t>(transition.points.front().sceneID & 0xFFFFFFFF);
+			const auto b = static_cast<uint32_t>(transition.points.back().sceneID & 0xFFFFFFFF);
 			if (a == b || !m_Scenes.contains(a) || !m_Scenes.contains(b)) continue;
 			link(a, b);
 			link(b, a);

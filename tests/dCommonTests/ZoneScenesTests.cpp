@@ -63,6 +63,15 @@ TEST(ZoneScenesTests, LoadsTheConnectedScenes) {
 	EXPECT_TRUE(graph.Neighbours(9).empty());
 }
 
+// A 5-point transition (versions 34-38) links its first and last points' scenes
+TEST(ZoneScenesTests, FivePointTransitionsLinkTheirEnds) {
+	SceneTransition transition;
+	for (const uint64_t scene : { 1, 2, 2, 2, 3 }) transition.points.push_back({ scene, {} });
+	const ZoneScenes::SceneGraph graph(Scenes({ 0, 1, 2, 3 }), { transition });
+	EXPECT_EQ(graph.Neighbours(1), (std::set<uint32_t>{ 3 }));
+	EXPECT_TRUE(graph.Neighbours(2).empty());
+}
+
 TEST(ZoneScenesTests, AddsTheScenesAroundThePlayerWhileTheReferenceIsOverridden) {
 	const ZoneScenes::SceneGraph graph(Scenes({ 0, 1, 2, 3, 4 }), { Transition(1, 2), Transition(3, 4) });
 	// Not overridden: only the reference point's scenes, wherever the player is
