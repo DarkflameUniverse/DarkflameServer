@@ -15,6 +15,7 @@ set(DGAMETEST_SOURCES
 	"BrickByBrickTests.cpp"
 	"PropertyBuildersTests.cpp"
 	"ModularBuildTableTests.cpp"
+	"ModularBuildIdMigrationTests.cpp"
 	"UgcManifestTests.cpp"
 	"SceneGhostingTests.cpp"
 	"HolidayEventsTests.cpp"

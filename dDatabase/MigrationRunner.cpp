@@ -8,6 +8,7 @@
 #include "Logger.h"
 #include "BinaryPathFinder.h"
 #include "ModelNormalizeMigration.h"
+#include "ModularBuildIdMigration.h"
 
 #include <fstream>
 
@@ -52,6 +53,7 @@ void MigrationRunner::RunMigrations() {
 	bool runNormalizeMigrations = false;
 	bool runNormalizeAfterFirstPartMigrations = false;
 	bool runBrickBuildsNotOnGrid = false;
+	bool runModularBuildIds = false;
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/" / migrationFolder).string())) {
 		auto migration = LoadMigration("dlu/" + migrationFolder + "/", entry);
 
@@ -70,6 +72,8 @@ void MigrationRunner::RunMigrations() {
 			runNormalizeAfterFirstPartMigrations = true;
 		} else if (migration.name.ends_with("_brickbuilds_not_on_grid.sql")) {
 			runBrickBuildsNotOnGrid = true;
+		} else if (migration.name.ends_with("_modular_build_ids.sql")) {
+			runModularBuildIds = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
 		}
@@ -77,7 +81,7 @@ void MigrationRunner::RunMigrations() {
 		Database::Get()->InsertMigration(migration.name);
 	}
 
-	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations && !runNormalizeAfterFirstPartMigrations && !runBrickBuildsNotOnGrid) {
+	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations && !runNormalizeAfterFirstPartMigrations && !runBrickBuildsNotOnGrid && !runModularBuildIds) {
 		LOG("Server database is up to date.");
 		return;
 	}
@@ -112,6 +116,11 @@ void MigrationRunner::RunMigrations() {
 
 	if (runBrickBuildsNotOnGrid) {
 		ModelNormalizeMigration::RunBrickBuildGrid();
+	}
+
+	// After the SQL, which makes ugc_modular_build and object_id_tracker on a new database
+	if (runModularBuildIds) {
+		ModularBuildIdMigration::Run();
 	}
 }
 

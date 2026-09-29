@@ -48,7 +48,8 @@ it is and downloads it only when it has none. Structs: `WorldPackets::RequestUgc
 The blueprint id of an inventory item's icon (`LWOInventoryComponent_Client::LoadBlueprintIcon`) is the item's
 `blueprintid` config when it has one (Brick-by-Brick models, LOT 6662), else its subkey (cars and rockets: their
 `ugc_modular_build` id, which DLU gives them as subkey when they are built). Cars and rockets from before builds were
-stored have subkey 0 and no build row, so the client never asks for their icons.
+stored had subkey 0 and no build row, so the client never asked for their icons: see "Cars and rockets from before
+builds were stored" below.
 
 A placed model (LOT 14) always loads its blueprint's NIF, HKX and LXFML through these requests; see "Models without
 3D services" for how the worlds answer them.
@@ -551,6 +552,17 @@ Migrations `dlu/mysql/92_ugc_triangles_before.sql` and `dlu/sqlite/75_ugc_triang
 Migrations `dlu/mysql/94_ugc_priority.sql` and `dlu/sqlite/77_ugc_priority.sql`: `ugc.priority`, 1 for models staff
 asked to be made again (made before any other, cleared once made).
 
+### Cars and rockets from before builds were stored
+
+Migrations `dlu/mysql/98_modular_build_ids.sql` and `dlu/sqlite/81_modular_build_ids.sql` (run by
+`ModularBuildIdMigration`, after the SQL migrations): every saved item with modules (`x@ma`, assemblyPartLOTs; only
+modular builds have them) and no subkey gets what a new build gets (`ModularBuildFinish`): a persistent id (from
+`object_id_tracker`, with the character bit, as `ObjectIDManager::GetPersistentID`) as its subkey (`sk`) and a
+`ugc_modular_build` row with its modules and the character as owner. The character's XML is written with
+`UpdateCharacterXml` (a world still holding an older copy can't save over it). The UGC server then makes their icons
+like any other build's. Characters that load later with such an item (a database from before the migration, restored
+XML) get the same when they load (`InventoryComponent`, `AssignModularBuildId`). Mail attachments are not changed.
+
 ## Without 3D services (`UGCUSE3DSERVICES=7:0`)
 
 `UgcManifest` (dGame/dUtilities) answers `REQUEST_UGC_MANIFEST_INFO` when `ugc_manifest=1` (`sharedconfig.ini`,
@@ -865,7 +877,5 @@ pages show the item's own icon.
   without collision behave.
 * HKX (physics) is not generated, so models downloaded from the UGC server have no collision for clients that never
   built them.
-* Cars and rockets built before builds were stored (subkey 0, no `ugc_modular_build` row) never get an icon: the client
-  has no blueprint id to ask for.
 * A model's `.nif` made before `.sd0` files were written has none (and no checksum, so clients keep building that
   model from its LXFML) until the model is made again (Reprocess on the dashboard).
