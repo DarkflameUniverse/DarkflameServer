@@ -363,31 +363,7 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 		if (info.count > 0) EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::ITEM_DROPS, lootLot, spawnPosition, info.count, player);
 	}
 
-	constexpr LOT TOKEN_PROXY = 13763;
-	// Go through the drops 1 at a time to drop them
-	for (auto it = rolledItems.begin(); it != rolledItems.end(); it++) {
-		auto& [lootLot, info] = *it;
-		for (int i = 0; i < info.count; i++) {
-			GameMessages::DropClientLoot lootMsg{};
-			lootMsg.spawnPos = spawnPosition;
-			lootMsg.sourceID = source;
-			lootMsg.item = lootLot;
-			lootMsg.count = 1;
-			lootMsg.currency = 0;
-			const CDObjects& object = objectsTable->GetByID(lootLot);
-
-			if (lootLot == TOKEN_PROXY) {
-				team ? DropFactionLoot(*team, lootMsg, noTeamLootOnDeath) : DropFactionLoot(*player, lootMsg);
-			} else if (info.table.MissionDrop) {
-				team ? DropMissionLoot(*team, lootMsg, noTeamLootOnDeath) : DropMissionLoot(*player, lootMsg);
-			} else if (object.type == "Powerup") {
-				team ? DropPowerupLoot(*team, lootMsg, noTeamLootOnDeath) : DropPowerupLoot(*player, lootMsg);
-			} else {
-				team ? DropRegularLoot(*team, lootMsg, noTeamLootOnDeath) : DropRegularLoot(*player, lootMsg);
-			}
-		}
-	}
-
+	// Live sent the coins before the items (1498 of 1502 live drops with both)
 	// Filter out dead player if we need to
 	std::vector<LWOOBJID> lootEarners;
 	if (team) {
@@ -429,6 +405,32 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 		const auto* const memberEntity = Game::entityManager->GetEntity(member);
 		if (memberEntity) lootMsg.Send(memberEntity->GetSystemAddress());
 	}
+
+	constexpr LOT TOKEN_PROXY = 13763;
+	// Go through the drops 1 at a time to drop them
+	for (auto it = rolledItems.begin(); it != rolledItems.end(); it++) {
+		auto& [lootLot, info] = *it;
+		for (int i = 0; i < info.count; i++) {
+			GameMessages::DropClientLoot lootMsg{};
+			lootMsg.spawnPos = spawnPosition;
+			lootMsg.sourceID = source;
+			lootMsg.item = lootLot;
+			lootMsg.count = 1;
+			lootMsg.currency = 0;
+			const CDObjects& object = objectsTable->GetByID(lootLot);
+
+			if (lootLot == TOKEN_PROXY) {
+				team ? DropFactionLoot(*team, lootMsg, noTeamLootOnDeath) : DropFactionLoot(*player, lootMsg);
+			} else if (info.table.MissionDrop) {
+				team ? DropMissionLoot(*team, lootMsg, noTeamLootOnDeath) : DropMissionLoot(*player, lootMsg);
+			} else if (object.type == "Powerup") {
+				team ? DropPowerupLoot(*team, lootMsg, noTeamLootOnDeath) : DropPowerupLoot(*player, lootMsg);
+			} else {
+				team ? DropRegularLoot(*team, lootMsg, noTeamLootOnDeath) : DropRegularLoot(*player, lootMsg);
+			}
+		}
+	}
+
 }
 
 void Loot::DropItem(Entity& player, GameMessages::DropClientLoot& lootMsg, bool useTeam, bool forceFfa) {
