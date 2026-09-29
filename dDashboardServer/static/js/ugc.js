@@ -125,10 +125,14 @@
 		if (!i.processMs) return '';
 		return 'took ' + duration(i.processMs) + (i.processCpuMs ? ', CPU ' + duration(i.processCpuMs) : '') + (i.processMemoryKb ? ', ~' + megabytes(i.processMemoryKb) + ' RAM (est.)' : '');
 	}
-	// When it was made and what that cost (the cost is only known for makes since it was recorded)
+	// When it was made and what that cost (the cost is only known for makes since it was recorded), and with what
 	function madeText(i) {
 		if (!i.processedAt) return '';
-		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '');
+		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '') + (i.madeOptions ? ' \u00b7 with ' + i.madeOptions : '');
+	}
+	// The processing options picked for Make again (ray tracer, hidden faces, denoise), as /api/ugc/reprocess takes them
+	function remakeOptions() {
+		return ['optRays', 'optHsr', 'optDenoise'].map(function (x) { return $(x).value; }).filter(Boolean).join(' ');
 	}
 	// A model's file as the player named it: its name with the upload's extension (".lxfml"), else the upload's name
 	function fileName(i) {
@@ -178,6 +182,10 @@
 				return badge(i.state) + (i.attempts ? ' <span class="small text-body-secondary">' + esc(i.attempts) + ' attempt' + (i.attempts === 1 ? '' : 's') + '</span>' : '') + waitBadge(i);
 			})
 		].concat(madeColumns(), [
+			column('Options', function (i) {
+				return '<span class="small">' + esc(i.madeOptions || '') + '</span>' +
+					(i.processOptions ? '<div class="small text-body-secondary" title="Picked for its next make">next: ' + esc(i.processOptions) + '</div>' : '');
+			}),
 			column('Saved', function (i) {
 				if (!i.trianglesBefore) return '';
 				var removed = i.trianglesBefore - i.triangles, share = removed / i.trianglesBefore * 100;
@@ -256,6 +264,7 @@
 			b.textContent = (b.dataset.kind === 'modular' ? 'Cars and rockets' : 'Models') + (count === null || count === undefined ? '' : ' (' + Number(count).toLocaleString() + ')');
 		});
 		$('manageButtons').classList.toggle('d-none', !canManage);
+		$('remakeOptions').classList.toggle('d-none', list.kind !== 'model');
 		$('cacheCard').classList.toggle('d-none', !canManage);
 		$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular) +
 			(d.totals ? totalsCard('Models', d.totals.model) + totalsCard('Cars and rockets', d.totals.modular) : '');
@@ -366,6 +375,7 @@
 	function remake(body, question) {
 		if (question && !confirm(question)) return;
 		body.kind = list.kind;
+		if (list.kind === 'model' && remakeOptions()) body.options = remakeOptions();
 		api.post('/api/ugc/reprocess', body).then(function (d) {
 			if (!d.success) { toast(d.error || 'Failed', 'danger'); return; }
 			toast(d.message, 'success');
@@ -714,6 +724,31 @@
 		}).catch(function (e) { $('presetsList').textContent = 'Could not load the icon types: ' + e.message; });
 	}
 	loadPresets();
+
+	// ---- processing options: Make again's choices and the comparison of what made the models ----
+
+	var OPTION_LABELS = { builtin: 'Built in', embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', toolbox: 'LU Toolbox (paths)', fast: 'Fast (renders)', off: 'Off', oidn: 'Open Image Denoise' };
+	function loadOptions() {
+		return api.get('/api/ugc/options').then(function (d) {
+			if (!d.success) throw new Error(d.error || 'Failed');
+			[['optRays', 'rays', 'Ray tracer'], ['optHsr', 'hsr', 'Hidden faces'], ['optDenoise', 'denoise', 'Denoise']].forEach(function (x) {
+				var select = $(x[0]), chosen = select.value;
+				select.innerHTML = '<option value="">' + esc(x[2]) + ': settings (' + esc(OPTION_LABELS[d.defaults[x[1]]] || d.defaults[x[1]]) + ')</option>' +
+					d.choices[x[1]].map(function (name) { return '<option value="' + esc(name) + '">' + esc(x[2]) + ': ' + esc(OPTION_LABELS[name] || name) + '</option>'; }).join('');
+				select.value = chosen;
+			});
+			var ms = function (v) { return v ? esc(duration(v)) : ''; };
+			$('optionsTable').querySelector('tbody').innerHTML = d.combinations.length ? d.combinations.map(function (c) {
+				return '<tr><td><code>' + esc(c.options) + '</code></td><td>' + esc(c.runs.toLocaleString()) + '</td><td>' + esc(c.models.toLocaleString()) + '</td><td>' + ms(c.ms) +
+					'</td><td>' + ms(c.cpuMs) + '</td><td>' + ms(c.hsrMs) + '</td><td>' + ms(c.aoMs) + '</td><td>' + ms(c.iconMs) + '</td><td>' + esc(c.bricks) + '</td><td title="' +
+					esc(c.trianglesBefore.toLocaleString()) + ' before, ' + esc(c.triangles.toLocaleString()) + ' after, on average">' + esc((c.removed * 100).toFixed(1)) + '%</td></tr>';
+			}).join('') : '<tr><td colspan="10" class="text-body-secondary">No model made since the options were recorded.</td></tr>';
+		}).catch(function (e) {
+			$('optionsTable').querySelector('tbody').innerHTML = '<tr><td colspan="10" class="text-danger">Could not load the options: ' + esc(e.message) + '</td></tr>';
+		});
+	}
+	loadOptions();
+	$('optionsCard').addEventListener('toggle', function () { if (this.open) loadOptions(); });
 
 	if (window.Live) Live.on('ugc', load);
 
