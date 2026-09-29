@@ -1,5 +1,6 @@
 set(DGAMETEST_SOURCES
 	"GameDependencies.cpp"
+	"GuildManagerTests.cpp"
 	"LUBitStreamTests.cpp"
 	"MailIdPinTests.cpp"
 	"EconomyLedgerTests.cpp"
@@ -49,7 +50,7 @@ if(APPLE)
 endif()
 
 target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
-	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation bcrypt MD5)
+	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dChatServer dNavigation bcrypt MD5)
 
 # Discover the tests
 gtest_discover_tests(dGameTests)

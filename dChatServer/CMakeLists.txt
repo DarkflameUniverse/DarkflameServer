@@ -3,6 +3,7 @@ set(DCHATSERVER_SOURCES
 	"ChatPacketHandler.cpp"
 	"ChatJSONUtils.cpp"
 	"ChatWeb.cpp"
+	"GuildManager.cpp"
 	"PlayerContainer.cpp"
 	"TeamContainer.cpp"
 )
