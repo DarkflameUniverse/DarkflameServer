@@ -892,6 +892,23 @@ accounts share one, and an address an account hasn't used for `log_login_address
 log pruning. A shared address can also be a family, a school or a public network, so treat it as a hint. Turn
 `log_login_addresses` off if you don't want addresses kept (and mention it in your privacy notice if you do).
 
+### Mail
+
+The **Mail** page (GM 3+, `characters_mail`, under Moderation) lists every in-game mail, newest first and live: when it
+was sent, the sender (a character, the game, or staff from the dashboard) and receiver linked to their character
+pages, the subject, the attachment (icon, name, count; waiting or claimed) and the state (unread, read, deleted).
+Click a subject for the whole mail: body, accounts, attachment item ID, subkey and item data. Filter by state, by a character (sent or
+received) or an account ID; the search box matches the stored subject, body and names. `/mail#character=<id>`,
+`#account=<id>` and `#state=deleted` open it filtered.
+
+Mail from the game stores locale keys (`%[MissionEmail_12_subjectText]`); the dashboard shows them as the client does,
+from the client's `locale/locale.xml` (needs `client_location`), with the stored text under **Stored text**.
+
+When a player deletes a mail in game, the row is kept and marked deleted with the time (`mail.deleted_at`). The game never
+shows it again (mailbox, unread count, claiming); staff see it on the Mail page and in the character's **Mailbox**. The
+character's owner sees only what is still in their mailbox. Deleting a character still removes its mail. API:
+`POST /api/tables/mail`, `GET /api/characters/:id/mail`.
+
 ### Chat filter
 
 The **Chat Filter** page (GM 5+, `chat_filter_manage`, under Moderation) adds words on top of the chat filter's files

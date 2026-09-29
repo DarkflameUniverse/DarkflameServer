@@ -679,15 +679,9 @@ function openMailbox() {
 	list.textContent = 'Loading…';
 	new bootstrap.Modal(document.getElementById('mailModal')).show();
 	api.get('/api/characters/' + characterId + '/mail').then(function (mail) {
-		if (!mail.length) { list.textContent = 'No mail'; return; }
-		list.innerHTML = mail.map(function (m) {
-			return '<div class="border-bottom pb-2 mb-2">' +
-				'<div class="d-flex justify-content-between"><strong>' + esc(m.subject) + '</strong><span class="small text-body-secondary">' + fmt.unix(m.time_sent) + '</span></div>' +
-				'<div class="small text-body-secondary">From ' + esc(m.sender) + (m.read ? '' : ' ' + fmt.badge('Unread', 'info')) + '</div>' +
-				'<div style="white-space: pre-wrap;">' + esc(m.body) + '</div>' +
-				(m.attachment_lot > 0 ? '<div class="small mt-1">Attachment: ' + esc(m.attachment_count) + 'x ' + esc(m.attachment_name || ('LOT ' + m.attachment_lot)) + '</div>' : '') +
-				'</div>';
-		}).join('');
+		// Staff also get mail the player deleted (marked) and a link to everything this character sent and received
+		var more = {% if can.characters_mail %}'<p class="small mb-2"><a href="/mail#character=' + characterId + '">All mail sent and received on the Mail page</a></p>'{% else %}''{% endif %};
+		list.innerHTML = more + (mail.length ? mail.map(MailView.card).join('') : '<p class="text-body-secondary mb-0">No mail</p>');
 	});
 }
 
@@ -765,4 +759,5 @@ function rescueCharacter() {
 <script src="/js/character-tools.js"></script>
 <script src="/js/character-missions.js"></script>
 <script src="/js/related.js"></script>
+<script src="/js/mail-view.js"></script>
 {% endblock %}

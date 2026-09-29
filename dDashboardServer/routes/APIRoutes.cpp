@@ -41,6 +41,7 @@
 #include <sstream>
 #include <map>
 #include "Locale.h"
+#include "LocaleText.h"
 #include <bcrypt/BCrypt.hpp>
 #include <algorithm>
 #include <ctime>
@@ -126,6 +127,56 @@ namespace {
 			response["draw"] = request->draw;
 			JsonReply(reply, eHTTPStatusCode::OK, response);
 		});
+	}
+
+	std::string Localized(const std::string& text) {
+		return LocaleText::Expand(text, [](const std::string& key) -> const std::string& { return Locale::GetPhrase(key); });
+	}
+
+	// One mail row for the Mail page and mailboxes: the stored text, the text as the client shows it (locale keys
+	// translated), both ends with their accounts, the attachment and the state. The first fields are the ones the
+	// mailbox API always had.
+	nlohmann::json MailJson(const IMail::MailRecord& m) {
+		nlohmann::json attachment = nullptr;
+		if (m.attachmentCount > 0) {
+			attachment = { {"id", std::to_string(m.attachmentId)}, {"lot", m.attachmentLot}, {"count", m.attachmentCount},
+				{"subkey", std::to_string(m.attachmentSubkey)}, {"name", m.attachmentLot > 0 ? ClientAssets::ObjectName(m.attachmentLot).value_or("") : std::string{}},
+				{"claimed", m.attachmentLot <= 0}, {"config", m.attachmentConfig} };
+		}
+		const bool waiting = m.attachmentLot > 0 && m.attachmentCount > 0;
+		return {
+			{"id", std::to_string(m.id)},
+			{"sender", m.senderName},
+			{"subject", m.subject},
+			{"body", m.body},
+			{"time_sent", m.timeSent},
+			{"read", m.read},
+			{"attachment_lot", waiting ? m.attachmentLot : 0},
+			{"attachment_count", waiting ? m.attachmentCount : 0},
+			{"attachment_name", waiting ? ClientAssets::ObjectName(m.attachmentLot).value_or("") : std::string{}},
+			{"sender_id", std::to_string(m.senderId)},
+			{"sender_name", m.senderName},
+			{"sender_text", Localized(m.senderName)},
+			{"sender_kind", m.senderId != LWOOBJID_EMPTY ? "player" : m.senderName.starts_with("[GM] ") ? "staff" : "game"},
+			{"sender_account_id", m.senderAccountId},
+			{"receiver_id", std::to_string(m.receiverId)},
+			{"receiver_name", m.receiverName},
+			{"receiver_account_id", m.receiverAccountId},
+			{"subject_text", Localized(m.subject)},
+			{"body_text", Localized(m.body)},
+			{"attachment", attachment},
+			{"deleted_at", m.deletedAt}
+		};
+	}
+
+	IMail::eMailState MailState(const std::string& name) {
+		using eMailState = IMail::eMailState;
+		if (name == "unread") return eMailState::UNREAD;
+		if (name == "read") return eMailState::READ;
+		if (name == "attachment") return eMailState::ATTACHMENT;
+		if (name == "claimed") return eMailState::CLAIMED;
+		if (name == "deleted") return eMailState::DELETED;
+		return eMailState::ANY;
 	}
 
 	// Parse the numeric ID at the given path segment, replying 400 if it is not a valid number
@@ -928,26 +979,30 @@ namespace {
 				JsonSuccess(reply, { {"requestId", requestId}, {"message", "Uploading"}, {"warnings", check.warnings}, {"removed", removeIds.size()} });
 			});
 
-		Route(eHTTPMethod::GET, "/api/characters/:id/mail", 0, "A character's mailbox (up to 100 most recent). With characters_mail, or the character's owner",
+		Route(eHTTPMethod::GET, "/api/characters/:id/mail", 0,
+			"A character's mailbox (up to 100 most recent), newest first: [{id, sender, subject, body, time_sent, read, attachment_lot, attachment_count, "
+			"attachment_name, sender_id, sender_name, sender_text, sender_kind, sender_account_id, receiver_id, receiver_name, receiver_account_id, "
+			"subject_text, body_text (locale keys translated), attachment: {id, lot, count, subkey, name, claimed, config} or null, deleted_at}]. "
+			"With characters_mail, including mail the player deleted; the character's owner sees only what is still in the mailbox",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto charId = RequireId<LWOOBJID>(context, 2, reply);
 				if (!charId) return;
 				const auto info = Database::Get()->GetCharacterInfo(*charId);
 				if (!info) return JsonError(reply, eHTTPStatusCode::NOT_FOUND, "Character not found");
-				if (!Can(context, "characters_mail") && info->accountId != context.accountId) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "Insufficient permissions");
+				const bool staff = Can(context, "characters_mail");
+				if (!staff && info->accountId != context.accountId) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "Insufficient permissions");
+				// The mailbox: what this character received (the Mail page also has what it sent)
+				IMail::MailQuery query;
+				query.characterId = *charId;
+				query.includeDeleted = staff;
+				query.limit = 500;
 				nlohmann::json mail = nlohmann::json::array();
-				for (const auto& m : Database::Get()->GetMailForPlayer(*charId, 100)) {
-					mail.push_back({
-						{"id", std::to_string(m.id)},
-						{"sender", m.senderUsername},
-						{"subject", m.subject},
-						{"body", m.body},
-						{"time_sent", m.timeSent},
-						{"read", m.wasRead},
-						{"attachment_lot", m.itemLOT},
-						{"attachment_count", m.itemCount},
-						{"attachment_name", m.itemLOT > 0 ? ItemName(m.itemLOT) : ""}
-					});
+				for (const auto& m : Database::Get()->GetMailHistory(query)) {
+					if (m.receiverId != *charId || mail.size() >= 100) continue;
+					auto row = MailJson(m);
+					// Other players' accounts are for staff
+					if (!staff) row["sender_account_id"] = row["receiver_account_id"] = 0;
+					mail.push_back(std::move(row));
 				}
 				JsonReply(reply, eHTTPStatusCode::OK, mail);
 			});
@@ -1460,6 +1515,32 @@ namespace {
 	}
 
 	void RegisterMailRoutes() {
+		Route(eHTTPMethod::POST, "/api/tables/mail", Perm("characters_mail"),
+			"Every in-game mail for the Mail page (DataTables), newest first, deleted mail included; rows as /api/characters/:id/mail. "
+			"Body adds {state (unread, read, attachment, claimed, deleted), character (name or ID; sent or received), account (ID)}",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto request = ParseDataTablesRequest(context.body);
+				const auto body = ParseBody(context);
+				if (!request || !body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
+				const auto text = [&body](const char* name) {
+					const auto it = body->find(name);
+					return it != body->end() && it->is_string() ? it->get<std::string>() : std::string{};
+				};
+				IMail::MailQuery query;
+				query.search = request->search;
+				query.state = MailState(text("state"));
+				// A name or ID that matches no character matches no mail
+				if (const auto character = text("character"); !character.empty()) query.characterId = ResolveCharacter(character).value_or(-1);
+				if (const auto account = text("account"); !account.empty()) query.accountId = GeneralUtils::TryParse<uint32_t>(account).value_or(UINT32_MAX);
+				query.offset = request->start;
+				query.limit = std::clamp<uint32_t>(request->length, 1, 500);
+				IMail::MailQuery all;
+				nlohmann::json rows = nlohmann::json::array();
+				for (const auto& m : Database::Get()->GetMailHistory(query)) rows.push_back(MailJson(m));
+				JsonReply(reply, eHTTPStatusCode::OK, { {"draw", request->draw}, {"recordsTotal", Database::Get()->CountMailHistory(all)},
+					{"recordsFiltered", Database::Get()->CountMailHistory(query)}, {"data", rows} });
+			});
+
 		Route(eHTTPMethod::POST, "/api/mail/send", Perm("mail_send"), "Send in-game mail. Body: {recipient_id ('0' = everyone), subject, body, attachment_lot, attachment_count}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);

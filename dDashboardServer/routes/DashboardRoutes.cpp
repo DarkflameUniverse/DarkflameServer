@@ -441,6 +441,7 @@ void RegisterDashboardRoutes() {
 	});
 	SimplePage("/reports", Perm("reports_view"), "reports.jinja2", "reports", "Economy and world reports");
 	SimplePage("/pet_names", Perm("moderate_pet_names"), "pet_names.jinja2", "pet_names", "Pet names");
+	SimplePage("/mail", Perm("characters_mail"), "mail.jinja2", "mail", "Every in-game mail, deleted mail included");
 	SimplePage("/send_mail", Perm("mail_send"), "send_mail.jinja2", "send_mail", "Send mail");
 	SimplePage("/api_docs", 0, "api_docs.jinja2", "api_docs", "API documentation");
 	SimplePage("/webhooks", Perm("webhooks"), "webhooks.jinja2", "webhooks", "Outgoing webhooks for alerts");

@@ -31,8 +31,8 @@
 	</div>
 	{% endif %}
 
-	{% set moderationPages = ["players", "chat_log", "chat_filter", "pet_names", "send_mail"] %}
-	{% if can.players_view or can.chat_view or can.chat_filter_manage or can.moderate_pet_names or can.mail_send %}
+	{% set moderationPages = ["players", "chat_log", "chat_filter", "pet_names", "mail", "send_mail"] %}
+	{% if can.players_view or can.chat_view or can.chat_filter_manage or can.moderate_pet_names or can.characters_mail or can.mail_send %}
 	<div class="nav-group">
 		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-moderation" aria-expanded="{% if current_page in moderationPages %}true{% else %}false{% endif %}" aria-controls="nav-moderation">
 			Moderation<span class="nav-group-dot" title="Something in here needs attention"></span>
@@ -43,6 +43,7 @@
 				{% if can.chat_view %}<a href="/chat_log" class="list-group-item list-group-item-action{% if current_page == "chat_log" %} active{% endif %}">Chat Log</a>{% endif %}
 				{% if can.chat_filter_manage %}<a href="/chat_filter" class="list-group-item list-group-item-action{% if current_page == "chat_filter" %} active{% endif %}">Chat Filter</a>{% endif %}
 				{% if can.moderate_pet_names %}<a href="/pet_names" class="list-group-item list-group-item-action{% if current_page == "pet_names" %} active{% endif %}">Pet Names</a>{% endif %}
+				{% if can.characters_mail %}<a href="/mail" class="list-group-item list-group-item-action{% if current_page == "mail" %} active{% endif %}">Mail</a>{% endif %}
 				{% if can.mail_send %}<a href="/send_mail" class="list-group-item list-group-item-action{% if current_page == "send_mail" %} active{% endif %}">Send Mail</a>{% endif %}
 			</div>
 		</div>

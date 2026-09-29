@@ -31,6 +31,7 @@ set(DWEBTESTS_SOURCES
 	"ServerOperationsTests.cpp"
 	"PublicPagesTests.cpp"
 	"ModerationToolsTests.cpp"
+	"LocaleTextTests.cpp"
 	"ModeratorHelperTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/ai/ClaudeClient.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/ai/ModeratorPrompt.cpp"
