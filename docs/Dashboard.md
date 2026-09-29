@@ -698,7 +698,9 @@ second of each server, HTTP requests per second of the dashboard and the UGC ser
 their request counts, errors and latency. **Live** shows the last 5 minutes at one second and updates as reports arrive
 (the `traffic` WebSocket topic); **1 hour** is at 10 seconds; **24 hours** (5 minutes) and **7 days** (30 minutes)
 come from the database. The servers table also shows each server's RakNet connections, average ping and resent
-messages, and the worker threads of the dashboard and the UGC server.
+messages, and the worker threads of the dashboard and the UGC server. While the UGC server is enabled, its card says
+whether it is up (throttled, paused), how many items wait and failed (a link to the failed ones), its busy workers, CPU,
+memory and stored files; what it made and how long each took is on the UGC page.
 
 How it is counted:
 

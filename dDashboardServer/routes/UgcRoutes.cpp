@@ -458,9 +458,10 @@ namespace UgcRoutes {
 					online = ServerState::g_UgcStatus.online;
 				}
 				const auto base = InternalUrl();
-				Workers::Reply(reply, context, false, [base, enabled, online](HTTPReply& out) {
-					nlohmann::json body = { { "success", true }, { "enabled", enabled }, { "online", online },
-						{ "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } } };
+				// The database only on this thread; the worker only fetches
+				nlohmann::json body = { { "success", true }, { "enabled", enabled }, { "online", online },
+					{ "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } } };
+				Workers::Reply(reply, context, false, [base, enabled, body = std::move(body)](HTTPReply& out) mutable {
 					if (enabled) {
 						const auto fetched = CachedGet(base + "/status", eCache::STATUS);
 						if (fetched->status == 200) body["status"] = nlohmann::json::parse(fetched->body, nullptr, false);
