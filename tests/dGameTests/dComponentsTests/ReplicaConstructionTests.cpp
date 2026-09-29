@@ -84,3 +84,48 @@ TEST_F(ReplicaConstructionTest, TimeSinceCreatedOnServerIsTheObjectsAge) {
 	EXPECT_LT(later, 60000u);
 	EXPECT_GE(entity.GetTimeSinceCreatedMs(), later);
 }
+
+// A civilian's character component: live always wrote the GM, current-activity and social blocks on construction
+// (9,726 LOT 1 constructions: is_gm false, gm_level 0, current_activity Some(None), social_info always Some with guild 0
+// and an empty guild name). DLU wrote them only after something dirtied them, so a civilian got none of them.
+TEST_F(ReplicaConstructionTest, CharacterConstructionAlwaysWritesGmActivityAndSocialBlocks) {
+	User user(UNASSIGNED_SYSTEM_ADDRESS, "tester", "key");
+	Character character(1, &user);
+	info.lot = 1;
+	Entity player(1152921506064087003, info);
+	player.SetCharacter(&character);
+	character.SetEntity(&player);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+
+	RakNet::BitStream construction;
+	component->Serialize(construction, true);
+
+	// Everything before the GM block: 4 absent claim codes, 10 u32 appearance fields, 4 u64s (account, last logout,
+	// prop mod display time, u-score), the free-trial bit, 27 u64 statistics and the 2-bit transition state.
+	constexpr uint32_t beforeGm = 4 + 10 * 32 + 4 * 64 + 1 + 27 * 64 + 2;
+	RakNet::BitStream tail;
+	Tail(construction, beforeGm, tail);
+
+	RakNet::BitStream expected;
+	expected.Write1(); // gm_pvp_info Some
+	expected.Write0(); // pvp_enabled
+	expected.Write0(); // is_gm
+	expected.Write<uint8_t>(0); // gm_level
+	expected.Write0(); // editor_enabled
+	expected.Write<uint8_t>(0); // editor_level
+	expected.Write1(); // current_activity Some
+	expected.Write<uint32_t>(0); // GameActivity::None
+	expected.Write1(); // social_info Some
+	expected.Write<LWOOBJID>(0); // guild_id
+	expected.Write<uint8_t>(0); // guild_name ""
+	expected.Write1(); // is_lego_club_member (DLU treats everyone as a member)
+	expected.Write<uint32_t>(0); // country code
+	ExpectSameBits(tail, expected);
+
+	// A serialization with nothing changed still writes none of them
+	RakNet::BitStream serialization;
+	component->Serialize(serialization, false);
+	EXPECT_EQ(serialization.GetNumberOfBitsUsed(), 3u);
+
+	player.SetCharacter(nullptr);
+}

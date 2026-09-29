@@ -452,7 +452,7 @@ private:
 	/**
 	 * The guild this character is in
 	 */
-	LWOOBJID m_GuildID;
+	LWOOBJID m_GuildID = LWOOBJID_EMPTY;
 
 	/**
 	 * The name of the guild this character is in

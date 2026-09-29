@@ -228,8 +228,11 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		}
 	}
 
-	outBitStream.Write(m_DirtyGMInfo);
-	if (m_DirtyGMInfo) {
+	// Live wrote the GM, current-activity and social blocks on every player construction (civilians included),
+	// and afterwards only when they changed.
+	const bool writeGMInfo = bIsInitialUpdate || m_DirtyGMInfo;
+	outBitStream.Write(writeGMInfo);
+	if (writeGMInfo) {
 		outBitStream.Write(m_PvpEnabled);
 		outBitStream.Write(m_IsGM);
 		outBitStream.Write(m_GMLevel);
@@ -237,15 +240,16 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		outBitStream.Write(m_EditorLevel);
 	}
 
-	outBitStream.Write(m_DirtyCurrentActivity);
-	if (m_DirtyCurrentActivity) outBitStream.Write(m_CurrentActivity);
+	const bool writeCurrentActivity = bIsInitialUpdate || m_DirtyCurrentActivity;
+	outBitStream.Write(writeCurrentActivity);
+	if (writeCurrentActivity) outBitStream.Write(m_CurrentActivity);
 
-	outBitStream.Write(m_DirtySocialInfo);
-	if (m_DirtySocialInfo) {
+	const bool writeSocialInfo = bIsInitialUpdate || m_DirtySocialInfo;
+	outBitStream.Write(writeSocialInfo);
+	if (writeSocialInfo) {
 		outBitStream.Write(m_GuildID);
-		outBitStream.Write<unsigned char>(m_GuildName.size());
-		if (!m_GuildName.empty())
-			outBitStream.WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
+		outBitStream.Write<uint8_t>(m_GuildName.size());
+		for (const char16_t character : m_GuildName) outBitStream.Write<uint16_t>(character);
 
 		outBitStream.Write(m_IsLEGOClubMember);
 		outBitStream.Write(m_CountryCode);
