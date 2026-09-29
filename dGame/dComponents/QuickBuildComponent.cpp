@@ -473,7 +473,8 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	enableRebuild.bFail = false;
 	enableRebuild.bSuccess = true;
 	enableRebuild.eFailReason = eQuickBuildFailReason::NOT_GIVEN;
-	enableRebuild.fDuration = m_ResetTime;
+	// Live sent no duration on success (744 of 744); cancels carry the time spent building.
+	enableRebuild.fDuration = 0.0f;
 	enableRebuild.user = user->GetObjectID();
 	enableRebuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);

@@ -46,6 +46,10 @@ public:
 	const std::unordered_map<LWOOBJID, Entity*> GetAllEntities() const { return m_Entities; }
 #endif
 
+	// Tests only: makes an entity built without CreateEntity (and still owned by the caller) findable with GetEntity.
+	void _addEntity(Entity* entity);
+	void _removeEntity(LWOOBJID objectID) { m_Entities.erase(objectID); }
+
 	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SerializeEntity(Entity* entity);

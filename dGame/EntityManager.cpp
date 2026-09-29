@@ -184,6 +184,10 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	return entity;
 }
 
+void EntityManager::_addEntity(Entity* entity) {
+	m_Entities.insert_or_assign(entity->GetObjectID(), entity);
+}
+
 void EntityManager::DestroyEntity(const LWOOBJID& objectID) {
 	DestroyEntity(GetEntity(objectID));
 }

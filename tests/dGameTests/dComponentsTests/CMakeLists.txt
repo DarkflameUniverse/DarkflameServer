@@ -13,6 +13,7 @@ set(DCOMPONENTS_TESTS
 	"CharacterSaveFieldsTests.cpp"
 	"CollectibleComponentTests.cpp"
 	"ReplicaComponentOrderTests.cpp"
+	"QuickBuildCompleteTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

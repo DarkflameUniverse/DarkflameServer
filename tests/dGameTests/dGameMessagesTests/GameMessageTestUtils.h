@@ -121,6 +121,35 @@ namespace GameMessageTestUtils {
 		return msg;
 	}
 
+	// The game message ID of every captured game message, in send order; other packets are skipped.
+	inline std::vector<MessageType::Game> SentGameMessageIds(const std::vector<CapturedPacket>& packets) {
+		std::vector<MessageType::Game> ids;
+		for (const auto& packet : packets) {
+			RakNet::BitStream bitStream(const_cast<unsigned char*>(packet.bytes.data()), packet.bytes.size(), false);
+			LWOOBJID target{};
+			MessageType::Game msgId{};
+			if (GameMessages::NetGameMsg::ReadPacketHeader(bitStream, target, msgId)) ids.push_back(msgId);
+		}
+		return ids;
+	}
+
+	// Every captured game message of type T, read back with its target, in send order.
+	template<typename T>
+	std::vector<T> SentGameMessages(const std::vector<CapturedPacket>& packets) {
+		std::vector<T> found;
+		for (const auto& packet : packets) {
+			RakNet::BitStream bitStream(const_cast<unsigned char*>(packet.bytes.data()), packet.bytes.size(), false);
+			T msg;
+			LWOOBJID target{};
+			MessageType::Game msgId{};
+			if (!GameMessages::NetGameMsg::ReadPacketHeader(bitStream, target, msgId) || msgId != msg.msgId) continue;
+			EXPECT_TRUE(msg.Deserialize(bitStream));
+			msg.target = target;
+			found.push_back(msg);
+		}
+		return found;
+	}
+
 	// Checks that every strict prefix of msg's serialized payload fails to deserialize.
 	template<typename T>
 	void ExpectTruncatedFails(const T& msg) {
