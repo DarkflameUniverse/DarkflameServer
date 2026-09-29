@@ -206,7 +206,7 @@
 		var prefill = { account: String(data.account_id), action: s.action, days: s.days, strike: s.strike,
 			reason: s.action === 'note' ? clip(s.staff_explanation, 300) : s.player_reason, at: Date.now() };
 		try { sessionStorage.setItem(PREFILL_KEY, JSON.stringify(prefill)); } catch (e) { return toast('Could not pass the suggestion on (browser storage is off)', 'warning'); }
-		window.location.href = '/accounts/' + encodeURIComponent(data.account_id);
+		goTo('/accounts/' + encodeURIComponent(data.account_id));
 	}
 
 	// On an account page: fill in the form a suggestion was passed to. Nothing is submitted.

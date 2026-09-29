@@ -61,12 +61,12 @@ if (window.Live) Live.refreshPage('bug_reports', document.getElementById('report
 
 function resolveReport() {
 	api.action(reportUrl + '/resolve', { resolution: document.getElementById('resolution').value.trim() })
-		.then(function () { location.reload(); }).catch(function () {});
+		.then(function () { reloadInPlace(); }).catch(function () {});
 }
 
 function deleteReport() {
 	if (!confirm('Delete this bug report?')) return;
-	api.action(reportUrl + '/delete').then(function () { window.location.href = '/bug_reports'; }).catch(function () {});
+	api.action(reportUrl + '/delete').then(function () { goTo('/bug_reports', { replace: true }); }).catch(function () {});
 }
 </script>
 {% endblock %}

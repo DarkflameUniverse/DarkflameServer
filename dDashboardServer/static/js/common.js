@@ -92,6 +92,21 @@
 		});
 	};
 
+	/**
+	 * Show this page again with what the server has now, after a change made from it: in place when nav.js is there
+	 * (Nav.refresh), otherwise a reload. goTo(url) opens another page the same way (Nav.go, or a normal load).
+	 */
+	window.reloadInPlace = function () {
+		if (window.Nav && Nav.refresh) return Nav.refresh({ force: true });
+		window.location.reload();
+		return Promise.resolve();
+	};
+	window.goTo = function (url, options) {
+		if (window.Nav && Nav.go) return Nav.go(url, options);
+		if (options && options.replace) window.location.replace(url); else window.location.href = url;
+		return Promise.resolve();
+	};
+
 	window.toast = function (message, type) {
 		var container = document.getElementById('toast-container');
 		if (!container) {

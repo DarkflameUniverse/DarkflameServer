@@ -28,7 +28,7 @@
 				</select>
 			</div>
 			<div class="col-sm-3 d-flex gap-2">
-				<button type="button" class="btn btn-sm btn-outline-secondary flex-fill" onclick="location.reload()">Refresh</button>
+				<button type="button" class="btn btn-sm btn-outline-secondary flex-fill" onclick="showLogAgain()">Refresh</button>
 				{% if exists("log_file") %}<a class="btn btn-sm btn-outline-secondary flex-fill" href="/api/logs/file?name={{ log_file }}">Download</a>{% endif %}
 			</div>
 		</form>
@@ -128,8 +128,11 @@ document.querySelectorAll('#logFilePick option').forEach(function (o) {
 	var started = Number((o.value.match(/_(\d{9,})\.log$/) || [])[1]);
 	o.textContent = (started ? 'Started ' + fmt.unix(started) + ', ' : '') + 'last written ' + fmt.unix(Number(o.dataset.time)) + ' (' + fileSize(o.dataset.size) + ')';
 });
-document.getElementById('logServerPick').addEventListener('change', function () { location.href = '/system_log?server=' + encodeURIComponent(this.value); });
-document.getElementById('logFilePick').addEventListener('change', function () { this.form.submit(); });
+document.getElementById('logServerPick').addEventListener('change', function () { goTo('/system_log?server=' + encodeURIComponent(this.value)); });
+// requestSubmit, so the change goes through nav.js like a click on a link
+document.getElementById('logFilePick').addEventListener('change', function () { if (this.form.requestSubmit) this.form.requestSubmit(); else this.form.submit(); });
+// The same file again with its newest lines, where the page was scrolled to
+function showLogAgain() { goTo(location.href, { replace: true, scroll: window.scrollY }); }
 
 // Download logs
 function bundleLocal(date) { var d = new Date(date.getTime() - date.getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }

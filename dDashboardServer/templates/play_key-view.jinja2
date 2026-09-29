@@ -75,7 +75,7 @@ function saveKey() {
 
 function deleteKey() {
 	if (!confirm('Delete this play key? Accounts that used it keep working but lose the link to it.')) return;
-	api.action(keyUrl + '/delete').then(function () { window.location.href = '/play_keys'; }).catch(function () {});
+	api.action(keyUrl + '/delete').then(function () { goTo('/play_keys', { replace: true }); }).catch(function () {});
 }
 </script>
 {% endblock %}
