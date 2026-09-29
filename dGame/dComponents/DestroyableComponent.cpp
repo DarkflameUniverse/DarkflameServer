@@ -357,6 +357,18 @@ void DestroyableComponent::SetIsShielded(bool value) {
 	m_IsShielded = value;
 }
 
+void DestroyableComponent::AddTemplateFactions(const std::string& factionList) {
+	// The client (LWODestroyableComponent::LoadDataFromTemplate) and live took the factions from the row's factionList,
+	// -1 included (live replicated it as [-1]); the faction column is not used.
+	std::stringstream ss(factionList);
+	std::string token;
+
+	while (std::getline(ss, token, ',')) {
+		const auto faction = GeneralUtils::TryParse<int32_t>(token);
+		if (faction) AddFaction(faction.value(), faction.value() == -1);
+	}
+}
+
 void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignoreChecks) {
 	// Ignore factionID -1
 	if (factionID == -1 && !ignoreChecks) return;

@@ -214,6 +214,12 @@ public:
 	bool GetIsShielded() const { return m_IsShielded; }
 
 	/**
+	 * Adds the factions in the object's DestructibleComponent factionList (comma separated), -1 included, as the client
+	 * reads them
+	 */
+	void AddTemplateFactions(const std::string& factionList);
+
+	/**
 	 * Adds a faction to the faction list of this entity, potentially making more factions friendly. Fetches the info
 	 * from the CDClient.
 	 * @param factionID the faction ID to add

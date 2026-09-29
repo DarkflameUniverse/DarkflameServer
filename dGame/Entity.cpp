@@ -475,18 +475,7 @@ void Entity::Initialize() {
 			}
 		}
 
-		if (!destCompData.empty()) {
-			comp->AddFaction(destCompData[0].faction);
-			std::stringstream ss(destCompData[0].factionList);
-			std::string token;
-
-			while (std::getline(ss, token, ',')) {
-				const auto tokenInt = GeneralUtils::TryParse<int32_t>(token);
-				if (tokenInt == destCompData[0].faction) continue;
-
-				if (tokenInt) comp->AddFaction(tokenInt.value());
-			}
-		}
+		if (!destCompData.empty()) comp->AddTemplateFactions(destCompData[0].factionList);
 
 		// Level files can replace the factions with set_faction, unless override_faction is 0
 		const auto levelFactions = DestroyableComponent::GetLevelFactions(*this);

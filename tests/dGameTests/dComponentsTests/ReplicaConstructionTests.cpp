@@ -218,6 +218,30 @@ TEST_F(ReplicaConstructionTest, SimplePhysicsConstructionLikeLive) {
 	info.settings.values.clear();
 }
 
+// Live replicated the DestructibleComponent factionList, so a list of -1 as [-1] (12,829 constructions: vendors,
+// quickbuilds, bouncers; DLU dropped it and sent []), and a row with no faction but factionList 6 as [6].
+TEST_F(ReplicaConstructionTest, TemplateFactionMinusOneIsReplicated) {
+	CDClientDatabase::Connect(":memory:");
+	CDClientDatabase::ExecuteDML("CREATE TABLE Factions (faction INTEGER, enemyList TEXT);");
+	CDClientDatabase::ExecuteDML("INSERT INTO Factions VALUES (4, '1'), (6, '');");
+
+	Entity vendor(15, info);
+	auto* const destroyable = vendor.AddComponent<DestroyableComponent>(-1);
+	destroyable->AddTemplateFactions("-1");
+	EXPECT_EQ(destroyable->GetFactionIDs(), std::vector<int32_t>{ -1 });
+
+	Entity enemy(16, info);
+	auto* const enemyDestroyable = enemy.AddComponent<DestroyableComponent>(-1);
+	enemyDestroyable->AddTemplateFactions("4");
+	EXPECT_EQ(enemyDestroyable->GetFactionIDs(), std::vector<int32_t>{ 4 });
+	EXPECT_EQ(enemyDestroyable->GetEnemyFactionsIDs(), std::vector<int32_t>{ 1 });
+
+	Entity smashable(17, info);
+	auto* const smashableDestroyable = smashable.AddComponent<DestroyableComponent>(-1);
+	smashableDestroyable->AddTemplateFactions("6");
+	EXPECT_EQ(smashableDestroyable->GetFactionIDs(), std::vector<int32_t>{ 6 });
+}
+
 class InventoryConstructionTest : public GameDependenciesTest {
 protected:
 	// The items of the live sample below (CDClient 1.10.64 values)
