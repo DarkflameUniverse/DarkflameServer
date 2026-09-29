@@ -790,6 +790,22 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	m_Parent->Kill(owner, killType);
 }
 
+std::optional<std::vector<int32_t>> DestroyableComponent::GetLevelFactions(const Entity& entity) {
+	if (!entity.HasVar(u"set_faction")) return std::nullopt;
+	// override_faction defaults to true when set_faction is there; false keeps the template's factions
+	if (entity.HasVar(u"override_faction") && !entity.GetVar<bool>(u"override_faction")) return std::nullopt;
+
+	// Many values have a trailing space ("6 ")
+	std::vector<int32_t> factions;
+	for (const auto& semicolonSplit : GeneralUtils::SplitString(entity.GetVarAsString(u"set_faction"), ';')) {
+		for (const auto& faction : GeneralUtils::SplitString(semicolonSplit, ' ')) {
+			const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
+			if (factionToAdd) factions.push_back(factionToAdd.value());
+		}
+	}
+	return factions;
+}
+
 void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	m_FactionIDs.clear();
 	m_EnemyFactionIDs.clear();

@@ -487,21 +487,11 @@ void Entity::Initialize() {
 			}
 		}
 
-		// Level files can replace the factions with set_faction. The client splits the value on
-		// both ';' and ' ' and replaces its faction list with the result
-		// (LWODestroyableComponent::LoadConfigData), and many values have a trailing space ("13:6 ").
-		const auto setFaction = GetVarAsString(u"set_faction");
-		std::vector<int32_t> factionsToSet;
-		for (const auto& semicolonSplit : GeneralUtils::SplitString(setFaction, ';')) {
-			for (const auto& faction : GeneralUtils::SplitString(semicolonSplit, ' ')) {
-				const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
-				if (factionToAdd) factionsToSet.push_back(factionToAdd.value());
-			}
-		}
-
-		if (!factionsToSet.empty()) {
-			comp->SetFaction(factionsToSet.front(), true);
-			for (const auto faction : factionsToSet | std::views::drop(1)) comp->AddFaction(faction, true);
+		// Level files can replace the factions with set_faction, unless override_faction is 0
+		const auto levelFactions = DestroyableComponent::GetLevelFactions(*this);
+		if (levelFactions && !levelFactions->empty()) {
+			comp->SetFaction(levelFactions->front(), true);
+			for (const auto faction : *levelFactions | std::views::drop(1)) comp->AddFaction(faction, true);
 		}
 	}
 

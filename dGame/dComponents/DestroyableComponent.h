@@ -2,6 +2,7 @@
 #define DESTROYABLECOMPONENT_H
 
 #include "RakNetTypes.h"
+#include <optional>
 #include <vector>
 #include "tinyxml2.h"
 #include "Entity.h"
@@ -367,6 +368,14 @@ public:
 	uint32_t GetLootMatrixID() const { return m_LootMatrixID; }
 
 	void SetCurrencyIndex(int32_t currencyIndex) { m_CurrencyIndex = currencyIndex; }
+
+	/**
+	 * The factions a level object's set_faction gives it in place of the template's, resolved as the client does
+	 * (LWODestroyableComponent::LoadConfigData 0x00c44cb0, LoadDataFromTemplate 0x00c9f900): set_faction is used
+	 * unless override_faction is present and false. The value is split on ';' and ' '.
+	 * @return the factions, or nullopt when the template's factions stay
+	 */
+	static std::optional<std::vector<int32_t>> GetLevelFactions(const Entity& entity);
 
 	/**
 	 * Returns the ID of the entity that killed this entity, if any
