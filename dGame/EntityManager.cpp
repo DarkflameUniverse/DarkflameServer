@@ -100,8 +100,8 @@ void EntityManager::Initialize() {
 		Game::zoneManager->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
 
-	// Scene ghosting needs the terrain's scene map; without one it stays off
-	if (m_GhostingEnabled && GeneralUtils::TryParse<bool>(Game::config->GetValue("ghosting_scenes")).value_or(false)) {
+	// Scene ghosting (on unless ghosting_scenes=0) needs the terrain's scene map; without one it stays off
+	if (m_GhostingEnabled && GeneralUtils::TryParse<bool>(Game::config->GetValue("ghosting_scenes")).value_or(true)) {
 		auto* zone = Game::zoneManager->GetZoneMut();
 		m_SceneGhosting = zone && zone->LoadSceneMap();
 		LOG("Scene ghosting is %s", m_SceneGhosting ? "on" : "off: the zone has no scene map");

@@ -74,8 +74,8 @@ icons without building them locally. See [docs/UgcServer.md](docs/UgcServer.md).
   property.
 * **Brick-by-Brick:** server-side autosave storage, model metadata answers, and saved builds split into models with
   every bone and rigid system moved together. See [docs/BuildWorkflow.md](docs/BuildWorkflow.md).
-* **Scene ghosting** (optional): players get the objects of the scenes the client has loaded, as the client streams
-  them.
+* **Scene ghosting** (on by default, `ghosting_scenes`): players get the objects of the scenes the client streams;
+  zones without a terrain scene map keep distance ghosting.
 * Server-side knockback for AI-moved objects, switchable trigger volumes, missing force field, jetpack NPC and
   Skullkin volume scripts, deletion restrictions enforced, cross-world new-mail notices, pet LOTs stored with names,
   stale character saves refused.
