@@ -806,6 +806,15 @@ std::optional<std::vector<int32_t>> DestroyableComponent::GetLevelFactions(const
 	return factions;
 }
 
+std::optional<int32_t> DestroyableComponent::GetLevelLootMatrix(const Entity& entity) {
+	if (entity.HasVar(u"smashable_loot_matrix_set") && !entity.GetVar<bool>(u"smashable_loot_matrix_set")) return std::nullopt;
+	if (!entity.HasVar(u"smashable_loot_matrix")) return std::nullopt;
+
+	const auto lootMatrix = entity.GetVar<int32_t>(u"smashable_loot_matrix");
+	if (lootMatrix == -1) return std::nullopt;
+	return lootMatrix;
+}
+
 void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	m_FactionIDs.clear();
 	m_EnemyFactionIDs.clear();

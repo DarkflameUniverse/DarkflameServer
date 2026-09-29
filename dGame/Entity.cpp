@@ -493,6 +493,13 @@ void Entity::Initialize() {
 			comp->SetFaction(levelFactions->front(), true);
 			for (const auto faction : *levelFactions | std::views::drop(1)) comp->AddFaction(faction, true);
 		}
+
+		// Level files can give a smashable its own loot matrix in place of the template's
+		const auto levelLootMatrix = DestroyableComponent::GetLevelLootMatrix(*this);
+		if (!m_Character && levelLootMatrix) {
+			comp->SetLootMatrixID(levelLootMatrix.value());
+			Loot::CacheMatrix(levelLootMatrix.value());
+		}
 	}
 
 	const auto characterID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER);

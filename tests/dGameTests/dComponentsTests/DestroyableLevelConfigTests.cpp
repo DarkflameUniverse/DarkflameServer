@@ -44,3 +44,33 @@ TEST_F(DestroyableLevelConfigTests, OverrideFactionFalseIgnoresSetFaction) {
 	entity->SetVar<bool>(u"override_faction", false);
 	EXPECT_FALSE(DestroyableComponent::GetLevelFactions(*entity));
 }
+
+TEST_F(DestroyableLevelConfigTests, NoLootMatrixKeysKeepTheTemplateLootMatrix) {
+	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
+	entity->SetVar<bool>(u"smashable_loot_matrix_set", true);
+	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
+}
+
+TEST_F(DestroyableLevelConfigTests, LootMatrixWithoutTheSetKeyIsUsed) {
+	entity->SetVar<int32_t>(u"smashable_loot_matrix", 748);
+	EXPECT_EQ(DestroyableComponent::GetLevelLootMatrix(*entity), 748);
+}
+
+TEST_F(DestroyableLevelConfigTests, LootMatrixWithTheSetKeyTrueIsUsed) {
+	entity->SetVar<int32_t>(u"smashable_loot_matrix", 352);
+	entity->SetVar<bool>(u"smashable_loot_matrix_set", true);
+	EXPECT_EQ(DestroyableComponent::GetLevelLootMatrix(*entity), 352);
+}
+
+TEST_F(DestroyableLevelConfigTests, LootMatrixWithTheSetKeyFalseIsIgnored) {
+	entity->SetVar<int32_t>(u"smashable_loot_matrix", 227);
+	entity->SetVar<bool>(u"smashable_loot_matrix_set", false);
+	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
+}
+
+TEST_F(DestroyableLevelConfigTests, LootMatrixMinusOneIsIgnored) {
+	entity->SetVar<int32_t>(u"smashable_loot_matrix", -1);
+	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
+	entity->SetVar<bool>(u"smashable_loot_matrix_set", true);
+	EXPECT_FALSE(DestroyableComponent::GetLevelLootMatrix(*entity));
+}

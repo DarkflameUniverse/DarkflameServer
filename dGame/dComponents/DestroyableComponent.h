@@ -378,6 +378,14 @@ public:
 	static std::optional<std::vector<int32_t>> GetLevelFactions(const Entity& entity);
 
 	/**
+	 * The loot matrix a level object's smashable_loot_matrix gives it in place of the template's LootMatrixIndex,
+	 * resolved as the client does (LWODestroyableComponent::LoadConfigData 0x00c44cb0): used when
+	 * smashable_loot_matrix_set is true or absent, unless the matrix is -1.
+	 * @return the loot matrix, or nullopt when the template's stays
+	 */
+	static std::optional<int32_t> GetLevelLootMatrix(const Entity& entity);
+
+	/**
 	 * Returns the ID of the entity that killed this entity, if any
 	 * @return the ID of the entity that killed this entity, if any
 	 */
