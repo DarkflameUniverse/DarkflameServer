@@ -39,6 +39,7 @@ namespace UgcHsr {
 		uint64_t seed{};                // of the paths' random numbers (the same seed gives the same result)
 		UgcRays::eBackend rays{};       // what traces the paths' rays (ray_backend)
 		int fastResolution{ 1024 };     // hsr_fast_resolution: pixels square of each of the fast method's renders
+		bool sideBySide{};              // trace the paths side by side as for a GPU whatever the backend (to compare the two)
 	};
 
 	struct Result {

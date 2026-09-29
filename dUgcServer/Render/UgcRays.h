@@ -4,6 +4,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include <glm/glm.hpp>
@@ -15,6 +16,9 @@
  * (whether anything is hit), by one of several backends (the ugc_ray_backend setting, or per job):
  *   builtin: the UGC server's own bounding volume hierarchies (the ones it always had)
  *   embree:  Intel's Embree 4 on the CPU, on the thread that asks (no threads of its own)
+ *   hiprt:   AMD's HIPRT on the GPU (AMD through HIP, NVIDIA through CUDA, loaded when first asked for by Orochi),
+ *            when built with DLU_HIPRT and a GPU is there; else embree. One GPU for the process, used by one thread
+ *            at a time; its time is not CPU time.
  * A scene is built and traced on the thread that asks, so its time counts towards that thread's CPU time
  * (UgcThrottle). Scenes aren't shared between threads. docs/UgcServer.md ("Processing options") has the details.
  */
@@ -32,12 +36,26 @@ namespace UgcRays {
 	bool Available(eBackend backend);
 	// The backend that is used when `wanted` is asked for: itself, or embree when it isn't available
 	eBackend Resolve(eBackend wanted);
+	// Why a backend isn't available (empty when it is)
+	std::string Problem(eBackend backend);
 
 	struct Hit {
 		float t{ INF };
 		uint32_t triangle{ NONE };
 		float u{}, v{}; // weights of the triangle's second and third vertex
 	};
+
+	// A ray of a batch (the layout the GPU kernels read too)
+	struct Ray {
+		glm::vec3 origin{};
+		float minT{};            // Occluded: hits further than this count (Closest: further than 0)
+		glm::vec3 direction{};   // unit
+		float maxT{ INF };       // hits nearer than this count
+		uint32_t skip{ NONE };   // Closest: the triangle never hit (the one the ray leaves)
+		uint32_t padding[3]{};
+	};
+	static_assert(sizeof(Ray) == 48, "the GPU kernels read rays as 48 bytes");
+	static_assert(sizeof(Hit) == 16, "the GPU kernels write hits as 16 bytes");
 
 	class Scene {
 	public:
@@ -49,6 +67,13 @@ namespace UgcRays {
 
 		// Whether the ray (unit direction) hits a triangle further than `minT` and nearer than `maxT`
 		virtual bool Occluded(const glm::vec3& origin, const glm::vec3& direction, float minT, float maxT) const = 0;
+
+		// Many rays at once, as the single ray queries answer them (a GPU answers a batch at the cost of one ray)
+		virtual void Closest(const Ray* rays, Hit* hits, size_t count) const;
+		virtual void Occluded(const Ray* rays, uint8_t* occluded, size_t count) const;
+
+		// Whether the backend is only fast with big batches (a GPU): the callers then trace many paths side by side
+		virtual bool PrefersBatches() const { return false; }
 	};
 
 	/**
@@ -56,4 +81,7 @@ namespace UgcRays {
 	 * when the backend fails.
 	 */
 	std::unique_ptr<Scene> Make(eBackend backend, const UgcModel::Mesh& mesh);
+
+	// Which GPU hiprt uses (hiprt_device: 0 is the first HIP or CUDA device); before it is first used
+	void SetGpuDevice(int index);
 }

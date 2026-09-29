@@ -2215,6 +2215,24 @@ TEST(UgcRays, BackendsFindTheSameHits) {
 	}
 }
 
+TEST(UgcHsr, SideBySideDecidesTheSameAsOneByOne) {
+	// The paths traced side by side (as for a GPU) are the same paths, so the same triangles stay; ground plane too
+	for (const bool ground : { false, true }) {
+		UgcHsr::Options options;
+		options.seed = 5;
+		options.samples = 2;
+		options.groundPlane = ground;
+		const auto mesh = Clutter();
+		uint64_t points = 0, paths = 0, sidePoints = 0, sidePaths = 0;
+		const auto oneByOne = UgcHsr::Visible(mesh, options, &points, &paths);
+		options.sideBySide = true;
+		EXPECT_EQ(UgcHsr::Visible(mesh, options, &sidePoints, &sidePaths), oneByOne) << ground;
+		EXPECT_EQ(sidePoints, points);
+		EXPECT_GE(sidePaths, paths); // it traces a round's other paths too once one escaped
+		EXPECT_EQ(UgcHsr::Visible(Room(true), options), UgcHsr::Visible(Room(true), UgcHsr::Options{ .groundPlane = ground, .samples = 2, .seed = 5 }));
+	}
+}
+
 TEST(UgcRays, OtherBackendsMakeTheSameModels) {
 	// The hidden faces and the occlusion with each backend. The paths bounce, so a hit found a rounding further away
 	// sends a path on from a slightly different point: the rare triangle decided by a path that only just gets out

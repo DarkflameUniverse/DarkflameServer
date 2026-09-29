@@ -33,6 +33,18 @@ if(DLU_OIDN)
 	target_link_libraries(dUgc PRIVATE OpenImageDenoise)
 	target_compile_definitions(dUgc PRIVATE DLU_OIDN)
 endif()
+# HIPRT and Orochi, when built with DLU_HIPRT (thirdparty/CMakeLists.txt): the ray_backend=hiprt setting
+if(DLU_HIPRT)
+	target_sources(dUgc PRIVATE "Render/UgcRaysHiprt.cpp")
+	# hiprtew's function pointers have the names of HIPRT's functions: hidden, or HIPRT's library would call them
+	# instead of its own (the servers export their symbols)
+	if(NOT MSVC)
+		set_source_files_properties("Render/UgcRaysHiprt.cpp" PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden")
+	endif()
+	target_include_directories(dUgc PRIVATE "${DLU_HIPRT_INCLUDE_DIR}")
+	target_link_libraries(dUgc PRIVATE dlu_orochi)
+	target_compile_definitions(dUgc PRIVATE DLU_HIPRT DLU_HIPRT_INCLUDE_DIR="${DLU_HIPRT_INCLUDE_DIR}")
+endif()
 
 add_executable(UgcServer "UgcServer.cpp" "Processing/UgcProcessor.cpp" "Bricks/UgcCdClient.cpp")
 

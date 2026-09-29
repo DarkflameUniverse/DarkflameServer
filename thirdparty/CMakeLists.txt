@@ -208,3 +208,34 @@ if(DLU_OIDN)
 	endif()
 	message(STATUS "Open Image Denoise ${OpenImageDenoise_VERSION}: the UGC server can denoise icons")
 endif()
+
+# HIPRT (MIT), the UGC server's ray_backend=hiprt on the GPU: optional, off by default. Needs HIPRT's SDK (its headers;
+# HIPRT_ROOT, else ROCm's /opt/rocm), whose library is loaded at run time (hiprtew), as HIP or CUDA are by Orochi (MIT,
+# fetched here; CUDA too when its toolkit is found). The headers are copied next to the servers: the GPU kernels are
+# compiled from them when the UGC server first uses the GPU.
+option(DLU_HIPRT "Build the UGC server with HIPRT (the ray_backend=hiprt setting, on the GPU)" OFF)
+if(DLU_HIPRT)
+	find_path(DLU_HIPRT_INCLUDE_DIR hiprt/hiprtew.h PATHS "$ENV{HIPRT_ROOT}/include" "${HIPRT_ROOT}/include" "/opt/rocm/include" REQUIRED)
+	FetchContent_Declare(orochi
+		URL https://github.com/GPUOpen-LibrariesAndSDKs/Orochi/archive/dbaf54bb61007d7ce87802b9458df54eeb574fe1.tar.gz
+		URL_HASH SHA256=13d5b946aceadc07b09633e5cb2917433209f562a596e76181325d04cd0d4173
+		DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+	FetchContent_MakeAvailable(orochi) # no CMakeLists.txt of its own: only downloaded
+	add_library(dlu_orochi STATIC "${orochi_SOURCE_DIR}/Orochi/Orochi.cpp" "${orochi_SOURCE_DIR}/contrib/hipew/src/hipew.cpp")
+	target_include_directories(dlu_orochi PUBLIC "${orochi_SOURCE_DIR}")
+	target_link_libraries(dlu_orochi PUBLIC ${CMAKE_DL_LIBS})
+	# The servers export their symbols (-rdynamic): HIPRT's library has an Orochi of its own, whose names ours mustn't take
+	set_target_properties(dlu_orochi PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
+	find_package(CUDAToolkit QUIET)
+	if(CUDAToolkit_FOUND)
+		target_sources(dlu_orochi PRIVATE "${orochi_SOURCE_DIR}/contrib/cuew/src/cuew.cpp")
+		target_compile_definitions(dlu_orochi PUBLIC OROCHI_ENABLE_CUEW)
+		target_include_directories(dlu_orochi PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+	endif()
+	file(COPY "${DLU_HIPRT_INCLUDE_DIR}/hiprt" DESTINATION "${CMAKE_BINARY_DIR}/hiprt/include")
+	if(CUDAToolkit_FOUND)
+		message(STATUS "HIPRT headers in ${DLU_HIPRT_INCLUDE_DIR}: the UGC server can trace rays on AMD (HIP) and NVIDIA (CUDA) GPUs")
+	else()
+		message(STATUS "HIPRT headers in ${DLU_HIPRT_INCLUDE_DIR}: the UGC server can trace rays on AMD GPUs (HIP; no CUDA toolkit found)")
+	endif()
+endif()

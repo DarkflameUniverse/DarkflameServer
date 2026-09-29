@@ -164,6 +164,8 @@ namespace {
 		// What traces the rays of the hidden faces' paths and of the occlusion (the icon's too)
 		settings.hsr.rays = UgcRays::Parse(Game::config->GetValue("ray_backend")).value_or(UgcRays::eBackend::BUILTIN);
 		settings.ao.rays = settings.hsr.rays;
+		// The GPU hiprt uses (read before it is first used; changing it takes a restart)
+		UgcRays::SetGpuDevice(std::max(Setting<int32_t>("hiprt_device", 0), 0));
 		settings.ao.enabled = Setting<int32_t>("bake_ao", 1) != 0;
 		settings.ao.distance = Setting<float>("ao_distance", 5.0f);
 		settings.ao.samples = std::clamp(Setting<int32_t>("ao_samples", 64), 1, 1024);
@@ -184,6 +186,17 @@ namespace {
 		settings.icon.bakedAo = settings.ao.enabled ? std::clamp(settings.ao.strength, 0.0f, 1.0f) : 0.0f;
 		settings.maxBricks = Setting<uint32_t>("max_model_bricks", 0);
 		return settings;
+	}
+
+	// The processing options the settings pick, and what is used instead when this build or machine can't
+	// (main thread: the GPU is set up here the first time)
+	void LogProcessingOptions(const UgcJobs::Settings& settings) {
+		const auto made = UgcJobs::MadeWith(settings);
+		LOG("Processing options: %s", UgcProcessOptions::ToString(made).c_str());
+		if (UgcRays::Resolve(settings.hsr.rays) != settings.hsr.rays) {
+			LOG("ray_backend=%s can't be used (%s): embree instead", std::string(UgcRays::Name(settings.hsr.rays)).c_str(), UgcRays::Problem(settings.hsr.rays).c_str());
+		}
+		if (!UgcRender::Available(settings.icon.denoise)) LOG("denoise=%s can't be used (the server was built without DLU_OIDN): off instead", std::string(UgcRender::Name(settings.icon.denoise)).c_str());
 	}
 
 	UgcProcessor::Limits ReadLimits() {
@@ -691,6 +704,7 @@ int main(int argc, char** argv) {
 	processorConfig.threads = threads > 0 ? threads : std::max<size_t>(std::thread::hardware_concurrency() / 2, 1);
 	UgcProcessor processor(processorConfig, storage, library, ReadSettings());
 	processor.Configure(ReadSettings(), ReadLimits());
+	LogProcessingOptions(ReadSettings());
 	g_Processor = &processor;
 	// Sent with the traffic reports to the dashboard (Diagnostics)
 	TrafficStats::Local().SetGauge("workers_busy", [&processor] { return static_cast<double>(processor.Busy()); });

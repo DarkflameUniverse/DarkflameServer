@@ -284,36 +284,60 @@ namespace UgcRender {
 				return h;
 			}
 		};
-		std::unordered_map<Key, float, KeyHash> known;
-		known.reserve(mesh.positions.size());
+		// Which vertices are worked out (the first at each place and facing) and which take another's
+		std::unordered_map<Key, size_t, KeyHash> first;
+		first.reserve(mesh.positions.size());
+		std::vector<size_t> copyOf(mesh.positions.size(), SIZE_MAX);
+		std::vector<size_t> traced;
 		for (size_t v = 0; v < mesh.positions.size(); v++) {
-			if ((v & 0xFF) == 0) UgcThrottle::Checkpoint();
 			const auto& normal = mesh.normals[v];
 			const Key key{ { static_cast<int32_t>(std::lround(mesh.positions[v].x * 1000.0f)), static_cast<int32_t>(std::lround(mesh.positions[v].y * 1000.0f)),
 				static_cast<int32_t>(std::lround(mesh.positions[v].z * 1000.0f)) }, { static_cast<int32_t>(std::lround(normal.x * 100.0f)),
 				static_cast<int32_t>(std::lround(normal.y * 100.0f)), static_cast<int32_t>(std::lround(normal.z * 100.0f)) } };
-			if (const auto it = known.find(key); it != known.end()) {
-				ao[v] = it->second;
+			if (const auto it = first.find(key); it != first.end()) {
+				copyOf[v] = it->second;
 				continue;
 			}
 			if (glm::dot(normal, normal) < 0.5f) continue;
-			// A frame around the normal
-			const glm::vec3 helper = std::abs(normal.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
-			const auto tangent = glm::normalize(glm::cross(helper, normal));
-			const auto bitangent = glm::cross(normal, tangent);
-			// Hammersley points, turned by an amount of the vertex's own (fixed) so neighbours don't band
-			const float turn = static_cast<float>((v * 0x9E3779B9u) >> 8 & 0xFFFFFF) / 16777216.0f;
-			const auto origin = mesh.positions[v] + normal * 1e-3f;
-			uint32_t open = 0;
-			for (uint32_t i = 0; i < count; i++) {
-				const float u = (i + 0.5f) / static_cast<float>(count);
-				const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
-				const float r = std::sqrt(u), z = std::sqrt(std::max(0.0f, 1.0f - u));
-				const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * z;
-				if (!scene->Occluded(origin, direction, 1e-4f, distance)) open++;
+			first.emplace(key, v);
+			traced.push_back(v);
+		}
+		// The rays in batches of vertices: small ones between checkpoints on the CPU, big ones for a GPU
+		const size_t perBatch = scene->PrefersBatches() ? std::max<size_t>(1, (1u << 18) / count) : 256;
+		std::vector<UgcRays::Ray> batch;
+		std::vector<uint8_t> occluded;
+		for (size_t start = 0; start < traced.size(); start += perBatch) {
+			UgcThrottle::Checkpoint();
+			const size_t end = std::min(traced.size(), start + perBatch);
+			batch.clear();
+			for (size_t j = start; j < end; j++) {
+				const auto v = traced[j];
+				const auto& normal = mesh.normals[v];
+				// A frame around the normal
+				const glm::vec3 helper = std::abs(normal.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+				const auto tangent = glm::normalize(glm::cross(helper, normal));
+				const auto bitangent = glm::cross(normal, tangent);
+				// Hammersley points, turned by an amount of the vertex's own (fixed) so neighbours don't band
+				const float turn = static_cast<float>((v * 0x9E3779B9u) >> 8 & 0xFFFFFF) / 16777216.0f;
+				const auto origin = mesh.positions[v] + normal * 1e-3f;
+				for (uint32_t i = 0; i < count; i++) {
+					const float u = (i + 0.5f) / static_cast<float>(count);
+					const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
+					const float r = std::sqrt(u), z = std::sqrt(std::max(0.0f, 1.0f - u));
+					const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * z;
+					batch.push_back(UgcRays::Ray{ origin, 1e-4f, direction, distance });
+				}
 			}
-			ao[v] = static_cast<float>(open) / static_cast<float>(count);
-			known.emplace(key, ao[v]);
+			occluded.resize(batch.size());
+			scene->Occluded(batch.data(), occluded.data(), batch.size());
+			for (size_t j = start; j < end; j++) {
+				uint32_t open = 0;
+				for (uint32_t i = 0; i < count; i++) open += occluded[(j - start) * count + i] ? 0 : 1;
+				ao[traced[j]] = static_cast<float>(open) / static_cast<float>(count);
+			}
+		}
+		for (size_t v = 0; v < ao.size(); v++) {
+			if (copyOf[v] != SIZE_MAX) ao[v] = ao[copyOf[v]];
 		}
 		return ao;
 	}
@@ -517,31 +541,49 @@ namespace UgcRender {
 		if (traced) {
 			const auto scene = UgcRays::Make(options.ao.rays, model.opaque);
 			const auto count = static_cast<uint32_t>(std::clamp(options.denoiseSamples, 1, 256));
+			// In batches of pixels: small ones between checkpoints on the CPU, big ones for a GPU
+			const size_t perBatch = scene->PrefersBatches() ? std::max<size_t>(1, (1u << 18) / count) : 1024;
+			std::vector<size_t> drawn;
 			for (size_t index = 0; index < color.size(); index++) {
-				if ((index & 0x3FF) == 0) UgcThrottle::Checkpoint();
-				if (color[index].a <= 0.0f) continue;
-				const auto& normal = pointNormals[index];
-				const glm::vec3 helper = std::abs(normal.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
-				const auto tangent = glm::normalize(glm::cross(helper, normal));
-				const auto bitangent = glm::cross(normal, tangent);
-				uint32_t hash = static_cast<uint32_t>(index) * 0x9E3779B9u;
-				hash ^= hash >> 16;
-				hash *= 0x85EBCA6Bu;
-				hash ^= hash >> 13;
-				const float turn = static_cast<float>(hash >> 8) / 16777216.0f;
-				const float shift = static_cast<float>((hash * 0xC2B2AE35u) >> 8) / 16777216.0f;
-				const auto origin = points[index] + normal * 1e-3f;
-				uint32_t open = 0;
-				for (uint32_t i = 0; i < count; i++) {
-					const float u = std::fmod((i + shift) / static_cast<float>(count), 1.0f);
-					const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
-					const float r = std::sqrt(u), up = std::sqrt(std::max(0.0f, 1.0f - u));
-					const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * up;
-					if (!scene->Occluded(origin, direction, 1e-4f, options.ao.distance)) open++;
+				if (color[index].a > 0.0f) drawn.push_back(index);
+			}
+			std::vector<UgcRays::Ray> batch;
+			std::vector<uint8_t> occluded;
+			for (size_t start = 0; start < drawn.size(); start += perBatch) {
+				UgcThrottle::Checkpoint();
+				const size_t end = std::min(drawn.size(), start + perBatch);
+				batch.clear();
+				for (size_t j = start; j < end; j++) {
+					const auto index = drawn[j];
+					const auto& normal = pointNormals[index];
+					const glm::vec3 helper = std::abs(normal.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+					const auto tangent = glm::normalize(glm::cross(helper, normal));
+					const auto bitangent = glm::cross(normal, tangent);
+					uint32_t hash = static_cast<uint32_t>(index) * 0x9E3779B9u;
+					hash ^= hash >> 16;
+					hash *= 0x85EBCA6Bu;
+					hash ^= hash >> 13;
+					const float turn = static_cast<float>(hash >> 8) / 16777216.0f;
+					const float shift = static_cast<float>((hash * 0xC2B2AE35u) >> 8) / 16777216.0f;
+					const auto origin = points[index] + normal * 1e-3f;
+					for (uint32_t i = 0; i < count; i++) {
+						const float u = std::fmod((i + shift) / static_cast<float>(count), 1.0f);
+						const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
+						const float r = std::sqrt(u), up = std::sqrt(std::max(0.0f, 1.0f - u));
+						const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * up;
+						batch.push_back(UgcRays::Ray{ origin, 1e-4f, direction, options.ao.distance });
+					}
 				}
-				const float occlusion = static_cast<float>(open) / static_cast<float>(count);
-				const float lit = 1.0f - std::clamp(options.bakedAo, 0.0f, 1.0f) * (1.0f - occlusion);
-				color[index] = glm::vec4(glm::vec3(color[index]) * lit, color[index].a);
+				occluded.resize(batch.size());
+				scene->Occluded(batch.data(), occluded.data(), batch.size());
+				for (size_t j = start; j < end; j++) {
+					uint32_t open = 0;
+					for (uint32_t i = 0; i < count; i++) open += occluded[(j - start) * count + i] ? 0 : 1;
+					const auto index = drawn[j];
+					const float occlusion = static_cast<float>(open) / static_cast<float>(count);
+					const float lit = 1.0f - std::clamp(options.bakedAo, 0.0f, 1.0f) * (1.0f - occlusion);
+					color[index] = glm::vec4(glm::vec3(color[index]) * lit, color[index].a);
+				}
 			}
 		}
 

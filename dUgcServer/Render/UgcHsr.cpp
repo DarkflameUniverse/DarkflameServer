@@ -343,6 +343,79 @@ namespace {
 			return m_Mesh.positions[m_Mesh.indices[t * 3]] * w.x + m_Mesh.positions[m_Mesh.indices[t * 3 + 1]] * w.y + m_Mesh.positions[m_Mesh.indices[t * 3 + 2]] * w.z;
 		}
 
+		// A path between its rays
+		struct Path {
+			glm::vec3 ng{}, n{}, incoming{}, p{};
+			glm::vec3 direction{}; // of the ray it waits for
+			uint32_t self{};       // the triangle it is on (the ray never hits it)
+			float throughput{ 1.0f };
+			float minRayPdf{ INF };
+			int glossy{};
+			int bounce{};
+			bool sampleGlossy{};
+			Random random;
+		};
+
+		enum class eStep : uint8_t { RAY, ESCAPED, ENDED };
+
+		// A path from point w (barycentric) of triangle t, its random numbers from `seed`
+		Path Start(uint32_t t, const glm::vec3& w, uint64_t seed) const {
+			Path path{ .random = Random(seed) };
+			path.ng = FaceNormal(t);
+			// The bake looks at the point along its smooth normal (the ray comes from there): that side is lit, and
+			// when the winding faces the other way Cycles treats it as the back of the face (both normals turned)
+			path.n = ShadingNormal(t, w, path.ng);
+			path.incoming = path.n;
+			if (glm::dot(path.ng, path.incoming) < 0.0f) {
+				path.ng = -path.ng;
+				path.n = -path.n;
+			}
+			path.p = Position(t, w);
+			path.self = t;
+			return path;
+		}
+
+		// The direction the path goes on in: RAY (from path.p along path.direction), or ENDED
+		eStep Scatter(Path& path) const {
+			// The material's normal: the Principled BSDF keeps its mirror reflection above the surface
+			const Principled material(EnsureValidReflection(path.ng, path.incoming, path.n), path.incoming, path.ng, path.n, path.bounce == 0, path.minRayPdf);
+			const auto sample = material.Draw(path.random);
+			// Nothing sampled (below the surface): the path ends
+			if (!(sample.pdf > 0.0f) || !(sample.throughput > 0.0f)) return eStep::ENDED;
+			path.direction = sample.direction;
+			path.throughput *= sample.throughput;
+			path.minRayPdf = std::min(path.minRayPdf, sample.pdf);
+			path.sampleGlossy = sample.glossy;
+			return eStep::RAY;
+		}
+
+		// What the ray hit: ESCAPED (nothing: the sky), ENDED, or RAY (it bounced: Scatter again)
+		eStep Bounce(Path& path, const UgcRays::Hit& hit) const {
+			const auto& direction = path.direction;
+			if (m_Options.groundPlane && GroundHit(path.p, direction, hit.t) < hit.t) return eStep::ENDED;
+			if (hit.triangle == UgcRays::NONE) return eStep::ESCAPED;
+			// Past the bounce limits the next surface doesn't scatter (Cycles: Max Bounces, Glossy 4)
+			if (path.bounce + 1 > m_Options.bounces) return eStep::ENDED;
+			if (path.sampleGlossy && ++path.glossy > GLOSSY_BOUNCES) return eStep::ENDED;
+			if (path.bounce + 1 >= 2) {
+				const float probability = std::min(std::sqrt(path.throughput), 1.0f);
+				if (path.random.Float() >= probability) return eStep::ENDED;
+				path.throughput /= probability;
+			}
+			path.self = hit.triangle;
+			path.ng = FaceNormal(path.self);
+			path.n = ShadingNormal(path.self, glm::vec3(1.0f - hit.u - hit.v, hit.u, hit.v), path.ng);
+			path.incoming = -direction;
+			// Hit from behind: the back is lit (both normals turned towards the ray)
+			if (glm::dot(path.ng, path.incoming) < 0.0f) {
+				path.ng = -path.ng;
+				path.n = -path.n;
+			}
+			path.p = path.p + direction * hit.t;
+			path.bounce++;
+			return eStep::RAY;
+		}
+
 		/**
 		 * One path from point w (barycentric) of triangle t, as a Cycles diffuse bake traces it: whether it reaches the
 		 * sky. The path bounces off the model in the directions the bake material draws until a bounce ray hits
@@ -351,53 +424,16 @@ namespace {
 		 * second bounce on the path may end early (Cycles' Russian roulette: it goes on with probability
 		 * sqrt(throughput)).
 		 */
-		bool Escapes(uint32_t t, const glm::vec3& w, Random& random) const {
-			glm::vec3 ng = FaceNormal(t);
-			// The bake looks at the point along its smooth normal (the ray comes from there): that side is lit, and
-			// when the winding faces the other way Cycles treats it as the back of the face (both normals turned)
-			glm::vec3 n = ShadingNormal(t, w, ng);
-			glm::vec3 incoming = n;
-			if (glm::dot(ng, incoming) < 0.0f) {
-				ng = -ng;
-				n = -n;
+		bool Escapes(uint32_t t, const glm::vec3& w, uint64_t seed) const {
+			auto path = Start(t, w, seed);
+			while (Scatter(path) == eStep::RAY) {
+				const auto step = Bounce(path, m_Rays->Closest(path.p, path.direction, path.self));
+				if (step != eStep::RAY) return step == eStep::ESCAPED;
 			}
-			glm::vec3 p = Position(t, w);
-			uint32_t self = t;
-			float throughput = 1.0f;
-			float minRayPdf = INF;
-			int glossy = 0;
-			for (int bounce = 0;; bounce++) {
-				// The material's normal: the Principled BSDF keeps its mirror reflection above the surface
-				const Principled material(EnsureValidReflection(ng, incoming, n), incoming, ng, n, bounce == 0, minRayPdf);
-				const auto sample = material.Draw(random);
-				// Nothing sampled (below the surface): the path ends
-				if (!(sample.pdf > 0.0f) || !(sample.throughput > 0.0f)) return false;
-				const auto& direction = sample.direction;
-				throughput *= sample.throughput;
-				minRayPdf = std::min(minRayPdf, sample.pdf);
-				const auto hit = m_Rays->Closest(p, direction, self);
-				if (m_Options.groundPlane && GroundHit(p, direction, hit.t) < hit.t) return false;
-				if (hit.triangle == UgcRays::NONE) return true;
-				// Past the bounce limits the next surface doesn't scatter (Cycles: Max Bounces, Glossy 4)
-				if (bounce + 1 > m_Options.bounces) return false;
-				if (sample.glossy && ++glossy > GLOSSY_BOUNCES) return false;
-				if (bounce + 1 >= 2) {
-					const float probability = std::min(std::sqrt(throughput), 1.0f);
-					if (random.Float() >= probability) return false;
-					throughput /= probability;
-				}
-				self = hit.triangle;
-				ng = FaceNormal(self);
-				n = ShadingNormal(self, glm::vec3(1.0f - hit.u - hit.v, hit.u, hit.v), ng);
-				incoming = -direction;
-				// Hit from behind: the back is lit (both normals turned towards the ray)
-				if (glm::dot(ng, incoming) < 0.0f) {
-					ng = -ng;
-					n = -n;
-				}
-				p = p + direction * hit.t;
-			}
+			return false;
 		}
+
+		const UgcRays::Scene& Rays() const { return *m_Rays; }
 
 	private:
 		const UgcModel::Mesh& m_Mesh;
@@ -473,6 +509,77 @@ namespace UgcHsr {
 		const Tracer tracer(mesh, options);
 		const int samples = std::max(options.samples, 1);
 		uint64_t points = 0, paths = 0, sinceCheckpoint = 0;
+		if (tracer.Rays().PrefersBatches() || options.sideBySide) {
+			// Side by side (a GPU): the triangles in groups of about GROUP_PATHS paths; in each round every point of every
+			// triangle of the group not seen yet starts a path, and the round's paths are traced together a bounce at a
+			// time. Each path is the one traced one by one below (the same random numbers), and a triangle is kept when
+			// any of its paths escapes, so the triangles decided are the same; only paths the one by one tracing would
+			// have skipped after one escaped are traced too.
+			constexpr size_t GROUP_PATHS = 1u << 18;
+			uint32_t next = 0;
+			while (next < triangles) {
+				std::vector<uint32_t> group;
+				std::vector<std::vector<glm::vec3>> groupWeights;
+				size_t groupPaths = 0;
+				for (; next < triangles && groupPaths < GROUP_PATHS; next++) {
+					// A triangle without area draws nothing (LU Toolbox's bake leaves it dark too): removed
+					if (tracer.FaceNormal(next) == glm::vec3(0.0f)) {
+						visible[next] = false;
+						continue;
+					}
+					const auto& a = mesh.positions[mesh.indices[next * 3]];
+					const auto& b = mesh.positions[mesh.indices[next * 3 + 1]];
+					const auto& c = mesh.positions[mesh.indices[next * 3 + 2]];
+					groupWeights.push_back(SamplePoints(a, b, c, options.spacing, static_cast<size_t>(std::max(options.minPoints, 1))));
+					group.push_back(next);
+					groupPaths += groupWeights.back().size();
+					points += groupWeights.back().size();
+				}
+				std::vector<uint8_t> escaped(group.size(), 0);
+				for (int sample = 0; sample < samples; sample++) {
+					std::vector<Tracer::Path> live;
+					std::vector<uint32_t> owner; // the path's triangle in the group
+					for (uint32_t g = 0; g < group.size(); g++) {
+						if (escaped[g]) continue;
+						for (size_t i = 0; i < groupWeights[g].size(); i++) {
+							auto path = tracer.Start(group[g], groupWeights[g][i], PathSeed(options.seed, group[g], i, static_cast<uint64_t>(sample)));
+							paths++;
+							if (tracer.Scatter(path) != Tracer::eStep::RAY) continue;
+							live.push_back(std::move(path));
+							owner.push_back(g);
+						}
+					}
+					if (live.empty()) break;
+					std::vector<UgcRays::Ray> rays;
+					std::vector<UgcRays::Hit> hits;
+					while (!live.empty()) {
+						UgcThrottle::Checkpoint();
+						rays.resize(live.size());
+						hits.resize(live.size());
+						for (size_t k = 0; k < live.size(); k++) rays[k] = UgcRays::Ray{ live[k].p, 0.0f, live[k].direction, INF, live[k].self };
+						tracer.Rays().Closest(rays.data(), hits.data(), live.size());
+						size_t kept = 0;
+						for (size_t k = 0; k < live.size(); k++) {
+							if (escaped[owner[k]]) continue;
+							const auto step = tracer.Bounce(live[k], hits[k]);
+							if (step == Tracer::eStep::ESCAPED) escaped[owner[k]] = 1;
+							if (step != Tracer::eStep::RAY || tracer.Scatter(live[k]) != Tracer::eStep::RAY) continue;
+							if (kept != k) {
+								live[kept] = std::move(live[k]);
+								owner[kept] = owner[k];
+							}
+							kept++;
+						}
+						live.erase(live.begin() + static_cast<std::ptrdiff_t>(kept), live.end());
+						owner.resize(kept);
+					}
+				}
+				for (size_t g = 0; g < group.size(); g++) visible[group[g]] = escaped[g] != 0;
+			}
+			if (pointCount) *pointCount = points;
+			if (pathCount) *pathCount = paths;
+			return visible;
+		}
 		for (uint32_t t = 0; t < triangles; t++) {
 			const auto& a = mesh.positions[mesh.indices[t * 3]];
 			const auto& b = mesh.positions[mesh.indices[t * 3 + 1]];
@@ -488,9 +595,8 @@ namespace UgcHsr {
 			// A path from each point, then another from each, ...: a triangle that's seen is usually known at once
 			for (int sample = 0; sample < samples && !escaped; sample++) {
 				for (size_t i = 0; i < weights.size(); i++) {
-					Random random(PathSeed(options.seed, t, i, static_cast<uint64_t>(sample)));
 					paths++;
-					if (tracer.Escapes(t, weights[i], random)) {
+					if (tracer.Escapes(t, weights[i], PathSeed(options.seed, t, i, static_cast<uint64_t>(sample)))) {
 						escaped = true;
 						break;
 					}

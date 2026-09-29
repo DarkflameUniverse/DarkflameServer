@@ -12,6 +12,10 @@
 
 #include <embree4/rtcore.h>
 
+#ifdef DLU_HIPRT
+#include "UgcRaysHiprt.h"
+#endif
+
 namespace {
 	using UgcRays::Hit;
 	using UgcRays::INF;
@@ -528,6 +532,14 @@ namespace {
 }
 
 namespace UgcRays {
+	void Scene::Closest(const Ray* rays, Hit* hits, size_t count) const {
+		for (size_t i = 0; i < count; i++) hits[i] = Closest(rays[i].origin, rays[i].direction, rays[i].skip, rays[i].maxT);
+	}
+
+	void Scene::Occluded(const Ray* rays, uint8_t* occluded, size_t count) const {
+		for (size_t i = 0; i < count; i++) occluded[i] = Occluded(rays[i].origin, rays[i].direction, rays[i].minT, rays[i].maxT) ? 1 : 0;
+	}
+
 	std::string_view Name(eBackend backend) {
 		switch (backend) {
 		case eBackend::EMBREE: return "embree";
@@ -544,6 +556,9 @@ namespace UgcRays {
 	}
 
 	bool Available(eBackend backend) {
+#ifdef DLU_HIPRT
+		if (backend == eBackend::HIPRT) return UgcRaysHiprt::Available();
+#endif
 		return backend == eBackend::BUILTIN || backend == eBackend::EMBREE;
 	}
 
@@ -551,10 +566,32 @@ namespace UgcRays {
 		return Available(wanted) ? wanted : eBackend::EMBREE;
 	}
 
+	std::string Problem(eBackend backend) {
+		if (Available(backend)) return {};
+#ifdef DLU_HIPRT
+		if (backend == eBackend::HIPRT) return UgcRaysHiprt::Problem();
+#endif
+		return "the server was built without it (DLU_HIPRT)";
+	}
+
 	std::unique_ptr<Scene> Make(eBackend backend, const UgcModel::Mesh& mesh) {
 		switch (Resolve(backend)) {
+#ifdef DLU_HIPRT
+		case eBackend::HIPRT:
+			// A GPU that fails now (out of memory, ...) leaves the job to Embree
+			if (auto scene = UgcRaysHiprt::Make(mesh)) return scene;
+			return std::make_unique<EmbreeScene>(mesh);
+#endif
 		case eBackend::EMBREE: return std::make_unique<EmbreeScene>(mesh);
 		default: return std::make_unique<BuiltinScene>(mesh);
 		}
+	}
+
+	void SetGpuDevice(int index) {
+#ifdef DLU_HIPRT
+		UgcRaysHiprt::SetDevice(index);
+#else
+		(void)index;
+#endif
 	}
 }
