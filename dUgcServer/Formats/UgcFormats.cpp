@@ -361,7 +361,7 @@ namespace {
 		// function would do with it is what LEGO-AnimUV does: the texture over the vertex color by its alpha, the
 		// vertex alpha kept), with the texture transform LEGO-AnimUV reads
 		int32_t GlitterTexturing(const UgcGlitter::Params& glitter) {
-			if (m_Glitter < 0) m_Glitter = Texturing(StoredTexture("ugc_glitter.dds", UgcGlitter::Mipmaps(UgcGlitter::FleckAlpha(glitter.flecks))), 1 << 1, true);
+			if (m_Glitter < 0) m_Glitter = Texturing(StoredTexture("ugc_glitter.dds", UgcGlitter::Mipmaps(UgcGlitter::FleckAlpha(glitter))), 1 << 1, true);
 			return m_Glitter;
 		}
 

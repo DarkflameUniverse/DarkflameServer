@@ -17,36 +17,38 @@ namespace UgcGlitter {
 		int Side(const std::vector<uint8_t>& alpha) { return static_cast<int>(std::lround(std::sqrt(static_cast<double>(alpha.size())))); }
 	}
 
-	std::vector<uint8_t> FleckAlpha(uint32_t flecks) {
-		constexpr int N = TEXTURE_SIZE;
-		std::vector<float> alpha(static_cast<size_t>(N) * N, 0.0f);
-		// SplitMix64 from a fixed seed: the same texture on every platform
+	int Params::TextureSize() const {
+		const float wanted = 3.0f * std::max(tile, 0.001f) / std::max(fleckSize, 0.001f);
+		int side = 128;
+		while (side < 512 && static_cast<float>(side) < wanted) side *= 2;
+		return side;
+	}
+
+	std::vector<uint8_t> FleckAlpha(const Params& params) {
+		const int N = params.TextureSize();
+		std::vector<uint8_t> alpha(static_cast<size_t>(N) * N, 0);
+		const float size = params.fleckSize / std::max(params.tile, 0.001f) * static_cast<float>(N);
+		const float opacity = std::clamp(params.fleckOpacity, 0.0f, 100.0f) / 100.0f;
 		uint64_t state = 0x6C69747465720000ull;
-		const auto next = [&state] {
-			uint64_t z = (state += 0x9E3779B97F4A7C15ull);
-			z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
-			z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
-			return static_cast<float>((z ^ (z >> 31)) >> 40) / static_cast<float>(1ull << 24);
-		};
-		for (uint32_t i = 0; i < flecks; i++) {
+		const auto next = [&state] { return Unit(SplitMix(state++)); };
+		for (uint32_t i = 0; i < params.flecks; i++) {
 			const float cx = next() * N, cy = next() * N;
-			const float radius = 1.2f + next() * 1.0f;
-			const float peak = 0.65f + next() * 0.35f;
-			const int reach = static_cast<int>(std::ceil(radius));
+			const float radius = std::max(size * (0.35f + next() * 0.3f), 0.6f);
+			const float facet = next();
+			const float peak = opacity * (0.3f + 0.7f * facet * facet);
+			const int reach = static_cast<int>(std::ceil(radius + 0.5f));
 			for (int dy = -reach; dy <= reach; dy++) {
 				for (int dx = -reach; dx <= reach; dx++) {
 					const int x = static_cast<int>(std::floor(cx)) + dx, y = static_cast<int>(std::floor(cy)) + dy;
 					const float ddx = x + 0.5f - cx, ddy = y + 0.5f - cy;
-					const float d = std::sqrt(ddx * ddx + ddy * ddy) / radius;
-					if (d >= 1.0f) continue;
+					const float cover = std::clamp(radius + 0.5f - std::sqrt(ddx * ddx + ddy * ddy), 0.0f, 1.0f);
+					if (cover <= 0.0f) continue;
 					auto& value = alpha[static_cast<size_t>(((y % N) + N) % N) * N + ((x % N) + N) % N];
-					value = std::max(value, peak * (1.0f - d * d));
+					value = std::max(value, static_cast<uint8_t>(std::lround(cover * peak * 255.0f)));
 				}
 			}
 		}
-		std::vector<uint8_t> out(alpha.size());
-		for (size_t i = 0; i < alpha.size(); i++) out[i] = static_cast<uint8_t>(std::lround(std::clamp(alpha[i], 0.0f, 1.0f) * 255.0f));
-		return out;
+		return alpha;
 	}
 
 	float Params::SparkleTile() const {

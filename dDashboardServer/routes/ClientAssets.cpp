@@ -502,7 +502,9 @@ void RegisterClientAssetRoutes() {
 			}
 			const nlohmann::json settings{ { "colors", glitter },
 				{ "tile", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_size").value_or("")).value_or(1.6f) },
-				{ "flecks", GeneralUtils::TryParse<uint32_t>(UgcRoutes::Setting("glitter_density").value_or("")).value_or(50) },
+				{ "flecks", GeneralUtils::TryParse<uint32_t>(UgcRoutes::Setting("glitter_density").value_or("")).value_or(80) },
+				{ "fleckSize", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_fleck_size").value_or("")).value_or(0.05f) },
+				{ "fleckOpacity", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_fleck_opacity").value_or("")).value_or(80.0f) },
 				{ "speed", GeneralUtils::TryParse<float>(UgcRoutes::Setting("glitter_speed").value_or("")).value_or(1.0f) } };
 			reply.status = eHTTPStatusCode::OK;
 			reply.message = colours.script + "window.LDD_GLITTER = " + settings.dump() + ";\n";

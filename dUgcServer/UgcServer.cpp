@@ -122,7 +122,9 @@ namespace {
 		settings.shaders.glitter = std::min(Setting<uint32_t>("shader_glitter", 21), 9999u);
 		settings.shaders.sparkle = std::min(Setting<uint32_t>("shader_glitter_sparkle", 79), 9999u);
 		settings.shaders.glitterParams.tile = std::clamp(Setting<float>("glitter_size", 1.6f), 0.1f, 100.0f);
-		settings.shaders.glitterParams.flecks = std::min(Setting<uint32_t>("glitter_density", 50), 2000u);
+		settings.shaders.glitterParams.flecks = std::min(Setting<uint32_t>("glitter_density", 80), 5000u);
+		settings.shaders.glitterParams.fleckSize = std::clamp(Setting<float>("glitter_fleck_size", 0.05f), 0.005f, 1.0f);
+		settings.shaders.glitterParams.fleckOpacity = std::clamp(Setting<float>("glitter_fleck_opacity", 80.0f), 0.0f, 100.0f);
 		settings.shaders.glitterParams.sparkleSize = std::clamp(Setting<float>("glitter_sparkle_size", 0.1f), 0.01f, 1.0f);
 		settings.shaders.glitterParams.sparkleAmount = std::clamp(Setting<float>("glitter_sparkle_amount", 5.0f), 0.0f, 50.0f);
 		settings.shaders.glitterParams.speed = std::clamp(Setting<float>("glitter_speed", 1.0f), 0.1f, 4.0f);

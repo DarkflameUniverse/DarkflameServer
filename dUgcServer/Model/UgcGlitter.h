@@ -22,14 +22,13 @@
  * brick's own (BrickSeed), so no two bricks have the same pattern and a model made again has the same one.
  */
 namespace UgcGlitter {
-	// The fleck texture's side in pixels (a power of two, mipmapped down to 1)
-	constexpr int TEXTURE_SIZE = 128;
-
 	struct Params {
 		// Flecks (LEGO-AnimUV)
-		float tile{ 1.6f };    // glitter_size: the fleck texture's side in model units (LDD units: a stud is 0.8)
-		uint32_t flecks{ 50 }; // glitter_density: flecks in one tile
-		bool random{ true };   // glitter_random: each brick its own pattern (BrickSeed), else the same on every brick
+		float tile{ 1.6f };          // glitter_size: the fleck texture's side in model units (LDD units: a stud is 0.8)
+		uint32_t flecks{ 80 };       // glitter_density: flecks in one tile
+		float fleckSize{ 0.05f };    // glitter_fleck_size: a fleck's diameter in model units (LDD units are cm: 0.5 mm)
+		float fleckOpacity{ 80.0f }; // glitter_fleck_opacity: percent, the brightest flecks' alpha
+		bool random{ true };         // glitter_random: each brick its own pattern (BrickSeed), else the same on every brick
 		// Sparkles (Distortion Directional)
 		float sparkleSize{ 0.1f };         // glitter_sparkle_size: a sparkle's diameter in model units
 		float sparkleAmount{ 5.0f };       // glitter_sparkle_amount: percent of each moving layer covered by sparkles
@@ -37,6 +36,8 @@ namespace UgcGlitter {
 		float sparkleTint{ 30.0f };        // glitter_sparkle_tint: percent, how far sparkles take their brick's color
 		float sparkleBrightness{ 100.0f }; // glitter_sparkle_brightness: percent, the sparkles' vertex color
 
+		// The fleck texture's side in pixels: the power of two (128 to 512) that makes a fleck at least 3 pixels wide
+		int TextureSize() const;
 		// The sparkle texture's side in model units. The client moves its layers a fixed share of a tile a second (a
 		// tile in 24, 48 and 72 s), so the tile sets how fast they cross: 75 sparkle sizes times the speed.
 		float SparkleTile() const;
@@ -53,9 +54,11 @@ namespace UgcGlitter {
 	// the brick (drawn after them when it is transparent) doesn't cover them and they don't fight it for the depth
 	constexpr float SPARKLE_LIFT = 0.005f;
 
-	// The fleck texture's alpha (TEXTURE_SIZE squared, rows top to bottom): `flecks` soft dots at the same places every
-	// time, wrapping around the edges so the texture tiles. Its color is white.
-	std::vector<uint8_t> FleckAlpha(uint32_t flecks);
+	// The fleck texture's alpha (TextureSize() squared, rows top to bottom): `flecks` flat flakes of about `fleckSize`
+	// (0.7 to 1.3 of it) with a pixel's worth of edge, each as bright as its facet happens to catch the light (0.3 to 1
+	// of `fleckOpacity`, most of them dim), at the same places every time, wrapping around the edges so the texture
+	// tiles. Its color is white.
+	std::vector<uint8_t> FleckAlpha(const Params& params);
 
 	// The sparkle texture's alpha (SparkleTextureSize() squared): flat discs of sparkleSize at SPARKLE_ALPHA covering
 	// sparkleAmount percent of it, at the same places every time, tiling. Its color is white.

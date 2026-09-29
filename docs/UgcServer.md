@@ -303,8 +303,10 @@ all of its levels, so each look needs a group of its own.
 | `shader_glitter` | 21 | `S<id>_Glitter_Model` (opaque) and `S<id>_GlitterAlpha_Model` (transparent) for glitter colors: 21 is LEGO-AnimUV (gameValue 30), see Glitter below. |
 | `glitter_material_types` | `glitter` | Materials.xml `MaterialType`s that are glitter. |
 | `glitter_colors` | 114,117 | LEGO color ids that are glitter whatever their type (as `brushed_colors`). The default: the two colors LEGO's own color data (Studio's color categories, "Glitter Colors") files as glitter that the client's Materials.xml types `shinyPlastic` (114 Tr. Medium Reddish-Violet w. Glitter, 117 Transparent Glitter). |
-| `glitter_size` | 1.6 | The glitter texture's tile, in model units (a stud is 0.8): the flecks' spacing, the same on every brick. |
-| `glitter_density` | 50 | Flecks in one tile. |
+| `glitter_size` | 1.6 | The glitter texture's tile, in model units (a stud is 0.8): with `glitter_density`, the flecks' spacing. |
+| `glitter_density` | 80 | Flecks in one tile. |
+| `glitter_fleck_size` | 0.05 | A fleck's diameter in model units (LDD units are centimetres: half a millimetre, about LEGO's glitter). |
+| `glitter_fleck_opacity` | 80 | Percent: how white the brightest flecks are over the brick's color; most are dimmer. |
 | `shader_glitter_sparkle` | 79 | `S<id>_GlitterSparkle_Model`, the glitter bricks' sparkles (only with `shader_glitter`): 79 is Distortion Directional (Ocean) (gameValue 89), whose layers the client moves on its own; 0: no sparkles. See Glitter below. |
 | `glitter_sparkle_size` | 0.1 | A sparkle's diameter in model units. |
 | `glitter_sparkle_amount` | 5 | Percent of each moving layer covered by sparkles (about its square's share of a brick sparkles at once). |
@@ -392,10 +394,12 @@ material, alpha, specular, vertex colors):
   (translation 0, scale 1, Maya method, center 0.5). No controllers.
 - Its source, stored in the file as the client's own stored textures (`res/mesh/env/env_ag_ocean-maelstrom.nif`):
   `NiSourceTexture` (use external 0, name `ugc_glitter.dds`, pixel layout 6, mipmaps 2, alpha 3, static, persist
-  render data) and `NiPersistentSrcTextureRendererData`: RGBA 32 bit, channels blue, green, red, alpha, platform DX9,
-  128 x 128 with 8 mipmaps. RGB is white; the alpha is `glitter_density` soft dots (radius 1.2 to 2.2 px, peak 0.65
-  to 1) at places from a fixed seed, wrapping at the edges (`UgcGlitter::FleckAlpha`), each mipmap the 2x2 mean of
-  the one above.
+  render data) and `NiPersistentSrcTextureRendererData`: RGBA 32 bit, channels blue, green, red, alpha, platform DX9, square with
+  every mipmap down to 1 (128 at the defaults; the power of two up to 512 that keeps a fleck 3 pixels wide,
+  `Params::TextureSize`). RGB is white; the alpha is `glitter_density` flat flakes (`UgcGlitter::FleckAlpha`): 0.7 to
+  1.3 times `glitter_fleck_size` across with a pixel's worth of edge, each as bright as its facet happens to catch the
+  light (0.3 to 1 of `glitter_fleck_opacity`, weighted towards dim: LEGO's glitter bricks show many faint flecks and
+  a few bright ones), at places from a fixed seed, wrapping at the edges; each mipmap the 2x2 mean of the one above.
 
 Transparent glitter: every UGC shape has the same `NiAlphaProperty` (blend source alpha over one minus source alpha)
 and transparent bricks are transparent by their vertex alpha; the LEGO-AnimUV techniques declare

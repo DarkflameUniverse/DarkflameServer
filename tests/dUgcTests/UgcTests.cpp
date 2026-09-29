@@ -1304,17 +1304,36 @@ TEST(UgcModel, BrightnessAndTransparentColors) {
 	EXPECT_NEAR(seeThrough.transparent.colors[0].a, 0.5882f, 1e-4f);
 }
 
-// The glitter texture: the same every time, tiling (flecks wrap around the edges), mipmapped down to 1x1
+// The glitter texture: the same every time, tiling (flecks wrap around the edges), mipmapped down to 1x1; flecks of
+// the size asked for (the texture grows to keep them 3 pixels wide), most dimmer than the brightest
 TEST(UgcGlitter, TextureIsTheSameEveryTimeAndMipmapped) {
-	const auto alpha = UgcGlitter::FleckAlpha(50);
-	ASSERT_EQ(alpha.size(), static_cast<size_t>(UgcGlitter::TEXTURE_SIZE * UgcGlitter::TEXTURE_SIZE));
-	EXPECT_EQ(alpha, UgcGlitter::FleckAlpha(50));
+	UgcGlitter::Params params;
+	EXPECT_EQ(params.TextureSize(), 128);
+	const auto alpha = UgcGlitter::FleckAlpha(params);
+	ASSERT_EQ(alpha.size(), 128u * 128u);
+	EXPECT_EQ(alpha, UgcGlitter::FleckAlpha(params));
 	const auto lit = std::count_if(alpha.begin(), alpha.end(), [](uint8_t a) { return a > 0; });
-	EXPECT_GT(lit, 50);
+	EXPECT_GT(lit, 80 * 4);
 	EXPECT_LT(lit, static_cast<long>(alpha.size() / 10)); // sparse
-	const auto none = UgcGlitter::FleckAlpha(0), dense = UgcGlitter::FleckAlpha(200);
-	EXPECT_EQ(std::count_if(none.begin(), none.end(), [](uint8_t a) { return a > 0; }), 0);
-	EXPECT_GT(std::count_if(dense.begin(), dense.end(), [](uint8_t a) { return a > 0; }), lit);
+	// Flat flecks up to the opacity (80%: 204), most of them dimmer
+	EXPECT_LE(*std::max_element(alpha.begin(), alpha.end()), 204);
+	EXPECT_GE(*std::max_element(alpha.begin(), alpha.end()), 190);
+	EXPECT_GT(std::count_if(alpha.begin(), alpha.end(), [](uint8_t a) { return a > 0 && a < 120; }), std::count_if(alpha.begin(), alpha.end(), [](uint8_t a) { return a >= 160; }));
+	// Bigger flecks cover more; small ones get a bigger texture
+	auto big = params;
+	big.fleckSize = 0.1f;
+	const auto bigAlpha = UgcGlitter::FleckAlpha(big);
+	EXPECT_GT(std::count_if(bigAlpha.begin(), bigAlpha.end(), [](uint8_t a) { return a > 0; }), lit * 2);
+	auto small = params;
+	small.fleckSize = 0.02f;
+	EXPECT_EQ(small.TextureSize(), 256);
+	EXPECT_EQ(UgcGlitter::FleckAlpha(small).size(), 256u * 256u);
+	auto none = params, dense = params;
+	none.flecks = 0;
+	dense.flecks = 300;
+	const auto noneAlpha = UgcGlitter::FleckAlpha(none), denseAlpha = UgcGlitter::FleckAlpha(dense);
+	EXPECT_EQ(std::count_if(noneAlpha.begin(), noneAlpha.end(), [](uint8_t a) { return a > 0; }), 0);
+	EXPECT_GT(std::count_if(denseAlpha.begin(), denseAlpha.end(), [](uint8_t a) { return a > 0; }), lit);
 	const auto mips = UgcGlitter::Mipmaps(alpha);
 	ASSERT_EQ(mips.size(), 8u); // 128 .. 1
 	EXPECT_EQ(mips.back().size(), 1u);
@@ -1439,7 +1458,7 @@ TEST(UgcFormats, GlitterNifReadsBack) {
 	EXPECT_EQ(header[3], 128u);
 	EXPECT_EQ(header[6], 8u);
 	EXPECT_EQ(header[21], 32u);
-	const auto alpha = UgcGlitter::FleckAlpha(50);
+	const auto alpha = UgcGlitter::FleckAlpha(glitter);
 	for (size_t i = 0; i < alpha.size(); i++) {
 		ASSERT_EQ(static_cast<uint8_t>((*dds)[128 + i * 4]), 255);
 		ASSERT_EQ(static_cast<uint8_t>((*dds)[128 + i * 4 + 3]), alpha[i]) << i;
@@ -1712,6 +1731,7 @@ TEST(UgcShaders, IconsDrawGlitterFlecks) {
 	options.shadows = 0.0f;
 	options.glitter.tile = 0.5f;
 	options.glitter.flecks = 60;
+	options.glitter.fleckSize = 0.0156f; // as big against the tile as the defaults
 	const auto plain = UgcRender::RenderIcon(model, options);
 	model.opaque.looks.assign(4, UgcModel::eLook::GLITTER);
 	const auto glitter = UgcRender::RenderIcon(model, options);

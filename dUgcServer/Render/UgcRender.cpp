@@ -358,7 +358,7 @@ namespace UgcRender {
 		for (const auto* mesh : { &model.opaque, &model.transparent }) {
 			anyGlitter = anyGlitter || std::find(mesh->looks.begin(), mesh->looks.end(), UgcModel::eLook::GLITTER) != mesh->looks.end();
 		}
-		const auto glitterAlpha = anyGlitter ? UgcGlitter::FleckAlpha(options.glitter.flecks) : std::vector<uint8_t>{};
+		const auto glitterAlpha = anyGlitter ? UgcGlitter::FleckAlpha(options.glitter) : std::vector<uint8_t>{};
 
 		const auto shade = [&](const UgcModel::Mesh& mesh, bool isOpaque, uint32_t i0, uint32_t i1, uint32_t i2, float w0, float w1, float w2) {
 			glm::vec3 normal(0.0f, 1.0f, 0.0f);
