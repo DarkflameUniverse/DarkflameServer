@@ -279,6 +279,8 @@ bool ZoneFile::ReadPath(std::istream& file) {
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
 			BinaryIO::BinaryRead(file, path.property.repMultiplier);
+			// The client takes a multiplier outside 0-1000 as 0 (LevelPath::FromBuffer)
+			if (path.property.repMultiplier < 0.0f || path.property.repMultiplier > 1000.0f) path.property.repMultiplier = 0.0f;
 			BinaryIO::BinaryRead(file, path.property.rentalPeriod);
 		}
 
@@ -346,6 +348,8 @@ bool ZoneFile::ReadPath(std::istream& file) {
 		} else if (path.pathType == PathType::Camera) {
 			BinaryIO::BinaryRead(file, waypoint.camera.time);
 			BinaryIO::BinaryRead(file, waypoint.camera.fov);
+			// Before version 11 the file's FOV is 1.25 times the one the client uses (LevelPath::FromBuffer)
+			if (path.pathVersion < 11) waypoint.camera.fov /= 1.25f;
 			BinaryIO::BinaryRead(file, waypoint.camera.tension);
 			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
 			BinaryIO::BinaryRead(file, waypoint.camera.bias);

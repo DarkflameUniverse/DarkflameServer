@@ -329,6 +329,35 @@ TEST(ZoneFileTests, SpawnerAndCameraFieldsFromVersion4) {
 	EXPECT_EQ(zone.paths[1].pathWaypoints.at(0).position, NiPoint3(2, 2, 2));
 }
 
+// Values the client adjusts as it reads them: a reputation multiplier outside 0-1000 is 0, a camera FOV before path
+// version 11 is divided by 1.25
+TEST(ZoneFileTests, AdjustsValuesAsTheClient) {
+	ZoneBytes w;
+	w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150);
+	w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+	w.Put<uint32_t>(1);
+	w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0).Paths().Put<uint32_t>(1).Put<uint32_t>(3);
+	for (const float multiplier : { 2000.0f, 3.0f }) {
+		w.Put<uint32_t>(8).Wide("Property").Put<uint32_t>(2).Put<uint32_t>(0).Put<uint32_t>(0);
+		w.Put<int32_t>(0).Put<int32_t>(0).Put<uint32_t>(0).Put<uint64_t>(0).Wide("").Put<uint32_t>(0);
+		w.Put<int32_t>(0).Put<uint32_t>(0).Put(multiplier).Put<uint32_t>(0).Put<uint32_t>(0).Point(0, 0, 0).Put(128.0f);
+		w.Put<uint32_t>(0);
+	}
+	w.Put<uint32_t>(10).Wide("Camera").Put<uint32_t>(3).Put<uint32_t>(0).Put<uint32_t>(0).Wide("");
+	w.Put<uint32_t>(1).Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put(1.0f).Put(50.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+
+	std::istringstream stream(w.Done());
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	ASSERT_EQ(zone.paths.size(), 3u);
+	EXPECT_EQ(zone.paths[0].property.repMultiplier, 0.0f);
+	EXPECT_EQ(zone.paths[1].property.repMultiplier, 3.0f);
+	EXPECT_EQ(zone.paths[2].pathWaypoints.at(0).camera.fov, 40.0f);
+}
+
 // The paths are a chunk the client reads on its own: a path it refuses (here version 19) leaves the zone with no paths,
 // and the zone file goes on after the chunk
 TEST(ZoneFileTests, RefusedPathsLeaveNoPaths) {
