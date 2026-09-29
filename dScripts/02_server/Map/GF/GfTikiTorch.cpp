@@ -16,12 +16,11 @@ void GfTikiTorch::OnStartup(Entity* self) {
 }
 
 void GfTikiTorch::OnUse(Entity* self, Entity* killer) {
-	if (self->GetBoolean(u"isInUse")) {
-		self->SetBoolean(u"isInUse", false);
-		return;
-	}
+	// In use until the interact animation is done, as in L_GF_TORCH (bIsInUse)
+	if (self->GetBoolean(u"isInUse")) return;
+	self->SetBoolean(u"isInUse", true);
 
-	RenderComponent::PlayAnimation(self, u"interact");
+	const auto cooldownTime = RenderComponent::PlayAnimation(self, u"interact");
 	self->SetI64(u"userID", killer->GetObjectID());
 
 	for (int i = 0; i < m_numspawn; i++) {
@@ -35,7 +34,8 @@ void GfTikiTorch::OnUse(Entity* self, Entity* killer) {
 		Loot::DropItem(*killer, lootMsg);
 	}
 
-	self->AddTimer("InteractionCooldown", 4);
+	// The interact animation's length, as the live script times it (4 seconds when there is none)
+	self->AddTimer("InteractionCooldown", cooldownTime > 0.0f ? cooldownTime : 4.0f);
 }
 
 void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
