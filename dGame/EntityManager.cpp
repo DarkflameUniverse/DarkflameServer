@@ -507,6 +507,17 @@ void EntityManager::UpdateGhosting() {
 	m_PlayersToUpdateGhosting.clear();
 }
 
+namespace {
+	// The scenes a player gets the objects of (ZoneScenes::SceneGraph::Loaded): around the ghost reference point, and
+	// around the player too while the reference is overridden
+	std::set<uint32_t> ClientScenes(const Zone& zone, const GhostComponent& ghost) {
+		const auto& reference = ghost.GetGhostReferencePoint();
+		const auto& position = ghost.GetOriginGhostReferencePoint();
+		const auto& map = zone.GetSceneMap();
+		return zone.GetSceneGraph().Loaded(map.SceneAt(reference.x, reference.z), map.SceneAt(position.x, position.z), ghost.GetGhostOverride());
+	}
+}
+
 void EntityManager::UpdateGhosting(Entity* player) {
 	if (!player) return;
 
@@ -518,7 +529,7 @@ void EntityManager::UpdateGhosting(Entity* player) {
 	const auto& referencePoint = ghostComponent->GetGhostReferencePoint();
 	const auto isOverride = ghostComponent->GetGhostOverride();
 	const auto* zone = m_SceneGhosting ? Game::zoneManager->GetZone() : nullptr;
-	const auto loaded = zone ? zone->GetSceneGraph().Loaded(zone->GetSceneMap().SceneAt(referencePoint.x, referencePoint.z)) : std::set<uint32_t>{};
+	const auto loaded = zone ? ClientScenes(*zone, *ghostComponent) : std::set<uint32_t>{};
 
 	for (auto* entity : m_EntitiesToGhost) {
 		const auto& entityPoint = entity->GetPosition();
@@ -588,7 +599,7 @@ void EntityManager::CheckGhosting(Entity* entity) {
 		const auto observed = ghostComponent->IsObserved(id);
 		bool tooFar = false, nearEnough = false;
 		if (zone) {
-			const auto loaded = zone->GetSceneGraph().Loaded(zone->GetSceneMap().SceneAt(entityPoint.x, entityPoint.z));
+			const auto loaded = ClientScenes(*zone, *ghostComponent);
 			nearEnough = ZoneScenes::InLoadedScene(entity->GetScene(), entityScene, loaded);
 			tooFar = !nearEnough;
 		} else {

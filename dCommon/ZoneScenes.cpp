@@ -82,6 +82,12 @@ namespace ZoneScenes {
 		loaded.insert(neighbours.begin(), neighbours.end());
 		return loaded;
 	}
+
+	std::set<uint32_t> SceneGraph::Loaded(uint32_t referenceScene, uint32_t positionScene, bool referenceOverridden) const {
+		auto loaded = Loaded(referenceScene);
+		if (referenceOverridden) loaded.merge(Loaded(positionScene));
+		return loaded;
+	}
 }
 
 namespace ZoneScenes {

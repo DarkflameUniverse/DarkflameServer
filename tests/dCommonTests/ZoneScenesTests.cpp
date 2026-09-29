@@ -63,6 +63,15 @@ TEST(ZoneScenesTests, LoadsTheConnectedScenes) {
 	EXPECT_TRUE(graph.Neighbours(9).empty());
 }
 
+TEST(ZoneScenesTests, AddsTheScenesAroundThePlayerWhileTheReferenceIsOverridden) {
+	const ZoneScenes::SceneGraph graph(Scenes({ 0, 1, 2, 3, 4 }), { Transition(1, 2), Transition(3, 4) });
+	// Not overridden: only the reference point's scenes, wherever the player is
+	EXPECT_EQ(graph.Loaded(1, 3, false), (std::set<uint32_t>{ 0, 1, 2 }));
+	// Overridden (a cinematic moved it): the client also loads the scene under the player and its neighbours
+	EXPECT_EQ(graph.Loaded(1, 3, true), (std::set<uint32_t>{ 0, 1, 2, 3, 4 }));
+	EXPECT_EQ(graph.Loaded(1, 1, true), graph.Loaded(1));
+}
+
 TEST(ZoneScenesTests, SendsSceneMapsAsRuns) {
 	std::vector<uint8_t> cells(300, 4);
 	cells[0] = 1;

@@ -9,12 +9,16 @@
 #include "ZoneFile.h"
 
 /**
- * Which of a zone's scenes the game client keeps loaded, as it decides it (Zone::StreamScenesAroundPosition,
- * 0x0108a3f0 in client 1.10.64): the scene under the player, found in the terrain's scene map
- * (TerrainManager::GetSceneAtPos, 0x01069010), and the scenes connected to it by the zone file's scene transitions
- * (LevelManager's connected scenes, 0x01066500); the global scene (0) always stays. A scene is a scene id: its layers
- * (the audio scenes share their scene's id) come and go with it. Pure, so the world server and the dashboard use the
- * same rules and both can be unit tested.
+ * Which of a zone's scenes a player gets the objects of, from how the game client streams scenes (client 1.10.64).
+ * Zone::Run (0x0108a500) calls Zone::StreamScenesAroundPosition (0x0108a3f0) with the ghost reference position and,
+ * only when it differs from it (ToggleGhostReferenceOverride on), the position of the object the player controls.
+ * The client loads the scene under the ghost reference position (TerrainManager::GetSceneAtPos, 0x01069010, via the
+ * cell lookup 0x01065c00) and the global scene; with the override on, also the scene under the player and the scenes
+ * connected to it by the zone file's scene transitions (Zone::AddConnectedScenes, 0x01066500).
+ * The server sends a little more than that: each scene's connected scenes as well, so the objects across a scene
+ * transition already exist when the player crosses it. A scene is a scene id: its layers (the audio scenes share
+ * their scene's id) come and go with it. Pure, so the world server and the dashboard use the same rules and both can
+ * be unit tested.
  */
 namespace ZoneScenes {
 	constexpr uint32_t GLOBAL_SCENE = 0;
@@ -56,8 +60,14 @@ namespace ZoneScenes {
 		// The scenes connected to `scene` (not itself); none for the global scene
 		const std::set<uint32_t>& Neighbours(uint32_t scene) const;
 
-		// What the client keeps loaded with the player in `scene`: the global scene, `scene` and its neighbours
+		// What a player in `scene` gets the objects of: the global scene, `scene` and its neighbours
 		std::set<uint32_t> Loaded(uint32_t scene) const;
+
+		/**
+		 * Loaded(referenceScene), plus Loaded(positionScene) while the player's ghost reference is overridden: the
+		 * client then also loads the scenes around the player itself (Zone::StreamScenesAroundPosition).
+		 */
+		std::set<uint32_t> Loaded(uint32_t referenceScene, uint32_t positionScene, bool referenceOverridden) const;
 
 		const std::set<uint32_t>& Scenes() const { return m_Scenes; }
 
