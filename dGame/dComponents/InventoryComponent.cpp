@@ -1879,6 +1879,11 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 
 	petInventoryElement->DeleteChildren();
 
+	// The client reads a as its active pet's database ID (LWOPetControlComponent::LoadFromSaveData 0x00c18120). The
+	// charxml is only read when the player loads, when no pet is out yet (a pet is summoned again after the load and
+	// registers itself), so live wrote a="0" on every character (226 live charxmls)
+	petInventoryElement->SetAttribute("a", 0);
+
 	for (const auto& pet : m_Pets) {
 		auto* petElement = document.NewElement("p");
 
@@ -1886,6 +1891,8 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 		petElement->SetAttribute("l", pet.second.lot);
 		petElement->SetAttribute("m", pet.second.moderationState);
 		petElement->SetAttribute("n", pet.second.name.c_str());
+		// The taming type: the client sets it to 0 for every pet added (AddPetToPlayer in
+		// LWOPetControlComponent::HandleMessage 0x00d0fe00) and live saved 0 for every pet
 		petElement->SetAttribute("t", 0);
 
 		petInventoryElement->LinkEndChild(petElement);

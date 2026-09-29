@@ -9,6 +9,8 @@
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "SkillComponent.h"
+#include "InventoryComponent.h"
+#include "DatabasePet.h"
 #include "CDSkillBehaviorTable.h"
 #include "CDClientManager.h"
 #include "eMissionLockState.h"
@@ -162,4 +164,19 @@ TEST_F(CharacterSaveFieldsTests, SkillCooldownsMissingInOldSave) {
 	EXPECT_TRUE(skills->GetCooldownGroups().empty());
 	skills->UpdateXml(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><skil/></obj>)");
+}
+
+// <pet a="0">: live wrote the active pet as 0 on every character (the charxml is read at load, before any pet is out),
+// and each pet's taming type t as 0. Old saves without a load as before.
+TEST_F(CharacterSaveFieldsTests, PetsAsLiveWroteThem) {
+	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"><pet><p id="1152921510000000001" l="3254" t="0" n="Fluffy" m="2"/></pet></obj>)");
+
+	Entity player(29, info);
+	auto* const inventory = player.AddComponent<InventoryComponent>(-1);
+	inventory->LoadXml(doc); // the pets load first; there is no <inv> here
+	EXPECT_EQ(inventory->GetDatabasePet(1152921510000000001LL).lot, 3254);
+	inventory->UpdateXml(doc);
+	EXPECT_EQ(Print(doc), R"(<obj v="1"><pet a="0"><p id="1152921510000000001" l="3254" m="2" n="Fluffy" t="0"/></pet></obj>)");
 }
