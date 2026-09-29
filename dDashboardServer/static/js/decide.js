@@ -15,6 +15,7 @@
 	function build() {
 		el = document.createElement('div');
 		el.className = 'modal fade';
+		el.dataset.navKeep = ''; // shared by every page: kept when nav.js swaps pages
 		el.tabIndex = -1;
 		el.setAttribute('aria-labelledby', 'decideTitle');
 		el.innerHTML =

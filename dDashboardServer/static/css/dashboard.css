@@ -238,3 +238,14 @@ details.about-text > :not(summary) { color: var(--bs-secondary-color); font-size
 @media (min-width: 992px) {
 	html.sidebar-hidden nav.sidebar { display: none !important; }
 }
+
+/* Changing pages without a reload (nav.js): a thin bar at the top while the next page loads */
+main:focus { outline: none; }
+.nav-progress {
+	position: fixed; top: 0; left: 0; z-index: 1100; width: 100%; height: 3px;
+	background: var(--bs-primary); transform-origin: left; transform: scaleX(0); opacity: 0; pointer-events: none;
+}
+html.nav-loading .nav-progress { opacity: 1; animation: nav-progress 10s cubic-bezier(.08, .7, .2, 1) forwards; }
+html.nav-loading main { opacity: .65; transition: opacity .2s; }
+@keyframes nav-progress { from { transform: scaleX(.08); } to { transform: scaleX(.92); } }
+@media (prefers-reduced-motion: reduce) { html.nav-loading .nav-progress { animation: none; transform: scaleX(.5); } }

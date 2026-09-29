@@ -363,6 +363,19 @@ Pages update on their own: world servers tell the dashboard (through master) as 
 and it pushes that to open browsers. Pages about one thing (a character, an account) reload in place when it changes,
 unless you're typing, in which case they offer a refresh instead.
 
+Moving between pages doesn't reload the dashboard: the next page is fetched and swapped in, and the menu, the top bar
+and the live connection stay. A thin bar at the top shows while it loads; if it can't be fetched, the page says so with
+**Try again** and **Open it normally**. Back, forward, reloading, links opened in a new tab and links with a `#` filter
+work as before. Pages with a 3D view (World 3D, a property and its 3D view, the UGC server page) and pages reached from
+them load normally. Leaving a page with unsaved changes (Settings, Vanity) asks first.
+
+For page scripts (`static/js/nav.js`): listeners a page adds to `document` or `window`, its `setInterval` timers, its
+`Live` watchers and its DataTables are removed when another page is swapped in; its scripts run again when it's opened
+again, and `DOMContentLoaded`/`load` handlers they add run once they have all run. Elements a page appends to `<body>`
+are removed unless marked `data-nav-keep`. `Nav.go(url)` opens a page. `document` gets `dash:page` after a page is
+swapped in and `dash:leave` before. A page that must always load on its own adds `data-nav="reload"` to any element; a link with `data-nav="off"`
+always loads normally.
+
 View choices you make on the pages (show staff, filters, the 3D viewer's switches, ...) are saved to your account, so
 they follow you to other browsers.
 

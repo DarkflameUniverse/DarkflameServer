@@ -10,7 +10,10 @@
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
 	<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.7/b-3.2.6/fh-4.0.6/sc-2.4.3/datatables.min.css" rel="stylesheet" integrity="sha384-XMNDGLb5fN9IqhIrVXOAtGKcz4KCr+JSHXGZ1TDXQPDukbEAfmLPjHdCXhgK93fv" crossorigin="anonymous">
 	<link rel="stylesheet" href="/css/dashboard.css">
+	{# A page's own styles: nav.js swaps what is between these two when it changes pages without a reload #}
+	<meta name="page-head-start">
 	{% block css %}{% endblock %}
+	<meta name="page-head-end">
 </head>
 <body data-username="{{ username }}" data-gm-level="{{ gmLevel }}" data-account-id="{{ accountId }}" data-prefs="{{ prefs }}" data-labels="{{ labelsJson }}" data-can="{% for key, allowed in can %}{% if allowed %}{{ key }} {% endif %}{% endfor %}">
 	{% if username and username != "" %}
@@ -37,7 +40,7 @@
 					</ul>
 				</div>
 			</header>
-			<main class="flex-grow-1 p-2 p-sm-3 p-lg-4">
+			<main class="flex-grow-1 p-2 p-sm-3 p-lg-4" tabindex="-1">
 	{% else if exists("public_page") %}
 	{# Pages open to visitors who aren't signed in (public_page: {name, status, showcase}) show their normal content under a small top bar #}
 	<div class="d-flex flex-column min-vh-100">
@@ -67,8 +70,12 @@
 	<script src="/js/dashboard.js"></script>
 	<script src="/js/decide.js"></script>
 	<script src="/js/ai-suggest.js"></script>
+	<script src="/js/nav.js"></script>
 	{% endif %}
 
+	{# The page's own scripts: nav.js runs these again when it swaps a page in #}
+	<div id="page-scripts" hidden>
 	{% block scripts %}{% endblock %}
+	</div>
 </body>
 </html>

@@ -7,9 +7,10 @@
  *  - moderation_counts : moderation queue sizes for the sidebar badges (GM 3+)
  *
  * Pages call Live.watchTable(name, dataTable), Live.on(name, callback) or Live.refreshPage(names, id) to react to
- * changes. Game servers report their writes as they happen (world -> master -> dashboard), and the dashboard also
- * diffs a database snapshot for writers outside the game. After a reconnect every watcher is told to resync, since
- * changes may have been missed while the socket was down.
+ * changes; what a page registers lasts until nav.js swaps in another page (Live.resetPage). Game servers report their
+ * writes as they happen (world -> master -> dashboard), and the dashboard also diffs a database snapshot for writers
+ * outside the game. After a reconnect every watcher is told to resync, since changes may have been missed while the
+ * socket was down.
  */
 (function () {
 	'use strict';
@@ -25,6 +26,9 @@
 	var actionWaiters = {};  // requestId -> callback for actions started from this tab
 	var topicWatchers = {};  // extra topics a page asked for (e.g. player_positions) -> [callback]
 	var wasConnected = false;
+	var pageGeneration = 0;  // goes up on every page change; callbacks of a page that's gone do nothing
+	// The restart countdown lives across page changes, so it keeps the browser's own timer (nav.js stops the page's)
+	var coreSetInterval = window.setInterval.bind(window);
 
 	function setIndicator(text, cls) {
 		var el = document.getElementById('live-indicator');
@@ -213,7 +217,7 @@
 			banner.textContent = 'Server restart in ' + text + (restart.reason ? ': ' + restart.reason : '') + (restart.by ? ' (scheduled by ' + restart.by + ')' : '');
 		}
 		tick();
-		restartTimer = setInterval(tick, 1000);
+		restartTimer = coreSetInterval(tick, 1000);
 	}
 
 	window.Live = {
@@ -229,7 +233,8 @@
 		},
 		// Reload a DataTable (keeping its page) whenever the named table changes
 		watchTable: function (table, dataTable) {
-			Live.on(table, throttle(function () { dataTable.ajax.reload(null, false); }, RELOAD_THROTTLE_MS));
+			var generation = pageGeneration;
+			Live.on(table, throttle(function () { if (generation === pageGeneration) dataTable.ajax.reload(null, false); }, RELOAD_THROTTLE_MS));
 		},
 		/**
 		 * For server-rendered pages about one row: reload the page when that row changes in any of the given tables
@@ -237,7 +242,11 @@
 		 */
 		refreshPage: function (tables, id, options) {
 			options = options || {};
-			var refresh = throttle(function () { if (isBusy()) showStaleBanner(); else reloadKeepingScroll(); }, PAGE_REFRESH_MIN_MS);
+			var generation = pageGeneration;
+			var refresh = throttle(function () {
+				if (generation !== pageGeneration) return;
+				if (isBusy()) showStaleBanner(); else reloadKeepingScroll();
+			}, PAGE_REFRESH_MIN_MS);
 			[].concat(tables).forEach(function (table) {
 				Live.on(table, function (e) {
 					if (e.resync || options.anyRow || String(e.id) === String(id)) refresh();
@@ -246,6 +255,22 @@
 		},
 		throttle: throttle,
 		onStatus: function (cb) { statusWatchers.push(cb); },
+		// Forget what the page registered (nav.js, when it swaps in another page). Topics only it asked for are dropped.
+		resetPage: function () {
+			pageGeneration++;
+			tableWatchers = {};
+			statusWatchers = [];
+			Object.keys(topicWatchers).forEach(function (topic) {
+				if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ event: 'unsubscribe', subscription: topic }));
+			});
+			topicWatchers = {};
+			var stale = document.getElementById('live-stale');
+			if (stale) stale.remove();
+		},
+		// The sidebar's waiting counts again (nav.js, when the menu was rebuilt)
+		refreshBadges: function () {
+			if (DASH.can('moderate_names')) api.get('/api/moderation/counts').then(updateBadges).catch(function () {});
+		},
 		/**
 		 * Wait for background work (a scan, a search) and fetch its result, including its data, which only the account
 		 * that started it can read. Resolves with {success, message, data}. Keeps checking with a growing interval

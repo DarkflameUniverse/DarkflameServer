@@ -295,7 +295,8 @@
 			else if (input.type === 'radio') input.checked = input.value === String(value);
 			else if (input.tagName !== 'SELECT' || input.querySelector('option[value="' + CSS.escape(String(value)) + '"]')) input.value = value;
 		}
-		document.querySelectorAll('[data-pref]').forEach(apply);
+		function applyAll(root) { (root || document).querySelectorAll('[data-pref]').forEach(apply); }
+		applyAll();
 		document.addEventListener('change', function (e) {
 			var input = e.target.closest && e.target.closest('[data-pref]');
 			if (input) set(input.dataset.pref, valueOf(input));
@@ -311,7 +312,9 @@
 		});
 		return {
 			get: function (name, fallback) { return name in saved ? saved[name] : fallback; },
-			set: set
+			set: set,
+			// Set the inputs (and folding cards) under root as they were left: for content put in without a reload (nav.js)
+			apply: function (root) { applyAll(root); applyOpen(root); }
 		};
 	})();
 
@@ -362,15 +365,18 @@
 	/**
 	 * A .collapse marked data-pref-open="page.name" (a folding card's body) opens or stays folded as it was last left.
 	 */
-	document.querySelectorAll('.collapse[data-pref-open]').forEach(function (el) {
-		var open = Prefs.get(el.dataset.prefOpen, null);
-		if (open === null) return;
-		el.classList.toggle('show', !!open);
-		document.querySelectorAll('[data-bs-target="#' + CSS.escape(el.id) + '"]').forEach(function (b) {
-			b.classList.toggle('collapsed', !open);
-			b.setAttribute('aria-expanded', open ? 'true' : 'false');
+	function applyOpen(root) {
+		(root || document).querySelectorAll('.collapse[data-pref-open]').forEach(function (el) {
+			var open = Prefs.get(el.dataset.prefOpen, null);
+			if (open === null) return;
+			el.classList.toggle('show', !!open);
+			document.querySelectorAll('[data-bs-target="#' + CSS.escape(el.id) + '"]').forEach(function (b) {
+				b.classList.toggle('collapsed', !open);
+				b.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
 		});
-	});
+	}
+	applyOpen();
 	document.addEventListener('shown.bs.collapse', function (e) { if (e.target.dataset.prefOpen) Prefs.set(e.target.dataset.prefOpen, true); });
 	document.addEventListener('hidden.bs.collapse', function (e) { if (e.target.dataset.prefOpen) Prefs.set(e.target.dataset.prefOpen, false); });
 
@@ -378,14 +384,13 @@
 	 * Breadcrumbs that follow how you actually got to a page, kept per browser tab (sessionStorage).
 	 * A detail page has <nav data-crumbs data-crumb-label="..."> holding its natural parents as links (what shows when
 	 * the page is opened directly); every other page starts a new trail. Arriving from a page on the trail (by link
-	 * or script, seen through the same-origin referrer) continues it from there; returning to a page on the trail
+	 * or script, seen through the same-origin referrer, or told by nav.js through Crumbs.start) continues it from there; returning to a page on the trail
 	 * (back, a crumb, reload) cuts it back to that page. Crumbs.label(text) renames the current page once its name
 	 * has loaded. A link marked data-crumb-back points at the previous page on the trail.
 	 */
 	window.Crumbs = (function () {
 		var KEY = 'dash.trail', MAX = 7;
-		var here = window.location.pathname + window.location.search;
-		var nav = document.querySelector('[data-crumbs]');
+		var here, nav, trail;
 		function load() {
 			try { var t = JSON.parse(sessionStorage.getItem(KEY) || '[]'); return Array.isArray(t) ? t : []; } catch (e) { return []; }
 		}
@@ -395,29 +400,38 @@
 			var title = document.title.replace(/\s*-\s*DarkflameServer\s*$/, '').trim();
 			return !title || title === 'DarkflameServer' ? 'Home' : title;
 		}
-		var from = '';
-		try {
-			var ref = document.referrer ? new URL(document.referrer) : null;
-			if (ref && ref.origin === window.location.origin) from = ref.pathname + ref.search;
-		} catch (e) {}
-
-		var trail = load(), label = nav ? (nav.dataset.crumbLabel || titleLabel()) : titleLabel();
-		if (!nav) {
-			// Lists and other top-level pages start the trail
-			trail = [{ href: here, label: label }];
-		} else {
-			var at = indexOf(trail, here), came = from && from !== here ? indexOf(trail, from) : -1;
-			if (at >= 0) trail = trail.slice(0, at + 1);
-			else if (came >= 0) trail = trail.slice(0, came + 1).concat([{ href: here, label: label }]);
-			else {
-				// Opened directly or from outside the trail: the page's natural parents
-				trail = Array.prototype.map.call(nav.querySelectorAll('a[href]'), function (a) {
-					return { href: a.getAttribute('href'), label: a.textContent.trim() };
-				}).concat([{ href: here, label: label }]);
-			}
-			if (trail.length > MAX) trail = [trail[0]].concat(trail.slice(trail.length - MAX + 1));
+		function referrer() {
+			try {
+				var ref = document.referrer ? new URL(document.referrer) : null;
+				if (ref && ref.origin === window.location.origin) return ref.pathname + ref.search;
+			} catch (e) {}
+			return '';
 		}
-		save(trail);
+
+		// from: the page this one was reached from (path and query), for a page changed without a reload (nav.js)
+		function start(from) {
+			here = window.location.pathname + window.location.search;
+			nav = document.querySelector('[data-crumbs]');
+			trail = load();
+			var label = nav ? (nav.dataset.crumbLabel || titleLabel()) : titleLabel();
+			if (!nav) {
+				// Lists and other top-level pages start the trail
+				trail = [{ href: here, label: label }];
+			} else {
+				var at = indexOf(trail, here), came = from && from !== here ? indexOf(trail, from) : -1;
+				if (at >= 0) trail = trail.slice(0, at + 1);
+				else if (came >= 0) trail = trail.slice(0, came + 1).concat([{ href: here, label: label }]);
+				else {
+					// Opened directly or from outside the trail: the page's natural parents
+					trail = Array.prototype.map.call(nav.querySelectorAll('a[href]'), function (a) {
+						return { href: a.getAttribute('href'), label: a.textContent.trim() };
+					}).concat([{ href: here, label: label }]);
+				}
+				if (trail.length > MAX) trail = [trail[0]].concat(trail.slice(trail.length - MAX + 1));
+			}
+			save(trail);
+			render();
+		}
 
 		function render() {
 			if (!nav) return;
@@ -439,8 +453,9 @@
 				a.textContent = '← ' + prev.label;
 			});
 		}
-		render();
+		start(referrer());
 		return {
+			start: start,
 			label: function (text) {
 				if (!nav || !text) return;
 				trail[trail.length - 1].label = String(text);

@@ -49,6 +49,7 @@
 	function build() {
 		el = document.createElement('div');
 		el.className = 'modal fade';
+		el.dataset.navKeep = ''; // shared by every page: kept when nav.js swaps pages
 		el.tabIndex = -1;
 		el.setAttribute('aria-labelledby', 'aiSuggestTitle');
 		el.innerHTML =
@@ -322,7 +323,8 @@
 			}
 		});
 	}
-	// After the page's own scripts have set up their dialogs
+	// After the page's own scripts have set up their dialogs, and again for every page nav.js swaps in
 	if (document.readyState === 'complete') setTimeout(start, 0);
 	else window.addEventListener('load', function () { setTimeout(start, 0); });
+	document.addEventListener('dash:page', function () { setTimeout(start, 0); });
 })();
