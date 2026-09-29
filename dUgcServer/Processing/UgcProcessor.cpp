@@ -297,6 +297,9 @@ void UgcProcessor::Worker() {
 				const double iconMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - iconStart).count();
 				if (const auto updated = stats ? UgcJobs::WithIconTime(*stats, iconMs, done.iconChangeMs) : std::nullopt) done.outcome.files["stats.json"] = *updated;
 			} else {
+				// The processing options staff picked for this make, over the settings (unknown ones: the settings')
+				UgcProcessOptions::Choice choice;
+				if (job.kind == Kind::MODEL && UgcProcessOptions::Parse(job.options, choice)) UgcJobs::ApplyOptions(settings, choice);
 				done.outcome = job.kind == Kind::MODEL
 					? UgcJobs::ProcessModel(job.blob, m_Library, settings, static_cast<uint64_t>(job.id), job.iconValues)
 					: UgcJobs::ProcessModular(job.modular, m_Library.GetResPath(), settings);
@@ -393,6 +396,7 @@ void UgcProcessor::Poll() {
 		if (m_InFlight.contains({ Kind::MODEL, model.id })) continue;
 		Job job{ Kind::MODEL, model.id, model.attempts, UgcJobs::LxfmlFromBlob(model.lxfml) };
 		job.priority = model.priority;
+		job.options = std::move(model.options);
 		if (job.blob.empty()) job.blob = std::move(model.lxfml); // the worker reports it can't be read
 		job.parts = UgcJobs::CountParts(job.blob);
 		job.iconValues = IconValues(UgcIconParams::ModelKind(), UgcIconParams::ModelTarget(model.id));
@@ -469,7 +473,20 @@ void UgcProcessor::Record(const Done& done) {
 		if (done.outcome.ok) Database::Get()->SetUgcModelProcessStats(done.id, cost);
 		// What it counted (stats.json), for sorting on the dashboard
 		const auto stats = done.outcome.ok && !done.outcome.stats.empty() ? nlohmann::json::parse(done.outcome.stats, nullptr, false) : nlohmann::json();
-		if (const auto counts = CountsOf(stats)) Database::Get()->SetUgcModelStats(done.id, counts->bricks, counts->triangles, counts->trianglesBefore);
+		const auto counts = CountsOf(stats);
+		if (counts) Database::Get()->SetUgcModelStats(done.id, counts->bricks, counts->triangles, counts->trianglesBefore);
+		// The make with its options and times, for comparing the options on the dashboard
+		if (done.outcome.ok && !done.outcome.options.empty()) {
+			const auto& ms = stats.is_object() ? stats.value("ms", nlohmann::json::object()) : nlohmann::json::object();
+			const auto part = [&ms](const char* name) { return ms.is_object() ? ms.value(name, 0u) : 0u; };
+			IUgc::ProcessRun run{ done.id, done.outcome.options, cost.milliseconds, cost.cpuMilliseconds, part("hiddenSurfaces"), part("ambientOcclusion"), part("icon") };
+			if (counts) {
+				run.bricks = counts->bricks;
+				run.trianglesBefore = counts->trianglesBefore;
+				run.triangles = counts->triangles;
+			}
+			Database::Get()->RecordUgcModelRun(run);
+		}
 	} else {
 		Database::Get()->SetModularBuildProcessed(done.id, state, attempts, error);
 		if (done.outcome.ok) Database::Get()->SetModularBuildProcessStats(done.id, cost);
@@ -656,7 +673,7 @@ UgcProcessor::Availability UgcProcessor::Request(Kind kind, LWOOBJID id) {
 	if (info && info->state != IUgc::eProcessState::FAILED && info->state != IUgc::eProcessState::EMPTY) {
 		// Made before but the files are gone (deleted to save space): make them again, first
 		if (info->state == IUgc::eProcessState::DONE) {
-			if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(id, false);
+			if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(id, false, "");
 			else Database::Get()->ResetModularBuildProcessing(id, false);
 		}
 		// Someone wants it now: no need to wait out the quiet period after its save
@@ -1007,7 +1024,7 @@ void UgcProcessor::CollectFileTask() {
 
 	constexpr size_t ROWS_PER_TICK = 250;
 	if (m_Purge.after == eAfterDelete::NOW && m_Purge.all) {
-		if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(std::nullopt, false);
+		if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(std::nullopt, false, "");
 		else Database::Get()->ResetModularBuildProcessing(std::nullopt, false);
 		m_PurgeRowsDone = m_PurgeRows.size();
 	} else if (m_Purge.after != eAfterDelete::ON_DEMAND) {
@@ -1017,7 +1034,7 @@ void UgcProcessor::CollectFileTask() {
 		for (; m_PurgeRowsDone < end; m_PurgeRowsDone++) {
 			const auto row = m_PurgeRows[m_PurgeRowsDone];
 			if (m_Purge.after == eAfterDelete::NOW) {
-				if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(row, false);
+				if (kind == Kind::MODEL) Database::Get()->ResetUgcModelProcessing(row, false, "");
 				else Database::Get()->ResetModularBuildProcessing(row, false);
 			} else {
 				if (kind == Kind::MODEL) Database::Get()->SetUgcModelProcessed(row, IUgc::eProcessState::FAILED, m_Config.maxAttempts, "Deleted from the dashboard", false);

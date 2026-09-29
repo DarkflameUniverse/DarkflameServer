@@ -346,16 +346,17 @@ namespace {
 	}
 }
 
-size_t UgcManifest::ReprocessProperty(const LWOOBJID propertyId) {
+size_t UgcManifest::ReprocessProperty(const LWOOBJID propertyId, const std::string& options) {
 	std::set<LWOOBJID> blueprintIds;
 	for (const auto& model : Database::Get()->GetPropertyModels(propertyId)) {
 		if (model.ugcId != 0) blueprintIds.insert(model.ugcId);
 	}
 	if (blueprintIds.empty()) return 0;
-	Database::Get()->ResetPropertyUgcModelProcessing(propertyId);
+	Database::Get()->ResetPropertyUgcModelProcessing(propertyId, options);
 	const auto now = std::chrono::steady_clock::now();
 	g_PropertyReload = PropertyReload{ std::move(blueprintIds), now, now + RETRY_INTERVAL };
-	LOG("Making the %zu models of property %llu again; players are reloaded when they're made", g_PropertyReload->blueprintIds.size(), static_cast<unsigned long long>(propertyId));
+	LOG("Making the %zu models of property %llu again%s; players are reloaded when they're made", g_PropertyReload->blueprintIds.size(), static_cast<unsigned long long>(propertyId),
+		options.empty() ? "" : (" with " + options).c_str());
 	return g_PropertyReload->blueprintIds.size();
 }
 

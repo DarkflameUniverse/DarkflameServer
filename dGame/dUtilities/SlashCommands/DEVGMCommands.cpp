@@ -1,5 +1,6 @@
 #include "DEVGMCommands.h"
 
+#include "UgcKeys.h"
 #include "UgcManifest.h"
 #include "PropertyManagementComponent.h"
 #include "MasterPackets.h"
@@ -1989,12 +1990,19 @@ namespace DEVGMCommands {
 			ChatPackets::SendSystemMessage(sysAddr, u"You aren't on a property.");
 			return;
 		}
-		const auto queued = UgcManifest::ReprocessProperty(property->GetId());
+		// Optional processing options for this make: ray backend, hidden-face method, denoising, in any order
+		UgcProcessOptions::Choice choice;
+		if (!UgcProcessOptions::Parse(args, choice)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reprocessproperty [builtin|embree|hiprt] [toolbox|fast] [off|oidn] (left out: the UGC settings')");
+			return;
+		}
+		const auto options = UgcProcessOptions::ToString(choice);
+		const auto queued = UgcManifest::ReprocessProperty(property->GetId(), options);
 		if (queued == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"This property has no brick built models.");
 			return;
 		}
-		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16("Making " + std::to_string(queued) +
-			" model(s) again. Everyone on the property is reloaded when they're made."));
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16("Making " + std::to_string(queued) + " model(s) again" +
+			(options.empty() ? "" : " with " + options) + ". Everyone on the property is reloaded when they're made."));
 	}
 };

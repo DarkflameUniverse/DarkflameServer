@@ -25,6 +25,8 @@ namespace {
 		entry.processMemoryKb = static_cast<uint32_t>(result.getInt64Field("process_memory_kb"));
 		entry.modelName = result.getStringField("model_name", "");
 		entry.trianglesBefore = static_cast<uint32_t>(result.getInt64Field("triangle_count_before"));
+		entry.madeOptions = result.getStringField("made_options", "");
+		entry.processOptions = result.getStringField("process_options", "");
 		return entry;
 	}
 }

@@ -774,7 +774,7 @@ TEST_F(ParitySeeded, UgcModel) {
 		return out;
 	});
 	Both("ResetUgcModelProcessing", [&](GameDatabase& db) {
-		const auto changed = db.ResetUgcModelProcessing(std::nullopt, true);
+		const auto changed = db.ResetUgcModelProcessing(std::nullopt, true, "");
 		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
 		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), infoJson(db.GetUgcProcessInfo(1)) };
 	});
@@ -793,16 +793,37 @@ TEST_F(ParitySeeded, UgcModel) {
 		IPropertyContents::Model model;
 		model.id = 1152921510000400009LL; model.lot = 14; model.ugcId = 1152921510000500001LL;
 		db.InsertNewPropertyModel(PROP1, model, "Objects_14_name");
-		const auto changed = db.ResetPropertyUgcModelProcessing(PROP1);
+		const auto changed = db.ResetPropertyUgcModelProcessing(PROP1, "");
 		// Reset as priority: first in line, and the only one when asking for priority models; made, it's cleared
 		json priority = json::array();
 		for (const auto& model : db.GetUgcModelsToProcess(10, true)) priority.push_back({ model.id, model.priority });
 		const auto first = db.GetUgcModelsToProcess(10);
 		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
-		db.ResetUgcModelProcessing(1152921510000500001LL, false);
+		db.ResetUgcModelProcessing(1152921510000500001LL, false, "");
 		const auto afterMade = db.GetUgcModelsToProcess(10, true).size();
-		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), db.ResetPropertyUgcModelProcessing(1), priority,
+		return json{ changed, infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), db.ResetPropertyUgcModelProcessing(1, ""), priority,
 			first.empty() ? json() : json{ first.front().id, first.front().priority }, afterMade };
+	});
+	Both("Processing options and runs", [&](GameDatabase& db) {
+		// Options picked for the next make reach the UGC server and are cleared once it's made; a failed attempt keeps them
+		json out = json::array();
+		out.push_back(db.ResetUgcModelProcessing(1152921510000500001LL, false, "embree fast"));
+		for (const auto& model : db.GetUgcModelsToProcess(10)) out.push_back({ model.id, model.options });
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::PENDING, 1, "crashed", false);
+		for (const auto& model : db.GetUgcModelsToProcess(10)) out.push_back({ model.id, model.options });
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 2, "", true);
+		out.push_back(db.ResetPropertyUgcModelProcessing(PROP1, "hiprt oidn"));
+		for (const auto& model : db.GetUgcModelsToProcess(10)) out.push_back({ model.id, model.options, model.priority });
+		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::DONE, 1, "", true);
+		// Runs: the made options on the model, and the sums per options
+		db.RecordUgcModelRun({ 1152921510000500001LL, "embree fast off", 1000, 900, 100, 200, 50, 12, 500, 300 });
+		db.RecordUgcModelRun({ 1152921510000500001LL, "embree fast off", 3000, 2900, 300, 400, 70, 12, 500, 280 });
+		db.RecordUgcModelRun({ 1152921510000500001LL, "builtin toolbox off", 9000, 8900, 7000, 900, 60, 12, 500, 350 });
+		for (const auto& entry : db.GetUgcEntries({ 1152921510000500001LL })) out.push_back({ entry.madeOptions, entry.processOptions });
+		for (const auto& s : db.GetUgcRunSummaries()) {
+			out.push_back({ s.options, s.runs, s.models, s.milliseconds, s.cpuMilliseconds, s.hsrMilliseconds, s.aoMilliseconds, s.iconMilliseconds, s.bricks, s.trianglesBefore, s.triangles });
+		}
+		return out;
 	});
 	Both("Modular build processing", [&](GameDatabase& db) {
 		db.InsertUgcBuild("1:4713+1:4714+1:4715", 1152921510000500002LL, CHAR_ALICE);

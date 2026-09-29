@@ -31,10 +31,11 @@ namespace UgcLookupSql {
 		return (modular
 			? "SELECT b.ugc_id AS id, b.character_id, c.name AS character_name, COALESCE(c.account_id, 0) AS account_id, a.name AS account_name, "
 			  "b.is_optimized, b.process_error, b.ldf_config AS detail, b.process_attempts, b.processed_at, 0 AS process_after, 0 AS bake_ao, "
-			  "0 AS brick_count, 0 AS triangle_count, b.process_ms, b.process_cpu_ms, b.process_memory_kb, '' AS model_name, 0 AS triangle_count_before "
+			  "0 AS brick_count, 0 AS triangle_count, b.process_ms, b.process_cpu_ms, b.process_memory_kb, '' AS model_name, 0 AS triangle_count_before, "
+			  "'' AS made_options, '' AS process_options "
 			: "SELECT u.id, u.character_id, c.name AS character_name, u.account_id, a.name AS account_name, "
 			  "u.is_optimized, u.process_error, u.filename AS detail, u.process_attempts, u.processed_at, u.process_after, u.bake_ao, "
-			  "u.brick_count, u.triangle_count, u.process_ms, u.process_cpu_ms, u.process_memory_kb, u.triangle_count_before, "
+			  "u.brick_count, u.triangle_count, u.process_ms, u.process_cpu_ms, u.process_memory_kb, u.triangle_count_before, u.made_options, u.process_options, "
 			  // The name a player gave the model where it is placed (empty: none)
 			  "COALESCE((SELECT pc.model_name FROM properties_contents AS pc WHERE pc.ugc_id = u.id AND pc.model_name <> '' LIMIT 1), '') AS model_name ") + From(modular);
 	}

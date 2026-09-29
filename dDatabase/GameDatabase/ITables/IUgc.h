@@ -79,6 +79,7 @@ public:
 		std::string lxfml;
 		uint32_t attempts{};
 		bool priority{}; // staff asked for it to be made again: before any other model
+		std::string options; // the processing options staff picked for this make (UgcProcessOptions), empty: the settings'
 	};
 
 	// Up to `limit` pending models whose quiet period is over (process_after): the priority ones first, then the least
@@ -91,7 +92,8 @@ public:
 	virtual void ExpediteUgcModels(const LWOOBJID characterId) = 0;
 
 	// Records an attempt: the new state, how many attempts there have been, why it failed (empty when it didn't) and
-	// whether lighting was baked in; processed_at becomes now
+	// whether lighting was baked in; processed_at becomes now. Once it isn't pending any more, the priority and the
+	// processing options staff picked for it are cleared.
 	virtual void SetUgcModelProcessed(const LWOOBJID id, const eProcessState state, const uint32_t attempts, const std::string_view error, const bool bakeAo) = 0;
 
 	// What the UGC server counted when it made a model: its bricks and the most detailed mesh's triangles, after and
@@ -106,15 +108,50 @@ public:
 	};
 	virtual void SetUgcModelProcessStats(const LWOOBJID id, const ProcessStats& stats) = 0;
 
+	// A successful make of a model with the processing options that made it (UgcProcessOptions, every choice filled)
+	// and what it took (stats.json's times), for comparing the options
+	struct ProcessRun {
+		LWOOBJID id{};
+		std::string options;
+		uint32_t milliseconds{};
+		uint32_t cpuMilliseconds{};
+		uint32_t hsrMilliseconds{};  // removing hidden faces, every level
+		uint32_t aoMilliseconds{};   // the occlusion bake, every level
+		uint32_t iconMilliseconds{};
+		uint32_t bricks{};
+		uint32_t trianglesBefore{};  // the most detailed level's, before and after hidden faces were removed
+		uint32_t triangles{};
+	};
+
+	// Records a run (ugc_process_runs) and that the options made the model's files (made_options)
+	virtual void RecordUgcModelRun(const ProcessRun& run) = 0;
+
+	// The runs summed per options, the most used first
+	struct RunSummary {
+		std::string options;
+		uint64_t runs{};
+		uint64_t models{};           // different models
+		uint64_t milliseconds{};     // summed, as the rest
+		uint64_t cpuMilliseconds{};
+		uint64_t hsrMilliseconds{};
+		uint64_t aoMilliseconds{};
+		uint64_t iconMilliseconds{};
+		uint64_t bricks{};
+		uint64_t trianglesBefore{};
+		uint64_t triangles{};
+	};
+	virtual std::vector<RunSummary> GetUgcRunSummaries() = 0;
+
 	virtual std::optional<ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) = 0;
 
 	// Sets models back to pending with no attempts: one (`id`), or all of them (`id` nullopt; only the failed ones
-	// with `failedOnly`). Returns how many rows changed.
-	virtual uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly) = 0;
+	// with `failedOnly`). `options`: the processing options for the next make (UgcProcessOptions), empty: the
+	// settings'. Returns how many rows changed.
+	virtual uint64_t ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly, const std::string_view options) = 0;
 
-	// Sets every model placed on a property back to pending with no attempts, as priority (staff asked for it). Returns
-	// how many rows changed.
-	virtual uint64_t ResetPropertyUgcModelProcessing(const LWOOBJID propertyId) = 0;
+	// Sets every model placed on a property back to pending with no attempts, as priority (staff asked for it), with
+	// `options` for the next make as above. Returns how many rows changed.
+	virtual uint64_t ResetPropertyUgcModelProcessing(const LWOOBJID propertyId, const std::string_view options) = 0;
 
 	// A page of models (all, or those in `state`), the newest first; `search` (when not empty) matches the model's id
 	// exactly or part of its owner's name

@@ -25,6 +25,8 @@ namespace {
 		entry.processMemoryKb = static_cast<uint32_t>(result->getInt64("process_memory_kb"));
 		entry.modelName = result->getString("model_name").c_str();
 		entry.trianglesBefore = static_cast<uint32_t>(result->getInt64("triangle_count_before"));
+		entry.madeOptions = std::string(result->getString("made_options").c_str());
+		entry.processOptions = std::string(result->getString("process_options").c_str());
 		return entry;
 	}
 }

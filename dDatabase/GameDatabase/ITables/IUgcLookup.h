@@ -41,6 +41,8 @@ public:
 		uint32_t processMemoryKb{}; // the memory the UGC server estimated for it (not measured)
 		std::string modelName;      // models: the name a player gave it where it is placed (empty: none)
 		uint32_t trianglesBefore{}; // models: the most detailed level's triangles before hidden faces were removed (0: unknown)
+		std::string madeOptions;    // models: the processing options that made its files (UgcProcessOptions; empty: unknown)
+		std::string processOptions; // models: the options staff picked for its next make (empty: the settings')
 	};
 
 	// What SearchUgc matches. A number (when set) is matched against ids; text against names

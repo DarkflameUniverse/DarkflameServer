@@ -497,7 +497,7 @@ void SlashCommandHandler::Startup() {
 
 	Command ReprocessPropertyCommand{
 		.help = "Make this property's models again and reload it",
-		.info = "The UGC server makes every model placed on the property you are on again (with the current UGC settings). Once they are made, everyone on the property is sent back into it, so their game loads the new meshes",
+		.info = "The UGC server makes every model placed on the property you are on again, with the current UGC settings or the processing options given (in any order: builtin, embree or hiprt; toolbox or fast; off or oidn). Once they are made, everyone on the property is sent back into it, so their game loads the new meshes",
 		.aliases = { "reprocessproperty", "reloadpropertymodels" },
 		.handle = DEVGMCommands::ReprocessProperty,
 		.requiredLevel = eGameMasterLevel::DEVELOPER

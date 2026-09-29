@@ -199,7 +199,8 @@ namespace {
 		return { { "id", std::to_string(entry.id) }, { "characterId", std::to_string(entry.characterId) }, { "characterName", entry.characterName },
 			{ "accountId", entry.accountId }, { "accountName", entry.accountName }, { "state", IUgc::ProcessStateName(entry.state) }, { "attempts", entry.attempts },
 			{ "processedAt", entry.processedAt }, { "error", entry.error }, { "bakeAo", entry.bakeAo }, { "processAfter", entry.processAfter },
-			{ "detail", entry.detail }, { "bricks", entry.bricks }, { "triangles", entry.triangles }, { "processMs", entry.processMs }, { "processCpuMs", entry.processCpuMs }, { "processMemoryKb", entry.processMemoryKb }, { "modelName", entry.modelName }, { "trianglesBefore", entry.trianglesBefore } };
+			{ "detail", entry.detail }, { "bricks", entry.bricks }, { "triangles", entry.triangles }, { "processMs", entry.processMs }, { "processCpuMs", entry.processCpuMs }, { "processMemoryKb", entry.processMemoryKb }, { "modelName", entry.modelName }, { "trianglesBefore", entry.trianglesBefore },
+			{ "madeOptions", entry.madeOptions }, { "processOptions", entry.processOptions } };
 	}
 
 	// Web thread: the cars and rockets grouped into assemblies (one per combination of modules), from every build.
@@ -454,6 +455,32 @@ namespace UgcRoutes {
 				reply.status = eHTTPStatusCode::OK;
 				reply.contentType = eContentType::TEXT_PLAIN;
 				reply.message = sd0.GetAsStringUncompressed();
+			});
+
+		Route(eHTTPMethod::GET, "/api/ugc/options", Perm("properties_view"),
+			"The processing options (docs/UgcServer.md, \"Processing options\"): the choices ({rays, hsr, denoise}: names), the settings' defaults "
+			"({rays, hsr, denoise}) and every combination the made models used, with its makes (runs), models and averages per make "
+			"(ms, cpuMs, hsrMs, aoMs, iconMs, bricks, trianglesBefore, triangles, removed: the share of triangles removed)",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto names = [](const auto& list) {
+					nlohmann::json out = nlohmann::json::array();
+					for (const auto name : list) out.push_back(std::string(name));
+					return out;
+				};
+				nlohmann::json combos = nlohmann::json::array();
+				for (const auto& summary : Database::Get()->GetUgcRunSummaries()) {
+					const double runs = static_cast<double>(std::max<uint64_t>(summary.runs, 1));
+					const auto average = [runs](uint64_t total) { return std::lround(static_cast<double>(total) / runs); };
+					combos.push_back({ { "options", summary.options }, { "runs", summary.runs }, { "models", summary.models }, { "ms", average(summary.milliseconds) },
+						{ "cpuMs", average(summary.cpuMilliseconds) }, { "hsrMs", average(summary.hsrMilliseconds) }, { "aoMs", average(summary.aoMilliseconds) },
+						{ "iconMs", average(summary.iconMilliseconds) }, { "bricks", average(summary.bricks) }, { "trianglesBefore", average(summary.trianglesBefore) },
+						{ "triangles", average(summary.triangles) },
+						{ "removed", summary.trianglesBefore > 0 ? 1.0 - static_cast<double>(summary.triangles) / static_cast<double>(summary.trianglesBefore) : 0.0 } });
+				}
+				JsonSuccess(reply, { { "choices", { { "rays", names(UgcProcessOptions::RAYS) }, { "hsr", names(UgcProcessOptions::HSR) }, { "denoise", names(UgcProcessOptions::DENOISE) } } },
+					{ "defaults", { { "rays", UgcSetting("ray_backend").value_or("builtin") }, { "hsr", UgcSetting("hsr_method").value_or("toolbox") },
+						{ "denoise", UgcSetting("denoise").value_or("off") } } },
+					{ "combinations", combos }, { "canManage", Can(context, "ugc_manage") } });
 			});
 
 		Route(eHTTPMethod::GET, "/api/ugc/server/status", Perm("properties_view"),
@@ -744,16 +771,23 @@ namespace UgcRoutes {
 			});
 
 		Route(eHTTPMethod::POST, "/api/ugc/reprocess", Perm("ugc_manage"),
-			"Have the UGC server make items again. Body: {kind: model|modular, id} for one, {kind: model, property} for every model placed on a property, {kind, failedOnly: true} for the failed ones, {kind} for all",
+			"Have the UGC server make items again. Body: {kind: model|modular, id} for one, {kind: model, property} for every model placed on a property, {kind, failedOnly: true} for the failed ones, {kind} for all; "
+			"models: options (processing options for this make, e.g. \"embree fast oidn\": ray backend, hidden-face method, denoising; left out: the UGC settings')",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
 				const bool modular = body->value("kind", "model") == "modular";
+				UgcProcessOptions::Choice choice;
+				if (!UgcProcessOptions::Parse(body->contains("options") && (*body)["options"].is_string() ? (*body)["options"].get<std::string>() : "", choice)) {
+					return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Unknown processing options");
+				}
+				const auto options = UgcProcessOptions::ToString(choice);
+				const auto with = options.empty() ? std::string() : " with " + options;
 				if (!modular && body->contains("property")) {
 					const auto property = GeneralUtils::TryParse<LWOOBJID>((*body)["property"].is_string() ? (*body)["property"].get<std::string>() : (*body)["property"].dump());
 					if (!property) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid property");
-					const auto changed = Database::Get()->ResetPropertyUgcModelProcessing(*property);
-					Audit(context, "ugc_reprocess", "Queued " + std::to_string(changed) + " model(s) on property " + std::to_string(*property) + " to be made again");
+					const auto changed = Database::Get()->ResetPropertyUgcModelProcessing(*property, options);
+					Audit(context, "ugc_reprocess", "Queued " + std::to_string(changed) + " model(s) on property " + std::to_string(*property) + " to be made again" + with);
 					BroadcastTableChanged("ugc");
 					return JsonSuccess(reply, { { "message", std::to_string(changed) + " model" + (changed == 1 ? "" : "s") + " will be made again" } });
 				}
@@ -763,10 +797,10 @@ namespace UgcRoutes {
 					if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
 				}
 				const bool failedOnly = body->value("failedOnly", false);
-				const auto changed = modular ? Database::Get()->ResetModularBuildProcessing(id, failedOnly) : Database::Get()->ResetUgcModelProcessing(id, failedOnly);
+				const auto changed = modular ? Database::Get()->ResetModularBuildProcessing(id, failedOnly) : Database::Get()->ResetUgcModelProcessing(id, failedOnly, options);
 				const std::string what = modular ? "modular build" : "model";
 				Audit(context, "ugc_reprocess", "Queued " + std::to_string(changed) + " " + what + "(s) to be made again" +
-					(id ? " (" + std::to_string(*id) + ")" : failedOnly ? " (the failed ones)" : " (all)"));
+					(id ? " (" + std::to_string(*id) + ")" : failedOnly ? " (the failed ones)" : " (all)") + (modular ? "" : with));
 				BroadcastTableChanged("ugc");
 				JsonSuccess(reply, { { "message", std::to_string(changed) + " " + what + (changed == 1 ? "" : "s") + " will be made again" } });
 			});
