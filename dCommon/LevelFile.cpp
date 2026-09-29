@@ -127,6 +127,42 @@ void LevelFile::ReadFileInfoChunk(std::istream& file, ChunkHeader& header) {
 	BinaryIO::BinaryRead(file, header.fileInfo.particleChunkStart);
 }
 
+void LevelFile::ApplyClientConfigFixups(SceneObject& obj, uint32_t version) {
+	// What ReadLvlObjectData (1.10.64, 0x0103ba20) changes in an object's config as it loads it
+	auto& settings = obj.settings;
+	const auto typeOf = [&settings](const std::u16string& key) {
+		const auto it = settings.find(key);
+		return it == settings.end() || !it->second ? LDF_TYPE_UNKNOWN : it->second->GetValueType();
+	};
+	const auto valueOf = [&settings]<typename T>(const std::u16string& key) {
+		return static_cast<const LDFData<T>*>(settings.find(key)->second.get())->GetValue();
+	};
+
+	// Before version 47 a respawn time was in milliseconds: a float over 100, or any u32, becomes seconds (a float)
+	if (version < 47) {
+		if (typeOf(u"respawn") == LDF_TYPE_FLOAT) {
+			const auto respawn = valueOf.operator()<float>(u"respawn");
+			if (respawn > 100.0f) settings.Insert<float>(u"respawn", respawn * 0.001f);
+		} else if (typeOf(u"respawn") == LDF_TYPE_U32) {
+			settings.Insert<float>(u"respawn", static_cast<float>(valueOf.operator()<uint32_t>(u"respawn") * 0.001));
+		}
+	}
+
+	// A model spawner (LOT 176 spawning template 14): its blueprint is its subkey unless it has one, its behaviors are
+	// off unless it says otherwise, and it never wraps its render
+	if (obj.lot == 176 && typeOf(u"spawntemplate") == LDF_TYPE_S32 && valueOf.operator()<int32_t>(u"spawntemplate") == 14) {
+		if (typeOf(u"blueprintid") == LDF_TYPE_UNKNOWN) {
+			const LWOOBJID subkey = typeOf(u"subkey") == LDF_TYPE_OBJID ? valueOf.operator()<LWOOBJID>(u"subkey") : LWOOBJID_EMPTY;
+			settings.Insert<LWOOBJID>(u"blueprintid", subkey);
+		}
+		if (typeOf(u"DisableModelBehaviors") == LDF_TYPE_UNKNOWN) settings.Insert<bool>(u"DisableModelBehaviors", true);
+		settings.Insert<bool>(u"preventRenderWrapping", true);
+	}
+
+	// Before version 44 an object that overrides its scene goes to layer 0 of the scene it names
+	if (version < 44 && typeOf(u"sceneIDOverrideEnabled") != LDF_TYPE_UNKNOWN) settings.Insert<uint32_t>(u"sceneLayerIDOverride", 0);
+}
+
 void LevelFile::ReadSceneObjectDataChunk(std::istream& file, uint32_t version) {
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
@@ -165,6 +201,7 @@ void LevelFile::ReadSceneObjectDataChunk(std::istream& file, uint32_t version) {
 		for (const auto& token : GeneralUtils::SplitString(GeneralUtils::UTF16ToWTF8(ldfString), '\n')) {
 			obj.settings.ParseInsert(token);
 		}
+		ApplyClientConfigFixups(obj, version);
 
 		objects.push_back(std::move(obj));
 	}

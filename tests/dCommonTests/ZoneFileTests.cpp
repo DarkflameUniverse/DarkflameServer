@@ -505,6 +505,36 @@ TEST(LevelFileTests, SkipsEditorSettingsBySize) {
 	EXPECT_TRUE(oldLevel.objects.empty());
 }
 
+// Config the client changes as it loads an object
+TEST(LevelFileTests, FixesUpConfigAsTheClient) {
+	ZoneBytes w;
+	w.Put<uint16_t>(30).Put<uint16_t>(0);
+	w.data.append(48 + 12, '\0');
+	w.Put<uint32_t>(0).Put<uint32_t>(4);
+	w.Object(30, 176, 0, "respawn=3:5000\nsceneIDOverrideEnabled=7:1");
+	w.Object(30, 176, 0, "respawn=5:20000");
+	w.Object(30, 176, 0, "respawn=3:20\nspawntemplate=1:14\nsubkey=9:123");
+	w.Object(30, 176, 0, "spawntemplate=1:14\nblueprintid=9:5\nDisableModelBehaviors=7:0");
+
+	std::istringstream stream(w.Done());
+	LevelFile level;
+	level.Read(stream);
+	ASSERT_EQ(level.objects.size(), 4u);
+	const auto value = [&level](size_t object, const std::u16string& key) {
+		const auto it = level.objects[object].settings.find(key);
+		return it == level.objects[object].settings.end() ? std::string("none") : it->second->GetString();
+	};
+	EXPECT_EQ(value(0, u"respawn"), "respawn=3:5.000000");
+	EXPECT_EQ(value(0, u"sceneLayerIDOverride"), "sceneLayerIDOverride=5:0");
+	EXPECT_EQ(value(1, u"respawn"), "respawn=3:20.000000");
+	EXPECT_EQ(value(2, u"respawn"), "respawn=3:20.000000");
+	EXPECT_EQ(value(2, u"blueprintid"), "blueprintid=9:123");
+	EXPECT_EQ(value(2, u"DisableModelBehaviors"), "DisableModelBehaviors=7:1");
+	EXPECT_EQ(value(2, u"preventRenderWrapping"), "preventRenderWrapping=7:1");
+	EXPECT_EQ(value(3, u"blueprintid"), "blueprintid=9:5");
+	EXPECT_EQ(value(3, u"DisableModelBehaviors"), "DisableModelBehaviors=7:0");
+}
+
 TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {
 	ZoneBytes w;
 	w.Put<uint16_t>(30).Put<uint16_t>(0);

@@ -65,4 +65,5 @@ private:
 	static ChunkHeader ReadChunkHeader(std::istream& file, uint32_t start);
 	void ReadFileInfoChunk(std::istream& file, ChunkHeader& header);
 	void ReadSceneObjectDataChunk(std::istream& file, uint32_t version);
+	static void ApplyClientConfigFixups(SceneObject& obj, uint32_t version);
 };
