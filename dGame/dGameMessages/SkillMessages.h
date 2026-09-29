@@ -39,6 +39,16 @@ namespace GameMessages {
 		TSkillID skillID{};
 	};
 
+	// Server -> client, to the player only. The client's SkillComponent ends its running instance of the skill
+	// (LWOSkillComponent::msgUncastSkill, 0x00bd86d0): live sent it for an unequipped item's equip skills.
+	struct UncastSkill : public NetGameMsg {
+		UncastSkill() : NetGameMsg(MessageType::Game::UNCAST_SKILL) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		int32_t skillID{};
+	};
+
 	// Client -> server. The player picked a skill; DLU only uses it to fix invisible items on first load.
 	struct SelectSkill : public NetGameMsg {
 		SelectSkill() : NetGameMsg(MessageType::Game::SELECT_SKILL) {}

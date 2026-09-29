@@ -238,11 +238,12 @@ namespace GameMessages {
 	}
 
 	void ChangeObjectWorldState::Serialize(RakNet::BitStream& bitStream) const {
-		bitStream.Write(newState);
+		BitStreamUtils::WriteOptional(bitStream, newState, eObjectWorldState::INWORLD);
 	}
 
 	bool ChangeObjectWorldState::Deserialize(RakNet::BitStream& bitStream) {
-		return bitStream.Read(newState);
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, newState, eObjectWorldState::INWORLD));
+		return true;
 	}
 
 	void LocalizedAnnouncementServerToSingleClient::Serialize(RakNet::BitStream& bitStream) const {

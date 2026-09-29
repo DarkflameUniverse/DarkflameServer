@@ -6,6 +6,8 @@
 #include "ObjectMessages.h"
 #include "PlayerMessages.h"
 #include "QuickBuildMessages.h"
+#include "InventoryMessages.h"
+#include "SkillMessages.h"
 #include "StatisticID.h"
 #include "ZoneMessages.h"
 
@@ -352,8 +354,7 @@ TEST_F(RemainingMessagesTests, ZoneMessagesMatchLegacy) {
 			GameMessages::ChangeObjectWorldState msg;
 			msg.target = target;
 			msg.newState = state;
-			ExpectSameAsLegacy([&](const SystemAddress& address) { LegacyGameMessages::SendChangeObjectWorldState(target, state, address); }, msg);
-			RoundTrip(msg);
+			EXPECT_EQ(RoundTrip(msg).newState, state);
 		}
 	}
 	// Name-value text: a null terminator follows non-empty text and is not counted.
@@ -742,4 +743,23 @@ TEST_F(RemainingMessagesTests, UpdatePlayerStatisticMatchesLiveCapture) {
 	const auto meters = FromLiveCapture<GameMessages::UpdatePlayerStatistic>("5305000c000000005e7dea8e00000010c9050c0000008e8000000000000000");
 	EXPECT_EQ(meters.updateID, static_cast<int32_t>(StatisticID::MetersTraveled));
 	EXPECT_EQ(meters.updateValue, 29);
+}
+
+// Packets from 2011/2012 live captures, sent when items were equipped and unequipped. DLU wrote ChangeObjectWorldState's
+// state without the flag the client reads first, so the client read ATTACHED as INWORLD.
+TEST_F(RemainingMessagesTests, EquipMessagesMatchLiveCapture) {
+	const auto attached = FromLiveCapture<GameMessages::ChangeObjectWorldState>("5305000c000000002d21026701000010c7048080000000");
+	EXPECT_EQ(attached.target, 0x100000016702212dLL);
+	EXPECT_EQ(attached.newState, eObjectWorldState::ATTACHED);
+	const auto inventory = FromLiveCapture<GameMessages::ChangeObjectWorldState>("5305000c00000000b5915b6701000010c7048100000000");
+	EXPECT_EQ(inventory.newState, eObjectWorldState::INVENTORY);
+
+	const auto uncast = FromLiveCapture<GameMessages::UncastSkill>("5305000c000000001f147b5b01000010b6046a010000");
+	EXPECT_EQ(uncast.skillID, 362);
+
+	const auto unequip = FromLiveCapture<GameMessages::UnEquipInventory>("5305000c000000001f147b5b01000010e9004cb607ae4020000200");
+	EXPECT_FALSE(unequip.bEvenIfDead);
+	EXPECT_TRUE(unequip.bIgnoreCooldown);
+	EXPECT_FALSE(unequip.bOutSuccess);
+	EXPECT_EQ(unequip.replacementObjectID, LWOOBJID_EMPTY);
 }

@@ -82,13 +82,14 @@ namespace GameMessages {
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 	};
 
-	// Server -> client, to one client (UNASSIGNED broadcasts).
+	// Server -> client, to one client (UNASSIGNED broadcasts). newState is optional (a flag, then the state when it
+	// isn't INWORLD), as live sent it (e.g. 80 80 00 00 00 for ATTACHED).
 	struct ChangeObjectWorldState : public NetGameMsg {
 		ChangeObjectWorldState() : NetGameMsg(MessageType::Game::CHANGE_OBJECT_WORLD_STATE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 
-		eObjectWorldState newState{};
+		eObjectWorldState newState{ eObjectWorldState::INWORLD }; // optional
 	};
 
 	// Server -> client, to one client. The client looks both strings up in its locale (falling back to the text

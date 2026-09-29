@@ -347,7 +347,12 @@ TEST_F(InventoryMessagesTests, InboundReadsLikeLegacy) {
 			unequip.bIgnoreCooldown = !flag;
 			unequip.bOutSuccess = flag;
 			unequip.itemToUnequip = id;
-			const auto legacyUnequip = ReadWithLegacy<LegacyGameMessages::LegacyEquip>(unequip, LegacyGameMessages::ReadUnequipItem);
+			// The legacy read stopped before the optional replacementObjectID (its flag bit is left over)
+			RakNet::BitStream unequipWire;
+			unequip.Serialize(unequipWire);
+			RakNet::BitStream legacyUnequipStream(unequipWire.GetData(), unequipWire.GetNumberOfBytesUsed(), false);
+			const auto legacyUnequip = LegacyGameMessages::ReadUnequipItem(legacyUnequipStream);
+			EXPECT_EQ(legacyUnequipStream.GetReadOffset() + 1, unequipWire.GetNumberOfBitsUsed());
 			EXPECT_EQ(RoundTrip(unequip).itemToUnequip, legacyUnequip.objectID);
 			ExpectTruncatedFails(unequip);
 

@@ -48,6 +48,15 @@ namespace GameMessages {
 		return true;
 	}
 
+	void UncastSkill::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(skillID);
+	}
+
+	bool UncastSkill::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(skillID));
+		return true;
+	}
+
 	void SelectSkill::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(bFromSkillSet);
 		bitStream.Write(skillID);

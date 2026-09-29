@@ -168,6 +168,7 @@ namespace GameMessages {
 		bitStream.Write(bIgnoreCooldown);
 		bitStream.Write(bOutSuccess);
 		bitStream.Write(itemToUnequip);
+		BitStreamUtils::WriteOptional(bitStream, replacementObjectID, LWOOBJID_EMPTY);
 	}
 
 	bool UnEquipInventory::Deserialize(RakNet::BitStream& bitStream) {
@@ -175,6 +176,7 @@ namespace GameMessages {
 		VALIDATE_READ(bitStream.Read(bIgnoreCooldown));
 		VALIDATE_READ(bitStream.Read(bOutSuccess));
 		VALIDATE_READ(bitStream.Read(itemToUnequip));
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, replacementObjectID, LWOOBJID_EMPTY));
 		return true;
 	}
 

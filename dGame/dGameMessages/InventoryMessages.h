@@ -93,8 +93,8 @@ namespace GameMessages {
 		LWOOBJID itemToEquip{};
 	};
 
-	// Client -> server. The client also sends an optional replacementObjectID after itemToUnequip, which DLU
-	// has never read (and still does not).
+	// Both directions: the client asks to unequip; the server tells the client an item was unequipped when it took
+	// it away (live: bIgnoreCooldown set, after RemoveItemFromInventory).
 	struct UnEquipInventory : public NetGameMsg {
 		UnEquipInventory() : NetGameMsg(MessageType::Game::UN_EQUIP_INVENTORY) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
@@ -105,6 +105,7 @@ namespace GameMessages {
 		bool bIgnoreCooldown{};
 		bool bOutSuccess{};
 		LWOOBJID itemToUnequip{};
+		LWOOBJID replacementObjectID{ LWOOBJID_EMPTY }; // optional
 	};
 
 	// Client -> server.
