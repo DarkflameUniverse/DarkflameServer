@@ -526,7 +526,7 @@
 		var note = '';
 		if (current && current.unknown) note = 'Recorded before properties were told apart, so which property is not known.';
 		else if (activity.place === 'properties' || (current && current.property && current.place.indexOf(':') < 0)) note = 'Every property together (different builds on the same ground). Pick one property to see its own data.';
-		if (current && current.property_id) note += (note ? ' ' : '') + '<a href="/properties/' + esc(current.property_id) + '">Property page</a>';
+		if (current && current.property_id) note += (note ? ' ' : '') + fmt.property(current.property_id, 'Property page');
 		if (current && current.owner_id) note += (note ? ' · ' : '') + 'Owner ' + charLink(current.owner_id, current.owner_name);
 		if (current && current.place && current.place.indexOf(':') > 0 && current.property) note += (note ? ' · ' : '') + '<a href="#" data-map-place="' + esc(current.place) + '">World map</a>';
 		document.getElementById('activityPlaceNote').innerHTML = note;

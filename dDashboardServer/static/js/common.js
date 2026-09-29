@@ -145,6 +145,12 @@
 		},
 		badge: function (text, type) { return '<span class="badge text-bg-' + type + '">' + esc(text) + '</span>'; },
 		link: function (href, text) { return '<a href="' + esc(href) + '">' + esc(text) + '</a>'; },
+		// A property by name, linked to its page, with a button straight to its 3D view
+		property: function (id, name) {
+			if (!id || id === '0') return '<span class="text-body-secondary">-</span>';
+			return '<span class="text-nowrap">' + fmt.link('/properties/' + id, name || '(unnamed)') +
+				' <a href="/properties/' + esc(id) + '/3d" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 align-baseline" title="Open the 3D view">3D</a></span>';
+		},
 		// A character by name, linked; the ID only when the name is unknown (e.g. a deleted character)
 		character: function (id, name) {
 			if (!id || id === '0') return '<span class="text-body-secondary">-</span>';

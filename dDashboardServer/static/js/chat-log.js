@@ -92,7 +92,7 @@
 		document.getElementById('worldSubtitle').innerHTML = 'Zone ' + esc(world.mapID) + ' · instance ' + esc(world.instanceID) + (world.cloneID ? ' · clone ' + esc(world.cloneID) : '') +
 			(world.ip ? ' · <code>' + esc(world.ip + ':' + world.port) + '</code>' : '') +
 			(world.ownerId ? ' · owned by ' + fmt.character(world.ownerId, world.ownerName) : '') +
-			(world.propertyId ? ' · ' + fmt.link('/properties/' + world.propertyId, 'property') : '');
+			(world.propertyId ? ' · ' + fmt.property(world.propertyId, 'property') : '');
 		document.getElementById('worldActions').innerHTML = can.worlds
 			? '<button type="button" class="btn btn-sm btn-outline-danger" id="worldShutdown">Shut down</button>' : '';
 		loadStats();

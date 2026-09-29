@@ -27,7 +27,7 @@
 		var parts = [];
 		if (r.target_character_id !== '0') parts.push(fmt.character(r.target_character_id, r.target_name));
 		if (r.target_account_id) parts.push('<a class="small" href="/accounts/' + esc(r.target_account_id) + '">' + esc(r.target_account_name || ('Account ' + r.target_account_id)) + '</a>');
-		if (r.property_id !== '0') parts.push('<a class="small" href="/properties/' + esc(r.property_id) + '">' + esc(r.property_name || 'Property') + '</a>');
+		if (r.property_id !== '0') parts.push('<span class="small">' + fmt.property(r.property_id, r.property_name || 'Property') + '</span>');
 		if (r.kind !== 'PLAYER' && r.object_lot) parts.push('<span class="small text-body-secondary">' + esc(r.object_name || ('LOT ' + r.object_lot)) + ' (' + esc(r.object_id) + ')</span>');
 		return parts.join('<br>') || '<span class="text-body-secondary">Unknown</span>';
 	}

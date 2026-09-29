@@ -20,7 +20,7 @@
 				// A model the player didn't name has the client's placeholder (Objects_<lot>_name)
 				var given = w.modelName && !/^Objects_\d+_name$/.test(w.modelName);
 				var name = given ? ' as <span class="text-break">' + esc(w.modelName) + '</span>' : '';
-				return '<div>On ' + fmt.link('/properties/' + w.propertyId, w.propertyName || 'Property ' + w.propertyId) + name +
+				return '<div>On ' + fmt.property(w.propertyId, w.propertyName || 'Property ' + w.propertyId) + name +
 					' <span class="small text-body-secondary">(' + fmt.character(w.ownerId, w.ownerName) + ', ' + esc(w.zoneId) + ')</span>' +
 					' <a class="small" href="/properties/' + esc(w.propertyId) + '/3d#model=' + esc(w.modelId) + '">3D</a></div>';
 			}

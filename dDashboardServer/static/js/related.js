@@ -35,7 +35,7 @@
 	var SECTIONS = [
 		['properties', 'Properties', function (rows) {
 			return table(kind === 'account' ? ['Property', 'Owner', 'Zone', 'Models', 'Privacy', 'Status', 'Updated'] : ['Property', 'Zone', 'Models', 'Privacy', 'Status', 'Updated'], rows.map(function (p) {
-				var cells = [fmt.link('/properties/' + p.id, p.name || '(unnamed)')];
+				var cells = [fmt.property(p.id, p.name)];
 				if (kind === 'account') cells.push(fmt.character(p.owner_id, p.owner_name));
 				return cells.concat([fmt.zone(p.zone_id, p.zone_name), esc(nf.format(p.models)), esc(Labels.name('privacy', p.privacy_option) || p.privacy_option),
 					p.mod_approved ? fmt.badge('Approved', 'success') : fmt.badge(p.rejection_reason ? 'Rejected' : 'Not approved yet', p.rejection_reason ? 'danger' : 'warning') +

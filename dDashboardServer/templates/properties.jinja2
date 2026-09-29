@@ -62,7 +62,7 @@ $(function () {
 	var pending = document.getElementById('pendingOnly');
 	var table = serverTable('#propertiesTable', '/api/tables/properties', [
 		{ data: 'id' },
-		{ data: 'name', render: function (d, t, row) { return fmt.link('/properties/' + row.id, d || '(unnamed)'); } },
+		{ data: 'name', render: function (d, t, row) { return t === 'display' ? fmt.property(row.id, d) : d; } },
 		{ data: 'owner_id', render: function (d, t, row) { return fmt.character(d, row.owner_name); } },
 		{ data: 'mod_approved', render: function (d) { return d ? fmt.badge('Approved', 'success') : fmt.badge('Unapproved', 'warning'); } },
 		{ data: 'reputation' },
@@ -95,7 +95,7 @@ $(function () {
 			if (!slots.length) { slotsEl.innerHTML = '<div class="col text-body-secondary">No property worlds found in the client data.</div>'; return; }
 			slotsEl.innerHTML = slots.map(function (s) {
 				var showing = s.showing
-					? fmt.link('/properties/' + s.showing.id, s.showing.name || '(unnamed)') + ' <span class="text-body-secondary">by ' + esc(s.showing.owner_name) + '</span>'
+					? fmt.property(s.showing.id, s.showing.name) + ' <span class="text-body-secondary">by ' + esc(s.showing.owner_name) + '</span>'
 					: '<span class="text-body-secondary">Nothing (locked slot)</span>';
 				var warn = fullAuto ? '' : s.picked_unavailable ? '<div class="small text-warning mt-1">The picked property isn\'t an approved public property of ' + esc(s.zone_name) + ' (any more), so the slot falls back to Auto.</div>'
 					: s.picked_shown_elsewhere ? '<div class="small text-warning mt-1">The picked property is already shown in an earlier slot, so this one falls back to Auto.</div>' : '';

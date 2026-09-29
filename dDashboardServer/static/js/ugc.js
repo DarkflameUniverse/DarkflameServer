@@ -474,7 +474,7 @@
 	var refs = null, refTimer = null;
 	function whereText(w) {
 		return (w || []).map(function (x) {
-			if (x.type === 'property') return 'On <a href="/properties/' + esc(x.propertyId) + '">' + esc(x.propertyName || 'property ' + x.propertyId) + '</a>' + (x.ownerName ? ' of ' + esc(x.ownerName) : '');
+			if (x.type === 'property') return 'On ' + fmt.property(x.propertyId, x.propertyName || 'property ' + x.propertyId) + (x.ownerName ? ' of ' + esc(x.ownerName) : '');
 			if (x.type === 'mail') return 'In a mail to <a href="/characters/' + esc(x.characterId) + '">' + esc(x.characterName || x.characterId) + '</a>';
 			return 'In the creator\'s ' + esc(x.inventory || 'inventory');
 		}).join('<br>') || '<span class="text-body-secondary">Not found placed, mailed or with its creator</span>';

@@ -88,7 +88,7 @@ $(function () {
 	if (DASH.can('moderate_properties')) {
 		serverTable('#pendingPropsTable', '/api/tables/pending_properties', [
 			{ data: 'id', orderable: false },
-			{ data: 'name', orderable: false, render: function (d, t, row) { return fmt.link('/properties/' + row.id, d || '(unnamed)'); } },
+			{ data: 'name', orderable: false, render: function (d, t, row) { return fmt.property(row.id, d); } },
 			{ data: 'owner_id', orderable: false, render: function (d, t, row) { return fmt.character(d, row.owner_name); } },
 			// Nothing built yet is worth knowing before approving it for everyone to visit
 			{ data: 'models', orderable: false, render: function (d) { return d ? esc(d) : fmt.badge('Empty', 'secondary'); } },

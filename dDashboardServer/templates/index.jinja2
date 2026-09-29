@@ -235,7 +235,7 @@ $(function () {
 			{ data: 'instanceID', render: function (d, t, row) { return row.properties ? esc(row.properties) + ' propert' + (row.properties === 1 ? 'y' : 'ies') : esc(d); } }
 		].concat(detailedWorlds ? [{ data: 'cloneID' }, { data: 'propertyName', defaultContent: '', render: function (d, t, row) {
 			if (!row.cloneID) return '<span class="text-body-secondary">-</span>';
-			return (row.propertyId ? fmt.link('/properties/' + row.propertyId, d || '(unnamed)') : esc(d || '')) + (row.ownerId ? '<div class="small">by ' + fmt.character(row.ownerId, row.ownerName) + '</div>' : '');
+			return (row.propertyId ? fmt.property(row.propertyId, d) : esc(d || '')) + (row.ownerId ? '<div class="small">by ' + fmt.character(row.ownerId, row.ownerName) + '</div>' : '');
 		} }] : []).concat([
 			{ data: 'players', render: function (d) { return fmt.badge(d, 'primary'); } }
 		]).concat(detailedWorlds ? [{ data: 'isPrivate', render: function (d) { return d ? fmt.badge('Private', 'warning') : fmt.badge('Public', 'success'); } }, { data: 'port', defaultContent: '', render: function (d, t, row) { return '<code class="small">' + esc((row.ip || '') + ':' + d) + '</code>'; } }] : []).concat(DASH.can('worlds_manage') ? [{ data: null, orderable: false, className: 'text-end', render: function (d, t, row) {
