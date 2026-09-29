@@ -129,3 +129,154 @@ TEST_F(ReplicaConstructionTest, CharacterConstructionAlwaysWritesGmActivityAndSo
 
 	player.SetCharacter(nullptr);
 }
+
+class InventoryConstructionTest : public GameDependenciesTest {
+protected:
+	// The items of the live sample below (CDClient 1.10.64 values)
+	static constexpr LOT HOOD = 2642; // hair, bind on pickup, proxy 10482
+	static constexpr LOT HOOD_PROXY = 10482; // clavicle, bind on equip
+	static constexpr LOT NPC_HELMET = 8520; // hair, item type 22 (a model), bind on equip
+	static constexpr LOT NPC_KNIFE = 16682; // special_r, bind on equip
+	static constexpr LOT PLAIN_SHIRT = 4000; // chest, bound neither way
+
+	void SetUp() override {
+		SetUpDependencies();
+		CDClientDatabase::Connect(":memory:");
+		CDClientDatabase::ExecuteDML("CREATE TABLE ItemSets (setID INTEGER, itemIDs TEXT);");
+		RegisterItem(HOOD, "hair", 2, true, false, std::to_string(HOOD_PROXY));
+		RegisterItem(HOOD_PROXY, "clavicle", 4, false, true);
+		RegisterItem(NPC_HELMET, "hair", 22, false, true);
+		RegisterItem(NPC_KNIFE, "special_r", 6, false, true);
+		RegisterItem(PLAIN_SHIRT, "chest", 15, false, false);
+	}
+
+	void TearDown() override { TearDownDependencies(); }
+
+	static void RegisterItem(const LOT lot, const std::string& equipLocation, const int32_t itemType, const bool isBOP, const bool isBOE, const std::string& subItems = "") {
+		const auto componentID = static_cast<uint32_t>(97000 + lot);
+		auto& registry = CDClientManager::GetEntriesMutable<CDComponentsRegistryTable>();
+		registry.insert_or_assign(static_cast<uint64_t>(lot), componentID);
+		registry.insert_or_assign(static_cast<uint64_t>(eReplicaComponentType::ITEM) << 32 | static_cast<uint64_t>(lot), componentID);
+		CDItemComponent component{};
+		component.id = componentID;
+		component.equipLocation = equipLocation;
+		component.itemType = itemType;
+		component.isBOP = isBOP;
+		component.isBOE = isBOE;
+		component.subItems = subItems;
+		CDClientManager::GetEntriesMutable<CDItemComponentTable>().insert_or_assign(componentID, component);
+	}
+
+	static void RegisterNpc(const LOT npc, const uint32_t componentID, const std::vector<LOT>& items) {
+		auto& registry = CDClientManager::GetEntriesMutable<CDComponentsRegistryTable>();
+		registry.insert_or_assign(static_cast<uint64_t>(npc), 0); // the LOT's components are cached
+		registry.insert_or_assign(static_cast<uint64_t>(eReplicaComponentType::INVENTORY) << 32 | static_cast<uint64_t>(npc), componentID);
+		auto& table = CDClientManager::GetEntriesMutable<CDInventoryComponentTable>();
+		for (const auto item : items) table.push_back({ componentID, static_cast<uint32_t>(item), 1, true });
+	}
+
+	// One EquippedItemInfo the way lu_packets reads it
+	static void WriteItem(RakNet::BitStream& out, const LWOOBJID id, const LOT lot, const uint16_t slot, const uint32_t inventoryType, const bool bound) {
+		out.Write(id);
+		out.Write(lot);
+		out.Write0(); // subkey
+		out.Write1(); // count
+		out.Write<uint32_t>(1);
+		out.Write(slot != 0);
+		if (slot != 0) out.Write(slot);
+		out.Write(inventoryType != 0);
+		if (inventoryType != 0) out.Write(inventoryType);
+		out.Write0(); // extra_info
+		out.Write(bound);
+	}
+
+	static std::vector<EquippedItem> Equipped(InventoryComponent& inventory) {
+		std::vector<EquippedItem> items;
+		for (const auto& item : inventory.GetEquippedItems() | std::views::values) items.push_back(item);
+		return items;
+	}
+};
+
+// Live, NPC LOT 7426 (FV Numb Chuck; capture 60a58346ece1 idx 58): the helmet, a model, is in the MODELS inventory, so
+// it has inventory_type Model and slot 0 like the knife in ITEMS; both bind on equip, so both are bound.
+// Live, NPC LOT 13790 (NJ Cole; capture 8846569a7d52 idx 10614): the hood's proxy is TempEquip, slot 0, bound.
+// Every live construction ended with an empty equipped_model_transforms list.
+TEST_F(InventoryConstructionTest, NpcItemsLikeLive) {
+	RegisterNpc(7426, 263, { NPC_HELMET, NPC_KNIFE });
+	info.lot = 7426;
+	Entity numbChuck(288300744895900001, info);
+	auto* const inventory = numbChuck.AddComponent<InventoryComponent>(-1);
+	auto items = Equipped(*inventory);
+	ASSERT_EQ(items.size(), 2u);
+
+	RakNet::BitStream construction;
+	inventory->Serialize(construction, true);
+	RakNet::BitStream expected;
+	expected.Write1();
+	expected.Write<uint32_t>(2);
+	WriteItem(expected, items[0].id, NPC_HELMET, 0, 5 /* Model */, true); // "hair" sorts before "special_r"
+	WriteItem(expected, items[1].id, NPC_KNIFE, 0, 0, true);
+	expected.Write1(); // equipped_model_transforms Some([])
+	expected.Write<uint32_t>(0);
+	ExpectSameBits(construction, expected);
+
+	RegisterNpc(13790, 516, { HOOD });
+	info.lot = 13790;
+	Entity cole(288300744895900002, info);
+	auto* const coleInventory = cole.AddComponent<InventoryComponent>(-1);
+	items = Equipped(*coleInventory);
+	ASSERT_EQ(items.size(), 2u);
+
+	RakNet::BitStream coleConstruction;
+	coleInventory->Serialize(coleConstruction, true);
+	RakNet::BitStream coleExpected;
+	coleExpected.Write1();
+	coleExpected.Write<uint32_t>(2);
+	WriteItem(coleExpected, items[0].id, HOOD_PROXY, 0, 4 /* TempEquip */, true); // "clavicle" before "hair"
+	WriteItem(coleExpected, items[1].id, HOOD, 0, 0, true);
+	coleExpected.Write1();
+	coleExpected.Write<uint32_t>(0);
+	ExpectSameBits(coleConstruction, coleExpected);
+
+	// A serialization with nothing changed writes neither list
+	RakNet::BitStream serialization;
+	coleInventory->Serialize(serialization, false);
+	EXPECT_EQ(serialization.GetNumberOfBitsUsed(), 2u);
+}
+
+// A player's items: is_bound is the item's bound state (live: bind-on-pickup and equipped bind-on-equip items true,
+// items that bind neither way false, 2,990 of 49,534), and proxies are TempEquip.
+TEST_F(InventoryConstructionTest, PlayerItemsLikeLive) {
+	info.lot = 1;
+	CDClientManager::GetEntriesMutable<CDComponentsRegistryTable>().insert_or_assign(static_cast<uint64_t>(info.lot), 0);
+	Entity player(0x1000000000000001LL, info);
+	auto* const inventory = player.AddComponent<InventoryComponent>(-1);
+	Character character(1, nullptr);
+	player.SetCharacter(&character);
+	player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS)->InitializeStatisticsFromString("");
+
+	auto* const bag = inventory->GetInventory(eInventoryType::ITEMS);
+	// A bind-on-pickup item is bound from the moment it is picked up
+	auto* const hood = new Item(0x1000000000007000LL, HOOD, bag, 0, 1, true, {}, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eLootSourceType::NONE);
+	auto* const shirt = new Item(0x1000000000007001LL, PLAIN_SHIRT, bag, 1, 1, false, {}, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eLootSourceType::NONE);
+	inventory->EquipItem(hood);
+	inventory->EquipItem(shirt);
+
+	LWOOBJID proxyID = LWOOBJID_EMPTY;
+	for (const auto& item : Equipped(*inventory)) if (item.lot == HOOD_PROXY) proxyID = item.id;
+	ASSERT_NE(proxyID, LWOOBJID_EMPTY);
+
+	RakNet::BitStream construction;
+	inventory->Serialize(construction, true);
+	RakNet::BitStream expected;
+	expected.Write1();
+	expected.Write<uint32_t>(3);
+	WriteItem(expected, shirt->GetId(), PLAIN_SHIRT, 1, 0, false); // "chest", "clavicle", "hair"
+	WriteItem(expected, proxyID, HOOD_PROXY, 0, 4 /* TempEquip */, true);
+	WriteItem(expected, hood->GetId(), HOOD, 0, 0, true);
+	expected.Write1();
+	expected.Write<uint32_t>(0);
+	ExpectSameBits(construction, expected);
+
+	player.SetCharacter(nullptr);
+}

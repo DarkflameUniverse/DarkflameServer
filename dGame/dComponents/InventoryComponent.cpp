@@ -60,6 +60,38 @@
 
 #include <ranges>
 
+namespace {
+	// The equipped-item entry for a player's item. Live wrote its bound state and its inventory; DLU keeps proxies in
+	// ITEM_SETS, which live kept in TEMP_ITEMS (inventory_type TempEquip on every live proxy).
+	EquippedItem ToEquippedItem(const Item& item, const bool withConfig) {
+		EquippedItem equipped{ item.GetId(), item.GetLot(), item.GetCount(), item.GetSlot() };
+		if (withConfig) equipped.config = item.GetConfig();
+		equipped.bound = item.GetBound();
+		const auto inventoryType = item.GetInventory() ? item.GetInventory()->GetType() : ITEMS;
+		equipped.inventoryType = inventoryType == ITEM_SETS ? TEMP_ITEMS : inventoryType;
+		return equipped;
+	}
+
+	/**
+	 * Equipped-item entries for an NPC's CDClient items, as live wrote them: each item's slot is its slot in the
+	 * inventory it would be in (models count from 0 in MODELS, proxies from 0 in TEMP_ITEMS), the count is the row's,
+	 * and is_bound is set for bind-on-pickup and bind-on-equip items.
+	 */
+	class NpcEquipSlots {
+	public:
+		EquippedItem Make(const LOT lot, const uint32_t count, const bool isProxy) {
+			const auto& info = Inventory::FindItemComponent(lot);
+			const auto inventoryType = isProxy ? TEMP_ITEMS : Inventory::FindInventoryTypeForLot(lot);
+			EquippedItem item{ ObjectIDManager::GenerateObjectID(), lot, count, m_NextSlot[inventoryType]++ };
+			item.bound = info.isBOP || info.isBOE;
+			item.inventoryType = inventoryType;
+			return item;
+		}
+	private:
+		std::map<eInventoryType, uint32_t> m_NextSlot;
+	};
+}
+
 InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&InventoryComponent::OnGetObjectReportInfo);
 	this->m_Dirty = true;
@@ -85,7 +117,7 @@ InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID
 	auto* inventoryComponentTable = CDClientManager::GetTable<CDInventoryComponentTable>();
 	auto items = inventoryComponentTable->Query([=](const CDInventoryComponent entry) { return entry.id == componentId; });
 
-	auto slot = 0u;
+	NpcEquipSlots slots;
 
 	for (const auto& item : items) {
 		if (!Inventory::IsValidItem(item.itemid)) continue;
@@ -93,11 +125,9 @@ InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID
 
 		if (!item.equip) continue;
 
-		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
-
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
-		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item.itemid), item.count, slot++ });
+		UpdateSlot(info.equipLocation, slots.Make(static_cast<LOT>(item.itemid), item.count, false));
 
 		// Equip this items proxies.
 		auto subItems = info.subItems;
@@ -111,10 +141,9 @@ InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID
 				const auto proxyLOT = static_cast<LOT>(std::stoi(proxyLotAsString));
 
 				const auto& proxyInfo = Inventory::FindItemComponent(proxyLOT);
-				const LWOOBJID proxyId = ObjectIDManager::GenerateObjectID();
 
 				// Use item.count since we equip item.count number of the item this is a requested proxy of
-				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ });
+				UpdateSlot(proxyInfo.equipLocation, slots.Make(proxyLOT, item.count, true));
 			}
 		}
 	}
@@ -745,7 +774,7 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
 
-				UpdateSlot(info.equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
+				UpdateSlot(info.equipLocation, ToEquippedItem(*item, false));
 
 				AddItemSkills(item->GetLot());
 			}
@@ -894,7 +923,9 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 			outBitStream.Write(item.slot != 0);
 			if (item.slot != 0) outBitStream.Write<uint16_t>(item.slot);
 
-			outBitStream.Write0();
+			// Live left the inventory out for ITEMS and wrote it for the rest (TempEquip, Model).
+			outBitStream.Write(item.inventoryType != ITEMS);
+			if (item.inventoryType != ITEMS) outBitStream.Write<uint32_t>(item.inventoryType);
 
 			bool flag = !item.config.values.empty();
 			outBitStream.Write(flag);
@@ -916,7 +947,7 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 				outBitStream.Write(ldfStream);
 			}
 
-			outBitStream.Write1();
+			outBitStream.Write(item.bound);
 		}
 
 		m_Dirty = false;
@@ -924,7 +955,9 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 		outBitStream.Write(false);
 	}
 
-	outBitStream.Write(false);
+	// Equipped model transforms: live wrote an empty list on every construction, and nothing afterwards.
+	outBitStream.Write(bIsInitialUpdate);
+	if (bIsInitialUpdate) outBitStream.Write<uint32_t>(0);
 }
 
 void InventoryComponent::Update(float deltaTime) {
@@ -1061,7 +1094,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 	// skills change and the item's proxies are added
 	SendEquipState(*item, true);
 
-	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig() });
+	UpdateSlot(item->GetInfo().equipLocation, ToEquippedItem(*item, true));
 
 	ApplyBuff(item);
 
@@ -1560,14 +1593,12 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 	m_Equipped.clear();
 
-	auto slot = 0u;
+	NpcEquipSlots slots;
 
 	for (const auto& item : items) {
-		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
-
 		const auto& info = Inventory::FindItemComponent(item);
 
-		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item), 1, slot++ }, true);
+		UpdateSlot(info.equipLocation, slots.Make(static_cast<LOT>(item), 1, false), true);
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);

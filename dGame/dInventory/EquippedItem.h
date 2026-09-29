@@ -2,6 +2,7 @@
 
 #include "dCommonVars.h"
 #include "LDFFormat.h"
+#include "eInventoryType.h"
 
 /**
  * An item that's equipped, generally as a smaller return type than the regular Item class
@@ -32,4 +33,15 @@ struct EquippedItem
 	 * The configuration of the item with any extra data
 	 */
 	LwoNameValue config = {};
+
+	/**
+	 * Whether the item is bound to its owner (the construction's is_bound)
+	 */
+	bool bound = true;
+
+	/**
+	 * The inventory the item is in (the construction's inventory_type): TEMP_ITEMS for temporary equips and
+	 * proxies, MODELS for models, ITEMS for the rest
+	 */
+	eInventoryType inventoryType = ITEMS;
 };
