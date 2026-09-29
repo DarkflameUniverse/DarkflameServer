@@ -195,6 +195,13 @@ public:
 	void TrackMissionCompletion(bool isAchievement);
 
 	/**
+	 * Tells this player's client one more of a zone statistic in the current zone, as live did for
+	 * "QuickBuildsCompleted" and "AchievementsCompleted" (ModifyPlayerZoneStatistic: not set, value 1, this map).
+	 * The client counts enemies, coins and bricks itself.
+	 */
+	void SendZoneStatisticIncrement(const std::u16string& statName) const;
+
+	/**
 	 * Handles statistics related to collecting heart flags and imagination bricks
 	 * @param lot the lot of the object that was collected
 	 */

@@ -13,6 +13,7 @@
 #include "HavokVehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
+#include "PlayerMessages.h"
 #include "Item.h"
 #include "Amf3.h"
 #include "eGameMasterLevel.h"
@@ -548,6 +549,16 @@ void CharacterComponent::TrackMissionCompletion(bool isAchievement) {
 	} else {
 		UpdatePlayerStatistic(MissionsCompleted);
 	}
+}
+
+void CharacterComponent::SendZoneStatisticIncrement(const std::u16string& statName) const {
+	GameMessages::ModifyPlayerZoneStatistic statistic;
+	statistic.target = m_Parent->GetObjectID();
+	statistic.bSet = false;
+	statistic.statName = statName;
+	statistic.statValue = 1;
+	statistic.zoneID = Game::zoneManager->GetZoneID().GetMapID();
+	statistic.SendToClient(m_Parent->GetSystemAddress());
 }
 
 void CharacterComponent::TrackLOTCollection(LOT lot) {

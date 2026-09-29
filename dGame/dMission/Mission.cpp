@@ -341,6 +341,11 @@ void Mission::Complete(const bool yieldRewards) {
 
 	missionComponent->Progress(eMissionTaskType::RACING, info.id, static_cast<LWOOBJID>(eRacingTaskParam::COMPLETE_TRACK_TASKS));
 
+	// Live sent this after the completion and the achievement tasks it progressed (186 in the live captures).
+	if (characterComponent != nullptr && !info.isMission) {
+		characterComponent->SendZoneStatisticIncrement(u"AchievementsCompleted");
+	}
+
 	auto* missionEmailTable = CDClientManager::GetTable<CDMissionEmailTable>();
 
 	const auto missionId = GetMissionId();

@@ -477,6 +477,7 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	enableRebuild.fDuration = 0.0f;
 	enableRebuild.user = user->GetObjectID();
 	enableRebuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	characterComponent->SendZoneStatisticIncrement(u"QuickBuildsCompleted");
 	GameMessages::TerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID()).Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 
