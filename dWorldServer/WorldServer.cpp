@@ -327,6 +327,17 @@ int main(int argc, char** argv) {
 		zoneID);
 	WorldMigration::SetCleanupHandler(CleanupDisconnectedUser);
 	DashboardActions::SetLogoutHandler(CleanupDisconnectedUser);
+	// The network page's per-connection list says which player is on a connection (main thread, with the report)
+	Game::server->SetConnectionIdentity([](const SystemAddress& sysAddr, TrafficStats::Connection& connection) {
+		auto* const user = UserManager::Instance()->GetUser(sysAddr);
+		if (!user) return;
+		connection.accountId = user->GetAccountID();
+		connection.account = user->GetUsername();
+		if (auto* const character = user->GetLastUsedChar()) {
+			connection.characterId = static_cast<uint64_t>(character->GetObjectID());
+			connection.character = character->GetName();
+		}
+	});
 
 	//Connect to the chat server:
 	uint32_t chatPort = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("chat_server_port")).value_or(1501);
@@ -543,6 +554,7 @@ int main(int argc, char** argv) {
 		//Handle our chat packets:
 		packet = Game::chatServer->Receive();
 		while (packet) {
+			ChatServerLink::CountReceived(packet->data, packet->length);
 			HandlePacketChat(packet);
 			Game::chatServer->DeallocatePacket(packet);
 			packet = Game::chatServer->Receive();
@@ -1432,10 +1444,7 @@ namespace {
 				if (lastChar) objectID = lastChar->GetObjectID();
 			}
 
-			const auto routed = ToChat(objectID);
-			RakNet::BitStream bitStream;
-			routed.WritePacket(bitStream);
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
+			ChatServerLink::Send(ToChat(objectID), SYSTEM_PRIORITY, RELIABLE_ORDERED);
 		}
 	};
 

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <ctime>
+#include <tuple>
 
 #include "MessageIdentifiers.h"
 #include "ServiceType.h"
@@ -134,7 +135,15 @@ namespace TrafficStats {
 		return key;
 	}
 
+	void PeerCounts::Merge(const PeerCounts& other) {
+		packetsIn += other.packetsIn;
+		packetsOut += other.packetsOut;
+		bytesIn += other.bytesIn;
+		bytesOut += other.bytesOut;
+	}
+
 	void Second::Merge(const Second& other) {
+		for (size_t i = 0; i < PEER_CLASSES; i++) peers[i].Merge(other.peers[i]);
 		packetsIn += other.packetsIn;
 		packetsOut += other.packetsOut;
 		bytesIn += other.bytesIn;
@@ -143,6 +152,10 @@ namespace TrafficStats {
 		AddArrays(httpStatus, other.httpStatus);
 		httpBytesOut += other.httpBytesOut;
 		httpLatency.Merge(other.httpLatency);
+		httpFromServers += other.httpFromServers;
+		httpFromServersBytesOut += other.httpFromServersBytesOut;
+		httpOutRequests += other.httpOutRequests;
+		httpOutBytesIn += other.httpOutBytesIn;
 	}
 
 	void RouteStats::Merge(const RouteStats& other) {
@@ -152,16 +165,21 @@ namespace TrafficStats {
 		latency.Merge(other.latency);
 	}
 
-	void Recorder::Packet(int64_t now, const MessageKey& key, uint64_t bytes, uint32_t fanout) {
+	void Recorder::Packet(int64_t now, const MessageKey& key, uint64_t bytes, uint32_t fanout, Peer peer) {
 		if (fanout == 0) return;
 		std::lock_guard lock(m_Mutex);
 		auto& second = SecondAt(now);
+		auto& side = second.peers[std::min<size_t>(static_cast<size_t>(peer), PEER_CLASSES - 1)];
 		if (key.outbound) {
 			second.packetsOut += fanout;
 			second.bytesOut += bytes * fanout;
+			side.packetsOut += fanout;
+			side.bytesOut += bytes * fanout;
 		} else {
 			second.packetsIn += fanout;
 			second.bytesIn += bytes * fanout;
+			side.packetsIn += fanout;
+			side.bytesIn += bytes * fanout;
 		}
 		auto& message = m_Messages[key.Packed()];
 		message.key = key;
@@ -169,9 +187,58 @@ namespace TrafficStats {
 		message.bytes += bytes * fanout;
 	}
 
-	void Recorder::Http(int64_t now, const std::string& route, uint16_t status, uint64_t microseconds, uint64_t bytesOut) {
+	void Connection::Merge(const Connection& other) {
+		packetsIn += other.packetsIn;
+		packetsOut += other.packetsOut;
+		bytesIn += other.bytesIn;
+		bytesOut += other.bytesOut;
+		resends += other.resends;
+	}
+
+	void TrimConnections(Report& report, size_t limit) {
+		report.hasConnections = true;
+		auto& list = report.connections;
+		std::sort(list.begin(), list.end(), [](const Connection& a, const Connection& b) {
+			return a.Bytes() != b.Bytes() ? a.Bytes() > b.Bytes() : std::tie(a.address, a.port) < std::tie(b.address, b.port);
+		});
+		for (size_t i = limit; i < list.size(); i++) {
+			report.otherConnections.Merge(list[i]);
+			report.otherConnectionCount++;
+		}
+		if (list.size() > limit) list.resize(limit);
+	}
+
+	void Recorder::HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut) {
+		std::lock_guard lock(m_Mutex);
+		auto it = m_HttpClients.find(address);
+		if (it == m_HttpClients.end()) {
+			const bool full = m_HttpClients.size() >= MAX_HTTP_CLIENTS;
+			it = m_HttpClients.try_emplace(full ? std::string() : address).first;
+			it->second.address = it->first;
+			it->second.http = true;
+		}
+		auto& client = it->second;
+		if (fromServer) client.peer = Peer::SERVERS;
+		client.packetsIn++;
+		client.packetsOut++;
+		client.bytesIn += bytesIn;
+		client.bytesOut += bytesOut;
+	}
+
+	void Recorder::HttpOut(int64_t now, uint64_t bytesIn) {
 		std::lock_guard lock(m_Mutex);
 		auto& second = SecondAt(now);
+		second.httpOutRequests++;
+		second.httpOutBytesIn += bytesIn;
+	}
+
+	void Recorder::Http(int64_t now, const std::string& route, uint16_t status, uint64_t microseconds, uint64_t bytesOut, bool fromServer) {
+		std::lock_guard lock(m_Mutex);
+		auto& second = SecondAt(now);
+		if (fromServer) {
+			second.httpFromServers++;
+			second.httpFromServersBytesOut += bytesOut;
+		}
 		second.httpRequests++;
 		second.httpStatus[StatusClass(status)]++;
 		second.httpBytesOut += bytesOut;
@@ -221,6 +288,7 @@ namespace TrafficStats {
 
 	Report Recorder::Take(int64_t now) {
 		Report report;
+		report.peerSplit = true;
 		std::vector<std::pair<std::string, std::function<double()>>> gauges;
 		{
 			std::lock_guard lock(m_Mutex);
@@ -245,6 +313,15 @@ namespace TrafficStats {
 
 			for (auto& [_, route] : m_Routes) report.routes.push_back(std::move(route));
 			m_Routes.clear();
+			for (auto& [address, client] : m_HttpClients) {
+				if (address.empty()) { // the ones over MAX_HTTP_CLIENTS
+					report.otherConnections.Merge(client);
+					report.otherConnectionCount++;
+				} else {
+					report.connections.push_back(std::move(client));
+				}
+			}
+			m_HttpClients.clear();
 			gauges = m_Gauges;
 		}
 		for (const auto& [name, source] : gauges) report.gauges.emplace_back(name, source ? source() : 0.0);

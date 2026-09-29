@@ -7,6 +7,7 @@
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
+#include "TrafficStats.h"
 
 class Logger;
 class dConfig;
@@ -58,6 +59,10 @@ public:
 	using TrafficSink = std::function<void(ServerTraffic& report)>;
 	void SetTrafficSink(TrafficSink sink) { mTrafficSink = std::move(sink); }
 
+	// Names who is on a connection in the traffic report (a world fills in the player's account and character)
+	using ConnectionIdentity = std::function<void(const SystemAddress& sysAddr, TrafficStats::Connection& connection)>;
+	void SetConnectionIdentity(ConnectionIdentity identity) { mConnectionIdentity = std::move(identity); }
+
 	bool IsConnected(const SystemAddress& sysAddr);
 	const std::string& GetIP() const { return mIP; }
 	const int GetPort() const { return mPort; }
@@ -92,8 +97,10 @@ private:
 	};
 	bool Startup();
 	// Traffic diagnostics (TrafficStats): count one packet, and send the report when it is due
-	void CountTraffic(const Packet* packet);
-	void CountTraffic(const RakNet::BitStream& bitStream, bool broadcast, const SystemAddress& sysAddr);
+	void CountTraffic(const Packet* packet, TrafficStats::Peer peer);
+	void CountTraffic(const RakNet::BitStream& bitStream, bool broadcast, const SystemAddress& sysAddr, TrafficStats::Peer peer);
+	// Who mPeer's connections are: other servers on master and chat (the worlds connect to chat), players elsewhere
+	TrafficStats::Peer PeerOfConnections() const;
 	void ReportTraffic();
 	// Adds the peer's connections to the report's link statistics (changes since the last report)
 	void AddLinkStats(RakPeerInterface* peer, uint64_t peerIndex, ServerTraffic& report, uint64_t& pingSum, std::map<uint64_t, LinkCounters>& seen);
@@ -136,6 +143,7 @@ protected:
 	SendObserver mSendObserver;
 
 	TrafficSink mTrafficSink;
+	ConnectionIdentity mConnectionIdentity;
 	// RakNet's per-connection statistics are totals since the connection opened; the last ones seen, for deltas
 	std::map<uint64_t, LinkCounters> mLinkCounters;
 };

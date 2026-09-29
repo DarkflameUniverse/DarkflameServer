@@ -9,6 +9,9 @@ struct LUBitStream;
 namespace ChatServerLink {
 	// World -> chat: sends msg (a ChatPackets struct) over the world's chat connection
 	void Send(const LUBitStream& msg, PacketPriority priority = SYSTEM_PRIORITY, PacketReliability reliability = RELIABLE);
+
+	// Counts a packet the world received from chat in its traffic diagnostics (TrafficStats, as another server's)
+	void CountReceived(const unsigned char* data, unsigned int length);
 }
 
 #endif // CHATSERVERLINK_H

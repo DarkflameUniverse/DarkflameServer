@@ -8,6 +8,7 @@
 #include "dConfig.h"
 #include "Game.h"
 #include "RouteUtils.h"
+#include "TrafficStats.h"
 #include "TtlCache.h"
 
 namespace {
@@ -42,11 +43,16 @@ namespace {
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "DarkflameServer-Dashboard");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Collect);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out->body);
+		// Names the dashboard to the UGC server, whose traffic report then counts this as the dashboard's (not a player's)
+		curl_slist* identify = curl_slist_append(nullptr, (std::string(TrafficStats::SERVER_HEADER) + ": dashboard").c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, identify);
 		setup(curl);
 		const auto code = curl_easy_perform(curl);
+		TrafficStats::Local().HttpOut(TrafficStats::Now(), out->body.size());
 		if (code == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &out->status);
 		else out->error = curl_easy_strerror(code);
 		curl_easy_cleanup(curl);
+		curl_slist_free_all(identify);
 		return out;
 	}
 }
@@ -79,6 +85,7 @@ namespace UgcFetch {
 
 	std::shared_ptr<const Fetched> AdminPost(const std::string& url, const std::string& key, const std::string& body) {
 		curl_slist* headers = curl_slist_append(nullptr, "Content-Type: application/json");
+		headers = curl_slist_append(headers, (std::string(TrafficStats::SERVER_HEADER) + ": dashboard").c_str());
 		headers = curl_slist_append(headers, ("X-Ugc-Admin-Key: " + key).c_str());
 		auto out = Perform(url, 120L, [&](CURL* curl) {
 			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);

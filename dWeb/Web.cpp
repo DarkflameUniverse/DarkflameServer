@@ -260,6 +260,9 @@ namespace {
 	struct DeferredTiming {
 		std::string route;
 		TrafficClock::time_point started;
+		bool fromServer{};
+		std::string address;
+		uint64_t requestBytes{};
 	};
 	std::unordered_map<unsigned long, DeferredTiming> g_DeferredTiming;
 
@@ -280,9 +283,11 @@ namespace {
 		std::filesystem::remove(reply.file, ec);
 	}
 
-	void CountRequest(const std::string& route, uint16_t status, TrafficClock::time_point started, uint64_t bytes) {
+	void CountRequest(const std::string& route, uint16_t status, TrafficClock::time_point started, uint64_t bytes, bool fromServer,
+		const std::string& address, uint64_t requestBytes) {
 		const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(TrafficClock::now() - started).count();
-		TrafficStats::Local().Http(TrafficStats::Now(), route, status, static_cast<uint64_t>(std::max<int64_t>(micros, 0)), bytes);
+		TrafficStats::Local().Http(TrafficStats::Now(), route, status, static_cast<uint64_t>(std::max<int64_t>(micros, 0)), bytes, fromServer);
+		TrafficStats::Local().HttpClient(address, fromServer, requestBytes, bytes);
 	}
 }
 
@@ -293,6 +298,10 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 	const auto started = TrafficClock::now();
 	// The route's pattern, not the path, so traffic diagnostics have one entry per route
 	std::string trafficRoute = "(no route)";
+	// Another server asking (the dashboard fetching from the UGC server), for the network diagram's links
+	const bool fromServer = http_msg && mg_http_get_header(const_cast<mg_http_message*>(http_msg), TrafficStats::SERVER_HEADER) != nullptr;
+	const auto clientAddress = GetClientIP(connection);
+	const uint64_t requestBytes = http_msg ? http_msg->message.len : 0;
 	
 	if (!http_msg) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
@@ -379,7 +388,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 				}
 			}
 			
-			CountRequest("GET /ws", level ? 101 : 401, started, 0);
+			CountRequest("GET /ws", level ? 101 : 401, started, 0, fromServer, clientAddress, requestBytes);
 			if (level) {
 				mg_ws_upgrade(connection, const_cast<mg_http_message*>(http_msg), NULL);
 				g_AuthenticatedWSConnections[connection] = { level->level, level->accountId, connectToken, apiToken,
@@ -511,14 +520,14 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		g_Deferred.SetReplyOptions(connection->id, reply.headers, cc && mg_strcasecmp(*cc, mg_str("close")) == 0);
 		// Requests the answers never came for (the client left) are forgotten now and then
 		if (g_DeferredTiming.size() > 10000) g_DeferredTiming.clear();
-		g_DeferredTiming[connection->id] = { std::move(trafficRoute), started };
+		g_DeferredTiming[connection->id] = { std::move(trafficRoute), started, fromServer, clientAddress, requestBytes };
 		return;
 	}
 	// The handler deferred and then failed: its late answer is dropped
 	if (g_Deferred.IsPending(connection->id)) g_Deferred.Close(connection->id);
 
 	SendReply(connection, reply, http_msg);
-	CountRequest(trafficRoute, static_cast<uint16_t>(reply.status), started, ReplyBytes(reply));
+	CountRequest(trafficRoute, static_cast<uint16_t>(reply.status), started, ReplyBytes(reply), fromServer, clientAddress, requestBytes);
 	RemoveSentFile(reply);
 }
 
@@ -799,7 +808,8 @@ void Web::SendDeferredReplies() {
 		// Clears is_resp once the reply is out, so mongoose reads the connection's next request again
 		SendReply(connection, finished.reply, nullptr);
 		if (const auto timing = g_DeferredTiming.find(finished.connection); timing != g_DeferredTiming.end()) {
-			CountRequest(timing->second.route, static_cast<uint16_t>(finished.reply.status), timing->second.started, ReplyBytes(finished.reply));
+			CountRequest(timing->second.route, static_cast<uint16_t>(finished.reply.status), timing->second.started, ReplyBytes(finished.reply), timing->second.fromServer,
+				timing->second.address, timing->second.requestBytes);
 			g_DeferredTiming.erase(timing);
 		}
 		RemoveSentFile(finished.reply);

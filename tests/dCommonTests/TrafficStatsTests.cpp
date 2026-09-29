@@ -226,3 +226,44 @@ TEST(TrafficStatsTest, CountingIsCheap) {
 	std::printf("[          ] KeyOf + Recorder::Packet: %lld ns per packet\n", static_cast<long long>(ns));
 	EXPECT_LT(ns, 2000); // generous for slow CI machines and sanitizers
 }
+
+TEST(TrafficStatsTest, RecorderSplitsPacketsByPeer) {
+	Recorder r;
+	const MessageKey in{ false, 4, 5, 0 };
+	const MessageKey out{ true, 5, 12, 0 };
+	r.Packet(2000, in, 100); // clients by default
+	r.Packet(2000, out, 40, 3, Peer::CLIENTS);
+	r.Packet(2000, out, 20, 1, Peer::MASTER);
+	r.Packet(2000, in, 60, 1, Peer::MASTER);
+	r.Packet(2000, in, 8, 1, Peer::SERVERS);
+	const auto report = r.Take(2001);
+	EXPECT_TRUE(report.peerSplit);
+	ASSERT_EQ(report.seconds.size(), 1u);
+	const auto& s = report.seconds[0];
+	EXPECT_EQ(s.peers[0], (PeerCounts{ 1, 3, 100, 120 }));
+	EXPECT_EQ(s.peers[1], (PeerCounts{ 1, 1, 60, 20 }));
+	EXPECT_EQ(s.peers[2], (PeerCounts{ 1, 0, 8, 0 }));
+	// The split adds up to the totals
+	uint64_t packetsIn = 0, bytesOut = 0;
+	for (const auto& p : s.peers) { packetsIn += p.packetsIn; bytesOut += p.bytesOut; }
+	EXPECT_EQ(packetsIn, s.packetsIn);
+	EXPECT_EQ(bytesOut, s.bytesOut);
+
+	Second merged = s;
+	merged.Merge(s);
+	EXPECT_EQ(merged.peers[1], (PeerCounts{ 2, 2, 120, 40 }));
+}
+
+TEST(TrafficStatsTest, RecorderSplitsHttpByWhoAsked) {
+	Recorder r;
+	r.Http(3000, "GET /api/a", 200, 100, 1000);
+	r.Http(3000, "GET /api/a", 200, 100, 500, true);
+	r.HttpOut(3000, 700);
+	const auto report = r.Take(3001);
+	ASSERT_EQ(report.seconds.size(), 1u);
+	EXPECT_EQ(report.seconds[0].httpRequests, 2u);
+	EXPECT_EQ(report.seconds[0].httpFromServers, 1u);
+	EXPECT_EQ(report.seconds[0].httpFromServersBytesOut, 500u);
+	EXPECT_EQ(report.seconds[0].httpOutRequests, 1u);
+	EXPECT_EQ(report.seconds[0].httpOutBytesIn, 700u);
+}
