@@ -136,3 +136,5 @@ dashboard_oauth2_token.json
 
 # CodeGraphContext generated report — regenerable, not committed (run `cgc report`).
 CGC_REPORT.md
+__pycache__/
+*.pyc
