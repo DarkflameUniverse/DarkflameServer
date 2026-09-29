@@ -24,6 +24,8 @@
 #include "ChatIgnoreList.h"
 #include "StringifiedEnum.h"
 #include "TeamContainer.h"
+#include "ChatGuilds.h"
+#include "GuildManager.h"
 #include "PacketDispatcher.h"
 #include "ChatPackets.h"
 #include "master/LiveUpdate.h"
@@ -145,6 +147,7 @@ int main(int argc, char** argv) {
 	Game::randomEngine = std::mt19937(time(0));
 
 	Game::playerContainer.Initialize();
+	ChatGuilds::Initialize();
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -269,6 +272,15 @@ namespace {
 				announcement.WritePacket(bitStream);
 				Game::server->Send(bitStream, sysAddr, true); // send to everyone except origin
 			});
+			// Guilds (docs/Guilds.md): the first four come from the client through its world, the rest from worlds
+			handlers.On<GuildInvite>(Chat::GUILD_INVITE, [](const GuildInvite& invite, const SystemAddress&) { ChatGuilds::Get().Invite(invite.playerID, invite.invitedPlayer.GetAsString()); });
+			handlers.On<GuildInviteResponse>(Chat::GUILD_INVITE_RESPONSE, [](const GuildInviteResponse& response, const SystemAddress&) { ChatGuilds::Get().AnswerInvite(response.playerID, response.declined != 0); });
+			handlers.On<GuildLeave>(Chat::GUILD_LEAVE, [](const GuildLeave& leave, const SystemAddress&) { ChatGuilds::Get().Leave(leave.playerID); });
+			handlers.On<GuildGetAll>(Chat::GUILD_GET_ALL, [](const GuildGetAll& request, const SystemAddress&) { ChatGuilds::Get().GetAll(request.playerID); });
+			handlers.On<GuildCreate>(Chat::GUILD_CREATE, [](const GuildCreate& create, const SystemAddress&) { ChatGuilds::Get().Create(create.playerID, create.guildName.string); });
+			handlers.On<GuildKick>(Chat::GUILD_KICK, [](const GuildKick& kick, const SystemAddress&) { ChatGuilds::Get().Kick(kick.playerID, kick.kickedPlayer.GetAsString()); });
+			handlers.On<GuildSetRank>(Chat::GUILD_SET_RANK, [](const GuildSetRank& rank, const SystemAddress&) { ChatGuilds::Get().SetRank(rank.playerID, rank.targetPlayer.GetAsString(), static_cast<eGuildRank>(rank.rank)); });
+			handlers.On<GuildDisband>(Chat::GUILD_DISBAND, [](const GuildDisband& disband, const SystemAddress&) { ChatGuilds::Get().Disband(disband.playerID); });
 			handlers.On<UnexpectedDisconnect>(Chat::UNEXPECTED_DISCONNECT, [](const UnexpectedDisconnect& notify, const SystemAddress& sysAddr) { Game::playerContainer.ScheduleRemovePlayer(notify, sysAddr); });
 			handlers.On<FindPlayerRequest>(Chat::WHO, ChatPacketHandler::HandleWho);
 			handlers.On<ShowAllRequest>(Chat::SHOW_ALL, ChatPacketHandler::HandleShowAll);
@@ -308,6 +320,8 @@ namespace {
 					Game::chatFilter->ReloadCustomWords();
 					LOG("Reloaded the chat filter's words (changed on the dashboard)");
 				}
+				// A guild changed on the dashboard: tell its online members
+				if (request.action == ePlayerAction::GUILD_CHANGED) ChatGuilds::Get().GuildChanged(request.targetId);
 			});
 			return handlers;
 		}();

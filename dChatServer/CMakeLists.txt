@@ -2,6 +2,7 @@ set(DCHATSERVER_SOURCES
 	"ChatIgnoreList.cpp"
 	"ChatPacketHandler.cpp"
 	"ChatJSONUtils.cpp"
+	"ChatGuilds.cpp"
 	"ChatWeb.cpp"
 	"GuildManager.cpp"
 	"PlayerContainer.cpp"

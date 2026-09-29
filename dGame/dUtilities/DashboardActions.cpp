@@ -305,6 +305,9 @@ uint32_t DashboardActions::Apply(const PlayerActionRequest& request) {
 		return LiveEvents::Reload();
 	case ePlayerAction::RELOAD_CONTRABAND:
 		return Contraband::Reload();
+	case ePlayerAction::GUILD_CHANGED:
+		// The chat server's (master doesn't send it to worlds)
+		return 0;
 	}
 	return 0;
 }

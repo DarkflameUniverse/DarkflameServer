@@ -36,6 +36,7 @@ enum class ePlayerAction : uint8_t {
 	MISSION_ACCEPT,     // as /addmission (prerequisites are skipped)
 	RELOAD_LIVE_OPS,    // load the running live events and open challenges again (every world, answering 1 each; see LiveEvents.h)
 	RELOAD_CONTRABAND,  // load the contraband list again (every world, answering 1 each; see Contraband.h)
+	GUILD_CHANGED,      // guild targetId changed in the database (renamed, name moderated, disbanded, member removed): only the chat server acts on it, answering 1 through master when it is connected
 };
 
 struct PlayerActionRequest : public LUBitStream {

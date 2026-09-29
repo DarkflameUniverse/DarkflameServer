@@ -29,6 +29,8 @@ public:
 	bool ReadWordlistDCF(const std::string& filepath, bool allowList);
 	void ExportWordlistToDCF(const std::string& filepath, bool allowList);
 	std::set<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList = true);
+	// Whether a deny list is loaded (without one, IsSentenceOkay(..., false) refuses every message)
+	bool HasDenyList() const { return !m_DeniedWords.empty(); }
 
 	/**
 	 * Load the words staff added on the dashboard (chat_filter_words) again, replacing the ones loaded before.

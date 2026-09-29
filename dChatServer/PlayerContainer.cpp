@@ -14,6 +14,8 @@
 #include "MessageType/Chat.h"
 #include "ChatWeb.h"
 #include "TeamContainer.h"
+#include "ChatGuilds.h"
+#include "GuildManager.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -52,6 +54,8 @@ void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify
 		ChatPacketHandler::LoadFriends(data);
 		m_PlayersToRemove.erase(playerId);
 		LOG("Took over user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
+		// Guildmates' clients only get the zone again (no "logged in" line)
+		ChatGuilds::Get().PlayerOnline(playerId, false);
 		return;
 	}
 
@@ -75,6 +79,7 @@ void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify
 
 	Database::Get()->UpdateActivityLog(data.playerID, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone, data.zoneID.GetMapID());
 	m_PlayersToRemove.erase(playerId);
+	ChatGuilds::Get().PlayerOnline(playerId, isLogin);
 }
 
 void PlayerContainer::ScheduleRemovePlayer(const ChatPackets::UnexpectedDisconnect& notify, const SystemAddress& sysAddr) {
@@ -116,6 +121,8 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 	if (team != nullptr) {
 		TeamContainer::RemoveMember(team, playerID, false, false, true);
 	}
+
+	ChatGuilds::Get().PlayerOffline(playerID);
 
 	ChatWeb::SendWSPlayerUpdate(player, eActivityType::PlayerLoggedOut);
 

@@ -941,6 +941,16 @@ namespace {
 		pending.action = request.action;
 		pending.deadline = std::chrono::steady_clock::now() + PLAYER_ACTION_TIMEOUT;
 
+		// Guilds belong to the chat server: it tells the players (docs/Guilds.md)
+		if (request.action == ePlayerAction::GUILD_CHANGED) {
+			const bool chatConnected = chatServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS;
+			if (chatConnected) MasterPackets::SendTo(chatServerMasterPeerSysAddr, request);
+			pending.affected = chatConnected ? 1 : 0;
+			g_PendingPlayerActions[request.requestId] = std::move(pending);
+			FinishPlayerAction(request.requestId, false);
+			return;
+		}
+
 		for (const auto& instance : Game::im->GetInstances()) {
 			if (!instance || !instance->GetIsReady() || instance->GetIsShuttingDown()) continue;
 			MasterPackets::SendTo(instance->GetSysAddr(), request);

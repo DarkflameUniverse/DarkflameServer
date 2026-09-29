@@ -1,4 +1,6 @@
 #include "ChatPacketHandler.h"
+#include "ChatGuilds.h"
+#include "GuildManager.h"
 #include "PlayerContainer.h"
 #include "Database.h"
 #include <ctime>
@@ -467,6 +469,17 @@ void ChatPacketHandler::HandleChatMessage(const ChatPackets::GeneralChatMessage&
 			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
 			if (!otherMember) return;
 			SendPrivateChatMessage(sender, otherMember, otherMember, message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
+		}
+		break;
+	}
+	case eChatChannel::GUILD: {
+		// Sent by the world for /g, which is what the client's guild chat tab sends
+		const auto members = ChatGuilds::Get().OnlineGuildmates(playerID);
+		if (members.empty()) return;
+		LogChat(sender, "guild", message.GetAsString());
+		for (const auto memberId : members) {
+			const auto& member = Game::playerContainer.GetPlayerData(memberId);
+			if (member) SendPrivateChatMessage(sender, member, member, message, eChatChannel::GUILD, eChatMessageResponseCode::SENT);
 		}
 		break;
 	}

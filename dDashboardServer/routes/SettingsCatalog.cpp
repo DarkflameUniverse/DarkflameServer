@@ -269,6 +269,10 @@ namespace {
 		c.Add(Int(CHAT, "max_number_of_best_friends", "Best friends", "5 is live accurate.", "5", 0, 1000, true));
 		c.Add(Int(CHAT, "max_ignores", "Ignore list size", "", "32", 0, 1000));
 
+		c.AddSection("Guilds", "docs/Guilds.md. Players also need the client's FeatureGating row \"guilds\".");
+		c.Add(Int(CHAT, "guild_max_members", "Guild members", "The client has no limit of its own.", "100", 1, 1000, true));
+		c.Add(Int(CHAT, "guild_invite_timeout", "Seconds to answer a guild invite", "", "600", 10, 86400, true));
+
 		c.AddSection("Dashboard sign-in");
 		c.Add(Int(DASHBOARD, "min_dashboard_gm_level", "Lowest GM level allowed in", "0 lets every player see their own account.", "0", 0, 9));
 		c.Add(Int(DASHBOARD, "require_2fa_gm_level", "Two-factor login required from GM level", "Staff at or above this level must use an authenticator app. 0 turns it off.", "0", 0, 9));
