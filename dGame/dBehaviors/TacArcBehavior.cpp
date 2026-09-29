@@ -9,23 +9,24 @@
 #include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 
+#include <set>
 #include <vector>
 
 void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
-	std::vector<Entity*> targets = {};
-
+	// TacArcBehavior::Cast (0x00fb2d10): a picked target that passes the filter gets the action and no TacArc data
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
-		auto target = Game::entityManager->GetEntity(branch.target);
-		if (!target) LOG("target %llu is null", branch.target);
-		else {
-			targets.push_back(target);
-			context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-			if (!targets.empty()) {
-				this->m_action->Handle(context, bitStream, branch);
-				return;
-			}
+		std::vector<Entity*> targets = { Game::entityManager->GetEntity(branch.target) };
+		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if (!targets.empty()) {
+			this->m_action->Handle(context, bitStream, branch);
+			return;
 		}
 	}
+
+	// Otherwise the client drops the target, so an arc around the target's position has nothing to measure from and
+	// writes nothing
+	branch.target = LWOOBJID_EMPTY;
+	if (this->m_useTargetPostion) return;
 
 	bool hasTargets = false;
 	if (!bitStream.Read(hasTargets)) {
@@ -48,38 +49,57 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStre
 	}
 
 	if (hasTargets) {
-		uint32_t count = 0;
-		if (!bitStream.Read(count)) {
-			LOG("Unable to read count from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
-			return;
-		};
+		std::set<LWOOBJID> targets;
+		if (!ReadTargets(bitStream, this->m_maxTargets, targets)) return;
 
-		if (count > m_maxTargets) {
-			LOG("Bitstream has too many targets Max:%i Recv:%i", this->m_maxTargets, count);
-			return;
-		}
-
-		for (auto i = 0u; i < count; i++) {
-			LWOOBJID id{};
-
-			if (!bitStream.Read(id)) {
-				LOG("Unable to read id from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
-				return;
-			};
-
-			if (id != LWOOBJID_EMPTY) {
-				auto* canidate = Game::entityManager->GetEntity(id);
-				if (canidate) targets.push_back(canidate);
-			} else {
-				LOG("Bitstream has LWOOBJID_EMPTY as a target!");
-			}
-		}
-
-		for (auto target : targets) {
-			branch.target = target->GetObjectID();
+		// The caster wrote the action for each of these targets, so it is read for each, even one that is gone here
+		for (const auto target : targets) {
+			branch.target = target;
 			this->m_action->Handle(context, bitStream, branch);
 		}
 	} else this->m_missAction->Handle(context, bitStream, branch);
+}
+
+bool TacArcBehavior::ReadTargets(RakNet::BitStream& bitStream, const uint32_t maxTargets, std::set<LWOOBJID>& targets) {
+	uint32_t count = 0;
+	if (!bitStream.Read(count)) {
+		LOG("Unable to read count from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		return false;
+	}
+
+	if (count > maxTargets) {
+		LOG("Bitstream has too many targets Max:%i Recv:%i", maxTargets, count);
+		return false;
+	}
+
+	// TacArcBehavior::DoUnserializeBS (0x00fb26a0) puts the ids in a set: ascending, each once, no empty id
+	for (auto i = 0u; i < count; i++) {
+		LWOOBJID id{};
+		if (!bitStream.Read(id)) {
+			LOG("Unable to read id from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			return false;
+		}
+
+		if (id == LWOOBJID_EMPTY) {
+			LOG("Bitstream has LWOOBJID_EMPTY as a target!");
+			continue;
+		}
+		targets.insert(id);
+	}
+	return true;
+}
+
+std::set<LWOOBJID> TacArcBehavior::WriteTargets(RakNet::BitStream& bitStream, const std::vector<LWOOBJID>& closestFirst, const uint32_t maxTargets) {
+	// TacArcBehavior::DoHit (0x00fb10c0): the closest maxTargets targets, written and acted on in ascending id order
+	std::set<LWOOBJID> targets;
+	for (const auto target : closestFirst) {
+		if (targets.size() >= maxTargets) break;
+		if (target != LWOOBJID_EMPTY) targets.insert(target);
+	}
+
+	bitStream.Write<uint32_t>(targets.size());
+	for (const auto target : targets) bitStream.Write(target);
+	return targets;
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
@@ -95,10 +115,13 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 		targets.push_back(target);
 		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 		if (!targets.empty()) {
-			this->m_action->Handle(context, bitStream, branch);
+			this->m_action->Calculate(context, bitStream, branch);
 			return;
 		}
 	}
+
+	// As the client: past the picked target check there is no target
+	branch.target = LWOOBJID_EMPTY;
 
 	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();
 
@@ -179,15 +202,11 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 		if (combatAi) combatAi->LookAt(targets[0]->GetPosition());
 
 		context->foundTarget = true; // We want to continue with this behavior
-		const auto count = static_cast<uint32_t>(targets.size());
 
-		bitStream.Write(count);
-		for (auto* target : targets) {
-			bitStream.Write(target->GetObjectID());
-		}
-
-		for (auto* target : targets) {
-			branch.target = target->GetObjectID();
+		std::vector<LWOOBJID> closestFirst;
+		for (const auto* target : targets) closestFirst.push_back(target->GetObjectID());
+		for (const auto target : WriteTargets(bitStream, closestFirst, this->m_maxTargets)) {
+			branch.target = target;
 			this->m_action->Calculate(context, bitStream, branch);
 		}
 	} else {

@@ -3,6 +3,8 @@
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include <forward_list>
+#include <set>
+#include <vector>
 
 class TacArcBehavior final : public Behavior {
 public:
@@ -10,6 +12,14 @@ public:
 	void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 	void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 	void Load() override;
+
+	// Reads the target count and ids the way the client writes them: at most maxTargets, returned ascending and
+	// without empty ids. False when the data is cut short or lists too many targets.
+	static bool ReadTargets(RakNet::BitStream& bitStream, uint32_t maxTargets, std::set<LWOOBJID>& targets);
+
+	// Writes the closest maxTargets of closestFirst as the client does and returns them in the order their action
+	// data follows (ascending id)
+	static std::set<LWOOBJID> WriteTargets(RakNet::BitStream& bitStream, const std::vector<LWOOBJID>& closestFirst, uint32_t maxTargets);
 private:
 	float m_maxRange;
 	float m_height;
