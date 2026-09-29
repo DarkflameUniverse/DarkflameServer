@@ -378,6 +378,19 @@ TEST_F(CombatMessagesTests, GoldenBytes) {
 	EXPECT_PACKET_EQ(FromHex("20 60 00 00 00", 35), Payload(remove));
 }
 
+// A packet from a 2011/2012 live capture: RemoveBuffsAppliedByObject (1726) sent to a player when another player
+// left the world. The client reads a flag and an optional object ID (0x00d808e0 in 1.10.64).
+TEST_F(CombatMessagesTests, RemoveBuffsAppliedByObjectMatchesLiveCapture) {
+	const auto msg = FromLiveCapture<GameMessages::RemoveBuffsAppliedByObject>("5305000c00000000b592d85a01000010be06db7bbdb58080000800");
+	EXPECT_EQ(msg.target, 0x100000015ad892b5LL);
+	EXPECT_EQ(msg.objectID, 0x100000016b7bf7b6LL);
+
+	GameMessages::RemoveBuffsAppliedByObject empty;
+	EXPECT_PACKET_EQ(FromHex("00", 1), Payload(empty));
+	EXPECT_EQ(RoundTrip(msg).objectID, msg.objectID);
+	ExpectTruncatedFails(msg);
+}
+
 // WIRE FIX: the client writes and reads the immunity flags in alphabetical order after the u32 state
 // (GameMessage::SetStatusImmunity::Serialize @ 0x00d8f140). Setting one flag at a time must set exactly that bit.
 TEST_F(CombatMessagesTests, SetStatusImmunityUsesClientOrder) {

@@ -231,6 +231,17 @@ namespace GameMessages {
 		uint32_t uiBuffID{};
 	};
 
+	// Server -> client. The client's BuffComponent removes every buff (and immunity) whose source is objectID
+	// (msgRemoveBuffsAppliedByObject @ 00d38f20 in 1.10.64). Live sent it to each player when an object left the
+	// world (see docs/CaptureUnknowns.md).
+	struct RemoveBuffsAppliedByObject : public NetGameMsg {
+		RemoveBuffsAppliedByObject() : NetGameMsg(MessageType::Game::REMOVE_BUFFS_APPLIED_BY_OBJECT) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		LWOOBJID objectID{ LWOOBJID_EMPTY }; // optional
+	};
+
 	// Server -> client.
 	struct AddRunSpeedModifier : public NetGameMsg {
 		AddRunSpeedModifier() : NetGameMsg(MessageType::Game::ADD_RUN_SPEED_MODIFIER) {}

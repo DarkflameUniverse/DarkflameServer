@@ -354,6 +354,15 @@ namespace GameMessages {
 		return true;
 	}
 
+	void RemoveBuffsAppliedByObject::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteOptional(bitStream, objectID, LWOOBJID_EMPTY);
+	}
+
+	bool RemoveBuffsAppliedByObject::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, objectID, LWOOBJID_EMPTY));
+		return true;
+	}
+
 	void AddRunSpeedModifier::Serialize(RakNet::BitStream& bitStream) const {
 		BitStreamUtils::WriteOptional(bitStream, i64Caster, LWOOBJID_EMPTY);
 		BitStreamUtils::WriteOptional(bitStream, uiModifier, 500u);
