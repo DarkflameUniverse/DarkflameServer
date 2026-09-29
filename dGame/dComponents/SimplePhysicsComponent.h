@@ -30,6 +30,11 @@ class SimplePhysicsComponent : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
 
+	// Havok motion types the client reads as the physics motion state
+	static constexpr uint32_t MOTION_TYPE_DYNAMIC = 1;
+	static constexpr uint32_t MOTION_TYPE_KEYFRAMED = 4;
+	static constexpr uint32_t MOTION_TYPE_FIXED = 5;
+
 	SimplePhysicsComponent(Entity* parent, const int32_t componentID);
 	~SimplePhysicsComponent() override;
 
@@ -106,7 +111,7 @@ private:
 	/**
 	 * The current physics motion state
 	 */
-	uint32_t m_PhysicsMotionState = 5;
+	uint32_t m_PhysicsMotionState = MOTION_TYPE_FIXED;
 
 	bool m_DirtyPhysicsMotionState = true;
 

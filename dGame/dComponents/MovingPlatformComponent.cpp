@@ -65,6 +65,10 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t c
 	if (m_Path == nullptr) {
 		LOG("Path not found: %s", pathName.c_str());
 	}
+
+	// Live constructed every moving platform with simple physics as keyframed
+	auto* const simplePhysics = m_Parent->GetComponent<SimplePhysicsComponent>();
+	if (simplePhysics && !m_Parent->HasVar(u"motionType")) simplePhysics->SetPhysicsMotionState(SimplePhysicsComponent::MOTION_TYPE_KEYFRAMED);
 }
 
 MovingPlatformComponent::~MovingPlatformComponent() {

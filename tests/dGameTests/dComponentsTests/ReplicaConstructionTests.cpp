@@ -159,6 +159,65 @@ TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionWritesCheatsOnlyW
 	EXPECT_FLOAT_EQ(cheats.second, 1.05f);
 }
 
+// Simple physics: live sent motion type Fixed for objects without a motionType (never the invalid 0 DLU sent when the
+// level gave none) and no velocity for fixed objects (38,970 Fixed constructions, all without velocity); moving
+// platforms were Keyframed with a velocity (1,059 of 1,059).
+TEST_F(ReplicaConstructionTest, SimplePhysicsConstructionLikeLive) {
+	info.lot = 12266;
+	Entity smashable(288300744895979394, info);
+	auto* const physics = smashable.AddComponent<SimplePhysicsComponent>(-1);
+	physics->SetPosition(NiPoint3(-259.89438f, 77.147575f, 485.42264f));
+	NiQuaternion rotation = QuatUtils::IDENTITY;
+	rotation.x = 0.51204455f;
+	rotation.y = 0.0f;
+	rotation.z = 0.0f;
+	rotation.w = 0.8589589f;
+	physics->SetRotation(rotation);
+
+	RakNet::BitStream construction;
+	physics->Serialize(construction, true);
+	RakNet::BitStream expected;
+	expected.Write0(); // is_climbable
+	expected.Write<int32_t>(0); // climbing_property
+	expected.Write0(); // velocity_info None
+	expected.Write1(); // motion_type Some
+	expected.Write<uint32_t>(5); // Fixed
+	expected.Write1(); // position_rotation_info
+	expected.Write(-259.89438f);
+	expected.Write(77.147575f);
+	expected.Write(485.42264f);
+	expected.Write(0.51204455f); // x, y, z, w
+	expected.Write(0.0f);
+	expected.Write(0.0f);
+	expected.Write(0.8589589f);
+	ExpectSameBits(construction, expected);
+
+	info.lot = 11950;
+	Entity platform(288300744895900003, info);
+	auto* const platformPhysics = platform.AddComponent<SimplePhysicsComponent>(-1);
+	platform.AddComponent<MovingPlatformComponent>(-1, "");
+	EXPECT_EQ(platformPhysics->GetPhysicsMotionState(), SimplePhysicsComponent::MOTION_TYPE_KEYFRAMED);
+	RakNet::BitStream platformConstruction;
+	platformPhysics->Serialize(platformConstruction, true);
+	platformConstruction.IgnoreBits(1 + 32);
+	bool hasVelocity{};
+	EXPECT_TRUE(platformConstruction.Read(hasVelocity));
+	EXPECT_TRUE(hasVelocity);
+
+	// A property model without behaviors is keyframed
+	info.lot = 14;
+	Entity model(288300744895908946, info);
+	auto* const modelPhysics = model.AddComponent<SimplePhysicsComponent>(-1);
+	model.AddComponent<ModelComponent>(-1)->LoadBehaviors();
+	EXPECT_EQ(modelPhysics->GetPhysicsMotionState(), SimplePhysicsComponent::MOTION_TYPE_KEYFRAMED);
+
+	// A level-set motion type wins
+	info.settings.Insert<uint32_t>(u"motionType", 1);
+	Entity dynamic(288300744895900004, info);
+	EXPECT_EQ(dynamic.AddComponent<SimplePhysicsComponent>(-1)->GetPhysicsMotionState(), SimplePhysicsComponent::MOTION_TYPE_DYNAMIC);
+	info.settings.values.clear();
+}
+
 class InventoryConstructionTest : public GameDependenciesTest {
 protected:
 	// The items of the live sample below (CDClient 1.10.64 values)

@@ -31,7 +31,8 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t com
 	} else {
 		SetClimbableType(eClimbableType::CLIMBABLE_TYPE_NOT);
 	}
-	m_PhysicsMotionState = m_Parent->GetVarAs<uint32_t>(u"motionType");
+	// Without a motionType the object is fixed (live: Fixed on 38,970 of 40,786 constructions, never the invalid 0)
+	if (m_Parent->HasVar(u"motionType")) m_PhysicsMotionState = m_Parent->GetVarAs<uint32_t>(u"motionType");
 }
 
 SimplePhysicsComponent::~SimplePhysicsComponent() {
@@ -50,13 +51,16 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 		outBitStream.Write(m_ClimbableType);
 	}
 
-	outBitStream.Write(m_DirtyVelocity || bIsInitialUpdate);
-	if (m_DirtyVelocity || bIsInitialUpdate) {
+	// Live left the velocity out of a fixed object's construction and wrote it for keyframed and dynamic ones.
+	const bool writeVelocity = bIsInitialUpdate
+		? m_PhysicsMotionState != MOTION_TYPE_FIXED || m_Velocity != NiPoint3Constant::ZERO || m_AngularVelocity != NiPoint3Constant::ZERO
+		: m_DirtyVelocity;
+	outBitStream.Write(writeVelocity);
+	if (writeVelocity) {
 		outBitStream.Write(m_Velocity);
 		outBitStream.Write(m_AngularVelocity);
-
-		m_DirtyVelocity = false;
 	}
+	if (writeVelocity || bIsInitialUpdate) m_DirtyVelocity = false;
 
 	// Physics motion state
 	outBitStream.Write(m_DirtyPhysicsMotionState || bIsInitialUpdate);

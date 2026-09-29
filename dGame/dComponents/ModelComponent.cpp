@@ -98,6 +98,12 @@ void ModelComponent::LoadBehaviors() {
 		// add behavior at the back
 		LoadBehavior(behaviorId.value(), m_Behaviors.size(), false);
 	}
+
+	// Live constructed models with behaviors as dynamic and models without as keyframed (655 of 666 model constructions)
+	auto* const simplePhysics = m_Parent->GetComponent<SimplePhysicsComponent>();
+	if (simplePhysics && !m_Parent->HasVar(u"motionType")) {
+		simplePhysics->SetPhysicsMotionState(m_Behaviors.empty() ? SimplePhysicsComponent::MOTION_TYPE_KEYFRAMED : SimplePhysicsComponent::MOTION_TYPE_DYNAMIC);
+	}
 }
 
 void ModelComponent::LoadBehavior(const LWOOBJID behaviorID, const size_t index, const bool isIndexed) {
