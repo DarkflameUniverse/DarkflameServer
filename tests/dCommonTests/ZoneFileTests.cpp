@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
 #include "Game.h"
+#include "GeneralUtils.h"
 #include "LevelFile.h"
 #include "Logger.h"
 #include "ZoneFile.h"
@@ -533,6 +535,25 @@ TEST(LevelFileTests, FixesUpConfigAsTheClient) {
 	EXPECT_EQ(value(2, u"preventRenderWrapping"), "preventRenderWrapping=7:1");
 	EXPECT_EQ(value(3, u"blueprintid"), "blueprintid=9:5");
 	EXPECT_EQ(value(3, u"DisableModelBehaviors"), "DisableModelBehaviors=7:0");
+}
+
+// An object's config splits at commas as well as line breaks; entries without a '=' are left out
+TEST(LevelFileTests, SplitsConfigAsTheClient) {
+	ZoneBytes w;
+	w.Put<uint16_t>(30).Put<uint16_t>(0);
+	w.data.append(48 + 12, '\0');
+	w.Put<uint32_t>(0).Put<uint32_t>(1);
+	w.Object(30, 2, 0, "a=0:x,b=1:4\n\nstray,c=0:y");
+
+	std::istringstream stream(w.Done());
+	LevelFile level;
+	level.Read(stream);
+	ASSERT_EQ(level.objects.size(), 1u);
+	const auto& settings = level.objects[0].settings;
+	std::vector<std::string> keys;
+	for (const auto& [key, value] : settings) keys.push_back(GeneralUtils::UTF16ToWTF8(key));
+	std::ranges::sort(keys);
+	EXPECT_EQ(keys, (std::vector<std::string>{ "a", "b", "c" }));
 }
 
 TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {

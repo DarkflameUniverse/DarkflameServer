@@ -1,5 +1,6 @@
 #include "LevelFile.h"
 
+#include <algorithm>
 #include <istream>
 #include <stdexcept>
 
@@ -198,8 +199,15 @@ void LevelFile::ReadSceneObjectDataChunk(std::istream& file, uint32_t version) {
 		}
 		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
 
-		for (const auto& token : GeneralUtils::SplitString(GeneralUtils::UTF16ToWTF8(ldfString), '\n')) {
-			obj.settings.ParseInsert(token);
+		// LDF_FROM_STRING (0x010fa220): entries are split at every comma and line break, empty ones and ones without a
+		// '=' are left out
+		const auto config = GeneralUtils::UTF16ToWTF8(ldfString);
+		size_t start = 0;
+		while (start <= config.size()) {
+			const auto end = std::min(config.find_first_of(",\n", start), config.size());
+			const auto entry = config.substr(start, end - start);
+			if (entry.find('=') != std::string::npos) obj.settings.ParseInsert(entry);
+			start = end + 1;
 		}
 		ApplyClientConfigFixups(obj, version);
 
