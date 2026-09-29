@@ -243,15 +243,17 @@ took 17 to 100 times as long (for example 45 s instead of 2.6 s for a 140-brick 
 
 Ways of making models to try and compare, none replacing another. The settings pick the defaults; staff can make
 models again with others (the UGC page's options next to **Make again**, `/api/ugc/reprocess` with `options`,
-`/reprocessproperty [embree|hiprt|embree-gpu] [off|oidn]` in game, `UgcServer --make-model <file> <folder> [options]`). The
-choices are written as their names in any order (`UgcProcessOptions` in `dCommon/UgcKeys.h`); one left out is the
-setting's. Options stored by earlier versions still read: `builtin` (the UGC server's own ray hierarchies, which
-Embree replaced) is `embree`, and `toolbox` and `fast` (hidden-face methods) are skipped.
+`/reprocessproperty [embree|hiprt|embree-gpu] [off|oidn] [native|toolbox-blender]` in game, `UgcServer --make-model
+<file> <folder> [options]`). The choices are written as their names in any order (`UgcProcessOptions` in
+`dCommon/UgcKeys.h`); one left out is the setting's. Options stored by earlier versions still read: `builtin` (the UGC
+server's own ray hierarchies, which Embree replaced) is `embree`, and `toolbox` and `fast` (hidden-face methods) are
+skipped (`toolbox` is not `toolbox-blender`).
 
 | Setting | Choices | What it changes |
 |---|---|---|
 | `ray_backend` | `embree` (default), `hiprt`, `embree-gpu` | What traces the occlusion rays of the bake (and the denoised icons', `UgcRays`) |
 | `denoise` | `off` (default), `oidn` | How a model's icon gets its occlusion |
+| `processor` | `native` (default), `toolbox-blender` | What makes a player model's files: the UGC server, or LU Toolbox itself in Blender (below) |
 
 * `embree`: Intel Embree 4 (Apache-2.0), fetched and built with the servers (SSE2, AVX and AVX2 kernels picked by the
   CPU, its own task scheduler, no TBB), on the worker's thread only; Intel and AMD x86 CPUs. `hiprt`: AMD's HIPRT on
@@ -294,7 +296,116 @@ row in `ugc_process_runs` with its times. The UGC page shows each model's in the
 its next make will use), and **Processing options compared** averages per combination: makes, models, time, CPU,
 hidden faces', occlusion's and icon's time, bricks and share of triangles removed (`GET /api/ugc/options`). Compare
 combinations on the same models (Make again on a set of models with each); the averages mix whatever models each was
-used on.
+used on. A native make is recorded as before (`embree off`: the processor isn't named), a Toolbox make as
+`toolbox-blender`.
+
+### LU Toolbox in Blender (`processor=toolbox-blender`)
+
+A way to compare with LU Toolbox exactly: the model is made by LU Toolbox itself, running in a headless Blender, not by
+a re-implementation of it. Blender, LU Toolbox, the niftools add-on and LU-Toolbox-Standalone stay external programs
+that the UGC server starts; nothing of them is built into or linked with the servers. Only player models: cars and
+rockets are made natively whatever the option.
+
+How a model is made (`UgcJobs::ProcessModelToolbox`, `dUgcServer/Toolbox/`):
+
+1. The worker thread writes the model's LXFML into `toolbox_work_dir` and hands it to the Blender worker, which runs
+   LU-Toolbox-Standalone's `lu_batch_driver.py` steps (its functions, imported, not copied): LU Toolbox's importer with
+   the LODs in `lods`, **Process Model** (its defaults: colors, color variation, Remove Hidden Faces by its Cycles
+   bakes, LOD setup), **Bake Lighting**, and the niftools `.nif` export for LEGO Universe. Each model starts from a
+   fresh Blender scene (factory settings read again, about 0.1 s).
+2. The `.nif` is read back with `NifFile` (every LOD) to check it and count its triangles; the triangles before are the
+   bricks' own meshes built from the same files (as native). `model.nif` is written with its downloads as a native one.
+3. The icon is drawn from LU Toolbox's `.nif` by the UGC server's icon renderer (not denoised: there is no `.nif`
+   before the bake, so no `model.noao.nif` either). LU-Toolbox-UGC-Render (the icon add-on) isn't used: it needs
+   Blender's user interface (no `-b`), so a display, which a server doesn't have.
+4. `stats.json` has `settings.processor` `toolbox-blender`, the Blender, LU Toolbox and niftools versions and device,
+   and LU Toolbox's steps' times in `ms`: `build` (import), `hiddenSurfaces` (all of Process Model), `ambientOcclusion`
+   (Bake Lighting), `export`, `reset`, `icon`, `waited` (for Blender), `blenderCpu`, `total`. So the comparison table's
+   Hidden faces and Occlusion columns are Process Model and Bake Lighting for these rows.
+
+The Blender worker (`UgcToolbox::Worker`, `dlu_toolbox_worker.py` copied next to the servers into `ugc-toolbox/`) is
+started when the first Toolbox model comes and stays up, making one model after another; the UGC workers take turns on
+it (one model at a time). It talks JSON lines over its stdin and its original stdout (`UgcToolboxProtocol`; everything
+Blender and the add-ons print goes to `toolbox_work_dir/blender.log`). It is started again after it crashes (the model
+fails with the reason and the log's last lines, and is tried again like any failed model), after a model takes longer
+than `toolbox_timeout_seconds`, after 100 models, and when its settings change. Three failed starts in a row: no new
+start for 10 minutes. It runs at `worker_nice`, with `toolbox_threads` threads, and its CPU time counts as the worker's
+(the make's CPU time, and `max_cpu_percent`: the waiting worker pauses Blender with SIGSTOP while the budget is
+overdrawn). `pause_hours` and draining hold it as any job (no new models start). It stops with the UGC server (and is
+killed if the server dies). `/status` has `toolbox`: running, pid, models, starts, versions, last error and why it
+can't be used.
+
+When `toolbox-blender` is asked for (the setting or one make's options) and can't be used — a setting or program
+missing (`UgcToolbox::Problem`), or Windows (not supported yet) — the model is made natively: the UGC server logs why
+at start (and when it changes) and for each such make, the make's note says so, and it is recorded as native.
+
+| Setting (`ugcconfig.ini`, dashboard: UGC) | Default | |
+|---|---|---|
+| `processor` | `native` | `toolbox-blender` makes every model with LU Toolbox |
+| `toolbox_blender` | (none) | The Blender executable |
+| `toolbox_standalone_dir` | (none) | LU-Toolbox-Standalone (the folder with `lu_batch_driver.py`) |
+| `toolbox_scripts_dir` | (none) | A Blender scripts folder whose `addons/` has `lu_toolbox` and `io_scene_niftools` (passed as `BLENDER_USER_SCRIPTS`); empty: the add-ons installed in Blender's own user folder |
+| `toolbox_brickdb_dir` | `toolbox-brickdb` | LU Toolbox's brick folder. Made from the client the first time: `brickdb.zip` unpacked into it and `brickprimitives/` linked file by file. Given the client's `res` folder itself, LU Toolbox unpacks `brickdb.zip` into it, which this avoids |
+| `toolbox_work_dir` | `toolbox-work` | The model being made and `blender.log` |
+| `toolbox_device` | `cpu` | Cycles' device for LU Toolbox's bakes: `cpu`, `cuda`, `optix`, `hip`, `auto` (Blender's preferences) |
+| `toolbox_threads` | 4 | Blender's `-t` |
+| `toolbox_timeout_seconds` | 1800 | A model taking longer fails and Blender is started again |
+
+Relative paths are next to the server binaries. `UgcServer --make-model <file> <folder> toolbox-blender` makes one model
+with it (Blender started for it and stopped after).
+
+#### Setting it up
+
+1. Blender 3.1 (what LU Toolbox 2.x and LU-Toolbox-Standalone are made for): the portable Linux build
+   (`blender-3.1.2-linux-x64.tar.xz` from Blender's release archive) unpacked anywhere; point `toolbox_blender` at its
+   `blender`.
+2. A scripts folder with `addons/lu_toolbox` (LU Toolbox) and `addons/io_scene_niftools` (the niftools add-on, v0.1.1,
+   the first with LEGO Universe export), and `toolbox_scripts_dir` pointing at it.
+3. LU-Toolbox-Standalone, and `toolbox_standalone_dir` pointing at it.
+4. `processor=toolbox-blender`, or `toolbox-blender` in Make again's options for some models.
+
+niftools v0.1.1 (the release with LEGO Universe export) doesn't write LU Toolbox's models as they are; three changes
+are needed, all in `modules/nif_export/` (checked with Blender 3.1.2 and 5.2.1, by reading the `.nif`s back):
+
+* `geometry/mesh/__init__.py`, `set_ni_geom_data`: reset the `uv_sets` field whether or not there are UVs (without,
+  every model without UV maps fails with `Validation failed on NiTriShapeData.uv_sets`).
+* the same file, where `n_tris = len(b_mesh.loop_triangles)`: call `b_mesh.calc_loop_triangles()` first when it's empty
+  (Blender before 3.6 doesn't fill it on its own: the `.nif` is written with no triangles at all).
+* `types.py`, `create_ninode`: use the object's `"type"` custom property as the node type when it names one (LU
+  Toolbox makes its `NiLODNode`s that way, as niftools read them before v0.1; the node type property has only NiNode
+  and BSFadeNode, so without it the `.nif` has plain nodes and every LOD is drawn at once).
+
+Blender 5.2 (Python 3.14) works too, with more changes in both add-ons, and gives somewhat different results (the
+bakes are Cycles', which changed): LU Toolbox's `calc_normals_split`/`use_auto_smooth` (gone in 4.1) and
+`bpy.ops.object.bake(context_override)` (context dicts gone in 4.0: `context.temp_override`); niftools'
+`calc_normals_split`, `Object.face_maps` (gone in 4.0) and its updater's `cls.__dict__['__annotations__']` (Python
+3.14 makes annotations lazy).
+
+#### How it compares
+
+Measured with `--make-model` on five player models (Blender 3.1.2 on the CPU, `toolbox_threads=6`, nice 10; a Blender
+started per make, about 1 s of the Toolbox time):
+
+| Bricks | Native | Toolbox (Blender CPU) | Triangles before | Native after | Toolbox after |
+|---|---|---|---|---|---|
+| 12 | 0.9 s | 9.2 s (26 s) | 12344 | 6992 | 7355 |
+| 40 | 4.7 s | 11.9 s (41 s) | 11808 | 2491 | 3712 |
+| 110 | 3.9 s | 33.1 s (143 s) | 53264 | 2655 | 2733 |
+| 300 | 2.5 s | 104.7 s (213 s) | 75344 | 22378 | 25979 |
+| 600 (72000 transparent) | 5.9 s | 112 s (124 s) | 48800 opaque | 47771 | 47788 |
+
+Most of the Toolbox's time is Process Model (its Cycles bakes for hidden faces: 29 s of the 110-brick model's 33 s,
+67 s of the 300-brick one's 105 s); the export grows with the shapes (38 s for the 600-brick model's 401 transparent
+shapes). Blender's start is about 1 s and each model's fresh scene 0.1 s, so the warm worker saves little per model;
+its reason is the add-ons' setup and the brick folder. LU Toolbox keeps more faces (those only bounced light reaches,
+see Hidden faces): 0 to 49% more triangles after. The baked colors are close: the average vertex color of each model's
+most detailed level is within about 10% of the native one (the Toolbox's slightly darker).
+
+LU Toolbox's `.nif` (as niftools writes it) has the root `SceneNode_Collection.001` turned 90 degrees about X, the
+`NiLODNode`s turned back and each shape turned again (Blender's Z up); the UGC server's own models have no turns. Read
+as `NifFile` reads nodes (every node's transform applied), the model lies on its side, so its icon and the dashboard's
+views show it lying. LU Toolbox models shipped as game assets elsewhere have the same turns, so the client may ignore
+the root's own transform; not checked in the client yet.
 
 ### Metal and glow (on by default, not how live looked)
 
