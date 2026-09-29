@@ -12,6 +12,7 @@
 #include "PacketTestUtils.h"
 #include "dCommonVars.h"
 
+#include <cstring>
 #include <optional>
 
 namespace {
@@ -615,4 +616,53 @@ TEST_F(DestroyableTest, PlayerDieDoesNotClaimAClientDeath) {
 	EXPECT_EQ(die->target, player.GetObjectID());
 	EXPECT_FALSE(die->bClientDeath);
 	player.SetCharacter(nullptr);
+}
+
+// BasicAttack's dir_angle_* are degrees; live's Die carries them as these exact floats.
+TEST_F(DestroyableTest, DeathDirectionDegreesMatchLiveBits) {
+	const auto bits = [](float value) { uint32_t out; std::memcpy(&out, &value, sizeof(out)); return out; };
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(-25.0f)), 0xbedf66f3u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(25.0f)), 0x3edf66f3u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(20.0f)), 0x3eb2b8c3u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(-20.0f)), 0xbeb2b8c3u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(75.0f)), 0x3fa78d36u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(80.0f)), 0x3fb2b8c3u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(15.0f)), 0x3e860a92u);
+	EXPECT_EQ(bits(DeathDirection::DegreesToRadians(45.0f)), 0x3f490fdbu);
+	EXPECT_EQ(DeathDirection::DegreesToRadians(0.0f), 0.0f);
+}
+
+// The killing blow's direction goes into Die. Bytes: a live Die from a -25 degree, force 12 BasicAttack with the
+// object IDs replaced.
+TEST_F(DestroyableTest, KillingBlowDirectionIsSentInDie) {
+	Entity target(0x0102030405060708LL, info);
+	auto* destroyable = target.AddComponent<DestroyableComponent>(-1);
+	destroyable->SetMaxHealth(4.0f);
+	destroyable->SetHealth(4);
+
+	const DeathDirection direction{ DeathDirection::DegreesToRadians(-25.0f), 0.0f, 12.0f };
+	const LWOOBJID killer = 0x1000000000000001LL;
+	auto sent = PacketTestUtils::Capture([&] { destroyable->Damage(1, killer, 0, true, direction); });
+	EXPECT_FALSE(FindGameMessage<GameMessages::Die>(sent, MessageType::Game::DIE).has_value()); // not a killing blow
+
+	sent = PacketTestUtils::Capture([&] { destroyable->Damage(3, killer, 0, true, direction); });
+	bool found = false;
+	for (const auto& packet : sent) {
+		if (packet.bytes.size() < 18 || packet.bytes[16] != 0x25 || packet.bytes[17] != 0x00) continue;
+		found = true;
+		EXPECT_PACKET_EQ(PacketTestUtils::FromHex(
+			"53 05 00 0c 00 00 00 00 08 07 06 05 04 03 02 01 25 00 40 00 00 00 3c d9 b7 ef 80 00 00 00 00 00 10 10 "
+			"40 20 00 00 00 00 00 02 10 10 00 00 00 00 00 01 00", 404), PacketTestUtils::FromCapture(packet));
+	}
+	EXPECT_TRUE(found);
+}
+
+// Deaths that are not a BasicAttack killing blow carry no direction.
+TEST_F(DestroyableTest, SmashWithoutAttackHasNoDirection) {
+	const auto sent = PacketTestUtils::Capture([&] { destroyableComponent->Smash(0x1000000000000001LL); });
+	const auto die = FindGameMessage<GameMessages::Die>(sent, MessageType::Game::DIE);
+	ASSERT_TRUE(die.has_value());
+	EXPECT_EQ(die->directionRelative_AngleXZ, 0.0f);
+	EXPECT_EQ(die->directionRelative_AngleY, 0.0f);
+	EXPECT_EQ(die->directionRelative_Force, 0.0f);
 }

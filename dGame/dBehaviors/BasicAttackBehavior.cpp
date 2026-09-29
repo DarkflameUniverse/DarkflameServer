@@ -16,7 +16,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bi
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			PlayFx(u"onhit", entity->GetObjectID()); //This damage animation doesn't seem to play consistently
-			destroyableComponent->Damage(this->m_MaxDamage, context->originator, context->skillID);
+			destroyableComponent->Damage(this->m_MaxDamage, context->originator, context->skillID, true, m_DeathDirection);
 
 			//Handle player damage cooldown
 			if (entity->IsPlayer() && !this->m_DontApplyImmune) {
@@ -119,7 +119,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		auto previousArmor = destroyableComponent->GetArmor();
 		auto previousHealth = destroyableComponent->GetHealth();
 		PlayFx(u"onhit", targetEntity->GetObjectID());
-		destroyableComponent->Damage(totalDamageDealt, context->originator, context->skillID);
+		destroyableComponent->Damage(totalDamageDealt, context->originator, context->skillID, true, m_DeathDirection);
 	}
 
 	uint8_t successState{};
@@ -204,7 +204,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	const auto damage = this->m_MinDamage;
 
 	PlayFx(u"onhit", targetEntity->GetObjectID(), 1);
-	destroyableComponent->Damage(damage, context->originator, context->skillID, false);
+	destroyableComponent->Damage(damage, context->originator, context->skillID, false, m_DeathDirection);
 	context->ScheduleUpdate(branch.target);
 
 	const uint32_t armorDamageDealt = previousArmor - destroyableComponent->GetArmor();
@@ -261,6 +261,10 @@ void BasicAttackBehavior::Load() {
 
 	// The client sets the minimum damage to maximum, so we'll do the same.  These are usually the same value anyways.
 	if (this->m_MinDamage < this->m_MaxDamage) this->m_MinDamage = this->m_MaxDamage;
+
+	m_DeathDirection.angleXZ = DeathDirection::DegreesToRadians(GetFloat("dir_angle_xz"));
+	m_DeathDirection.angleY = DeathDirection::DegreesToRadians(GetFloat("dir_angle_y"));
+	m_DeathDirection.force = GetFloat("dir_force");
 
 	this->m_OnSuccess = GetAction("on_success");
 

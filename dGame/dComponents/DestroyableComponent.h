@@ -22,6 +22,21 @@ namespace CppScripts {
 enum class eStateChangeType : uint32_t;
 
 /**
+ * Which way a smashed object flies apart: Die's direction_relative_angle_xz / _y (radians) and _force.
+ * Live fills it from the BasicAttack that dealt the killing blow (its dir_angle_xz, dir_angle_y and dir_force),
+ * and leaves it 0 for any other death.
+ */
+struct DeathDirection {
+	float angleXZ{};
+	float angleY{};
+	float force{};
+
+	// BasicAttack stores its angles in degrees. Converted the way live did, bit for bit: in double with pi
+	// rounded to float, then rounded to float (-25 degrees is -0.43633232 and 20 degrees 0.34906587 in captures).
+	static float DegreesToRadians(float degrees);
+};
+
+/**
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
  * indicate which enemies this entity has.
  */
@@ -410,8 +425,9 @@ public:
 	 * @param source the attacker that caused this damage
 	 * @param skillID the skill that damaged this entity
 	 * @param echo whether or not to serialize the damage
+	 * @param deathDirection how the entity flies apart if this damage kills it
 	 */
-	void Damage(uint32_t damage, LWOOBJID source, uint32_t skillID = 0, bool echo = true);
+	void Damage(uint32_t damage, LWOOBJID source, uint32_t skillID = 0, bool echo = true, const DeathDirection& deathDirection = {});
 
 	/**
 	 * Smashes this entity, notifying all clients
@@ -419,8 +435,9 @@ public:
 	 * @param skillID the skill that killed this entity
 	 * @param killType the way this entity was killed, determines if a client animation is played
 	 * @param deathType the animation to play when killed
+	 * @param deathDirection how the entity flies apart
 	 */
-	void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"", uint32_t skillID = 0);
+	void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"", uint32_t skillID = 0, const DeathDirection& deathDirection = {});
 
 	/**
 	 * Brings entity back to life: tells every client (Resurrect), then, once the respawn animation is done,

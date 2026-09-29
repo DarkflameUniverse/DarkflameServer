@@ -1,5 +1,6 @@
 #pragma once
 #include "Behavior.h"
+#include "DestroyableComponent.h"
 
 class BasicAttackBehavior final : public Behavior
 {
@@ -53,6 +54,9 @@ private:
 	uint32_t m_MinDamage;
 
 	uint32_t m_MaxDamage;
+
+	// dir_angle_xz, dir_angle_y and dir_force: sent in Die when this attack kills its target.
+	DeathDirection m_DeathDirection;
 
 	Behavior* m_OnSuccess;
 

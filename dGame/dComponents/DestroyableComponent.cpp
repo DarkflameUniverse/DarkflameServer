@@ -548,7 +548,12 @@ void DestroyableComponent::Repair(const uint32_t armor) {
 }
 
 
-void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32_t skillID, bool echo) {
+float DeathDirection::DegreesToRadians(const float degrees) {
+	constexpr double PI_AS_FLOAT = static_cast<double>(3.14159265358979323846f);
+	return static_cast<float>(static_cast<double>(degrees) * PI_AS_FLOAT / 180.0);
+}
+
+void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32_t skillID, bool echo, const DeathDirection& deathDirection) {
 	if (GetHealth() <= 0) {
 		return;
 	}
@@ -649,7 +654,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	Smash(source, eKillType::VIOLENT, u"", skillID);
+	Smash(source, eKillType::VIOLENT, u"", skillID, deathDirection);
 }
 
 void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
@@ -675,7 +680,7 @@ void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) 
 	}
 }
 
-void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID) {
+void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID, const DeathDirection& deathDirection) {
 	if (m_IsDead) return;
 
 	//check if hardcore mode is enabled
@@ -751,6 +756,9 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	die.bClientDeath = false;
 	die.bSpawnLoot = true;
 	die.deathType = deathType;
+	die.directionRelative_AngleXZ = deathDirection.angleXZ;
+	die.directionRelative_AngleY = deathDirection.angleY;
+	die.directionRelative_Force = deathDirection.force;
 	die.killType = killType;
 	die.killerID = source;
 	die.lootOwnerID = source;
