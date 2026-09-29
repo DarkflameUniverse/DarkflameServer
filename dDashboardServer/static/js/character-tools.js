@@ -132,7 +132,7 @@
 			var body = buildEdit();
 			if (!confirm('Save these changes? The player is disconnected if online.')) return;
 			api.action('/api/characters/' + config.id + '/edit', body).then(function (d) { return d.result; }).then(function (r) {
-				if (r && r.success) { bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); setTimeout(function () { location.reload(); }, 600); }
+				if (r && r.success) { bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); setTimeout(reloadInPlace, 600); }
 			}).catch(function () {});
 		});
 	}
@@ -205,7 +205,7 @@
 			var restore = e.target.closest('[data-restore]');
 			if (!restore || !confirm('Put the character back to this version? The player is disconnected if online, and the current version is kept in the history.')) return;
 			api.action('/api/snapshots/' + restore.dataset.restore + '/restore', {}).then(function (d) { return d.result; }).then(function (r) {
-				if (r && r.success) setTimeout(function () { location.reload(); }, 600);
+				if (r && r.success) setTimeout(reloadInPlace, 600);
 			}).catch(function () {});
 		});
 	}

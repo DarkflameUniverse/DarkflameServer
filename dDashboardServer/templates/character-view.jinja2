@@ -486,18 +486,23 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// The last login in the browser's time, again after an in-place update (nav.js)
+function showLastLogin() {
 	var el = document.getElementById('lastLogin');
 	if (el) {
 		var ts = parseInt(el.getAttribute('data-ts'));
 		el.textContent = ts > 0 ? new Date(ts * 1000).toLocaleString() : 'Never';
 	}
+}
+document.addEventListener('dash:refreshed', showLastLogin);
+document.addEventListener('DOMContentLoaded', function() {
+	showLastLogin();
 	var inventory = document.getElementById('inventoryModal');
 	if (inventory) inventory.addEventListener('show.bs.modal', InventoryView.open, { once: true });
 });
 
 var characterId = document.getElementById('restrictions').getAttribute('data-character-id');
-// Saves from the game (inventory, stats, level) and mail arrive live
+// Saves from the game (inventory, stats, level) and mail arrive live, updating the page in place
 if (window.Live) Live.refreshPage(['characters', 'mail'], characterId);
 
 document.querySelectorAll('[data-restriction]').forEach(function (input) {
@@ -741,7 +746,7 @@ function saveXml(confirmed) {
 		if (!d.requestId) return;
 		Live.waitForAction(d.requestId).then(function (r) {
 			if (r.message) toast(r.message, r.success ? 'info' : 'danger');
-			if (r.success) location.reload();
+			if (r.success) reloadInPlace();
 		});
 	}).catch(function () {});
 }

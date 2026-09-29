@@ -485,9 +485,19 @@ document.addEventListener('DOMContentLoaded', function () {
 	loadEmailStatus();
 	var ownEmail = document.getElementById('ownEmail');
 	if (ownEmail) ownEmail.value = accountEl.getAttribute('data-email') || '';
+	showServerValues();
+	// Update in place when someone else changes this account
+	Live.refreshPage('accounts', accountId);
+});
+// After an in-place update (nav.js) the server's values may have changed: show them the same way again
+document.addEventListener('dash:refreshed', showServerValues);
+
+// The GM level, mute and last logins as the server has them, shown in the browser's time
+function showServerValues() {
 	var gmSelect = document.getElementById('gmLevelSelect');
-	if (gmSelect) {
-		gmSelect.value = accountEl.getAttribute('data-gm-level');
+	// Not while someone is picking a new level
+	if (gmSelect && (!gmSelect.dataset.shown || gmSelect.value === gmSelect.dataset.shown)) {
+		gmSelect.value = gmSelect.dataset.shown = accountEl.getAttribute('data-gm-level');
 		// Only operators may grant their own level or higher
 		Array.prototype.forEach.call(gmSelect.options, function (opt) {
 			if (DASH.gmLevel < 9 && parseInt(opt.value, 10) >= DASH.gmLevel) opt.disabled = true;
@@ -503,13 +513,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		var ts = parseInt(el.getAttribute('data-ts'), 10);
 		el.textContent = ts > 0 ? fmt.unix(ts) : 'Never';
 	});
-	// Reload when someone else changes this account
-	Live.refreshPage('accounts', accountId);
-});
+}
 
-// Reload once the change (and any live action it started, like a kick) has finished
+// Show the page again once the change (and any live action it started, like a kick) has finished
 function reloadOnSuccess(promise) {
-	promise.then(function (d) { return d.result || d; }).then(function () { location.reload(); }).catch(function () {});
+	promise.then(function (d) { return d.result || d; }).then(function () { reloadInPlace(); }).catch(function () {});
 }
 
 var reset2faBtn = document.getElementById('reset2faBtn');
@@ -610,7 +618,7 @@ function deleteAccount() {
 		if (!confirm('PERMANENTLY delete this account and all its characters? This cannot be undone.')) return;
 		if (!confirm('Are you absolutely sure?')) return;
 	}
-	api.action(base + '/delete', body).then(function (d) { return d.result; }).then(function () { window.location.href = accountEl.dataset.self ? '/login' : '/accounts'; }).catch(function () {});
+	api.action(base + '/delete', body).then(function (d) { return d.result; }).then(function () { if (accountEl.dataset.self) window.location.href = '/login'; else goTo('/accounts', { replace: true }); }).catch(function () {});
 }
 function resetPassword() {
 	var pwd = document.getElementById('newPwd').value;
@@ -643,7 +651,7 @@ function saveOwnEmail() {
 		pwd.value = '';
 		toast(d.message, 'success');
 		return d.result;
-	}).then(function () { location.reload(); }).catch(function () {});
+	}).then(function () { reloadInPlace(); }).catch(function () {});
 }
 function resendVerification() {
 	api.action('/api/account/email/resend', {}).catch(function () {});
