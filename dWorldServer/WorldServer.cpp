@@ -72,6 +72,7 @@
 #include "Mail.h"
 #include "TeamManager.h"
 #include "SkillComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
 #include "PropertyManagementComponent.h"
@@ -1200,6 +1201,9 @@ void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
 		if (skillComponent != nullptr) {
 			skillComponent->Reset();
 		}
+
+		// Give back the items a quickbuild took when the build started, before they are saved without them
+		QuickBuildComponent::CancelBuildsBy(*entity);
 
 		if (!savedByMigration) entity->GetCharacter()->SaveXMLToDatabase();
 

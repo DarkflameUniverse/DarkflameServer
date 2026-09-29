@@ -140,8 +140,12 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	if (m_Preconditions.has_value() && !m_Preconditions->Check(originator, true)) {
-		return;
+	if (m_Preconditions.has_value()) {
+		if (!m_Preconditions->Check(originator)) return;
+		// Taming uses up the items its preconditions ask for
+		for (const auto& cost : m_Preconditions->GetItemCosts(originator)) {
+			inventoryComponent->RemoveItem(cost.lot, cost.count, eInventoryType::ALL);
+		}
 	}
 
 	auto* const movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();

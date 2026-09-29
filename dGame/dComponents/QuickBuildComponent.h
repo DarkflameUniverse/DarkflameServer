@@ -219,6 +219,12 @@ public:
 	 */
 	void CancelQuickBuild(Entity* const builder, const eQuickBuildFailReason failReason, const bool skipChecks = false);
 
+	/**
+	 * Cancels the quickbuilds the player is building, giving back the items they took. For a player leaving the world.
+	 * @param player the player
+	 */
+	static void CancelBuildsBy(Entity& player);
+
 	void SetState(const eQuickBuildState state) {
 		if (m_State == state) return;
 		m_State = state;
@@ -392,6 +398,27 @@ private:
 	 * Preconditions to be met before being able to start the quickbuild
 	 */
 	PreconditionExpression* m_Precondition = nullptr;
+
+	/**
+	 * The items the preconditions took from the builder when the build started, given back if it is cancelled
+	 */
+	std::vector<ItemCost> m_TakenItems;
+
+	/**
+	 * The player the items in m_TakenItems were taken from
+	 */
+	LWOOBJID m_TakenItemsFrom = LWOOBJID_EMPTY;
+
+	/**
+	 * Takes the item costs of the preconditions from the builder, as live did when a build started
+	 * @param user the builder
+	 */
+	void TakeItemCosts(Entity& user);
+
+	/**
+	 * Gives back the items TakeItemCosts took, as live did when a build was cancelled
+	 */
+	void RefundItemCosts();
 
 	/**
 	 * Starts the quickbuild for a certain entity

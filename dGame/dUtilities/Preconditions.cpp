@@ -54,7 +54,7 @@ Precondition::Precondition(const uint32_t condition) {
 }
 
 
-bool Precondition::Check(Entity* player, bool evaluateCosts) const {
+bool Precondition::Check(Entity* player) const {
 	if (values.empty()) {
 		return true; // There are very few of these
 	}
@@ -99,7 +99,7 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const {
 	auto passedAny = false;
 
 	for (const auto value : values) {
-		const auto passed = CheckValue(player, value, evaluateCosts);
+		const auto passed = CheckValue(player, value);
 
 		if (passed && any) {
 			return true;
@@ -118,7 +118,7 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const {
 }
 
 
-bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluateCosts) const {
+bool Precondition::CheckValue(Entity* player, const uint32_t value) const {
 	auto* character = player->GetCharacter();
 	auto [missionComponent, inventoryComponent, destroyableComponent, levelComponent] =
 		player->GetComponentsMut<const MissionComponent, /* not const */ InventoryComponent, const DestroyableComponent, const LevelProgressionComponent>();
@@ -135,11 +135,6 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::ItemNotEquipped:
 		return !inventoryComponent->IsEquipped(value);
 	case PreconditionType::HasItem:
-		if (evaluateCosts) // As far as I know this is only used for quickbuilds, and removal shouldn't actually be handled here.
-		{
-			return inventoryComponent->RemoveItem(value, count, eInventoryType::ALL);
-		}
-
 		return inventoryComponent->GetLotCount(value) >= count;
 	case PreconditionType::DoesNotHaveItem:
 		return inventoryComponent->IsEquipped(value) && count > 0;
@@ -285,12 +280,35 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions) {
 }
 
 
-bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
+std::optional<ItemCost> Precondition::PickItemCost(const std::vector<uint32_t>& lots, const uint32_t count, const std::function<uint32_t(LOT)>& lotCount) {
+	for (const auto lot : lots) {
+		if (lotCount(static_cast<LOT>(lot)) >= count) return ItemCost{ static_cast<LOT>(lot), count };
+	}
+	return std::nullopt;
+}
+
+std::optional<ItemCost> Precondition::GetItemCost(Entity* player) const {
+	if (type != PreconditionType::HasItem || count == 0) return std::nullopt;
+	auto* const inventoryComponent = player->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return std::nullopt;
+	return PickItemCost(values, count, [inventoryComponent](const LOT lot) { return inventoryComponent->GetLotCount(lot); });
+}
+
+std::vector<ItemCost> PreconditionExpression::GetItemCosts(Entity* player) const {
+	std::vector<ItemCost> costs;
+	for (const auto* expression = this; expression && !expression->empty; expression = expression->next) {
+		const auto cost = Preconditions::Get(expression->condition).GetItemCost(player);
+		if (cost) costs.push_back(*cost);
+	}
+	return costs;
+}
+
+bool PreconditionExpression::Check(Entity* player) const {
 	if (empty) {
 		return true;
 	}
 
-	const auto a = Preconditions::Check(player, condition, evaluateCosts);
+	const auto a = Preconditions::Check(player, condition);
 
 	if (!a) {
 		GameMessages::NotifyClientFailedPrecondition failedPrecondition;
@@ -300,7 +318,7 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
 		failedPrecondition.Send(player->GetSystemAddress());
 	}
 
-	const auto b = next == nullptr ? true : next->Check(player, evaluateCosts);
+	const auto b = next == nullptr ? true : next->Check(player);
 
 	return m_or ? a || b : a && b;
 }
@@ -310,20 +328,17 @@ PreconditionExpression::~PreconditionExpression() {
 }
 
 
-bool Preconditions::Check(Entity* player, const uint32_t condition, bool evaluateCosts) {
-	Precondition* precondition;
-
+const Precondition& Preconditions::Get(const uint32_t condition) {
 	const auto& index = cache.find(condition);
+	if (index != cache.end()) return *index->second;
 
-	if (index != cache.end()) {
-		precondition = index->second;
-	} else {
-		precondition = new Precondition(condition);
+	auto* const precondition = new Precondition(condition);
+	cache.insert_or_assign(condition, precondition);
+	return *precondition;
+}
 
-		cache.insert_or_assign(condition, precondition);
-	}
-
-	return precondition->Check(player, evaluateCosts);
+bool Preconditions::Check(Entity* player, const uint32_t condition) {
+	return Get(condition).Check(player);
 }
 
 

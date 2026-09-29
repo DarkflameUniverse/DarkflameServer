@@ -23,6 +23,7 @@ set(DGAMETEST_SOURCES
 	"SetCurrencySourceTests.cpp"
 	"LootDropPositionTests.cpp"
 	"LootActivityCoinsTests.cpp"
+	"PreconditionItemCostTests.cpp"
 	"SpiderQueenTests.cpp"
 	"TacArcTests.cpp"
 )

@@ -11,6 +11,7 @@
 #include "Logger.h"
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
+#include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eQuickBuildFailReason.h"
@@ -427,6 +428,8 @@ void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 		SetState(eQuickBuildState::BUILDING);
 		Game::entityManager->SerializeEntity(m_Parent);
 
+		TakeItemCosts(*user);
+
 		auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
 		if (movingPlatform != nullptr) {
 			movingPlatform->OnQuickBuildInitilized();
@@ -487,12 +490,9 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
-	// Removes extra item requirements, isn't live accurate.
-	// In live, all items were removed at the start of the quickbuild, then returned if it was cancelled.
-	// TODO: fix?
-	if (m_Precondition != nullptr) {
-		m_Precondition->Check(user, true);
-	}
+	// The items taken when the build started are used up
+	m_TakenItems.clear();
+	m_TakenItemsFrom = LWOOBJID_EMPTY;
 
 	DespawnActivator();
 
@@ -575,6 +575,8 @@ void QuickBuildComponent::ResetQuickBuild(const bool failed) {
 	notifyState.player = LWOOBJID_EMPTY;
 	notifyState.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
+	RefundItemCosts();
+
 	SetState(eQuickBuildState::RESETTING);
 	SetTimer(0.0f);
 	SetIncompleteTimer(0.0f);
@@ -626,6 +628,8 @@ void QuickBuildComponent::CancelQuickBuild(Entity* const entity, const eQuickBui
 		// Now update the component itself
 		SetState(eQuickBuildState::INCOMPLETE);
 
+		RefundItemCosts();
+
 		// Notify scripts and possible subscribers
 		m_Parent->GetScript()->OnQuickBuildNotifyState(m_Parent, m_State);
 		for (const auto& cb : m_QuickBuildStateCallbacks)
@@ -641,6 +645,45 @@ void QuickBuildComponent::CancelQuickBuild(Entity* const entity, const eQuickBui
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		Game::entityManager->SerializeEntity(entity);
 	}
+}
+
+void QuickBuildComponent::CancelBuildsBy(Entity& player) {
+	for (auto* const entity : Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::QUICK_BUILD)) {
+		auto* const quickBuild = entity->GetComponent<QuickBuildComponent>();
+		if (quickBuild && quickBuild->m_State == eQuickBuildState::BUILDING && quickBuild->m_Builder == player.GetObjectID()) {
+			quickBuild->CancelQuickBuild(&player, eQuickBuildFailReason::BUILD_ENDED, true);
+		}
+	}
+}
+
+void QuickBuildComponent::TakeItemCosts(Entity& user) {
+	RefundItemCosts();
+	if (!m_Precondition) return;
+
+	auto* const inventoryComponent = user.GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+
+	// Live took the precondition items (for example the FV Stone Warrior pedestal's 5 Maelstrom Infected Bricks)
+	// when the build started and gave them back when it was cancelled
+	for (const auto& cost : m_Precondition->GetItemCosts(&user)) {
+		if (inventoryComponent->RemoveItem(cost.lot, cost.count, eInventoryType::ALL)) m_TakenItems.push_back(cost);
+	}
+	if (!m_TakenItems.empty()) m_TakenItemsFrom = user.GetObjectID();
+}
+
+void QuickBuildComponent::RefundItemCosts() {
+	if (m_TakenItems.empty()) return;
+
+	auto* const taker = Game::entityManager->GetEntity(m_TakenItemsFrom);
+	auto* const inventoryComponent = taker ? taker->GetComponent<InventoryComponent>() : nullptr;
+	if (inventoryComponent) {
+		for (const auto& cost : m_TakenItems) inventoryComponent->AddItem(cost.lot, cost.count, eLootSourceType::QUICKBUILD);
+	} else {
+		LOG("Quickbuild %llu could not give back the items it took from %llu", m_Parent->GetObjectID(), m_TakenItemsFrom);
+	}
+
+	m_TakenItems.clear();
+	m_TakenItemsFrom = LWOOBJID_EMPTY;
 }
 
 void QuickBuildComponent::AddQuickBuildCompleteCallback(const std::function<void(Entity* user)>& callback) {
