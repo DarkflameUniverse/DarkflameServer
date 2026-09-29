@@ -194,6 +194,7 @@ No cdclient table is about guilds (besides `FeatureGating`, which lacks the row;
 - Dashboard: **Guilds** page (`guilds_manage`): list, members, history, approve or reject a name (rejected: renamed
   "Guild <id>"), rename, remove a member, disband; pending names also in the Review Queue. Changes are audited, added to
   the guild's history, and sent to the chat server (`ePlayerAction::GUILD_CHANGED` through master), which tells online
-  members. Guild chat is logged as channel "guild" and is private chat (`chat_private`).
+  members. Guild chat is logged as channel "guild" with the guild's ID, and is private chat (`chat_private`); each
+  guild's chat history is at `/chat_log/guild/<id>` (**Guild chat** on the guild's card).
 - Not done: the client has no packet for a member's name change (`GuildUpdatePlayerName` is local), so a renamed
   character shows under the new name after the members' next `GUILD_DATA`; the guild reputation field is always 0.

@@ -1038,12 +1038,40 @@ tokens used. To try it without a key, run `python3 tests/dWebTests/mock_claude_a
 ### Chat log and chat bridges
 
 The **Chat Log** page (GM 3+, `chat_view`) shows what players say, newest first and live: zone chat, messages sent in
-from the dashboard or a chat bridge, and messages the chat filter stopped (marked; nobody saw them). Whispers and team
-chat are there too for staff with `chat_private` (GM 8+). Filter by channel, character, zone or one world of a zone, or
-"only what the filter stopped"; **Account** on a row goes to the sender's account to mute, warn or ban them. The
-Related card on account and character pages has their recent messages.
+from the dashboard or a chat bridge, and messages the chat filter stopped (marked; nobody saw them). Team and guild chat
+are there too for staff with `chat_private` (GM 8+), whispers for staff with `chat_dms` (GM 8+). Filter by channel,
+character, account, zone or one world of a zone, a time range, text, or "only what the filter stopped"; **Context** on a
+row shows the conversation around it, **Conversation** opens its whisper, team or guild history, and **Account** goes to
+the sender's account to mute, warn or ban them. The Related card on account and character pages has their recent
+messages, and the character page's Chat card links to their chat log, whispers, team chat and chat flags.
 
-Settings: `log_chat` (on), `log_private_chat` (on), `log_chat_days` (90), and `chat_bridge_filter` (on: messages sent
+Every message is written by the server that sends it, as it is sent: zone chat by the world server, whispers, team and
+guild chat by the chat server. Each row has the channel, the sender's character and account, the recipient (whispers),
+the guild (guild chat), the team (team chat; team IDs start from the chat server's start time, so they are not reused
+after a restart), the zone, instance and clone, the time, and the filter result: `blocked` (zone chat the filter
+stopped; nobody saw it) and `filtered` (the filter found words it doesn't allow; whispers, team and guild chat are
+delivered either way). Rows are deleted after `log_chat_days` by the Log pruning task, on its own database connection.
+
+The histories, paged on the server (newest page first, **Older** for the one before):
+
+- **Guild chat**: one guild's chat, from **Guild chat** on the guild's card on the Guilds page (`chat_private`).
+- **Team Chat** (Moderation menu, `chat_private`): teams that talked, most recent first, with who talked; filter by a
+  character to see only their teams.
+- **Whispers** on a character (`/characters/<id>/whispers`, `chat_dms`): everyone they whispered with, most recent
+  first; pick one to read the conversation. Opening a conversation (also from a flag or the Context view) is audited
+  as `chat_dms_view`.
+
+**Chat flags.** Tick messages on the Chat Log or a history (shift-click picks a range) and **Flag** them (`chat_flag`,
+GM 3+): pick who it is about (one of the senders) and write a note. The messages must be from one conversation. The
+flag keeps a copy of them and up to 10 messages before and after, so it survives pruning. The **Chat Flags** page
+(Inbox) is the queue, open ones first, with a badge for open flags; filter by status, character or account. A flag
+shows its copy of the chat (flagged messages highlighted), links to the character, the account (mute, warn, strike,
+ban), player reports about them, their other flags and the conversation, and its history: who flagged it, who changed
+its status, note or linked player report, and comments. Reviewers (`chat_flag_review`, GM 3+) mark it actioned or
+dismissed (or open again). Everything is also in the audit log (`chat_flag`, `chat_flag_review`). Flags on team, guild or
+whisper chat show their messages only to staff who may read that chat.
+
+Settings: `log_chat` (on), `log_private_chat` (on), `log_chat_days` (30), and `chat_bridge_filter` (on: messages sent
 into the game go through the chat filter like players' do).
 
 **Bridging chat to Discord or another service.** Make an account for the bot with a GM level that has `chat_view`,
