@@ -42,8 +42,11 @@ void ZoneFile::ReadHeader(std::istream& file) {
 
 	//Read generic zone info:
 	BinaryIO::ReadString<uint8_t>(file, zoneRawPath, BinaryIO::ReadType::String);
-	BinaryIO::ReadString<uint8_t>(file, zoneName, BinaryIO::ReadType::String);
-	BinaryIO::ReadString<uint8_t>(file, zoneDesc, BinaryIO::ReadType::String);
+	// PrePreAlpha files have no name or description (LuzFile::ReadLUZFile)
+	if (fileFormatVersion > FileFormatVersion::PrePreAlpha) {
+		BinaryIO::ReadString<uint8_t>(file, zoneName, BinaryIO::ReadType::String);
+		BinaryIO::ReadString<uint8_t>(file, zoneDesc, BinaryIO::ReadType::String);
+	}
 }
 
 void ZoneFile::Read(std::istream& file) {

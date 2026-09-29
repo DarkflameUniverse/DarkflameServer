@@ -148,6 +148,22 @@ TEST(ZoneFileTests, VersionsBeforePrePreAlphaThrow) {
 	EXPECT_TRUE(zone.scenes.empty());
 }
 
+// A PrePreAlpha (30) file ends at its terrain file's name: no zone name, description, transitions or paths
+TEST(ZoneFileTests, PrePreAlphaHasNoZoneName) {
+	ZoneBytes w;
+	w.Put<uint32_t>(30).Put<uint32_t>(72).Put<uint8_t>(1).Text("scale.lvl"); // version, world, one scene: only its file
+	w.Put<uint8_t>(0).Text("scale.raw");
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	ASSERT_EQ(zone.scenes.size(), 1u);
+	EXPECT_EQ(zone.scenes[0].filename, "scale.lvl");
+	EXPECT_EQ(zone.zoneRawPath, "scale.raw");
+	EXPECT_TRUE(zone.zoneName.empty());
+	EXPECT_TRUE(zone.zoneDesc.empty());
+}
+
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {
 	const auto zone = SampleZone();
 	for (const size_t length : { size_t{ 3 }, size_t{ 40 }, zone.size() / 2, zone.size() - 1 }) {
