@@ -240,7 +240,11 @@ namespace {
 			const auto stem = entry.path().stem().string();
 			const auto written = std::chrono::duration_cast<std::chrono::seconds>(
 				std::chrono::clock_cast<std::chrono::system_clock>(entry.last_write_time(ec)).time_since_epoch()).count();
-			byServer[stem.substr(0, stem.rfind('_'))].push_back({ entry.path(), written, entry.file_size(ec) });
+			// <Server>_<start time>; world servers are WorldServer_<zone>_<clone>_<instance>_<start time> (older files:
+			// WorldServer_<zone>_<instance>_<start time>) and are grouped by zone alone; the file names still show the rest
+			auto server = stem.substr(0, stem.rfind('_'));
+			if (server.starts_with("WorldServer_")) server = server.substr(0, server.find('_', 12));
+			byServer[server].push_back({ entry.path(), written, entry.file_size(ec) });
 		}
 		for (auto& [server, files] : byServer) std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) { return a.time > b.time; });
 		return byServer;
