@@ -37,6 +37,7 @@ set(DASHBOARDROUTES_SOURCES
 	"LeaderboardRoutes.cpp"
 	"VanityRoutes.cpp"
 	"ChatRoutes.cpp"
+	"ChatHistory.cpp"
 	"Strikes.cpp"
 	"Inspector.cpp"
 	"CDClientBrowser.cpp"

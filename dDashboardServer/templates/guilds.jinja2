@@ -35,6 +35,7 @@
 	<div class="card-header d-flex justify-content-between align-items-center">
 		<h5 class="mb-0" id="guildTitle"></h5>
 		<div>
+			{% if can.chat_private %}<a class="btn btn-sm btn-outline-secondary me-1" id="guildChat" href="#">Guild chat</a>{% endif %}
 			<button class="btn btn-sm btn-outline-primary me-1" id="guildRename">Rename</button>
 			<button class="btn btn-sm btn-outline-danger" id="guildDisband">Disband</button>
 		</div>
@@ -92,6 +93,8 @@ $(function () {
 			shown = guild;
 			document.getElementById('guildDetail').classList.remove('d-none');
 			document.getElementById('guildTitle').textContent = guild.name + ' (' + guild.id + ')';
+			var chatLink = document.getElementById('guildChat');
+			if (chatLink) chatLink.href = '/chat_log/guild/' + encodeURIComponent(guild.id);
 			document.getElementById('guildInfo').innerHTML = 'Name ' + esc(guild.name_status) + '. Founded ' + esc(fmt.unix(guild.created_at)) +
 				(guild.founder_name ? ' by ' + fmt.character(guild.founder_id, guild.founder_name) : '') + '.';
 			document.getElementById('guildMembers').innerHTML = guild.members.map(function (m) {
@@ -119,6 +122,10 @@ $(function () {
 		if (reason === null) return;
 		api.action('/api/guilds/' + id + '/reject', { reason: reason }, 'Rejected').then(refresh).catch(function () {});
 	});
+
+	// #guild=<id> opens that guild (links from its chat history)
+	var fromHash = (location.hash.match(/guild=(\d+)/) || [])[1];
+	if (fromHash) show(fromHash);
 
 	document.getElementById('guildRename').addEventListener('click', function () {
 		if (!shown) return;

@@ -1,0 +1,73 @@
+{% extends "base.jinja2" %}
+
+{% block title %}{{ title }} - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	.chathist-layout { display: grid; grid-template-columns: 19rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+	.chathist-layout.single { grid-template-columns: minmax(0, 1fr); }
+	.chathist-list { position: sticky; top: 4rem; }
+	.chathist-list .list-group { max-height: 70vh; overflow-y: auto; }
+	.chathist-list .list-group-item { cursor: pointer; }
+	.chathist-list .meta { font-size: .8rem; color: var(--bs-secondary-color); }
+	.chathist-list .list-group-item.active .meta { color: inherit; opacity: .85; }
+	.chat-line td { vertical-align: top; }
+	.chat-line .when { white-space: nowrap; font-size: .8rem; color: var(--bs-secondary-color); }
+	.chat-line .who { white-space: nowrap; }
+	@media (max-width: 991.98px) { .chathist-layout { grid-template-columns: minmax(0, 1fr); } .chathist-list { position: static; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="chatHistoryPage" data-mode="{{ mode }}" data-id="{{ id }}">
+	<nav data-crumbs data-crumb-label="{{ title }}" aria-label="Breadcrumb"><ol class="breadcrumb mb-3">
+		{% if mode == "guild" %}<li class="breadcrumb-item"><a href="/guilds">Guilds</a></li>{% endif %}
+		{% if mode == "teams" %}<li class="breadcrumb-item"><a href="/chat_log">Chat Log</a></li>{% endif %}
+		{% if mode == "whispers" %}<li class="breadcrumb-item"><a href="/characters">Characters</a></li><li class="breadcrumb-item"><a href="/characters/{{ id }}">{{ character_name }}</a></li>{% endif %}
+		<li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+	</ol></nav>
+	<div class="mb-3">
+		<h2 class="mb-1">{{ title }}</h2>
+		<p class="text-body-secondary mb-0">
+			{% if mode == "guild" %}Everything said in this guild's chat, newest at the bottom. <strong>Older</strong> loads the page before.{% endif %}
+			{% if mode == "teams" %}Team chat, one team at a time: pick a team to read what its members said. Filter by a character to see only teams they talked in.{% endif %}
+			{% if mode == "whispers" %}Every character {{ character_name }} whispered with, most recent first; pick one to read the conversation. Opening a conversation is recorded in the audit log.{% endif %}
+			Tick messages to flag them for review (shift-click picks a range). Chat is kept for <code>log_chat_days</code>; flags keep their own copy.
+		</p>
+	</div>
+
+	<div class="chathist-layout{% if mode == "guild" %} single{% endif %}">
+		{% if mode != "guild" %}
+		<aside class="chathist-list" aria-label="{% if mode == "teams" %}Teams{% else %}Conversations{% endif %}">
+			<div class="card">
+				<div class="card-header">
+					<div class="d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">{% if mode == "teams" %}Teams{% else %}Conversations{% endif %}</h5><span class="small text-body-secondary" id="listCount"></span></div>
+					{% if mode == "teams" %}<input class="form-control form-control-sm mt-2" id="teamCharacter" placeholder="Character name or ID">{% endif %}
+				</div>
+				<div class="list-group list-group-flush" id="threadList"><div class="list-group-item text-body-secondary small">Loading&hellip;</div></div>
+				<div class="card-footer d-none" id="listMoreBox"><button type="button" class="btn btn-sm btn-outline-secondary w-100" id="listMore">More</button></div>
+			</div>
+		</aside>
+		{% endif %}
+
+		<div class="card">
+			<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+				<h5 class="mb-0" id="threadTitle">{% if mode == "guild" %}Guild chat{% else %}Pick a conversation{% endif %}</h5>
+				<div class="d-flex flex-wrap gap-2" id="threadLinks"></div>
+			</div>
+			<div class="card-body">
+				<div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="flagBar"></div>
+				<div class="text-center mb-2 d-none" id="olderBox"><button type="button" class="btn btn-sm btn-outline-secondary" id="older">Older</button></div>
+				<table class="table table-sm align-middle mb-0" id="threadTable"><tbody id="threadRows">
+					<tr><td class="text-body-secondary">{% if mode == "guild" %}Loading&hellip;{% else %}Nothing picked yet.{% endif %}</td></tr>
+				</tbody></table>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/chat-flagging.js"></script>
+<script src="/js/chat-history.js"></script>
+{% endblock %}

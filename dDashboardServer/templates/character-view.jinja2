@@ -108,6 +108,18 @@
 			</div>
 		</div>
 
+		{% if can.chat_view or can.chat_dms or can.chat_private or can.chat_flag %}
+		<div class="card mb-4">
+			<div class="card-header"><h5 class="mb-0">Chat</h5></div>
+			<div class="card-body d-flex flex-wrap gap-2">
+				{% if can.chat_view %}<a class="btn btn-sm btn-outline-secondary" href="/chat_log#character={{ character.id }}">Chat log</a>{% endif %}
+				{% if can.chat_dms %}<a class="btn btn-sm btn-outline-secondary" href="/characters/{{ character.id }}/whispers">Whispers</a>{% endif %}
+				{% if can.chat_private %}<a class="btn btn-sm btn-outline-secondary" href="/chat_log/teams#character={{ character.id }}">Team chat</a>{% endif %}
+				{% if can.chat_flag %}<a class="btn btn-sm btn-outline-secondary" href="/chat_flags#character={{ character.id }}">Chat flags</a>{% endif %}
+			</div>
+		</div>
+		{% endif %}
+
 		{% if existsIn(character, "stats") %}
 		<div class="card">
 			<div class="card-header"><h5 class="mb-0">Visited Zones</h5></div>

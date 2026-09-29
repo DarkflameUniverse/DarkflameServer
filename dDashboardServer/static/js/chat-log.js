@@ -1,21 +1,33 @@
 /**
  * The Chat Log page: the chat table, and a list of the world servers running now. Picking one narrows the chat to that
  * server and shows who's in it, how busy its chat is, and what can be done there (say something, shut it down).
- * The selection is kept in the address (#world=1200:2) so it can be linked to, e.g. from the home page.
+ * The selection is kept in the address (#world=1200:2) so it can be linked to, e.g. from the home page; #character=,
+ * #account= and #search= fill in those filters (links from character and account pages).
+ * Messages can be picked and flagged for review (chat-flagging.js); Context shows the conversation around a message.
  */
 (function () {
 	'use strict';
 
 	var page = document.getElementById('chatLogPage');
 	var can = { send: !!page.dataset.canSend, players: !!page.dataset.canPlayers, worlds: !!page.dataset.canWorlds };
-	var CHANNELS = { zone: ['Zone', 'secondary'], whisper: ['Whisper', 'info'], team: ['Team', 'primary'], web: ['Web', 'warning'] };
+	var CHANNELS = { zone: ['Zone', 'secondary'], whisper: ['Whisper', 'info'], team: ['Team', 'primary'], guild: ['Guild', 'success'], web: ['Web', 'warning'] };
 	var nf = new Intl.NumberFormat();
 
 	var state = {
 		worlds: [],
 		selected: null,   // {zone, instance} or null for every world
-		filters: { channel: '', character: '', blocked: false }
+		filters: { channel: '', character: '', account: '', since: 0, until: 0, blocked: false }
 	};
+	var flagging = ChatFlagging.create('#chatTable', '#flagBar', function () { table.ajax.reload(null, false); });
+
+	// Where the rest of a message's conversation is: the whisper thread, the team or the guild
+	function conversationLink(row) {
+		if (row.redacted) return '';
+		if (row.channel === 'whisper' && DASH.can('chat_dms') && row.sender_id !== '0' && row.recipient_id !== '0') return '/characters/' + row.sender_id + '/whispers#with=' + row.recipient_id;
+		if (row.channel === 'team' && DASH.can('chat_private') && row.team_id !== '0') return '/chat_log/teams#team=' + row.team_id;
+		if (row.channel === 'guild' && DASH.can('chat_private') && row.guild_id !== '0') return '/chat_log/guild/' + row.guild_id;
+		return '';
+	}
 
 	function worldKey(w) { return w.mapID + ':' + w.instanceID; }
 	function selectedWorld() {
@@ -26,6 +38,7 @@
 	// ---- the chat table ----
 
 	var table = serverTable('#chatTable', '/api/tables/chat_log', [
+		{ data: 'id', orderable: false, render: function (d, t, row) { return ChatFlagging.checkbox(row); } },
 		{ data: 'time', orderable: false, render: function (d) { return esc(fmt.unix(d)); } },
 		{ data: 'channel', orderable: false, render: function (d) { var c = CHANNELS[d] || [d, 'secondary']; return fmt.badge(c[0], c[1]); } },
 		{ data: 'zone_id', orderable: false, render: function (d, t, row) {
@@ -34,19 +47,26 @@
 		} },
 		{ data: 'sender_name', orderable: false, render: function (d, t, row) { return row.sender_id !== '0' ? fmt.character(row.sender_id, d) : esc(d); } },
 		{ data: 'recipient_name', orderable: false, render: function (d, t, row) { return row.recipient_id !== '0' ? fmt.character(row.recipient_id, d) : ''; } },
-		{ data: 'message', orderable: false, render: function (d, t, row) {
-			return (row.blocked ? fmt.badge('Stopped by the filter', 'danger') + ' ' : '') + '<span class="' + (row.blocked ? 'text-body-secondary' : '') + '">' + esc(d) + '</span>';
-		} },
-		// The sender's account: mute, warn or ban from there
+		{ data: 'message', orderable: false, render: function (d, t, row) { return ChatFlagging.text(row) + ChatFlagging.flagLink(row); } },
+		// The conversation, and the sender's account: mute, warn or ban from there
 		{ data: 'account_id', orderable: false, render: function (d, t, row) {
 			var suggest = row.sender_id !== '0' && row.channel !== 'web' ? AiSuggest.button('chat_message', row.id) : '';
-			return '<div class="d-flex justify-content-end gap-1">' + (d ? '<a class="btn btn-sm btn-outline-secondary text-nowrap" href="/accounts/' + esc(d) + '">Account</a>' : '') + suggest + '</div>';
+			var thread = conversationLink(row);
+			return '<div class="d-flex justify-content-end gap-1">' +
+				(row.redacted ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-context="' + esc(row.id) + '">Context</button>') +
+				(thread ? '<a class="btn btn-sm btn-outline-secondary text-nowrap" href="' + esc(thread) + '">Conversation</a>' : '') +
+				(d ? '<a class="btn btn-sm btn-outline-secondary text-nowrap" href="/accounts/' + esc(d) + '">Account</a>' : '') + suggest + '</div>';
 		} }
 	], {
 		liveTable: 'chat',
-		dataTable: { language: { searchPlaceholder: 'Message or name' } },
+		dataTable: {
+			language: { searchPlaceholder: 'Message or name' },
+			order: [],
+			drawCallback: function () { flagging.sync(); }
+		},
 		extra: function () {
-			var body = { channel: state.filters.channel, character: state.filters.character, blocked: state.filters.blocked };
+			var body = { channel: state.filters.channel, character: state.filters.character, account: state.filters.account,
+				since: state.filters.since, until: state.filters.until, blocked: state.filters.blocked };
 			if (state.selected) { body.zone = state.selected.zone; body.instance = state.selected.instance; }
 			return body;
 		}
@@ -152,6 +172,47 @@
 	document.getElementById('chatChannel').addEventListener('change', function () { state.filters.channel = this.value; table.ajax.reload(); });
 	document.getElementById('chatCharacter').addEventListener('change', function () { state.filters.character = this.value.trim(); table.ajax.reload(); });
 	document.getElementById('chatBlocked').addEventListener('change', function () { state.filters.blocked = this.checked; table.ajax.reload(); });
+	document.getElementById('chatAccount').addEventListener('change', function () { state.filters.account = this.value.trim(); table.ajax.reload(); });
+	// datetime-local is the viewer's local time; the server takes unix seconds
+	function unixOf(value) { var t = value ? new Date(value).getTime() : NaN; return isNaN(t) ? 0 : Math.floor(t / 1000); }
+	document.getElementById('chatSince').addEventListener('change', function () { state.filters.since = unixOf(this.value); table.ajax.reload(); });
+	document.getElementById('chatUntil').addEventListener('change', function () { state.filters.until = unixOf(this.value); table.ajax.reload(); });
+	$('#chatTable').on('xhr.dt', function (e, settings, json) { if (json && json.data) flagging.remember(json.data); });
+
+	// ---- the conversation around a message ----
+
+	document.getElementById('chatTable').addEventListener('click', function (e) {
+		var button = e.target.closest('[data-context]');
+		if (button) showContext(button.getAttribute('data-context'));
+	});
+
+	function showContext(id) {
+		api.get('/api/chat/messages/' + encodeURIComponent(id) + '/context?count=15').then(function (d) {
+			if (!d.success) { toast(d.error || 'Could not load the conversation', 'danger'); return; }
+			var modalEl = document.createElement('div');
+			modalEl.className = 'modal fade';
+			modalEl.tabIndex = -1;
+			var thread = conversationLink(d.message);
+			modalEl.innerHTML = '<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">' +
+				'<div class="modal-header"><h5 class="modal-title">Conversation around a ' + esc((CHANNELS[d.message.channel] || [d.message.channel])[0].toLowerCase()) + ' message</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>' +
+				'<div class="modal-body"><div class="d-flex flex-wrap gap-2 align-items-center mb-2" data-context-bar></div>' +
+				'<table class="table table-sm align-middle mb-0" data-context-table><tbody>' + d.messages.map(function (m) {
+					return '<tr class="' + (String(m.id) === String(id) ? 'table-warning' : '') + '"><td style="width: 1.5rem">' + ChatFlagging.checkbox(m) + '</td>' +
+						'<td class="text-nowrap small text-body-secondary">' + esc(fmt.unix(m.time)) + '</td>' +
+						'<td class="text-nowrap">' + (m.sender_id !== '0' ? fmt.character(m.sender_id, m.sender_name) : esc(m.sender_name)) + (m.recipient_id !== '0' ? ' &rarr; ' + fmt.character(m.recipient_id, m.recipient_name) : '') + '</td>' +
+						'<td>' + ChatFlagging.text(m) + ChatFlagging.flagLink(m) + '</td></tr>';
+				}).join('') + '</tbody></table></div>' +
+				'<div class="modal-footer">' + (thread ? '<a class="btn btn-outline-secondary" href="' + esc(thread) + '">Whole conversation</a>' : '') +
+				'<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div></div></div>';
+			document.body.appendChild(modalEl);
+			var modal = new bootstrap.Modal(modalEl);
+			var picker = ChatFlagging.create(modalEl.querySelector('[data-context-table]'), modalEl.querySelector('[data-context-bar]'), function () { modal.hide(); table.ajax.reload(null, false); });
+			picker.remember(d.messages);
+			modalEl.addEventListener('hidden.bs.modal', function () { modal.dispose(); modalEl.remove(); });
+			modalEl.addEventListener('click', function (e) { if (e.target.closest('a[href]')) modal.hide(); });
+			modal.show();
+		}).catch(function () {});
+	}
 	document.getElementById('worldActions').addEventListener('click', function (e) {
 		if (!e.target.closest('#worldShutdown') || !state.selected) return;
 		var world = selectedWorld();
@@ -173,6 +234,10 @@
 	}
 	setInterval(loadWorlds, 15000);
 
+	var hashValue = function (name) { var m = location.hash.match(new RegExp('[#&]' + name + '=([^&]*)')); return m ? decodeURIComponent(m[1]) : ''; };
+	if (hashValue('character')) { state.filters.character = hashValue('character'); document.getElementById('chatCharacter').value = state.filters.character; }
+	if (hashValue('account')) { state.filters.account = hashValue('account'); document.getElementById('chatAccount').value = state.filters.account; }
+	if (state.filters.character || state.filters.account) table.ajax.reload();
 	var fromHash = (location.hash.match(/world=(\d+:\d+)/) || [])[1];
 	if (fromHash) { var p = fromHash.split(':'); state.selected = { zone: Number(p[0]), instance: Number(p[1]) }; }
 	loadWorlds().then(function () { if (state.selected) table.ajax.reload(); });

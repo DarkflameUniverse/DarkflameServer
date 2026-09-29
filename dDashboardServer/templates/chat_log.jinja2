@@ -22,7 +22,8 @@
 	<div class="mb-3">
 		<h2 class="mb-1">Chat Log</h2>
 		<p class="text-body-secondary mb-0">What players say, newest first, updating live. Pick a world server to see just its chat, who's in it and how busy it is.
-			Messages the chat filter stopped are marked; nobody saw them. Bots can read and post through the <a href="/api_docs#/chat">API</a>.</p>
+			Messages the chat filter stopped are marked; nobody saw them. Tick messages to flag them for review{% if can.chat_flag %} (<a href="/chat_flags">Chat Flags</a>){% endif %}; <strong>Context</strong> shows the conversation around one.
+			{% if can.chat_private %}<a href="/chat_log/teams">Team chat</a> is also kept by team, and guild chat on each guild. {% endif %}Bots can read and post through the <a href="/api_docs#/chat">API</a>.</p>
 	</div>
 
 	<div class="chatlog-layout">
@@ -59,21 +60,29 @@
 			<div class="card">
 				<div class="card-header">
 					<div class="row g-2 align-items-end">
-						<div class="col-sm-4"><label class="form-label small mb-1" for="chatChannel">Channel</label>
+						<div class="col-sm-6 col-lg-3"><label class="form-label small mb-1" for="chatChannel">Channel</label>
 							<select class="form-select form-select-sm" id="chatChannel">
 								<option value="">All</option><option value="zone">Zone chat</option>
-								{% if can.chat_private %}<option value="whisper">Whispers</option><option value="team">Team chat</option><option value="guild">Guild chat</option>{% endif %}
+								{% if can.chat_dms %}<option value="whisper">Whispers</option>{% endif %}
+								{% if can.chat_private %}<option value="team">Team chat</option><option value="guild">Guild chat</option>{% endif %}
 								<option value="web">From the web and bots</option>
 							</select></div>
-						<div class="col-sm-4"><label class="form-label small mb-1" for="chatCharacter">Character</label>
+						<div class="col-sm-6 col-lg-3"><label class="form-label small mb-1" for="chatCharacter">Character</label>
 							<input class="form-control form-control-sm" id="chatCharacter" placeholder="Name or ID"></div>
-						<div class="col-sm-4"><div class="form-check form-switch mb-1">
+						<div class="col-sm-6 col-lg-2"><label class="form-label small mb-1" for="chatAccount">Account ID</label>
+							<input class="form-control form-control-sm" id="chatAccount" inputmode="numeric" placeholder="Any"></div>
+						<div class="col-sm-6 col-lg-2"><label class="form-label small mb-1" for="chatSince">From</label>
+							<input class="form-control form-control-sm" type="datetime-local" id="chatSince"></div>
+						<div class="col-sm-6 col-lg-2"><label class="form-label small mb-1" for="chatUntil">To</label>
+							<input class="form-control form-control-sm" type="datetime-local" id="chatUntil"></div>
+						<div class="col-sm-6 col-lg-3"><div class="form-check form-switch mb-1">
 							<input class="form-check-input" type="checkbox" role="switch" id="chatBlocked"><label class="form-check-label small" for="chatBlocked">Only what the filter stopped</label></div></div>
 					</div>
 				</div>
 				<div class="card-body">
+					<div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="flagBar"></div>
 					<table id="chatTable" class="table table-sm table-hover align-middle w-100 table-stack">
-						<thead><tr><th>Time</th><th>Channel</th><th>Where</th><th>From</th><th>To</th><th>Message</th><th></th></tr></thead>
+						<thead><tr><th></th><th>Time</th><th>Channel</th><th>Where</th><th>From</th><th>To</th><th>Message</th><th></th></tr></thead>
 						<tbody></tbody>
 					</table>
 				</div>
@@ -84,5 +93,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/js/chat-flagging.js"></script>
 <script src="/js/chat-log.js"></script>
 {% endblock %}
