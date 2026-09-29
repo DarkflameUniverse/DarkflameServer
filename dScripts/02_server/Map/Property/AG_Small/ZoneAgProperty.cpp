@@ -1,4 +1,5 @@
 #include "ZoneAgProperty.h"
+#include "GeneralUtils.h"
 #include "EntityManager.h"
 #include "Character.h"
 #include "Entity.h"
@@ -113,7 +114,25 @@ void ZoneAgProperty::LoadProperty(Entity* self) {
 	ActivateSpawner(self->GetVar<std::string>(MailboxSpawner));
 }
 
-void ZoneAgProperty::ProcessGroupObjects(Entity* self, std::string group) {
+void ZoneAgProperty::ProcessGroupObjects(Entity* self, const std::string& group) {
+	// Hands the Spider Queen the first object of the group: the landing target casts her landing skill,
+	// the mountain emitter plays her scream
+	std::u16string varName;
+	if (group == self->GetVar<std::string>(LandTargetGroup)) varName = u"LandingTarget";
+	else if (group == self->GetVar<std::string>(SpiderScreamGroup)) varName = u"ScreamEmitter";
+	else return;
+
+	auto* const spiderBoss = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"SpiderBossID"));
+	if (!spiderBoss) return;
+
+	const auto objects = Game::entityManager->GetEntitiesInGroup(group);
+	if (objects.empty()) {
+		// Not spawned yet: look again shortly
+		self->AddTimer("ProcessGroupObj_" + GeneralUtils::UTF16ToWTF8(varName), 0.3f);
+		return;
+	}
+
+	spiderBoss->SetVar<LWOOBJID>(varName, objects.front()->GetObjectID());
 }
 
 void ZoneAgProperty::SpawnSpots(Entity* self) {
@@ -290,8 +309,10 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		DestroySpawner(self->GetVar<std::string>(FXManagerSpawner));
 
 		self->SetVar<bool>(u"FXObjectGone", true);
-	} else if (timerName == "ProcessGroupObj") {
-		// TODO
+	} else if (timerName == "ProcessGroupObj_LandingTarget") {
+		ProcessGroupObjects(self, self->GetVar<std::string>(LandTargetGroup));
+	} else if (timerName == "ProcessGroupObj_ScreamEmitter") {
+		ProcessGroupObjects(self, self->GetVar<std::string>(SpiderScreamGroup));
 	}
 }
 

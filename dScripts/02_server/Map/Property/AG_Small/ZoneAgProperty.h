@@ -30,7 +30,7 @@ public:
 	void LoadInstance(Entity* self);
 	void LoadProperty(Entity* self);
 
-	void ProcessGroupObjects(Entity* self, std::string group);
+	void ProcessGroupObjects(Entity* self, const std::string& group);
 
 	void SpawnSpots(Entity* self) override;
 	void KillSpots(Entity* self) override;

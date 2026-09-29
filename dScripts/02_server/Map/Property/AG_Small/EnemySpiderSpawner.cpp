@@ -53,6 +53,15 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		if (newEntity) {
 			Game::entityManager->ConstructEntity(newEntity);
 			newEntity->GetGroups().push_back("BabySpider");
+
+			// The Spider Queen screams from the mountain when one of her spiderlings dies
+			const auto spawnOwner = self->GetI64(u"SpawnOwner");
+			const auto spiderlingID = newEntity->GetObjectID();
+			newEntity->AddDieCallback([spawnOwner, spiderlingID]() {
+				auto* const spiderBoss = Game::entityManager->GetEntity(spawnOwner);
+				auto* const spiderling = Game::entityManager->GetEntity(spiderlingID);
+				if (spiderBoss && spiderling) spiderBoss->GetScript()->OnNotifyObject(spiderBoss, spiderling, "SpiderlingDied");
+			});
 		}
 
 		self->ScheduleKillAfterUpdate();

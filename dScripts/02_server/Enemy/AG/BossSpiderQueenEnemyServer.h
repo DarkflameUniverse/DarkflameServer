@@ -48,6 +48,12 @@ public:
 
 	void OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status);
 
+	// The boss's client script asks for the zone data ("QueryZoneScript") once the boss renders
+	void OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) override;
+
+	// "SpiderlingDied" from the spiderlings the eggs hatch (live: notifyDie on the spiderling)
+	void OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) override;
+
 private:
 	void ToggleAttacking(Entity& self, bool on);
 	//Regular variables:

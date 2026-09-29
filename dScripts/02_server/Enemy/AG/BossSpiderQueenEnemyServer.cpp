@@ -75,6 +75,21 @@ void BossSpiderQueenEnemyServer::OnProximityUpdate(Entity* self, Entity* enterin
 	self->SetVar<int32_t>(u"player_count", playerCount);
 }
 
+void BossSpiderQueenEnemyServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
+	if (args != "QueryZoneScript") return;
+
+	// The zone script sets SpiderEggNetworkID, LandingTarget and ScreamEmitter on the boss
+	auto* const zoneControl = Game::entityManager->GetZoneControlEntity();
+	if (zoneControl) zoneControl->OnFireEventServerSide(self, "RetrieveZoneData");
+}
+
+void BossSpiderQueenEnemyServer::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
+	if (name != "SpiderlingDied" || !sender || sender->GetLOT() != SpiderlingID) return;
+
+	// The boss's client script plays the mountain scream from the emitter it is given
+	GameMessages::NotifyClientObject(self->GetObjectID(), u"EmitScream", 0, 0, self->GetVar<LWOOBJID>(u"ScreamEmitter"), "").Send(UNASSIGNED_SYSTEM_ADDRESS);
+}
+
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID && killer) {
 		for (const auto& player : PlayerManager::GetAllPlayers()) {
@@ -512,29 +527,19 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 			landingTarget:PlayEmbeddedEffectOnAllClientsNearObject{radius = 100, fromObjectID = landingTarget, effectName = "camshake-bridge"}
 		}*/
 
-		auto landingTarget = self->GetI64(u"LandingTarget");
-		auto landingEntity = Game::entityManager->GetEntity(landingTarget);
-
-		auto* skillComponent = self->GetComponent<SkillComponent>();
-
-		if (skillComponent != nullptr) {
-			skillComponent->CalculateBehavior(bossLandingSkill, 37739, LWOOBJID_EMPTY);
-		}
-
+		// The landing target casts the landing skill and shakes the camera, not the boss
+		auto* const landingEntity = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"LandingTarget"));
 		if (landingEntity) {
-			auto* landingSkill = landingEntity->GetComponent<SkillComponent>();
+			auto* const landingSkill = landingEntity->GetComponent<SkillComponent>();
+			if (landingSkill) landingSkill->CalculateBehavior(bossLandingSkill, 37739, LWOOBJID_EMPTY, true);
 
-			if (landingSkill != nullptr) {
-				landingSkill->CalculateBehavior(bossLandingSkill, 37739, LWOOBJID_EMPTY, true);
-			}
+			GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
+			embeddedEffect.target = landingEntity->GetObjectID();
+			embeddedEffect.effectName = u"camshake-bridge";
+			embeddedEffect.fromObjectID = landingEntity->GetObjectID();
+			embeddedEffect.radius = 100.0f;
+			embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
-
-		GameMessages::PlayEmbeddedEffectOnAllClientsNearObject embeddedEffect;
-		embeddedEffect.target = self->GetObjectID();
-		embeddedEffect.effectName = u"camshake-bridge";
-		embeddedEffect.fromObjectID = self->GetObjectID();
-		embeddedEffect.radius = 100.0f;
-		embeddedEffect.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 	} else if (timerName == "AdvanceComplete") {
 		GameMessages::NotifyClientObject(self->GetObjectID(), u"SetColGroup", 11, 0, 0, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
