@@ -26,6 +26,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 746 | Tracking Issue: Missing Scripts | partial | `4ad7ddd9` feat: add missing force field, jetpack NPC and Skullkin volume scripts |
 | 764 | BUG: Driving the wrong way does not warp you back | done | `6febb6d6` fix(racing): put racers going the wrong way back on the track |
 | 943 | ENH: Add config option for charging property rent | done | `680615ba` feat: optional property rent |
+| 957 | Username approved popup | partial | `57925d1e` feat(moderation): a name decision shows as a popup to the player, as live did (issue 957) (online players; offline players not told at next login) |
 | 960 | ENH: Make use of `minNumRequired` when deleting items | done | `02108055` feat(inventory): enforce DeletionRestrictions when deleting items |
 | 1021 | BUG: Crux Prime daily mission objectives for smashables don't always complete | partial | `b9d5ef99` fix: Skullkin drill credits the player who breaks it |
 | 1113 | ENH: Add data validation to user editable strings in .ini's | partial | `040d7ec0` fix: ignore whitespace around config keys and values |
