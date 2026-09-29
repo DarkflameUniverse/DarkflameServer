@@ -384,7 +384,10 @@ namespace UgcRender {
 			const auto look = mesh.looks.size() == mesh.positions.size() && (isOpaque || mesh.looks[i0] == UgcModel::eLook::GLITTER) ? mesh.looks[i0] : UgcModel::eLook::PLASTIC;
 			if (look == UgcModel::eLook::GLITTER) {
 				// LEGO-AnimUV: lerp(vertex color, the texture's white, its alpha), then lit as plastic
-				const float fleck = UgcGlitter::Sample(glitterAlpha, UgcGlitter::Uv(position, normal, options.glitter.tile));
+				// On the mesh's own UVs (read from the .nif: each brick's pattern placed as it was made), else projected
+				const auto uv = mesh.uvs.size() == mesh.positions.size() ? mesh.uvs[i0] * w0 + mesh.uvs[i1] * w1 + mesh.uvs[i2] * w2 :
+					UgcGlitter::Uv(position, normal, options.glitter.tile);
+				const float fleck = UgcGlitter::Sample(glitterAlpha, uv);
 				base = glm::vec4(glm::mix(glm::vec3(base), glm::vec3(1.0f), fleck), base.a);
 			}
 			if (look == UgcModel::eLook::PLASTIC || look == UgcModel::eLook::GLITTER) {

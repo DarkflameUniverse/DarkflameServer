@@ -10,6 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "NifFile.h"
+#include "UgcGlitter.h"
 #include "UgcPalette.h"
 #include "tinyxml2.h"
 
@@ -164,6 +165,16 @@ namespace UgcModel {
 			if (other.looks.empty()) looks.resize(positions.size(), eLook::PLASTIC);
 			else looks.insert(looks.end(), other.looks.begin(), other.looks.end());
 		}
+		if (!brickSeeds.empty() || !other.brickSeeds.empty()) {
+			brickSeeds.resize(base, 0);
+			if (other.brickSeeds.empty()) brickSeeds.resize(positions.size(), 0);
+			else brickSeeds.insert(brickSeeds.end(), other.brickSeeds.begin(), other.brickSeeds.end());
+		}
+		if (!uvs.empty() || !other.uvs.empty()) {
+			uvs.resize(base, glm::vec2(0.0f));
+			if (other.uvs.empty()) uvs.resize(positions.size(), glm::vec2(0.0f));
+			else uvs.insert(uvs.end(), other.uvs.begin(), other.uvs.end());
+		}
 		indices.reserve(indices.size() + other.indices.size());
 		for (const auto index : other.indices) indices.push_back(base + index);
 	}
@@ -232,6 +243,7 @@ namespace UgcModel {
 				continue;
 			}
 			model.bricks++;
+			const auto brickSeed = UgcGlitter::BrickSeed(options.seed, brick);
 			const auto materialOf = [&part, &library](size_t index) {
 				auto id = index < part.materials.size() ? part.materials[index] : (part.materials.empty() ? 0 : part.materials[0]);
 				// Unknown colors are black in LU Toolbox (its name included, so black's variation too). A color LU
@@ -306,6 +318,7 @@ namespace UgcModel {
 					mesh.colors.push_back(color);
 					if (&mesh == &model.opaque) model.opaque.glow.push_back(glow);
 					mesh.looks.push_back(look);
+					mesh.brickSeeds.push_back(brickSeed);
 				}
 				for (const auto i : geometry.indices) mesh.indices.push_back(base + i);
 			}
@@ -363,6 +376,7 @@ namespace UgcModel {
 				glm::vec4 color = materialColor;
 				if (vertexColors) color *= glm::vec4(source.colors[v * 4], source.colors[v * 4 + 1], source.colors[v * 4 + 2], source.colors[v * 4 + 3]) / 255.0f;
 				mesh.colors.push_back(color);
+				if (source.uvs.size() == count * 2) mesh.uvs.emplace_back(source.uvs[v * 2], source.uvs[v * 2 + 1]);
 			}
 			mesh.indices.assign(source.indices.begin(), source.indices.end());
 			// Normals from the faces when the file has none
@@ -406,6 +420,8 @@ namespace UgcModel {
 					if (source < mesh.colors.size()) piece.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) piece.glow.push_back(mesh.glow[source]);
 					if (source < mesh.looks.size()) piece.looks.push_back(mesh.looks[source]);
+					if (source < mesh.brickSeeds.size()) piece.brickSeeds.push_back(mesh.brickSeeds[source]);
+					if (source < mesh.uvs.size()) piece.uvs.push_back(mesh.uvs[source]);
 				}
 				piece.indices.push_back(it->second);
 			}
@@ -428,6 +444,8 @@ namespace UgcModel {
 					if (source < mesh.colors.size()) kept.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) kept.glow.push_back(mesh.glow[source]);
 					if (source < mesh.looks.size()) kept.looks.push_back(mesh.looks[source]);
+					if (source < mesh.brickSeeds.size()) kept.brickSeeds.push_back(mesh.brickSeeds[source]);
+					if (source < mesh.uvs.size()) kept.uvs.push_back(mesh.uvs[source]);
 				}
 				kept.indices.push_back(remap[source]);
 			}
@@ -461,6 +479,8 @@ namespace UgcModel {
 					if (source < mesh.colors.size()) current.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) current.glow.push_back(mesh.glow[source]);
 					if (source < mesh.looks.size()) current.looks.push_back(mesh.looks[source]);
+					if (source < mesh.brickSeeds.size()) current.brickSeeds.push_back(mesh.brickSeeds[source]);
+					if (source < mesh.uvs.size()) current.uvs.push_back(mesh.uvs[source]);
 				}
 				current.indices.push_back(it->second);
 			}
@@ -514,6 +534,8 @@ namespace UgcModel {
 					if (source < mesh.colors.size()) half.colors.push_back(mesh.colors[source]);
 					if (source < mesh.glow.size()) half.glow.push_back(mesh.glow[source]);
 					if (source < mesh.looks.size()) half.looks.push_back(mesh.looks[source]);
+					if (source < mesh.brickSeeds.size()) half.brickSeeds.push_back(mesh.brickSeeds[source]);
+					if (source < mesh.uvs.size()) half.uvs.push_back(mesh.uvs[source]);
 				}
 				half.indices.push_back(remap[source]);
 			}

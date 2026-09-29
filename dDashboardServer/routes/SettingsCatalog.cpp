@@ -480,6 +480,7 @@ namespace {
 		c.Add(Float(UGC, "glitter_size", "Glitter tile size", "The fleck texture's tile in model units (a stud is 0.8): how far apart the flecks are, the same on every brick.", "1.6", 0.1f, 100));
 		c.Add(Int(UGC, "glitter_density", "Glitter flecks", "Flecks in one tile of the glitter texture.", "50", 0, 2000));
 		c.Add(Float(UGC, "glitter_speed", "Glitter speed", "How fast the flecks drift: 1 moves them a tile in 7 s one way and 11 s the other; 0 keeps them still.", "1", 0, 100));
+		c.Add(Bool(UGC, "glitter_random", "Glitter placed per brick", "Each glitter brick gets its own fleck pattern (turned and moved by a number of the brick's own, the same every time the model is made); off: the same pattern on every brick.", true));
 		c.Add(Text(UGC, "satin_colors", "Satin colors", "Satin (opal) color ids, comma separated: they stay transparent plastic (the client has no satin shader) but are made milky and less see-through. By default LEGO's satin colors 360,362,363,364,365,366,367,376 (none: off)." + notLive, "360,362,363,364,365,366,367,376"));
 		c.Add(Float(UGC, "satin_opacity", "Satin opacity", "Percent: the opacity of transparent satin bricks, instead of the transparent opacity.", "75", 0, 100));
 		c.Add(Float(UGC, "satin_whiten", "Satin whitening", "Percent: how far satin colors go towards white.", "20", 0, 100));

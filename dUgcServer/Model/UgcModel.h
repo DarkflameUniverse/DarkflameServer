@@ -50,6 +50,11 @@ namespace UgcModel {
 		std::vector<glm::vec4> colors; // sRGB, 0..1, alpha is opacity
 		std::vector<glm::vec3> glow;   // linear glow color per vertex (LU Toolbox's "Glow" layer); empty when nothing glows
 		std::vector<eLook> looks;      // per vertex; empty when everything is plastic (transparent meshes: plastic or glitter)
+		// Per vertex: its brick's UgcGlitter::BrickSeed, which places the brick's glitter; empty when not known (a
+		// mesh read from a .nif)
+		std::vector<uint32_t> brickSeeds;
+		// Per vertex: the UV set of a mesh read from a .nif (its glitter's, placed when it was made); empty otherwise
+		std::vector<glm::vec2> uvs;
 		std::vector<uint32_t> indices;
 
 		size_t TriangleCount() const { return indices.size() / 3; }

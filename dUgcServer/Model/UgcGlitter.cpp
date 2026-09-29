@@ -53,12 +53,33 @@ namespace UgcGlitter {
 		return levels;
 	}
 
-	glm::vec2 Uv(const glm::vec3& position, const glm::vec3& normal, float tile) {
+	namespace {
+		uint64_t SplitMix(uint64_t x) {
+			x += 0x9E3779B97F4A7C15ull;
+			x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ull;
+			x = (x ^ (x >> 27)) * 0x94D049BB133111EBull;
+			return x ^ (x >> 31);
+		}
+		// 0..1 from 24 bits of a hash
+		float Unit(uint64_t bits) { return static_cast<float>(bits >> 40) / static_cast<float>(1ull << 24); }
+	}
+
+	uint32_t BrickSeed(uint64_t modelSeed, uint32_t brick) {
+		const auto hash = SplitMix(SplitMix(modelSeed ^ 0x676C6974746572ull) + brick);
+		return static_cast<uint32_t>(hash >> 32) | 1u;
+	}
+
+	glm::vec2 Uv(const glm::vec3& position, const glm::vec3& normal, float tile, uint32_t seed) {
 		const auto a = glm::abs(normal);
 		const float scale = 1.0f / std::max(tile, 1e-3f);
-		if (a.x >= a.y && a.x >= a.z) return glm::vec2(position.z, position.y) * scale;
-		if (a.y >= a.z) return glm::vec2(position.x, position.z) * scale;
-		return glm::vec2(position.x, position.y) * scale;
+		const int plane = a.x >= a.y && a.x >= a.z ? 0 : a.y >= a.z ? 1 : 2;
+		const glm::vec2 uv = (plane == 0 ? glm::vec2(position.z, position.y) : plane == 1 ? glm::vec2(position.x, position.z) : glm::vec2(position.x, position.y)) * scale;
+		if (seed == 0) return uv;
+		const auto hash = SplitMix((static_cast<uint64_t>(seed) << 2) | static_cast<uint64_t>(plane));
+		const float angle = Unit(hash) * 6.28318530718f;
+		const glm::vec2 offset(Unit(SplitMix(hash)), Unit(SplitMix(hash + 1)));
+		const float c = std::cos(angle), s = std::sin(angle);
+		return glm::vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y) + offset;
 	}
 
 	float Sample(const std::vector<uint8_t>& alpha, const glm::vec2& uv) {

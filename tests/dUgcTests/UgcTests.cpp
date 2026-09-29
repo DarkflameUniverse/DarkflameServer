@@ -1551,6 +1551,74 @@ TEST(UgcShaders, GlitterGroups) {
 	EXPECT_EQ(off.stats.find("groups"), std::string::npos);
 }
 
+// Each glitter brick gets its own fleck pattern: bricks a whole number of tiles apart (whose projected UVs are the same
+// but for whole tiles) get different ones, the same model made again the same ones, another model others;
+// glitter_random 0 puts the same pattern on every brick as before
+TEST(UgcShaders, GlitterIsPlacedPerBrick) {
+	// Brick seeds: never 0, different bricks and models different, the same brick the same
+	EXPECT_NE(UgcGlitter::BrickSeed(7, 0), 0u);
+	EXPECT_EQ(UgcGlitter::BrickSeed(7, 3), UgcGlitter::BrickSeed(7, 3));
+	EXPECT_NE(UgcGlitter::BrickSeed(7, 3), UgcGlitter::BrickSeed(7, 4));
+	EXPECT_NE(UgcGlitter::BrickSeed(7, 3), UgcGlitter::BrickSeed(8, 3));
+	// Seed 0 is the plain projection; a seed turns and moves it
+	const glm::vec3 p(0.4f, 0.8f, 0.2f), q(1.2f, 0.8f, 0.2f);
+	EXPECT_EQ(UgcGlitter::Uv(p, { 0, 0, 1 }, 1.6f, 0), UgcGlitter::Uv(p, { 0, 0, 1 }, 1.6f));
+	const auto a = UgcGlitter::Uv(p, { 0, 0, 1 }, 1.6f, 12345), b = UgcGlitter::Uv(q, { 0, 0, 1 }, 1.6f, 12345);
+	EXPECT_NE(a, UgcGlitter::Uv(p, { 0, 0, 1 }, 1.6f));
+	EXPECT_NEAR(glm::length(b - a), 0.5f, 1e-5f); // turned and moved, not stretched: still 0.8 / 1.6 tiles apart
+	EXPECT_NE(UgcGlitter::Uv(p, { 0, 0, 1 }, 1.6f, 12345), UgcGlitter::Uv(p, { 0, 0, 1 }, 1.6f, 54321));
+
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	library.SetMaterials({ { 5001, { 67, 84, 147, 150, "glitter" } } });
+	// Three transparent glitter bricks 3.2 apart (two tiles of 1.6)
+	const std::string lxfml = R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3001" materials="5001"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="5001"><Bone transformation="1,0,0,0,1,0,0,0,1,3.2,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="5001"><Bone transformation="1,0,0,0,1,0,0,0,1,6.4,0,0"/></Part></Brick>
+		</Bricks></LXFML>)";
+	auto settings = SmallSettings();
+	settings.shaders.glitter = 21;
+	// Each glitter shape's UVs' fractions (the texture wraps), LOD 0
+	const auto patterns = [&](const UgcJobs::Outcome& outcome) {
+		std::string error;
+		const auto read = NifFile::Parse(*ZCompression::Gunzip(outcome.files.at("model.nif.gz")), 0, error);
+		EXPECT_TRUE(read) << error;
+		std::vector<std::vector<float>> out;
+		for (const auto& mesh : read->meshes) {
+			if (mesh.material.shaderTag != 21) continue;
+			std::vector<float> fractions;
+			for (const auto uv : mesh.uvs) fractions.push_back(std::round((uv - std::floor(uv)) * 1000.0f) / 1000.0f);
+			out.push_back(fractions);
+		}
+		return out;
+	};
+	const auto random = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	ASSERT_TRUE(random.ok) << random.error;
+	const auto perBrick = patterns(random);
+	ASSERT_EQ(perBrick.size(), 3u); // one shape per transparent brick
+	EXPECT_NE(perBrick[0], perBrick[1]);
+	EXPECT_NE(perBrick[1], perBrick[2]);
+	EXPECT_NE(perBrick[0], perBrick[2]);
+	// The same model made again: the same file; another model (seed) with the same bricks: other patterns
+	EXPECT_EQ(random.files.at("model.nif.checksum"), UgcJobs::ProcessModel(lxfml, library, settings, 7).files.at("model.nif.checksum"));
+	EXPECT_NE(patterns(UgcJobs::ProcessModel(lxfml, library, settings, 8)), perBrick);
+	// Off: the same pattern on every brick, as before
+	settings.shaders.glitterParams.random = false;
+	const auto off = UgcJobs::ProcessModel(lxfml, library, settings, 7);
+	const auto same = patterns(off);
+	ASSERT_EQ(same.size(), 3u);
+	EXPECT_EQ(same[0], same[1]);
+	EXPECT_EQ(same[1], same[2]);
+
+	// The icon draws the flecks where the .nif has them (its UVs, read back), so it changes with the placement
+	std::string error;
+	const auto read = NifFile::Parse(*ZCompression::Gunzip(random.files.at("model.nif.gz")), 0, error);
+	ASSERT_TRUE(read) << error;
+	const auto back = UgcModel::FromNif(*read, settings.shaders.TagLooks());
+	EXPECT_EQ(back.transparent.uvs.size(), back.transparent.positions.size());
+	EXPECT_NE(random.files.at("icon.png"), off.files.at("icon.png"));
+}
+
 // Glitter in the icon: the texture's flecks over the color before the light, where they are at the start
 TEST(UgcShaders, IconsDrawGlitterFlecks) {
 	UgcModel::Model model;

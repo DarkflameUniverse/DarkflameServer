@@ -306,6 +306,7 @@ all of its levels, so each look needs a group of its own.
 | `glitter_size` | 1.6 | The glitter texture's tile, in model units (a stud is 0.8): the flecks' spacing, the same on every brick. |
 | `glitter_density` | 50 | Flecks in one tile. |
 | `glitter_speed` | 1 | How fast the flecks drift: a tile in U in 7 s and in V in 11 s at 1; 0 keeps them still (no controllers). |
+| `glitter_random` | 1 | Each glitter brick its own fleck pattern (turned and moved by the brick); 0: the same pattern on every brick. |
 | `satin_colors` | 360,362,363,364,365,366,367,376 | Satin (opal) colors, see Satin below. The default: LEGO's color data's "Satin Colors" category (the Transparent ... Opal colors). Empty: the default; `none`: off. |
 | `satin_opacity` | 75 | Percent: the vertex alpha of transparent satin bricks, instead of `transparent_opacity` or the Materials.xml alpha. |
 | `satin_whiten` | 20 | Percent: how far satin colors are moved towards white (in linear RGB, after the color variation). |
@@ -352,7 +353,11 @@ flecks on a brick that is otherwise lit as plastic, and moving the texture trans
 What a glitter shape has, beside what plastic shapes have (white material, alpha, specular, vertex colors):
 
 - A UV set: each vertex's position on the axis plane its normal faces most, divided by `glitter_size`
-  (`UgcGlitter::Uv`), so the flecks are as dense on every brick and every side.
+  (`UgcGlitter::Uv`), so the flecks are as dense on every brick and every side, then turned by an angle and moved by
+  an offset under a tile that the brick picks for each plane (`glitter_random`, on by default): each brick's number
+  (`UgcGlitter::BrickSeed`, from the model's id and the brick's index, kept per vertex in `Mesh::brickSeeds`), so
+  no two bricks have the same pattern, every LOD of a brick has its own, and a model made again gets the same. The
+  icon draws the flecks on the UVs the .nif has (`Mesh::uvs`, read back by `UgcModel::FromNif`).
 - An `NiTexturingProperty` (one per file, shared by both glitter groups): apply mode decal (fixed function would do
   what the shader does), 9 slots, the base map only: wrap S and T, trilinear, UV set 0, a texture transform
   (translation 0, scale 1, Maya method, center 0.5).

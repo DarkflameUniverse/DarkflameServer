@@ -144,7 +144,8 @@ namespace {
 		out.I32(-1); // collision object
 	}
 
-	// `glitter`: with a UV set projected for the glitter texture (UgcGlitter::Uv)
+	// `glitter`: with a UV set projected for the glitter texture (UgcGlitter::Uv), placed by each vertex's brick
+	// (Mesh::brickSeeds) when the glitter is random
 	std::string TriShapeData(const UgcModel::Mesh& mesh, const UgcGlitter::Params* glitter = nullptr) {
 		Writer out;
 		const auto count = static_cast<uint16_t>(mesh.positions.size());
@@ -191,7 +192,8 @@ namespace {
 		}
 		if (uvs) {
 			for (size_t v = 0; v < mesh.positions.size(); v++) {
-				const auto uv = UgcGlitter::Uv(mesh.positions[v], mesh.normals[v], glitter->tile);
+				const uint32_t seed = glitter->random && v < mesh.brickSeeds.size() ? mesh.brickSeeds[v] : 0;
+				const auto uv = UgcGlitter::Uv(mesh.positions[v], mesh.normals[v], glitter->tile, seed);
 				out.Float(uv.x);
 				out.Float(uv.y);
 			}
