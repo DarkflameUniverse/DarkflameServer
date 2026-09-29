@@ -11,6 +11,7 @@ set(DCOMPONENTS_TESTS
 	"SimplePhysicsComponentTests.cpp"
 	"SavingTests.cpp"
 	"CharacterSaveFieldsTests.cpp"
+	"CollectibleComponentTests.cpp"
 	"ReplicaComponentOrderTests.cpp"
 )
 

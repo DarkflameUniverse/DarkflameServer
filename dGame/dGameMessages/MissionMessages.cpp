@@ -14,6 +14,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "Mission.h"
+#include "CollectibleComponent.h"
 #include "MissionComponent.h"
 #include "MissionOfferComponent.h"
 #include "EffectsMessages.h"
@@ -241,6 +242,10 @@ namespace GameMessages {
 	void HasBeenCollected::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		Entity* player = Game::entityManager->GetEntity(playerID);
 		if (!player || entity.GetCollectibleID() == 0) return;
+
+		// Collectibles of a mission to accept only count while the player has it
+		const auto* const collectible = entity.GetComponent<CollectibleComponent>();
+		if (collectible && !collectible->CountsFor(*player)) return;
 
 		MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
 		if (missionComponent) {
