@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include "CDClientRules.h"
 #include "CDClientSchema.h"
 
 using namespace CDClientSchema;
@@ -61,9 +60,6 @@ TEST(CDClientSchemaTest, Links) {
 	EXPECT_FALSE(LinkFor(schema, T(schema, "ObjectBehaviors"), C(schema, "ObjectBehaviors", "BehaviorID")));
 	// No target table in the schema: no link
 	EXPECT_FALSE(LinkFor(schema, T(schema, "ObjectSkills"), C(schema, "ObjectSkills", "skillID")));
-
-	const auto toMatrices = ColumnsLinkingTo(schema, eLink::LOOT_MATRIX);
-	EXPECT_EQ(toMatrices.size(), 2u); // ActivityRewards and DestructibleComponent
 }
 
 TEST(CDClientSchemaTest, ComponentTables) {
@@ -169,106 +165,4 @@ TEST(CDClientSchemaTest, ChildBehaviorParameters) {
 	EXPECT_FALSE(IsChildBehaviorParameter("include_faction"));
 	EXPECT_FALSE(IsChildBehaviorParameter("isEnemyFaction"));
 	EXPECT_FALSE(IsChildBehaviorParameter("radius"));
-}
-
-TEST(CDClientSchemaTest, PrerequisiteMissions) {
-	EXPECT_EQ(PrerequisiteMissions("815|812|813"), (std::vector<int32_t>{ 815, 812, 813 }));
-	EXPECT_EQ(PrerequisiteMissions("(509|229)&(812|813)"), (std::vector<int32_t>{ 509, 229, 812, 813 }));
-	EXPECT_EQ(PrerequisiteMissions("1296, (1684 | 1680)"), (std::vector<int32_t>{ 1296, 1684, 1680 }));
-	// ":2" is a mission state, not a mission
-	EXPECT_EQ(PrerequisiteMissions("236:2"), (std::vector<int32_t>{ 236 }));
-	EXPECT_TRUE(PrerequisiteMissions("").empty());
-}
-
-TEST(CDClientRulesTest, RarityChances) {
-	using namespace CDClientRules;
-	// RarityTable 2 as the server loads it (randmax descending): a roll takes the lowest row at or above it
-	const std::vector<RarityRow> rows{ { 1.0, 4 }, { 0.95, 3 }, { 0.75, 2 }, { 0.5, 1 } };
-	const auto chances = RarityChances(rows);
-	ASSERT_EQ(chances.size(), 4u);
-	EXPECT_EQ(chances[0].first, 4);
-	EXPECT_NEAR(chances[0].second, 0.05, 1e-9);
-	EXPECT_NEAR(chances[1].second, 0.2, 1e-9);
-	EXPECT_NEAR(chances[2].second, 0.25, 1e-9);
-	EXPECT_EQ(chances[3].first, 1);
-	EXPECT_NEAR(chances[3].second, 0.5, 1e-9);
-
-	// A roll above every row keeps rarity 1
-	const auto partial = RarityChances({ { 0.9, 2 }, { 0.4, 1 } });
-	ASSERT_EQ(partial.size(), 2u);
-	EXPECT_EQ(partial[0].first, 1);
-	EXPECT_NEAR(partial[0].second, 0.1 + 0.4, 1e-9);
-	EXPECT_NEAR(partial[1].second, 0.5, 1e-9);
-}
-
-TEST(CDClientRulesTest, Candidates) {
-	using namespace CDClientRules;
-	// Items of the rolled rarity
-	EXPECT_EQ(Candidates({ 1, 3, 4, 3 }, 3), (std::vector<size_t>{ 1, 3 }));
-	// None of it: the next lower rarity
-	EXPECT_EQ(Candidates({ 4, 3, 3, 1 }, 2), (std::vector<size_t>{ 3 }));
-	// A lower rarity found alone doesn't stop the search: the server keeps taking lower ones until two match
-	EXPECT_EQ(Candidates({ 3, 1, 1 }, 4), (std::vector<size_t>{ 0, 1, 2 }));
-	EXPECT_TRUE(Candidates({ 4 }, 2).empty());
-}
-
-TEST(CDClientRulesTest, ChancesAndOdds) {
-	using namespace CDClientRules;
-	const std::vector<RarityRow> rows{ { 1.0, 4 }, { 0.95, 3 }, { 0.75, 2 }, { 0.5, 1 } };
-	const auto perDrop = ChancePerDrop({ 1, 1, 2, 3, 4 }, rows);
-	EXPECT_NEAR(perDrop[0], 0.25, 1e-9);
-	EXPECT_NEAR(perDrop[2], 0.25, 1e-9);
-	EXPECT_NEAR(perDrop[3], 0.2, 1e-9);
-	EXPECT_NEAR(perDrop[4], 0.05, 1e-9);
-	double total = 0;
-	for (const auto chance : perDrop) total += chance;
-	EXPECT_NEAR(total, 1.0, 1e-9);
-
-	const auto once = Odds(0.5, 1, 1, 0.25);
-	EXPECT_NEAR(once.atLeastOne, 0.125, 1e-9);
-	EXPECT_NEAR(once.expected, 0.125, 1e-9);
-	const auto twice = Odds(1.0, 2, 2, 0.5);
-	EXPECT_NEAR(twice.atLeastOne, 0.75, 1e-9);
-	EXPECT_NEAR(twice.expected, 1.0, 1e-9);
-	// 1 to 3 drops: 1 - (0.5 + 0.25 + 0.125) / 3
-	EXPECT_NEAR(Odds(1.0, 1, 3, 0.5).atLeastOne, 1.0 - 0.875 / 3.0, 1e-9);
-
-	EXPECT_EQ(VendorStockChance(0, 3, 10), 1.0);
-	EXPECT_NEAR(VendorStockChance(2, 4, 10), 0.3, 1e-9);
-	EXPECT_EQ(VendorStockChance(5, 5, 2), 1.0);
-}
-
-TEST(CDClientRulesTest, Prerequisites) {
-	using namespace CDClientRules;
-	const auto terms = [](std::string_view text) {
-		std::string out;
-		for (const auto& term : ParsePrerequisites(text)) {
-			out += std::to_string(term.mission) + (term.state ? ":" + std::to_string(term.state) : "") + (term.orRest ? " or " : " and ");
-		}
-		return out;
-	};
-	// Right to left, brackets don't group: 509 or (229 and (812 or 813))
-	EXPECT_EQ(terms("(509|229)&(812|813)"), "509 or 229 and 812 or 813 and ");
-	EXPECT_EQ(terms("1|2,3"), "1 or 2 and 3 and ");
-	EXPECT_EQ(terms("1170:2"), "1170:2 and ");
-	EXPECT_EQ(terms("1882:10 | 1882:2"), "1882:10 or 1882:2 and ");
-	// Nothing: always met; a trailing "|" makes the whole thing always met, a trailing "," changes nothing
-	EXPECT_EQ(terms(""), "0 and ");
-	EXPECT_EQ(terms("5|"), "5 or 0 and ");
-	EXPECT_EQ(terms("5,"), "5 and ");
-}
-
-TEST(CDClientRulesTest, TaskMeanings) {
-	using namespace CDClientRules;
-	EXPECT_EQ(MeaningOf(eMissionTaskType::SMASH).target, (std::vector<eLink>{ eLink::OBJECT }));
-	EXPECT_TRUE(MeaningOf(eMissionTaskType::SMASH).targetGroupIds);
-	EXPECT_EQ(MeaningOf(eMissionTaskType::META).target, (std::vector<eLink>{ eLink::MISSION }));
-	EXPECT_FALSE(MeaningOf(eMissionTaskType::TALK_TO_NPC).targetGroupIds);
-	EXPECT_EQ(MeaningOf(eMissionTaskType::USE_SKILL).parameters, (std::vector<eLink>{ eLink::SKILL }));
-	EXPECT_TRUE(MeaningOf(eMissionTaskType::RACING).racingParameter);
-	EXPECT_FALSE(MeaningOf(eMissionTaskType::BUY).progressed);
-
-	// As MissionTask reads targetGroup: leading spaces are fine, anything else that isn't a number is skipped
-	EXPECT_EQ(NumberList("1,2, 3,-1,x, 4 "), (std::vector<int64_t>{ 1, 2, 3 }));
-	EXPECT_TRUE(NumberList("").empty());
 }

@@ -109,7 +109,7 @@ namespace {
 		{ "permissions_manage", "Server", "Permissions", "Change what each GM level may do (always GM 9)", 9, true },
 
 		{ "dev_message_inspector", "Developer tools", "Game message inspector", "Capture the game messages an online player sends and receives, live (every capture is audited)", 8 },
-		{ "dev_cdclient", "Developer tools", "CDClient browser", "Browse the game's CDClient data: objects and their components, loot, missions, skills, behaviors and activities", 8 },
+		{ "dev_cdclient", "Developer tools", "CDClient browser", "Read the game's CDClient tables as they are: page, sort, search and filter any table", 8 },
 	};
 
 	const std::map<std::string, const Permissions::Permission*>& Index() {

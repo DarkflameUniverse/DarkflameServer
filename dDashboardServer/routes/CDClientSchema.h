@@ -83,7 +83,7 @@ namespace CDClientSchema {
 
 	// ---- Links between tables ----
 
-	// What a column's values point at. The browser has a page for each.
+	// What a column's values point at. The browser links such values to the rows they point at.
 	enum class eLink : uint8_t { OBJECT, LOOT_MATRIX, LOOT_TABLE, RARITY_TABLE, BEHAVIOR, SKILL, MISSION, ACTIVITY, ICON, ZONE, EMOTE };
 
 	struct LinkTarget {
@@ -175,18 +175,7 @@ namespace CDClientSchema {
 		return std::nullopt;
 	}
 
-	// Every (table, column) that points at `link`, for "used by" lists
-	inline std::vector<std::pair<const Table*, const Column*>> ColumnsLinkingTo(const Schema& schema, eLink link) {
-		std::vector<std::pair<const Table*, const Column*>> columns;
-		for (const auto& [name, table] : schema.Tables()) {
-			for (const auto& column : table.columns) {
-				if (LinkFor(schema, table, column) == link) columns.emplace_back(&table, &column);
-			}
-		}
-		return columns;
-	}
-
-	// The link's name for the page ("loot_matrix")
+	// The link's name as the browser sends it ("loot_matrix")
 	inline std::string LinkName(eLink link) {
 		return Lower(magic_enum::enum_name(link));
 	}
@@ -371,25 +360,5 @@ namespace CDClientSchema {
 		const auto name = Lower(parameter);
 		if (name.find("faction") != std::string::npos) return false;
 		return name.starts_with("behavior") || name.starts_with("on_") || name.find("action") != std::string::npos;
-	}
-
-	/**
-	 * Mission IDs in Missions.prereqMissionID, which lists them separated by commas, pipes, ampersands or spaces,
-	 * sometimes with a ":state" suffix or in brackets ("(1,2)|3", "123:4").
-	 */
-	inline std::vector<int32_t> PrerequisiteMissions(std::string_view text) {
-		std::vector<int32_t> ids;
-		for (size_t i = 0; i < text.size();) {
-			if (!std::isdigit(static_cast<unsigned char>(text[i]))) { i++; continue; }
-			size_t end = i;
-			while (end < text.size() && std::isdigit(static_cast<unsigned char>(text[end]))) end++;
-			const bool isState = i > 0 && text[i - 1] == ':';
-			if (!isState && end - i <= 9) {
-				const auto id = static_cast<int32_t>(std::stol(std::string(text.substr(i, end - i))));
-				if (std::ranges::find(ids, id) == ids.end()) ids.push_back(id);
-			}
-			i = end;
-		}
-		return ids;
 	}
 }

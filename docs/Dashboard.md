@@ -1454,36 +1454,15 @@ world server later only apply to new captures.
 
 ### CDClient browser
 
-**CDClient Browser** (`dev_cdclient`) searches and reads the game's CDClient database (`resServer/CDServer.sqlite`).
-Besides the raw rows, each kind of thing has a view that shows it the way the server uses it:
+**CDClient Browser** (`dev_cdclient`) is a raw viewer for the game's CDClient database (`resServer/CDServer.sqlite`),
+for checking the values the server reads. It lists every table; each table is paged (50 rows), sortable by any column,
+searchable across all columns and filterable by column (`=`, `!=`, `<`, `<=`, `>`, `>=`, contains, starts with, null,
+not null). Values that point at other rows (a LOT, a loot matrix, a skill, a mission, a zone, an emote, ...) link to
+the target table filtered to that ID; in `ComponentsRegistry`, `component_type` shows the type's name and
+`component_id` links to the component's row. The view is in the URL, so it can be linked; `/cdclient#/object/<LOT>`
+(or `mission`, `skill`, `loot_matrix`, ...) opens the target table filtered to that ID.
 
-- **Search** by name (objects by the names players see, missions, skills, activities, zones) or by ID (anything with
-  that ID).
-- **Tables**: every table in the database, paged, sortable, searchable and filterable by column. Values that point at
-  other rows (a LOT, a loot matrix, a skill, a mission, a zone, an emote, ...) are links.
-- **Objects**: icon, rarity and description; for items their type, equip slot, stack size, value, other currencies and
-  crafting costs, stat bonuses, skills and item set; for destructibles their life, armor, imagination, level and coin
-  drop; what they drop or contain, with each item's chance; a vendor's stock with prices and how it restocks; skills;
-  starting inventory; the missions an NPC offers or takes. Then where the object comes from (smashables, packages,
-  activity rewards, vendors, each with its chance), the missions that reward it and the mission tasks that count it.
-  Objects built from bricks can be previewed in 3D (from the client's `BrickModels`, so `client_location` must be
-  set); objects drawn from `.nif` meshes can't.
-- **Loot**: chances are worked out as `Loot.cpp` rolls them: each loot matrix entry rolls with its percent, then drops
-  its count of items, each rolling a rarity from the rarity table (the lowest `randmax` at or above the roll) and
-  picking evenly among the loot table's items of that rarity, or the next lower rarity it has. The page shows, per
-  item, the chance of getting it at least once and how many on average, before live event bonuses. A vendor sells all
-  of an entry's table when its min or max is 0, otherwise that many of its items at random, whatever the rarity.
-- **Missions**: tasks with their targets and parameters resolved to what `MissionTask` compares them with (objects,
-  missions, skills, emotes, activities), rewards for the first completion and for repeats, prerequisites as the server
-  evaluates them (each mission joined to everything after it, so brackets don't group), who offers and takes it, what
-  it unlocks and the achievements that count it.
-- **Skills** with their cost, cooldown, behavior tree and the objects that have them; **behavior trees** with each
-  behavior's template (named from the server's `BehaviorTemplate` enum), effect and parameters.
-- **Activities**: where they are played, what they cost, and their rewards per rating with coins and drop chances.
-- **Zones**: names, the player caps new instances get (the ZoneTable's, or an override set on the Instances page,
-  shown to those who can see that page) and what uses the zone.
-
-Numbers the server has no names for (a skill's `castOnType`) or doesn't read (a loot matrix's `flagID`) are shown raw.
+It shows values only. For worked-out views (loot odds, mission rewards, behavior trees) use lu-explorer.
 
 It is read-only. Tables and columns come from the database itself; the page never sends SQL, only which table, column
 and value to look at.
