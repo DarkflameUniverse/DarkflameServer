@@ -97,6 +97,30 @@ namespace GameMessageTestUtils {
 		return msg;
 	}
 
+	// Reads a whole client -> server game message packet copied from a live capture (hex; header 53 04 00 05, then the
+	// object ID and the message ID), requires the message ID to be T's and the payload to be consumed up to the byte
+	// padding, and requires the struct to write the same payload back.
+	template<typename T>
+	T FromLiveClientCapture(const std::string& hex) {
+		auto live = FromHex(hex);
+		EXPECT_GE(live.bytes.size(), 18u);
+		EXPECT_EQ(std::vector<uint8_t>(live.bytes.begin(), live.bytes.begin() + 4), (std::vector<uint8_t>{ 0x53, 0x04, 0x00, 0x05 }));
+		RakNet::BitStream bitStream(live.bytes.data(), live.bytes.size(), false);
+		bitStream.IgnoreBytes(8);
+		T msg;
+		MessageType::Game msgId{};
+		EXPECT_TRUE(bitStream.Read(msg.target));
+		EXPECT_TRUE(bitStream.Read(msgId));
+		EXPECT_EQ(msgId, msg.msgId);
+		EXPECT_TRUE(msg.Deserialize(bitStream));
+		EXPECT_LT(bitStream.GetNumberOfUnreadBits(), 8u);
+		RakNet::BitStream again;
+		again.WriteBits(live.bytes.data(), 18 * 8);
+		msg.Serialize(again);
+		EXPECT_EQ(FromBitStream(again).bytes, live.bytes);
+		return msg;
+	}
+
 	// Checks that every strict prefix of msg's serialized payload fails to deserialize.
 	template<typename T>
 	void ExpectTruncatedFails(const T& msg) {

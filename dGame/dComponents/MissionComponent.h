@@ -6,6 +6,8 @@
 #ifndef MISSIONCOMPONENT_H
 #define MISSIONCOMPONENT_H
 
+#include <map>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include "dCommonVars.h"
@@ -171,6 +173,12 @@ public:
 	void ResetMission(const int32_t missionId);
 
 	void FixRacingMetaMissions();
+
+	// The journal state of a mission type and subtype (Missions.defined_type / defined_subtype), as the client sets it
+	// with SetMissionTypeState. Saved in the charxml: <mis><ts><type v="type"><st sub="subtype" val="state"/></type></ts>
+	using MissionTypeStates = std::map<std::string, std::map<std::string, eMissionLockState>>;
+	void SetMissionTypeState(const std::string& type, const std::string& subtype, eMissionLockState state);
+	const MissionTypeStates& GetMissionTypeStates() const { return m_MissionTypeStates; }
 private:
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 	bool OnGetMissionState(GameMessages::GetMissionState& getMissionState);
@@ -184,6 +192,8 @@ private:
 	 * All the collectibles currently collected by the entity
 	 */
 	std::vector<int32_t> m_Collectibles;
+
+	MissionTypeStates m_MissionTypeStates;
 
 
 	/**

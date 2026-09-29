@@ -6,6 +6,7 @@
 #include <vector>
 
 enum class eMissionState : int;
+enum class eMissionLockState : int;
 
 // Game messages for missions, player flags, collectibles and level rewards.
 // Field names follow the client (legouniverse.exe 1.10.64); fields are listed in wire order.
@@ -132,6 +133,20 @@ namespace GameMessages {
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 
 		LWOOBJID playerID{};
+	};
+
+	// Client -> server. LWOMissionComponent sends it when a mission of a journal type/subtype (Missions.defined_type,
+	// defined_subtype) is offered or updated, to mark that journal tab. Every live sample carried the default state
+	// (NEW). The server keeps the states and saves them in the charxml (<mis><ts>), which the client reads on load.
+	struct SetMissionTypeState : public NetGameMsg {
+		SetMissionTypeState();
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		eMissionLockState state; // optional, default NEW
+		std::string subtype{};
+		std::string type{};
 	};
 
 	// Server -> client.

@@ -10,6 +10,7 @@ set(DCOMPONENTS_TESTS
 	"PetComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
 	"SavingTests.cpp"
+	"CharacterSaveFieldsTests.cpp"
 	"ReplicaComponentOrderTests.cpp"
 )
 

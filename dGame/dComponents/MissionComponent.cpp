@@ -8,6 +8,7 @@
 #include <string>
 
 #include "MissionComponent.h"
+#include "eMissionLockState.h"
 #include "Logger.h"
 #include "CDClientManager.h"
 #include "CDMissionTasksTable.h"
@@ -493,6 +494,21 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 			m_Missions.insert_or_assign(missionId, mission);
 		}
 	}
+
+	// Live wrote <ts><type v="Build"><st sub="" val="1"/></type>...</ts>. The client's loader
+	// (LWOMissionComponent::LoadFromSaveData 0x00d171c0) reads v from <ts> instead of from each <type>, so it files
+	// every state under one type; the server reads each <type> as it was written.
+	m_MissionTypeStates.clear();
+	const auto* const ts = mis->FirstChildElement("ts");
+	if (ts) {
+		for (const auto* type = ts->FirstChildElement("type"); type; type = type->NextSiblingElement("type")) {
+			const char* const typeName = type->Attribute("v");
+			for (const auto* st = type->FirstChildElement("st"); st; st = st->NextSiblingElement("st")) {
+				const char* const subtype = st->Attribute("sub");
+				SetMissionTypeState(typeName ? typeName : "", subtype ? subtype : "", static_cast<eMissionLockState>(st->IntAttribute("val")));
+			}
+		}
+	}
 }
 
 
@@ -543,9 +559,29 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	mis->InsertFirstChild(done);
 	mis->InsertEndChild(cur);
 
+	// Live wrote <ts> after <cur>, even when it was empty
+	auto* const ts = doc.NewElement("ts");
+	for (const auto& [type, subtypes] : m_MissionTypeStates) {
+		auto* const typeElement = doc.NewElement("type");
+		typeElement->SetAttribute("v", type.c_str());
+		for (const auto& [subtype, state] : subtypes) {
+			auto* const st = doc.NewElement("st");
+			st->SetAttribute("sub", subtype.c_str());
+			st->SetAttribute("val", static_cast<int32_t>(state));
+			typeElement->LinkEndChild(st);
+		}
+		ts->LinkEndChild(typeElement);
+	}
+	mis->InsertEndChild(ts);
+
 	if (shouldInsertMis) {
 		obj->LinkEndChild(mis);
 	}
+}
+
+void MissionComponent::SetMissionTypeState(const std::string& type, const std::string& subtype, const eMissionLockState state) {
+	// The client keeps the state as a byte (LWOMissionComponent::msgSetMissionTypeState 0x00c90d00)
+	m_MissionTypeStates[type][subtype] = static_cast<eMissionLockState>(static_cast<int8_t>(state));
 }
 
 void MissionComponent::AddCollectible(int32_t collectibleID) {

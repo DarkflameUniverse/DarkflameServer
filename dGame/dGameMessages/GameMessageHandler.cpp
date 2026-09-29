@@ -81,6 +81,7 @@ namespace {
 		{ REQUEST_LINKED_MISSION, []() { return std::make_unique<RequestLinkedMission>(); } },
 		{ SET_FLAG, []() { return std::make_unique<SetFlag>(); } },
 		{ HAS_BEEN_COLLECTED, []() { return std::make_unique<HasBeenCollected>(); } },
+		{ SET_MISSION_TYPE_STATE, []() { return std::make_unique<SetMissionTypeState>(); } },
 
 		// Effects, emotes, cinematics, UI
 		{ PLAY_EMOTE, []() { return std::make_unique<PlayEmote>(); } },

@@ -646,7 +646,9 @@ void Mission::SetMissionState(const eMissionState state, const bool sendingRewar
 }
 
 void Mission::SetMissionTypeState(eMissionLockState state, const std::string& type, const std::string& subType) {
-	// TODO
+	// The client sends its own SetMissionTypeState for the journal; record the same state here so it is saved
+	// even if the player logs out before the client's message arrives
+	if (m_MissionComponent) m_MissionComponent->SetMissionTypeState(type, subType, state);
 }
 
 void Mission::SetCompletions(const uint32_t value) {

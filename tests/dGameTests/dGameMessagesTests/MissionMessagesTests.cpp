@@ -3,7 +3,10 @@
 #include "GameMessageTestUtils.h"
 #include "Legacy/MissionMessagesLegacy.h"
 
+#include "eMissionLockState.h"
 #include "eMissionState.h"
+#include "MissionComponent.h"
+#include "CDClientDatabase.h"
 
 #include <functional>
 #include <limits>
@@ -277,4 +280,48 @@ TEST_F(MissionMessagesTests, MissionDialogueOKWithUnknownResponderDoesNotCrash) 
 	ok.responder = 0x7777; // no such entity
 	ok.Handle(missionGiver, UNASSIGNED_SYSTEM_ADDRESS);
 	SUCCEED();
+}
+
+// Packets from 2011/2012 live captures (object ID replaced): the client's SetMissionTypeState (851). Every live
+// sample left the optional state at its default (NEW) and wrote the subtype before the type.
+TEST_F(MissionMessagesTests, SetMissionTypeStateMatchesLiveCapture) {
+	const auto location = FromLiveClientCapture<GameMessages::SetMissionTypeState>(
+		"53040005000000000100000000000010" "5303" "0680000020bb30b73a1023b0b93232b739840000002637b1b0ba34b7b700");
+	EXPECT_EQ(location.target, 0x1000000000000001LL);
+	EXPECT_EQ(location.state, eMissionLockState::NEW);
+	EXPECT_EQ(location.type, "Location");
+	EXPECT_EQ(location.subtype, "Avant Gardens");
+
+	const auto build = FromLiveClientCapture<GameMessages::SetMissionTypeState>(
+		"53040005000000000100000000000010" "5303" "0000000002800000213ab4b63200");
+	EXPECT_EQ(build.type, "Build");
+	EXPECT_EQ(build.subtype, "");
+
+	GameMessages::SetMissionTypeState unlocked;
+	unlocked.state = eMissionLockState::UNLOCKED;
+	unlocked.type = "Battle";
+	unlocked.subtype = "General";
+	const auto copy = RoundTrip(unlocked);
+	EXPECT_EQ(copy.state, eMissionLockState::UNLOCKED);
+	EXPECT_EQ(copy.type, "Battle");
+	EXPECT_EQ(copy.subtype, "General");
+	ExpectTruncatedFails(unlocked);
+	ExpectTruncatedFails(location);
+}
+
+// The handler records the state on the player's mission component (saved in <mis><ts>).
+TEST_F(MissionMessagesTests, SetMissionTypeStateIsRecorded) {
+	CDClientDatabase::Connect(":memory:"); // MissionComponent counts the achievements
+	CDClientDatabase::ExecuteDML("CREATE TABLE Missions (id INTEGER, isMission INTEGER);");
+	Entity player(16, info);
+	auto* const missionComponent = player.AddComponent<MissionComponent>(-1);
+	GameMessages::SetMissionTypeState msg;
+	msg.type = "Location";
+	msg.subtype = "Nimbus Station";
+	msg.Handle(player, UNASSIGNED_SYSTEM_ADDRESS);
+	ASSERT_EQ(missionComponent->GetMissionTypeStates().at("Location").at("Nimbus Station"), eMissionLockState::NEW);
+
+	msg.state = eMissionLockState::UNLOCKED;
+	msg.Handle(player, UNASSIGNED_SYSTEM_ADDRESS);
+	EXPECT_EQ(missionComponent->GetMissionTypeStates().at("Location").at("Nimbus Station"), eMissionLockState::UNLOCKED);
 }

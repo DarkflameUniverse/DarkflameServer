@@ -4,6 +4,7 @@
 #include "Character.h"
 #include "CppScripts.h"
 #include "dConfig.h"
+#include "eMissionLockState.h"
 #include "eMissionState.h"
 #include "eMissionTaskType.h"
 #include "ePlayerFlag.h"
@@ -245,6 +246,26 @@ namespace GameMessages {
 		if (missionComponent) {
 			missionComponent->Progress(eMissionTaskType::COLLECTION, entity.GetLOT(), entity.GetObjectID());
 		}
+	}
+
+	SetMissionTypeState::SetMissionTypeState() : NetGameMsg(MessageType::Game::SET_MISSION_TYPE_STATE), state{ eMissionLockState::NEW } {}
+
+	void SetMissionTypeState::Serialize(RakNet::BitStream& bitStream) const {
+		BitStreamUtils::WriteOptional(bitStream, state, eMissionLockState::NEW);
+		BitStreamUtils::WriteLengthPrefixed(bitStream, subtype);
+		BitStreamUtils::WriteLengthPrefixed(bitStream, type);
+	}
+
+	bool SetMissionTypeState::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(BitStreamUtils::ReadOptional(bitStream, state, eMissionLockState::NEW));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, subtype));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed(bitStream, type));
+		return true;
+	}
+
+	void SetMissionTypeState::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* const missionComponent = entity.GetComponent<MissionComponent>();
+		if (missionComponent) missionComponent->SetMissionTypeState(type, subtype, state);
 	}
 
 	void NotifyLevelRewards::Serialize(RakNet::BitStream& bitStream) const {
