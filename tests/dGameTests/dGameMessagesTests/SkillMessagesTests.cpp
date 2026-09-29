@@ -311,3 +311,44 @@ TEST_F(SkillMessagesTests, GoldenBytes) {
 	request.i64TargetID = 0x11;
 	EXPECT_PACKET_EQ(FromHex("44 40 00 00 00 00 00 00 00 00 00 00 00", 98), Payload(request));
 }
+
+// Live echoes keep the cast and drop the caster's input (all 78,841 EchoStartSkill in the live captures).
+TEST_F(SkillMessagesTests, EchoOfClientCastMatchesLive) {
+	GameMessages::StartSkill cast;
+	cast.bUsedMouse = true;
+	cast.consumableItemID = 0x0102030405060700LL;
+	cast.fCasterLatency = 0.25f;
+	cast.iCastType = 1;
+	cast.lastClickedPosit = NiPoint3(1.0f, 2.0f, 3.0f);
+	cast.optionalOriginatorID = 0x1000000000000001LL;
+	cast.optionalTargetID = 0x0102030405060708LL;
+	cast.originatorRot = NiQuaternion(0.5f, 0.5f, -0.5f, 0.5f);
+	cast.skillID = 381;
+	cast.uiSkillHandle = 1;
+
+	const auto echo = cast.MakeEcho(0x1000000000000001LL);
+	EXPECT_EQ(echo.target, 0x1000000000000001LL);
+	EXPECT_FALSE(echo.bUsedMouse);
+	EXPECT_EQ(echo.fCasterLatency, 0.0f);
+	EXPECT_EQ(echo.lastClickedPosit, NiPoint3Constant::ZERO);
+	EXPECT_EQ(echo.originatorRot, GameMessages::EchoStartSkill::LIVE_ORIGINATOR_ROT);
+	EXPECT_EQ(echo.iCastType, 1);
+	EXPECT_EQ(echo.optionalOriginatorID, cast.optionalOriginatorID);
+	EXPECT_EQ(echo.optionalTargetID, cast.optionalTargetID);
+	EXPECT_EQ(echo.skillID, 381);
+	EXPECT_EQ(echo.uiSkillHandle, 1u);
+
+	// A live echo of skill 381 (cast type 1, handle 1, no behavior data) with the caster and target IDs replaced.
+	EXPECT_PACKET_EQ(FromHex(
+		"53 05 00 0c 00 00 00 00 01 00 00 00 00 00 00 10 76 00 20 20 00 00 00 10 00 00 00 00 00 01 08 40 38 30 28 20 18 10 0c "
+		"00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 f4 04 00 02 02 00 00 00", 535), StructPacket(echo));
+}
+
+// Server casts echo a zero rotation too, never the caster's facing.
+TEST_F(SkillMessagesTests, LiveOriginatorRotationIsWrittenAsZero) {
+	GameMessages::EchoStartSkill echo;
+	echo.originatorRot = GameMessages::EchoStartSkill::LIVE_ORIGINATOR_ROT;
+	const auto copy = RoundTrip(echo);
+	EXPECT_EQ(copy.originatorRot, GameMessages::EchoStartSkill::LIVE_ORIGINATOR_ROT);
+	EXPECT_NE(copy.originatorRot, QuatUtils::IDENTITY);
+}

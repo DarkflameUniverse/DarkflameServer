@@ -74,6 +74,8 @@ namespace GameMessages {
 		int32_t skillID{};
 	};
 
+	struct EchoStartSkill;
+
 	// Client -> server. The player cast a skill.
 	struct StartSkill : public NetGameMsg {
 		StartSkill() : NetGameMsg(MessageType::Game::START_SKILL) {}
@@ -92,6 +94,11 @@ namespace GameMessages {
 		std::string sBitStream{};
 		TSkillID skillID{ 0 };
 		uint32_t uiSkillHandle{ 0 }; // optional
+
+		// The echo other clients get for this cast. Live keeps the cast (originator, target, cast type, behavior
+		// data, skill and handle) and drops the caster's input: used_mouse false, no latency, no clicked position
+		// and a zero rotation (every one of the 78,841 live EchoStartSkill).
+		EchoStartSkill MakeEcho(LWOOBJID caster) const;
 	};
 
 	// Server -> clients. A skill cast echoed to the other clients so they play it too.
@@ -99,6 +106,11 @@ namespace GameMessages {
 		EchoStartSkill() : NetGameMsg(MessageType::Game::ECHO_START_SKILL) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
+
+		// What live writes for originatorRot in every echo, client casts and server casts alike: present, all four
+		// components 0. The client copies it into its local StartSkill (LWOSkillComponent::msgEchoStartSkill); a real
+		// rotation turns the caster, which is the jitter DLU once worked around for power-ups.
+		static constexpr NiQuaternion LIVE_ORIGINATOR_ROT{ 0.0f, 0.0f, 0.0f, 0.0f };
 
 		bool bUsedMouse{ false };
 		float fCasterLatency{ 0.0f }; // optional

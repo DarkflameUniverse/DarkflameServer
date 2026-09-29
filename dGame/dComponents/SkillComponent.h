@@ -162,7 +162,7 @@ public:
 	 * @param optionalOriginatorID change the originator of the skill
 	 * @return if the case succeeded
 	 */
-	bool CastSkill(const uint32_t skillId, LWOOBJID target = LWOOBJID_EMPTY, const LWOOBJID optionalOriginatorID = LWOOBJID_EMPTY, const int32_t castType = 0, const NiQuaternion rotationOverride = QuatUtils::IDENTITY);
+	bool CastSkill(const uint32_t skillId, LWOOBJID target = LWOOBJID_EMPTY, const LWOOBJID optionalOriginatorID = LWOOBJID_EMPTY, const int32_t castType = 0);
 
 	/**
 	 * Initializes a server-side skill calculation.
@@ -174,7 +174,7 @@ public:
 	 * @param originatorOverride an override for the originator of the skill calculation
 	 * @return the result of the skill calculation
 	 */
-	SkillExecutionResult CalculateBehavior(uint32_t skillId, uint32_t behaviorId, LWOOBJID target, bool ignoreTarget = false, bool clientInitalized = false, LWOOBJID originatorOverride = LWOOBJID_EMPTY, const int32_t castType = 0, const NiQuaternion rotationOverride = QuatUtils::IDENTITY);
+	SkillExecutionResult CalculateBehavior(uint32_t skillId, uint32_t behaviorId, LWOOBJID target, bool ignoreTarget = false, bool clientInitalized = false, LWOOBJID originatorOverride = LWOOBJID_EMPTY, const int32_t castType = 0);
 
 	/**
 	 * Register a server-side projectile.

@@ -166,20 +166,22 @@ namespace GameMessages {
 
 		if (success) {
 			// Echo the cast to every other client
-			EchoStartSkill echoStartSkill;
-			echoStartSkill.target = entity->GetObjectID();
-			echoStartSkill.bUsedMouse = bUsedMouse;
-			echoStartSkill.fCasterLatency = fCasterLatency;
-			echoStartSkill.iCastType = iCastType;
-			echoStartSkill.lastClickedPosit = lastClickedPosit;
-			echoStartSkill.optionalOriginatorID = optionalOriginatorID;
-			echoStartSkill.optionalTargetID = optionalTargetID;
-			echoStartSkill.originatorRot = originatorRot;
-			echoStartSkill.sBitStream = sBitStream;
-			echoStartSkill.skillID = skillID;
-			echoStartSkill.uiSkillHandle = uiSkillHandle;
+			auto echoStartSkill = MakeEcho(entity->GetObjectID());
 			echoStartSkill.BroadcastExcept(entity->GetSystemAddress());
 		}
+	}
+
+	EchoStartSkill StartSkill::MakeEcho(const LWOOBJID caster) const {
+		EchoStartSkill echo;
+		echo.target = caster;
+		echo.iCastType = iCastType;
+		echo.optionalOriginatorID = optionalOriginatorID;
+		echo.optionalTargetID = optionalTargetID;
+		echo.originatorRot = EchoStartSkill::LIVE_ORIGINATOR_ROT;
+		echo.sBitStream = sBitStream;
+		echo.skillID = skillID;
+		echo.uiSkillHandle = uiSkillHandle;
+		return echo;
 	}
 
 	void EchoStartSkill::Serialize(RakNet::BitStream& bitStream) const {

@@ -304,7 +304,7 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 	this->m_managedProjectiles.push_back(entry);
 }
 
-bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID, const int32_t castType, const NiQuaternion rotationOverride) {
+bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID, const int32_t castType) {
 	uint32_t behaviorId = -1;
 	// try to find it via the cache
 	const auto& pair = m_skillBehaviorCache.find(skillId);
@@ -324,7 +324,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 		return false;
 	}
 
-	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID, castType, rotationOverride).success;
+	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID, castType).success;
 }
 
 
@@ -335,8 +335,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 	const bool ignoreTarget,
 	const bool clientInitalized,
 	const LWOOBJID originatorOverride,
-	const int32_t castType,
-	const NiQuaternion rotationOverride) {
+	const int32_t castType) {
 	RakNet::BitStream bitStream{};
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
@@ -375,15 +374,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 		start.optionalOriginatorID = context->originator;
 		start.optionalTargetID = target;
 
-		auto* originator = Game::entityManager->GetEntity(context->originator);
-
-		if (originator != nullptr) {
-			start.originatorRot = originator->GetRotation();
-		}
-
-		if (rotationOverride != QuatUtils::IDENTITY) {
-			start.originatorRot = rotationOverride;
-		}
+		start.originatorRot = GameMessages::EchoStartSkill::LIVE_ORIGINATOR_ROT;
 		//start.optionalTargetID = target;
 
 		start.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
