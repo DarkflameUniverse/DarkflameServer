@@ -16,6 +16,10 @@
 #include "UgcRender.h"
 #include "UgcStorage.h"
 
+namespace UgcToolbox {
+	class Worker;
+}
+
 /**
  * The work a UGC worker thread does for one item: everything from the stored LXFML (or a modular build's modules) to
  * the finished files. No database, network or CDClient: the main thread gathers the input and stores the result.
@@ -63,6 +67,9 @@ namespace UgcJobs {
 		UgcRender::AoOptions ao;               // Bake Lighting (AO Only)
 		UgcRender::IconOptions icon;           // from the icon_* settings (UgcIconParams); presets and overrides go over it
 		uint32_t maxBricks{};                  // a model with more fails; 0: no limit
+		// processor: what makes a player model's files, UgcProcessOptions::PROCESSOR (native: ProcessModel;
+		// toolbox-blender: ProcessModelToolbox, when UgcToolbox can run, else native)
+		std::string processor{ UgcProcessOptions::NATIVE };
 	};
 
 	/**
@@ -97,6 +104,17 @@ namespace UgcJobs {
 	// `iconValues`: the player models' preset and this model's override (UgcIconParams), over settings.icon.
 	Outcome ProcessModel(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, uint64_t seed = 0,
 		const UgcIconParams::Values& iconValues = {});
+
+	/**
+	 * A player model made by LU Toolbox itself in Blender (processor=toolbox-blender, docs/UgcServer.md): its .nif is
+	 * LU Toolbox's (import, Process Model, Bake Lighting, niftools export), checked by reading it back; the icon is
+	 * drawn from it by the icon renderer, as a native model's is from its .nif (not denoised: there is no .nif before
+	 * the bake). stats.json has the bricks and triangles before (the bricks' own meshes) and after (the .nif's), and
+	 * LU Toolbox's steps' times. Blender's CPU time is charged to the calling thread (UgcThrottle::Charge), which keeps
+	 * the CPU budget by pausing Blender. `id` names the worker's files.
+	 */
+	Outcome ProcessModelToolbox(const std::string& blob, UgcBricks::BrickLibrary& library, const Settings& settings, UgcToolbox::Worker& toolbox,
+		uint64_t id, const UgcIconParams::Values& iconValues = {});
 
 	// A model's icon files (icon.png, icon.dds download) drawn from its .nif (LOD 0), its metal and glow groups by
 	// `tagLooks` (Shaders::TagLooks); false (and `error`) when the .nif can't be read

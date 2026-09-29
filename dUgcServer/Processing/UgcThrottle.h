@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 /**
@@ -17,6 +18,10 @@ namespace UgcThrottle {
 	// Account the calling thread's CPU time and sleep when over the budget. Throws Cancelled once Cancel(true) was
 	// called, so a job stops in moments when the server shuts down.
 	void Checkpoint();
+
+	// The same, for work done by another process for this thread (LU Toolbox's Blender, charged with Charge first):
+	// `pausing` is called with true before the sleep and false after it, to stop that process meanwhile
+	void Checkpoint(const std::function<void(bool)>& pausing);
 
 	// Thrown by Checkpoint while cancelled: the job is abandoned, not failed (its row stays waiting)
 	struct Cancelled {};

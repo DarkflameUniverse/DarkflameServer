@@ -1,8 +1,9 @@
-add_executable(dUgcTests "UgcTests.cpp")
+add_executable(dUgcTests "UgcTests.cpp" "UgcToolboxTests.cpp")
 target_include_directories(dUgcTests PRIVATE "${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables")
 target_link_libraries(dUgcTests ${COMMON_LIBRARIES} dUgc GTest::gtest_main)
 gtest_discover_tests(dUgcTests)
-target_compile_definitions(dUgcTests PRIVATE UGC_POSE_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/ugc-pose-fixture.json")
+target_compile_definitions(dUgcTests PRIVATE UGC_POSE_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/ugc-pose-fixture.json"
+	DLU_TOOLBOX_WORKER="${PROJECT_SOURCE_DIR}/dUgcServer/Toolbox/dlu_toolbox_worker.py")
 
 # The dashboard's pose editor math (static/js/ugc-pose-math.js) against the same fixture, when node is there
 find_program(NODE_EXECUTABLE node)

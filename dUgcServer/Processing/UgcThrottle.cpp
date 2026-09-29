@@ -75,6 +75,10 @@ namespace UgcThrottle {
 	bool IsCancelled() { return g_Cancel; }
 
 	void Checkpoint() {
+		Checkpoint({});
+	}
+
+	void Checkpoint(const std::function<void(bool)>& pausing) {
 		if (g_Cancel) throw Cancelled{};
 		const double budget = g_Budget;
 		if (budget <= 0.0) return;
@@ -99,10 +103,15 @@ namespace UgcThrottle {
 		g_LastSleep = UnixMs();
 		// In short sleeps, so a cancel isn't held up by a long wait
 		const auto until = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(wait));
+		if (pausing) pausing(true);
 		while (std::chrono::steady_clock::now() < until) {
-			if (g_Cancel) throw Cancelled{};
+			if (g_Cancel) {
+				if (pausing) pausing(false);
+				throw Cancelled{};
+			}
 			std::this_thread::sleep_for(std::min<std::chrono::steady_clock::duration>(until - std::chrono::steady_clock::now(), std::chrono::milliseconds(100)));
 		}
+		if (pausing) pausing(false);
 		// Time asleep costs no CPU; don't count this call's own bookkeeping twice
 		t_LastCpu = ThreadCpuSeconds();
 	}

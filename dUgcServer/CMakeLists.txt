@@ -4,6 +4,7 @@
 #   Render/      the software rasterizer, ambient occlusion, hidden-face removal, rays, icon parameters and pose
 #   Formats/     the files written for the client and the dashboard (NIF, DDS, PNG, sd0)
 #   Processing/  the job queue and workers, the CPU budget, stored files
+#   Toolbox/     processor=toolbox-blender: LU Toolbox itself in a headless Blender (an external program), its worker
 #   UgcServer.cpp  the server: settings, the master link, HTTP routes
 
 # The pure part of the UGC server (brick data, meshes, rendering, file formats, storage), shared with the tests
@@ -22,10 +23,13 @@ set(DUGC_SOURCES
 	"Render/UgcIconPose.cpp"
 	"Render/UgcRays.cpp"
 	"Render/UgcRender.cpp"
+	"Toolbox/UgcToolbox.cpp"
+	"Toolbox/UgcToolboxJob.cpp"
+	"Toolbox/UgcToolboxProtocol.cpp"
 )
 
 add_library(dUgc STATIC ${DUGC_SOURCES})
-target_include_directories(dUgc PUBLIC "." "Bricks" "Formats" "Model" "Processing" "Render"
+target_include_directories(dUgc PUBLIC "." "Bricks" "Formats" "Model" "Processing" "Render" "Toolbox"
 	"${PROJECT_SOURCE_DIR}/thirdparty/MD5" "${PROJECT_SOURCE_DIR}/thirdparty/nlohmann")
 target_link_libraries(dUgc PUBLIC dCommon glm::glm tinyxml2 MD5 PRIVATE embree)
 # Intel Open Image Denoise, when built with DLU_OIDN (thirdparty/CMakeLists.txt): the denoise=oidn setting
@@ -76,6 +80,9 @@ if(DLU_HIPRT)
 	target_link_libraries(dUgc PRIVATE dlu_orochi)
 	target_compile_definitions(dUgc PRIVATE DLU_HIPRT DLU_HIPRT_INCLUDE_DIR="${DLU_HIPRT_INCLUDE_DIR}")
 endif()
+
+# The script Blender runs for processor=toolbox-blender, next to the servers (Blender is never linked in)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Toolbox/dlu_toolbox_worker.py" "${PROJECT_BINARY_DIR}/ugc-toolbox/dlu_toolbox_worker.py" COPYONLY)
 
 add_executable(UgcServer "UgcServer.cpp" "Processing/UgcProcessor.cpp" "Bricks/UgcCdClient.cpp")
 

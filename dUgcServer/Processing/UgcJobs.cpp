@@ -179,6 +179,7 @@ namespace UgcJobs {
 	void ApplyOptions(Settings& settings, const UgcProcessOptions::Choice& choice) {
 		if (const auto rays = UgcRays::Parse(choice.rays)) settings.ao.rays = settings.icon.ao.rays = *rays;
 		if (const auto denoise = UgcRender::ParseDenoise(choice.denoise)) settings.icon.denoise = *denoise;
+		if (UgcProcessOptions::Contains(UgcProcessOptions::PROCESSOR, choice.processor)) settings.processor = choice.processor;
 	}
 
 	UgcProcessOptions::Choice MadeWith(const Settings& settings) {
