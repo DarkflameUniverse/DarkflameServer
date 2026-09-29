@@ -708,20 +708,67 @@ How it is counted:
   (`dCommon/TrafficStats.h`): `dServer` counts each packet it receives (`Receive`, `ReceiveFromMaster`) and sends
   (`Send`, `SendToMaster`, `Disconnect`) into one-second buckets, keyed by service and packet ID, and for game messages
   the game message ID; replica construction and serialization are counted under `RAKNET`. A broadcast counts once per
-  connection it goes to. Counting is on the main loop only and costs about 40 ns a packet.
+  connection it goes to. Counting is on the main loop only and costs about 40 ns a packet. Each packet is also counted
+  by peer: the server's own connections (players on auth and worlds; the worlds on chat and every server on master count
+  as other servers), its master link, or other servers (a world's chat link, counted in `ChatServerLink`).
 - The web server (`dWeb`) counts each request under its route pattern (`GET /api/players/:id`, so there is one entry
   per route; unknown paths are `(no route)`), its status class, the bytes of the body (a served file: its size) and a
   latency histogram. A deferred request counts when its answer goes out, so its latency includes the worker's time.
+  Requests carrying `X-Darkflame-Server` (the dashboard's requests to the UGC server) count as another server's; the
+  dashboard counts the requests it makes to the UGC server and the bytes they answer with. Each client address's
+  requests and bytes are counted too, for the Network page's connection list.
 - Every 5 seconds a server sends `SERVER_TRAFFIC` (`dNet/master/ServerTraffic.h`, about 600 bytes) to master with its
   seconds, its 24 busiest message types each way, its routes, RakNet's statistics for its connections (datagrams,
   resends, ping) and a few gauges (`http_deferred_pending`, `websocket_clients`, `workers_busy`, `workers_queued`,
   `workers_threads`; the UGC server adds `ugc_made_total`, `ugc_failed_total` and `ugc_evicted_total` since it started,
   `ugc_stored_bytes` and `ugc_max_storage_bytes`). Master passes them to the dashboard and sends its own there; the dashboard keeps its own.
+  Newer servers add two optional sections at the end of the report, each after a marker byte: each second's packets by
+  peer with its HTTP requests from and to other servers (about 20 bytes a second), and the 32 busiest remote ends
+  (RakNet's datagrams, bytes, resends and ping for each connection, with the player's account and character on worlds;
+  requests and bytes for each HTTP client address) with the rest summed. Reports without them (older servers) still
+  read, and older readers stop before them.
 - The dashboard keeps the last hour at one second in memory, the busiest message types per minute for an hour and per
   hour for a day, and writes one row per server and minute to `server_traffic` once a minute (in one batch, on the
   background thread), kept for `traffic_days` (30; Settings > Data retention, pruned by the Log pruning task). Latency
   percentiles are worked out from mergeable histograms (three buckets per doubling, from 0.1 ms), so a minute's are
   right; over 24 hours and 7 days a point shows the worst minute's.
+
+### Network
+
+**Network** (`health_view`, next to Diagnostics) draws the traffic live, from the same reports: game clients and web
+clients on the left, auth, chat, the worlds (one box per zone; + shows each instance) and any other server that reports
+in the middle, master, the dashboard and the UGC server on the right. Servers appear as they report, so a new kind of
+server shows up without changes. Each link has a lane each way, as thick as its bytes per second, with dashes moving
+faster with more packets, and coloured by its load against its own peak over the last 5 minutes; hover it for the
+numbers. Boxes show connections, average ping, resends, busy workers and live dashboard pages. Clicking a box shows its
+links, its busiest message types each way over 5 minutes, its packets per second over 10 minutes and a link to
+Diagnostics filtered to it (`/diagnostics?server=<key>`). It updates with the `traffic` WebSocket topic (every 2
+seconds while reports arrive), stops drawing while the tab is hidden, and on narrow screens (or with **List**) shows
+each box with its links as a list.
+
+The links, and how exact they are:
+
+| Link | From | Exact? |
+| --- | --- | --- |
+| Game clients - auth, worlds | Each server's packets with its own connections | Yes (LU packets, not RakNet's acknowledgements and resends) |
+| Server - master | Each server's packets with its master link | Yes |
+| World - chat | Each world's chat link | Yes |
+| Web clients - dashboard | The dashboard's HTTP requests less other servers' | Requests and answered bytes; request bytes aren't counted per second |
+| Game clients - UGC server | The UGC server's HTTP requests less the dashboard's | As above; any browser fetching UGC files counts here too |
+| Dashboard - UGC server | The requests the dashboard made and the bytes answered | Yes |
+| Anything of a server that reports no split (older server) | Its totals, drawn dashed and marked estimated | No |
+
+**Connections** lists every server's remote ends from its last report, grouped by address: game clients (RakNet
+datagrams and bytes each way, ping, resends, and on worlds the logged-in account and character), web clients (requests
+and bytes of the dashboard and the UGC server) and server links, with the rest of each server's connections summed. +
+on the Game clients or Web clients box draws the busiest 8 of them in the diagram. IP addresses are personal data:
+they are shown only with `network_ips` (Network addresses, level 9 by default; grant it like any other permission) and
+are otherwise replaced by a token that stays the same for the same address until the dashboard restarts. They are kept
+in memory from the last report only and never written to the database.
+
+- `GET /api/diagnostics/network`: the live summary (what the `traffic` topic sends).
+- `GET /api/diagnostics/network/server?key=world:1200:3`: one server's details.
+- `GET /api/diagnostics/network/connections`: the connection list (addresses with `network_ips`).
 
 **Prometheus**: `/metrics` has the same counters, totals since the dashboard started: `darkflame_net_packets_total`,
 `darkflame_net_bytes_total` and `darkflame_net_datagrams_total` (labels `server`, `direction`),
