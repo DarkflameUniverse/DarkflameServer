@@ -314,6 +314,7 @@
 				meter('Jobs\' memory', s.jobMemoryBytes || 0, l.maxMemoryBytes || 0, esc(mb(s.jobMemoryBytes || 0)) + ' estimated' +
 					(l.maxMemoryBytes ? ' of ' + esc(mb(l.maxMemoryBytes)) : ', no limit') + (s.memoryWaits ? ', ' + esc(s.memoryWaits) + ' waits' : '')) +
 				'</div>' + (l.nice ? '<div class="text-body-secondary">Workers run at priority ' + esc(l.nice) + '.</div>' : '') +
+				purgeLine(s.purge) +
 				(last ? '<div class="text-body-secondary">Last: ' + esc(last.kind) + ' ' + esc(last.id) + (last.ok ? ' made in ' + esc(duration(last.ms)) : ' failed') +
 					(last.message ? ' (' + esc(last.message) + ')' : '') + '</div>' : '');
 		}).catch(function () { box.innerHTML = fmt.badge('Unknown', 'secondary') + ' Couldn\'t ask the dashboard for the UGC server\'s status.'; });
@@ -597,9 +598,19 @@
 
 	// ---- deleting and purging stored files ----
 
+	// The running or last purge (the UGC server deletes folders in the background)
+	function purgeLine(p) {
+		if (!p || !p.state) return '';
+		var what = (p.kind === 'modular' ? 'cars and rockets' : 'models');
+		var counts = esc(p.deleted) + ' deleted (' + esc(mb(p.bytes || 0)) + '), ' + esc(p.checked) + (p.total ? ' of ' + esc(p.total) : '') + ' looked at';
+		if (p.state === 'done') return '<div class="text-body-secondary">Last purge (' + what + '): ' + counts + ', finished ' + esc(new Date(p.finished * 1000).toLocaleString()) + '.</div>';
+		return '<div>' + fmt.badge(p.state === 'saving' ? 'Purge: updating the rows' : 'Purging', 'info') + ' ' + what + ': ' + counts + '. New items wait until it is done.</div>';
+	}
+
 	function showDeleteResult(box, d) {
 		if (!d.success) { toast(d.error || 'Failed', 'danger'); return; }
-		var text = d.deleted + ' deleted (' + mb(d.bytes || 0) + ' freed). ' + (d.notes || []).join(' ');
+		var text = d.started ? 'Deleting ' + (d.queued ? d.queued + ' item(s)' : 'every stored item') + ' in the background. ' + (d.notes || []).join(' ')
+			: (d.notes && d.notes.length && !d.deleted ? d.notes.join(' ') : d.deleted + ' deleted (' + mb(d.bytes || 0) + ' freed). ' + (d.notes || []).join(' '));
 		if (box) box.textContent = text;
 		toast(text, 'success');
 		load();

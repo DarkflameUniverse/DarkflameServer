@@ -124,10 +124,21 @@ public:
 		uint64_t bytes{};
 		size_t busy{}; // being made right now, left alone
 		std::vector<std::string> notes;
+		bool started{};   // the files are being deleted in the background (PurgeStatus); `deleted` and `bytes` come later
+		size_t queued{};  // items to look at (0 with `all`: every stored item of the kind)
 	};
 
-	// Main thread: deletes stored files. Items being made are skipped, so a worker never writes what is being deleted.
+	/**
+	 * Main thread: deletes stored files, on a background thread (a purge can be thousands of folders, and the main
+	 * thread serves downloads and the master link): the reply comes at once, and PurgeStatus follows it. Items being
+	 * made are skipped, and no new item is started until the purge is done, so a worker never writes what is being
+	 * deleted. One purge (or storage clean-up) at a time; another is refused while one runs.
+	 */
 	DeleteResult Delete(const DeleteRequest& request);
+
+	// Main thread: the running or last purge ({} when none ran): {state: running|saving|done, kind, checked, deleted,
+	// bytes, started (Unix seconds), finished}
+	nlohmann::json PurgeStatus() const;
 
 	// Main thread: what the server is doing, for /status
 	nlohmann::json Status() const;
@@ -230,6 +241,41 @@ private:
 	bool m_Stopping{};
 	bool m_Draining{};         // main thread: live update, no new work (Drain)
 	std::vector<std::thread> m_Threads;
+
+	// Deleting stored folders off the main thread: a purge (Delete) or the storage cap (Evict). The thread only touches
+	// the filesystem; the main thread applies what it removed (Update -> CollectFileTask).
+	enum class eFileTask { NONE, PURGE, EVICT };
+	struct Removed {
+		LWOOBJID storageId{};
+		uint64_t bytes{};
+	};
+	void StartFileTask(eFileTask type);
+	void CollectFileTask();
+	eFileTask m_FileTask{ eFileTask::NONE };          // main thread
+	std::thread m_FileThread;
+	mutable std::mutex m_FileMutex;                   // guards the members down to m_FileDone
+	std::vector<Removed> m_FileRemoved;               // removed since the main thread last looked
+	size_t m_FileChecked{};
+	uint64_t m_FileStoredBytes{};                     // EVICT: the total left
+	bool m_FileDone{};
+	DeleteRequest m_Purge;                            // the purge running (main thread, read by the thread before it starts)
+	std::set<LWOOBJID> m_PurgeSkip;                   // storage ids being made when it started
+	std::vector<std::pair<LWOOBJID, std::vector<LWOOBJID>>> m_PurgeTargets; // storage id -> rows (empty with `all`)
+	std::map<LWOOBJID, std::vector<LWOOBJID>> m_PurgeRowsOf; // main thread: rows of each target
+	std::vector<LWOOBJID> m_PurgeRows;                // main thread: rows whose files are gone, to update
+	size_t m_PurgeRowsDone{};
+	struct PurgeInfo {
+		std::string state; // empty: none ran; running, saving (the rows), done
+		bool modular{};
+		size_t checked{};
+		size_t total{};    // 0 with `all`
+		uint64_t deleted{};
+		uint64_t bytes{};
+		int64_t started{};
+		int64_t finished{};
+	};
+	PurgeInfo m_PurgeInfo;                            // main thread: PurgeStatus
+	size_t m_EvictedThisTask{};                       // main thread
 
 	// Main thread only
 	std::set<std::pair<Kind, LWOOBJID>> m_InFlight;        // models, and builds waiting for their combination

@@ -495,9 +495,10 @@ namespace {
 				const auto after = body->value("after", std::string("on_demand"));
 				request.after = after == "now" ? UgcProcessor::eAfterDelete::NOW : after == "gone" ? UgcProcessor::eAfterDelete::GONE : UgcProcessor::eAfterDelete::ON_DEMAND;
 				const auto result = g_Processor->Delete(request);
-				LOG("Deleted the files of %zu item(s) (%llu bytes) for the dashboard", result.deleted, static_cast<unsigned long long>(result.bytes));
+				LOG(result.started ? "Purge started for the dashboard (%zu item(s) to look at, 0: all)" : "Purge not started: %zu", result.started ? result.queued : result.notes.size());
 				reply.status = eHTTPStatusCode::OK;
-				reply.message = nlohmann::json{ { "success", true }, { "deleted", result.deleted }, { "bytes", result.bytes }, { "busy", result.busy }, { "notes", result.notes } }.dump();
+				reply.message = nlohmann::json{ { "success", true }, { "deleted", result.deleted }, { "bytes", result.bytes }, { "busy", result.busy }, { "notes", result.notes },
+					{ "started", result.started }, { "queued", result.queued } }.dump();
 			} });
 
 		Game::web.RegisterHTTPRoute({ .path = "/status", .method = eHTTPMethod::GET, .middleware = {},
