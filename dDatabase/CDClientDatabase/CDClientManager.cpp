@@ -23,6 +23,7 @@
 #include "CDPhysicsComponentTable.h"
 #include "CDRebuildComponentTable.h"
 #include "CDCollectibleComponentTable.h"
+#include "CDEventGatingTable.h"
 #include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
@@ -102,6 +103,7 @@ DEFINE_TABLE_STORAGE(CDRailActivatorComponentTable);
 DEFINE_TABLE_STORAGE(CDRarityTableTable);
 DEFINE_TABLE_STORAGE(CDRebuildComponentTable);
 DEFINE_TABLE_STORAGE(CDCollectibleComponentTable);
+DEFINE_TABLE_STORAGE(CDEventGatingTable);
 DEFINE_TABLE_STORAGE(CDRewardCodesTable);
 DEFINE_TABLE_STORAGE(CDRewardsTable);
 DEFINE_TABLE_STORAGE(CDScriptComponentTable);
@@ -126,6 +128,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDDeletionRestrictionsTable::Instance().LoadValuesFromDatabase();
 	CDDestructibleComponentTable::Instance().LoadValuesFromDatabase();
 	CDEmoteTableTable::Instance().LoadValuesFromDatabase();
+	CDEventGatingTable::Instance().LoadValuesFromDatabase();
 	CDFeatureGatingTable::Instance().LoadValuesFromDatabase();
 	CDInventoryComponentTable::Instance().LoadValuesFromDatabase();
 	CDCLIENT_DONT_CACHE_TABLE(CDItemComponentTable::Instance().LoadValuesFromDatabase());

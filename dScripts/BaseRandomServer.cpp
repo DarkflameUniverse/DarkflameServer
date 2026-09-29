@@ -3,6 +3,7 @@
 #include "Spawner.h"
 #include "Logger.h"
 #include "Entity.h"
+#include "HolidayEvents.h"
 
 void BaseRandomServer::BaseStartup(Entity* self) {
 	self->SetVar<std::string>(u"SpawnState", "min");
@@ -13,7 +14,20 @@ void BaseRandomServer::BaseStartup(Entity* self) {
 }
 
 void BaseRandomServer::CheckEvents(Entity* self) {
-	// TODO: Add events?
+	// L_BASE_RANDOM_SPAWNER.lua: while a holiday event runs, its loads replace the spawner's. The only event the Crux
+	// Prime spawners check is pirateDay, with loads for the str and zip areas (each spawner's Lua carries both tables;
+	// each is used here for the area it names)
+	if (zoneName != "str" && zoneName != "zip") return;
+	if (!HolidayEvents::IsActive("pirateDay")) return;
+
+	constexpr LOT pirate = 11215;
+	constexpr LOT admiral = 11216;
+	zones = {
+		{ { { pirate, 5, "type1" }, { pirate, 5, "type2" }, { pirate, 5, "type3" } }, 80 },
+		{ { { admiral, 5, "type1" }, { admiral, 5, "type2" }, { admiral, 5, "type3" } }, 20 },
+	};
+	if (zoneName == "str") sectionMultipliers = { { "secA", 1.0f }, { "secB", 1.0f }, { "secC", 1.2f } };
+	else sectionMultipliers = { { "secA", 1.0f }, { "secB", 1.0f } };
 }
 
 void BaseRandomServer::SpawnMapZones(Entity* self) {
