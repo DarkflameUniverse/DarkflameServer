@@ -288,6 +288,13 @@ namespace GameMessages {
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 	};
 
+	// Client -> server. No payload. The property editor sends it after the player picks up or sets down a model
+	// they carry (live: right after PlaceModelResponse). Live answered with a serialization of the player, no message.
+	struct ResyncEquipment : public NetGameMsg {
+		ResyncEquipment() : NetGameMsg(MessageType::Game::RESYNC_EQUIPMENT) {}
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+	};
+
 	// Client -> server. Adds, modifies or removes an inventory group.
 	struct UpdateInventoryGroup : public NetGameMsg {
 		UpdateInventoryGroup() : NetGameMsg(MessageType::Game::UPDATE_INVENTORY_GROUP) {}

@@ -10,6 +10,8 @@
 #include "SkillComponent.h"
 #include "SkillMessages.h"
 #include "Entity.h"
+#include "InventoryComponent.h"
+#include "InventoryMessages.h"
 #include "PlayerMessages.h"
 
 #include <memory>
@@ -120,4 +122,25 @@ TEST_F(ClientMessagesTests, CasterDeadEndsTheDeadCastersSkill) {
 	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS);
 	EXPECT_FALSE(skills->HasSkill(1));
 	EXPECT_TRUE(skills->HasSkill(2));
+}
+
+// ResyncEquipment (1238): no payload (59 live packets). The next serialization carries the equipped items again.
+TEST_F(ClientMessagesTests, ResyncEquipmentResendsTheEquipment) {
+	auto msg = FromLiveClientCapture<GameMessages::ResyncEquipment>(std::string(PLAYER_HEADER) + "d604");
+	CDClientDatabase::Connect(":memory:"); // the inventory looks its component up
+	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	auto* const inventory = player->AddComponent<InventoryComponent>(-1);
+	RakNet::BitStream first;
+	inventory->Serialize(first, false); // clears the dirty flag it starts with
+	RakNet::BitStream clean;
+	inventory->Serialize(clean, false);
+	bool equipmentSent = true;
+	ASSERT_TRUE(clean.Read(equipmentSent));
+	EXPECT_FALSE(equipmentSent);
+
+	msg.Handle(*player, UNASSIGNED_SYSTEM_ADDRESS);
+	RakNet::BitStream resent;
+	inventory->Serialize(resent, false);
+	ASSERT_TRUE(resent.Read(equipmentSent));
+	EXPECT_TRUE(equipmentSent);
 }

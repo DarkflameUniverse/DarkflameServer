@@ -302,6 +302,11 @@ public:
 	void PopEquippedItems();
 
 	/**
+	 * Marks the equipped items to be sent again with the next serialization (ResyncEquipment)
+	 */
+	void ResyncEquipment() { m_Dirty = true; }
+
+	/**
 	 * Returns if the entity has an item equipped of the given lot
 	 * @param lot to lot to search for
 	 * @return if the entity has an item equipped of the given lot

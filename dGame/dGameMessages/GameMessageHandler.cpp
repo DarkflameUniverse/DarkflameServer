@@ -98,6 +98,7 @@ namespace {
 		{ REQUEST_MOVE_ITEM_BETWEEN_INVENTORY_TYPES, []() { return std::make_unique<RequestMoveItemBetweenInventoryTypes>(); } },
 		{ PUSH_EQUIPPED_ITEMS_STATE, []() { return std::make_unique<PushEquippedItemsState>(); } },
 		{ POP_EQUIPPED_ITEMS_STATE, []() { return std::make_unique<PopEquippedItemsState>(); } },
+		{ RESYNC_EQUIPMENT, []() { return std::make_unique<ResyncEquipment>(); } },
 		{ CLIENT_ITEM_CONSUMED, []() { return std::make_unique<ClientItemConsumed>(); } },
 		{ USE_NON_EQUIPMENT_ITEM, []() { return std::make_unique<UseNonEquipmentItem>(); } },
 		{ SET_CONSUMABLE_ITEM, []() { return std::make_unique<SetConsumableItem>(); } },

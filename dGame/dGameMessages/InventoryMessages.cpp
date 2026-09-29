@@ -422,6 +422,13 @@ namespace GameMessages {
 		Game::entityManager->SerializeEntity(&entity); // so it updates on client side
 	}
 
+	void ResyncEquipment::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* const inventoryComponent = entity.GetComponent<InventoryComponent>();
+		if (!inventoryComponent) return;
+		inventoryComponent->ResyncEquipment();
+		Game::entityManager->SerializeEntity(&entity);
+	}
+
 	void UpdateInventoryGroup::Serialize(RakNet::BitStream& bitStream) const {
 		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, action);
 		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, groupID);
