@@ -19,6 +19,7 @@ set(DGAMETEST_SOURCES
 	"SceneGhostingTests.cpp"
 	"HolidayEventsTests.cpp"
 	"SetCurrencySourceTests.cpp"
+	"LootDropPositionTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

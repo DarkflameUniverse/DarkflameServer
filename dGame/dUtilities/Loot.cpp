@@ -3,6 +3,7 @@
 #include "LiveEvents.h"
 
 #include <algorithm>
+#include <cmath>
 #include <unordered_set>
 
 #include "CDComponentsRegistryTable.h"
@@ -97,21 +98,24 @@ std::map<LOT, LootDropInfo> RollLootMatrix(uint32_t matrixIndex, float chanceMul
 	return drops;
 }
 
-// Generates a 'random' final position for the loot drop based on its input spawn position.
-void CalcFinalDropPos(GameMessages::DropClientLoot& lootMsg) {
-	if (lootMsg.spawnPos != NiPoint3Constant::ZERO) {
-		lootMsg.bUsePosition = true;
+void Loot::SetDropPositions(GameMessages::DropClientLoot& lootMsg, const bool sourceIsPlayer, const float angle) {
+	if (lootMsg.spawnPos == NiPoint3Constant::ZERO) return;
 
-		//Calculate where the loot will go:
-		uint16_t degree = GeneralUtils::GenerateRandomNumber<uint16_t>(0, 360);
-
-		double rad = degree * 3.14 / 180;
-		double sin_v = sin(rad) * 4.2;
-		double cos_v = cos(rad) * 4.2;
-
-		const auto [x, y, z] = lootMsg.spawnPos;
-		lootMsg.finalPosition = NiPoint3(static_cast<float>(x + sin_v), y, static_cast<float>(z + cos_v));
+	lootMsg.bUsePosition = sourceIsPlayer;
+	if (lootMsg.currency > 0) {
+		lootMsg.finalPosition = lootMsg.spawnPos;
+		return;
 	}
+
+	const auto [x, y, z] = lootMsg.spawnPos;
+	lootMsg.finalPosition = NiPoint3(x + std::sin(angle) * ITEM_DROP_DISTANCE, y, z + std::cos(angle) * ITEM_DROP_DISTANCE);
+}
+
+// Picks where the loot lands, in a random direction.
+void CalcFinalDropPos(GameMessages::DropClientLoot& lootMsg) {
+	const auto* const source = Game::entityManager->GetEntity(lootMsg.sourceID);
+	const auto angle = GeneralUtils::GenerateRandomNumber<float>(0.0f, 6.28318531f);
+	Loot::SetDropPositions(lootMsg, source && source->IsPlayer(), angle);
 }
 
 // Visually drop the loot to all team members, though only the lootMsg.ownerID can pick it up

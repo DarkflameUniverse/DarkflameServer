@@ -27,4 +27,17 @@ namespace Loot {
 	void DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins);
 	void DropItem(Entity& player, GameMessages::DropClientLoot& lootMsg, bool useTeam = false, bool forceFfa = false);
 	void DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating = 0);
+
+	// How far from where it spawns a dropped item lands, as live dropped them (median 10.0 units, uniform direction).
+	constexpr float ITEM_DROP_DISTANCE = 10.0f;
+
+	/**
+	 * Fills DropClientLoot's use_position and final_position the way live did (12,501 live DropClientLoot).
+	 * use_position is set only when a player is the source (activity rewards such as the dragon and BONS chests):
+	 * otherwise the client spawns the loot at the source object where it is on the client, and only falls back
+	 * to the spawn position if that object is gone. Coins land where they spawn; items land ITEM_DROP_DISTANCE away
+	 * at the given angle (radians, around Y).
+	 * Nothing is set when there is no spawn position.
+	 */
+	void SetDropPositions(GameMessages::DropClientLoot& lootMsg, bool sourceIsPlayer, float angle);
 };
