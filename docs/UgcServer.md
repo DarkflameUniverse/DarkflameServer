@@ -136,11 +136,9 @@ and the notices (see Threads). Cars and rockets are made once per combination of
    0.025) either way, times the color's own amount (black 0.4, orange 1.5, ...), clamped and taken back; hue and
    saturation stay. The random number comes from the model's id, the brick's index and the material, so making a
    model again gives the same colors, and every LOD the same (LU Toolbox restarts its random sequence per LOD).
-4. Faces nobody can see are removed from the opaque bricks as LU Toolbox's Remove Hidden Faces decides it: paths are
-   traced from points on each triangle, bouncing off the model, and a triangle none of whose paths reaches the sky is
-   removed (see "Hidden faces" below; `hsr_method=fast` renders from around the model instead, see "Processing
-   options"). Transparent bricks hide nothing and aren't touched. `hsr_ground_plane=1` also
-   drops what can only be seen from below.
+4. Faces nobody can see are removed from the opaque bricks (they're rendered from 42 directions and triangles that
+   never show are dropped; transparent bricks hide nothing and aren't touched; see "Hidden faces" below).
+   `hsr_ground_plane=1` also drops what can only be seen from below.
 5. Ambient occlusion is baked like LU Toolbox's Bake Lighting with AO Only: 64 rays per vertex (`ao_samples`) over
    the hemisphere around the vertex normal (cosine weighted, the same pattern every time, so a model made again comes
    out the same), each blocked when it hits an opaque triangle within 5 (`ao_distance`); the vertex's occlusion is the
@@ -214,7 +212,7 @@ and the notices (see Threads). Cars and rockets are made once per combination of
 | Transparent Opacity 58.82% | Same (`transparent_opacity`) |
 | Vertex color layers Col, Lit, Alpha (1), Glow | One color set: Col times Lit (glow added to Lit); alpha is the opacity |
 | Setup Bake Material (VertexColor / VertexColorTransparent) | Equivalent: white NiMaterialProperty, vertex colors as ambient and diffuse, NiAlphaProperty on transparent shapes |
-| Remove Hidden Faces: Cycles bakes with an overexposed world (VC pre-pass 32 samples, tris to quads, 5 pixels between vertices, 8 samples, threshold 0.01), autoremove, transparent bricks hidden | The same paths traced directly from points on the triangles, no texture (`hsr_samples` 8, `hsr_bounces` 8, `hsr_min_points` 28, `hsr_sample_spacing`); decided per triangle, not per joined quad; no VC pre-pass (see "Hidden faces") |
+| Remove Hidden Faces: Cycles bakes with an overexposed world (VC pre-pass 32 samples, tris to quads, 5 pixels between vertices, 8 samples, threshold 0.01), autoremove, transparent bricks hidden | Not the same: depth renders from 42 directions (`hsr_resolution`), transparent bricks hidden and untouched; faces LU Toolbox keeps because only bounced light reaches them (insides seen through openings, recesses) are removed (see "Hidden faces") |
 | Use Ground Plane off | Same (`hsr_ground_plane=0`) |
 | Split objects over 65536 vertices (divide_mesh, along the longest side, linked parts together) | Same, also keeping each shape under 65535 triangles (the format's limit) |
 | Setup LOD data: SceneNode, NiLODNode per shape name, LOD nodes, near/far by the levels there are, `S01_Opaque_`/`S01_Alpha_` names cut at 60 | Same (`lod_distance_0..3`, `lod_cull`, `shader_opaque`); LU Toolbox's glow, metal and superemissive shader settings are unused by it too; the UGC server's own metal and glow groups are opt in (see below) |
@@ -229,80 +227,37 @@ and the notices (see Threads). Cars and rockets are made once per combination of
 
 ### Hidden faces
 
-`UgcHsr::RemoveHiddenFaces` (`remove_hidden_faces=1`, default) traces the paths LU Toolbox's Remove Hidden Faces
-bakes, directly from points on the triangles, without its UV layout and texture. Each LOD's opaque mesh is done on its
-own, on the job's worker thread.
+`UgcHsr::RemoveHiddenFaces` (`remove_hidden_faces=1`, default) renders each LOD's opaque mesh from 42 directions around
+the whole model (an icosahedron's corners and edge centres, `UgcRender::VisibleFromAround`), `hsr_resolution` pixels
+square (default 1024), and removes the triangles that show in none of the renders. Faces turned away from a direction
+(by their vertex normals) aren't drawn in it; triangles too small or thin to cover a pixel centre are kept when their
+centre isn't behind what was drawn, so small visible ones stay. `hsr_ground_plane=1` leaves out the directions from
+below. Transparent bricks aren't drawn (they hide nothing) and aren't touched.
 
-* What blocks: the LOD's opaque triangles (LU Toolbox hides the transparent bricks while it bakes). With
-  `hsr_ground_plane=1`, LU Toolbox's ground plane: a black box 1000 x 1000 x 100 whose top is at LDD y 0; a path that
-  hits it ends.
-* Points: on each triangle, rows parallel to its longest side `hsr_sample_spacing` apart (default 0.1143 LDD units, 7
-  x 7 points on a stud-sized square), with points the same distance apart along each row. A triangle that gets fewer
-  than `hsr_min_points` (default 28, the texels LU Toolbox bakes for every triangle) gets its rows and points closer
-  together until it has that many; at most 4096 (bigger triangles get them further apart). Triangles without area
-  draw nothing and are removed (LU Toolbox's bake leaves them dark too).
-* Paths: `hsr_samples` (default 8, LU Toolbox's Samples) from each point, each as Cycles 3.1 traces LU Toolbox's
-  diffuse bake: the point is looked at along its vertex normal (the side it faces is baked; a triangle wound the other
-  way is baked from its back, as Cycles does); the bake material (a new material's Principled BSDF: base color 0.8,
-  specular 0.5, roughness 0.5, GGX) picks its diffuse part (Burley) or its specular part (GGX, Fresnel of IOR 1.5) by
-  Cycles' sample weights (at the first point each weight is raised to an eighth of their sum; the specular part is
-  blurred by Filter Glossy 1 after the first bounce) and the path bounces in the direction drawn. A bounce ray that
-  hits nothing has reached the sky. A triangle hit from behind is lit on its back. At most `hsr_bounces` (default 8, the bake's Max Bounces) bounces, 4 of them
-  glossy; from the second bounce on the path goes on with probability sqrt(throughput) (Russian roulette). The sky
-  isn't sampled directly: Cycles doesn't sample a world of one flat color as a light, so only rays leaving the model
-  count.
-* Decision: a triangle is kept as soon as one of its paths reaches the sky, removed when none does. LU Toolbox's
-  threshold (0.01 of the baked average) means the same: its world's strength 100000 saturates every texel a path
-  reaches.
-* The same every time: each path's random numbers come from the model's id, the triangle, the point and the sample.
-* Differences from LU Toolbox: triangles are decided on their own. LU Toolbox joins triangles into quads first (Tris
-  to Quads) and keeps both halves of a quad when either is seen, so it keeps some triangles this removes. Big triangles
-  get more points than LU Toolbox's fixed 7 x 7 texels. The VC pre-pass isn't done (below).
-* Cost: the paths from triangles that are seen stop at the first that leaves, so the time goes to the hidden ones
-  (`hsr_min_points` x `hsr_samples` paths each at least). `hsr_min_points` and `hsr_samples` trade time for how
-  reliably faces only just seen are kept. The long loop calls UgcThrottle's checkpoint. Measured (one thread, CPU
-  time, LOD 0): 6 s for 69 bricks, 74 to 86 s for 250 to 330 bricks, 129 s for 883 bricks (the 42 depth renders used
-  before took 1 to 4 s; LU Toolbox 3, 24 to 29 and 91 s on 8 threads).
-
-Checked against LU Toolbox's operator in Blender 3.1.2 on the same meshes (VC pre-pass off, Tris to Quads off so it
-also decides per triangle; 27 models: a closed box, a house with a doorway, a room with a window, a tube, a cup and
-stacked plates built for it, 5 test LXFMLs and 16 player models of 1 to 883 bricks, 937,814 triangles): it removed
-501,362 triangles and the UGC server 501,172, with 9,370 only there and 9,180 only here, per model as far apart as
-LU Toolbox is from itself with another random seed. With the ground plane the same (5 models). The depth renders used
-before removed 191,900 triangles LU Toolbox keeps (faces reached only by bounced light).
-
-LU Toolbox's VC pre-pass (on by default there, not done here): before the texture bake it bakes vertex colors (32
-samples, 12 bounces) and leaves out of the texture bake every face with a corner above the threshold. Those faces are
-kept without the texture bake's test, so with it LU Toolbox keeps somewhat more (for example 1865 instead of 2529
-triangles removed from a 61-brick model); it saves LU Toolbox baking texels for faces that are seen, which the paths
-here already stop early for.
+It sees what is in direct view from outside the model only: faces that only bounced light reaches (insides seen
+through small openings, deep recesses) are removed, where LU Toolbox's Remove Hidden Faces (a Cycles bake with an
+overexposed world) keeps them. A version that traced LU Toolbox's paths was tried and removed: on the same models it
+took 17 to 100 times as long (for example 45 s instead of 2.6 s for a 140-brick model), too heavy for the server.
 
 ### Processing options
 
-Ways of making models to try side by side and compare, none replacing another. The settings pick the defaults; staff
-can make models again with others (the UGC page's options next to **Make again**, `/api/ugc/reprocess` with
-`options`, `/reprocessproperty [builtin|embree|hiprt] [toolbox|fast] [off|oidn]` in game, `UgcServer --make-model
-<file> <folder> [options]`). The choices are written as their names in any order (`UgcProcessOptions` in
-`dCommon/UgcKeys.h`); one left out is the setting's.
+Ways of making models to try and compare, none replacing another. The settings pick the defaults; staff can make
+models again with others (the UGC page's options next to **Make again**, `/api/ugc/reprocess` with `options`,
+`/reprocessproperty [embree|hiprt] [off|oidn]` in game, `UgcServer --make-model <file> <folder> [options]`). The
+choices are written as their names in any order (`UgcProcessOptions` in `dCommon/UgcKeys.h`); one left out is the
+setting's. Options stored by earlier versions still read: `builtin` (the UGC server's own ray hierarchies, which
+Embree replaced) is `embree`, and `toolbox` and `fast` (hidden-face methods) are skipped.
 
 | Setting | Choices | What it changes |
 |---|---|---|
-| `ray_backend` | `builtin` (default), `embree`, `hiprt` | What traces the hidden faces' paths and the occlusion rays (`UgcRays`) |
-| `hsr_method` | `toolbox` (default), `fast` | How hidden faces are found |
+| `ray_backend` | `embree` (default), `hiprt` | What traces the occlusion rays of the bake (and the denoised icons', `UgcRays`) |
 | `denoise` | `off` (default), `oidn` | How a model's icon gets its occlusion |
 
-* `builtin`: the UGC server's own bounding volume hierarchies (the ones it always had; its files are byte for byte what
-  they were). `embree`: Intel Embree 4 (Apache-2.0), fetched and built with the servers (SSE2, AVX and AVX2 kernels
-  picked by the CPU, its own task scheduler, no TBB), on the worker's thread only. `hiprt`: AMD's HIPRT on the GPU
-  (below). The backends find the same hits but for rounding (a hit a rounding further away sends a bounced path on
-  from a slightly different point), so a few triangles decided by a path that only just gets out can go the other
-  way; the tests compare them with builtin (the same nearest triangle for 99.9% of rays, the same distances, the same
-  hidden faces but for 2% at most on a cluttered scene, occlusion within 0.002 on average).
-* `toolbox`: LU Toolbox's Remove Hidden Faces, as under "Hidden faces". `fast`: what the UGC server did before, the
-  opaque mesh rendered from 42 directions around the model (`hsr_fast_resolution`, 1024 pixels square) and the
-  triangles that show in none removed. Much faster, but it removes faces seen only by bounced light (insides seen
-  through openings, recesses, the undersides of overhangs that aren't in direct view) which LU Toolbox keeps. It
-  doesn't trace rays, so the ray backend only changes its occlusion bake.
+* `embree`: Intel Embree 4 (Apache-2.0), fetched and built with the servers (SSE2, AVX and AVX2 kernels picked by the
+  CPU, its own task scheduler, no TBB), on the worker's thread only. `hiprt`: AMD's HIPRT on the GPU (below). They find
+  the same hits but for rounding; the tests compare hiprt with Embree (the same nearest triangle for 99.9% of rays, the
+  same distances, occlusion within 0.002 on average), Embree with rays whose hits are known, and the occlusion with
+  what the hierarchies Embree replaced worked out.
 * `oidn`: a model's icon is drawn from `model.noao.nif` (its colors before the occlusion bake) with the occlusion
   traced per pixel of the supersampled icon (`denoise_samples` rays from each, default 4, 64 per icon pixel; the bake's
   distance and strength) and denoised with Intel Open Image Denoise 2 (Apache-2.0), guided by the colors and normals,
@@ -322,16 +277,14 @@ can make models again with others (the UGC page's options next to **Make again**
   fetched). AMD RDNA 1 or newer or NVIDIA Maxwell or newer; `hiprt_device` picks the GPU (0: the first; restart to
   change). The trace kernels are compiled from the headers copied next to the servers the first time (a second or
   two) and kept in `cache/hiprt`. One GPU context for the process, the workers take turns on it; GPU time isn't CPU
-  time, so `max_cpu_percent` doesn't hold it back. A GPU wants many rays at once, so with it the hidden faces' paths
-  are traced side by side, a bounce at a time (the same paths with the same random numbers as one by one, so the same
-  triangles are decided; it traces a round's other paths too after one escaped), and the occlusion rays in batches.
+  time, so `max_cpu_percent` doesn't hold it back. A GPU wants many rays at once, so the occlusion rays go in batches.
 
-Every make records what made it: `stats.json` (`settings.rays`, `hsrMethod`, `denoise`, after fallbacks),
-`ugc.made_options` and a row in `ugc_process_runs` with its times. The UGC page shows each model's in the List view's
-Options column (and what its next make will use), and **Processing options compared** averages per combination:
-makes, models, time, CPU, hidden faces', occlusion's and icon's time, bricks and share of triangles removed
-(`GET /api/ugc/options`). Compare combinations on the same models (Make again on a set of models with each); the
-averages mix whatever models each was used on.
+Every make records what made it: `stats.json` (`settings.rays`, `denoise`, after fallbacks), `ugc.made_options` and a
+row in `ugc_process_runs` with its times. The UGC page shows each model's in the List view's Options column (and what
+its next make will use), and **Processing options compared** averages per combination: makes, models, time, CPU,
+hidden faces', occlusion's and icon's time, bricks and share of triangles removed (`GET /api/ugc/options`). Compare
+combinations on the same models (Make again on a set of models with each); the averages mix whatever models each was
+used on.
 
 ### Metal and glow (on by default, not how live looked)
 
@@ -782,7 +735,7 @@ of old items' `.sd0` icons and checksums and of builds' combination ids runs on 
 Settings in `ugcconfig.ini` (and the dashboard's settings page), picked up while running when the config is reloaded:
 
 * `worker_threads` (restart): how many models are made at once.
-* `max_cpu_percent`: the workers together average at most this share of all CPU cores. The long loops (the paths
+* `max_cpu_percent`: the workers together average at most this share of all CPU cores. The long loops (the renders
   for hidden faces, the occlusion rays, icons) account each thread's CPU time every few milliseconds against a budget
   that fills at that rate and sleep while it's overdrawn (UgcThrottle), so it holds for long jobs too and whatever
   `worker_threads` is. Short bursts (a quarter second) aren't slowed. 0: no limit.
