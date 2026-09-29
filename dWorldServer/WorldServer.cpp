@@ -1575,6 +1575,7 @@ namespace {
 					entry.cloneId = Game::zoneManager->GetZoneID().GetCloneID();
 					entry.message = GeneralUtils::UTF16ToWTF8(message);
 					entry.blocked = !isOk;
+					entry.filtered = !isOk;
 					try {
 						Database::Get()->InsertChatMessage(entry);
 					} catch (const std::exception& ex) {

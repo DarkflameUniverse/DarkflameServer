@@ -1,5 +1,7 @@
 #include "TeamContainer.h"
 
+#include <ctime>
+
 #include "ChatPackets.h"
 
 #include "MessageType/Chat.h"
@@ -10,7 +12,9 @@
 
 namespace {
 	TeamContainer::Data g_TeamContainer{};
-	LWOOBJID g_TeamIDCounter = 0;
+	// Starts from the time the chat server started (in millionths of a second), so a team's ID is not given out again
+	// after a restart: the chat log tells teams apart by it
+	LWOOBJID g_TeamIDCounter = static_cast<LWOOBJID>(std::time(nullptr)) * 1000000;
 }
 
 ChatHandoff TeamContainer::MakeHandoff() {

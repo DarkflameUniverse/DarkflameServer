@@ -24,6 +24,7 @@
 #include "ChatPackets.h"
 #include "TeamContainer.h"
 #include "MinimumChatMode.h"
+#include "dChatFilter.h"
 
 void ChatPacketHandler::SendRouted(const LWOOBJID target, const SystemAddress& world, const LUBitStream& msg, const bool broadcast) {
 	ChatPackets::WorldRoutePacket route;
@@ -424,20 +425,32 @@ void ChatPacketHandler::HandleShowAll(const ChatPackets::ShowAllRequest& request
 // the structure the client uses to send this packet is shared in many chat messages
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 namespace {
-	// Whispers and team chat, for moderation (log_chat=0 turns chat logging off, log_private_chat=0 just these)
-	void LogChat(const PlayerData& sender, const std::string& channel, const std::string& message, LWOOBJID recipientId = LWOOBJID_EMPTY, const std::string& recipientName = "") {
+	// Where a private message went, besides its channel
+	struct ChatScope {
+		LWOOBJID recipientId = LWOOBJID_EMPTY; // whispers
+		std::string recipientName;
+		int64_t guildId{};                     // guild chat
+		LWOOBJID teamId{};                     // team chat
+	};
+
+	// Whispers, team and guild chat, for moderation (log_chat=0 turns chat logging off, log_private_chat=0 just these).
+	// Written as the message is sent, with what the chat filter thinks of it: these are delivered either way.
+	void LogChat(const PlayerData& sender, const std::string& channel, const std::string& message, const ChatScope& scope = {}) {
 		if (Game::config->GetValue("log_chat") == "0" || Game::config->GetValue("log_private_chat") == "0") return;
 		IChatLog::ChatMessage entry;
 		entry.time = static_cast<int64_t>(std::time(nullptr));
 		entry.channel = channel;
 		entry.senderId = sender.playerID;
 		entry.senderName = sender.playerName;
-		entry.recipientId = recipientId == LWOOBJID_EMPTY ? 0 : recipientId;
-		entry.recipientName = recipientName;
+		entry.recipientId = scope.recipientId == LWOOBJID_EMPTY ? 0 : scope.recipientId;
+		entry.recipientName = scope.recipientName;
+		entry.guildId = scope.guildId;
+		entry.teamId = scope.teamId == LWOOBJID_EMPTY ? 0 : scope.teamId;
 		entry.zoneId = sender.zoneID.GetMapID();
 		entry.instanceId = sender.zoneID.GetInstanceID();
 		entry.cloneId = sender.zoneID.GetCloneID();
 		entry.message = message;
+		entry.filtered = Game::chatFilter && !Game::chatFilter->IsSentenceOkay(message, sender.gmLevel).empty();
 		try {
 			if (const auto info = Database::Get()->GetCharacterInfo(sender.playerID)) entry.accountId = info->accountId;
 			Database::Get()->InsertChatMessage(entry);
@@ -463,7 +476,7 @@ void ChatPacketHandler::HandleChatMessage(const ChatPackets::GeneralChatMessage&
 	case eChatChannel::TEAM: {
 		auto* team = TeamContainer::GetTeam(playerID);
 		if (team == nullptr) return;
-		LogChat(sender, "team", message.GetAsString());
+		LogChat(sender, "team", message.GetAsString(), { .teamId = team->teamID });
 
 		for (const auto memberId : team->memberIDs) {
 			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
@@ -476,7 +489,8 @@ void ChatPacketHandler::HandleChatMessage(const ChatPackets::GeneralChatMessage&
 		// Sent by the world for /g, which is what the client's guild chat tab sends
 		const auto members = ChatGuilds::Get().OnlineGuildmates(playerID);
 		if (members.empty()) return;
-		LogChat(sender, "guild", message.GetAsString());
+		const auto guildMember = Database::Get()->GetGuildMember(playerID);
+		LogChat(sender, "guild", message.GetAsString(), { .guildId = guildMember ? guildMember->guildId : 0 });
 		for (const auto memberId : members) {
 			const auto& member = Game::playerContainer.GetPlayerData(memberId);
 			if (member) SendPrivateChatMessage(sender, member, member, message, eChatChannel::GUILD, eChatMessageResponseCode::SENT);
@@ -522,7 +536,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(const ChatPackets::PrivateChatM
 	// only freinds can whispr each other
 	for (const auto& fr : receiver.friends) {
 		if (fr.friendID == sender.playerID) {
-			LogChat(sender, "whisper", message.GetAsString(), receiver.playerID, receiver.playerName);
+			LogChat(sender, "whisper", message.GetAsString(), { .recipientId = receiver.playerID, .recipientName = receiver.playerName });
 			//To the sender:
 			SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::SENT);
 			//To the receiver:
