@@ -314,9 +314,9 @@ the 1.10.64 client.
 | `UnEquipInventory` | The trailing optional `replacementObjectID` is never read. | The client can send it. |
 | `SetStatusImmunity` | Fixed (wire fix): used to write the flags in DLU's order (BasicAttack, DOT, Knockback, Interrupt, Speed, ImaginationGain, ImaginationLoss, QuickbuildInterrupt, PullToPoint). | The client uses alphabetical order: BasicAttack, DOT, ImaginationGain, ImaginationLoss, Interrupt, Knockback, PullToPoint, QuickbuildInterrupt, Speed (`0x00d8f140`; field offsets named by `0x00d8f410`). |
 | `RequestDie` | Read with the `Die` layout. | Starts with one `bDieAccepted` bit and has a mandatory `lootOwnerID` (`0x00e02d90`). |
-| `SetCurrency` | `sourceTradeID` is an optional `int32_t`. | lu_packets has an object ID (8 bytes). DLU only ever sends 0 (flag bit 0), so no bytes differ today. |
+| `SetCurrency` | Fixed: `sourceTradeID` is an optional object ID (8 bytes), set for trades. | The client reads an object ID. |
 | `FireEventClientSide` | Fixed: writes `param1`/`param2`. `RocketEquipped` carries the property clone in `param1` and a LUP entrance's world index in `param2`, and goes to every client (live: 1,196 of 1,265 captured were other players' launches). | Optional `i64 param1` (default 0) and `i32 param2` (default -1). |
-| `PickupCurrency` | Reads only the amount. | lu_packets has a position after it (ignored, harmless). |
+| `PickupCurrency` | Fixed: reads the position after the amount (echoed in SetCurrency for the coin animation). | The client always sends it. |
 | `MatchUpdate`, `MatchRequest` | Name-value text is widened/narrowed one byte per UTF-16 unit, so non-ASCII names are garbled. | UTF-16 text. |
 | `ScriptNetworkVarUpdate` | The text goes through `ASCIIToUTF16`. | UTF-16 text (non-ASCII values are garbled). |
 | `SetShootingGalleryParams` | Removed: had no callers, and its field order was a guess ("No clue about the order here"). | Not verified. |
