@@ -304,6 +304,31 @@ TEST(ZoneFileTests, SpawnerNetActiveFromVersion9) {
 	EXPECT_EQ(zone.paths[1].spawner.spawnerNetActive, 0);
 }
 
+// Spawner and camera paths have their own fields only from version 4
+TEST(ZoneFileTests, SpawnerAndCameraFieldsFromVersion4) {
+	ZoneBytes w;
+	w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150);
+	w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+	w.Put<uint32_t>(1);
+	w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0).Paths().Put<uint32_t>(1).Put<uint32_t>(2);
+	w.Put<uint32_t>(3).Wide("Spawner").Put<uint32_t>(4).Put<uint32_t>(0).Put<uint32_t>(0);
+	w.Put<uint32_t>(1).Point(1, 1, 1).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put<uint32_t>(0);
+	w.Put<uint32_t>(3).Wide("Camera").Put<uint32_t>(3).Put<uint32_t>(0).Put<uint32_t>(0);
+	w.Put<uint32_t>(1).Point(2, 2, 2).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put(1.0f).Put(0.5f).Put(0.0f).Put(0.0f).Put(0.0f);
+
+	std::istringstream stream(w.Done());
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	ASSERT_EQ(zone.paths.size(), 2u);
+	EXPECT_EQ(zone.paths[0].spawner.spawnedLOT, 0);
+	EXPECT_EQ(zone.paths[0].pathWaypoints.at(0).position, NiPoint3(1, 1, 1));
+	EXPECT_TRUE(zone.paths[1].camera.nextPath.empty());
+	EXPECT_EQ(zone.paths[1].pathWaypoints.at(0).position, NiPoint3(2, 2, 2));
+}
+
 // The paths are a chunk the client reads on its own: a path it refuses (here version 19) leaves the zone with no paths,
 // and the zone file goes on after the chunk
 TEST(ZoneFileTests, RefusedPathsLeaveNoPaths) {

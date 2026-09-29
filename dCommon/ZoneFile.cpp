@@ -287,13 +287,13 @@ bool ZoneFile::ReadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, path.property.playerZoneCoords);
 			BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
 		}
-	} else if (path.pathType == PathType::Camera) {
+	} else if (path.pathType == PathType::Camera && path.pathVersion > 3) {
 		BinaryIO::ReadString<uint8_t>(file, path.camera.nextPath, BinaryIO::ReadType::WideString);
 		if (path.pathVersion >= 14) {
 			BinaryIO::BinaryRead(file, path.camera.rotatePlayer);
 
 		}
-	} else if (path.pathType == PathType::Spawner) {
+	} else if (path.pathType == PathType::Spawner && path.pathVersion > 3) {
 		BinaryIO::BinaryRead(file, path.spawner.spawnedLOT);
 		BinaryIO::BinaryRead(file, path.spawner.respawnTime);
 		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
