@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cstring>
+
 #include "ZonePaths.h"
 
 namespace {
@@ -21,7 +23,8 @@ namespace {
 		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description"); // no zone boundaries
 		w.Put<uint32_t>(1);                                        // one transition: 2 points in this version
 		for (int i = 0; i < 2; i++) w.Put<uint64_t>(1).Point(0, 0, 0);
-		w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(3);      // path data length, chunk version, 3 paths
+		const auto pathsAt = w.data.size();
+		w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(3);      // path data length (below), chunk version, 3 paths
 
 		// A movement path: one waypoint with a command
 		w.Put<uint32_t>(18).Wide("Patrol").Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
@@ -39,6 +42,8 @@ namespace {
 		w.Put<uint32_t>(4); for (char c : std::string("Desc")) w.Put<uint16_t>(static_cast<uint16_t>(c));
 		w.Put<int32_t>(0).Put<uint32_t>(0).Put(1.0f).Put<uint32_t>(0).Put<uint32_t>(0).Point(0, 0, 0).Put(128.0f);
 		w.Put<uint32_t>(3).Point(0, 0, 0).Point(10, 0, 0).Point(10, 0, 10);
+		const auto length = static_cast<uint32_t>(w.data.size() - pathsAt - 4);
+		std::memcpy(w.data.data() + pathsAt, &length, sizeof(length));
 		return w.data;
 	}
 }

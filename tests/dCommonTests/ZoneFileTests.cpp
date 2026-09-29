@@ -3,7 +3,9 @@
 #include <cstring>
 #include <sstream>
 
+#include "Game.h"
 #include "LevelFile.h"
+#include "Logger.h"
 #include "ZoneFile.h"
 
 namespace {
@@ -15,6 +17,13 @@ namespace {
 		ZoneBytes& Text(const std::string& text) { Put<uint8_t>(static_cast<uint8_t>(text.size())); data += text; return *this; }
 		ZoneBytes& Wide(const std::string& text) { Put<uint8_t>(static_cast<uint8_t>(text.size())); for (char c : text) Put<uint16_t>(static_cast<uint16_t>(c)); return *this; }
 		ZoneBytes& Point(float x, float y, float z) { return Put(x).Put(y).Put(z); }
+		// The path chunk's length, filled in by Done (the path chunk ends the file)
+		size_t pathsAt = std::string::npos;
+		ZoneBytes& Paths() { pathsAt = data.size(); return Put<uint32_t>(0); }
+		const std::string& Done() {
+			if (pathsAt != std::string::npos) At<uint32_t>(pathsAt, static_cast<uint32_t>(data.size() - pathsAt - 4));
+			return data;
+		}
 		void Object(uint32_t version, uint32_t lot, float x, const std::string& settings) {
 			Put<int64_t>(lot * 10).Put<int32_t>(static_cast<int32_t>(lot));
 			if (version >= 38) Put<int32_t>(0); // node type
@@ -35,7 +44,7 @@ namespace {
 		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description"); // no zone boundaries
 		w.Put<uint32_t>(1);
 		for (int i = 0; i < 2; i++) w.Put<uint64_t>(1).Point(0, 0, 0);
-		w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(3);
+		w.Paths().Put<uint32_t>(1).Put<uint32_t>(3);
 		// Movement: its config is waypoint commands (spaces dropped from the name)
 		w.Put<uint32_t>(18).Wide("Patrol").Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
 		w.Put<uint32_t>(1).Point(5, 0, 5).Put<uint32_t>(1).Wide("de lay").Wide(" 2 ");
@@ -50,7 +59,7 @@ namespace {
 		w.Put<uint32_t>(4); for (char c : std::string("Desc")) w.Put<uint16_t>(static_cast<uint16_t>(c));
 		w.Put<int32_t>(0).Put<uint32_t>(0).Put(1.0f).Put<uint32_t>(0).Put<uint32_t>(0).Point(0, 0, 0).Put(128.0f);
 		w.Put<uint32_t>(3).Point(0, 0, 0).Point(10, 0, 0).Point(10, 0, 10);
-		return w.data;
+		return w.Done();
 	}
 }
 
@@ -100,9 +109,9 @@ TEST(ZoneFileTests, ReadsZoneBoundaries) {
 	w.Point(1, 0, 0).Point(10, 20, 30).Put<uint16_t>(1100).Put<uint16_t>(7).Put<uint32_t>(4).Point(5, 6, 7);
 	w.Point(0, 0, -1).Point(-1, -2, -3).Put<uint16_t>(1200).Put<uint16_t>(0).Put<uint32_t>(0).Point(0, 0, 0);
 	w.Text("zone.raw").Text("Name").Text("Description");
-	w.Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(0); // no transitions, no paths
+	w.Put<uint32_t>(0).Paths().Put<uint32_t>(1).Put<uint32_t>(0); // no transitions, no paths
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -126,9 +135,9 @@ TEST(ZoneFileTests, LateAlphaSceneCountIsAU32) {
 	w.Put<uint32_t>(1);
 	w.Text("scene.lvl").Put<uint32_t>(5).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
 	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
-	w.Put<uint32_t>(0).Put<uint32_t>(8).Put<uint32_t>(1).Put<uint32_t>(0); // no transitions, no paths
+	w.Put<uint32_t>(0).Paths().Put<uint32_t>(1).Put<uint32_t>(0); // no transitions, no paths
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -144,7 +153,7 @@ TEST(ZoneFileTests, ReadsVersionsBeforePrePreAlpha) {
 	w.Put<uint32_t>(12).Put<uint32_t>(53).Put<uint8_t>(4); // version, world, scene count
 	w.Put<uint32_t>(9).Put<uint32_t>(3).Put<uint32_t>(7).Put<uint32_t>(3); // SceneTable IDs
 	w.Put<uint8_t>(0).Text("zone.raw");
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -172,7 +181,7 @@ TEST(ZoneFileTests, EarlyScenesAreNumberedInOrder) {
 	ZoneBytes w;
 	w.Put<uint32_t>(32).Put<uint32_t>(70).Put<uint8_t>(3).Text("a.lvl").Text("b.lvl").Text("c.lvl");
 	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description").Put<uint32_t>(0);
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -200,8 +209,8 @@ TEST(ZoneFileTests, KeepsTheScenesTheClientLoads) {
 		scene("a.lvl", 1, 0);
 		scene("b2.lvl", 2, 0);
 		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
-		w.Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(0);
-		std::istringstream stream(w.data);
+		w.Put<uint32_t>(0).Paths().Put<uint32_t>(1).Put<uint32_t>(0);
+		std::istringstream stream(w.Done());
 		ZoneFile zone;
 		zone.Read(stream);
 		EXPECT_FALSE(stream.fail());
@@ -217,7 +226,7 @@ TEST(ZoneFileTests, PrePreAlphaHasNoZoneName) {
 	ZoneBytes w;
 	w.Put<uint32_t>(30).Put<uint32_t>(72).Put<uint8_t>(1).Text("scale.lvl"); // version, world, one scene: only its file
 	w.Put<uint8_t>(0).Text("scale.raw");
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -235,14 +244,14 @@ TEST(ZoneFileTests, ReadsLegacyPaths) {
 	w.Text("lup.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global Scene").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
 	w.Put<uint8_t>(0).Text("lup.raw").Text("Name").Text("Description");
 	w.Put<uint32_t>(0); // no transitions
-	w.Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(2);
+	w.Paths().Put<uint32_t>(1).Put<uint32_t>(2);
 	w.Put<uint32_t>(2).Wide("LavaPath").Wide("npc").Put<uint32_t>(1).Put<uint32_t>(0);
 	w.Put<uint32_t>(1).Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put<uint8_t>(0).Put(3.0f).Put(0.5f);
 	w.Put<uint32_t>(1).Wide("delay").Wide("2");
 	w.Put<uint32_t>(2).Wide("Mower").Wide("platform").Put<uint32_t>(0).Put<uint32_t>(2);
 	w.Put<uint32_t>(1).Point(4, 5, 6).Put(0.0f).Put(1.0f).Put(0.0f).Put(0.0f).Put<uint8_t>(1).Put(7.0f).Put(1.5f).Put<uint32_t>(0);
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -276,7 +285,7 @@ TEST(ZoneFileTests, SpawnerNetActiveFromVersion9) {
 	w.Put<uint32_t>(1);
 	w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
 	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
-	w.Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(1).Put<uint32_t>(2);
+	w.Put<uint32_t>(0).Paths().Put<uint32_t>(1).Put<uint32_t>(2);
 	for (const uint32_t version : { 8u, 9u }) {
 		w.Put<uint32_t>(version).Wide("Spawner").Put<uint32_t>(4).Put<uint32_t>(0).Put<uint32_t>(0);
 		w.Put<int32_t>(6010).Put<uint32_t>(10).Put<int32_t>(1).Put<uint32_t>(1).Put<int64_t>(123);
@@ -284,7 +293,7 @@ TEST(ZoneFileTests, SpawnerNetActiveFromVersion9) {
 		w.Put<uint32_t>(1).Point(1, 1, 1).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put<uint32_t>(0);
 	}
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	ZoneFile zone;
 	zone.Read(stream);
 	EXPECT_FALSE(stream.fail());
@@ -293,6 +302,39 @@ TEST(ZoneFileTests, SpawnerNetActiveFromVersion9) {
 	EXPECT_EQ(zone.paths[0].spawner.spawnerNetActive, 1);
 	EXPECT_EQ(zone.paths[0].pathWaypoints.at(0).position, NiPoint3(1, 1, 1));
 	EXPECT_EQ(zone.paths[1].spawner.spawnerNetActive, 0);
+}
+
+// The paths are a chunk the client reads on its own: a path it refuses (here version 19) leaves the zone with no paths,
+// and the zone file goes on after the chunk
+TEST(ZoneFileTests, RefusedPathsLeaveNoPaths) {
+	Game::logger = new Logger("./testing.log", false, false); // the reader logs the refusal
+	for (const uint32_t refused : { 0u, 1u, 2u, 3u }) {
+		ZoneBytes w;
+		w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150);
+		w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+		w.Put<uint32_t>(1);
+		w.Text("scene.lvl").Put<uint32_t>(0).Put<uint32_t>(0).Text("Global").Put<uint8_t>(0).Put<uint8_t>(0).Put<uint8_t>(0);
+		w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description").Put<uint32_t>(0);
+		const auto size = w.data.size();
+		w.Put<uint32_t>(0).Put<uint32_t>(refused == 1 ? 2 : 1).Put<uint32_t>(2);
+		w.Put<uint32_t>(18).Wide("Good").Put<uint32_t>(2).Put<uint32_t>(0).Put<uint32_t>(0);
+		w.Put<int32_t>(0).Put<int32_t>(0).Put<uint32_t>(0).Put<uint64_t>(0).Wide("").Put<uint32_t>(0);
+		w.Put<int32_t>(0).Put<uint32_t>(0).Put(1.0f).Put<uint32_t>(0).Put<uint32_t>(0).Point(0, 0, 0).Put(128.0f);
+		w.Put<uint32_t>(1).Point(1, 2, 3);
+		w.Put<uint32_t>(refused == 2 ? 19 : 18).Wide("Patrol").Put<uint32_t>(0).Put<uint32_t>(0).Put<uint32_t>(0);
+		w.Put<uint32_t>(1).Point(5, 0, 5).Put<uint32_t>(refused == 3 ? 100 : 0);
+		for (uint32_t i = 0; refused == 3 && i < 100; i++) w.Wide("delay").Wide("1");
+		w.At<uint32_t>(size, static_cast<uint32_t>(w.data.size() - size - 4));
+
+		std::istringstream stream(w.Done());
+		ZoneFile zone;
+		zone.Read(stream);
+		EXPECT_FALSE(stream.fail()) << refused;
+		EXPECT_EQ(stream.peek(), std::char_traits<char>::eof()) << refused;
+		EXPECT_EQ(zone.paths.size(), refused == 0 ? 2u : 0u) << refused;
+	}
+	delete Game::logger;
+	Game::logger = nullptr;
 }
 
 TEST(ZoneFileTests, ShortFilesThrowOrFail) {
@@ -325,7 +367,7 @@ TEST(LevelFileTests, ReadsChunkedObjects) {
 	w.Object(41, 176, -4, "spawntemplate=1:6010");
 	end(objects);
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	LevelFile level;
 	level.Read(stream);
 	EXPECT_EQ(level.chunkHeaders.at(LevelFile::FileInfo).fileInfo.revision, 9u);
@@ -346,7 +388,7 @@ TEST(LevelFileTests, ReadsFilesWithoutChunks) {
 	w.Put<uint32_t>(1);
 	w.Object(30, 4945, 3, "respawnname=0:NS_GF");
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	LevelFile level;
 	level.Read(stream);
 	ASSERT_EQ(level.objects.size(), 1u);
@@ -364,7 +406,7 @@ TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {
 	w.Object(30, 2, 0, "c=0:d");
 	w.data.resize(w.data.size() - 2); // cut into the last object
 
-	std::istringstream stream(w.data);
+	std::istringstream stream(w.Done());
 	LevelFile level;
 	EXPECT_THROW(level.Read(stream), std::runtime_error);
 	EXPECT_EQ(level.objects.size(), 1u);

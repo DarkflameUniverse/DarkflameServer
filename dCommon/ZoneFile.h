@@ -260,7 +260,8 @@ private:
 	void ReadZoneBoundaries(std::istream& file);
 	void ReadSceneTransition(std::istream& file);
 	SceneTransitionInfo ReadSceneTransitionInfo(std::istream& file);
-	void ReadPath(std::istream& file);
+	bool ReadPaths(std::istream& file);
+	bool ReadPath(std::istream& file);
 	// A waypoint's name/value pairs: waypoint commands on movement and rail paths, LDF config on the others
-	static void ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint& waypoint);
+	static bool ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint& waypoint);
 };

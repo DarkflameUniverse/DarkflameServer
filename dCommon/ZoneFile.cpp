@@ -4,6 +4,8 @@
 #include <cctype>
 #include <cstdint>
 #include <istream>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "BinaryIO.h"
@@ -60,15 +62,38 @@ void ZoneFile::Read(std::istream& file) {
 	}
 
 	if (fileFormatVersion >= FileFormatVersion::EarlyAlpha) {
+		// The paths are a chunk of their own (LuzFile::ReadLUZFile copies it, ReadLUZPaths reads it)
 		BinaryIO::BinaryRead(file, pathDataLength);
-		BinaryIO::BinaryRead(file, pathChunkVersion); // always should be 1
+		std::string chunk(pathDataLength, '\0');
+		file.read(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+		if (!file) throw std::runtime_error("Failed to read from istream.");
+		std::istringstream pathChunk(chunk);
+		if (!ReadPaths(pathChunk)) {
+			LOG("The zone file's paths are not ones the client reads; the zone has no paths, as in the client");
+			paths.clear();
+		}
+	}
+}
+
+bool ZoneFile::ReadPaths(std::istream& file) {
+	// ReadLUZPaths: a chunk version from 2 on, 10000 paths or more, or any path LevelPath::FromBuffer refuses (it reads
+	// no further than the chunk's end here) leaves the zone with no paths
+	try {
+		BinaryIO::BinaryRead(file, pathChunkVersion);
+		if (pathChunkVersion >= 2) return false;
 
 		uint32_t pathCount;
 		BinaryIO::BinaryRead(file, pathCount);
+		if (pathCount >= 10000) return false;
 
 		paths.reserve(pathCount);
-		for (uint32_t i = 0; i < pathCount; ++i) ReadPath(file);
+		for (uint32_t i = 0; i < pathCount; ++i) {
+			if (!ReadPath(file)) return false;
+		}
+	} catch (const std::runtime_error&) {
+		return false;
 	}
+	return true;
 }
 
 void ZoneFile::ReadScene(std::istream& file, uint32_t index) {
@@ -187,9 +212,10 @@ SceneTransitionInfo ZoneFile::ReadSceneTransitionInfo(std::istream& file) {
 	return info;
 }
 
-void ZoneFile::ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint& waypoint) {
+bool ZoneFile::ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint& waypoint) {
 	uint32_t count;
 	BinaryIO::BinaryRead(file, count);
+	if (count > 99) return false; // LevelPath::FromBuffer refuses the path
 	for (uint32_t i = 0; i < count; ++i) {
 		std::string parameter;
 		BinaryIO::ReadString<uint8_t>(file, parameter, BinaryIO::ReadType::WideString);
@@ -211,12 +237,14 @@ void ZoneFile::ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint
 			waypoint.config.ParseInsert(parameter + "=" + value);
 		}
 	}
+	return true;
 }
 
-void ZoneFile::ReadPath(std::istream& file) {
+bool ZoneFile::ReadPath(std::istream& file) {
 	Path path = Path();
 
 	BinaryIO::BinaryRead(file, path.pathVersion);
+	if (path.pathVersion >= 19) return false; // LevelPath::FromBuffer refuses it
 
 	BinaryIO::ReadString<uint8_t>(file, path.pathName, BinaryIO::ReadType::WideString);
 
@@ -277,6 +305,7 @@ void ZoneFile::ReadPath(std::istream& file) {
 	// Read waypoints
 
 	BinaryIO::BinaryRead(file, path.waypointCount);
+	if (path.waypointCount >= 10000) return false; // LevelPath::FromBuffer refuses it
 	path.pathWaypoints.reserve(path.waypointCount);
 	for (uint32_t i = 0; i < path.waypointCount; ++i) {
 		PathWaypoint waypoint = PathWaypoint();
@@ -294,7 +323,7 @@ void ZoneFile::ReadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
 			BinaryIO::BinaryRead(file, waypoint.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
-			ReadLdfConfig(file, path.pathType, waypoint);
+			if (!ReadLdfConfig(file, path.pathType, waypoint)) return false;
 			path.pathWaypoints.push_back(waypoint);
 			continue;
 		}
@@ -332,10 +361,11 @@ void ZoneFile::ReadPath(std::istream& file) {
 
 		// object LDF configs
 		if (path.pathType == PathType::Movement || path.pathType == PathType::Spawner || path.pathType == PathType::Rail) {
-			ReadLdfConfig(file, path.pathType, waypoint);
+			if (!ReadLdfConfig(file, path.pathType, waypoint)) return false;
 		}
 
 		path.pathWaypoints.push_back(waypoint);
 	}
 	paths.push_back(path);
+	return true;
 }
