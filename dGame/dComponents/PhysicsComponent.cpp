@@ -12,11 +12,14 @@
 
 #include "dpEntity.h"
 #include "dpWorld.h"
+#include "dpMovementBlockers.h"
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
 
 #include "EntityInfo.h"
 #include "Amf3.h"
+#include "Entity.h"
+#include "Logger.h"
 
 PhysicsComponent::PhysicsComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Position = NiPoint3Constant::ZERO;
@@ -35,6 +38,37 @@ PhysicsComponent::PhysicsComponent(Entity* parent, const int32_t componentID) : 
 	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
 
 	RegisterMsg(&PhysicsComponent::OnGetPosition);
+}
+
+PhysicsComponent::~PhysicsComponent() {
+	if (!m_MovementBlocker) return;
+	dpWorld::RemoveMovementBlocker(m_MovementBlocker);
+	delete m_MovementBlocker;
+}
+
+void PhysicsComponent::RegisterMovementBlocker(const eReplicaComponentType type, const bool solid, const float scale) {
+	if (m_MovementBlocker) return;
+	const auto filter = dpMovementBlockers::BlockingFilter(m_Parent->GetVar<bool>(u"navmesh_carver"), solid, static_cast<uint32_t>(m_CollisionGroup));
+	if (!filter) return;
+
+	// Some shapes move the object's position to line up with the client's; that is for the shape only
+	const auto placed = m_Position;
+	bool isFallback = false;
+	auto* const blocker = CreatePhysicsEntity(type, &isFallback);
+	const auto shapePosition = m_Position;
+	m_Position = placed;
+	if (!blocker) return;
+	if (isFallback) {
+		LOG_DEBUG("%llu (LOT %i) should block movement, but the server doesn't know its shape", m_Parent->GetObjectID(), m_Parent->GetLOT());
+		delete blocker;
+		return;
+	}
+
+	blocker->SetScale(scale);
+	blocker->SetRotation(m_Rotation);
+	blocker->SetPosition(shapePosition);
+	m_MovementBlocker = blocker;
+	dpWorld::AddMovementBlocker(m_MovementBlocker, *filter);
 }
 
 bool PhysicsComponent::OnGetPosition(GameMessages::GetPosition& msg) {
@@ -56,7 +90,8 @@ void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitia
 	}
 }
 
-dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
+dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type, bool* isFallback) {
+	if (isFallback) *isFallback = false;
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), type);
 
@@ -115,6 +150,7 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 
 	//add fallback cube:
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
+		if (isFallback) *isFallback = true;
 	}
 	// Only touch what the client lets this group touch (e.g. POI walls ignore enemies, threat clearing walls ignore players)
 	toReturn->SetCollisionGroup(static_cast<uint32_t>(m_CollisionGroup));

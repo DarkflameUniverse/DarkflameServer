@@ -33,6 +33,9 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t com
 	}
 	// Without a motionType the object is fixed (live: Fixed on 38,970 of 40,786 constructions, never the invalid 0)
 	if (m_Parent->HasVar(u"motionType")) m_PhysicsMotionState = m_Parent->GetVarAs<uint32_t>(u"motionType");
+
+	// A fixed solid object can be a wall enemies walk into (an enemy only blocker, or a navmesh carver)
+	if (m_PhysicsMotionState == MOTION_TYPE_FIXED) RegisterMovementBlocker(eReplicaComponentType::SIMPLE_PHYSICS, true, m_Parent->GetDefaultScale());
 }
 
 SimplePhysicsComponent::~SimplePhysicsComponent() {

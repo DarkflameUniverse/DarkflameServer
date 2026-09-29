@@ -21,7 +21,7 @@ class dpEntity;
 class PhysicsComponent : public Component {
 public:
 	PhysicsComponent(Entity* parent, const int32_t componentID);
-	virtual ~PhysicsComponent() = default;
+	virtual ~PhysicsComponent();
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
@@ -36,7 +36,15 @@ public:
 protected:
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& msg);
 
-	dpEntity* CreatePhysicsEntity(eReplicaComponentType type);
+	// isFallback, when given, says whether the asset had no known shape and got a stand in cube
+	dpEntity* CreatePhysicsEntity(eReplicaComponentType type, bool* isFallback = nullptr);
+
+	/**
+	 * Makes this object a wall the server's movers can't walk through when its data says it is one
+	 * (dpMovementBlockers::BlockingFilter: a navmesh carver, or a solid object only enemies collide with). Only
+	 * shapes the server knows are used; a stand in cube would be a guess.
+	 */
+	void RegisterMovementBlocker(eReplicaComponentType type, bool solid, float scale);
 
 	dpEntity* CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const;
 
@@ -51,6 +59,9 @@ protected:
 	bool m_DirtyPosition;
 
 	int32_t m_CollisionGroup{};
+
+	// This object's shape as a movement blocker, owned here and not stepped with the physics world
+	dpEntity* m_MovementBlocker{};
 };
 
 #endif  //!__PHYSICSCOMPONENT__H__

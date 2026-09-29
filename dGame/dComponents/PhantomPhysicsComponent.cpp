@@ -50,6 +50,9 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t c
 	m_IsDirectional = false;
 	m_Direction = NiPoint3(); // * m_DirectionalMultiplier
 
+	// A phantom volume enemies can't walk into when it carves the navmesh (e.g. the Sentinel camp walls)
+	RegisterMovementBlocker(ComponentType, false, m_Scale);
+
 	if (m_Parent->GetVar<bool>(u"create_physics")) {
 		m_dpEntity = CreatePhysicsLnv(m_Scale, ComponentType);
 	}
