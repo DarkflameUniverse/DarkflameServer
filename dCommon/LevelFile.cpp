@@ -42,9 +42,9 @@ void LevelFile::Read(std::istream& file) {
 				header.id = ChunkTypeID::FileInfo;
 				BinaryIO::BinaryRead(file, header.chunkVersion);
 				BinaryIO::BinaryRead(file, header.chunkType);
+				// Only from version 32 (SceneLoader::ReadLvlHeader)
 				uint8_t important = 0;
-				BinaryIO::BinaryRead(file, important);
-				// file.ignore(1); //probably used
+				if (header.chunkVersion >= 32) BinaryIO::BinaryRead(file, important);
 				if (header.chunkVersion > 36) {
 					BinaryIO::BinaryRead(file, header.fileInfo.revision);
 				}
@@ -87,7 +87,8 @@ void LevelFile::Read(std::istream& file) {
 				BinaryIO::BinaryRead(file, count);
 				file.ignore(count);
 
-				if (header.chunkVersion >= 33) {
+				// Five more strings from version 34 (SceneLoader::ReadSkydomeInfo)
+				if (header.chunkVersion >= 34) {
 					for (uint32_t i = 0; i < 5; ++i) {
 						uint32_t count = 0;
 						BinaryIO::BinaryRead(file, count);

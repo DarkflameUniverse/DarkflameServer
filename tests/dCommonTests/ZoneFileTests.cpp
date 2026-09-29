@@ -276,7 +276,7 @@ TEST(LevelFileTests, ReadsChunkedObjects) {
 // Some live scenes (e.g. Nimbus Station's Gnarled Forest launch pad) are from before chunks
 TEST(LevelFileTests, ReadsFilesWithoutChunks) {
 	ZoneBytes w;
-	w.Put<uint16_t>(30).Put<uint16_t>(0).Put<uint8_t>(1); // version, type, important
+	w.Put<uint16_t>(30).Put<uint16_t>(0); // version, type; no important byte before 32
 	w.data.append(48 + 12, '\0');                          // version 30 settings the world skips
 	w.Put<uint32_t>(0);                                    // no skydome
 	w.Put<uint32_t>(1);
@@ -293,7 +293,7 @@ TEST(LevelFileTests, ReadsFilesWithoutChunks) {
 
 TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {
 	ZoneBytes w;
-	w.Put<uint16_t>(30).Put<uint16_t>(0).Put<uint8_t>(1);
+	w.Put<uint16_t>(30).Put<uint16_t>(0);
 	w.data.append(48 + 12, '\0');
 	w.Put<uint32_t>(0).Put<uint32_t>(2);
 	w.Object(30, 1, 0, "a=0:b");
