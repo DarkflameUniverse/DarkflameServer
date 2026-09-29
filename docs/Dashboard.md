@@ -62,7 +62,7 @@ What people can do depends on their account's GM level. Out of the box:
 | 4+ | Ban and lock accounts; email password reset links |
 | 5+ | Moderate pet names, properties and leaderboards; revoke strikes; change a character's missions; change the chat filter's words; send and schedule announcements |
 | 8+ | Manage accounts (create, change email or password, reset two-factor login) and GM levels; edit characters and replace their XML; give items back; read whispers and team chat; send chat into the game; attach items to mail, to one player or everyone; import models; shut down worlds; schedule restarts and events; run economy checks; play keys, client files and the vanity files; see scheduled tasks, the audit log, server logs, crash dumps, server health and instance load; the developer tools |
-| 9 | Delete accounts; change scheduled tasks, instance limits, settings and permissions (these two are always GM 9 only), webhooks and email settings; backups |
+| 9 | Delete accounts; grant permissions to single accounts and characters; change scheduled tasks, instance limits, settings and permissions (these two are always GM 9 only), webhooks and email settings; backups |
 
 Each of these is a named permission, and you can change the lowest GM level allowed for any of them without rebuilding
 or restarting:
@@ -87,6 +87,9 @@ Sending mail needs `mail_send` (GM 3+), but attaching items needs `mail_items` (
 mailing them to your own characters also needs `self_items` (below), and without it mail to everyone leaves them out.
 
 Set `min_dashboard_gm_level` to keep lower levels out of the dashboard entirely.
+
+Single accounts and characters can also be given or denied a permission or command with a grant (see
+[Permission grants](#permission-grants)).
 
 ### Acting on yourself and on your own rank
 
@@ -189,6 +192,47 @@ permission:
   `/execute as <player>`, and `/tpall`, which leaves players you may not move where they are.
 
 A refused command says why in the chat and names the permission. The page shows each command's rule on its card.
+
+### Permission grants
+
+A grant gives one account or character a permission or command on top of what its GM level allows; a deny takes one
+away. What someone may do:
+
+    allowed = (GM level allows it OR a grant covers it) AND no deny covers it
+
+A grant or deny names one of:
+
+- a dashboard permission (`permission`); it also covers the in-game commands that follow it
+- an in-game command (`command`)
+- every permission of a category (`permission_group`), for example Accounts
+- every command up to a GM level (`command_group`), 1 to 9
+
+Each has an optional expiry, a note, and who gave it and when. Rules:
+
+- A deny beats a grant. Denies never apply to GM 9 accounts.
+- `settings` and `permissions_manage` stay GM 9 only: they can't be granted and no group covers them. Commands with a
+  fixed level and commands with a floor above GM 1 (`/execute`) can't be granted.
+- On the dashboard only the account's grants count. In game the account's and the logged-in character's count.
+- `min_dashboard_gm_level` still keeps lower levels out of the dashboard entirely.
+- Grants count wherever permissions are checked: pages and API routes, the rank rules (`self_*`, `manage_equal_rank`),
+  API access and API key scopes (a key never does more than its owner may now), and live updates over the WebSocket.
+
+**Managing them** needs `grants_manage` (default GM 9). Nobody grants or denies what they don't hold themselves (every
+permission of a group; a command they may use; command groups only up to their own GM level), and only on accounts the
+rank rules let them manage (their own with `self_moderation`). Removing a grant follows the same rules. Where:
+
+- The **Grants** tab of the Permissions page: every grant in force, the history, and a form that searches accounts or
+  characters by name. With only `grants_manage` the page shows just this tab.
+- The **Permission grants** card on account and character pages. Players see their own grants there, read-only.
+
+The form offers only what you may grant. Changes apply at once: the dashboard reads the account's grants with every
+request, and online players get them through master (`REFRESH_ACCOUNT` / `REFRESH_CHARACTER`) without relogging. Every
+change goes in the audit log (`grant_permission`, `deny_permission`, `remove_grant`). Removed grants are kept, so the
+list is also the history.
+
+API: `GET /api/grants/catalog`, `GET /api/grants` (`?account=ID` or `?character=ID`), `POST /api/grants`
+(`{targetType, target, kind, name, deny, expiresAt, note}`), `POST /api/grants/:id/remove`. Stored in the
+`permission_grants` table.
 
 ## Settings
 

@@ -221,3 +221,20 @@ There are 9 Game master levels
 |7|INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
 |8|DEVELOPER|Active developer, full permissions on live.|
 |9|OPERATOR|Can shutdown server for restarts & updates.|
+
+## Grants
+
+A command's GM level can be bypassed for one account or character with a grant on the dashboard (Permissions page,
+Grants tab, or the account or character page; see [Dashboard.md](Dashboard.md#permission-grants)). A command may be
+used when:
+
+- the character's GM level reaches the command's level, or a grant covers it: the command itself, every command up to a
+  GM level, or the dashboard permission the command follows (`accounts_kick` covers `/kick`), and
+- no deny covers it. Denies never apply to GM 9 accounts, also while they play at a lower level.
+
+Account grants count for every character of the account; character grants for that character only. Expired and removed
+grants count for nothing. Grants never take anyone below a command's floor above GM 1 (`/execute`: GM 8), and commands
+the client handles keep their fixed level. Commands that act on another player still follow the rank rules with the
+character's GM level (grants of `self_*` and `manage_equal_rank` count). A command a deny takes away answers "it was
+taken away from you". `/help` lists the commands a player may use, grants included. Changes reach online players at
+once.
