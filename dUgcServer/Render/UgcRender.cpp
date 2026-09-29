@@ -10,6 +10,7 @@
 
 #include "UgcIconPose.h"
 #include "UgcPalette.h"
+#include "UgcRays.h"
 #include "UgcThrottle.h"
 
 namespace {
@@ -44,140 +45,6 @@ namespace {
 
 	float ToLinear(float c) { return UgcPalette::SrgbToLinear(std::clamp(c, 0.0f, 1.0f)); }
 	float ToSrgb(float c) { return UgcPalette::LinearToSrgb(std::clamp(c, 0.0f, 1.0f)); }
-
-	// A bounding volume hierarchy over a mesh's triangles, for the occlusion rays
-	class Bvh {
-	public:
-		explicit Bvh(const UgcModel::Mesh& mesh) : m_Mesh(mesh) {
-			const size_t count = mesh.TriangleCount();
-			m_Order.resize(count);
-			std::iota(m_Order.begin(), m_Order.end(), 0u);
-			m_Centers.resize(count);
-			for (size_t t = 0; t < count; t++) m_Centers[t] = (Vertex(t, 0) + Vertex(t, 1) + Vertex(t, 2)) / 3.0f;
-			if (count > 0) Build(0, static_cast<uint32_t>(count));
-			Flatten();
-		}
-
-		// Whether a ray from `origin` along `direction` (unit) hits a triangle nearer than `maxDistance`
-		bool Hits(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) const {
-			if (m_Nodes.empty()) return false;
-			const glm::vec3 inverse(1.0f / (std::abs(direction.x) > 1e-12f ? direction.x : 1e-12f), 1.0f / (std::abs(direction.y) > 1e-12f ? direction.y : 1e-12f),
-				1.0f / (std::abs(direction.z) > 1e-12f ? direction.z : 1e-12f));
-			uint32_t stack[64];
-			int top = 0;
-			stack[top++] = 0;
-			while (top > 0) {
-				const auto& node = m_Nodes[stack[--top]];
-				if (!BoxHit(node, origin, inverse, maxDistance)) continue;
-				if (node.count > 0) {
-					for (uint32_t i = node.first; i < node.first + node.count; i++) {
-						if (TriangleHit(m_Triangles[i], origin, direction, maxDistance)) return true;
-					}
-				} else if (top < 62) {
-					stack[top++] = node.first;
-					stack[top++] = node.first + 1;
-				}
-			}
-			return false;
-		}
-
-	private:
-		struct Node {
-			glm::vec3 min{};
-			glm::vec3 max{};
-			uint32_t first{}; // leaf: first triangle in m_Order; inner: the first of two children
-			uint32_t count{}; // triangles, 0 for inner nodes
-		};
-
-		glm::vec3 Vertex(size_t t, int k) const { return m_Mesh.positions[m_Mesh.indices[t * 3 + k]]; }
-
-		void Build(uint32_t first, uint32_t count) {
-			// Iterative, so deep trees don't use the stack
-			struct Task { uint32_t node, first, count; };
-			m_Nodes.push_back({});
-			std::vector<Task> tasks{ { 0, first, count } };
-			while (!tasks.empty()) {
-				const auto task = tasks.back();
-				tasks.pop_back();
-				Node node;
-				node.min = glm::vec3(INF);
-				node.max = glm::vec3(-INF);
-				glm::vec3 centerMin(INF), centerMax(-INF);
-				for (uint32_t i = task.first; i < task.first + task.count; i++) {
-					for (int k = 0; k < 3; k++) {
-						node.min = glm::min(node.min, Vertex(m_Order[i], k));
-						node.max = glm::max(node.max, Vertex(m_Order[i], k));
-					}
-					centerMin = glm::min(centerMin, m_Centers[m_Order[i]]);
-					centerMax = glm::max(centerMax, m_Centers[m_Order[i]]);
-				}
-				const auto extent = centerMax - centerMin;
-				const int axis = extent.x >= extent.y && extent.x >= extent.z ? 0 : extent.y >= extent.z ? 1 : 2;
-				if (task.count <= 4 || extent[axis] <= 0.0f) {
-					node.first = task.first;
-					node.count = task.count;
-					m_Nodes[task.node] = node;
-					continue;
-				}
-				const uint32_t half = task.count / 2;
-				auto* begin = m_Order.data() + task.first;
-				std::nth_element(begin, begin + half, begin + task.count, [&](uint32_t a, uint32_t b) { return m_Centers[a][axis] < m_Centers[b][axis]; });
-				node.first = static_cast<uint32_t>(m_Nodes.size());
-				node.count = 0;
-				m_Nodes[task.node] = node;
-				m_Nodes.push_back({});
-				m_Nodes.push_back({});
-				tasks.push_back({ node.first, task.first, half });
-				tasks.push_back({ node.first + 1, task.first + half, task.count - half });
-			}
-		}
-
-		static bool BoxHit(const Node& node, const glm::vec3& origin, const glm::vec3& inverse, float maxDistance) {
-			const auto t0 = (node.min - origin) * inverse;
-			const auto t1 = (node.max - origin) * inverse;
-			const auto near = glm::min(t0, t1), far = glm::max(t0, t1);
-			const float enter = std::max(std::max(near.x, near.y), std::max(near.z, 0.0f));
-			const float exit = std::min(std::min(far.x, far.y), std::min(far.z, maxDistance));
-			return enter <= exit;
-		}
-
-		struct Triangle {
-			glm::vec3 a, e1, e2;
-		};
-
-		// The triangles in leaf order, edges worked out once (the rays read them far more often than the tree is built)
-		void Flatten() {
-			m_Triangles.reserve(m_Order.size());
-			for (const auto t : m_Order) {
-				const auto a = Vertex(t, 0);
-				m_Triangles.push_back({ a, Vertex(t, 1) - a, Vertex(t, 2) - a });
-			}
-		}
-
-		static bool TriangleHit(const Triangle& triangle, const glm::vec3& origin, const glm::vec3& direction, float maxDistance) {
-			const auto& a = triangle.a;
-			const auto& e1 = triangle.e1;
-			const auto& e2 = triangle.e2;
-			const auto p = glm::cross(direction, e2);
-			const float det = glm::dot(e1, p);
-			if (std::abs(det) < 1e-12f) return false;
-			const float inv = 1.0f / det;
-			const auto s = origin - a;
-			const float u = glm::dot(s, p) * inv;
-			if (u < 0.0f || u > 1.0f) return false;
-			const auto q = glm::cross(s, e1);
-			const float v = glm::dot(direction, q) * inv;
-			if (v < 0.0f || u + v > 1.0f) return false;
-			const float distance = glm::dot(e2, q) * inv;
-			return distance > 1e-4f && distance < maxDistance;
-		}
-
-		const UgcModel::Mesh& m_Mesh;
-		std::vector<Triangle> m_Triangles;
-		std::vector<uint32_t> m_Order;
-		std::vector<glm::vec3> m_Centers;
-		std::vector<Node> m_Nodes;
-	};
 
 	float RadicalInverse(uint32_t bits) {
 		bits = (bits << 16u) | (bits >> 16u);
@@ -216,10 +83,10 @@ namespace {
 }
 
 namespace UgcRender {
-	std::vector<float> AmbientOcclusion(const UgcModel::Mesh& mesh, const UgcModel::Mesh& occluders, float distance, int samples) {
+	std::vector<float> AmbientOcclusion(const UgcModel::Mesh& mesh, const UgcModel::Mesh& occluders, float distance, int samples, UgcRays::eBackend rays) {
 		std::vector<float> ao(mesh.positions.size(), 1.0f);
 		if (occluders.Empty() || samples <= 0 || distance <= 0.0f || mesh.normals.size() != mesh.positions.size()) return ao;
-		const Bvh bvh(occluders);
+		const auto scene = UgcRays::Make(rays, occluders);
 		const auto count = static_cast<uint32_t>(samples);
 		// Vertices at the same place facing the same way (bricks' shared corners) are worked out once
 		struct Key {
@@ -259,7 +126,7 @@ namespace UgcRender {
 				const float phi = 2.0f * 3.14159265f * std::fmod(RadicalInverse(i) + turn, 1.0f);
 				const float r = std::sqrt(u), z = std::sqrt(std::max(0.0f, 1.0f - u));
 				const auto direction = tangent * (r * std::cos(phi)) + bitangent * (r * std::sin(phi)) + normal * z;
-				if (!bvh.Hits(origin, direction, distance)) open++;
+				if (!scene->Occluded(origin, direction, 1e-4f, distance)) open++;
 			}
 			ao[v] = static_cast<float>(open) / static_cast<float>(count);
 			known.emplace(key, ao[v]);
@@ -270,7 +137,7 @@ namespace UgcRender {
 	std::vector<float> BakeAo(UgcModel::Model& model, const AoOptions& options) {
 		auto& opaque = model.opaque;
 		if (!options.enabled || opaque.Empty()) return {};
-		auto ao = AmbientOcclusion(opaque, opaque, options.distance, options.samples);
+		auto ao = AmbientOcclusion(opaque, opaque, options.distance, options.samples, options.rays);
 		const float strength = std::clamp(options.strength, 0.0f, 1.0f);
 		for (size_t v = 0; v < opaque.colors.size() && v < ao.size(); v++) {
 			glm::vec3 lit(1.0f - strength * (1.0f - ao[v]));
@@ -318,7 +185,7 @@ namespace UgcRender {
 		// Ambient occlusion darkens the world light (opaque bricks only, as they are what occludes)
 		std::vector<float> ao;
 		if (options.ao.enabled) {
-			ao = opaqueAo && opaqueAo->size() == model.opaque.positions.size() ? *opaqueAo : AmbientOcclusion(model.opaque, model.opaque, options.ao.distance, options.ao.samples);
+			ao = opaqueAo && opaqueAo->size() == model.opaque.positions.size() ? *opaqueAo : AmbientOcclusion(model.opaque, model.opaque, options.ao.distance, options.ao.samples, options.ao.rays);
 		}
 
 		// The sun's shadows: a depth map seen from the sun, looked up with a few taps for the sun's soft edge

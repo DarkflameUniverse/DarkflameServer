@@ -7,6 +7,7 @@
 
 #include "UgcGlitter.h"
 #include "UgcModel.h"
+#include "UgcRays.h"
 
 /**
  * A small software rasterizer (no GPU or display needed) for what the UGC server draws: the icons, and the occlusion
@@ -26,6 +27,7 @@ namespace UgcRender {
 		int samples{ 64 };          // rays per vertex (AO Samples)
 		float strength{ 1.0f };     // 0 leaves the colors, 1 is the full bake
 		float glowStrength{ 6.0f }; // what glowing colors add to the light (Glow Strength 3 x Glow Multiplier 2)
+		UgcRays::eBackend rays{};   // what traces the occlusion rays (ugc_ray_backend)
 	};
 
 	/**
@@ -74,7 +76,8 @@ namespace UgcRender {
 	 * normal, the same pattern every time) that leave without hitting a triangle of `occluders` within `distance`.
 	 * 1 is open, 0 fully hidden.
 	 */
-	std::vector<float> AmbientOcclusion(const UgcModel::Mesh& mesh, const UgcModel::Mesh& occluders, float distance, int samples);
+	std::vector<float> AmbientOcclusion(const UgcModel::Mesh& mesh, const UgcModel::Mesh& occluders, float distance, int samples,
+		UgcRays::eBackend rays = UgcRays::eBackend::BUILTIN);
 
 	/**
 	 * LU Toolbox's Bake Lighting with AO Only (its defaults): the opaque mesh's occlusion (transparent bricks are hidden

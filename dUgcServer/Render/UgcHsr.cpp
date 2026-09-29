@@ -4,8 +4,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
-#include <numeric>
-
+#include "UgcRays.h"
 #include "UgcThrottle.h"
 
 namespace {
@@ -298,219 +297,6 @@ namespace {
 		float m_Alpha{};
 	};
 
-	struct Hit {
-		float t{ INF };
-		uint32_t triangle{ UINT32_MAX };
-		float u{}, v{}; // weights of the triangle's second and third vertex
-	};
-
-	/**
-	 * A bounding volume hierarchy (binned surface area heuristic) over a mesh's triangles, for the paths' rays: the
-	 * nearest hit. A ray never hits the triangle it leaves (`skip`), as in Cycles.
-	 */
-	class Bvh {
-	public:
-		explicit Bvh(const UgcModel::Mesh& mesh) {
-			const size_t count = mesh.TriangleCount();
-			std::vector<uint32_t> order(count);
-			std::iota(order.begin(), order.end(), 0u);
-			std::vector<glm::vec3> lo(count), hi(count), centre(count);
-			for (size_t t = 0; t < count; t++) {
-				const auto& a = mesh.positions[mesh.indices[t * 3]];
-				const auto& b = mesh.positions[mesh.indices[t * 3 + 1]];
-				const auto& c = mesh.positions[mesh.indices[t * 3 + 2]];
-				lo[t] = glm::min(a, glm::min(b, c));
-				hi[t] = glm::max(a, glm::max(b, c));
-				centre[t] = (lo[t] + hi[t]) * 0.5f;
-			}
-			if (count > 0) Build(order, lo, hi, centre);
-			m_Triangles.reserve(count);
-			for (const auto t : order) {
-				const auto& a = mesh.positions[mesh.indices[t * 3]];
-				m_Triangles.push_back({ a, mesh.positions[mesh.indices[t * 3 + 1]] - a, mesh.positions[mesh.indices[t * 3 + 2]] - a, t });
-			}
-		}
-
-		// The nearest triangle along the ray (unit direction) before `maxT`
-		Hit Closest(const glm::vec3& origin, const glm::vec3& direction, uint32_t skip, float maxT = INF) const {
-			Hit hit;
-			hit.t = maxT;
-			if (m_Nodes.empty()) return hit;
-			const auto inverse = Inverse(direction);
-			uint32_t stack[128];
-			int top = 0;
-			uint32_t index = 0;
-			while (true) {
-				const auto& node = m_Nodes[index];
-				if (node.count > 0) {
-					for (uint32_t i = node.first; i < node.first + node.count; i++) Intersect(m_Triangles[i], origin, direction, skip, hit);
-				} else {
-					const uint32_t left = node.first, right = node.first + 1;
-					const float tl = Enter(m_Nodes[left], origin, inverse, hit.t);
-					const float tr = Enter(m_Nodes[right], origin, inverse, hit.t);
-					if (tl <= tr) {
-						if (tr != INF && top < 128) stack[top++] = right;
-						if (tl != INF) { index = left; continue; }
-					} else {
-						if (tl != INF && top < 128) stack[top++] = left;
-						index = right;
-						continue;
-					}
-				}
-				// Next from the stack, skipping nodes now farther than the nearest hit
-				bool found = false;
-				while (top > 0) {
-					index = stack[--top];
-					if (Enter(m_Nodes[index], origin, inverse, hit.t) != INF) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) break;
-			}
-			return hit;
-		}
-
-	private:
-		struct Node {
-			glm::vec3 min{ INF };
-			uint32_t first{}; // leaf: first triangle; inner: the left child (the right one follows it)
-			glm::vec3 max{ -INF };
-			uint32_t count{}; // triangles, 0 for inner nodes
-		};
-
-		// Where the ray enters the node's box, INF when it misses it before `maxT`
-		static float Enter(const Node& node, const glm::vec3& origin, const glm::vec3& inverse, float maxT) {
-			const auto t0 = (node.min - origin) * inverse;
-			const auto t1 = (node.max - origin) * inverse;
-			const auto near = glm::min(t0, t1), far = glm::max(t0, t1);
-			const float enter = std::max(std::max(near.x, near.y), std::max(near.z, 0.0f));
-			const float exit = std::min(std::min(far.x, far.y), std::min(far.z, maxT));
-			return enter <= exit ? enter : INF;
-		}
-
-		struct Triangle {
-			glm::vec3 a, e1, e2;
-			uint32_t index;
-		};
-
-		static glm::vec3 Inverse(const glm::vec3& d) {
-			const auto safe = [](float x) { return 1.0f / (std::abs(x) > 1e-20f ? x : std::copysign(1e-20f, x)); };
-			return { safe(d.x), safe(d.y), safe(d.z) };
-		}
-
-		// Möller-Trumbore; keeps the hit when it's nearer than hit.t
-		static bool Intersect(const Triangle& tri, const glm::vec3& origin, const glm::vec3& direction, uint32_t skip, Hit& hit) {
-			if (tri.index == skip) return false;
-			const auto p = glm::cross(direction, tri.e2);
-			const float det = glm::dot(tri.e1, p);
-			if (det == 0.0f) return false;
-			const float inv = 1.0f / det;
-			const auto s = origin - tri.a;
-			const float u = glm::dot(s, p) * inv;
-			if (u < 0.0f || u > 1.0f) return false;
-			const auto q = glm::cross(s, tri.e1);
-			const float v = glm::dot(direction, q) * inv;
-			if (v < 0.0f || u + v > 1.0f) return false;
-			const float t = glm::dot(tri.e2, q) * inv;
-			if (!(t > 0.0f) || t >= hit.t) return false;
-			hit.t = t;
-			hit.triangle = tri.index;
-			hit.u = u;
-			hit.v = v;
-			return true;
-		}
-
-		void Build(std::vector<uint32_t>& order, const std::vector<glm::vec3>& lo, const std::vector<glm::vec3>& hi, const std::vector<glm::vec3>& centre) {
-			constexpr int BINS = 16;
-			constexpr uint32_t LEAF = 4;
-			struct Task { uint32_t node, first, count; };
-			const auto area = [](const glm::vec3& min, const glm::vec3& max) {
-				const auto d = glm::max(max - min, glm::vec3(0.0f));
-				return d.x * d.y + d.y * d.z + d.z * d.x;
-			};
-			m_Nodes.reserve(order.size() * 2 / LEAF + 1);
-			m_Nodes.push_back({});
-			std::vector<Task> tasks{ { 0, 0, static_cast<uint32_t>(order.size()) } };
-			while (!tasks.empty()) {
-				const auto task = tasks.back();
-				tasks.pop_back();
-				Node node;
-				glm::vec3 cmin(INF), cmax(-INF);
-				for (uint32_t i = task.first; i < task.first + task.count; i++) {
-					node.min = glm::min(node.min, lo[order[i]]);
-					node.max = glm::max(node.max, hi[order[i]]);
-					cmin = glm::min(cmin, centre[order[i]]);
-					cmax = glm::max(cmax, centre[order[i]]);
-				}
-				node.first = task.first;
-				node.count = task.count;
-				int bestAxis = -1;
-				int bestSplit = 0;
-				float bestCost = static_cast<float>(task.count) * area(node.min, node.max); // not splitting
-				if (task.count > LEAF) {
-					for (int axis = 0; axis < 3; axis++) {
-						const float extent = cmax[axis] - cmin[axis];
-						if (!(extent > 0.0f)) continue;
-						struct Bin { glm::vec3 min{ INF }, max{ -INF }; uint32_t count{}; };
-						std::array<Bin, BINS> bins{};
-						const float scale = BINS / extent;
-						for (uint32_t i = task.first; i < task.first + task.count; i++) {
-							const auto t = order[i];
-							const int b = std::min(BINS - 1, static_cast<int>((centre[t][axis] - cmin[axis]) * scale));
-							bins[b].min = glm::min(bins[b].min, lo[t]);
-							bins[b].max = glm::max(bins[b].max, hi[t]);
-							bins[b].count++;
-						}
-						std::array<float, BINS - 1> leftCost{};
-						glm::vec3 lmin(INF), lmax(-INF);
-						uint32_t lcount = 0;
-						for (int b = 0; b < BINS - 1; b++) {
-							lmin = glm::min(lmin, bins[b].min);
-							lmax = glm::max(lmax, bins[b].max);
-							lcount += bins[b].count;
-							leftCost[b] = lcount ? lcount * area(lmin, lmax) : 0.0f;
-						}
-						glm::vec3 rmin(INF), rmax(-INF);
-						uint32_t rcount = 0;
-						for (int b = BINS - 1; b > 0; b--) {
-							rmin = glm::min(rmin, bins[b].min);
-							rmax = glm::max(rmax, bins[b].max);
-							rcount += bins[b].count;
-							const float cost = leftCost[b - 1] + (rcount ? rcount * area(rmin, rmax) : 0.0f);
-							if (rcount > 0 && rcount < task.count && cost < bestCost) {
-								bestCost = cost;
-								bestAxis = axis;
-								bestSplit = b;
-							}
-						}
-					}
-				}
-				if (bestAxis < 0) {
-					m_Nodes[task.node] = node;
-					continue;
-				}
-				const float extent = cmax[bestAxis] - cmin[bestAxis];
-				const float scale = BINS / extent;
-				auto* begin = order.data() + task.first;
-				auto* middle = std::partition(begin, begin + task.count, [&](uint32_t t) {
-					return std::min(BINS - 1, static_cast<int>((centre[t][bestAxis] - cmin[bestAxis]) * scale)) < bestSplit;
-				});
-				const auto leftCount = static_cast<uint32_t>(middle - begin);
-				node.first = static_cast<uint32_t>(m_Nodes.size());
-				node.count = 0;
-				m_Nodes[task.node] = node;
-				m_Nodes.push_back({});
-				m_Nodes.push_back({});
-				tasks.push_back({ node.first, task.first, leftCount });
-				tasks.push_back({ node.first + 1, task.first + leftCount, task.count - leftCount });
-			}
-		}
-
-		std::vector<Node> m_Nodes;
-		std::vector<Triangle> m_Triangles;
-	};
-
 	// LU Toolbox's ground plane: a box 1000 x 1000 x 100 whose top is at LDD y 0, black (a path hitting it ends)
 	float GroundHit(const glm::vec3& origin, const glm::vec3& direction, float maxT) {
 		static const glm::vec3 MIN(-500.0f, -100.0f, -500.0f), MAX(500.0f, 0.0f, 500.0f);
@@ -532,7 +318,7 @@ namespace {
 
 	class Tracer {
 	public:
-		Tracer(const UgcModel::Mesh& mesh, const UgcHsr::Options& options) : m_Mesh(mesh), m_Bvh(mesh), m_Options(options) {
+		Tracer(const UgcModel::Mesh& mesh, const UgcHsr::Options& options) : m_Mesh(mesh), m_Rays(UgcRays::Make(options.rays, mesh)), m_Options(options) {
 			m_Smooth = mesh.normals.size() == mesh.positions.size();
 		}
 
@@ -588,9 +374,9 @@ namespace {
 				const auto& direction = sample.direction;
 				throughput *= sample.throughput;
 				minRayPdf = std::min(minRayPdf, sample.pdf);
-				const auto hit = m_Bvh.Closest(p, direction, self);
+				const auto hit = m_Rays->Closest(p, direction, self);
 				if (m_Options.groundPlane && GroundHit(p, direction, hit.t) < hit.t) return false;
-				if (hit.triangle == UINT32_MAX) return true;
+				if (hit.triangle == UgcRays::NONE) return true;
 				// Past the bounce limits the next surface doesn't scatter (Cycles: Max Bounces, Glossy 4)
 				if (bounce + 1 > m_Options.bounces) return false;
 				if (sample.glossy && ++glossy > GLOSSY_BOUNCES) return false;
@@ -614,7 +400,7 @@ namespace {
 
 	private:
 		const UgcModel::Mesh& m_Mesh;
-		Bvh m_Bvh;
+		std::unique_ptr<UgcRays::Scene> m_Rays; // the nearest hit (never the triangle a ray leaves, as in Cycles)
 		const UgcHsr::Options& m_Options;
 		bool m_Smooth{};
 	};

@@ -22,6 +22,7 @@
 #include "UgcKeys.h"
 #include "UgcModular.h"
 #include "UgcPalette.h"
+#include "UgcRays.h"
 #include "UgcRender.h"
 #include "UgcStorage.h"
 #include "UgcThrottle.h"
@@ -1979,4 +1980,127 @@ TEST(UgcJobs, IconDrawnAgainChangesTheMakesTime) {
 	ASSERT_TRUE(old);
 	EXPECT_EQ(nlohmann::json::parse(*old)["ms"]["total"], 520);
 	EXPECT_FALSE(UgcJobs::WithIconTime("not json", 20.0, change));
+}
+
+namespace {
+	// A cluttered scene for the ray backends: the room with its doorway and box, a stack of boxes that touch and
+	// overlap, and a staircase of thin slabs
+	UgcModel::Mesh Clutter() {
+		auto mesh = Room(false);
+		for (int i = 0; i < 4; i++) AddBox(mesh, glm::vec3(-1.5f + i * 0.4f, -2.0f + i * 0.3f, -1.5f), glm::vec3(-1.0f + i * 0.4f, -1.6f + i * 0.3f, -0.8f));
+		for (int i = 0; i < 6; i++) AddBox(mesh, glm::vec3(0.5f, -2.0f + i * 0.2f, -1.8f + i * 0.25f), glm::vec3(1.8f, -1.95f + i * 0.2f, -1.4f + i * 0.25f));
+		return mesh;
+	}
+
+	// The backends other than builtin that this build and machine can use
+	std::vector<UgcRays::eBackend> OtherBackends() {
+		std::vector<UgcRays::eBackend> backends;
+		for (const auto backend : { UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
+			if (UgcRays::Available(backend)) backends.push_back(backend);
+		}
+		return backends;
+	}
+}
+
+TEST(UgcRays, NamesAndFallback) {
+	for (const auto backend : { UgcRays::eBackend::BUILTIN, UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
+		EXPECT_EQ(UgcRays::Parse(UgcRays::Name(backend)), backend);
+	}
+	EXPECT_FALSE(UgcRays::Parse("optix"));
+	EXPECT_TRUE(UgcRays::Available(UgcRays::eBackend::BUILTIN));
+	EXPECT_TRUE(UgcRays::Available(UgcRays::eBackend::EMBREE));
+	// A backend this machine can't use falls back to embree
+	EXPECT_EQ(UgcRays::Resolve(UgcRays::eBackend::HIPRT), UgcRays::Available(UgcRays::eBackend::HIPRT) ? UgcRays::eBackend::HIPRT : UgcRays::eBackend::EMBREE);
+	EXPECT_EQ(UgcRays::Resolve(UgcRays::eBackend::BUILTIN), UgcRays::eBackend::BUILTIN);
+	// An empty mesh is hit by nothing
+	for (const auto backend : { UgcRays::eBackend::BUILTIN, UgcRays::eBackend::EMBREE }) {
+		const auto scene = UgcRays::Make(backend, UgcModel::Mesh{});
+		EXPECT_EQ(scene->Closest(glm::vec3(0.0f), glm::vec3(0, 1, 0)).triangle, UgcRays::NONE);
+		EXPECT_FALSE(scene->Occluded(glm::vec3(0.0f), glm::vec3(0, 1, 0), 0.0f, 10.0f));
+	}
+}
+
+TEST(UgcRays, BackendsFindTheSameHits) {
+	// Rays in every direction from points around the clutter: the other backends find the same nearest triangle at
+	// the same distance, and agree on what blocks. A ray through an edge two triangles share may hit either, at the
+	// same distance.
+	const auto mesh = Clutter();
+	const auto builtin = UgcRays::Make(UgcRays::eBackend::BUILTIN, mesh);
+	for (const auto backend : OtherBackends()) {
+		const auto other = UgcRays::Make(backend, mesh);
+		uint64_t state = 12345;
+		const auto next = [&state]() {
+			state = state * 6364136223846793005ull + 1442695040888963407ull;
+			return static_cast<float>(state >> 40) / 16777216.0f;
+		};
+		size_t hits = 0, sameTriangle = 0;
+		for (int i = 0; i < 20000; i++) {
+			const glm::vec3 origin(next() * 3.8f - 1.9f, next() * 3.8f - 1.9f, next() * 3.8f - 1.9f);
+			const auto direction = glm::normalize(glm::vec3(next() - 0.5f, next() - 0.5f, next() - 0.5f) + glm::vec3(1e-4f));
+			const auto skip = static_cast<uint32_t>(next() * static_cast<float>(mesh.TriangleCount()));
+			const auto a = builtin->Closest(origin, direction, skip);
+			const auto b = other->Closest(origin, direction, skip);
+			ASSERT_EQ(a.triangle == UgcRays::NONE, b.triangle == UgcRays::NONE) << UgcRays::Name(backend) << " ray " << i;
+			if (a.triangle == UgcRays::NONE) continue;
+			hits++;
+			EXPECT_NEAR(a.t, b.t, 1e-4f * std::max(1.0f, a.t)) << UgcRays::Name(backend) << " ray " << i;
+			EXPECT_NE(b.triangle, skip);
+			if (a.triangle == b.triangle) {
+				sameTriangle++;
+				EXPECT_NEAR(a.u, b.u, 1e-3f);
+				EXPECT_NEAR(a.v, b.v, 1e-3f);
+			}
+			const float maxT = next() * 4.0f;
+			EXPECT_EQ(builtin->Occluded(origin, direction, 1e-4f, maxT), other->Occluded(origin, direction, 1e-4f, maxT)) << UgcRays::Name(backend) << " ray " << i;
+			// Limited: the nearest hit before maxT, or none
+			const auto limited = other->Closest(origin, direction, skip, maxT);
+			EXPECT_EQ(limited.triangle != UgcRays::NONE, b.t < maxT) << UgcRays::Name(backend) << " ray " << i;
+		}
+		EXPECT_GT(hits, 15000u);
+		EXPECT_GE(sameTriangle, hits - hits / 1000) << UgcRays::Name(backend);
+	}
+}
+
+TEST(UgcRays, OtherBackendsMakeTheSameModels) {
+	// The hidden faces and the occlusion with each backend. The paths bounce, so a hit found a rounding further away
+	// sends a path on from a slightly different point: the rare triangle decided by a path that only just gets out
+	// may go the other way. The small test model's files are the same.
+	const auto mesh = Clutter();
+	UgcHsr::Options hsr;
+	hsr.seed = 99;
+	const auto expected = UgcHsr::Visible(mesh, hsr);
+	const auto aoExpected = UgcRender::AmbientOcclusion(mesh, mesh, 2.0f, 64);
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	const auto builtinModel = UgcJobs::ProcessModel(LOOKS_LXFML, library, SmallSettings(), 7);
+	ASSERT_TRUE(builtinModel.ok) << builtinModel.error;
+	for (const auto backend : OtherBackends()) {
+		hsr.rays = backend;
+		const auto visible = UgcHsr::Visible(mesh, hsr);
+		ASSERT_EQ(visible.size(), expected.size());
+		size_t differ = 0;
+		for (size_t t = 0; t < visible.size(); t++) differ += visible[t] != expected[t] ? 1 : 0;
+		EXPECT_LE(differ, visible.size() / 50) << UgcRays::Name(backend);
+		// The room's closed-off box is removed and what the doorway shows is kept, as with builtin
+		const auto closed = UgcHsr::Visible(Room(true), hsr);
+		for (size_t t = 0; t < 12; t++) EXPECT_FALSE(closed[t]) << UgcRays::Name(backend) << " " << t;
+		const auto open = UgcHsr::Visible(Room(false), hsr);
+		for (size_t t = 0; t < open.size(); t++) EXPECT_TRUE(open[t]) << UgcRays::Name(backend) << " " << t;
+
+		const auto ao = UgcRender::AmbientOcclusion(mesh, mesh, 2.0f, 64, backend);
+		ASSERT_EQ(ao.size(), aoExpected.size());
+		double total = 0.0;
+		for (size_t v = 0; v < ao.size(); v++) {
+			EXPECT_NEAR(ao[v], aoExpected[v], 0.05f) << UgcRays::Name(backend) << " vertex " << v;
+			total += std::abs(ao[v] - aoExpected[v]);
+		}
+		EXPECT_LT(total / static_cast<double>(ao.size()), 0.002) << UgcRays::Name(backend);
+
+		auto settings = SmallSettings();
+		settings.hsr.rays = backend;
+		settings.ao.rays = backend;
+		const auto made = UgcJobs::ProcessModel(LOOKS_LXFML, library, settings, 7);
+		ASSERT_TRUE(made.ok) << made.error;
+		EXPECT_EQ(made.files.at("model.nif.checksum"), builtinModel.files.at("model.nif.checksum")) << UgcRays::Name(backend);
+		EXPECT_EQ(made.files.at("icon.png"), builtinModel.files.at("icon.png")) << UgcRays::Name(backend);
+	}
 }
