@@ -143,6 +143,32 @@ SceneTransitionInfo ZoneFile::ReadSceneTransitionInfo(std::istream& file) {
 	return info;
 }
 
+void ZoneFile::ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint& waypoint) {
+	uint32_t count;
+	BinaryIO::BinaryRead(file, count);
+	for (uint32_t i = 0; i < count; ++i) {
+		std::string parameter;
+		BinaryIO::ReadString<uint8_t>(file, parameter, BinaryIO::ReadType::WideString);
+
+		std::string value;
+		BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
+
+		if (pathType == PathType::Movement || pathType == PathType::Rail) {
+			// cause NetDevil puts spaces in things that don't need spaces
+			parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
+			auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
+			if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
+			if (waypointCommand != eWaypointCommandType::INVALID) {
+				auto& command = waypoint.commands.emplace_back();
+				command.command = waypointCommand;
+				command.data = value;
+			} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
+		} else {
+			waypoint.config.ParseInsert(parameter + "=" + value);
+		}
+	}
+}
+
 void ZoneFile::ReadPath(std::istream& file) {
 	Path path = Path();
 
@@ -244,30 +270,7 @@ void ZoneFile::ReadPath(std::istream& file) {
 
 		// object LDF configs
 		if (path.pathType == PathType::Movement || path.pathType == PathType::Spawner || path.pathType == PathType::Rail) {
-			uint32_t count;
-			BinaryIO::BinaryRead(file, count);
-			for (uint32_t i = 0; i < count; ++i) {
-				std::string parameter;
-				BinaryIO::ReadString<uint8_t>(file, parameter, BinaryIO::ReadType::WideString);
-
-				std::string value;
-				BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
-
-				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
-					// cause NetDevil puts spaces in things that don't need spaces
-					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
-					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
-					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
-					if (waypointCommand != eWaypointCommandType::INVALID) {
-						auto& command = waypoint.commands.emplace_back();
-						command.command = waypointCommand;
-						command.data = value;
-					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
-				} else {
-					waypoint.config.ParseInsert(parameter + "=" + value);
-				}
-
-			}
+			ReadLdfConfig(file, path.pathType, waypoint);
 		}
 
 		path.pathWaypoints.push_back(waypoint);
