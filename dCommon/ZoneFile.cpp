@@ -33,7 +33,7 @@ void ZoneFile::ReadHeader(std::istream& file) {
 	} else BinaryIO::BinaryRead(file, sceneCount);
 
 	for (uint32_t i = 0; i < sceneCount; ++i) {
-		ReadScene(file);
+		ReadScene(file, i);
 	}
 
 	ReadZoneBoundaries(file);
@@ -70,7 +70,7 @@ void ZoneFile::Read(std::istream& file) {
 	}
 }
 
-void ZoneFile::ReadScene(std::istream& file) {
+void ZoneFile::ReadScene(std::istream& file, uint32_t index) {
 	ZoneScene scene;
 
 	// Before PrePreAlpha a scene is only its SceneTable ID; ResolveSceneTable finds its file (LuzReader::ReadScenes)
@@ -82,6 +82,8 @@ void ZoneFile::ReadScene(std::istream& file) {
 	}
 
 	BinaryIO::ReadString<uint8_t>(file, scene.filename, BinaryIO::ReadType::String);
+	// Until LatePreAlpha the file has no scene IDs: a scene's ID is its index (-1 past 255) in the file
+	scene.id = index < 256 ? index : UINT32_MAX;
 
 	if (fileFormatVersion >= FileFormatVersion::LatePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.id);

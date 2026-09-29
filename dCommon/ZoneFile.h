@@ -255,7 +255,7 @@ struct ZoneFile {
 	void ResolveSceneTable(const std::function<std::optional<std::string>(uint32_t)>& sceneName);
 
 private:
-	void ReadScene(std::istream& file);
+	void ReadScene(std::istream& file, uint32_t index);
 	void ReadZoneBoundaries(std::istream& file);
 	void ReadSceneTransition(std::istream& file);
 	SceneTransitionInfo ReadSceneTransitionInfo(std::istream& file);

@@ -167,6 +167,22 @@ TEST(ZoneFileTests, ReadsVersionsBeforePrePreAlpha) {
 	EXPECT_EQ(zone.scenes[1].filename, "scene9.lvl");
 }
 
+// Versions 30-32 have no scene IDs: the client numbers the scenes in file order
+TEST(ZoneFileTests, EarlyScenesAreNumberedInOrder) {
+	ZoneBytes w;
+	w.Put<uint32_t>(32).Put<uint32_t>(70).Put<uint8_t>(3).Text("a.lvl").Text("b.lvl").Text("c.lvl");
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description").Put<uint32_t>(0);
+	std::istringstream stream(w.data);
+	ZoneFile zone;
+	zone.Read(stream);
+	EXPECT_FALSE(stream.fail());
+	ASSERT_EQ(zone.scenes.size(), 3u);
+	EXPECT_EQ(zone.scenes[0].id, 0u);
+	EXPECT_EQ(zone.scenes[1].id, 1u);
+	EXPECT_EQ(zone.scenes[2].id, 2u);
+	EXPECT_EQ(zone.scenes[2].filename, "c.lvl");
+}
+
 // A PrePreAlpha (30) file ends at its terrain file's name: no zone name, description, transitions or paths
 TEST(ZoneFileTests, PrePreAlphaHasNoZoneName) {
 	ZoneBytes w;

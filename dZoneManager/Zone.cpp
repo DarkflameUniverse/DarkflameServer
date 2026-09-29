@@ -243,7 +243,7 @@ void Zone::LoadScene(ZoneScene&& zoneScene) {
 	SceneRef scene;
 	static_cast<ZoneScene&>(scene) = std::move(zoneScene);
 	scene.level = nullptr;
-	// Older files have no scene ID or layer; those stay 0
+	// Older files have no scene ID or layer: ZoneFile numbers their scenes, and the layer stays General
 	LWOSCENEID lwoSceneID(scene.id, scene.sceneType);
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
