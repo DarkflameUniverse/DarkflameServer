@@ -8,10 +8,14 @@
 #include "eStateChangeType.h"
 #include "Character.h"
 #include "CharacterComponent.h"
+#include "BaseCombatAIComponent.h"
+#include "CDClientDatabase.h"
 #include "CombatMessages.h"
+#include "dGameMessagesTests/GameMessageTestUtils.h"
 #include "PacketTestUtils.h"
 #include "dCommonVars.h"
 
+#include <algorithm>
 #include <cstring>
 #include <optional>
 
@@ -665,4 +669,40 @@ TEST_F(DestroyableTest, SmashWithoutAttackHasNoDirection) {
 	EXPECT_EQ(die->directionRelative_AngleXZ, 0.0f);
 	EXPECT_EQ(die->directionRelative_AngleY, 0.0f);
 	EXPECT_EQ(die->directionRelative_Force, 0.0f);
+}
+
+// Live stunned every dead enemy in the packet right after its Die; bytes are a live SetStunned with the ID replaced.
+TEST_F(DestroyableTest, DeadEnemyIsStunnedAfterDie) {
+	if (!CDClientDatabase::isConnected) {
+		CDClientDatabase::Connect(":memory:");
+		for (const auto* table : {
+			"ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER)",
+			"BaseCombatAIComponent (id INTEGER, aggroRadius REAL, tetherSpeed REAL, pursuitSpeed REAL, softTetherRadius REAL, hardTetherRadius REAL, minRoundLength REAL, maxRoundLength REAL, combatRoundLength REAL)",
+			"ObjectSkills (objectTemplate INTEGER, skillID INTEGER, castOnType INTEGER, AICombatWeight INTEGER)",
+			"SkillBehavior (skillID INTEGER, behaviorID INTEGER)",
+			}) {
+			CDClientDatabase::ExecuteDML(std::string("CREATE TABLE ") + table + ";");
+		}
+	}
+	Entity enemy(0x0102030405060708LL, info);
+	enemy.AddComponent<BaseCombatAIComponent>(-1);
+	auto* destroyable = enemy.AddComponent<DestroyableComponent>(-1);
+	destroyable->SetMaxHealth(4.0f);
+	destroyable->SetHealth(4);
+
+	const auto sent = PacketTestUtils::Capture([&] { destroyable->Smash(LWOOBJID_EMPTY); });
+	const auto ids = GameMessageTestUtils::SentGameMessageIds(sent);
+	const auto die = std::find(ids.begin(), ids.end(), MessageType::Game::DIE);
+	ASSERT_NE(die, ids.end());
+	ASSERT_NE(die + 1, ids.end());
+	EXPECT_EQ(*(die + 1), MessageType::Game::SET_STUNNED);
+
+	const auto stuns = GameMessageTestUtils::SentGameMessages<GameMessages::SetStunned>(sent);
+	ASSERT_EQ(stuns.size(), 1u);
+	EXPECT_PACKET_EQ(PacketTestUtils::FromHex("53 05 00 0c 00 00 00 00 08 07 06 05 04 03 02 01 c6 00 00 00 00 00 40 50 80", 193), GameMessageTestUtils::StructPacket(stuns[0]));
+}
+
+TEST_F(DestroyableTest, DeadSmashableIsNotStunned) {
+	const auto sent = PacketTestUtils::Capture([&] { destroyableComponent->Smash(LWOOBJID_EMPTY); });
+	EXPECT_TRUE(GameMessageTestUtils::SentGameMessages<GameMessages::SetStunned>(sent).empty());
 }

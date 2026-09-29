@@ -764,6 +764,18 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	die.lootOwnerID = source;
 	die.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
+	// Live stunned every dead enemy right after its Die (7,098 of 7,105 deaths of objects with combat AI): no
+	// originator, push, can't attack, move or turn, ignoring immunity. Nothing else that dies gets it.
+	if (m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI)) {
+		GameMessages::SetStunned stun;
+		stun.target = m_Parent->GetObjectID();
+		stun.StateChangeType = eStateChangeType::PUSH;
+		stun.bCantAttack = true;
+		stun.bCantMove = true;
+		stun.bCantTurn = true;
+		stun.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	}
+
 	// Live told the killer right after Die, before the loot: EnemiesSmashed for an NPC, SmashablesSmashed for another
 	// smashable. Racing counts its own (RacingSmashablesSmashed).
 	if (owner && owner != m_Parent) {
