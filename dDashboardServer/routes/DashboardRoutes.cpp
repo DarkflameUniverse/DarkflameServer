@@ -473,6 +473,7 @@ void RegisterDashboardRoutes() {
 	SimplePage("/leaderboards", Perm("leaderboards_view"), "leaderboards.jinja2", "leaderboards", "Leaderboards for every activity");
 	SimplePage("/health", Perm("health_view"), "health.jinja2", "health", "Player counts, worlds, uptime and memory over time; crash dumps");
 	SimplePage("/diagnostics", Perm("health_view"), "diagnostics.jinja2", "diagnostics", "Packets, bytes and HTTP requests per second of every server");
+	SimplePage("/network", Perm("health_view"), "network.jinja2", "network", "Live diagram of the traffic between players, the servers and web clients, and the traffic of each connection");
 	SimplePage("/players", Perm("players_view"), "players.jinja2", "players", "Who is online, with kick, rescue and teleport");
 	SimplePage("/backups", Perm("backups"), "backups.jinja2", "backups", "Database backups");
 	// The GM level tabs need permissions_manage, the grants tab grants_manage

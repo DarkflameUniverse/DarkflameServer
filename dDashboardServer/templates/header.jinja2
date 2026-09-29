@@ -105,7 +105,7 @@
 	</div>
 	{% endif %}
 
-	{% set logsPages = ["health", "instances", "diagnostics", "activity_log", "command_log", "audit_log", "system_log"] %}
+	{% set logsPages = ["health", "instances", "diagnostics", "network", "activity_log", "command_log", "audit_log", "system_log"] %}
 	{% if can.health_view or can.logs_activity or can.logs_command or can.logs_audit or can.logs_system %}
 	<div class="nav-group">
 		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-logs" aria-expanded="{% if current_page in logsPages %}true{% else %}false{% endif %}" aria-controls="nav-logs">
@@ -113,7 +113,7 @@
 		</button>
 		<div class="collapse{% if current_page in logsPages %} show{% endif %}" id="nav-logs">
 			<div class="list-group list-group-flush">
-				{% if can.health_view %}<a href="/health" class="list-group-item list-group-item-action{% if current_page == "health" %} active{% endif %}">Server Health</a><a href="/instances" class="list-group-item list-group-item-action{% if current_page == "instances" %} active{% endif %}">Instance Load</a><a href="/diagnostics" class="list-group-item list-group-item-action{% if current_page == "diagnostics" %} active{% endif %}">Diagnostics</a>{% endif %}
+				{% if can.health_view %}<a href="/health" class="list-group-item list-group-item-action{% if current_page == "health" %} active{% endif %}">Server Health</a><a href="/instances" class="list-group-item list-group-item-action{% if current_page == "instances" %} active{% endif %}">Instance Load</a><a href="/diagnostics" class="list-group-item list-group-item-action{% if current_page == "diagnostics" %} active{% endif %}">Diagnostics</a><a href="/network" class="list-group-item list-group-item-action{% if current_page == "network" %} active{% endif %}">Network</a>{% endif %}
 				{% if can.logs_activity %}<a href="/activity_log" class="list-group-item list-group-item-action{% if current_page == "activity_log" %} active{% endif %}">Activity Log</a>{% endif %}
 				{% if can.logs_command %}<a href="/command_log" class="list-group-item list-group-item-action{% if current_page == "command_log" %} active{% endif %}">Command Log</a>{% endif %}
 				{% if can.logs_audit %}<a href="/audit_log" class="list-group-item list-group-item-action{% if current_page == "audit_log" %} active{% endif %}">Audit Log</a>{% endif %}

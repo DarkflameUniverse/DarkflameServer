@@ -1,0 +1,434 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Network - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	/* Load of a link against its own peak of the last 5 minutes */
+	.nf { --nf-idle: var(--bs-secondary-color); --nf-low: var(--bs-info); --nf-mid: var(--bs-warning); --nf-high: var(--bs-danger); }
+	.nf-box { position: relative; }
+	.nf-svg { display: block; width: 100%; }
+	.nf-svg .lane { fill: none; stroke-linecap: round; opacity: .55; }
+	.nf-svg .flow { fill: none; stroke-linecap: round; stroke-dasharray: 2 10; animation: nf-dash linear infinite; }
+	.nf-svg .estimated .lane { stroke-dasharray: 6 5; }
+	.nf-svg .load-idle { stroke: var(--nf-idle); }
+	.nf-svg .load-low { stroke: var(--nf-low); }
+	.nf-svg .load-mid { stroke: var(--nf-mid); }
+	.nf-svg .load-high { stroke: var(--nf-high); }
+	.nf-svg .edge .hit { fill: none; stroke: transparent; stroke-width: 16; cursor: help; }
+	.nf-svg .node rect { fill: var(--bs-body-bg); stroke: var(--bs-border-color); stroke-width: 1.5; }
+	.nf-svg .node { cursor: pointer; }
+	.nf-svg .node:hover rect, .nf-svg .node:focus rect { stroke: var(--bs-primary); }
+	.nf-svg .node.selected rect { stroke: var(--bs-primary); stroke-width: 2.5; }
+	.nf-svg .node.gone rect { stroke-dasharray: 4 3; }
+	.nf-svg .node .name { fill: var(--bs-body-color); font-size: 12px; font-weight: 600; }
+	.nf-svg .node .meta { fill: var(--bs-secondary-color); font-size: 11px; }
+	.nf-svg .node .warn { fill: var(--bs-warning-text-emphasis); }
+	.nf-svg .node .toggle { fill: var(--bs-primary); font-size: 11px; }
+	.nf-svg.paused .flow { animation-play-state: paused; }
+	@media (prefers-reduced-motion: reduce) { .nf-svg .flow { animation: none; } }
+	@keyframes nf-dash { to { stroke-dashoffset: -24; } }
+	.nf-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
+		padding: .35rem .5rem; font-size: .75rem; box-shadow: var(--bs-box-shadow-sm); max-width: 320px; }
+	.nf-legend { font-size: .75rem; color: var(--bs-secondary-color); }
+	.nf-legend .key { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+	.nf-table td, .nf-table th { font-variant-numeric: tabular-nums; }
+	.nf-table tr[data-peer] { cursor: pointer; }
+	.nf-spark { width: 100%; height: 60px; display: block; }
+	.nf-spark path { fill: none; stroke-width: 1.5; }
+	.nf-stack .nf-row { border-bottom: 1px solid var(--bs-border-color); padding: .5rem .75rem; }
+	.nf-stack .nf-row:last-child { border-bottom: 0; }
+	.nf-bar { height: 4px; border-radius: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nf">
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+	<div>
+		<h2 class="mb-1">Network</h2>
+		<p class="text-body-secondary mb-0 small">What goes between the players, the servers and web clients right now: each line is a link, one lane each way,
+			as thick as its bytes per second and coloured by its load against its own peak of the last 5 minutes. Rates are over each server's last report (5 seconds).
+			Hover a line for its numbers, click a box for its details. History is on <a href="/diagnostics">Diagnostics</a>.</p>
+	</div>
+	<div class="d-flex flex-wrap gap-2 align-items-center">
+		<span class="small text-body-secondary" id="nfUpdated" aria-live="polite"></span>
+		<div class="btn-group btn-group-sm" role="group" aria-label="View">
+			<input type="radio" class="btn-check" name="nfView" id="nfViewAuto" value="auto" checked data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewAuto">Auto</label>
+			<input type="radio" class="btn-check" name="nfView" id="nfViewDiagram" value="diagram" data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewDiagram">Diagram</label>
+			<input type="radio" class="btn-check" name="nfView" id="nfViewList" value="list" data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewList">List</label>
+		</div>
+	</div>
+</div>
+
+<div class="row g-3">
+	<div class="col-xxl-9">
+		<div class="card">
+			<div class="card-header py-2 d-flex flex-wrap justify-content-between gap-2">
+				<h5 class="mb-0 fs-6">Traffic flow</h5>
+				<span class="nf-legend">
+					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-low)"></span>light</span>
+					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-mid)"></span>busy</span>
+					<span class="me-2 text-nowrap"><span class="key" style="background:var(--nf-high)"></span>at its peak</span>
+					<span class="me-2 text-nowrap"><span class="key" style="background:repeating-linear-gradient(90deg,var(--nf-idle) 0 5px,transparent 5px 8px)"></span>estimated (worked out from totals)</span>
+				</span>
+			</div>
+			<div class="card-body p-2 nf-box" id="nfBox">
+				<p class="text-body-secondary p-3 mb-0" id="nfEmpty">Waiting for the servers' traffic reports (every 5 seconds through master)…</p>
+				<svg class="nf-svg d-none" id="nfSvg" role="img" aria-label="Traffic between clients and servers"></svg>
+				<div class="nf-stack d-none" id="nfStack"></div>
+			</div>
+		</div>
+	</div>
+	<div class="col-xxl-3">
+		<div class="card" id="nfDetail"><div class="card-header py-2"><h5 class="mb-0 fs-6" id="nfDetailTitle">Details</h5></div>
+			<div class="card-body small" id="nfDetailBody"><p class="text-body-secondary mb-0">Click a box in the diagram to see its busiest message types and its last 10 minutes.</p></div></div>
+	</div>
+</div>
+
+<div class="card mt-3">
+	<div class="card-header py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+		<h5 class="mb-0 fs-6">Connections <span class="text-body-secondary fw-normal small" id="nfPeersNote"></span></h5>
+		<div class="d-flex flex-wrap gap-2 align-items-center">
+			<input type="search" class="form-control form-control-sm w-auto" id="nfPeerSearch" placeholder="Filter" aria-label="Filter connections">
+			<div class="btn-group btn-group-sm" role="group" aria-label="Kind">
+				<input type="radio" class="btn-check" name="nfKind" id="nfKindAll" value="" checked><label class="btn btn-outline-secondary" for="nfKindAll">All</label>
+				<input type="radio" class="btn-check" name="nfKind" id="nfKindGame" value="game"><label class="btn btn-outline-secondary" for="nfKindGame">Game clients</label>
+				<input type="radio" class="btn-check" name="nfKind" id="nfKindWeb" value="web"><label class="btn btn-outline-secondary" for="nfKindWeb">Web clients</label>
+				<input type="radio" class="btn-check" name="nfKind" id="nfKindServer" value="server"><label class="btn btn-outline-secondary" for="nfKindServer">Servers</label>
+			</div>
+		</div>
+	</div>
+	<div class="card-body p-0 table-responsive" id="nfPeers"><p class="text-body-secondary p-3 mb-0">Loading…</p></div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/network-graph.js"></script>
+<script>
+(function () {
+	var G = window.NetworkGraph;
+	var nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+	var PEAK_SECONDS = 300;
+	var summary = null, peers = null, selected = null, detail = null;
+	var expanded = {}, clientsExpanded = false, webExpanded = false, kind = '', search = '';
+	var view = (document.querySelector('input[name="nfView"]:checked') || {}).value || 'auto';
+	var history = {}; // edge id -> [[time, value]] for the load colours
+	var svg = document.getElementById('nfSvg'), box = document.getElementById('nfBox'), stack = document.getElementById('nfStack');
+
+	function bytes(v) {
+		if (v >= 1073741824) return (v / 1073741824).toFixed(2) + ' GB';
+		if (v >= 1048576) return (v / 1048576).toFixed(1) + ' MB';
+		if (v >= 1024) return (v / 1024).toFixed(1) + ' kB';
+		return Math.round(v) + ' B';
+	}
+	function rateText(side, e, known) {
+		var unit = e.kind === 'http' || e.kind === 'peer-http' ? ' req/s' : e.kind === 'peer' ? ' datagrams/s' : ' pkt/s';
+		return nf.format(side.packets) + unit + (known ? ', ' + bytes(side.bytes) + '/s' : '');
+	}
+	function edgeValue(e) { return e.fwd.bytes + e.back.bytes || e.fwd.packets + e.back.packets; }
+	function labelOf(id) { var n = graphNodes[id]; return n ? n.label : id; }
+
+	// Keeps each link's value for PEAK_SECONDS, to colour it by its load against its own recent peak
+	function remember(graph, now) {
+		graph.edges.forEach(function (e) {
+			var list = history[e.id] = history[e.id] || [];
+			list.push([now, edgeValue(e)]);
+			while (list.length && list[0][0] < now - PEAK_SECONDS) list.shift();
+		});
+	}
+	function peakOf(id) { return (history[id] || []).reduce(function (m, p) { return Math.max(m, p[1]); }, 0); }
+
+	var graphNodes = {}, graph = null;
+	function render() {
+		if (!summary) return;
+		graph = G.build(summary, { expanded: expanded, clientsExpanded: clientsExpanded, webExpanded: webExpanded, peers: peers ? peers.peers : null });
+		graphNodes = {};
+		graph.nodes.forEach(function (n) { graphNodes[n.id] = n; });
+		var hasServers = Object.keys(summary.servers || {}).length > 0;
+		document.getElementById('nfEmpty').classList.toggle('d-none', hasServers);
+		var width = box.clientWidth || 800;
+		var list = view === 'list' || (view === 'auto' && width < 640);
+		svg.classList.toggle('d-none', !hasServers || list);
+		stack.classList.toggle('d-none', !hasServers || !list);
+		if (!hasServers) return;
+		if (list) renderStack(); else renderDiagram(width);
+	}
+
+	function nodeMeta(n) {
+		var lines = [];
+		if (n.kind === 'clients') lines.push(nf.format(n.connections) + ' connected' + (clientsExpanded ? '' : ''));
+		else if (n.kind === 'web') lines.push(n.websockets ? nf.format(n.websockets) + ' live pages' : 'browsers, API');
+		else if (n.kind === 'peer') {
+			var p = n.peer;
+			lines.push(p.kind === 'web' ? 'web' : (n.ping != null ? n.ping + ' ms' : ''));
+		} else {
+			var parts = [];
+			if (n.instances > 1) parts.push(n.instances + ' instances');
+			if (n.connections) parts.push(nf.format(n.connections) + ' conn');
+			if (n.ping != null) parts.push(n.ping + ' ms');
+			lines.push(parts.join(' · '));
+			var more = [];
+			if (n.workersThreads) more.push('workers ' + nf.format(n.workersBusy) + '/' + nf.format(n.workersThreads) + (n.workersQueued ? ' +' + nf.format(n.workersQueued) : ''));
+			if (n.websockets) more.push(nf.format(n.websockets) + ' ws');
+			if (n.resends) more.push(nf.format(n.resends) + ' resent');
+			if (more.length) lines.push(more.join(' · '));
+		}
+		return lines.filter(Boolean);
+	}
+
+	function renderDiagram(width) {
+		var L = G.layout(graph, width);
+		var html = '';
+		graph.edges.forEach(function (e) {
+			var p = L.paths[e.id];
+			if (!p) return;
+			var load = G.loadClass(edgeValue(e), peakOf(e.id));
+			var lanes = [['fwd', e.fwd, e.bytesKnown.fwd], ['back', e.back, e.bytesKnown.back]];
+			html += '<g class="edge' + (e.exact ? '' : ' estimated') + '" data-edge="' + esc(e.id) + '">';
+			lanes.forEach(function (lane) {
+				var side = lane[1], value = lane[2] ? side.bytes : side.packets * 200;
+				var w = G.width(value), dur = G.speed(side.packets);
+				html += '<path class="lane load-' + (value > 0 ? load : 'idle') + '" stroke-width="' + w + '" d="' + p[lane[0]] + '"/>';
+				if (dur) html += '<path class="flow load-' + load + '" stroke-width="' + Math.max(1.5, w * 0.6) + '" style="animation-duration:' + dur + 's" d="' + p[lane[0]] + '"/>';
+			});
+			html += '<path class="hit" d="' + p.fwd + '"/></g>';
+		});
+		graph.nodes.forEach(function (n) {
+			var at = L.nodes[n.id];
+			var x = at.x - L.nodeWidth / 2, y = at.y - L.nodeHeight / 2;
+			var meta = nodeMeta(n);
+			var chars = Math.floor((L.nodeWidth - 16) / 6.6);
+			var name = n.label.length > chars ? n.label.slice(0, chars - 1) + '…' : n.label;
+			var canToggle = n.kind === 'zone' && n.instances > 1 || n.kind === 'world' && expanded[n.zone] || n.kind === 'clients' || n.kind === 'web';
+			var open = n.kind === 'world' || (n.kind === 'clients' && clientsExpanded) || (n.kind === 'web' && webExpanded);
+			html += '<g class="node' + (selected === n.id ? ' selected' : '') + '" data-node="' + esc(n.id) + '" tabindex="0" role="button" aria-label="' + esc(n.label) + '">' +
+				'<rect x="' + x + '" y="' + y + '" width="' + L.nodeWidth + '" height="' + L.nodeHeight + '" rx="8"/>' +
+				'<text class="name" x="' + (x + 8) + '" y="' + (y + 17) + '">' + esc(name) + '</text>';
+			meta.forEach(function (line, i) {
+				html += '<text class="meta' + (/resent/.test(line) ? ' warn' : '') + '" x="' + (x + 8) + '" y="' + (y + 32 + i * 13) + '">' + esc(line.length > chars + 4 ? line.slice(0, chars + 3) + '…' : line) + '</text>';
+			});
+			if (n.noSplit) html += '<text class="meta warn" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end"><title>This server reports only totals: its links are estimated</title>≈</text>';
+			else if (canToggle) html += '<text class="toggle" data-toggle="' + esc(n.id) + '" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end">' + (open ? '−' : '+') + '</text>';
+			html += '</g>';
+		});
+		svg.setAttribute('viewBox', '0 0 ' + L.width + ' ' + L.height);
+		svg.setAttribute('height', L.height);
+		svg.innerHTML = html;
+	}
+
+	// Phones: every box with its links, busiest first
+	function renderStack() {
+		var max = graph.edges.reduce(function (m, e) { return Math.max(m, edgeValue(e)); }, 0) || 1;
+		stack.innerHTML = graph.nodes.map(function (n) {
+			var links = graph.edges.filter(function (e) { return e.from === n.id; }).sort(function (a, b) { return edgeValue(b) - edgeValue(a); });
+			return '<div class="nf-row" data-node="' + esc(n.id) + '" role="button" tabindex="0"><div class="d-flex justify-content-between"><b>' + esc(n.label) + '</b><span class="small text-body-secondary">' + esc(nodeMeta(n).join(' · ')) + '</span></div>' +
+				links.map(function (e) {
+					var load = G.loadClass(edgeValue(e), peakOf(e.id));
+					return '<div class="small mt-1">→ ' + esc(labelOf(e.to)) + (e.exact ? '' : ' <span class="badge text-bg-secondary">estimated</span>') +
+						'<div class="text-body-secondary">out ' + esc(rateText(e.fwd, e, e.bytesKnown.fwd)) + ' · back ' + esc(rateText(e.back, e, e.bytesKnown.back)) + '</div>' +
+						'<div class="nf-bar" style="width:' + Math.max(2, edgeValue(e) / max * 100).toFixed(1) + '%;background:var(--nf-' + load + ')"></div></div>';
+				}).join('') + '</div>';
+		}).join('');
+	}
+
+	// Hover: a link's numbers each way
+	var tip = document.createElement('div');
+	tip.className = 'nf-tip d-none';
+	box.appendChild(tip);
+	svg.addEventListener('mousemove', function (ev) {
+		var g = ev.target.closest('[data-edge]');
+		if (!g || !graph) { tip.classList.add('d-none'); return; }
+		var e = graph.edges.filter(function (x) { return x.id === g.dataset.edge; })[0];
+		if (!e) return;
+		var peak = peakOf(e.id);
+		tip.innerHTML = '<div class="fw-semibold">' + esc(labelOf(e.from)) + ' ⇄ ' + esc(labelOf(e.to)) + '</div>' +
+			'<div>→ ' + esc(rateText(e.fwd, e, e.bytesKnown.fwd)) + '</div><div>← ' + esc(rateText(e.back, e, e.bytesKnown.back)) + '</div>' +
+			(peak ? '<div class="text-body-secondary">5 min peak: ' + esc(e.fwd.bytes + e.back.bytes ? bytes(peak) + '/s' : nf.format(peak) + '/s') + '</div>' : '') +
+			(e.exact ? '' : '<div class="text-warning-emphasis">Estimated</div>') +
+			e.notes.map(function (t) { return '<div class="text-body-secondary">' + esc(t) + '</div>'; }).join('') +
+			(e.kind === 'http' ? '<div class="text-body-secondary">HTTP: requests, and the bodies answered</div>' : '');
+		tip.classList.remove('d-none');
+		var r = box.getBoundingClientRect();
+		var x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 10;
+		if (x + tip.offsetWidth > r.width) x = ev.clientX - r.left - tip.offsetWidth - 14;
+		tip.style.left = Math.max(0, x) + 'px';
+		tip.style.top = y + 'px';
+	});
+	svg.addEventListener('mouseleave', function () { tip.classList.add('d-none'); });
+
+	function onNode(ev) {
+		var toggle = ev.target.closest('[data-toggle]');
+		var el = ev.target.closest('[data-node]');
+		if (!el || !graph) return;
+		var n = graphNodes[el.dataset.node];
+		if (!n) return;
+		if (toggle) {
+			if (n.kind === 'zone' || n.kind === 'world') expanded[n.zone] = !expanded[n.zone];
+			else if (n.kind === 'clients') { clientsExpanded = !clientsExpanded; if (clientsExpanded) loadPeers(); }
+			else if (n.kind === 'web') { webExpanded = !webExpanded; if (webExpanded) loadPeers(); }
+			render();
+			return;
+		}
+		selected = n.id;
+		render();
+		showDetail(n);
+	}
+	svg.addEventListener('click', onNode);
+	stack.addEventListener('click', onNode);
+	[svg, stack].forEach(function (el) {
+		el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onNode(ev); } });
+	});
+
+	function sparkline(series) {
+		var n = series.times.length, max = 1;
+		['packets_in', 'packets_out'].forEach(function (k) { series[k].forEach(function (v) { if (v > max) max = v; }); });
+		var path = function (values) {
+			return values.map(function (v, i) { return (i ? 'L' : 'M') + (i / Math.max(1, n - 1) * 300).toFixed(1) + ',' + (58 - v / max * 54).toFixed(1); }).join('');
+		};
+		return '<svg class="nf-spark" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="Packets per second over the last 10 minutes">' +
+			'<path d="' + path(series.packets_in) + '" style="stroke:var(--bs-primary)"/><path d="' + path(series.packets_out) + '" style="stroke:var(--nf-mid)"/></svg>' +
+			'<div class="nf-legend d-flex justify-content-between"><span><span class="key" style="background:var(--bs-primary)"></span>in <span class="key ms-2" style="background:var(--nf-mid)"></span>out (packets/s, 10 min)</span><span>peak ' + esc(nf.format(max)) + '/s</span></div>';
+	}
+
+	function messageTable(list, direction) {
+		var rows = list.filter(function (m) { return m.direction === direction; });
+		if (!rows.length) return '<p class="text-body-secondary mb-2">Nothing in the last 5 minutes.</p>';
+		return '<table class="table table-sm mb-2 nf-table"><tbody>' + rows.map(function (m) {
+			return '<tr><td><code>' + esc(m.game_message || m.packet) + '</code> <span class="text-body-secondary">' + esc(m.service) + '</span></td><td class="text-end">' + esc(nf.format(m.count)) + '</td><td class="text-end">' + esc(bytes(m.bytes)) + '</td></tr>';
+		}).join('') + '</tbody></table>';
+	}
+
+	function linkList(n) {
+		var links = graph.edges.filter(function (e) { return e.from === n.id || e.to === n.id; });
+		if (!links.length) return '';
+		return '<div class="mb-2">' + links.map(function (e) {
+			var out = e.from === n.id, other = out ? e.to : e.from;
+			var sent = out ? e.fwd : e.back, got = out ? e.back : e.fwd;
+			return '<div>' + esc(labelOf(other)) + (e.exact ? '' : ' <span class="badge text-bg-secondary">estimated</span>') + '<div class="text-body-secondary">sends ' + esc(rateText(sent, e, out ? e.bytesKnown.fwd : e.bytesKnown.back)) +
+				' · gets ' + esc(rateText(got, e, out ? e.bytesKnown.back : e.bytesKnown.fwd)) + '</div></div>';
+		}).join('') + '</div>';
+	}
+
+	function showDetail(n) {
+		var title = document.getElementById('nfDetailTitle'), body = document.getElementById('nfDetailBody');
+		title.textContent = n.label;
+		detail = n.id;
+		var intro = linkList(n);
+		if (n.kind === 'clients' || n.kind === 'web' || n.kind === 'peer') {
+			var who = n.kind === 'peer' ? n.peer : null;
+			body.innerHTML = intro + (who ? '<div>' + esc(who.address) + (who.account ? ' · ' + esc(who.account) : '') + (who.character ? ' · ' + esc(who.character) : '') + '</div>' : '') +
+				'<p class="text-body-secondary mb-0">Each connection is in the Connections table below.' + (n.kind === 'peer' ? '' : ' The + on the box shows the busiest ones in the diagram.') + '</p>';
+			return;
+		}
+		if (n.servers.length > 1) {
+			body.innerHTML = intro + '<p class="mb-1">' + esc(n.servers.length) + ' instances:</p><ul class="mb-2">' + n.servers.map(function (k) {
+				var s = summary.servers[k];
+				return '<li><a href="/diagnostics?server=' + encodeURIComponent(k) + '">' + esc(s.label) + '</a> <span class="text-body-secondary">' + esc(nf.format(s.packets_in + s.packets_out)) + ' pkt/s</span></li>';
+			}).join('') + '</ul><p class="text-body-secondary mb-0">The + on the box shows each instance in the diagram.</p>';
+			return;
+		}
+		var key = n.servers[0];
+		body.innerHTML = intro + '<p class="text-body-secondary mb-0">Loading…</p>';
+		api.get('/api/diagnostics/network/server?key=' + encodeURIComponent(key)).then(function (d) {
+			if (detail !== n.id || !d.success) return;
+			var gauges = d.gauges || {}, link = d.link || {};
+			var facts = [];
+			if (link.connections != null) facts.push(nf.format(link.connections) + ' connections, ' + nf.format(link.ping_ms) + ' ms average ping');
+			if (link.resends) facts.push(nf.format(link.resends) + ' messages resent in the last report' + (link.resend_queue ? ', ' + nf.format(link.resend_queue) + ' waiting' : ''));
+			if (gauges.workers_threads) facts.push('workers ' + nf.format(gauges.workers_busy || 0) + ' of ' + nf.format(gauges.workers_threads) + ' busy' + (gauges.workers_queued ? ', ' + nf.format(gauges.workers_queued) + ' queued' : ''));
+			if (gauges.websocket_clients) facts.push(nf.format(gauges.websocket_clients) + ' live dashboard pages');
+			if (gauges.http_deferred_pending) facts.push(nf.format(gauges.http_deferred_pending) + ' requests waiting on workers');
+			body.innerHTML = intro + (facts.length ? '<ul class="mb-2 ps-3">' + facts.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '') +
+				sparkline(d.series) +
+				'<h6 class="mt-3 mb-1 small fw-semibold">Busiest in <span class="text-body-secondary fw-normal">(5 min)</span></h6>' + messageTable(d.messages, 'in') +
+				'<h6 class="mb-1 small fw-semibold">Busiest out</h6>' + messageTable(d.messages, 'out') +
+				'<a href="/diagnostics?server=' + encodeURIComponent(key) + '">Open in Diagnostics</a>';
+		}).catch(function () {});
+	}
+
+	function renderPeers() {
+		var el = document.getElementById('nfPeers');
+		if (!peers) return;
+		document.getElementById('nfPeersNote').textContent = peers.addresses_shown ? '(each server\'s last report)' : '(addresses hidden: they need the Network addresses permission)';
+		var rows = peers.peers.filter(function (p) {
+			if (kind && p.kind !== kind) return false;
+			if (!search) return true;
+			var text = [p.address, p.account, p.character].concat(p.servers.map(function (s) { return s.label; })).join(' ').toLowerCase();
+			return text.indexOf(search) !== -1;
+		});
+		if (!peers.reported) { el.innerHTML = '<p class="text-body-secondary p-3 mb-0">No server has reported its connections yet (servers older than this dashboard don\'t).</p>'; return; }
+		var KIND = { game: 'Game client', web: 'Web client', server: 'Server' };
+		var html = '<table class="table table-sm table-hover align-middle mb-0 nf-table small"><thead><tr><th>Address</th><th>Kind</th><th>Player</th><th>Servers</th><th class="text-end">In/s</th><th class="text-end">Out/s</th><th class="text-end">Ping</th></tr></thead><tbody>';
+		html += rows.slice(0, 300).map(function (p) {
+			var pings = p.servers.filter(function (s) { return s.ping_ms != null; }).map(function (s) { return s.ping_ms; });
+			var player = p.character ? esc(p.character) + ' <span class="text-body-secondary">(' + esc(p.account) + ')</span>' : p.account ? esc(p.account) : '';
+			if (p.account_id) player = '<a href="/accounts/' + encodeURIComponent(p.account_id) + '">' + player + '</a>';
+			return '<tr><td><code>' + esc(p.address) + '</code></td><td>' + esc(KIND[p.kind] || p.kind) + '</td><td>' + player + '</td>' +
+				'<td>' + p.servers.map(function (s) {
+					return '<div title="' + esc((s.http ? 'HTTP: requests' : 'RakNet: datagrams') + ', ' + s.peer) + '">' + esc(s.label) + (s.port != null ? ' <span class="text-body-secondary">:' + esc(s.port) + '</span>' : '') +
+						' <span class="text-body-secondary">' + esc(bytes(s.bytes_in)) + '/s in, ' + esc(bytes(s.bytes_out)) + '/s out' + (s.resends ? ', ' + esc(nf.format(s.resends)) + ' resent' : '') + '</span></div>';
+				}).join('') + '</td>' +
+				'<td class="text-end">' + esc(bytes(p.bytes_in)) + '<div class="text-body-secondary">' + esc(nf.format(p.packets_in)) + '</div></td>' +
+				'<td class="text-end">' + esc(bytes(p.bytes_out)) + '<div class="text-body-secondary">' + esc(nf.format(p.packets_out)) + '</div></td>' +
+				'<td class="text-end">' + (pings.length ? esc(Math.max.apply(null, pings)) + ' ms' : '-') + '</td></tr>';
+		}).join('');
+		(peers.others || []).forEach(function (o) {
+			if (kind && kind !== 'game' && kind !== 'web') return;
+			html += '<tr class="text-body-secondary"><td colspan="3">' + esc(nf.format(o.count)) + ' more</td><td>' + esc(o.label) + '</td><td class="text-end">' + esc(bytes(o.bytes_in)) + '</td><td class="text-end">' + esc(bytes(o.bytes_out)) + '</td><td></td></tr>';
+		});
+		html += '</tbody></table>';
+		el.innerHTML = rows.length || (peers.others || []).length ? html : '<p class="text-body-secondary p-3 mb-0">No connections' + (kind || search ? ' match' : '') + '.</p>';
+	}
+
+	var loadingPeers = false;
+	function loadPeers() {
+		if (loadingPeers || document.hidden) return;
+		loadingPeers = true;
+		api.get('/api/diagnostics/network/connections').then(function (d) {
+			loadingPeers = false;
+			if (!d.success) return;
+			peers = d;
+			renderPeers();
+			if (clientsExpanded || webExpanded) render();
+		}, function () { loadingPeers = false; });
+	}
+
+	function update(data) {
+		summary = data;
+		var now = data.time || Math.floor(Date.now() / 1000);
+		remember(G.build(summary, {}), now);
+		render();
+		document.getElementById('nfUpdated').textContent = 'Updated ' + new Date(now * 1000).toLocaleTimeString();
+	}
+
+	function load() {
+		if (document.hidden) return;
+		api.get('/api/diagnostics/network').then(function (d) { if (d.success) update(d); }).catch(function () {});
+	}
+
+	// Live from the traffic topic; nothing is drawn while the tab is hidden, and it catches up when shown
+	Live.onTopic('traffic', function (data) {
+		if (document.hidden || !data || !data.servers) return;
+		update(data);
+	});
+	document.addEventListener('visibilitychange', function () {
+		svg.classList.toggle('paused', document.hidden);
+		if (!document.hidden) { load(); loadPeers(); }
+	});
+	document.querySelectorAll('input[name="nfView"]').forEach(function (r) {
+		r.addEventListener('change', function () { view = r.value; render(); });
+	});
+	document.querySelectorAll('input[name="nfKind"]').forEach(function (r) {
+		r.addEventListener('change', function () { kind = r.value; renderPeers(); });
+	});
+	document.getElementById('nfPeerSearch').addEventListener('input', function (e) { search = e.target.value.trim().toLowerCase(); renderPeers(); });
+	window.addEventListener('resize', Live.throttle(render, 200));
+	setInterval(loadPeers, 5000);
+	setInterval(load, 30000); // in case the socket is down
+	load();
+	loadPeers();
+})();
+</script>
+{% endblock %}

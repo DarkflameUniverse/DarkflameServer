@@ -101,4 +101,7 @@ if(NODE_EXECUTABLE)
 	# Which links the dashboard follows without a reload, and its in-place update rules (static/js/nav.js)
 	add_test(NAME NavRulesJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/nav.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/nav.js")
+	# The Network page's diagram model: nodes and links from the traffic summary (static/js/network-graph.js)
+	add_test(NAME NetworkGraphJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/network-graph.test.mjs"
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/network-graph.js")
 endif()

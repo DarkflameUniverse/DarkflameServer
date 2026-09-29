@@ -79,7 +79,7 @@
 	var COLORS = ['var(--tr-1)', 'var(--tr-2)', 'var(--tr-3)', 'var(--tr-4)', 'var(--tr-5)', 'var(--tr-6)'];
 	var OTHER = 'var(--tr-other)';
 	var range = (document.querySelector('input[name="trRange"]:checked') || {}).value || '5m';
-	var server = '';
+	var server = new URLSearchParams(location.search).get('server') || ''; // the Network page links here with ?server=<key>
 	var direction = 'in';
 	var data = null;
 
