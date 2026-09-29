@@ -1593,8 +1593,8 @@ static_assert(static_cast<int64_t>(MessageType::Game::VEHICLE_ADD_SLIPPERY_ACTIO
 static_assert(static_cast<int64_t>(MessageType::Game::VEHICLE_REMOVE_SLIPPERY_ACTION) == 1590);
 static_assert(static_cast<int64_t>(MessageType::Game::SET_RESURRECT_RESTORE_VALUES) == 1591);
 static_assert(static_cast<int64_t>(MessageType::Game::GET_MASS) == 1592);
-static_assert(static_cast<int64_t>(MessageType::Game::SET_PROPERTY_MODERATION_STATUS) == 1593);
-static_assert(static_cast<int64_t>(MessageType::Game::UPDATE_PROPERTY_MODEL_DEFAULTS) == 1594);
+static_assert(static_cast<int64_t>(MessageType::Game::UPDATE_PROPERTY_MODEL_DEFAULTS) == 1593);
+static_assert(static_cast<int64_t>(MessageType::Game::SET_PROPERTY_MODERATION_STATUS) == 1594);
 static_assert(static_cast<int64_t>(MessageType::Game::UPDATE_PROPERTYMODEL_COUNT) == 1595);
 static_assert(static_cast<int64_t>(MessageType::Game::GET_PROPERTY_MODEL_COUNT) == 1596);
 static_assert(static_cast<int64_t>(MessageType::Game::IS_PLAYER_LOADED) == 1597);
