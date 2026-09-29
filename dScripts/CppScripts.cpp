@@ -117,6 +117,7 @@
 #include "PetDigBuild.h"
 #include "SpawnLionServer.h"
 #include "BaseEnemyApe.h"
+#include "BaseEnemySpiderling.h"
 #include "GfApeSmashingQB.h"
 #include "ZoneGfProperty.h"
 #include "GfArchway.h"
@@ -466,6 +467,7 @@ namespace {
 		{"scripts\\ai\\GF\\L_GF_PET_DIG_BUILD.lua", []() {return new PetDigBuild();}},
 		{"scripts\\02_server\\Map\\GF\\L_SPAWN_LION_SERVER.lua", []() {return new SpawnLionServer();}},
 		{"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_APE.lua", []() {return new BaseEnemyApe();}},
+		{"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua", []() {return new BaseEnemySpiderling();}},
 		{"scripts\\02_server\\Enemy\\General\\L_GF_APE_SMASHING_QB.lua", []() {return new GfApeSmashingQB();}},
 		{"scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua", []() {return new ZoneGfProperty();}},
 		{"scripts\\ai\\GF\\L_GF_ARCHWAY.lua", []() {return new GfArchway();}},
@@ -735,7 +737,6 @@ namespace {
 
 	std::set<std::string> g_ExcludedScripts = {
 		"scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua",
-		"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua",
 		"scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua",
 		"scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua",
 		"scripts\\ai\\WILD\\L_WILD_GF_FROG.lua",

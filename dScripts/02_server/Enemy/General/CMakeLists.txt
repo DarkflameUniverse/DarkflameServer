@@ -1,6 +1,7 @@
 set(DSCRIPTS_SOURCES_02_SERVER_ENEMY_GENERAL 
 	"BaseEnemyMech.cpp"
 	"BaseEnemyApe.cpp"
+	"BaseEnemySpiderling.cpp"
 	"CountdownDestroyAI.cpp"
 	"GfApeSmashingQB.cpp"
 	"TreasureChestDragonServer.cpp"
