@@ -11,6 +11,7 @@ set(DGAMETEST_SOURCES
 	"CollisionFilterTests.cpp"
 	"ItemSetPassiveAbilityTests.cpp"
 	"PowerUpStatisticTests.cpp"
+	"PlayerStatisticTests.cpp"
 	"BrickByBrickTests.cpp"
 	"PropertyBuildersTests.cpp"
 	"ModularBuildTableTests.cpp"

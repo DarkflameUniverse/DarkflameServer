@@ -14,6 +14,7 @@
 #include "Loot.h"
 #include "StatisticID.h"
 #include <optional>
+#include <chrono>
 
 enum class eGameActivity : uint32_t;
 
@@ -228,9 +229,23 @@ public:
 	void TrackRaceCompleted(bool won);
 
 	/**
-	 * Tracks an updated position for a player
+	 * Tracks an updated position for a player: MetersTraveled (DistanceDriven while racing). The whole meters count at
+	 * once; the client is told in batches, as live did (MetersTraveled once METERS_TRAVELED_BATCH have gathered,
+	 * DistanceDriven every DISTANCE_DRIVEN_INTERVAL seconds), and the rest when the player leaves the world
+	 * (FlushMovementStatistics).
 	 */
 	void TrackPositionUpdate(const NiPoint3& newPosition);
+
+	/**
+	 * Tells the client the meters it hasn't been told yet (live sent a last MetersTraveled, 0 included, after the
+	 * player's objects were taken down on leaving the world).
+	 */
+	void FlushMovementStatistics();
+
+	// How many unsent MetersTraveled make live send them (live's values: nearly all 25 to 33 while moving)
+	static constexpr uint64_t METERS_TRAVELED_BATCH = 25;
+	// How often DistanceDriven went out while racing (live: every few hundred packets, about 1300 units at race speed; inferred)
+	static constexpr float DISTANCE_DRIVEN_INTERVAL = 10.0f;
 
 	/**
 	 * Handles a zone statistic update
@@ -247,6 +262,12 @@ public:
 	 * @param fromClient whether the client reported it; those are not trusted for the dashboard's daily totals
 	 */
 	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1, bool fromClient = false);
+
+	/**
+	 * Sends UpdatePlayerStatistic to the player: the client adds updateValue to the passport statistic. Live sent it
+	 * for every statistic the server counted (docs/CaptureUnknowns.md).
+	 */
+	void SendPlayerStatistic(StatisticID updateID, uint64_t updateValue) const;
 
 	/**
 	 * Add a venture vision effect to the player minimap.
@@ -507,6 +528,14 @@ private:
 	 * Should be a double and then truncated so decimals can be tracked
 	 */
 	uint64_t m_MetersTraveled;
+
+	// Parts of a meter not counted yet, and counted meters the client hasn't been told (TrackPositionUpdate)
+	float m_MetersRemainder = 0.0f;
+	uint64_t m_UnsentMeters = 0;
+	float m_DrivenRemainder = 0.0f;
+	uint64_t m_UnsentDriven = 0;
+	float m_DrivenSinceSend = 0.0f; // seconds
+	std::chrono::steady_clock::time_point m_LastDrivenUpdate{};
 
 	/**
 	 * Total amount of times this character was smashed, either by other entities or by going out of bounds

@@ -25,6 +25,7 @@
 #include "eReplicaPacketType.h"
 #include "PlayerManager.h"
 #include "GhostComponent.h"
+#include "CharacterComponent.h"
 #include <ranges>
 
 // Configure which zones have ghosting disabled, mostly small worlds.
@@ -451,6 +452,12 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 	stream.Write<uint16_t>(entity->GetNetworkId());
 
 	Game::server->Send(stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
+
+	// A player taken down for everyone is leaving the world: live then sent the meters its client hadn't been told
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS && entity->IsPlayer()) {
+		auto* characterComponent = entity->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->FlushMovementStatistics();
+	}
 
 	// Players still loading were to get it once loaded: only the ones it was taken down for (all of them, or the one
 	// player; taking it down for one player, e.g. out of their ghosting range, leaves the others' queue alone)

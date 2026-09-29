@@ -33,7 +33,9 @@
 #include "ZoneInstanceManager.h"
 #include "ClientPackets.h"
 #include "MessageType/Game.h"
+#include "PlayerMessages.h"
 #include <ctime>
+#include <cmath>
 #include <ranges>
 
 CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress) : Component(parent, componentID) {
@@ -619,12 +621,50 @@ void CharacterComponent::TrackRaceCompleted(bool won) {
 
 void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
 	const auto distance = NiPoint3::Distance(newPosition, m_Parent->GetPosition());
+	if (!std::isfinite(distance)) return;
+
+	// Whole meters count at once; the parts of a meter add up
+	auto& remainder = m_IsRacing ? m_DrivenRemainder : m_MetersRemainder;
+	remainder += distance;
+	const auto meters = static_cast<uint64_t>(remainder);
+	remainder -= static_cast<float>(meters);
 
 	if (m_IsRacing) {
-		UpdatePlayerStatistic(DistanceDriven, static_cast<uint64_t>(distance));
+		const auto now = std::chrono::steady_clock::now();
+		if (m_LastDrivenUpdate != std::chrono::steady_clock::time_point{}) m_DrivenSinceSend += std::chrono::duration<float>(now - m_LastDrivenUpdate).count();
+		m_LastDrivenUpdate = now;
+		if (meters > 0) UpdatePlayerStatistic(DistanceDriven, meters);
+		m_UnsentDriven += meters;
+		if (m_DrivenSinceSend >= DISTANCE_DRIVEN_INTERVAL) {
+			SendPlayerStatistic(DistanceDriven, m_UnsentDriven);
+			m_UnsentDriven = 0;
+			m_DrivenSinceSend = 0.0f;
+		}
 	} else {
-		UpdatePlayerStatistic(MetersTraveled, static_cast<uint64_t>(distance));
+		if (meters > 0) UpdatePlayerStatistic(MetersTraveled, meters);
+		m_UnsentMeters += meters;
+		if (m_UnsentMeters >= METERS_TRAVELED_BATCH) {
+			SendPlayerStatistic(MetersTraveled, m_UnsentMeters);
+			m_UnsentMeters = 0;
+		}
 	}
+}
+
+void CharacterComponent::FlushMovementStatistics() {
+	if (m_UnsentDriven > 0) SendPlayerStatistic(DistanceDriven, m_UnsentDriven);
+	SendPlayerStatistic(MetersTraveled, m_UnsentMeters);
+	m_UnsentDriven = 0;
+	m_UnsentMeters = 0;
+	m_DrivenSinceSend = 0.0f;
+}
+
+void CharacterComponent::SendPlayerStatistic(StatisticID updateID, uint64_t updateValue) const {
+	if (m_SystemAddress == UNASSIGNED_SYSTEM_ADDRESS) return;
+	GameMessages::UpdatePlayerStatistic statistic;
+	statistic.target = m_Parent->GetObjectID();
+	statistic.updateID = static_cast<int32_t>(updateID);
+	statistic.updateValue = static_cast<int64_t>(updateValue);
+	statistic.SendToClient(m_SystemAddress);
 }
 
 void CharacterComponent::HandleZoneStatisticsUpdate(LWOMAPID zoneID, const std::u16string& name, int32_t value) {
@@ -730,6 +770,9 @@ void CharacterComponent::UpdatePlayerStatistic(StatisticID updateID, uint64_t up
 	default:
 		break;
 	}
+
+	// Live told the client at once; the meters go out in batches (TrackPositionUpdate)
+	if (!fromClient && updateID != MetersTraveled && updateID != DistanceDriven) SendPlayerStatistic(updateID, updateValue);
 }
 
 void CharacterComponent::InitializeStatisticsFromString(const std::string& statisticsString) {

@@ -100,7 +100,8 @@ namespace GameMessages {
 		LWOMAPID zoneID{ LWOMAPID_INVALID }; // optional
 	};
 
-	// Client -> server here; live sent it server -> client (live captures hold no client -> server copy). The client's CharacterComponent adds updateValue
+	// Server -> client (CharacterComponent::SendPlayerStatistic), as live sent it; live captures hold no client -> server
+	// copy, but one is still counted when it comes. The client's CharacterComponent adds updateValue
 	// to the passport statistic and, for every statistic but MetersTraveled, updates the passport UI. updateID is a
 	// StatisticID. See docs/CaptureUnknowns.md.
 	struct UpdatePlayerStatistic : public NetGameMsg {
