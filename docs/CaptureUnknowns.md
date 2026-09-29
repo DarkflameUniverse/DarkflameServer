@@ -1,4 +1,4 @@
-# Capture unknowns: GM 716, 1726, 1481 and ignored client messages
+# Capture unknowns: GM 716, 1726, 1481, ignored client messages and server-only tables
 
 Open questions left by the live packet capture comparison, answered from the 1.10.64 client (`legouniverse.exe`) and the
 2011/2012 live captures (553 capture zips).
@@ -176,6 +176,23 @@ checked against the Initialize functions (G). "Server should" is D/I unless mark
 | 469 | SetTooltipFlag | 2 / - | UI / script (factory only) | Persist `char@ttip` (D) |
 | 903 | SetIgnoreProjectileCollision | 1 / - | `ForceMovementBehavior::Cast`, `ForceMovementStatusEffect::Run` | Set shouldIgnoreProjectileCollision (D) |
 
+Handled now:
+
+| ID | Message | DLU |
+|---|---|---|
+| 851 | SetMissionTypeState | Stored on MissionComponent, saved as live wrote it: `<mis>...<ts><type v="Build"><st sub="" val="1"/></type></ts>` (C). The client's loader reads `v` from `<ts>`, not from each `<type>` (G 0x00d171c0). |
+| 469 | SetTooltipFlag | Bit set or cleared as the client does (clear masks `~1 << n`, which also clears the lower bits; n > 127 ignored; G 0x00d34330); saved as `char@ttip`, a u64 (G 0x00ca4910, C). |
+| 890 | SetLastCustomBuild | Kept as the rocket config (`char@lcbp`, format `1:LOT;1:LOT;1:LOT;`, C). Sent when the carried rocket is assembled: at the launchpad and when landing (C). |
+| 120 | CasterDead | Ends the caster's skill with that handle (pending hits dropped) when the server also sees the caster as dead (I). The target is the attacked player; the client sends it from `msgEchoStartSkill` (G 0x00d5dc90). |
+| 1238 | ResyncEquipment | The player's equipment is serialized again. Live answered with replica serializations only (C). |
+| 1479 | RequestRailActivatorState | Answered with NotifyRailActivatorStateChange (level key `rail_activator_active`, default true) to that client (C: all 413 true). |
+| 1485 | ModifyGhostingDistance | Read and ignored: every live sample was the default scale (C). |
+| world 120 | UgcDownloadFailed | Read and logged. Sent for every blueprint file whose request did not end with HTTP 200, including files not downloaded (status 0; 1520 of 1525 live) (G 0x0105e5c0, C). Live sent nothing back. The client's logout (`NET_DISCONNECT_FAILED_DOWNLOAD_UGC`, G 0x0102b9c0) is its own decision after repeated connection failures; no server message affects it. |
+
+Not handled (the server side is unclear or needs the messages it answers with): 932 BounceNotification and 660
+NotifyPet (RequestClientBounce, ClientNotifyPet), 1072 / 1406 / 1371 / 915 (property build mode protocol), 1577,
+1419, 358, 1166, 667, 1632, 1746, 1004, 903.
+
 ## 5. Message names fixed in DLU
 
 IDs unchanged; only enum names.
@@ -189,3 +206,15 @@ IDs unchanged; only enum names.
 
 716, 1481 and 1726 were already named correctly. About 150 other enum names differ from other message references
 (spelling, missing entries); they were not checked in Ghidra and are unchanged.
+
+## 6. Server-only CDClient tables
+
+The 1.10.64 client has no string for these tables (G), so only the live server read them. Meanings are from the 1.10.64
+CDClient data (joined with ComponentsRegistry, Missions, MissionTasks, LootMatrix and the level files) and the live Lua.
+
+| Table | Columns | Meaning | DLU |
+|---|---|---|---|
+| CollectibleComponent (79) | id, requirement_mission | The mission a collectible belongs to: usually the achievement whose collection task targets the collectible's LOT; for some, a mission to accept first (2040 for the Ninjago dragon relics, which achievements 2064-2067 collect). -1 / 66666666 on test rows. | A collectible counts only while its requirement mission (when it is a mission, not an achievement) is accepted (I). |
+| EventGating (8) | eventName, date_start, date_end | Holiday event and its Unix times (UTC, inclusive): pirateDay 2011-09-19 to 2011-09-20, buildNexusTower 2010-03-09 to 2011-03-14, test rows. Lua: `GetHolidayEvent{eventToCheck}.isValid`, used only by the Crux Prime random spawners (pirateDay loads). | Read; an event runs in its dates or when event_1..event_8 names it; the str and zip random spawners use the pirateDay loads. |
+| SmashableComponent (5) | id, LootMatrixIndex | No ComponentsRegistry type refers to it and 3 of its 5 loot matrices (28, 30, 31) do not exist. | Unused (no object has it). |
+| RebuildSections (99) | rebuildID (RebuildComponent.id 1-27), objectID (piece LOT), offset_x/y/z, fall_angle_x/y/z and fall_height (19 rows), requires_list (piece placed first, 54 rows), size (0/1/2), bPlaced (14 rows) | Pieces of the early piece-by-piece quickbuilds ("Contest", "Team Nine Times", ZP and "? - Crate Solo" rebuilds). None of the 27 rebuilds or their pieces is placed in a 1.10.64 level or LUZ spawner. | Unused (no live object has it). |
