@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <limits>
+#include <stdexcept>
 
 namespace {
 constexpr uint32_t kMaxResolution = 4096;
@@ -13,6 +14,13 @@ constexpr uint32_t kMaxChunks = 1024;
 } // namespace
 
 namespace Raw {
+
+	// Little-endian values as the file has them, in one read (the heights of a chunk are millions of floats)
+	template<typename T>
+	static void ReadArray(std::istream& stream, std::vector<T>& values) {
+		stream.read(reinterpret_cast<char*>(values.data()), static_cast<std::streamsize>(values.size() * sizeof(T)));
+		if (!stream) throw std::runtime_error("Failed to read from istream.");
+	}
 
 bool Chunk::IsValidForSceneLookup() const {
 	return !sceneMap.empty() && colorMapResolution > 0 && !heightMap.empty()
@@ -68,9 +76,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 		try {
 			BinaryIO::BinaryRead(stream, meshTri.meshTriListSize);
 			meshTri.meshTriList.resize(meshTri.meshTriListSize);
-			for (uint16_t i = 0; i < meshTri.meshTriListSize; ++i) {
-				BinaryIO::BinaryRead(stream, meshTri.meshTriList[i]);
-			}
+			ReadArray(stream, meshTri.meshTriList);
 			return true;
 		} catch (const std::exception&) {
 			return false;
@@ -148,9 +154,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			}
 
 			chunk.heightMap.resize(heightMapSize);
-			for (size_t i = 0; i < heightMapSize; ++i) {
-				BinaryIO::BinaryRead(stream, chunk.heightMap[i]);
-			}
+			ReadArray(stream, chunk.heightMap);
 
 			if (stream.fail()) {
 				return false;
@@ -333,9 +337,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				return false;
 			}
 			chunk.meshVertUsage.resize(chunk.vertSize);
-			for (uint32_t i = 0; i < chunk.vertSize; ++i) {
-				BinaryIO::BinaryRead(stream, chunk.meshVertUsage[i]);
-			}
+			ReadArray(stream, chunk.meshVertUsage);
 
 			if (stream.fail()) {
 				return false;
