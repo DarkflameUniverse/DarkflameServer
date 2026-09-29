@@ -8,6 +8,7 @@
 #include "NiQuaternion.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 dpShapeBox::dpShapeBox(dpEntity* parentEntity, float width, float height, float depth) :
@@ -106,6 +107,37 @@ float dpShapeBox::SquaredDistanceTo(const NiPoint3& point) const {
 	const float dY = local.y - std::clamp(local.y, 0.0f, m_Height * 2.0f);
 	const float dZ = local.z - std::clamp(local.z, -m_Depth, m_Depth);
 	return dX * dX + dY * dY + dZ * dZ;
+}
+
+std::optional<float> dpShapeBox::SegmentEntry(const NiPoint3& a, const NiPoint3& b) const {
+	// Into the box's frame (origin the middle of its bottom face), then clip the segment against each pair of faces
+	const auto inverse = glm::conjugate(m_Orientation);
+	const auto localA = (a - m_Origin).RotateByQuaternion(inverse);
+	const auto localB = (b - m_Origin).RotateByQuaternion(inverse);
+
+	const float start[3]{ localA.x, localA.y, localA.z };
+	const float delta[3]{ localB.x - localA.x, localB.y - localA.y, localB.z - localA.z };
+	const float min[3]{ -m_Width, 0.0f, -m_Depth };
+	const float max[3]{ m_Width, m_Height * 2.0f, m_Depth };
+
+	bool startsInside = true;
+	float enter = 0.0f;
+	float exit = 1.0f;
+	for (int axis = 0; axis < 3; axis++) {
+		if (start[axis] < min[axis] || start[axis] > max[axis]) startsInside = false;
+		if (std::abs(delta[axis]) < 1e-6f) {
+			if (start[axis] < min[axis] || start[axis] > max[axis]) return std::nullopt;
+			continue;
+		}
+		float tNear = (min[axis] - start[axis]) / delta[axis];
+		float tFar = (max[axis] - start[axis]) / delta[axis];
+		if (tNear > tFar) std::swap(tNear, tFar);
+		enter = std::max(enter, tNear);
+		exit = std::min(exit, tFar);
+		if (enter > exit) return std::nullopt;
+	}
+	if (startsInside) return std::nullopt;
+	return enter;
 }
 
 void dpShapeBox::InitVertices() {

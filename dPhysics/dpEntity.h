@@ -41,6 +41,7 @@ public:
 	void SetAngularVelocity(const NiPoint3& newAngularVelocity);
 
 	dpShapeBase* GetShape() { return m_CollisionShape; }
+	const dpShapeBase* GetShape() const { return m_CollisionShape; }
 
 	bool GetIsStatic() const { return m_IsStatic; }
 

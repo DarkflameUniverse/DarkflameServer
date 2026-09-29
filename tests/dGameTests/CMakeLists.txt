@@ -10,6 +10,7 @@ set(DGAMETEST_SOURCES
 	"ContrabandTests.cpp"
 	"KnockbackTests.cpp"
 	"CollisionFilterTests.cpp"
+	"MovementBlockerTests.cpp"
 	"ItemSetPassiveAbilityTests.cpp"
 	"PowerUpStatisticTests.cpp"
 	"PlayerStatisticTests.cpp"

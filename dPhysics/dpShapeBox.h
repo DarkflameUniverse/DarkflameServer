@@ -1,5 +1,6 @@
 #pragma once
 #include "dpShapeBase.h"
+#include <optional>
 #include <vector>
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -38,6 +39,13 @@ public:
 	 * bounds are the axis aligned box around the rotated one, which for a rotated wall is far bigger than the wall.
 	 */
 	float SquaredDistanceTo(const NiPoint3& point) const;
+
+	/**
+	 * Where the segment from a to b first goes into the box, as a fraction of the way from a to b (0 to 1), tested
+	 * against the box's real (rotated) shape. Empty when the segment misses the box, or starts inside it (so
+	 * something already in the box can always leave it).
+	 */
+	std::optional<float> SegmentEntry(const NiPoint3& a, const NiPoint3& b) const;
 
 	void InitVertices();
 

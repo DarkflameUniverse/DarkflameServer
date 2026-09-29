@@ -22,6 +22,8 @@ namespace {
 	std::vector<dpEntity*> m_StaticEntities;
 	std::vector<dpEntity*> m_DynamicEntites;
 	bool phys_spatial_partitioning = true;
+
+	std::vector<dpMovementBlocker> m_MovementBlockers;
 };
 
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
@@ -84,6 +86,8 @@ void dpWorld::Shutdown() {
 		delete m_NavMesh;
 		m_NavMesh = nullptr;
 	}
+
+	m_MovementBlockers.clear();
 }
 
 bool dpWorld::IsLoaded() {
@@ -186,4 +190,21 @@ bool dpWorld::ShouldUseSP(uint32_t zoneID) {
 	}
 
 	return false;
+}
+
+void dpWorld::AddMovementBlocker(const dpEntity* entity, const uint32_t filter) {
+	if (!entity) return;
+	m_MovementBlockers.push_back({ entity, filter });
+}
+
+void dpWorld::RemoveMovementBlocker(const dpEntity* entity) {
+	std::erase_if(m_MovementBlockers, [entity](const dpMovementBlocker& blocker) { return blocker.entity == entity; });
+}
+
+std::span<const dpMovementBlocker> dpWorld::GetMovementBlockers() {
+	return m_MovementBlockers;
+}
+
+std::vector<NiPoint3> dpWorld::ClampPath(const NiPoint3& start, std::vector<NiPoint3> path, const uint32_t moverFilter) {
+	return dpMovementBlockers::ClampPath(m_MovementBlockers, start, std::move(path), moverFilter);
 }
