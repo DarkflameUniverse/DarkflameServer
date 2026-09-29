@@ -25,6 +25,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 | 691 | Tracking Issue: Hardcoded Content | partial | `fec4159e` refactor: modular build items and root part come from ModularBuildComponent<br>`d4a1a993` refactor: power-up statistics come from the power-up's pickup skill<br>`e44eaf18` refactor: item set passive abilities come from the CDClient and item scripts |
 | 746 | Tracking Issue: Missing Scripts | partial | `4ad7ddd9` feat: add missing force field, jetpack NPC and Skullkin volume scripts |
 | 764 | BUG: Driving the wrong way does not warp you back | done | `6febb6d6` fix(racing): put racers going the wrong way back on the track |
+| 928 | WSL CMake packages | done | `6335c87f` docs: CMake from Kitware's repository without apt-key (issue 928) |
 | 943 | ENH: Add config option for charging property rent | done | `680615ba` feat: optional property rent |
 | 957 | Username approved popup | partial | `57925d1e` feat(moderation): a name decision shows as a popup to the player, as live did (issue 957) (online players; offline players not told at next login) |
 | 960 | ENH: Make use of `minNumRequired` when deleting items | done | `02108055` feat(inventory): enforce DeletionRestrictions when deleting items |
