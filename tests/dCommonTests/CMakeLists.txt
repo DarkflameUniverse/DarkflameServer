@@ -50,7 +50,7 @@ if(APPLE)
 endif()
 
 # Link needed libraries
-target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
+target_link_libraries(dCommonTests ${COMMON_LIBRARIES} MD5 GTest::gtest_main)
 # SpareBackoff.h (header only)
 target_include_directories(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dMasterServer")
 

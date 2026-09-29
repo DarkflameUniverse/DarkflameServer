@@ -11,6 +11,7 @@
 
 #include "dCommonDependencies.h"
 #include "LevelFile.h"
+#include "MD5.h"
 #include "Sd0.h"
 #include "ZoneFile.h"
 
@@ -26,10 +27,16 @@ namespace {
 		return {};
 	}
 
-	// Files on disk that are damaged themselves, not misread
+	// Files on disk that are damaged themselves, not misread, by the MD5 of their bytes
 	const std::set<std::string> DAMAGED_FILES = {
 		"72895c754d511a92335abae03400ac0b", // MD5 of a scene file that claims 81 objects in 910 bytes
 	};
+
+	bool IsDamaged(const std::filesystem::path& path) {
+		std::ifstream file(path, std::ios::binary);
+		const std::string bytes{ std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
+		return DAMAGED_FILES.contains(MD5(bytes).hexdigest());
+	}
 
 	std::vector<std::filesystem::path> FilesWithExtension(const std::string& extension) {
 		std::vector<std::filesystem::path> files;
@@ -41,7 +48,7 @@ namespace {
 			if (!it->is_regular_file(error) || it->file_size(error) == 0) continue;
 			auto fileExtension = it->path().extension().string();
 			std::ranges::transform(fileExtension, fileExtension.begin(), ::tolower);
-			if (fileExtension == extension && !DAMAGED_FILES.contains(it->path().filename().string())) files.push_back(it->path());
+			if (fileExtension == extension && !IsDamaged(it->path())) files.push_back(it->path());
 		}
 		std::ranges::sort(files);
 		return files;
