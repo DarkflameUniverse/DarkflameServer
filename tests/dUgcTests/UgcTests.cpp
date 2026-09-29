@@ -2002,6 +2002,67 @@ namespace {
 	}
 }
 
+TEST(UgcHsr, FastMethodRendersFromAround) {
+	EXPECT_EQ(UgcHsr::Parse("fast"), UgcHsr::eMethod::FAST);
+	EXPECT_EQ(UgcHsr::Parse("toolbox"), UgcHsr::eMethod::TOOLBOX);
+	EXPECT_FALSE(UgcHsr::Parse("slow"));
+	EXPECT_EQ(UgcRender::SphereDirections().size(), 42u);
+
+	// A small box inside the big one: its faces can't be seen
+	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	std::string error;
+	const auto parts = UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks>
+		<Brick><Part designID="3002" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		<Brick><Part designID="3001" materials="21"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
+		</Bricks></LXFML>)", error);
+	auto model = UgcModel::Build(parts, library);
+	UgcHsr::Options options;
+	options.method = UgcHsr::eMethod::FAST;
+	options.fastResolution = 256;
+	const auto result = UgcHsr::RemoveHiddenFaces(model, options);
+	EXPECT_EQ(result.trianglesRemoved, 12u);
+	EXPECT_EQ(model.opaque.TriangleCount(), 12u);
+	EXPECT_EQ(result.paths, 0u);
+
+	// A small box in a closed chamber whose only opening is a narrow chimney at the other end: nothing outside sees it
+	// straight, so the fast method removes it; light bounced in through the chimney reaches some of it, so the toolbox
+	// method keeps that
+	UgcModel::Model chamber;
+	auto& mesh = chamber.opaque;
+	AddBox(mesh, glm::vec3(-0.9f, 0.0f, -0.15f), glm::vec3(-0.6f, 0.2f, 0.15f)); // the small box
+	AddBox(mesh, glm::vec3(-1.2f, -0.2f, -1.2f), glm::vec3(1.2f, 0.0f, 1.2f));   // floor
+	AddBox(mesh, glm::vec3(-1.2f, 0.0f, -1.2f), glm::vec3(-1.0f, 0.5f, 1.2f));   // walls
+	AddBox(mesh, glm::vec3(1.0f, 0.0f, -1.2f), glm::vec3(1.2f, 0.5f, 1.2f));
+	AddBox(mesh, glm::vec3(-1.0f, 0.0f, -1.2f), glm::vec3(1.0f, 0.5f, -1.0f));
+	AddBox(mesh, glm::vec3(-1.0f, 0.0f, 1.0f), glm::vec3(1.0f, 0.5f, 1.2f));
+	AddBox(mesh, glm::vec3(-1.2f, 0.5f, -1.2f), glm::vec3(0.6f, 0.7f, 1.2f));    // roof around the chimney's hole
+	AddBox(mesh, glm::vec3(0.9f, 0.5f, -1.2f), glm::vec3(1.2f, 0.7f, 1.2f));
+	AddBox(mesh, glm::vec3(0.6f, 0.5f, -1.2f), glm::vec3(0.9f, 0.7f, -0.15f));
+	AddBox(mesh, glm::vec3(0.6f, 0.5f, 0.15f), glm::vec3(0.9f, 0.7f, 1.2f));
+	AddBox(mesh, glm::vec3(0.5f, 0.7f, -0.25f), glm::vec3(0.6f, 2.2f, 0.25f));   // the chimney
+	AddBox(mesh, glm::vec3(0.9f, 0.7f, -0.25f), glm::vec3(1.0f, 2.2f, 0.25f));
+	AddBox(mesh, glm::vec3(0.6f, 0.7f, -0.25f), glm::vec3(0.9f, 2.2f, -0.15f));
+	AddBox(mesh, glm::vec3(0.6f, 0.7f, 0.15f), glm::vec3(0.9f, 2.2f, 0.25f));
+	const auto seen = UgcRender::VisibleFromAround(chamber, 512, false);
+	ASSERT_EQ(seen.size(), mesh.TriangleCount());
+	for (size_t t = 0; t < 12; t++) EXPECT_FALSE(seen[t]) << t;
+	UgcHsr::Options toolbox;
+	toolbox.samples = 32;
+	const auto traced = UgcHsr::Visible(mesh, toolbox);
+	EXPECT_TRUE(std::any_of(traced.begin(), traced.begin() + 12, [](bool kept) { return kept; }));
+
+	// Its files are the same every time
+	auto settings = SmallSettings();
+	settings.hsr.method = UgcHsr::eMethod::FAST;
+	settings.hsr.fastResolution = 128;
+	const auto first = UgcJobs::ProcessModel(LXFML5, library, settings, 7);
+	ASSERT_TRUE(first.ok) << first.error;
+	EXPECT_EQ(first.files.at("model.nif.checksum"), UgcJobs::ProcessModel(LXFML5, library, settings, 7).files.at("model.nif.checksum"));
+#if defined(__linux__) && defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+	EXPECT_EQ(UgcFormats::Md5Hex(*ZCompression::Gunzip(first.files.at("model.nif.gz"))), "4bd664412c88333431842eb82a0abfac");
+#endif
+}
+
 TEST(UgcRays, NamesAndFallback) {
 	for (const auto backend : { UgcRays::eBackend::BUILTIN, UgcRays::eBackend::EMBREE, UgcRays::eBackend::HIPRT }) {
 		EXPECT_EQ(UgcRays::Parse(UgcRays::Name(backend)), backend);

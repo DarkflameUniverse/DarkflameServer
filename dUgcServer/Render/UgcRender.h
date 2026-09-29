@@ -72,6 +72,17 @@ namespace UgcRender {
 	Image RenderIcon(const UgcModel::Model& model, const IconOptions& options, const std::vector<float>* opaqueAo = nullptr);
 
 	/**
+	 * The fast hidden-face test (hsr_method=fast, what the UGC server did before it traced LU Toolbox's paths): the
+	 * opaque mesh rendered from 42 directions around the whole model (SphereDirections), `resolution` pixels square;
+	 * per opaque triangle whether it shows in any of them (with a conservative test, so small visible ones stay).
+	 * Faces seen only by bounced light (interiors, recesses) don't show. `groundPlane`: nothing is seen from below.
+	 */
+	std::vector<bool> VisibleFromAround(const UgcModel::Model& model, int resolution, bool groundPlane);
+
+	// The 42 directions VisibleFromAround renders from (an icosahedron's corners and edge centres), unit length
+	std::vector<glm::vec3> SphereDirections();
+
+	/**
 	 * Ambient occlusion of each vertex of `mesh`: the share of `samples` rays (cosine weighted around the vertex
 	 * normal, the same pattern every time) that leave without hitting a triangle of `occluders` within `distance`.
 	 * 1 is open, 0 fully hidden.

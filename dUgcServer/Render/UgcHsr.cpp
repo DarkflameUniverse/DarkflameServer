@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include "UgcRays.h"
+#include "UgcRender.h"
 #include "UgcThrottle.h"
 
 namespace {
@@ -407,6 +408,17 @@ namespace {
 }
 
 namespace UgcHsr {
+	std::string_view Name(eMethod method) {
+		return method == eMethod::FAST ? "fast" : "toolbox";
+	}
+
+	std::optional<eMethod> Parse(std::string_view name) {
+		for (const auto method : { eMethod::TOOLBOX, eMethod::FAST }) {
+			if (Name(method) == name) return method;
+		}
+		return std::nullopt;
+	}
+
 	std::vector<glm::vec3> SamplePoints(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, float spacing, size_t minimum) {
 		// Too small to lay out: the centre and one point towards each corner (the centres of its four halved-side
 		// triangles)
@@ -501,7 +513,8 @@ namespace UgcHsr {
 		auto& opaque = model.opaque;
 		result.trianglesBefore = opaque.TriangleCount() + model.transparent.TriangleCount();
 		if (opaque.Empty() || !options.enabled) return result;
-		result.kept = Visible(opaque, options, &result.points, &result.paths);
+		result.kept = options.method == eMethod::FAST ? UgcRender::VisibleFromAround(model, options.fastResolution, options.groundPlane) :
+			Visible(opaque, options, &result.points, &result.paths);
 		for (const bool kept : result.kept) result.trianglesRemoved += kept ? 0 : 1;
 		UgcModel::KeepTriangles(opaque, result.kept);
 		return result;
