@@ -592,7 +592,11 @@ if (document.getElementById('noteForm')) {
 		if (del && confirm('Delete this entry from the history?')) api.action('/api/account_notes/' + del.dataset.deleteNote + '/delete', {}).then(loadNotes).catch(function () {});
 	});
 	loadNotes();
-	if (window.Live) Live.on('account_notes', Live.throttle(function (e) { if (!e.id || e.id === String(accountId)) loadNotes(); }, 1000));
+	// Only changes to this account's history; throttled after that check, since a throttled call gets no event
+	if (window.Live) {
+		var reloadNotes = Live.throttle(loadNotes, 1000);
+		Live.on('account_notes', function (e) { if (!e.id || String(e.id) === String(accountId)) reloadNotes(); });
+	}
 }
 function toggleLock(locked) {
 	if (!confirm((locked ? 'Lock' : 'Unlock') + ' this account?')) return;
