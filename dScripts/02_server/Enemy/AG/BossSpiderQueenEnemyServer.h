@@ -65,6 +65,11 @@ public:
 	static std::vector<LWOOBJID> BuildRapidFireTargets(const std::string& primaryZone, bool clockwise,
 		const std::function<std::vector<RapidFireTarget>(const std::string& group)>& groupTargets);
 
+	// The rain of fire's impacts: every target of the first group and ROFImpactCnt different random targets of each
+	// other group. randomIndex(n) returns a number in [0, n).
+	static std::vector<LWOOBJID> PickRainOfFireImpacts(const std::vector<std::vector<LWOOBJID>>& groups,
+		const std::function<size_t(size_t count)>& randomIndex);
+
 	// A player touched one of the arena's zone volumes (group Zone1Vol..Zone8Vol, AggroVol or TeleVol)
 	void OnZoneVolumeEntered(Entity* self, Entity* player, const std::string& volumeGroup);
 
@@ -99,7 +104,7 @@ private:
 
 	const std::vector<int> spiderWaveCntTable = { 2, 3 };	//The number of Dark Spiderling enemies to spawn per indexed wave number
 
-	const int ROFImpactCnt = 2;			//The number of ROF impacts in each quadrant of the arena selected at random
+	static constexpr size_t ROFImpactCnt = 2;			//The number of ROF impacts in each quadrant of the arena selected at random
 
 	const LOT SpiderlingID = 16197;		//Reference obj ID for hatched Spiderlings
 

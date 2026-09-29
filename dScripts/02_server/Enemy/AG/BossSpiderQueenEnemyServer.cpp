@@ -352,30 +352,19 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 	ToggleForSpecial(self, true);
 	SetRainOfFireStun(self, true);
 
-	impactList.clear();
-
-	auto index = 0u;
+	std::vector<std::vector<LWOOBJID>> targetGroups;
 	for (const auto& rofGroup : ROFTargetGroupIDTable) {
-		const auto spawners = Game::zoneManager->GetSpawnersInGroup(rofGroup);
-
-		std::vector<LWOOBJID> spawned;
-
-		for (auto* spawner : spawners) {
+		auto& spawned = targetGroups.emplace_back();
+		for (auto* spawner : Game::zoneManager->GetSpawnersInGroup(rofGroup)) {
 			for (const auto* node : spawner->m_Info.nodes) {
 				spawned.insert(spawned.end(), node->entities.begin(), node->entities.end());
 			}
 		}
-
-		if (index == 0) {
-			impactList.insert(impactList.end(), spawned.begin(), spawned.end());
-		} else if (!spawned.empty()) {
-			const auto randomIndex = GeneralUtils::GenerateRandomNumber<int32_t>(0, spawned.size() - 1);
-
-			impactList.push_back(spawned[randomIndex]);
-		}
-
-		index++;
 	}
+
+	impactList = PickRainOfFireImpacts(targetGroups, [](const size_t count) {
+		return GeneralUtils::GenerateRandomNumber<size_t>(0, count - 1);
+	});
 
 	const auto animTime = PlayAnimAndReturnTime(self, spiderROFAnim);
 
@@ -502,6 +491,25 @@ std::vector<LWOOBJID> BossSpiderQueenEnemyServer::BuildRapidFireTargets(const st
 	}
 
 	return attackTargets;
+}
+
+std::vector<LWOOBJID> BossSpiderQueenEnemyServer::PickRainOfFireImpacts(const std::vector<std::vector<LWOOBJID>>& groups,
+	const std::function<size_t(size_t count)>& randomIndex) {
+	std::vector<LWOOBJID> impacts;
+	for (size_t i = 0; i < groups.size(); i++) {
+		if (i == 0) {
+			impacts.insert(impacts.end(), groups[i].begin(), groups[i].end());
+			continue;
+		}
+
+		auto remaining = groups[i];
+		for (size_t picked = 0; picked < ROFImpactCnt && !remaining.empty(); picked++) {
+			const auto index = randomIndex(remaining.size());
+			impacts.push_back(remaining[index]);
+			remaining.erase(remaining.begin() + static_cast<std::ptrdiff_t>(index));
+		}
+	}
+	return impacts;
 }
 
 void BossSpiderQueenEnemyServer::OnZoneVolumeEntered(Entity* self, Entity* player, const std::string& volumeGroup) {

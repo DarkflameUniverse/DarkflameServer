@@ -149,6 +149,13 @@ TEST_F(SpiderQueenTest, RapidFireSweepsOverTheEdgeBetweenZonesEightAndOne) {
 	EXPECT_EQ(BossSpiderQueenEnemyServer::BuildRapidFireTargets("Zone2Vol", true, ArenaGroup), Ids({ 1, 2, 3, 4, 5, 6, 7 }));
 }
 
+TEST_F(SpiderQueenTest, RainOfFireTakesTheFirstGroupAndTwoOfEachOther) {
+	const std::vector<std::vector<LWOOBJID>> groups = { { 1, 2, 3 }, { 10, 11, 12, 13 }, { 20 }, {}, { 40, 41 } };
+	// Always the last remaining target
+	const auto impacts = BossSpiderQueenEnemyServer::PickRainOfFireImpacts(groups, [](const size_t count) { return count - 1; });
+	EXPECT_EQ(impacts, (std::vector<LWOOBJID>{ 1, 2, 3, 13, 12, 20, 41, 40 }));
+}
+
 TEST_F(SpiderQueenTest, ZoneVolumesTellTheBossWhereThePlayerIs) {
 	for (const auto& group : { "Zone1Vol", "Zone2Vol", "Zone3Vol", "Zone4Vol", "Zone5Vol", "Zone6Vol", "Zone7Vol", "Zone8Vol", "AggroVol", "TeleVol" }) {
 		Add(0x2000 + static_cast<LWOOBJID>(entities.size()), 14400, { group });
