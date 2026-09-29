@@ -97,8 +97,10 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 		outBitStream.Write(m_ImmuneToStunInteractCount);
 	}
 
-	outBitStream.Write(m_DirtyCheats || bIsInitialUpdate);
-	if (m_DirtyCheats || bIsInitialUpdate) {
+	// Live wrote the cheat block on construction only when the gravity or speed was changed from 1.
+	const bool writeCheats = bIsInitialUpdate ? (m_GravityScale != 1.0f || m_SpeedMultiplier != 1.0f) : m_DirtyCheats;
+	outBitStream.Write(writeCheats);
+	if (writeCheats) {
 		outBitStream.Write(m_GravityScale);
 		outBitStream.Write(m_SpeedMultiplier);
 

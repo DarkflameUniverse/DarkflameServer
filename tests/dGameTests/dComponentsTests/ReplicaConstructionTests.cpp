@@ -130,6 +130,35 @@ TEST_F(ReplicaConstructionTest, CharacterConstructionAlwaysWritesGmActivityAndSo
 	player.SetCharacter(nullptr);
 }
 
+// Live wrote the cheat block (gravity scale, speed multiplier) on construction only when one of them was changed: 216
+// of 20,617 controllable-physics constructions had it (players at run speed 1.05, enemies with gravity 0), never 1/1.
+TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionWritesCheatsOnlyWhenChanged) {
+	Entity entity(15, info);
+	auto* const physics = entity.AddComponent<ControllablePhysicsComponent>(-1);
+
+	const auto cheatBits = [physics]() {
+		RakNet::BitStream stream;
+		physics->Serialize(stream, true);
+		stream.IgnoreBits(1 + 1 + 7 * 32); // no jetpack, stun immunities
+		bool hasCheats{};
+		EXPECT_TRUE(stream.Read(hasCheats));
+		std::pair<float, float> cheats{ -1.0f, -1.0f };
+		if (hasCheats) {
+			EXPECT_TRUE(stream.Read(cheats.first));
+			EXPECT_TRUE(stream.Read(cheats.second));
+		}
+		return std::make_pair(hasCheats, cheats);
+	};
+
+	EXPECT_FALSE(cheatBits().first);
+
+	physics->SetSpeedMultiplier(1.05f);
+	const auto [hasCheats, cheats] = cheatBits();
+	EXPECT_TRUE(hasCheats);
+	EXPECT_FLOAT_EQ(cheats.first, 1.0f);
+	EXPECT_FLOAT_EQ(cheats.second, 1.05f);
+}
+
 class InventoryConstructionTest : public GameDependenciesTest {
 protected:
 	// The items of the live sample below (CDClient 1.10.64 values)
