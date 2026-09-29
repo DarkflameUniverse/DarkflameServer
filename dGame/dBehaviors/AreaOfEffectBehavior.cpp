@@ -1,5 +1,7 @@
 #include "AreaOfEffectBehavior.h"
 
+#include <set>
+
 #include <vector>
 
 #include "EntityManager.h"
@@ -47,7 +49,10 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& b
 		targets.push_back(target);
 	}
 
-	for (auto target : targets) {
+	// The client writes the action once per unique target, in ascending id order (AreaOfEffectBehavior::Cast,
+	// 0x004ec590, runs it over a set of the ids), so a target listed twice is handled once
+	const std::set<LWOOBJID> uniqueTargets(targets.begin(), targets.end());
+	for (auto target : uniqueTargets) {
 		branch.target = target;
 		this->m_action->Handle(context, bitStream, branch);
 	}
@@ -96,9 +101,11 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 			bitStream.Write(target->GetObjectID());
 		}
 
-		// then cast all the actions
-		for (auto* target : targets) {
-			branch.target = target->GetObjectID();
+		// then cast the action once per unique target in ascending id order, the order clients read them in
+		std::set<LWOOBJID> uniqueTargets;
+		for (auto* target : targets) uniqueTargets.insert(target->GetObjectID());
+		for (const auto target : uniqueTargets) {
+			branch.target = target;
 			this->m_action->Calculate(context, bitStream, branch);
 		}
 		PlayFx(u"cast", context->originator);
