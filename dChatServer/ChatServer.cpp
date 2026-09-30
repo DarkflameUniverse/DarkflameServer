@@ -33,6 +33,7 @@
 #include "ChatPackets.h"
 #include "master/LiveUpdate.h"
 #include "MasterPackets.h"
+#include "ChatMatchmaking.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -169,6 +170,10 @@ int main(int argc, char** argv) {
 			Profiler::Scope scope("Player container update", Profiler::Phase::ENTITIES);
 			Game::playerContainer.Update(deltaTime);
 		}
+		{
+			Profiler::Scope scope("Matchmaking", Profiler::Phase::ENTITIES);
+			ChatMatchmaking::Update(deltaTime);
+		}
 
 		//Check for packets here:
 		//ReceiveFromMaster also handles the master packets if needed; it hands back the ones for us.
@@ -283,7 +288,15 @@ namespace {
 			handlers.On<GuildKick>(Chat::GUILD_KICK, [](const GuildKick& kick, const SystemAddress&) { ChatGuilds::Get().Kick(kick.playerID, kick.kickedPlayer.GetAsString()); });
 			handlers.On<GuildSetRank>(Chat::GUILD_SET_RANK, [](const GuildSetRank& rank, const SystemAddress&) { ChatGuilds::Get().SetRank(rank.playerID, rank.targetPlayer.GetAsString(), static_cast<eGuildRank>(rank.rank)); });
 			handlers.On<GuildDisband>(Chat::GUILD_DISBAND, [](const GuildDisband& disband, const SystemAddress&) { ChatGuilds::Get().Disband(disband.playerID); });
-			handlers.On<UnexpectedDisconnect>(Chat::UNEXPECTED_DISCONNECT, [](const UnexpectedDisconnect& notify, const SystemAddress& sysAddr) { Game::playerContainer.ScheduleRemovePlayer(notify, sysAddr); });
+			handlers.On<UnexpectedDisconnect>(Chat::UNEXPECTED_DISCONNECT, [](const UnexpectedDisconnect& notify, const SystemAddress& sysAddr) {
+				// The world they are in lost them: they can't be sent from it to an activity. (A world they already left
+				// can say so after they joined a lobby in their new one.)
+				const auto& player = Game::playerContainer.GetPlayerData(notify.playerID);
+				if (player && player.worldServerSysAddr == sysAddr) ChatMatchmaking::PlayerLeftWorld(notify.playerID);
+				Game::playerContainer.ScheduleRemovePlayer(notify, sysAddr);
+			});
+			// Activity lobbies across every world (docs/Matchmaking.md)
+			handlers.On<MatchRequest>(Chat::MATCH_REQUEST, ChatMatchmaking::HandleMatchRequest);
 			handlers.On<FindPlayerRequest>(Chat::WHO, ChatPacketHandler::HandleWho);
 			handlers.On<ShowAllRequest>(Chat::SHOW_ALL, ChatPacketHandler::HandleShowAll);
 			handlers.On<AchievementNotify>(Chat::ACHIEVEMENT_NOTIFY, ChatPacketHandler::OnAchievementNotify);

@@ -13,6 +13,7 @@
 #include "dConfig.h"
 #include "MessageType/Chat.h"
 #include "TeamContainer.h"
+#include "ChatMatchmaking.h"
 #include "ChatGuilds.h"
 #include "GuildManager.h"
 
@@ -57,6 +58,9 @@ void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify
 		ChatGuilds::Get().PlayerOnline(playerId, false);
 		return;
 	}
+
+	// Loaded into a world (a new one when changing zones): a lobby they waited in on their last world is left
+	ChatMatchmaking::PlayerLeftWorld(playerId);
 
 	auto isLogin = !m_Players.contains(playerId);
 	auto& data = m_Players[playerId];

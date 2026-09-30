@@ -1,8 +1,10 @@
 set(DCHATSERVER_SOURCES
 	"ChatIgnoreList.cpp"
+	"ChatMatchmaking.cpp"
 	"ChatPacketHandler.cpp"
 	"ChatGuilds.cpp"
 	"GuildManager.cpp"
+	"Matchmaking.cpp"
 	"PlayerContainer.cpp"
 	"TeamContainer.cpp"
 )
