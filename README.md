@@ -47,7 +47,8 @@ A web dashboard for running and moderating a server, started and supervised by m
 * **Game text from the client:** zone, item and other game names and labels come from the client's locale, in the
   viewer's language (picker in the user menu, or the browser's language), never written into the pages.
 * **Packet capture and replay:** record whole packets for an account, a character or everything; play them back with
-  movement in World 3D; replay bundles against a sandbox stack with a headless client. See
+  movement in World 3D, which follows a player across worlds (live too) with the world changes marked on the
+  timeline; replay bundles against a sandbox stack with a headless client. See
   [docs/CaptureReplay.md](docs/CaptureReplay.md).
 * **Settings:** every setting the servers read, grouped by purpose with typed inputs, conditions, fuzzy search,
   history, and hot reload; values can be set on the page or kept in the `.ini` files.

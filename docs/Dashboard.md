@@ -969,6 +969,14 @@ objects and its sky, with everyone online moving on it live. Pick the zone and, 
 Click a player to see who it is, double-click (or **Follow**) to keep the camera on them; click an object for its name,
 LOT and the scene it belongs to. Needs `client_location`.
 
+Following works across worlds. Live, when the position feed reports the followed player only in another world (another
+zone, or another instance when one instance is picked), the view loads that world's scene, keeps the camera on them
+and says "<name> moved to <zone> #<instance>"; while the old world still reports them, or before the new one does, it
+waits. With **All instances** picked it stays on all instances. In a packet capture's replay the followed character
+is followed the same way at the moment their client's packets move to another world server; a capture of one
+character follows that character from the start. The replay slider marks each world change with the zone's name
+(click a mark to go there); zone names come from the client's locale.
+
 The view fills the window (the page doesn't scroll; the wheel only zooms). View settings are in the **Layers** tab
 (on phones, the **Panel** button opens it from the bottom) and are remembered per account.
 
@@ -1817,7 +1825,9 @@ limits and the replay are in [CaptureReplay.md](CaptureReplay.md).
   to the playhead. Filter by name or server; click a packet for its decoded fields (from the server's own packet
   structs) and its bytes. Game messages show their names; their fields are decoded by the game message inspector.
 - **World 3D** opens the captured movement in World 3D's replay (needs `players_history`); while the capture page
-  plays, its playhead drives World 3D.
+  plays, its playhead drives World 3D, which switches to the world the followed character is on (see World 3D).
+- The slider marks each time a captured character moved to another world server, with the zone's name (and the
+  character's, when there are several); click a mark to go there.
 - **Export bundle** downloads a portable bundle for the capture tool's replay; **Export anonymised** also replaces
   character names and chat, for a local test fixture.
 

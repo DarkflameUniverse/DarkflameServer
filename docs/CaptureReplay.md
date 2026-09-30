@@ -5,6 +5,17 @@ back on the dashboard; and replay it against a throwaway server to see how the s
 takes the 2014 live captures, which makes them a conformance test for the server. The dashboard side is described in
 [Dashboard.md](Dashboard.md#packet-captures); this document is how it works and the rules it follows.
 
+## Playback across worlds
+
+An account or character capture puts every server on one timeline, so one character's packets move from one world
+server to the next when they transfer. `CaptureTools::Worlds` lists each character's world visits in time order: one
+entry each time the packets their client sends (never the server's, since the old world can still send a few after
+the client reached the new one) carry another zone or instance in the record header; zone 0 is character select.
+The dashboard serves them with the zone's name from the client's locale (`/api/inspector/sessions/:id/worlds`, and
+`worlds` in `/positions`, which takes `?zone=all` for every zone's movement). The capture page marks each change on
+its slider; World 3D switches its scene to the followed character's world at that time (`world3d-core.js`
+`captureSwitch`, `worldMarkers`).
+
 Captures, bundles and fixtures are player data. None of them is ever committed: `captures/`, `*.bundle` and
 `tests/fixtures-local/` are in `.gitignore`.
 
@@ -210,4 +221,7 @@ decoder registry knows and checks it writes back to the same bytes; without fixt
   captured character is picked.
 - Arm everything on a busy test server for a minute: no stutter; the capture's size grows about once a second.
 - Play a capture with movement back and open World 3D: the player moves with the playhead.
+- Capture a character that changes worlds (a rocket or a portal): the capture page's slider has a mark at each change
+  named after the new zone; in World 3D, following the character switches the scene at the mark and the camera stays
+  on them, forward and when seeking back.
 - Export a bundle, replay it with `CaptureTool replay`, and open a kept sandbox's logs.
