@@ -14,6 +14,8 @@
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
+static_assert(sizeof(void*) == 8, "The server only builds for 64-bit targets");
+
 // These are the same define, but they mean two different things in different contexts
 // so a different define to distinguish what calculation is happening will help clarity.
 #define FRAMES_TO_MS(x) (1000 / (x))
