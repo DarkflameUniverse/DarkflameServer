@@ -183,3 +183,60 @@ TEST(NetworkViewTest, WebClientsBySignedInAccountWithTheirUserName) {
 	EXPECT_EQ(hidden["peers"][1]["user"], "bob");
 	for (const auto& p : hidden["peers"]) EXPECT_EQ(p["address"], NetworkView::MaskAddress("198.51.100.7", 5));
 }
+
+TEST(NetworkViewTest, ListeningPortsAndMachinesFromTheServerList) {
+	// Auth and a world on master's machine, a second world on another; chat is reporting but not in the list yet
+	TrafficHistory history;
+	history.Ingest(static_cast<uint16_t>(ServiceType::AUTH), 0, 0, WorldReport(true), NOW);
+	history.Ingest(static_cast<uint16_t>(ServiceType::WORLD), 1200, 3, WorldReport(true), NOW);
+	history.Ingest(static_cast<uint16_t>(ServiceType::WORLD), 1200, 4, WorldReport(true), NOW);
+	history.Ingest(static_cast<uint16_t>(ServiceType::CHAT), 0, 0, WorldReport(true), NOW);
+	const NetworkView::Endpoints endpoints{ { "auth", { 1001, "192.0.2.1" } }, { "world:1200:3", { 3015, "192.0.2.1" } },
+		{ "world:1200:4", { 3016, "198.51.100.20" } }, { "master", { 2000, "192.0.2.1" } } };
+
+	const auto json = NetworkView::Summary(history, NOW, 20, Label, endpoints, 77);
+	const auto& servers = json["servers"];
+	EXPECT_EQ(servers["auth"]["port"], 1001);
+	EXPECT_EQ(servers["world:1200:3"]["port"], 3015);
+	EXPECT_EQ(servers["world:1200:4"]["port"], 3016);
+	// The machine is a token, the same for servers on the same machine
+	EXPECT_EQ(servers["auth"]["host"], NetworkView::MaskAddress("192.0.2.1", 77));
+	EXPECT_EQ(servers["auth"]["host"], servers["world:1200:3"]["host"]);
+	EXPECT_EQ(servers["world:1200:4"]["host"], NetworkView::MaskAddress("198.51.100.20", 77));
+	EXPECT_NE(servers["auth"]["host"], servers["world:1200:4"]["host"]);
+	// Not in the list: no port or machine
+	EXPECT_TRUE(servers["chat"]["port"].is_null());
+	EXPECT_TRUE(servers["chat"]["host"].is_null());
+	// It goes to everyone: no addresses
+	const auto dump = json.dump();
+	EXPECT_EQ(dump.find("192.0.2.1"), std::string::npos);
+	EXPECT_EQ(dump.find("198.51.100.20"), std::string::npos);
+
+	// The connection list names the machines only with network_ips
+	const auto shown = NetworkView::Connections(history, NOW, 20, true, 77, Label, endpoints);
+	ASSERT_EQ(shown["hosts"].size(), 2u);
+	EXPECT_EQ(shown["hosts"][NetworkView::MaskAddress("192.0.2.1", 77)], "192.0.2.1");
+	EXPECT_EQ(shown["hosts"][NetworkView::MaskAddress("198.51.100.20", 77)], "198.51.100.20");
+	const auto hidden = NetworkView::Connections(history, NOW, 20, false, 77, Label, endpoints);
+	EXPECT_TRUE(hidden["hosts"].empty());
+	EXPECT_EQ(hidden.dump().find("192.0.2.1"), std::string::npos);
+}
+
+TEST(NetworkViewTest, RemotePortsOnlyWithAddresses) {
+	// A player's and a server link's remote port: shown with network_ips, left out without
+	TrafficHistory history;
+	auto world = WorldReport(true);
+	world.connections = { Connection{ .address = "203.0.113.9", .port = 51234, .peer = Peer::CLIENTS, .bytesIn = 10, .accountId = 3, .account = "carol" },
+		Connection{ .address = "192.0.2.1", .port = 2000, .peer = Peer::MASTER, .bytesIn = 10 } };
+	world.hasConnections = true;
+	history.Ingest(static_cast<uint16_t>(ServiceType::WORLD), 1200, 3, world, NOW);
+	for (const bool show : { true, false }) {
+		const auto json = NetworkView::Connections(history, NOW, 20, show, 1, Label);
+		ASSERT_EQ(json["peers"].size(), 2u);
+		for (const auto& p : json["peers"]) {
+			const auto& port = p["servers"][0]["port"];
+			if (!show) EXPECT_TRUE(port.is_null());
+			else EXPECT_EQ(port, p["kind"] == "game" ? 51234 : 2000);
+		}
+	}
+}

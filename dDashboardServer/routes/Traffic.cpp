@@ -278,17 +278,25 @@ namespace {
 			{"messages_since", since}, {"routes", routes} };
 	}
 
-	// What open pages get every few seconds (the Network page draws it; Diagnostics reloads on it)
-	nlohmann::json Summary(int64_t now) {
-		return NetworkView::Summary(g_History, now, ONLINE_SECONDS, LabelOf);
-	}
-
 	uint64_t AddressSalt() {
 		static const uint64_t salt = [] {
 			std::random_device device;
 			return (static_cast<uint64_t>(device()) << 32) ^ device();
 		}();
 		return salt;
+	}
+
+	// Each server's listening port and machine, from master's last server list
+	NetworkView::Endpoints Endpoints() {
+		NetworkView::Endpoints endpoints;
+		std::lock_guard lock(ServerState::g_StatusMutex);
+		for (const auto& [key, endpoint] : ServerState::g_Endpoints) endpoints[key] = { endpoint.port, endpoint.host };
+		return endpoints;
+	}
+
+	// What open pages get every few seconds (the Network page draws it; Diagnostics reloads on it)
+	nlohmann::json Summary(int64_t now) {
+		return NetworkView::Summary(g_History, now, ONLINE_SECONDS, LabelOf, Endpoints(), AddressSalt());
 	}
 
 	// One server for the Network page's detail panel: what ServerInfo says, its busiest message types each way over the
@@ -448,7 +456,7 @@ namespace Traffic {
 		TrafficStats::Local().SetGauge("workers_threads", [] { return static_cast<double>(Workers::Pool().Threads()); });
 
 		Route(eHTTPMethod::GET, "/api/diagnostics/network", Perm(PERMISSION),
-			"The Network page's live view: every reporting server's packets and bytes per second over its last report, its split by peer (clients, master, other servers; null for servers too old to report one), HTTP requests, RakNet link statistics and gauges",
+			"The Network page's live view: every reporting server's packets and bytes per second over its last report, its split by peer (clients, master, other servers; null for servers too old to report one), HTTP requests, RakNet link statistics, gauges, its listening port and its machine (host: a token; the connections route maps it to the address with network_ips)",
 			[](HTTPReply& reply, const HTTPContext&) {
 				JsonSuccess(reply, Summary(TrafficStats::Now()));
 			});
@@ -462,9 +470,9 @@ namespace Traffic {
 			});
 
 		Route(eHTTPMethod::GET, "/api/diagnostics/network/connections", Perm(PERMISSION),
-			"Every server's remote ends from its last report, grouped by address (game clients' RakNet connections, HTTP clients, server links), with rates, ping and the logged-in player. Addresses only with network_ips; otherwise a token per address",
+			"Every server's remote ends from its last report, grouped by address (game clients' RakNet connections, HTTP clients, server links), with rates, ping and the logged-in player. Addresses and remote ports only with network_ips; otherwise a token per address. hosts: each machine token of the summary to its address (network_ips only)",
 			[](HTTPReply& reply, const HTTPContext& context) {
-				JsonSuccess(reply, NetworkView::Connections(g_History, TrafficStats::Now(), ONLINE_SECONDS, Can(context, IPS_PERMISSION), AddressSalt(), LabelOf));
+				JsonSuccess(reply, NetworkView::Connections(g_History, TrafficStats::Now(), ONLINE_SECONDS, Can(context, IPS_PERMISSION), AddressSalt(), LabelOf, Endpoints()));
 			});
 
 		Route(eHTTPMethod::GET, "/api/diagnostics/traffic", Perm(PERMISSION),

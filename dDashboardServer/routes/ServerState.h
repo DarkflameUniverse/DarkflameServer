@@ -44,6 +44,13 @@ struct WorldInstanceInfo {
 	std::string state{};
 };
 
+// Where a server listens and the machine it runs on, from master's server list
+struct ServerEndpoint {
+	std::string ip{};
+	uint32_t port{0};
+	std::string host{};
+};
+
 namespace ServerState {
 	extern ServerStatus g_AuthStatus;
 	extern ServerStatus g_ChatStatus;
@@ -54,6 +61,8 @@ namespace ServerState {
 	extern std::vector<WorldInstanceInfo> g_WorldInstances;
 	// Worlds master launched that aren't connected yet, or that are shutting down (kept apart: not running)
 	extern std::vector<WorldInstanceInfo> g_PendingWorlds;
+	// Every server master listed, by traffic key ("master", "auth", "world:1200:3")
+	extern std::map<std::string, ServerEndpoint> g_Endpoints;
 	extern std::mutex g_StatusMutex;
 
 	inline nlohmann::json GetServerStateJson() {

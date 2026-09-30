@@ -94,6 +94,7 @@
 #include "WorldView.h"
 #include "PrometheusMetrics.h"
 #include "Traffic.h"
+#include "TrafficHistory.h"
 #include "master/ServerTraffic.h"
 #include "master/Profiling.h"
 #include "Performance.h"
@@ -135,6 +136,7 @@ namespace ServerState {
 	uint32_t g_UgcPid{};
 	std::vector<WorldInstanceInfo> g_WorldInstances{};
 	std::vector<WorldInstanceInfo> g_PendingWorlds{};
+	std::map<std::string, ServerEndpoint> g_Endpoints{};
 	std::mutex g_StatusMutex{};
 }
 
@@ -236,6 +238,12 @@ namespace {
 				info.state = instance.state == eState::STARTING ? "starting" : "stopping";
 				ServerState::g_PendingWorlds.push_back(info);
 			}
+		}
+
+		ServerState::g_Endpoints.clear();
+		for (const auto& endpoint : list.endpoints) {
+			const auto key = TrafficHistory::KeyFor(static_cast<uint16_t>(endpoint.type), endpoint.zoneID, endpoint.instanceID);
+			ServerState::g_Endpoints[key] = { endpoint.ip.string, endpoint.port, endpoint.host.string };
 		}
 
 		LOG_DEBUG("Received server list: auth=%s chat=%s ugc=%s worlds=%u",
@@ -451,6 +459,8 @@ int main(int argc, char** argv) {
 		&Game::lastSignal,
 		masterPassword
 	);
+	// Master (and the Network page) show the port browsers use
+	g_Server->SetAdvertisedPort(ourPort);
 	Game::server = g_Server;
 
 	// What the worker threads read from the CDClient and the settings, read now on this thread: workers never query

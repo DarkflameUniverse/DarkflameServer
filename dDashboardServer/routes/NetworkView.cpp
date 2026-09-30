@@ -47,7 +47,7 @@ namespace NetworkView {
 		return out;
 	}
 
-	nlohmann::json Summary(const TrafficHistory& history, int64_t now, int64_t onlineSeconds, const Labeler& label) {
+	nlohmann::json Summary(const TrafficHistory& history, int64_t now, int64_t onlineSeconds, const Labeler& label, const Endpoints& endpoints, uint64_t salt) {
 		nlohmann::json servers = nlohmann::json::object();
 		for (const auto& [key, server] : history.Servers()) {
 			if (now - server.lastSeen > onlineSeconds || server.seconds.empty()) continue;
@@ -62,6 +62,10 @@ namespace NetworkView {
 			entry["type"] = std::string(magic_enum::enum_name(static_cast<ServiceType>(server.type)));
 			entry["zone"] = server.zoneId;
 			entry["instance"] = server.instanceId;
+			const auto endpoint = endpoints.find(key);
+			const bool known = endpoint != endpoints.end();
+			entry["port"] = known && endpoint->second.port ? nlohmann::json(endpoint->second.port) : nlohmann::json(nullptr);
+			entry["host"] = known && !endpoint->second.host.empty() ? nlohmann::json(MaskAddress(endpoint->second.host, salt)) : nlohmann::json(nullptr);
 			entry["http"] = Rate(p.httpRequests, WINDOW);
 			entry["http_bytes_out"] = Rate(p.httpBytesOut, WINDOW);
 			entry["link"] = { {"connections", server.link.connections}, {"ping_ms", server.link.averagePingMs}, {"resends", server.link.resends},
@@ -88,7 +92,8 @@ namespace NetworkView {
 		return { {"time", now}, {"window", WINDOW}, {"servers", servers} };
 	}
 
-	nlohmann::json Connections(const TrafficHistory& history, int64_t now, int64_t onlineSeconds, bool showAddresses, uint64_t salt, const Labeler& label) {
+	nlohmann::json Connections(const TrafficHistory& history, int64_t now, int64_t onlineSeconds, bool showAddresses, uint64_t salt, const Labeler& label,
+		const Endpoints& endpoints) {
 		struct Group {
 			std::string address;
 			std::string kind = "server";
@@ -173,6 +178,13 @@ namespace NetworkView {
 			}
 			list.push_back(std::move(entry));
 		}
-		return { {"time", now}, {"addresses_shown", showAddresses}, {"reported", anyReported}, {"peers", list}, {"others", others} };
+		// The machines the Summary names by token
+		nlohmann::json hosts = nlohmann::json::object();
+		if (showAddresses) {
+			for (const auto& [_, endpoint] : endpoints) {
+				if (!endpoint.host.empty()) hosts[MaskAddress(endpoint.host, salt)] = endpoint.host;
+			}
+		}
+		return { {"time", now}, {"addresses_shown", showAddresses}, {"reported", anyReported}, {"peers", list}, {"others", others}, {"hosts", hosts} };
 	}
 }
