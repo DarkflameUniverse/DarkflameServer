@@ -37,6 +37,7 @@
 #include "master/Profiling.h"
 #include "master/ServerTraffic.h"
 #include "master/UgcModelsMade.h"
+#include "master/UpdateStatus.h"
 #include "master/WorldFiles.h"
 #include "Profiler.h"
 #include "TrafficStats.h"

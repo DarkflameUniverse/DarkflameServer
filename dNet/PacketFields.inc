@@ -169,6 +169,7 @@ json ToJson(const ProfileRequest& m);
 json ToJson(const ProfileResult& m);
 json ToJson(const ServerTraffic& m);
 json ToJson(const UgcModelsMade& m);
+json ToJson(const UpdateStatus& m);
 json ToJson(const WorldFilesReport& m);
 json ToJson(const WorldReloadRequest& m);
 json ToJson(const WorldFilesStatus& m);
@@ -1515,6 +1516,12 @@ json ToJson(const UgcModelsMade& m) {
 	j["blueprintIds"] = ToJson(m.blueprintIds);
 	return j;
 }
+json ToJson(const UpdateStatus& m) {
+	json j = json::object();
+	j["state"] = ToJson(m.state);
+	j["summary"] = ToJson(m.summary);
+	return j;
+}
 json ToJson(const WorldFilesReport& m) {
 	json j = json::object();
 	j["zoneId"] = ToJson(m.zoneId);
@@ -1916,6 +1923,7 @@ const std::vector<Entry>& Entries() {
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::PROFILE_RESULT), "ProfileResult", false, &ReadWith<ProfileResult> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::SERVER_TRAFFIC), "ServerTraffic", false, &ReadWith<ServerTraffic> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::UGC_MODELS_MADE), "UgcModelsMade", false, &ReadWith<UgcModelsMade> },
+		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::UPDATE_STATUS), "UpdateStatus", false, &ReadWith<UpdateStatus> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_FILES), "WorldFilesReport", false, &ReadWith<WorldFilesReport> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_RELOAD), "WorldReloadRequest", false, &ReadWith<WorldReloadRequest> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_FILES_STATUS), "WorldFilesStatus", false, &ReadWith<WorldFilesStatus> },
