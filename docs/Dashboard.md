@@ -742,11 +742,11 @@ How it is counted:
   resends, ping) and a few gauges (`http_deferred_pending`, `websocket_clients`, `workers_busy`, `workers_queued`,
   `workers_threads`; the UGC server adds `ugc_made_total`, `ugc_failed_total` and `ugc_evicted_total` since it started,
   `ugc_stored_bytes` and `ugc_max_storage_bytes`). Master passes them to the dashboard and sends its own there; the dashboard keeps its own.
-  Newer servers add two optional sections at the end of the report, each after a marker byte: each second's packets by
+  Newer servers add optional sections at the end of the report, each after a marker byte: each second's packets by
   peer with its HTTP requests from and to other servers (about 20 bytes a second), and the 32 busiest remote ends
   (RakNet's datagrams, bytes, resends and ping for each connection, with the player's account and character on worlds;
-  requests and bytes for each HTTP client address) with the rest summed. Reports without them (older servers) still
-  read, and older readers stop before them.
+  requests and bytes for each HTTP client address) with the rest summed, and the main loop's frame timing (see
+  Performance). Reports without them (older servers) still read, and older readers stop before them.
 - The dashboard keeps the last hour at one second in memory, the busiest message types per minute for an hour and per
   hour for a day, and writes one row per server and minute to `server_traffic` once a minute (in one batch, on the
   background thread), kept for `traffic_days` (30; Settings > Data retention, pruned by the Log pruning task). Latency
@@ -798,6 +798,77 @@ in memory from the last report only and never written to the database.
 `status` class), `darkflame_http_response_bytes_total` and the histogram `darkflame_http_request_duration_seconds`
 (buckets at every doubling from 0.1 ms), and the reported gauges as `darkflame_server_<name>`. `server` is `master`,
 `auth`, `chat`, `dashboard`, `ugc` or `world:<zone>:<instance>`. Use `rate()` for per-second values.
+
+### Performance
+
+**Performance** (`health_view`, next to Network) shows how long each server's main loop takes and what it spends the
+time on. It answers "why did this world stall": a frame that took a minute shows as one bar, with the scopes that took
+the time (for example `LoadPlayer > CreateEntity > Component INVENTORY > InventoryComponent::LoadXml`, and the
+`CDClient Objects` lookups under it with how many there were).
+
+- **Servers**: every server's frames per second, average, p95 and longest frame, how busy its loop was (the share of
+  wall time spent in frames rather than sleeping or waiting) and its slow frames, over the last 5 minutes. Click one to
+  pick it (`/performance?server=world:1200:3`).
+- **Frame time** of the picked server (average, p95, longest per second; the dashed line is the slow frame threshold)
+  and **Time per phase**, stacked, in milliseconds per second: packets, entities, physics (on the dashboard and the UGC
+  server, web requests), replica, database, CDClient and other (other includes script timers and log flushes; the
+  tooltip lists every phase). **5 minutes** is at one second, **1 hour** at 10 seconds.
+- **Longest frames** of the last 10 minutes and **Packet handling** (the packet and game message types that took
+  longest to handle over 5 minutes: count, total, average, longest).
+- **Slow frames**: the last 50 frames of every server over `slow_frame_ms` (Settings > Logging and crashes, default
+  250, 0 turns it off). Click one for its timeline: each scope from when it first started, as long as it took, nested.
+  A scope entered many times (a lookup in a loop) is one bar of all its time with the count. The server also logs
+  each one as one line, e.g. `Slow frame: 58213 ms (cdclient 55012 ms, packets 3100 ms): Packet LOAD_LEVEL_COMPLETE
+  58.2 s > LoadPlayer 58.2 s > CreateEntity 58.1 s > Component INVENTORY 58.0 s, CDClient Objects 55.0 s x9800` (the
+  log shows packet and component numbers; the page names them). Work outside the main loop's frames that has scopes
+  (a world's zone load at startup, a web request handled between the dashboard's ticks) is timed the same way, marked
+  "outside loop", and doesn't count as a frame.
+- **Profiling**: with `profiling_run` (Run profiling, GM 8 by default; grant it like any other permission) pick a
+  server and 1 to 60 seconds. The server merges every frame's scope tree for that long and sends it back; **Show**
+  draws it as a flame graph (widths are time over all frames, click a bar to zoom in) and **Folded stacks** downloads it
+  in the format other flame graph tools read (`speedscope`, `inferno`, `flamegraph.pl`). One session per server at a
+  time; **Stop** ends one early with what it has. Starting one is in the audit log (`profile_server`). Sessions are kept
+  in memory (the last 20).
+
+How it is measured (`dCommon/Profiler.h`):
+
+- Every server marks its main loop's frames and scopes inside them on the main thread only (any other thread's scopes
+  do nothing, so worker threads never touch it). A scope costs two `steady_clock` reads and a short search among its
+  parent's children; the frame's scope tree is reused from frame to frame. A scope can name the phase its time counts
+  as; time in nested phases counts once, as the innermost.
+- Scopes: the loop's phases on every server (packet handling per packet type, entity updates, physics step, ghosting,
+  replica serialization and update, spawners, log flush, saving characters, each dashboard module's update, each web
+  request by route), and the known heavy spots: loading a player (`LoadPlayer`), `CreateEntity`, each component's
+  construction (`Component <type>`), `InventoryComponent::LoadXml`, script timers, a world's zone load, and game
+  database queries (`Database query`, in the MySQL and SQLite query helpers).
+- CDClient statements are timed by SQLite itself (`sqlite3_trace_v2` on the CDClient connection): each one the main
+  thread runs counts as `CDClient <table>` under the scope that ran it, in the CDClient phase.
+- Every 5 seconds the traffic report (`SERVER_TRAFFIC`, see Traffic diagnostics) carries an optional section after
+  marker 3: per second the frames, their total and longest time, a frame time histogram (the traffic diagnostics'
+  mergeable buckets) and each phase's time; the 16 packet types that took longest; the 3 longest frames with their 12
+  heaviest scopes; and the slow frames with their 40 heaviest scopes. Reports without it (older servers) still read,
+  and older readers stop before it. A server whose loop is stuck sends nothing; the seconds it missed come with the next
+  report as seconds without frames.
+- Profiling sessions: `PROFILE_REQUEST` (dashboard -> master -> the server) and `PROFILE_RESULT` (server -> master ->
+  dashboard; `dNet/master/Profiling.h`). The dashboard profiles itself without master. Sessions record every scope
+  exactly rather than sampling (the scope tree exists anyway); only instrumented scopes appear, time in a scope's own
+  code is its "own" time.
+- `GET /api/diagnostics/performance?server=&range=5m|1h`, `GET /api/diagnostics/performance/slow`,
+  `GET /api/diagnostics/performance/profiles`, `GET /api/diagnostics/performance/profiles/:id`,
+  `POST /api/diagnostics/performance/profiles` (`{server, seconds}`, `profiling_run`),
+  `POST /api/diagnostics/performance/profiles/:id/stop` (`profiling_run`).
+
+The built-in view shows only instrumented scopes. For a native deep dive:
+
+- **Tracy** (BSD-3-Clause, optional): configure with `-DDLU_TRACY=ON` (CMake fetches Tracy 0.11.1's client). Every
+  server's frames (frame marks) and scopes (zones, packets with their packed type as the zone value) then also go to
+  Tracy, which collects only while a viewer is connected. Run Tracy's viewer (`tracy-profiler`, the same version) on
+  your machine and connect to the server's address; each server process listens on port 8086, the next ones started on
+  the same machine on 8087 and up (see the server's log). Keep the port closed to the internet (a firewall or an SSH
+  tunnel, `ssh -L 8086:localhost:8086 server`). Tracy's sampling (every function, call stacks) needs the viewer's
+  permissions on the server machine (on Linux, root or `perf_event_paranoid` lowered).
+- Or a sampling profiler on the server process: on Linux `perf record -g -p <pid>` then `perf script` into a flame graph
+  tool; any native profiler on Windows and macOS. The dashboard doesn't run native profilers itself.
 
 ### Logs and crash dumps
 
