@@ -18,6 +18,7 @@ set(DCOMPONENTS_TESTS
 	"RocketLaunchTests.cpp"
 	"ReplicaConstructionTests.cpp"
 	"ReplicaDecoderTests.cpp"
+	"CapturePropertyTests.cpp"
 	"ItemRemovalTests.cpp"
 	"LootMetricsTests.cpp"
 )

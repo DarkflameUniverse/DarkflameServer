@@ -16,6 +16,7 @@
 #include "CaptureBundle.h"
 #include "CaptureTools.h"
 #include "LiveImport.h"
+#include "CaptureProperty.h"
 #include "GameMessageDecoder.h"
 #include "PacketDecoder.h"
 #include "CDClientDatabase.h"
@@ -59,6 +60,8 @@ namespace {
 			"  info <bundle>                               what is in a bundle\n"
 			"  decode <bundle> [--fields] [--limit N] [--cdserver <CDServer.sqlite>]\n"
 			"                                              its packets on one timeline (replica packets too with --cdserver)\n"
+			"  property <bundle> --cdserver <CDServer.sqlite>\n"
+			"                                              the properties it saw: models over time, property data, events (JSON)\n"
 			"  anonymise <in> <out>                        a test fixture: names and chat replaced, IDs placeholders\n"
 			"  import-live <folder> <out-dir>              convert live captures (every folder of *_traffic.zip under <folder>)\n"
 			"  replay <bundle>... [options]                replay against a fresh sandbox stack per bundle and compare\n"
@@ -160,6 +163,31 @@ namespace {
 				j.value("source", std::string()).c_str(), j.value("name", std::string()).c_str(), fields && j.contains("fields") ? (" " + j["fields"].dump()).c_str() : "");
 		}
 		if (!cdServer.empty()) std::printf("%zu constructions, %zu whose components didn't read exactly\n", constructions, unmatched);
+		return 0;
+	}
+
+	// The properties a capture saw, as the dashboard's capture viewer shows them (CaptureProperty)
+	int Property(const std::string& path, const std::string& cdServer) {
+		CaptureBundle::Bundle bundle;
+		if (!LoadBundle(path, bundle)) return 1;
+		CaptureTools::SortTimeline(bundle.records);
+		ReplicaDecoder::ComponentTable components;
+		try {
+			CDClientDatabase::Connect(cdServer);
+			ReplicaDecoder::LoadComponentTable(components);
+		} catch (const std::exception& e) {
+			std::cerr << "Can't read " << cdServer << ": " << e.what() << "\n";
+			return 1;
+		}
+		ReplicaDecoder::Session replicas(components);
+		std::vector<std::optional<json>> replica(bundle.records.size());
+		for (size_t i = 0; i < bundle.records.size(); i++) {
+			const auto& record = bundle.records[i];
+			if (record.header.flags & PacketRecordFlags::GAP || CaptureTools::FromClient(record.header)) continue;
+			replica[i] = replicas.Decode(record.bytes, CaptureTools::ReplicaConnection(record.header));
+		}
+		const auto start = bundle.records.empty() ? 0 : bundle.records.front().header.timeUs;
+		std::cout << CaptureProperty::Build(bundle.records, start, [&replica](size_t i) { return replica[i] ? &*replica[i] : nullptr; }).dump(2) << "\n";
 		return 0;
 	}
 
@@ -345,6 +373,7 @@ int main(int argc, char** argv) {
 	const auto& command = args[1];
 	if (command == "info" && args.size() >= 3) return Info(args[2]);
 	if (command == "decode" && args.size() >= 3) return Decode(args[2], Flag(args, "--fields"), std::stoul(Arg(args, "--limit", "1000000")), Arg(args, "--cdserver", ""));
+	if (command == "property" && args.size() >= 3) return Property(args[2], Arg(args, "--cdserver", ""));
 	if (command == "anonymise" && args.size() >= 4) return Anonymise(args[2], args[3]);
 	if (command == "import-live" && args.size() >= 4) return ImportLive(args[2], args[3]);
 	if (command == "replay") return Replay(args);
