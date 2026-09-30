@@ -178,3 +178,10 @@ console.log('network-graph: all passed');
 	const starts = Object.keys(W.paths).filter(id => id.includes('master')).map(id => W.paths[id].fwd);
 	same(new Set(starts.map(d => d.split(' ')[0])).size > 1 || starts.length < 2, true, 'links at master do not all meet at one point');
 }
+
+// An idle player (no packets in the window) still has a link from Game clients to their world
+{
+	const idle = G.build({ servers: { w: { key: 'w', type: 'WORLD', zone: 1200, instance: 1, label: 'World 1200', link: { connections: 2 },
+		split: { clients: {}, master: {}, servers: {} }, packets_in: 0, packets_out: 0, bytes_in: 0, bytes_out: 0 } } }, {});
+	same(idle.edges.some(e => e.from === 'clients'), true, 'idle player keeps the Game clients link');
+}

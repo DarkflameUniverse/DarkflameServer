@@ -166,7 +166,9 @@
 
 			if (split) {
 				var c = rates(split.clients);
-				if (any(c)) edge('clients', id, c.packets_in, c.bytes_in, c.packets_out, c.bytes_out, true);
+				// A player standing still sends nothing for a while: their connection is still drawn (idle)
+				var players = (s.type === 'AUTH' || s.type === 'WORLD') ? Math.max(0, num((s.link || {}).connections) - 1) : 0;
+				if (any(c) || players > 0) edge('clients', id, c.packets_in, c.bytes_in, c.packets_out, c.bytes_out, true);
 				var o = rates(split.servers);
 				// A world's "other servers" is its chat link; chat's are the worlds, drawn from their side
 				if (s.type === 'WORLD' && any(o)) edge(id, hasChat ? 'chat' : 'master', o.packets_out, o.bytes_out, o.packets_in, o.bytes_in, hasChat, 'packets', hasChat ? '' : 'chat link, chat not reporting');
