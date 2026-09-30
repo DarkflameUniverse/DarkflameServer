@@ -691,7 +691,7 @@ namespace CaptureReplay {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto session = FindSession(context, reply);
 				if (!session) return;
-				const auto* cached = Load(*session, reply);
+				const auto cached = Load(*session, reply);
 				if (!cached) return;
 				JsonSuccess(reply, { {"worlds", WorldsJson(*cached)} });
 			});
