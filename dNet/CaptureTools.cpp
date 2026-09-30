@@ -97,7 +97,11 @@ namespace CaptureTools {
 		return fields.contains(name);
 	}
 
-	json RecordJson(const Record& record, size_t index, int64_t startUs, bool fields) {
+	uint64_t ReplicaConnection(const PacketRecordHeader& h) {
+		return (static_cast<uint64_t>(h.zoneId) << 48) ^ (static_cast<uint64_t>(h.instanceId) << 32) ^ h.cloneId;
+	}
+
+	json RecordJson(const Record& record, size_t index, int64_t startUs, bool fields, const json* replicaFields) {
 		const auto& h = record.header;
 		json out{
 			{"i", index},
@@ -130,7 +134,8 @@ namespace CaptureTools {
 			out["object"] = std::to_string(decoded.objectId);
 		}
 		if (decoded.failed) out["unreadable"] = true;
-		if (fields && decoded.fields) out["fields"] = *decoded.fields;
+		if (fields && replicaFields) out["fields"] = *replicaFields;
+		else if (fields && decoded.fields) out["fields"] = *decoded.fields;
 		return out;
 	}
 

@@ -16,7 +16,11 @@
 #include "CaptureBundle.h"
 #include "CaptureTools.h"
 #include "LiveImport.h"
+#include "GameMessageDecoder.h"
 #include "PacketDecoder.h"
+#include "CDClientDatabase.h"
+#include "MessageIdentifiers.h"
+#include "ReplicaDecoder.h"
 #include "Replayer.h"
 #include "Sandbox.h"
 
@@ -37,6 +41,15 @@ namespace Game {
 	dConfig* config = nullptr;
 	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
+	// Also defined by every program that links the game's libraries (it decodes game messages with the game's own
+	// message structs); the dashboard runs no game, so they stay empty
+	dChatFilter* chatFilter = nullptr;
+	AssetManager* assetManager = nullptr;
+	RakPeerInterface* chatServer = nullptr;
+	SystemAddress chatSysAddr;
+	EntityManager* entityManager = nullptr;
+	dZoneManager* zoneManager = nullptr;
+	std::string projectVersion = PROJECT_VERSION;
 }
 
 namespace {
@@ -44,7 +57,8 @@ namespace {
 		std::cout <<
 			"CaptureTool: packet bundles (docs/CaptureReplay.md)\n"
 			"  info <bundle>                               what is in a bundle\n"
-			"  decode <bundle> [--fields] [--limit N]      its packets on one timeline\n"
+			"  decode <bundle> [--fields] [--limit N] [--cdserver <CDServer.sqlite>]\n"
+			"                                              its packets on one timeline (replica packets too with --cdserver)\n"
 			"  anonymise <in> <out>                        a test fixture: names and chat replaced, IDs placeholders\n"
 			"  import-live <folder> <out-dir>              convert live captures (every folder of *_traffic.zip under <folder>)\n"
 			"  replay <bundle>... [options]                replay against a fresh sandbox stack per bundle and compare\n"
@@ -113,16 +127,39 @@ namespace {
 		return 0;
 	}
 
-	int Decode(const std::string& path, bool fields, size_t limit) {
+	int Decode(const std::string& path, bool fields, size_t limit, const std::string& cdServer) {
 		CaptureBundle::Bundle bundle;
 		if (!LoadBundle(path, bundle)) return 1;
 		CaptureTools::SortTimeline(bundle.records);
+		// Replica packets need the components of each LOT, from the CDClient
+		ReplicaDecoder::ComponentTable components;
+		if (!cdServer.empty()) {
+			try {
+				CDClientDatabase::Connect(cdServer);
+				ReplicaDecoder::LoadComponentTable(components);
+			} catch (const std::exception& e) {
+				std::cerr << "Can't read " << cdServer << ": " << e.what() << "\n";
+				return 1;
+			}
+		}
+		ReplicaDecoder::Session replicas(components);
+		size_t constructions = 0, unmatched = 0;
 		const auto start = bundle.records.empty() ? 0 : bundle.records.front().header.timeUs;
 		for (size_t i = 0; i < bundle.records.size() && i < limit; i++) {
-			const auto j = CaptureTools::RecordJson(bundle.records[i], i, start, fields);
+			const auto& record = bundle.records[i];
+			std::optional<json> replica;
+			if (!cdServer.empty() && !(record.header.flags & PacketRecordFlags::GAP) && !CaptureTools::FromClient(record.header)) {
+				replica = replicas.Decode(record.bytes, CaptureTools::ReplicaConnection(record.header));
+				if (replica && !record.bytes.empty() && static_cast<uint8_t>(record.bytes[0]) == ID_REPLICA_MANAGER_CONSTRUCTION) {
+					constructions++;
+					if (replica->contains("(layout did not match)")) unmatched++;
+				}
+			}
+			const auto j = CaptureTools::RecordJson(record, i, start, fields, replica ? &*replica : nullptr);
 			std::printf("%7zu %10.3f %-12s %-18s %s%s\n", i, j["t"].get<double>() / 1000.0, (j.value("from", std::string()) + ">" + j.value("to", std::string())).c_str(),
 				j.value("source", std::string()).c_str(), j.value("name", std::string()).c_str(), fields && j.contains("fields") ? (" " + j["fields"].dump()).c_str() : "");
 		}
+		if (!cdServer.empty()) std::printf("%zu constructions, %zu whose components didn't read exactly\n", constructions, unmatched);
 		return 0;
 	}
 
@@ -298,6 +335,8 @@ namespace {
 }
 
 int main(int argc, char** argv) {
+	// Game messages are read with the game's own message structs
+	PacketDecoder::SetGameMessageDecoder(GameMessageDecoder::Decode);
 	const std::vector<std::string> args(argv, argv + argc);
 	if (args.size() < 2) {
 		Usage();
@@ -305,7 +344,7 @@ int main(int argc, char** argv) {
 	}
 	const auto& command = args[1];
 	if (command == "info" && args.size() >= 3) return Info(args[2]);
-	if (command == "decode" && args.size() >= 3) return Decode(args[2], Flag(args, "--fields"), std::stoul(Arg(args, "--limit", "1000000")));
+	if (command == "decode" && args.size() >= 3) return Decode(args[2], Flag(args, "--fields"), std::stoul(Arg(args, "--limit", "1000000")), Arg(args, "--cdserver", ""));
 	if (command == "anonymise" && args.size() >= 4) return Anonymise(args[2], args[3]);
 	if (command == "import-live" && args.size() >= 4) return ImportLive(args[2], args[3]);
 	if (command == "replay") return Replay(args);

@@ -23,8 +23,13 @@ namespace CaptureTools {
 	// Whether a record went from a game client to a server
 	bool FromClient(const PacketRecordHeader& header);
 
-	// One record for the viewer: where it went, its name and, when `fields`, its decoded fields
-	nlohmann::json RecordJson(const CaptureBundle::Record& record, size_t index, int64_t startUs, bool fields);
+	// One record for the viewer: where it went, its name and, when `fields`, its decoded fields. `replicaFields`: the
+	// fields of a replica packet, which only a pass over the capture in order can read (ReplicaDecoder::Session)
+	nlohmann::json RecordJson(const CaptureBundle::Record& record, size_t index, int64_t startUs, bool fields,
+		const nlohmann::json* replicaFields = nullptr);
+
+	// Tells apart the network IDs of different world instances in one capture
+	uint64_t ReplicaConnection(const PacketRecordHeader& header);
 
 	struct Track {
 		LWOOBJID characterId{};
