@@ -158,6 +158,10 @@
 		</div>
 	</div>
 	{% endif %}
+	{# Every signed-in user: the running build and whether a newer release exists #}
+	<div class="list-group list-group-flush mt-2 border-top">
+		<a href="/about" class="list-group-item list-group-item-action{% if current_page == "about" %} active{% endif %}">About</a>
+	</div>
 </nav>
 <script data-sidebar-state>
 /*
