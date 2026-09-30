@@ -168,3 +168,19 @@ TEST_F(FdbSnapshotTest, DescribeChangesNamesChangedTables) {
 	ASSERT_EQ(lines.size(), 1u);
 	EXPECT_EQ(lines[0], "Objects: 1 -> 1 rows (values changed)");
 }
+
+TEST_F(FdbSnapshotTest, ResolveNeverNamesTheClientsFile) {
+	auto resolved = FdbSnapshot::Resolve(Server());
+	EXPECT_EQ(resolved.sqlite, Server() / "CDServer.sqlite");
+	EXPECT_TRUE(resolved.fdb.empty());
+
+	// Named but not there yet: still the defaults
+	ASSERT_TRUE(FdbSnapshot::WriteCurrent(Server(), { FdbSnapshot::FdbName(7), FdbSnapshot::SqliteName(7) }));
+	EXPECT_TRUE(FdbSnapshot::Resolve(Server()).fdb.empty());
+
+	FdbTestWriter::WriteFile(Server() / FdbSnapshot::FdbName(7), { 1 });
+	FdbTestWriter::WriteFile(Server() / FdbSnapshot::SqliteName(7), { 1 });
+	resolved = FdbSnapshot::Resolve(Server());
+	EXPECT_EQ(resolved.sqlite, Server() / FdbSnapshot::SqliteName(7));
+	EXPECT_EQ(resolved.fdb, Server() / FdbSnapshot::FdbName(7));
+}

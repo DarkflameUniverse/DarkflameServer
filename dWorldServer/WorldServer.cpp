@@ -36,6 +36,8 @@
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
+#include "FdbSnapshot.h"
+#include "master/CDClientReload.h"
 #include "dPlatforms.h"
 
 //RakNet includes:
@@ -173,6 +175,23 @@ void ResendPlayersToChat() {
 	LOG("Sent %u player(s) to the new chat server", sent);
 }
 
+// CDCLIENT_RELOAD: the client's cdclient.fdb changed; switch to master's new copy between frames (packets are handled on
+// the main thread). What is already spawned keeps what it loaded; what is made from now on reads the new data
+void OnCDClientReload(const CDClientReload& reload) {
+	if (reload.IsRequest()) return;
+	const auto resServer = BinaryPathFinder::GetBinaryDir() / "resServer";
+	const auto start = std::chrono::steady_clock::now();
+	try {
+		CDClientDatabase::Reconnect((resServer / reload.sqlite).string());
+		CDClientManager::Reload(resServer / reload.fdb);
+	} catch (const std::exception& e) {
+		LOG("CDClient reload: could not switch to %s: %s", reload.sqlite.c_str(), e.what());
+		return;
+	}
+	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+	LOG("CDClient reload: switched to %s and %s in %lld ms", reload.fdb.c_str(), reload.sqlite.c_str(), static_cast<long long>(ms));
+}
+
 // CHAT_SERVER_READY (live update): connect to the new chat server now rather than at the next retry
 void OnChatServerReady() {
 	if (g_ChatConnected) {
@@ -265,9 +284,13 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	// The copy of the client's fdb and its CDServer.sqlite that master names; never the client's own file, so it can be
+	// replaced while this runs (docs/CDClientFdb.md)
+	const auto cdclientFiles = FdbSnapshot::Resolve(BinaryPathFinder::GetBinaryDir() / "resServer");
+
 	// Connect to CDClient
 	try {
-		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
+		CDClientDatabase::Connect(cdclientFiles.sqlite.string());
 	} catch (const CppSQLite3Exception& e) {
 		LOG("Unable to connect to CDServer SQLite Database");
 		LOG("Error: %s", e.errorMessage());
@@ -278,8 +301,8 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	// The client's fdb, read in place and shared between all server processes, when there is one
-	CDClientManager::LoadValuesFromDatabase(Game::assetManager->GetResPath() / "cdclient.fdb");
+	// The fdb copy is mapped and shared between all server processes, when there is one
+	CDClientManager::LoadValuesFromDatabase(cdclientFiles.fdb);
 
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
@@ -949,6 +972,7 @@ namespace {
 			handlers.On<MigrationStatus>(Master::MIGRATE_STATUS, [](const MigrationStatus& status, const SystemAddress&) { WorldMigration::HandleStatus(status); });
 			handlers.On<MigratePrepare>(Master::MIGRATE_PREPARE, [](const MigratePrepare& prepare, const SystemAddress&) { WorldMigration::HandlePrepare(prepare); });
 			handlers.On<LiveUpdateStatus>(Master::LIVE_UPDATE_STATUS, [](const LiveUpdateStatus& status, const SystemAddress&) { WorldMigration::HandleLiveUpdateStatus(status); });
+			handlers.On<CDClientReload>(Master::CDCLIENT_RELOAD, [](const CDClientReload& reload, const SystemAddress&) { OnCDClientReload(reload); });
 			handlers.On<ChatServerReady>(Master::CHAT_SERVER_READY, [](const ChatServerReady&, const SystemAddress&) { OnChatServerReady(); });
 			handlers.On<PlayerActionRequest>(Master::PLAYER_ACTION, OnPlayerAction);
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, [](const MessageCaptureControl& control, const SystemAddress&) { MessageInspector::Control(control); });

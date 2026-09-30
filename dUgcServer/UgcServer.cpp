@@ -15,6 +15,7 @@
 #include "Profiler.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
+#include "FdbSnapshot.h"
 #include "CDClientDatabase.h"
 #include "ConfigSync.h"
 #include "Database.h"
@@ -654,7 +655,7 @@ namespace {
 				outcome = UgcJobs::ProcessModel(*data, library, settings);
 			}
 		} else {
-			CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer/CDServer.sqlite").string());
+			CDClientDatabase::Connect(FdbSnapshot::Resolve(BinaryPathFinder::GetBinaryDir() / "resServer").sqlite.string());
 			UgcJobs::ModularInput modular;
 			std::string error;
 			if (!UgcCdClient::GatherModular(input, modular, error)) {
@@ -715,7 +716,7 @@ int main(int argc, char** argv) {
 	}
 
 	try {
-		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer/CDServer.sqlite").string());
+		CDClientDatabase::Connect(FdbSnapshot::Resolve(BinaryPathFinder::GetBinaryDir() / "resServer").sqlite.string());
 	} catch (std::exception& ex) {
 		LOG("Failed to connect to CDClient database: %s", ex.what());
 		return EXIT_FAILURE;

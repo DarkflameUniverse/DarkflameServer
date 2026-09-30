@@ -62,6 +62,17 @@ namespace FdbSnapshot {
 
 	std::optional<Current> ReadCurrent(const std::filesystem::path& dir);
 
+	/**
+	 * The files a server opens at startup: the pair the pointer file names, when both are there, or CDServer.sqlite
+	 * and no fdb (never the client's own file).
+	 */
+	struct Resolved {
+		std::filesystem::path sqlite;
+		std::filesystem::path fdb; // empty: read CDServer.sqlite only
+	};
+
+	Resolved Resolve(const std::filesystem::path& dir);
+
 	// Writes the pointer file under a temporary name and renames it over the old one (it is never held open)
 	bool WriteCurrent(const std::filesystem::path& dir, const Current& current);
 

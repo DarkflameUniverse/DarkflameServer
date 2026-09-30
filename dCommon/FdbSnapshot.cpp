@@ -174,6 +174,17 @@ std::optional<FdbSnapshot::Current> FdbSnapshot::ReadCurrent(const std::filesyst
 	return current;
 }
 
+FdbSnapshot::Resolved FdbSnapshot::Resolve(const std::filesystem::path& dir) {
+	Resolved resolved{ dir / DEFAULT_SQLITE, {} };
+	const auto current = ReadCurrent(dir);
+	if (!current) return resolved;
+	std::error_code code;
+	if (!std::filesystem::is_regular_file(dir / current->sqlite, code) || !std::filesystem::is_regular_file(dir / current->fdb, code)) return resolved;
+	resolved.sqlite = dir / current->sqlite;
+	resolved.fdb = dir / current->fdb;
+	return resolved;
+}
+
 bool FdbSnapshot::WriteCurrent(const std::filesystem::path& dir, const Current& current) {
 	const auto temp = dir / TempName(CURRENT_FILE);
 	{

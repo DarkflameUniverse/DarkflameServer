@@ -17,6 +17,7 @@
 #include "dServer.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
+#include "FdbSnapshot.h"
 #include "ServiceType.h"
 #include "MessageType/Master.h"
 #include "MasterPackets.h"
@@ -395,7 +396,7 @@ int main(int argc, char** argv) {
 
 	// Connect to CDClient database
 	try {
-		const std::string cdclientPath = BinaryPathFinder::GetBinaryDir() / "resServer/CDServer.sqlite";
+		const std::string cdclientPath = FdbSnapshot::Resolve(BinaryPathFinder::GetBinaryDir() / "resServer").sqlite.string();
 		CDClientDatabase::Connect(cdclientPath);
 	} catch (std::exception& ex) {
 		LOG("Failed to connect to CDClient database: %s", ex.what());
