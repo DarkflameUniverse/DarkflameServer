@@ -36,6 +36,7 @@ set(DCOMMONTEST_SOURCES
 	"ProfilerTests.cpp"
 	"Sd0Tests.cpp"
 	"FdbReaderTests.cpp"
+	"FdbSnapshotTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)

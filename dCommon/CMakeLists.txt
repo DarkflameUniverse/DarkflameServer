@@ -22,6 +22,7 @@ set(DCOMMON_SOURCES
 		"FdbToSqlite.cpp"
 		"FdbMappedFile.cpp"
 		"FdbReader.cpp"
+		"FdbSnapshot.cpp"
 		"JSONUtils.cpp"
 		"TinyXmlUtils.cpp"
 		"Sd0.cpp"
