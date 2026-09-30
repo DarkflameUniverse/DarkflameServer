@@ -1,4 +1,5 @@
 #include "InventoryComponent.h"
+#include "Profiler.h"
 #include "BrickByBrick.h"
 #include "Contraband.h"
 #include "EconomyLedger.h"
@@ -668,6 +669,7 @@ namespace {
 }
 
 void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
+	Profiler::Scope profile("InventoryComponent::LoadXml");
 	LoadPetXml(document);
 
 	auto* inventoryElement = document.FirstChildElement("obj")->FirstChildElement("inv");

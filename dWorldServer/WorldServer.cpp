@@ -1,4 +1,6 @@
 #include "DashboardActions.h"
+#include "Profiler.h"
+#include <optional>
 #include "ConfigSync.h"
 #include "EconomyLedger.h"
 #include "DashboardNotify.h"
@@ -383,7 +385,11 @@ int main(int argc, char** argv) {
 	Game::zoneManager = new dZoneManager();
 	//Load our level:
 	if (zoneID != 0) {
-		dpWorld::Initialize(zoneID);
+		Profiler::Scope zoneLoad("Zone load");
+		{
+			Profiler::Scope navmesh("Navmesh and physics load", Profiler::Phase::PHYSICS);
+			dpWorld::Initialize(zoneID);
+		}
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, g_InstanceID, cloneID));
 		g_CloneID = cloneID;
 	} else {
@@ -438,6 +444,7 @@ int main(int argc, char** argv) {
 
 	Game::logger->Flush(); // once immediately before the main loop
 	while (true) {
+		Profiler::BeginFrame();
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
 
@@ -508,15 +515,22 @@ int main(int argc, char** argv) {
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
-			Game::entityManager->UpdateEntities(deltaTime);
+			{
+				Profiler::Scope scope("Entities", Profiler::Phase::ENTITIES);
+				Game::entityManager->UpdateEntities(deltaTime);
+			}
 			Metrics::EndMeasurement(MetricVariable::UpdateEntities);
 
 			Metrics::StartMeasurement(MetricVariable::Physics);
-			dpWorld::StepWorld(deltaTime);
+			{
+				Profiler::Scope scope("Physics step", Profiler::Phase::PHYSICS);
+				dpWorld::StepWorld(deltaTime);
+			}
 			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::Ghosting);
 			if (std::chrono::duration<float>(currentTime - ghostingLastTime).count() >= 1.0f) {
+				Profiler::Scope scope("Ghosting", Profiler::Phase::REPLICA);
 				Game::entityManager->UpdateGhosting();
 				ghostingLastTime = currentTime;
 			}
@@ -534,7 +548,10 @@ int main(int argc, char** argv) {
 			UgcManifest::Update();
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
-			Game::zoneManager->Update(deltaTime);
+			{
+				Profiler::Scope scope("Spawners", Profiler::Phase::ENTITIES);
+				Game::zoneManager->Update(deltaTime);
+			}
 			Metrics::EndMeasurement(MetricVariable::UpdateSpawners);
 
 			WorldMigration::Update(deltaTime);
@@ -545,21 +562,33 @@ int main(int argc, char** argv) {
 		Metrics::StartMeasurement(MetricVariable::PacketHandling);
 
 		//Check for packets here:
+		std::optional<Profiler::Scope> packetScope;
+		packetScope.emplace("Master packets", Profiler::Phase::PACKETS);
 		packet = Game::server->ReceiveFromMaster();
 		while (packet) { //We can get messages not handle-able by the dServer class, so handle them if we returned anything.
-			HandleMasterPacket(packet);
+			{
+				Profiler::PacketScope scope(packet->data, packet->length);
+				HandleMasterPacket(packet);
+			}
 			Game::server->DeallocateMasterPacket(packet);
 			packet = Game::server->ReceiveFromMaster();
 		}
 
 		//Handle our chat packets:
+		packetScope.reset();
+		packetScope.emplace("Chat packets", Profiler::Phase::PACKETS);
 		packet = Game::chatServer->Receive();
 		while (packet) {
 			ChatServerLink::CountReceived(packet->data, packet->length);
-			HandlePacketChat(packet);
+			{
+				Profiler::PacketScope scope(packet->data, packet->length);
+				HandlePacketChat(packet);
+			}
 			Game::chatServer->DeallocatePacket(packet);
 			packet = Game::chatServer->Receive();
 		}
+		packetScope.reset();
+		packetScope.emplace("Client packets", Profiler::Phase::PACKETS);
 
 		//Handle world-specific packets:
 		float timeSpent = 0.0f;
@@ -570,7 +599,10 @@ int main(int argc, char** argv) {
 			packet = Game::server->Receive();
 			if (packet) {
 				auto t1 = std::chrono::high_resolution_clock::now();
-				HandlePacket(packet);
+				{
+					Profiler::PacketScope scope(packet->data, packet->length);
+					HandlePacket(packet);
+				}
 				auto t2 = std::chrono::high_resolution_clock::now();
 
 				timeSpent += std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1).count();
@@ -581,17 +613,22 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		packetScope.reset();
 		Metrics::EndMeasurement(MetricVariable::PacketHandling);
 
 		Metrics::StartMeasurement(MetricVariable::UpdateReplica);
 
 		//Update our replica objects:
-		Game::server->UpdateReplica();
+		{
+			Profiler::Scope scope("Replica update", Profiler::Phase::REPLICA);
+			Game::server->UpdateReplica();
+		}
 
 		Metrics::EndMeasurement(MetricVariable::UpdateReplica);
 
 		//Push our log every 15s:
 		if (framesSinceLastFlush >= logFlushTime) {
+			Profiler::Scope scope("Log flush", Profiler::Phase::LOG_FLUSH);
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
@@ -612,6 +649,7 @@ int main(int argc, char** argv) {
 
 		//Save all connected users every 10 minutes:
 		if (framesSinceLastUsersSave >= saveTime && zoneID != 0) {
+			Profiler::Scope scope("Save all characters", Profiler::Phase::DATABASE);
 			UserManager::Instance()->SaveAllActiveCharacters();
 			framesSinceLastUsersSave = 0;
 
@@ -635,6 +673,7 @@ int main(int argc, char** argv) {
 		} else framesSinceLastSQLPing++;
 
 		Metrics::EndMeasurement(MetricVariable::GameLoop);
+		Profiler::EndFrame();
 
 		Metrics::StartMeasurement(MetricVariable::Sleep);
 
@@ -930,6 +969,7 @@ void HandleMasterPacket(Packet* packet) {
 // Creates the player's entity and sends the client everything in the world: after the client loaded the zone
 // (LEVEL_LOAD_COMPLETE), or at once when it kept its scene (an experimental seamless migration)
 void LoadPlayer(const SystemAddress& sysAddr) {
+	Profiler::Scope scope("LoadPlayer");
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (user) {
 		Character* c = user->GetLastUsedChar();

@@ -1,6 +1,7 @@
 #ifndef SQLITEDATABASE_H
 #define SQLITEDATABASE_H
 
+#include "Profiler.h"
 #include "CppSQLite3.h"
 
 #include "GameDatabase.h"
@@ -502,6 +503,7 @@ private:
 	// The return type is a unique_ptr to the result set, which is deleted automatically when it goes out of scope
 	template<typename... Args>
 	inline std::pair<CppSQLite3Statement, CppSQLite3Query> ExecuteSelect(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		std::pair<CppSQLite3Statement, CppSQLite3Query> toReturn;
 		toReturn.first = CreatePreppedStmt(query);
 		SetParams(toReturn.first, std::forward<Args>(args)...);
@@ -511,6 +513,7 @@ private:
 
 	template<typename... Args>
 	inline void ExecuteDelete(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		auto preppedStmt = CreatePreppedStmt(query);
 		SetParams(preppedStmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(preppedStmt.execDML());
@@ -518,6 +521,7 @@ private:
 
 	template<typename... Args>
 	inline int32_t ExecuteUpdate(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		auto preppedStmt = CreatePreppedStmt(query);
 		SetParams(preppedStmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt.execDML());
@@ -525,6 +529,7 @@ private:
 
 	template<typename... Args>
 	inline int ExecuteInsert(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		auto preppedStmt = CreatePreppedStmt(query);
 		SetParams(preppedStmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt.execDML());

@@ -1,3 +1,4 @@
+#include "Profiler.h"
 #include "Web.h"
 #include "Game.h"
 #include "magic_enum.hpp"
@@ -499,6 +500,8 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 			// Call handler only if all middleware passed. A failing handler (e.g. a database error) answers 500
 			// instead of taking the whole server down.
 			if (chainPassed) {
+				// Frame timing: a handler runs on the main thread, between ticks or inside one
+				Profiler::Scope profile(Profiler::Intern(trafficRoute), Profiler::Phase::WEB);
 				try {
 					route.handle(reply, context);
 				} catch (const std::exception& ex) {

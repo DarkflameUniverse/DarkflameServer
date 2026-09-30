@@ -14,6 +14,7 @@
 #include "LDFFormat.h"
 #include "eKillType.h"
 #include "Observable.h"
+#include "Profiler.h"
 
 namespace GameMessages {
 	struct GameMsg;
@@ -589,6 +590,8 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 template<typename ComponentType, typename... VaArgs>
 inline ComponentType* Entity::AddComponent(VaArgs... args) {
 	static_assert(std::is_base_of_v<Component, ComponentType>, "ComponentType must be a Component");
+	// Frame timing: each component type's construction (loading a character's XML is in some of them)
+	Profiler::Scope profile(Profiler::COMPONENT, static_cast<uint64_t>(ComponentType::ComponentType));
 
 	// Get the component if it already exists, or default construct a nullptr
 	auto*& componentToReturn = m_Components[ComponentType::ComponentType];

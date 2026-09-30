@@ -1,6 +1,7 @@
 #ifndef __MYSQLDATABASE__H__
 #define __MYSQLDATABASE__H__
 
+#include "Profiler.h"
 #include <conncpp.hpp>
 #include <memory>
 
@@ -518,6 +519,7 @@ private:
 	// The return type is a PreparedStmtResultSet which keeps the PreparedStatement alive alongside the ResultSet.
 	template<typename... Args>
 	inline PreparedStmtResultSet ExecuteSelect(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		PreparedStmtResultSet toReturn;
 		toReturn.m_stmt.reset(CreatePreppedStmt(query));
 		SetParams(toReturn.m_stmt, std::forward<Args>(args)...);
@@ -528,6 +530,7 @@ private:
 
 	template<typename... Args>
 	inline void ExecuteDelete(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(preppedStmt->execute());
@@ -535,6 +538,7 @@ private:
 
 	template<typename... Args>
 	inline int32_t ExecuteUpdate(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt->executeUpdate());
@@ -542,6 +546,7 @@ private:
 
 	template<typename... Args>
 	inline bool ExecuteInsert(const std::string& query, Args&&... args) {
+		Profiler::Scope profile("Database query", Profiler::Phase::DATABASE);
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt->execute());

@@ -1152,6 +1152,7 @@ void Entity::Update(const float deltaTime) {
 			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
 			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
+			Profiler::Scope profile("Script timer", Profiler::Phase::SCRIPTS);
 			GetScript()->OnTimerDone(this, timerName);
 			VanityUtilities::OnTimerDone(this, timerName);
 

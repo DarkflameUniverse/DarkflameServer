@@ -1,4 +1,5 @@
 #include "EntityManager.h"
+#include "Profiler.h"
 #include "RakNetTypes.h"
 #include "Game.h"
 #include "User.h"
@@ -117,6 +118,7 @@ void EntityManager::Initialize() {
 }
 
 Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentEntity, const bool controller, const LWOOBJID explicitId) {
+	Profiler::Scope profile("CreateEntity");
 
 	// Determine the objectID for the new entity
 	LWOOBJID id;
@@ -286,11 +288,18 @@ void EntityManager::DeleteEntities() {
 }
 
 void EntityManager::UpdateEntities(const float deltaTime) {
-	for (auto* entity : m_Entities | std::views::values) {
-		entity->Update(deltaTime);
+	{
+		Profiler::Scope profile("Entity updates");
+		for (auto* entity : m_Entities | std::views::values) {
+			entity->Update(deltaTime);
+		}
 	}
 
-	SerializeEntities();
+	{
+		Profiler::Scope profile("Serialize entities", Profiler::Phase::REPLICA);
+		SerializeEntities();
+	}
+	Profiler::Scope profile("Kill and delete entities");
 	KillEntities();
 	DeleteEntities();
 }

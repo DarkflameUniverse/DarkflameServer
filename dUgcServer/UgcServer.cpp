@@ -12,6 +12,7 @@
 #include <set>
 #include <thread>
 
+#include "Profiler.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "CDClientDatabase.h"
@@ -802,6 +803,7 @@ int main(int argc, char** argv) {
 		const auto now = std::chrono::steady_clock::now();
 		if (now - lastTick < std::chrono::milliseconds(16)) continue;
 		lastTick = now;
+		Profiler::FrameScope frame;
 
 		Packet* packet = g_Server->ReceiveFromMaster();
 		while (packet) {

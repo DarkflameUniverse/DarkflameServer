@@ -4,6 +4,8 @@
 #include <thread>
 
 //DLU Includes:
+#include "Profiler.h"
+#include <optional>
 #include "dCommonVars.h"
 #include "ConfigSync.h"
 #include "dServer.h"
@@ -149,6 +151,7 @@ int main(int argc, char** argv) {
 
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
+		Profiler::BeginFrame();
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
@@ -161,16 +164,26 @@ int main(int argc, char** argv) {
 		const float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 		lastTime = currentTime;
 
-		Game::playerContainer.Update(deltaTime);
+		{
+			Profiler::Scope scope("Player container update", Profiler::Phase::ENTITIES);
+			Game::playerContainer.Update(deltaTime);
+		}
 
 		//Check for packets here:
 		//ReceiveFromMaster also handles the master packets if needed; it hands back the ones for us.
+		std::optional<Profiler::Scope> masterScope;
+		masterScope.emplace("Master packets", Profiler::Phase::PACKETS);
 		if (auto* masterPacket = Game::server->ReceiveFromMaster()) {
-			HandleMasterPacket(masterPacket);
+			{
+				Profiler::PacketScope scope(masterPacket->data, masterPacket->length);
+				HandleMasterPacket(masterPacket);
+			}
 			Game::server->DeallocateMasterPacket(masterPacket);
 		}
+		masterScope.reset();
 		packet = Game::server->Receive();
 		if (packet) {
+			Profiler::PacketScope scope(packet->data, packet->length);
 			HandlePacket(packet);
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
@@ -179,6 +192,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
+			Profiler::Scope scope("Log flush", Profiler::Phase::LOG_FLUSH);
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
@@ -198,6 +212,7 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
 
+		Profiler::EndFrame();
 		//Sleep our thread since auth can afford to.
 		t += std::chrono::milliseconds(chatFrameDelta); //Chat can run at a lower "fps"
 		std::this_thread::sleep_until(t);

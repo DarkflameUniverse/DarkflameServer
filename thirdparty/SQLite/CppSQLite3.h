@@ -314,6 +314,9 @@ public:
 
     void interrupt() { sqlite3_interrupt(mpDB); }
 
+    // The connection, for sqlite3_* calls this wrapper has no method for (e.g. sqlite3_trace_v2)
+    sqlite3* handle() { return mpDB; }
+
     void setBusyTimeout(int nMillisecs);
 
     static const char* SQLiteVersion() { return SQLITE_VERSION; }
