@@ -268,6 +268,23 @@
 	try { moved = JSON.parse(localStorage.getItem('network.positions') || '{}') || {}; } catch (e) { moved = {}; }
 	function saveMoved() { try { localStorage.setItem('network.positions', JSON.stringify(moved)); } catch (e) { /* private window */ } }
 	var busiest = 0;
+	// Splits text into at most `maxLines` lines of about `width` characters at spaces; the last line ends with … if cut
+	function wrapText(text, width, maxLines) {
+		var words = String(text).split(/\s+/), lines = [], line = '';
+		words.forEach(function (word) {
+			if (!line) line = word;
+			else if ((line + ' ' + word).length <= width) line += ' ' + word;
+			else { lines.push(line); line = word; }
+		});
+		if (line) lines.push(line);
+		lines = lines.map(function (l) { return l.length > width ? l.slice(0, width - 1) + '…' : l; });
+		if (lines.length > maxLines) {
+			var last = lines.slice(maxLines - 1).join(' ');
+			lines = lines.slice(0, maxLines - 1).concat([last.length > width ? last.slice(0, width - 1) + '…' : last]);
+		}
+		return lines;
+	}
+
 	function renderDiagram(width) {
 		var before = animateNext && lastLayout ? lastLayout.nodes : null;
 		animateNext = false;
@@ -297,12 +314,14 @@
 			var chars = Math.floor((L.nodeWidth - 16) / 6.6);
 			var toggle = canToggle(n), open = isOpen(n);
 			var nameChars = toggle ? chars - 5 : chars;
-			var name = n.label.length > nameChars ? n.label.slice(0, nameChars - 1) + '…' : n.label;
+			var nameLines = wrapText(n.label, nameChars, 2);
 			html += '<g class="node' + (selected === n.id ? ' selected' : '') + '" data-node="' + esc(n.id) + '" tabindex="0" role="button" aria-label="' + esc(n.label) + '"' + (toggle ? ' aria-expanded="' + open + '"' : '') + '>' +
 				'<rect class="box" x="' + x + '" y="' + y + '" width="' + L.nodeWidth + '" height="' + at.h + '" rx="8"/>' +
-				'<text class="name" x="' + (x + 8) + '" y="' + (y + 17) + '">' + esc(name) + '</text>';
+				nameLines.map(function (line, i) { return '<text class="name" x="' + (x + 8) + '" y="' + (y + 17 + i * 14) + '">' + esc(line) + '</text>'; }).join('');
+			var metaTop = y + 32 + (nameLines.length - 1) * 14;
+			if (nameLines.length > 1 && !n.open) meta = meta.slice(0, 2);
 			meta.forEach(function (line, i) {
-				html += '<text class="meta' + (/resent/.test(line) ? ' warn' : '') + '" x="' + (x + 8) + '" y="' + (y + 32 + i * 13) + '">' + esc(line.length > chars + 4 ? line.slice(0, chars + 3) + '…' : line) + '</text>';
+				html += '<text class="meta' + (/resent/.test(line) ? ' warn' : '') + '" x="' + (x + 8) + '" y="' + (metaTop + i * 13) + '">' + esc(line.length > chars + 4 ? line.slice(0, chars + 3) + '…' : line) + '</text>';
 			});
 			if (n.noSplit && !toggle) html += '<text class="meta warn" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end"><title>This server reports only totals: its links are estimated</title>≈</text>';
 			else if (toggle) {

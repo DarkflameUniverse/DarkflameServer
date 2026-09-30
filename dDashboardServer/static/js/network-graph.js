@@ -20,7 +20,7 @@
 
 	var COLUMNS = [0, 1, 2, 3, 4]; // game clients | auth, chat, worlds, others | master | dashboard, UGC | web clients
 	// An open group's box: its header, the filter, the rows (at most MAX_ROWS in view, the rest scroll) and a margin
-	var GROUP = { head: 44, filter: 30, row: 30, maxRows: 8, foot: 6 };
+	var GROUP = { head: 58, filter: 30, row: 30, maxRows: 8, foot: 6 }; // head: a name on up to two lines and one line under it
 
 	function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
 	function rates(r) { r = r || {}; return { packets_in: num(r.packets_in), packets_out: num(r.packets_out), bytes_in: num(r.bytes_in), bytes_out: num(r.bytes_out) }; }
@@ -266,7 +266,7 @@
 	 * when closed), h its whole height; an open box's list starts at lists[id].top and anchors are the rows in view.
 	 */
 	function layout(graph, totalWidth, moved, scroll) {
-		var nodeWidth = Math.max(110, Math.min(170, Math.floor(totalWidth / 6.4))), nodeHeight = 54, rowHeight = 74, pad = 16;
+		var nodeWidth = Math.max(140, Math.min(240, Math.floor(totalWidth / 5.4))), nodeHeight = 68, rowHeight = 88, pad = 16;
 		var byColumn = COLUMNS.map(function () { return []; });
 		graph.nodes.forEach(function (n) { byColumn[n.column].push(n); });
 		var rows = Math.max.apply(null, byColumn.map(function (c) { return c.length; }).concat([1]));
