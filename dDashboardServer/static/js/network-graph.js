@@ -215,31 +215,39 @@
 		graph.edges.forEach(function (e) {
 			var a = at[e.from], b = at[e.to];
 			if (!a || !b) return;
-			paths[e.id] = { fwd: curve(a, b, nodeWidth, 3.5), back: curve(b, a, nodeWidth, 3.5) };
+			paths[e.id] = { fwd: curve(a, b, nodeWidth, 3.5, nodeHeight), back: curve(b, a, nodeWidth, 3.5, nodeHeight) };
 		});
 		return { width: totalWidth, height: height, nodeWidth: nodeWidth, nodeHeight: nodeHeight, nodes: at, paths: paths };
 	}
 
-	// A curve from a's side to b's side, moved `offset` px to its left (so the two directions sit side by side)
-	function curve(a, b, nodeWidth, offset) {
-		var half = nodeWidth / 2, x1, x2, c1, c2;
-		if (Math.abs(a.x - b.x) < nodeWidth) {
-			// Same column: bulge out on the side with room (left of the rightmost column, right of the others)
-			var side = a.column === COLUMNS.length - 1 ? -1 : 1;
-			x1 = x2 = a.x + side * half;
-			var bulge = side * Math.max(50, Math.abs(b.y - a.y) * 0.35);
-			c1 = [x1 + bulge, a.y]; c2 = [x2 + bulge, b.y];
-		} else {
-			var dir = b.x > a.x ? 1 : -1;
-			x1 = a.x + dir * half; x2 = b.x - dir * half;
+	// A curve between two boxes, leaving and entering on the sides that face each other (left/right when they are apart
+	// sideways, top/bottom when one is above the other), moved `offset` px to its left so the two directions sit side by
+	// side. Boxes in the same column with others between them bulge out sideways instead of cutting through.
+	function curve(a, b, nodeWidth, offset, nodeHeight) {
+		var half = nodeWidth / 2, halfH = (nodeHeight || 54) / 2, x1, y1, x2, y2, c1, c2;
+		var dx0 = b.x - a.x, dy0 = b.y - a.y;
+		if (Math.abs(dx0) >= nodeWidth * 0.75) {
+			var dir = dx0 > 0 ? 1 : -1;
+			x1 = a.x + dir * half; x2 = b.x - dir * half; y1 = a.y; y2 = b.y;
 			var mid = (x2 - x1) / 2;
-			c1 = [x1 + mid, a.y]; c2 = [x2 - mid, b.y];
+			c1 = [x1 + mid, y1]; c2 = [x2 - mid, y2];
+		} else if (Math.abs(dy0) > nodeHeight * 2.2 && a.column === b.column && Math.abs(dx0) < 1) {
+			// Same column, far apart: out of the side with room and back in, clear of the boxes between
+			var side = a.column === COLUMNS.length - 1 ? -1 : 1;
+			x1 = a.x + side * half; x2 = b.x + side * half; y1 = a.y; y2 = b.y;
+			var bulge = side * Math.max(50, Math.abs(dy0) * 0.35);
+			c1 = [x1 + bulge, y1]; c2 = [x2 + bulge, y2];
+		} else {
+			var v = dy0 >= 0 ? 1 : -1;
+			x1 = a.x; x2 = b.x; y1 = a.y + v * halfH; y2 = b.y - v * halfH;
+			var midY = (y2 - y1) / 2;
+			c1 = [x1, y1 + midY]; c2 = [x2, y2 - midY];
 		}
 		// Offset along the normal of the chord
-		var dx = x2 - x1, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
+		var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1;
 		var nx = -dy / len * offset, ny = dx / len * offset;
 		var p = function (x, y) { return (Math.round((x + nx) * 10) / 10) + ',' + (Math.round((y + ny) * 10) / 10); };
-		return 'M' + p(x1, a.y) + ' C' + p(c1[0], c1[1]) + ' ' + p(c2[0], c2[1]) + ' ' + p(x2, b.y);
+		return 'M' + p(x1, y1) + ' C' + p(c1[0], c1[1]) + ' ' + p(c2[0], c2[1]) + ' ' + p(x2, y2);
 	}
 
 	var api = { build: build, layout: layout, loadClass: loadClass, width: width, speed: speed };

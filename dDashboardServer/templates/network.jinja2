@@ -55,8 +55,7 @@
 	<div class="d-flex flex-wrap gap-2 align-items-center">
 		<span class="small text-body-secondary" id="nfUpdated" aria-live="polite"></span>
 		<div class="btn-group btn-group-sm" role="group" aria-label="View">
-			<input type="radio" class="btn-check" name="nfView" id="nfViewAuto" value="auto" checked data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewAuto">Auto</label>
-			<input type="radio" class="btn-check" name="nfView" id="nfViewDiagram" value="diagram" data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewDiagram">Diagram</label>
+			<input type="radio" class="btn-check" name="nfView" id="nfViewDiagram" value="diagram" checked data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewDiagram">Diagram</label>
 			<input type="radio" class="btn-check" name="nfView" id="nfViewList" value="list" data-pref="network.view"><label class="btn btn-outline-secondary" for="nfViewList">List</label>
 		</div>
 	</div>
@@ -114,7 +113,7 @@
 	var PEAK_SECONDS = 300;
 	var summary = null, peers = null, selected = null, detail = null;
 	var expanded = {}, clientsExpanded = false, webExpanded = false, kind = '', search = '';
-	var view = (document.querySelector('input[name="nfView"]:checked') || {}).value || 'auto';
+	var view = (document.querySelector('input[name="nfView"]:checked') || {}).value || 'diagram';
 	var history = {}; // edge id -> [[time, value]] for the load colours
 	var svg = document.getElementById('nfSvg'), box = document.getElementById('nfBox'), stack = document.getElementById('nfStack');
 
@@ -150,7 +149,7 @@
 		var hasServers = Object.keys(summary.servers || {}).length > 0;
 		document.getElementById('nfEmpty').classList.toggle('d-none', hasServers);
 		var width = box.clientWidth || 800;
-		var list = view === 'list' || (view === 'auto' && width < 640);
+		var list = view === 'list';
 		svg.classList.toggle('d-none', !hasServers || list);
 		stack.classList.toggle('d-none', !hasServers || !list);
 		if (!hasServers) return;

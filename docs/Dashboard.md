@@ -743,8 +743,9 @@ faster with more packets, and coloured by its load against its own peak over the
 numbers. Boxes show connections, average ping, resends, busy workers and live dashboard pages. Clicking a box shows its
 links, its busiest message types each way over 5 minutes, its packets per second over 10 minutes and a link to
 Diagnostics filtered to it (`/diagnostics?server=<key>`). It updates with the `traffic` WebSocket topic (every 2
-seconds while reports arrive), stops drawing while the tab is hidden, and on narrow screens (or with **List**) shows
-each box with its links as a list.
+seconds while reports arrive), stops drawing while the tab is hidden. **Diagram** or **List** (each box with its links, for phones) is remembered
+per browser. Drag boxes to rearrange the diagram; links leave from the sides that face each other, and **Reset layout**
+puts everything back.
 
 The links, and how exact they are:
 
