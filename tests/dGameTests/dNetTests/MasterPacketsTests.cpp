@@ -371,6 +371,7 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			entry.port = instance.port;
 			entry.isPrivate = instance.isPrivate ? 1 : 0;
 			entry.state = static_cast<MasterPackets::ServerListResponse::eState>(i % 3);
+			entry.outdated = i == 1 ? 1 : 0;
 		}
 		response.ugcEnabled = 1;
 		response.ugcOnline = count % 2;
@@ -400,6 +401,7 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 				b.Write<uint32_t>(3000 + i);
 				b.Write(LUString(i == 2 ? "192.168.1.20" : "localhost"));
 			}
+			for (size_t i = 0; i < count; i++) b.Write<uint8_t>(i == 1 ? 1 : 0); // each world's outdated flag
 		}), StructPacket(response));
 
 		RakNet::BitStream stream; LoadPayload(stream, response);
@@ -412,6 +414,7 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			EXPECT_EQ(legacy.instances[i].ip, copy.instances[i].ip.string);
 			EXPECT_EQ(legacy.instances[i].isPrivate, copy.instances[i].isPrivate != 0);
 			EXPECT_EQ(static_cast<size_t>(copy.instances[i].state), i % 3);
+			EXPECT_EQ(copy.instances[i].outdated, i == 1 ? 1 : 0);
 		}
 		EXPECT_EQ(copy.ugcEnabled, 1);
 		EXPECT_EQ(copy.ugcOnline, count % 2);
@@ -658,4 +661,27 @@ TEST(MasterPacketsTests, WorldFilesStatus) {
 	EXPECT_TRUE(read.watching);
 	EXPECT_EQ(read.watchSeconds, 5);
 	EXPECT_EQ(read.zones, status.zones);
+}
+
+// A master without the outdated flags (written after the endpoints) still reads: nothing is outdated
+TEST(MasterPacketsTests, ServerListWithoutOutdatedFlags) {
+	MasterPackets::ServerListResponse response;
+	auto& entry = response.instances.emplace_back();
+	entry.mapID = 1150;
+	entry.cloneID = 42;
+	entry.outdated = 1;
+	RakNet::BitStream full;
+	response.Serialize(full);
+	// Drop the last byte (the one flag)
+	RakNet::BitStream older;
+	older.Write(full.GetData(), static_cast<unsigned int>(full.GetNumberOfBytesUsed() - 1));
+	MasterPackets::ServerListResponse read;
+	ASSERT_TRUE(read.Deserialize(older));
+	ASSERT_EQ(read.instances.size(), 1u);
+	EXPECT_EQ(read.instances[0].outdated, 0);
+	RakNet::BitStream again;
+	response.Serialize(again);
+	MasterPackets::ServerListResponse withFlag;
+	ASSERT_TRUE(withFlag.Deserialize(again));
+	EXPECT_EQ(withFlag.instances[0].outdated, 1);
 }
