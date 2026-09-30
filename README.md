@@ -41,7 +41,8 @@ A web dashboard for running and moderating a server, started and supervised by m
   system logs with downloadable log bundles, crash dumps, a live **Network** page (a draggable flow diagram of the
   traffic between clients and every server, grouped per zone, with each connected player or address; addresses behind a
   permission; opening a group lists its members in the box with a filter, and web clients are named by their signed-in
-  user or API key), a **Performance** page (frame times, time per main-loop phase, slow-frame captures naming what took
+  user or API key; each server box shows its port, and servers on several machines are framed per machine with the
+  links between machines marked), a **Performance** page (frame times, time per main-loop phase, slow-frame captures naming what took
   the time, and profiling sessions with a flame graph), and each server's build identifier on the About page.
 * **Game text from the client:** zone, item and other game names and labels come from the client's locale, in the
   viewer's language (picker in the user menu, or the browser's language), never written into the pages.

@@ -768,6 +768,26 @@ seconds while reports arrive), stops drawing while the tab is hidden. **Diagram*
 per browser. Drag boxes to rearrange the diagram; links leave from the sides that face each other, and **Reset layout**
 puts everything back.
 
+Each server box shows the port it listens on ("Auth :1001"; the dashboard and the UGC server their web port; a zone
+its instance's port while it has one), and an open zone's instance rows show theirs. The ports and each server's
+machine come from master's server list, which the dashboard asks for every 30 seconds and master sends when a server
+comes or goes: master keeps the address and port each server reported when it connected, and its machine is the
+address master sees that connection come from (servers connecting over loopback or from master's `external_ip`, and
+worlds that haven't connected yet, are on master's machine, named by master's `external_ip`). Hover a box, open its
+details or use the List view to see its machine. Player rows and the Connections table show remote ports with
+`network_ips` only, like the addresses.
+
+**Several machines.** When the servers run on more than one machine, the boxes of columns 2 to 5 (auth and the
+worlds, chat, master, the dashboard and UGC) are grouped by machine: each machine's boxes are a band of their own,
+master's machine first and the others under it, each framed with the machine's name, its servers, connections and
+bytes per second. A zone with instances on several machines is a box on each. ▾ on a frame folds the machine into one
+box (its links go to that box, the ones inside it are gone; ▸ on the box shows its servers again); folded machines are
+remembered per browser. Links between two machines are dash-dotted with a ◇ half way, and their tooltip names both
+machines. The game and web clients stay on the sides, centred on all the bands. A dragged box takes its frame along.
+With one machine nothing is framed and the page looks as before. Machines are named by a token without
+`network_ips` (the summary sent to every open page has only tokens; `/api/diagnostics/network/connections` maps
+them to addresses in `hosts` for viewers with the permission).
+
 Game clients, Web clients and a zone with more than one instance are groups: ▸ on the box (or a double click) opens it
 in place. The box grows into a list of its members, one row each (players, and HTTP clients of the UGC server only,
 under Game clients; one row per address and signed-in dashboard account under Web clients; each instance of a zone),
@@ -805,10 +825,12 @@ they are shown only with `network_ips` (Network addresses, level 9 by default; g
 are otherwise replaced by a token that stays the same for the same address until the dashboard restarts. They are kept
 in memory from the last report only and never written to the database.
 
-- `GET /api/diagnostics/network`: the live summary (what the `traffic` topic sends).
+- `GET /api/diagnostics/network`: the live summary (what the `traffic` topic sends), with each server's listening
+  `port` and its machine as a `host` token (both null until master's server list names the server).
 - `GET /api/diagnostics/network/server?key=world:1200:3`: one server's details.
-- `GET /api/diagnostics/network/connections`: the connection list (addresses with `network_ips`; `user` and
-  `account_id` on web clients that were signed in).
+- `GET /api/diagnostics/network/connections`: the connection list (addresses and remote ports with `network_ips`;
+  `user` and `account_id` on web clients that were signed in; `hosts`, each machine token to its address, with
+  `network_ips` only).
 
 **Prometheus**: `/metrics` has the same counters, totals since the dashboard started: `darkflame_net_packets_total`,
 `darkflame_net_bytes_total` and `darkflame_net_datagrams_total` (labels `server`, `direction`),
