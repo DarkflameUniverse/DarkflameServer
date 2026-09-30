@@ -169,3 +169,8 @@ binaries: add fields at the end and read them only when present. A change master
 * The new build's database migrations run while the old servers still run; a migration that breaks the old code breaks
   them until they are replaced.
 * Transfers were not tested with the game client when this was written.
+
+## Reloading one zone
+
+When only zone files changed (not the binaries), master replaces just the instances that loaded them, with the same
+per-instance moves: see [WorldHotReload.md](WorldHotReload.md).

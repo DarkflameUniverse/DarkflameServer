@@ -128,6 +128,9 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   with thousands of different items no longer stalls a world. The CDClient data is never modified.
   Servers read a copy of the client's `cdclient.fdb`, so it can be replaced while they run, and master reloads it on
   every server when it changes or on `/reloadcdclient` ([docs/CDClientFdb.md](docs/CDClientFdb.md)).
+* **World hot reload:** worlds report the zone files they loaded (`.luz`, `.lvl`, triggers, terrain, navmesh); when one
+  changes on disk, or on `/reloadworld` or the dashboard's Reload, master replaces those instances with new ones and
+  moves their players over ([docs/WorldHotReload.md](docs/WorldHotReload.md)).
 * The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
 
 ## License
