@@ -158,10 +158,10 @@ TEST_F(ReplicaDecoderTest, ModelWithTheDestroyableTheRegistryDoesNotList) {
 	const auto constructed = session.Decode(Construction(model, 3), 1);
 	ASSERT_TRUE(constructed);
 	EXPECT_FALSE(constructed->contains("(layout did not match)")) << constructed->dump();
-	EXPECT_EQ(Names(*constructed), "SIMPLE_PHYSICS MODEL DESTROYABLE ");
+	EXPECT_EQ(Names(*constructed), "SIMPLE_PHYSICS ITEM MODEL DESTROYABLE ");
 	EXPECT_EQ((*FieldsOf(*constructed, "DESTROYABLE"))["smashable"], true);
 	EXPECT_EQ((*FieldsOf(*constructed, "SIMPLE_PHYSICS"))["position"], json::array({ -12.0f, 432.96f, -49.6f }));
-	EXPECT_EQ((*FieldsOf(*constructed, "MODEL"))["modelID"], "288300744895900200");
+	EXPECT_EQ((*FieldsOf(*constructed, "ITEM"))["ugID"], "288300744895900200");
 }
 
 // When no layout reads the packet exactly, what read is shown with the rest as bits, never a guess
@@ -369,6 +369,8 @@ TEST_F(ReplicaDecoderTest, ModelBehaviorsOnlyOnPropertyModels) {
 		EXPECT_EQ(fields->contains("behaviors"), onProperty);
 	}
 	info.settings.values.clear();
+}
+
 // A live premade model placed on a property (LOT 12504: simple physics, item, model and render in the registry): its
 // config is compressed, and it reads as the server writes a model, with the destroyable after the render
 TEST_F(ReplicaDecoderTest, LivePlacedModel) {
@@ -403,11 +405,12 @@ TEST_F(ReplicaDecoderTest, LivePlacedModel) {
 	const auto config = (*constructed)["config"].dump();
 	EXPECT_NE(config.find("userModelID=9:12504"), std::string::npos) << config;
 	EXPECT_NE(config.find("propertyObjectID=7:1"), std::string::npos) << config;
-	EXPECT_EQ(Names(*constructed), "SIMPLE_PHYSICS MODEL RENDER DESTROYABLE ");
+	// On a property (propertyObjectID), so the client reads it with the mutable model component
+	EXPECT_EQ(Names(*constructed), "SIMPLE_PHYSICS ITEM MUTABLE_MODEL_BEHAVIORS RENDER DESTROYABLE ");
 	const auto& position = (*FieldsOf(*constructed, "SIMPLE_PHYSICS"))["position"];
 	EXPECT_FLOAT_EQ(position[0].get<float>(), -12.0f);
 	EXPECT_NEAR(position[1].get<float>(), 432.96f, 0.001f);
 	EXPECT_NEAR(position[2].get<float>(), -49.6f, 0.001f);
-	EXPECT_EQ((*FieldsOf(*constructed, "MODEL"))["modelID"], "12504");
-	EXPECT_EQ((*FieldsOf(*constructed, "MODEL"))["behaviors"], 0);
+	EXPECT_EQ((*FieldsOf(*constructed, "ITEM"))["ugID"], "12504");
+	EXPECT_EQ((*FieldsOf(*constructed, "MUTABLE_MODEL_BEHAVIORS"))["behaviors"], 0);
 }
