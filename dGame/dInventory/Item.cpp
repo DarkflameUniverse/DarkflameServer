@@ -82,7 +82,8 @@ Item::Item(
 	bool isModMoveAndEquip,
 	LWOOBJID subKey,
 	bool bound,
-	eLootSourceType lootSourceType) {
+	eLootSourceType lootSourceType,
+	const LootMetrics& metrics) {
 	if (!Inventory::IsValidItem(lot)) {
 		return;
 	}
@@ -113,6 +114,7 @@ Item::Item(
 	GameMessages::AddItemToInventoryClientSync addItem;
 	addItem.target = entity->GetObjectID();
 	addItem.SetItem(*this);
+	addItem.AddMetrics(metrics);
 	addItem.eLootTypeSource = lootSourceType;
 	addItem.iSubkey = subKey;
 	addItem.itemCount = static_cast<int>(this->count);
@@ -178,7 +180,7 @@ PreconditionExpression* Item::GetPreconditionExpression() const {
 	return preconditions;
 }
 
-void Item::SetCount(const uint32_t value, const bool silent, const bool disassemble, const bool showFlyingLoot, eLootSourceType lootSourceType) {
+void Item::SetCount(const uint32_t value, const bool silent, const bool disassemble, const bool showFlyingLoot, eLootSourceType lootSourceType, const LootMetrics& metrics, const ItemRemovalSource& removalSource) {
 	if (value == count) {
 		return;
 	}
@@ -202,6 +204,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 			GameMessages::AddItemToInventoryClientSync addItem;
 			addItem.target = entity->GetObjectID();
 			addItem.SetItem(*this);
+			addItem.AddMetrics(metrics);
 			addItem.eLootTypeSource = lootSourceType;
 			addItem.itemCount = delta;
 			addItem.newObjID = id;
@@ -213,7 +216,8 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 			removeItem.target = entity->GetObjectID();
 			removeItem.bConfirmed = true;
 			removeItem.eInvType = inventory->GetType();
-			removeItem.eLootTypeSource = LOOTTYPE_NONE;
+			removeItem.eLootTypeSource = static_cast<int32_t>(removalSource.type);
+			removeItem.iLootTypeSource = removalSource.object;
 			removeItem.iObjID = id;
 			removeItem.iObjTemplate = lot;
 			removeItem.iStackCount = delta;

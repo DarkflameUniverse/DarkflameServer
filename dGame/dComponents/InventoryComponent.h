@@ -23,6 +23,7 @@
 #include "eReplicaComponentType.h"
 #include "eLootSourceType.h"
 #include "Loot.h"
+#include "LootMetrics.h"
 
 class Entity;
 class ItemSet;
@@ -57,6 +58,7 @@ struct ReceiveItemOptions {
 	bool equip = false;
 	int32_t preferredSlot = -1;
 	eInventoryType sourceInventory = INVALID;  // set when moving between the player's own inventories
+	LootMetrics metrics{};                     // where the items came from, sent with them (e.g. the mail or trade ID)
 };
 
 // Which item or stack ReceiveItem put the items in
@@ -153,6 +155,7 @@ public:
 	 * @param bound whether this item is bound
 	 * @param preferredSlot the preferred slot to store this item
 	 * @param lootSourceType The source of the loot.  Defaults to none.
+	 * @param metrics where the items came from (source LOT, mission, activity...), sent with them and not kept
 	 */
 	void AddItem(
 		LOT lot,
@@ -167,7 +170,8 @@ public:
 		eInventoryType inventorySourceType = INVALID,
 		int32_t sourceType = 0,
 		bool bound = false,
-		int32_t preferredSlot = -1
+		int32_t preferredSlot = -1,
+		const LootMetrics& metrics = {}
 	);
 
 	/**
@@ -190,8 +194,9 @@ public:
 	 * @param inventoryType optional inventory type to remove the item from
 	 * @param ignoreBound ignores bound items
 	 * @param silent silently remove the item
+	 * @param removalSource what took the items, sent with the removal (e.g. a quickbuild taking its item cost)
 	 */
-	bool RemoveItem(LOT lot, uint32_t count, eInventoryType inventoryType = INVALID, bool ignoreBound = false, bool silent = false);
+	bool RemoveItem(LOT lot, uint32_t count, eInventoryType inventoryType = INVALID, bool ignoreBound = false, bool silent = false, const ItemRemovalSource& removalSource = {});
 
 	/**
 	 * Moves an existing item to an inventory of the entity

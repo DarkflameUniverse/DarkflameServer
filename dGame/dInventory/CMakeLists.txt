@@ -3,7 +3,8 @@ set(DGAME_DINVENTORY_SOURCES
 	"Inventory.cpp"
 	"Item.cpp"
 	"ItemSet.cpp"
-	"ItemSetPassiveAbility.cpp")
+	"ItemSetPassiveAbility.cpp"
+	"LootMetrics.cpp")
 
 add_library(dInventory OBJECT ${DGAME_DINVENTORY_SOURCES})
 target_include_directories(dInventory PUBLIC "."
