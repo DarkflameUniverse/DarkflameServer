@@ -8,6 +8,7 @@
 
 #include "RakNetTypes.h"
 #include "NiPoint3.h"
+#include "NiQuaternion.h"
 #include <string>
 
 #include "dCommonVars.h"
@@ -25,9 +26,69 @@ enum class eMoverSubComponentType : uint32_t {
 	mover = 4,
 
 	/**
-	 * Used in NJ
+	 * A two point mover set up from the MovingPlatforms table or the platformMove* settings (used in NJ)
 	 */
-	 simpleMover = 5,
+	simpleMover = 5,
+
+	/**
+	 * A mover that turns between rotations along its path (same data as a mover)
+	 */
+	rotater = 6,
+
+	/**
+	 * The level config set the platform flags all false: the client makes no subcomponent
+	 */
+	none = 0,
+};
+
+/**
+ * The client's platform state flags (LWOPlatform)
+ */
+namespace ePlatformStateFlag {
+	constexpr uint32_t Stopped = 1;
+	constexpr uint32_t Travelling = 2;
+	constexpr uint32_t Waiting = 4;
+	constexpr uint32_t ReachedDesiredWaypoint = 8;
+	constexpr uint32_t ReachedFinalDestination = 16;
+};
+
+/**
+ * How the client picks the subcomponent (LWOMovingPlatformComponent::LoadConfigData): the platformIsRotater,
+ * platformIsMover and platformIsSimpleMover settings, and when none is set a mover for a platform with no registry
+ * component (set up from its attached path) or a simple mover for one with a registry component.
+ * The client makes one subcomponent per flag set (mover, simple mover, rotater, LWOMovingPlatformComponent::SetupPlatform);
+ * DLU keeps one, the first in that order.
+ */
+eMoverSubComponentType ChooseMoverSubComponentType(int32_t componentID, const Entity& entity);
+
+/**
+ * A mover between a start point and that point moved by platformMove (in the start rotation), taking
+ * platformMoveTime seconds, as LWOPlatformSimpleMover::GenerateSimpleMoverPath builds its two waypoint path.
+ */
+class SimpleMoverSubComponent {
+public:
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate);
+
+	NiPoint3 mStartPosition{};
+	NiQuaternion mStartRotation{};
+	NiPoint3 mMove{};
+	float mMoveTime = 0.0f;
+	bool mStartAtEnd = false;
+
+	/**
+	 * ePlatformStateFlag bits. Live constructed simple movers stopped at their desired waypoint.
+	 */
+	uint32_t mState = ePlatformStateFlag::Stopped | ePlatformStateFlag::ReachedDesiredWaypoint;
+	int32_t mCurrentWaypointIndex = 0;
+	bool mInReverse = false;
+
+	bool mDirtyStartingPoint = false;
+	bool mDirtyState = false;
+
+	/**
+	 * The world position of a waypoint (0 the start, 1 the end)
+	 */
+	NiPoint3 GetWaypointPosition(int32_t index) const;
 };
 
 /**
@@ -187,6 +248,19 @@ public:
 	 */
 	MoverSubComponent* GetMoverSubComponent() const;
 
+	/**
+	 * Returns the simple mover sub component, if this platform is a simple mover
+	 */
+	SimpleMoverSubComponent* GetSimpleMoverSubComponent() const;
+
+	eMoverSubComponentType GetMoverSubComponentType() const { return m_MoverSubComponentType; }
+
+	/**
+	 * Called when a simple mover gets to the waypoint it was sent to: the client's LWOPlatform::ArrivedAtWaypoint
+	 * and HandleWaypointArrived (Arrived, then ArrivedAtDesiredWaypoint and PlatformAtLastWaypoint)
+	 */
+	void OnSimpleMoverArrived(int32_t index);
+
 private:
 
 	/**
@@ -213,6 +287,15 @@ private:
 	 * The mover sub component that belongs to this platform
 	 */
 	void* m_MoverSubComponent;
+
+	/**
+	 * Counts sends so an arrival timer from an older send does nothing
+	 */
+	uint32_t m_MoveGeneration = 0;
+
+	void SimpleMoverGotoWaypoint(int32_t index);
+
+	void FireArrivalHooks(uint32_t index, bool atDesiredWaypoint);
 
 	/**
 	 * Whether the platform shouldn't auto start

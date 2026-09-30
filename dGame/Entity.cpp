@@ -787,7 +787,8 @@ void Entity::Initialize() {
 	if (path) {
 		// if we have a moving platform path, then we need a moving platform component
 		if (path->pathType == PathType::MovingPlatform) {
-			AddComponent<MovingPlatformComponent>(-1, pathName);
+			// The registry component ID picks the subcomponent (a simple mover when it has one), path or not
+			AddComponent<MovingPlatformComponent>(compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1), pathName);
 		} else if (path->pathType == PathType::Movement) {
 			auto* const movementAIcomponent = GetComponent<MovementAIComponent>();
 			if (movementAIcomponent && combatAiID == 0) {
