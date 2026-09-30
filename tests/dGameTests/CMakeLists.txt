@@ -4,6 +4,7 @@ set(DGAMETEST_SOURCES
 	"LUBitStreamTests.cpp"
 	"MailIdPinTests.cpp"
 	"MailPacketTests.cpp"
+	"MatchmakingTests.cpp"
 	"EconomyLedgerTests.cpp"
 	"PlayerReportsLimitTests.cpp"
 	"SlashCommandPermissionTests.cpp"
