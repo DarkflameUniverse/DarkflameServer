@@ -899,8 +899,8 @@ namespace {
 		if (shutdownSequenceStarted) {
 			LOG("Shutdown sequence has been started.  Not prepping a new zone.");
 		} else {
-			LOG("Prepping zone %i", zoneID);
-			Game::im->GetInstance(zoneID, false, 0);
+			LOG("Prepping zone %i clone %u", zoneID, request.cloneID);
+			Game::im->GetInstance(zoneID, false, request.cloneID);
 		}
 	}
 

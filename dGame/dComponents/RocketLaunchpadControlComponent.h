@@ -140,7 +140,7 @@ private:
 	 * Notifies the master server to prepare some world for a player to be able to travel to it
 	 * @param zoneID the ID of the zone to prepare
 	 */
-	void TellMasterToPrepZone(int zoneID);
+	void TellMasterToPrepZone(int zoneID, LWOCLONEID cloneID = 0);
 };
 
 #endif // ROCKETLAUNCHPADCONTROLCOMPONENT_H

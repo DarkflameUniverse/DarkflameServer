@@ -201,10 +201,13 @@ namespace MasterPackets {
 
 	void PrepZone::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(zoneID);
+		if (cloneID != 0) bitStream.Write(cloneID);
 	}
 
 	bool PrepZone::Deserialize(RakNet::BitStream& bitStream) {
 		VALIDATE_READ(bitStream.Read(zoneID));
+		cloneID = 0;
+		if (bitStream.GetNumberOfUnreadBits() >= 32) VALIDATE_READ(bitStream.Read(cloneID));
 		return true;
 	}
 

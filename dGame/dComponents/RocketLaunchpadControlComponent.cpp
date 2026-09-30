@@ -71,8 +71,9 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 		return;
 	}
 
-	// we have the ability to launch, so now we prep the zone
-	TellMasterToPrepZone(zone);
+	// we have the ability to launch, so now we prep the zone: the clone the player is going to (a property), not an extra
+	// clone 0 instance nobody asked for
+	TellMasterToPrepZone(zone, cloneId == LWOCLONEID_INVALID ? 0 : cloneId);
 
 	// Achievement unlocked: "All zones unlocked"
 	if (!m_AltLandingScene.empty() && m_AltPrecondition->Check(originator)) {
@@ -142,9 +143,10 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 	return index->second;
 }
 
-void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
+void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID, LWOCLONEID cloneID) {
 	MasterPackets::PrepZone request;
 	request.zoneID = zoneID;
+	request.cloneID = cloneID;
 	MasterPackets::SendToMaster(request);
 }
 

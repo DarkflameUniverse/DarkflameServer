@@ -290,6 +290,22 @@ TEST(MasterPacketsTests, WorldStateMatchesLegacy) {
 		RoundTrip(prep);
 		ExpectTruncatedFails(prep);
 	}
+	{
+		// A property's clone rides after the zone; a prep without one reads as clone 0
+		MasterPackets::PrepZone prep;
+		prep.zoneID = 1251;
+		prep.cloneID = 2290;
+		RakNet::BitStream stream;
+		prep.Serialize(stream);
+		MasterPackets::PrepZone read;
+		ASSERT_TRUE(read.Deserialize(stream));
+		EXPECT_EQ(read.zoneID, 1251);
+		EXPECT_EQ(read.cloneID, 2290u);
+		RakNet::BitStream plain;
+		plain.Write<int32_t>(1100);
+		ASSERT_TRUE(read.Deserialize(plain));
+		EXPECT_EQ(read.cloneID, 0u);
+	}
 
 	for (const auto requestID : g_RequestIds) {
 		MasterPackets::AffirmTransferRequest request;

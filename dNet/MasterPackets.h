@@ -190,9 +190,11 @@ namespace MasterPackets {
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
-	// World -> master: start an instance of zoneID now, players are about to ask for it
+	// World -> master: start an instance of zoneID now, players are about to ask for it. cloneID: the clone they will ask
+	// for (a property), written only when not 0 so a plain prep stays as it always was
 	struct PrepZone : public LUBitStream {
 		int32_t zoneID{};
+		uint32_t cloneID{};
 
 		PrepZone() : LUBitStream(ServiceType::MASTER, MessageType::Master::PREP_ZONE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
