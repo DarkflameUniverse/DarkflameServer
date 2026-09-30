@@ -1,6 +1,11 @@
 #include "PacketDecoder.h"
 
+#include <algorithm>
+#include <array>
 #include <cstring>
+#include <deque>
+#include <set>
+#include <unordered_map>
 #include <map>
 #include <utility>
 
@@ -21,16 +26,30 @@
 #include "WorldPackets.h"
 #include "WorldRoutePacket.h"
 #include "magic_enum.hpp"
+#include "PacketJson.h"
+#include "master/CDClientReload.h"
+#include "master/DashboardMessages.h"
+#include "master/DataChanged.h"
+#include "master/InstanceMigration.h"
+#include "master/LiveUpdate.h"
+#include "master/MessageCapture.h"
+#include "master/PlayerAction.h"
+#include "master/Profiling.h"
+#include "master/ServerTraffic.h"
+#include "master/UgcModelsMade.h"
+#include "master/WorldFiles.h"
+#include "Profiler.h"
+#include "TrafficStats.h"
+#include "ZoneFileLog.h"
 
 namespace {
 	using json = nlohmann::json;
-	using Fields = std::function<std::optional<json>(RakNet::BitStream&, bool fromClient)>;
 	using Redactor = std::function<bool(std::string&)>;
 
 	using Scrubber = std::function<bool(std::string&, bool anonymise)>;
 
-	struct Entry {
-		Fields fields;
+	// Packets with secrets or text to scrub (the fields of every packet come from PacketFields.inc)
+	struct Protection {
 		Redactor redact; // set for structs with secret fields
 		Scrubber scrub;  // set for structs with account names, character names or typed text
 	};
@@ -73,19 +92,124 @@ namespace {
 		};
 	}
 
-	std::string Id(LWOOBJID id) { return std::to_string(id); }
-	json Point(const NiPoint3& p) { return json::array({ p.x, p.y, p.z }); }
-	json Rotation(const NiQuaternion& q) { return json::array({ q.x, q.y, q.z, q.w }); }
+	// The fields of every packet: its struct's own Deserialize, then its members by name (PacketFields.inc, written by
+	// tools/gen_game_message_fields.py from the structs)
+	using PacketJson::ToJson;
 
-	template<typename T>
-	Fields Make(std::function<void(const T&, json&)> fill) {
-		return [fill](RakNet::BitStream& stream, bool) -> std::optional<json> {
-			T packet;
-			if (!packet.Deserialize(stream)) return std::nullopt;
-			json out = json::object();
-			fill(packet, out);
+	json ToJson(const TrafficStats::Histogram& histogram) {
+		json buckets = json::array();
+		for (const auto& [bucket, count] : histogram.Sparse()) buckets.push_back(json::array({ bucket, count }));
+		return json{ {"count", std::to_string(histogram.Count())}, {"sumUs", std::to_string(histogram.Sum())}, {"buckets", buckets} };
+	}
+
+	template<typename T> json ToJson(const std::optional<T>& value);
+	template<typename T> json ToJson(const std::vector<T>& values);
+	template<typename K, typename V> json ToJson(const std::map<K, V>& values);
+	template<typename A, typename B> json ToJson(const std::pair<A, B>& value);
+	template<typename T, size_t N> json ToJson(const std::array<T, N>& values);
+	template<typename T> json ToJson(const std::set<T>& values);
+	template<typename T> json ToJson(const std::deque<T>& values);
+	template<typename K, typename V> json ToJson(const std::unordered_map<K, V>& values);
+
+	struct Read {
+		std::optional<json> fields;
+		uint32_t unreadBits{};
+	};
+	using Reader = Read(*)(RakNet::BitStream&);
+
+	struct Entry {
+		ServiceType service;
+		uint32_t id;
+		const char* structName;
+		bool received; // read by the server from its client (has a Handle)
+		Reader read;
+	};
+
+	template<typename T> Read ReadWith(RakNet::BitStream& stream);
+
+#include "PacketFields.inc"
+
+	template<typename T> json ToJson(const std::optional<T>& value) { return value ? ToJson(*value) : json(nullptr); }
+	template<typename T> json ToJson(const std::vector<T>& values) {
+		if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, char>) {
+			return json{ {"hex", PacketJson::Hex(std::string_view(reinterpret_cast<const char*>(values.data()), values.size()))} };
+		} else {
+			json out = json::array();
+			for (const auto& value : values) out.push_back(ToJson(value));
 			return out;
-		};
+		}
+	}
+	template<typename K, typename V> json ToJson(const std::map<K, V>& values) {
+		json out = json::array();
+		for (const auto& [key, value] : values) out.push_back(json::array({ ToJson(key), ToJson(value) }));
+		return out;
+	}
+	template<typename A, typename B> json ToJson(const std::pair<A, B>& value) { return json::array({ ToJson(value.first), ToJson(value.second) }); }
+	template<typename T, size_t N> json ToJson(const std::array<T, N>& values) {
+		json out = json::array();
+		for (const auto& value : values) out.push_back(ToJson(value));
+		return out;
+	}
+
+	template<typename T> json ToJson(const std::set<T>& values) {
+		json out = json::array();
+		for (const auto& value : values) out.push_back(ToJson(value));
+		return out;
+	}
+	template<typename T> json ToJson(const std::deque<T>& values) {
+		json out = json::array();
+		for (const auto& value : values) out.push_back(ToJson(value));
+		return out;
+	}
+	template<typename K, typename V> json ToJson(const std::unordered_map<K, V>& values) {
+		json out = json::array();
+		for (const auto& [key, value] : values) out.push_back(json::array({ ToJson(key), ToJson(value) }));
+		return out;
+	}
+
+	template<typename T> Read ReadWith(RakNet::BitStream& stream) {
+		T packet;
+		if (!packet.Deserialize(stream)) return {};
+		return { ToJson(packet), stream.GetNumberOfUnreadBits() };
+	}
+
+	// (service, ID) -> its structs, the ones the server reads from a client first
+	const std::map<std::pair<ServiceType, uint32_t>, std::vector<const Entry*>>& FieldIndex() {
+		static const auto index = [] {
+			std::map<std::pair<ServiceType, uint32_t>, std::vector<const Entry*>> out;
+			for (const auto& entry : Entries()) out[{ entry.service, entry.id }].push_back(&entry);
+			return out;
+		}();
+		return index;
+	}
+
+	/**
+	 * The packet's fields from the first of its structs that reads the whole of it (a struct per direction can share
+	 * an ID: the one for this direction is tried first). A struct that reads but leaves whole bytes unread is shown
+	 * with "(unread bits)" when no struct reads it all.
+	 */
+	std::optional<json> ReadFields(ServiceType service, uint32_t id, bool fromClient, RakNet::BitStream& stream, bool& failed) {
+		const auto it = FieldIndex().find({ service, id });
+		if (it == FieldIndex().end()) return std::nullopt;
+		auto candidates = it->second;
+		std::stable_sort(candidates.begin(), candidates.end(), [fromClient](const Entry* a, const Entry* b) {
+			return (a->received == fromClient) > (b->received == fromClient);
+		});
+		const auto start = stream.GetReadOffset();
+		std::optional<json> partial;
+		for (const auto* entry : candidates) {
+			if (!entry->read) continue;
+			stream.SetReadOffset(start);
+			auto read = entry->read(stream);
+			if (!read.fields) continue;
+			if (read.unreadBits < 8) return read.fields;
+			if (!partial) {
+				partial = std::move(read.fields);
+				(*partial)["(unread bits)"] = read.unreadBits;
+			}
+		}
+		failed = !partial;
+		return partial;
 	}
 
 	// Reads T from a whole packet, lets `blank` clear its secrets, and writes it back in place
@@ -106,141 +230,23 @@ namespace {
 	using Key = std::pair<ServiceType, uint32_t>;
 	template<typename E> Key K(ServiceType service, E id) { return { service, static_cast<uint32_t>(id) }; }
 
-	const std::map<Key, Entry>& Registry() {
+	const std::map<Key, Protection>& Registry() {
 		using S = ServiceType;
-		static const std::map<Key, Entry> registry{
-			// Handshake: one ID, a struct per direction
-			{ K(S::COMMON, MessageType::Server::VERSION_CONFIRM), { [](RakNet::BitStream& stream, bool fromClient) -> std::optional<json> {
-				if (fromClient) {
-					CommonPackets::ClientVersionConfirm packet;
-					if (!packet.Deserialize(stream)) return std::nullopt;
-					return json{ {"netVersion", packet.netVersion}, {"serviceType", static_cast<int>(packet.serviceType)}, {"processID", packet.processID}, {"port", packet.port} };
-				}
-				CommonPackets::ServerVersionConfirm packet;
-				if (!packet.Deserialize(stream)) return std::nullopt;
-				return json{ {"netVersion", packet.netVersion}, {"serviceType", static_cast<int>(packet.serviceType)} };
-			} } },
-
-			// Auth: the username and password are blanked when recorded
-			{ K(S::AUTH, MessageType::Auth::LOGIN_REQUEST), {
-				Make<AuthPackets::LoginRequest>([](const auto& p, json& j) {
-					j = { {"username", p.username.GetAsString()}, {"localeID", static_cast<int>(p.localeID)}, {"clientOS", static_cast<int>(p.clientOS)},
-						{"memoryStats", p.memoryStats.GetAsString()}, {"videoCard", p.videoCard.GetAsString()} };
-				}),
-				Blank<AuthPackets::LoginRequest>([](auto& p) { p.username.string.clear(); p.password.string.clear(); }),
-				Scrub<AuthPackets::LoginRequest>([](auto& p) { X(p.username); }) } },
-			{ K(S::CLIENT, MessageType::Client::LOGIN_RESPONSE), {
-				Make<ClientPackets::LoginResponse>([](const auto& p, json& j) {
-					json stamps = json::array();
-					for (const auto& stamp : p.stamps.list) stamps.push_back({ {"type", static_cast<int>(stamp.type)}, {"value", stamp.value}, {"timestamp", stamp.timestamp} });
-					j = { {"responseCode", static_cast<int>(p.responseCode)}, {"worldServerIP", p.worldServerIP.string}, {"worldServerPort", p.worldServerPort},
-						{"errorMessage", p.errorMessage}, {"stamps", stamps} };
-				}),
-				Blank<ClientPackets::LoginResponse>([](auto& p) { p.userKey.string.clear(); p.cdnKey.string.clear(); }) } },
-
-			// World
-			{ K(S::WORLD, MessageType::World::VALIDATION), {
-				Make<WorldPackets::Validation>([](const auto& p, json& j) { j = { {"username", p.username.GetAsString()}, {"fdbChecksum", p.fdbChecksum.string} }; }),
-				Blank<WorldPackets::Validation>([](auto& p) { p.sessionKey.string.clear(); }),
-				Scrub<WorldPackets::Validation>([](auto& p) { X(p.username); }) } },
-			{ K(S::WORLD, MessageType::World::CHARACTER_CREATE_REQUEST), { Make<WorldPackets::CharacterCreateRequest>([](const auto& p, json& j) {
-				j = { {"name", p.name.GetAsString()}, {"firstNameIndex", p.firstNameIndex}, {"middleNameIndex", p.middleNameIndex}, {"lastNameIndex", p.lastNameIndex},
-					{"shirtColor", p.shirtColor}, {"shirtStyle", p.shirtStyle}, {"pantsColor", p.pantsColor}, {"hairStyle", p.hairStyle}, {"hairColor", p.hairColor},
-					{"eyebrows", p.eyebrows}, {"eyes", p.eyes}, {"mouth", p.mouth} };
-			}),
-				nullptr, Scrub<WorldPackets::CharacterCreateRequest>(nullptr, [](auto& p) { X(p.name); }) } },
-			{ K(S::WORLD, MessageType::World::LOGIN_REQUEST), { Make<WorldPackets::CharacterLoginRequest>([](const auto& p, json& j) { j = { {"playerID", Id(p.playerID)} }; }) } },
-			{ K(S::WORLD, MessageType::World::CHARACTER_DELETE_REQUEST), { Make<WorldPackets::CharacterDeleteRequest>([](const auto& p, json& j) { j = { {"objectID", Id(p.objectID)} }; }) } },
-			{ K(S::WORLD, MessageType::World::CHARACTER_RENAME_REQUEST), { Make<WorldPackets::CharacterRenameRequest>([](const auto& p, json& j) {
-				j = { {"objectID", Id(p.objectID)}, {"name", p.name.GetAsString()} };
-			}),
-				nullptr, Scrub<WorldPackets::CharacterRenameRequest>(nullptr, [](auto& p) { X(p.name); }) } },
-			{ K(S::WORLD, MessageType::World::LEVEL_LOAD_COMPLETE), { Make<WorldPackets::LevelLoadComplete>([](const auto& p, json& j) {
-				j = { {"mapID", p.mapID}, {"instanceID", p.instanceID}, {"cloneID", p.cloneID} };
-			}) } },
-			{ K(S::WORLD, MessageType::World::POSITION_UPDATE), { Make<WorldPackets::PositionUpdate>([](const auto& p, json& j) {
-				j = { {"position", Point(p.update.position)}, {"rotation", Rotation(p.update.rotation)}, {"onGround", p.update.onGround}, {"onRail", p.update.onRail} };
-				if (p.hasVelocity) j["velocity"] = Point(p.update.velocity);
-				if (p.hasLocalSpaceInfo) j["platform"] = Id(p.update.localSpaceInfo.objectId);
-			}) } },
-			{ K(S::WORLD, MessageType::World::GENERAL_CHAT_MESSAGE), { Make<WorldPackets::GeneralChatMessage>([](const auto& p, json& j) {
-				j = { {"chatChannel", p.chatChannel}, {"message", GeneralUtils::UTF16ToWTF8(p.message)} };
-			}),
-				nullptr, Scrub<WorldPackets::GeneralChatMessage>(nullptr, [](auto& p) { X(p.message); }) } },
-			{ K(S::WORLD, MessageType::World::ROUTE_PACKET), { Make<WorldPackets::RoutePacket>([](const auto& p, json& j) {
-				j = { {"routed", PacketDecoder::Name(p.routedService, p.routedMessageID)}, {"size", p.size} };
-			}) } },
-
-			// To the client
-			{ K(S::CLIENT, MessageType::Client::LOAD_STATIC_ZONE), { Make<ClientPackets::LoadStaticZone>([](const auto& p, json& j) {
-				j = { {"mapID", p.mapID}, {"instanceID", p.instanceID}, {"cloneID", p.cloneID}, {"mapChecksum", p.mapChecksum}, {"playerPosition", Point(p.playerPosition)},
-					{"instanceType", p.instanceType} };
-			}) } },
-			{ K(S::CLIENT, MessageType::Client::CHARACTER_LIST_RESPONSE), { Make<ClientPackets::CharacterListResponse>([](const auto& p, json& j) {
-				json characters = json::array();
-				for (const auto& c : p.characters) {
-					characters.push_back({ {"objectID", Id(c.objectID)}, {"name", c.name.GetAsString()}, {"zoneID", c.zoneID}, {"equippedItems", c.equippedItems} });
-				}
-				j = { {"selectedCharacterIndex", p.selectedCharacterIndex}, {"characters", characters} };
-			}),
-				nullptr, Scrub<ClientPackets::CharacterListResponse>(nullptr, [](auto& p) { for (auto& c : p.characters) { X(c.name); X(c.unapprovedName); } }) } },
-			{ K(S::CLIENT, MessageType::Client::CREATE_CHARACTER), { Make<ClientPackets::CreateCharacter>([](const auto& p, json& j) {
-				j = { {"objectID", Id(p.objectID)}, {"templateID", p.templateID}, {"name", GeneralUtils::UTF16ToWTF8(p.name)}, {"gmLevel", static_cast<int>(p.gmLevel)},
-					{"reputation", p.reputation}, {"propertyCloneID", p.propertyCloneID}, {"xmlBytes", p.xmlData.size()} };
-			}),
-				nullptr, Scrub<ClientPackets::CreateCharacter>(nullptr, [](auto& p) { X(p.name); }) } },
-			{ K(S::CLIENT, MessageType::Client::CHARACTER_CREATE_RESPONSE), { Make<ClientPackets::CharacterCreateResponse>([](const auto& p, json& j) {
-				j = { {"response", static_cast<int>(p.response)} };
-			}) } },
-			{ K(S::CLIENT, MessageType::Client::TRANSFER_TO_WORLD), { Make<ClientPackets::TransferToWorld>([](const auto& p, json& j) {
-				j = { {"serverIP", p.serverIP.string}, {"serverPort", p.serverPort}, {"mythranShift", p.mythranShift} };
-			}) } },
-
-			// Chat
-			{ K(S::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE), { Make<ChatPackets::GeneralChatMessage>([](const auto& p, json& j) {
-				j = { {"playerID", Id(p.playerID)}, {"chatChannel", static_cast<int>(p.chatChannel)}, {"message", p.message.GetAsString()} };
-			}),
-				nullptr, Scrub<ChatPackets::GeneralChatMessage>(nullptr, [](auto& p) { X(p.senderName); X(p.message); }) } },
-			{ K(S::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE), { Make<ChatPackets::PrivateChatMessage>([](const auto& p, json& j) {
-				j = { {"playerID", Id(p.playerID)}, {"senderName", p.senderName.GetAsString()}, {"receiverName", p.receiverName.GetAsString()},
-					{"responseCode", p.responseCode}, {"message", p.message.GetAsString()} };
-			}),
-				nullptr, Scrub<ChatPackets::PrivateChatMessage>(nullptr, [](auto& p) { X(p.senderName); X(p.receiverName); X(p.message); }) } },
-			{ K(S::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET), { Make<ChatPackets::WorldRoutePacket>([](const auto& p, json& j) {
-				j = { {"targetID", Id(p.targetID)}, {"bytes", p.routedData.size()} };
-				if (p.routedData.size() >= 8 && p.routedData[0] == ID_USER_PACKET_ENUM) {
-					uint16_t service;
-					uint32_t id;
-					std::memcpy(&service, p.routedData.data() + 1, sizeof(service));
-					std::memcpy(&id, p.routedData.data() + 3, sizeof(id));
-					j["routed"] = PacketDecoder::Name(static_cast<ServiceType>(service), id);
-				}
-			}) } },
-
-			// Between servers: session keys are blanked when recorded
-			{ K(S::MASTER, MessageType::Master::REQUEST_SESSION_KEY), { Make<MasterPackets::RequestSessionKey>([](const auto& p, json& j) { j = { {"username", p.username.GetAsString()} }; }),
-				nullptr, Scrub<MasterPackets::RequestSessionKey>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::SESSION_KEY_RESPONSE), {
-				Make<MasterPackets::SessionKeyResponse>([](const auto& p, json& j) { j = { {"username", p.username.GetAsString()} }; }),
-				Blank<MasterPackets::SessionKeyResponse>([](auto& p) { p.sessionKey = 0; }),
-				Scrub<MasterPackets::SessionKeyResponse>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::SET_SESSION_KEY), {
-				Make<MasterPackets::SetSessionKey>([](const auto& p, json& j) { j = { {"username", p.username.string} }; }),
-				Blank<MasterPackets::SetSessionKey>([](auto& p) { p.sessionKey = 0; }),
-				Scrub<MasterPackets::SetSessionKey>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::NEW_SESSION_ALERT), {
-				Make<MasterPackets::NewSessionAlert>([](const auto& p, json& j) { j = { {"username", p.username.string} }; }),
-				Blank<MasterPackets::NewSessionAlert>([](auto& p) { p.sessionKey = 0; }),
-				Scrub<MasterPackets::NewSessionAlert>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::REQUEST_ZONE_TRANSFER), { Make<MasterPackets::RequestZoneTransfer>([](const auto& p, json& j) {
-				j = { {"requestID", Id(p.requestID)}, {"zoneID", p.zoneID}, {"cloneID", p.cloneID}, {"mythranShift", p.mythranShift}, {"stamps", p.stamps.size()} };
-			}) } },
-			{ K(S::MASTER, MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE), { Make<MasterPackets::RequestZoneTransferResponse>([](const auto& p, json& j) {
-				j = { {"requestID", Id(p.requestID)}, {"zoneID", p.zoneID}, {"zoneInstance", p.zoneInstance}, {"zoneClone", p.zoneClone}, {"serverPort", p.serverPort},
-					{"stamps", p.stamps.size()} };
-			}) } },
-			{ K(S::MASTER, MessageType::Master::PLAYER_ADDED), { Make<MasterPackets::PlayerAdded>([](const auto& p, json& j) { j = { {"zoneID", p.zoneID}, {"instanceID", p.instanceID} }; }) } },
-			{ K(S::MASTER, MessageType::Master::PLAYER_REMOVED), { Make<MasterPackets::PlayerRemoved>([](const auto& p, json& j) { j = { {"zoneID", p.zoneID}, {"instanceID", p.instanceID} }; }) } },
+		static const std::map<Key, Protection> registry{
+			{ K(S::AUTH, MessageType::Auth::LOGIN_REQUEST), { Blank<AuthPackets::LoginRequest>([](auto& p) { p.username.string.clear(); p.password.string.clear(); }), Scrub<AuthPackets::LoginRequest>([](auto& p) { X(p.username); }) } },
+			{ K(S::CLIENT, MessageType::Client::LOGIN_RESPONSE), { Blank<ClientPackets::LoginResponse>([](auto& p) { p.userKey.string.clear(); p.cdnKey.string.clear(); }), nullptr } },
+			{ K(S::WORLD, MessageType::World::VALIDATION), { Blank<WorldPackets::Validation>([](auto& p) { p.sessionKey.string.clear(); }), Scrub<WorldPackets::Validation>([](auto& p) { X(p.username); }) } },
+			{ K(S::WORLD, MessageType::World::CHARACTER_CREATE_REQUEST), { nullptr, Scrub<WorldPackets::CharacterCreateRequest>(nullptr, [](auto& p) { X(p.name); }) } },
+			{ K(S::WORLD, MessageType::World::CHARACTER_RENAME_REQUEST), { nullptr, Scrub<WorldPackets::CharacterRenameRequest>(nullptr, [](auto& p) { X(p.name); }) } },
+			{ K(S::WORLD, MessageType::World::GENERAL_CHAT_MESSAGE), { nullptr, Scrub<WorldPackets::GeneralChatMessage>(nullptr, [](auto& p) { X(p.message); }) } },
+			{ K(S::CLIENT, MessageType::Client::CHARACTER_LIST_RESPONSE), { nullptr, Scrub<ClientPackets::CharacterListResponse>(nullptr, [](auto& p) { for (auto& c : p.characters) { X(c.name); X(c.unapprovedName); } }) } },
+			{ K(S::CLIENT, MessageType::Client::CREATE_CHARACTER), { nullptr, Scrub<ClientPackets::CreateCharacter>(nullptr, [](auto& p) { X(p.name); }) } },
+			{ K(S::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE), { nullptr, Scrub<ChatPackets::GeneralChatMessage>(nullptr, [](auto& p) { X(p.senderName); X(p.message); }) } },
+			{ K(S::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE), { nullptr, Scrub<ChatPackets::PrivateChatMessage>(nullptr, [](auto& p) { X(p.senderName); X(p.receiverName); X(p.message); }) } },
+			{ K(S::MASTER, MessageType::Master::REQUEST_SESSION_KEY), { nullptr, Scrub<MasterPackets::RequestSessionKey>([](auto& p) { X(p.username); }) } },
+			{ K(S::MASTER, MessageType::Master::SESSION_KEY_RESPONSE), { Blank<MasterPackets::SessionKeyResponse>([](auto& p) { p.sessionKey = 0; }), Scrub<MasterPackets::SessionKeyResponse>([](auto& p) { X(p.username); }) } },
+			{ K(S::MASTER, MessageType::Master::SET_SESSION_KEY), { Blank<MasterPackets::SetSessionKey>([](auto& p) { p.sessionKey = 0; }), Scrub<MasterPackets::SetSessionKey>([](auto& p) { X(p.username); }) } },
+			{ K(S::MASTER, MessageType::Master::NEW_SESSION_ALERT), { Blank<MasterPackets::NewSessionAlert>([](auto& p) { p.sessionKey = 0; }), Scrub<MasterPackets::NewSessionAlert>([](auto& p) { X(p.username); }) } },
 		};
 		return registry;
 	}
@@ -312,6 +318,27 @@ namespace {
 	}
 }
 
+namespace {
+	// Routed packets: the name of the packet they carry
+	void AddRoutedName(ServiceType service, uint32_t id, std::string_view bytes, json& fields) {
+		RakNet::BitStream stream(reinterpret_cast<unsigned char*>(const_cast<char*>(bytes.data())), static_cast<unsigned int>(bytes.size()), false);
+		stream.IgnoreBytes(8);
+		if (service == ServiceType::WORLD && id == static_cast<uint32_t>(MessageType::World::ROUTE_PACKET)) {
+			WorldPackets::RoutePacket packet;
+			if (packet.Deserialize(stream)) fields["routed"] = PacketDecoder::Name(packet.routedService, packet.routedMessageID);
+		} else if (service == ServiceType::CHAT && id == static_cast<uint32_t>(MessageType::Chat::WORLD_ROUTE_PACKET)) {
+			ChatPackets::WorldRoutePacket packet;
+			if (packet.Deserialize(stream) && packet.routedData.size() >= 8 && packet.routedData[0] == ID_USER_PACKET_ENUM) {
+				uint16_t routedService;
+				uint32_t routedId;
+				std::memcpy(&routedService, packet.routedData.data() + 1, sizeof(routedService));
+				std::memcpy(&routedId, packet.routedData.data() + 3, sizeof(routedId));
+				fields["routed"] = PacketDecoder::Name(static_cast<ServiceType>(routedService), routedId);
+			}
+		}
+	}
+}
+
 namespace PacketDecoder {
 	std::string Name(ServiceType service, uint32_t messageId) {
 		switch (service) {
@@ -344,7 +371,7 @@ namespace PacketDecoder {
 				int32_t lot{};
 				if (stream.Read(flag) && stream.Read(network) && stream.Read(object) && stream.Read(lot)) {
 					out.objectId = object;
-					out.fields = json{ {"networkID", network}, {"objectID", Id(object)}, {"lot", lot} };
+					out.fields = json{ {"networkID", network}, {"objectID", std::to_string(object)}, {"lot", lot} };
 				}
 			}
 			return out;
@@ -380,10 +407,8 @@ namespace PacketDecoder {
 			return out;
 		}
 
-		const auto it = Registry().find({ service, id });
-		if (it == Registry().end()) return out;
-		out.fields = it->second.fields(stream, fromClient);
-		out.failed = !out.fields.has_value();
+		out.fields = ReadFields(service, id, fromClient, stream, out.failed);
+		if (out.fields) AddRoutedName(service, id, bytes, *out.fields);
 		return out;
 	}
 
@@ -434,5 +459,7 @@ namespace PacketDecoder {
 		return it != Registry().end() && it->second.redact;
 	}
 
-	size_t RegisteredCount() { return Registry().size() + 1; }
+	size_t RegisteredCount() { return FieldIndex().size(); }
+
+	bool HasFields(ServiceType service, uint32_t messageId) { return FieldIndex().contains({ service, messageId }); }
 }

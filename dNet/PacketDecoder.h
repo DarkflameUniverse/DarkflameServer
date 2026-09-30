@@ -74,6 +74,9 @@ namespace PacketDecoder {
 
 	// How many (service, message) pairs have typed decoders, for tests
 	size_t RegisteredCount();
+
+	// Whether a (service, message) has a struct its fields are read with
+	bool HasFields(ServiceType service, uint32_t messageId);
 }
 
 #endif  //!__PACKETDECODER__H__
