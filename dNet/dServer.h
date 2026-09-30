@@ -72,6 +72,10 @@ public:
 	using ConnectionIdentity = std::function<void(const SystemAddress& sysAddr, TrafficStats::Connection& connection)>;
 	void SetConnectionIdentity(ConnectionIdentity identity) { mConnectionIdentity = std::move(identity); }
 
+	// The port this server tells master it listens on (its ServerInfo, shown on the dashboard's Network page): its
+	// RakNet port unless set. The dashboard and the UGC server set their web port.
+	void SetAdvertisedPort(uint32_t port) { mAdvertisedPort = port; }
+
 	bool IsConnected(const SystemAddress& sysAddr);
 	const std::string& GetIP() const { return mIP; }
 	const int GetPort() const { return mPort; }
@@ -124,6 +128,7 @@ protected:
 	Logger* mLogger = nullptr;
 	dConfig* mConfig = nullptr;
 	RakPeerInterface* mPeer = nullptr;
+	uint32_t mAdvertisedPort = 0;
 	ReplicaManager* mReplicaManager = nullptr;
 	NetworkIDManager* mNetIDManager = nullptr;
 

@@ -248,6 +248,15 @@ namespace MasterPackets {
 		bitStream.Write(ugcOnline);
 		bitStream.Write(ugcPid);
 		for (const auto& instance : instances) bitStream.Write(static_cast<uint8_t>(instance.state));
+		bitStream.Write<uint32_t>(endpoints.size());
+		for (const auto& endpoint : endpoints) {
+			bitStream.Write(endpoint.type);
+			bitStream.Write(endpoint.zoneID);
+			bitStream.Write(endpoint.instanceID);
+			bitStream.Write(endpoint.ip);
+			bitStream.Write(endpoint.port);
+			bitStream.Write(endpoint.host);
+		}
 	}
 
 	bool ServerListResponse::Deserialize(RakNet::BitStream& bitStream) {
@@ -274,6 +283,18 @@ namespace MasterPackets {
 			VALIDATE_READ(bitStream.Read(state));
 			if (state > static_cast<uint8_t>(eState::DRAINING)) return false;
 			instance.state = static_cast<eState>(state);
+		}
+		uint32_t endpointCount{};
+		VALIDATE_READ(bitStream.Read(endpointCount));
+		if (endpointCount > MAX_INSTANCES + MAX_OTHER_ENDPOINTS) return false;
+		endpoints.resize(endpointCount);
+		for (auto& endpoint : endpoints) {
+			VALIDATE_READ(bitStream.Read(endpoint.type));
+			VALIDATE_READ(bitStream.Read(endpoint.zoneID));
+			VALIDATE_READ(bitStream.Read(endpoint.instanceID));
+			VALIDATE_READ(bitStream.Read(endpoint.ip));
+			VALIDATE_READ(bitStream.Read(endpoint.port));
+			VALIDATE_READ(bitStream.Read(endpoint.host));
 		}
 		return true;
 	}

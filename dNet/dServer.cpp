@@ -170,7 +170,7 @@ Packet* dServer::ReceiveFromMaster() {
 			mMasterSystemAddress = packet->systemAddress;
 			LOG("SendServerInfo called for server type %i", static_cast<int>(GetServerType()));
 			MasterPackets::ServerInfo info;
-			info.port = GetPort();
+			info.port = mAdvertisedPort ? mAdvertisedPort : GetPort();
 			info.zoneID = GetZoneID();
 			info.instanceID = GetInstanceID();
 			info.serverType = GetServerType();

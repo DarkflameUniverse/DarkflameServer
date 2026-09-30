@@ -745,6 +745,8 @@ int main(int argc, char** argv) {
 	// The master starts it again when this link drops
 	g_Server = new dServer(masterIP, Setting<uint32_t>("net_port", 2012), 0, 16, false, false, Game::logger, masterIP, masterPort,
 		ServiceType::UGC, Game::config, &Game::lastSignal, masterPassword);
+	// Master (and the dashboard's Network page) show the port clients fetch files from
+	g_Server->SetAdvertisedPort(Setting<uint32_t>("port", 2008));
 	Game::server = g_Server;
 
 	UgcBricks::BrickLibrary library(res, 0, ClientReader());

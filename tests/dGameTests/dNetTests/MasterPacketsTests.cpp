@@ -374,13 +374,31 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 		response.ugcEnabled = 1;
 		response.ugcOnline = count % 2;
 		response.ugcPid = 4242 + count;
-		// The legacy list, then the UGC server's state
+		for (size_t i = 0; i < count; i++) {
+			auto& endpoint = response.endpoints.emplace_back();
+			endpoint.type = i == 0 ? ServiceType::AUTH : ServiceType::WORLD;
+			endpoint.zoneID = static_cast<uint32_t>(1000 + i);
+			endpoint.instanceID = static_cast<uint32_t>(i);
+			endpoint.ip = LUString("10.0.0." + std::to_string(i));
+			endpoint.port = static_cast<uint32_t>(3000 + i);
+			endpoint.host = LUString(i == 2 ? "192.168.1.20" : "localhost");
+		}
+		// The legacy list, then the UGC server's state, each world's state and where every server listens
 		EXPECT_PACKET_EQ(Written([&](RakNet::BitStream& b) {
 			LegacyMaster::WriteServerList(b, true, count % 2, instances);
 			b.Write<uint8_t>(1);
 			b.Write<uint8_t>(count % 2);
 			b.Write<uint32_t>(4242 + count);
 			for (size_t i = 0; i < count; i++) b.Write<uint8_t>(static_cast<uint8_t>(i % 3)); // each world's state
+			b.Write<uint32_t>(count);
+			for (size_t i = 0; i < count; i++) {
+				b.Write(i == 0 ? ServiceType::AUTH : ServiceType::WORLD);
+				b.Write<uint32_t>(1000 + i);
+				b.Write<uint32_t>(i);
+				b.Write(LUString("10.0.0." + std::to_string(i)));
+				b.Write<uint32_t>(3000 + i);
+				b.Write(LUString(i == 2 ? "192.168.1.20" : "localhost"));
+			}
 		}), StructPacket(response));
 
 		RakNet::BitStream stream; LoadPayload(stream, response);
@@ -397,6 +415,13 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 		EXPECT_EQ(copy.ugcEnabled, 1);
 		EXPECT_EQ(copy.ugcOnline, count % 2);
 		EXPECT_EQ(copy.ugcPid, 4242 + count);
+		ASSERT_EQ(copy.endpoints.size(), count);
+		for (size_t i = 0; i < count; i++) {
+			EXPECT_EQ(copy.endpoints[i].type, i == 0 ? ServiceType::AUTH : ServiceType::WORLD);
+			EXPECT_EQ(copy.endpoints[i].zoneID, 1000 + i);
+			EXPECT_EQ(copy.endpoints[i].port, 3000 + i);
+			EXPECT_EQ(copy.endpoints[i].host.string, i == 2 ? "192.168.1.20" : "localhost");
+		}
 		ExpectTruncatedFails(response);
 	}
 }

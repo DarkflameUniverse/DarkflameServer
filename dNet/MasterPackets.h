@@ -278,6 +278,21 @@ namespace MasterPackets {
 		uint8_t ugcOnline{};
 		uint32_t ugcPid{};
 
+		// Where each server listens and which machine it runs on, after the worlds' states: master, auth, chat, the
+		// dashboard, the UGC server and every world. `ip` and `port` are what the server said it listens on (the
+		// dashboard and the UGC server: their web port); `host` is its machine, the address master sees its
+		// connection come from (master's own machine, and servers connecting from it, are master's external_ip)
+		struct Endpoint {
+			ServiceType type{};
+			uint32_t zoneID{};
+			uint32_t instanceID{};
+			LUString ip{};
+			uint32_t port{};
+			LUString host{};
+		};
+		std::vector<Endpoint> endpoints; // u32 count, at most MAX_INSTANCES + MAX_OTHER_ENDPOINTS
+		static constexpr uint32_t MAX_OTHER_ENDPOINTS = 16;
+
 		ServerListResponse() : LUBitStream(ServiceType::MASTER, MessageType::Master::SERVER_LIST_RESPONSE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;

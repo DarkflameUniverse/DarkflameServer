@@ -107,6 +107,18 @@ namespace {
 	std::optional<ChatHandoff> g_ChatHandoff;
 	// SIGUSR2 starts a live update (docs/LiveUpdate.md)
 	volatile std::sig_atomic_t g_LiveUpdateSignal = 0;
+	// Where auth, chat, the dashboard and the UGC server said they listen, and their machine, from their ServerInfo
+	std::map<ServiceType, MasterPackets::ServerListResponse::Endpoint> g_Endpoints;
+
+	// The machine a server runs on for the dashboard: the address its connection comes from, or master's
+	// external_ip for master's own machine (a loopback connection, or one from that address)
+	std::string HostOf(const SystemAddress& sysAddr) {
+		const auto self = Game::config->GetValue("external_ip", "localhost");
+		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return self; // a world master launched that hasn't connected yet
+		const std::string address = sysAddr.ToString(false);
+		if (address.starts_with("127.") || address == self) return self;
+		return address;
+	}
 }
 
 namespace {
@@ -120,6 +132,17 @@ namespace {
 		response.ugcEnabled = Game::config->GetValue("enable_ugc_server") == "1" ? 1 : 0;
 		response.ugcOnline = ugcServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS ? 1 : 0;
 		response.ugcPid = ugcServerPid;
+		// Master itself, then the other servers that are connected
+		auto& self = response.endpoints.emplace_back();
+		self.type = ServiceType::MASTER;
+		self.ip = LUString(Game::config->GetValue("external_ip", "localhost"));
+		self.port = Game::config->GetValue("master_server_port", 2000);
+		self.host = self.ip;
+		for (const auto& [type, peer] : { std::pair{ ServiceType::AUTH, authServerMasterPeerSysAddr }, std::pair{ ServiceType::CHAT, chatServerMasterPeerSysAddr },
+			std::pair{ ServiceType::DASHBOARD, dashboardServerMasterPeerSysAddr }, std::pair{ ServiceType::UGC, ugcServerMasterPeerSysAddr } }) {
+			const auto it = g_Endpoints.find(type);
+			if (peer != UNASSIGNED_SYSTEM_ADDRESS && it != g_Endpoints.end()) response.endpoints.push_back(it->second);
+		}
 		if (!Game::im) return response;
 		for (const auto& inst : Game::im->GetInstances()) {
 			if (!inst || inst->GetShutdownComplete()) continue;
@@ -133,6 +156,13 @@ namespace {
 			entry.isPrivate = inst->GetIsPrivate() ? 1 : 0;
 			entry.state = inst->GetIsShuttingDown() ? eState::STOPPING : !inst->GetIsReady() ? eState::STARTING :
 				inst->GetIsDraining() ? eState::DRAINING : eState::READY;
+			auto& endpoint = response.endpoints.emplace_back();
+			endpoint.type = ServiceType::WORLD;
+			endpoint.zoneID = entry.mapID;
+			endpoint.instanceID = entry.instanceID;
+			endpoint.ip = entry.ip;
+			endpoint.port = entry.port;
+			endpoint.host = LUString(HostOf(inst->GetSysAddr()));
 		}
 		return response;
 	}
@@ -773,6 +803,14 @@ namespace {
 			break;
 		default:
 			break;
+		}
+
+		if (theirServerType != ServiceType::WORLD) {
+			auto& endpoint = g_Endpoints[theirServerType];
+			endpoint.type = theirServerType;
+			endpoint.ip = theirIP;
+			endpoint.port = theirPort;
+			endpoint.host = LUString(HostOf(sysAddr));
 		}
 
 		if (theirServerType != ServiceType::DASHBOARD && dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
