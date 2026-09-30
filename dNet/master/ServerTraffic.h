@@ -10,6 +10,7 @@
 #include "BitStreamUtils.h"
 #include "MessageType/Master.h"
 #include "ServiceType.h"
+#include "Profiler.h"
 #include "TrafficStats.h"
 
 /**
@@ -20,7 +21,9 @@
  * Newer servers append optional sections at the end, each after a marker byte, so readers that don't know them stop
  * before them and reports without them still read: PEER_SPLIT_MARKER, each second's packets by peer (clients, master,
  * other servers) and its HTTP requests from and to other servers (peerSplit); CONNECTIONS_MARKER, the busiest remote
- * ends with the rest summed (hasConnections).
+ * ends with the rest summed (hasConnections); FRAMES_MARKER, the main loop's frame timing (see Profiler.h): per second
+ * frames, frame times and time per phase, the packet types that took longest to handle, the worst frames and the slow
+ * frames with their scopes (frames.present).
  */
 struct ServerTraffic : public LUBitStream {
 	ServerTraffic() : LUBitStream(ServiceType::MASTER, MessageType::Master::SERVER_TRAFFIC) {}
@@ -35,11 +38,16 @@ struct ServerTraffic : public LUBitStream {
 	static constexpr uint8_t HTTP_SPLIT_BIT = 0x80; // in a second's mask: the HTTP split follows the peers
 	static constexpr uint8_t CONNECTIONS_MARKER = 2;
 	static constexpr uint8_t MAX_CONNECTIONS = 64;
+	static constexpr uint8_t FRAMES_MARKER = 3;
+	static constexpr uint8_t MAX_FRAME_MESSAGES = 32;
+	static constexpr uint8_t MAX_FRAMES = 16;   // worst or slow frames per report
+	static constexpr uint16_t MAX_SCOPES = 256; // per frame
 
 	ServiceType serverType{};
 	uint32_t zoneId{};
 	uint32_t instanceId{};
 	TrafficStats::Report report;
+	Profiler::Report frames;
 
 	static void WriteHistogram(RakNet::BitStream& stream, const TrafficStats::Histogram& histogram) {
 		const auto sparse = histogram.Sparse();
@@ -137,6 +145,122 @@ struct ServerTraffic : public LUBitStream {
 
 		if (report.peerSplit) WritePeerSplit(stream, report.seconds.size() - seconds);
 		if (report.hasConnections) WriteConnections(stream);
+		if (frames.present) WriteFrames(stream, frames);
+	}
+
+	// Scopes in pre-order: name, argument, depth, count, total and first start
+	static void WriteScopes(RakNet::BitStream& stream, const std::vector<Profiler::Node>& nodes, size_t max) {
+		const auto count = std::min(nodes.size(), max);
+		stream.Write(static_cast<uint32_t>(count));
+		for (size_t i = 0; i < count; i++) {
+			const auto& n = nodes[i];
+			WriteText(stream, n.name);
+			stream.Write(n.arg);
+			stream.Write(n.depth);
+			stream.Write(n.count);
+			stream.Write(n.totalUs);
+			stream.Write(n.startUs);
+		}
+	}
+
+	static bool ReadScopes(RakNet::BitStream& stream, std::vector<Profiler::Node>& nodes, size_t max) {
+		uint32_t count{};
+		if (!stream.Read(count) || count > max) return false;
+		nodes.resize(count);
+		for (auto& n : nodes) {
+			if (!ReadText(stream, n.name) || !stream.Read(n.arg) || !stream.Read(n.depth) || !stream.Read(n.count) || !stream.Read(n.totalUs) ||
+				!stream.Read(n.startUs)) return false;
+		}
+		return true;
+	}
+
+	// Phase times with their count first, so a reader that knows fewer phases skips the rest and one that knows more
+	// leaves them 0
+	template<typename T>
+	static void WritePhases(RakNet::BitStream& stream, const std::array<T, Profiler::PHASES>& phases) {
+		stream.Write(static_cast<uint8_t>(Profiler::PHASES));
+		for (const auto value : phases) stream.Write(Clamp(value));
+	}
+
+	template<typename T>
+	static bool ReadPhases(RakNet::BitStream& stream, std::array<T, Profiler::PHASES>& phases) {
+		uint8_t count{};
+		if (!stream.Read(count)) return false;
+		phases.fill(0);
+		for (uint8_t i = 0; i < count; i++) {
+			uint32_t value{};
+			if (!stream.Read(value)) return false;
+			if (i < Profiler::PHASES) phases[i] = value;
+		}
+		return true;
+	}
+
+	static void WriteFrame(RakNet::BitStream& stream, const Profiler::Frame& frame) {
+		stream.Write(frame.timeMs);
+		stream.Write(frame.durationUs);
+		stream.Write(static_cast<uint8_t>(frame.implicit ? 1 : 0));
+		WritePhases(stream, frame.phaseUs);
+		WriteScopes(stream, frame.scopes, MAX_SCOPES);
+	}
+
+	static bool ReadFrame(RakNet::BitStream& stream, Profiler::Frame& frame) {
+		uint8_t flags{};
+		if (!stream.Read(frame.timeMs) || !stream.Read(frame.durationUs) || !stream.Read(flags) || !ReadPhases(stream, frame.phaseUs)) return false;
+		frame.implicit = (flags & 1) != 0;
+		return ReadScopes(stream, frame.scopes, MAX_SCOPES);
+	}
+
+	static void WriteFrames(RakNet::BitStream& stream, const Profiler::Report& frames) {
+		stream.Write(FRAMES_MARKER);
+		stream.Write(frames.slowThresholdMs);
+		const auto seconds = std::min<size_t>(frames.seconds.size(), MAX_SECONDS);
+		stream.Write(static_cast<uint16_t>(seconds));
+		for (size_t i = frames.seconds.size() - seconds; i < frames.seconds.size(); i++) {
+			const auto& s = frames.seconds[i];
+			stream.Write(s.time);
+			stream.Write(s.ticks);
+			stream.Write(s.totalUs);
+			stream.Write(s.maxUs);
+			WriteHistogram(stream, s.frames);
+			WritePhases(stream, s.phaseUs);
+		}
+		const auto messages = std::min<size_t>(frames.messages.size(), MAX_FRAME_MESSAGES);
+		stream.Write(static_cast<uint8_t>(messages));
+		for (size_t i = 0; i < messages; i++) {
+			const auto& m = frames.messages[i];
+			stream.Write(m.key);
+			stream.Write(m.count);
+			stream.Write(m.totalUs);
+			stream.Write(m.maxUs);
+		}
+		for (const auto* list : { &frames.worst, &frames.slow }) {
+			const auto count = std::min<size_t>(list->size(), MAX_FRAMES);
+			stream.Write(static_cast<uint8_t>(count));
+			for (size_t i = 0; i < count; i++) WriteFrame(stream, (*list)[i]);
+		}
+	}
+
+	static bool ReadFrames(RakNet::BitStream& stream, Profiler::Report& frames) {
+		uint16_t seconds{};
+		if (!stream.Read(frames.slowThresholdMs) || !stream.Read(seconds) || seconds > MAX_SECONDS) return false;
+		frames.seconds.resize(seconds);
+		for (auto& s : frames.seconds) {
+			if (!stream.Read(s.time) || !stream.Read(s.ticks) || !stream.Read(s.totalUs) || !stream.Read(s.maxUs) || !ReadHistogram(stream, s.frames) ||
+				!ReadPhases(stream, s.phaseUs)) return false;
+		}
+		uint8_t count{};
+		if (!stream.Read(count) || count > MAX_FRAME_MESSAGES) return false;
+		frames.messages.resize(count);
+		for (auto& m : frames.messages) {
+			if (!stream.Read(m.key) || !stream.Read(m.count) || !stream.Read(m.totalUs) || !stream.Read(m.maxUs)) return false;
+		}
+		for (auto* list : { &frames.worst, &frames.slow }) {
+			if (!stream.Read(count) || count > MAX_FRAMES) return false;
+			list->resize(count);
+			for (auto& frame : *list) if (!ReadFrame(stream, frame)) return false;
+		}
+		frames.present = true;
+		return true;
 	}
 
 	static uint32_t Clamp(uint64_t value) { return static_cast<uint32_t>(std::min<uint64_t>(value, UINT32_MAX)); }
@@ -289,12 +413,15 @@ struct ServerTraffic : public LUBitStream {
 		// Older servers stop here; newer ones add sections, each after its marker (a reader stops at one it doesn't know)
 		report.peerSplit = false;
 		report.hasConnections = false;
+		frames = Profiler::Report{};
 		uint8_t marker{};
 		while (stream.GetNumberOfUnreadBits() >= 8 && stream.Read(marker)) {
 			if (marker == PEER_SPLIT_MARKER && !report.peerSplit) {
 				if (!ReadPeerSplit(stream)) return false;
 			} else if (marker == CONNECTIONS_MARKER && !report.hasConnections) {
 				if (!ReadConnections(stream)) return false;
+			} else if (marker == FRAMES_MARKER && !frames.present) {
+				if (!ReadFrames(stream, frames)) return false;
 			} else {
 				break;
 			}

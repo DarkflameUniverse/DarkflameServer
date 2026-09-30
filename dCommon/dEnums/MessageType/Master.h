@@ -84,5 +84,10 @@ namespace MessageType {
 		CHAT_HANDOFF,
 		// Master -> worlds during a live update: a new chat server is up; connect and send it who is online
 		CHAT_SERVER_READY,
+
+		// Dashboard -> master -> one server: start or stop a profiling session of its main loop (see Profiling.h)
+		PROFILE_REQUEST,
+		// Any server -> master -> dashboard: a profiling session started, failed or finished with its scope tree
+		PROFILE_RESULT,
 	};
 }

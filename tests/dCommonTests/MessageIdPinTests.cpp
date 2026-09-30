@@ -1807,6 +1807,8 @@ static_assert(static_cast<int64_t>(MessageType::Master::LIVE_UPDATE_STATUS) == 4
 static_assert(static_cast<int64_t>(MessageType::Master::LIVE_UPDATE_RETIRE) == 41);
 static_assert(static_cast<int64_t>(MessageType::Master::CHAT_HANDOFF) == 42);
 static_assert(static_cast<int64_t>(MessageType::Master::CHAT_SERVER_READY) == 43);
+static_assert(static_cast<int64_t>(MessageType::Master::PROFILE_REQUEST) == 44);
+static_assert(static_cast<int64_t>(MessageType::Master::PROFILE_RESULT) == 45);
 
 // MessageType::Server: 3 enumerators
 static_assert(static_cast<int64_t>(MessageType::Server::VERSION_CONFIRM) == 0);
