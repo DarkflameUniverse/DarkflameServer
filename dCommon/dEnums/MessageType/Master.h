@@ -89,5 +89,10 @@ namespace MessageType {
 		PROFILE_REQUEST,
 		// Any server -> master -> dashboard: a profiling session started, failed or finished with its scope tree
 		PROFILE_RESULT,
+
+		// CDClient reload (see CDClientReload.h, docs/CDClientFdb.md)
+		// Master -> every server: the client's cdclient.fdb changed; switch to the named copy and CDServer.sqlite.
+		// World or dashboard -> master (no names): check the client's fdb now
+		CDCLIENT_RELOAD,
 	};
 }

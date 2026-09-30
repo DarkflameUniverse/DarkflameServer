@@ -1,4 +1,5 @@
 #include "MasterPackets.h"
+#include "master/CDClientReload.h"
 #include "master/DashboardMessages.h"
 #include "master/DataChanged.h"
 #include "master/InstanceMigration.h"
@@ -521,4 +522,28 @@ TEST(MasterPacketsTests, UgcModelsMadeBytes) {
 	truncated.Write<uint16_t>(2);
 	truncated.Write<LWOOBJID>(1);
 	EXPECT_FALSE(read.Deserialize(truncated));
+}
+
+TEST(MasterPacketsTests, CDClientReload) {
+	CDClientReload reload;
+	reload.fdb = "cdclient-0123456789abcdef.fdb";
+	reload.sqlite = "CDServer-0123456789abcdef.sqlite";
+	ExpectHeaderThenSerialize(reload, MessageType::Master::CDCLIENT_RELOAD);
+	EXPECT_FALSE(reload.IsRequest());
+
+	CDClientReload request;
+	request.requesterId = 42;
+	ExpectHeaderThenSerialize(request, MessageType::Master::CDCLIENT_RELOAD);
+	EXPECT_TRUE(request.IsRequest());
+
+	// A name that leaves resServer, or only one of the two names, is refused
+	for (const auto& [fdb, sqlite] : std::vector<std::pair<std::string, std::string>>{ { "../cdclient.fdb", "CDServer.sqlite" }, { "cdclient-1.fdb", "" } }) {
+		CDClientReload bad;
+		bad.fdb = fdb;
+		bad.sqlite = sqlite;
+		RakNet::BitStream stream;
+		bad.Serialize(stream);
+		CDClientReload read;
+		EXPECT_FALSE(read.Deserialize(stream)) << fdb;
+	}
 }

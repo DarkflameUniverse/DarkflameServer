@@ -1763,7 +1763,7 @@ static_assert(static_cast<int64_t>(MessageType::Game::CAN_ITEMS_BE_REFORGED) == 
 static_assert(static_cast<int64_t>(MessageType::Game::NOTIFY_CLIENT_RAIL_START_FAILED) == 1771);
 static_assert(static_cast<int64_t>(MessageType::Game::GET_IS_ON_RAIL) == 1772);
 
-// MessageType::Master: 43 enumerators
+// MessageType::Master: 44 enumerators
 static_assert(static_cast<int64_t>(MessageType::Master::REQUEST_ZONE_TRANSFER) == 1);
 static_assert(static_cast<int64_t>(MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE) == 2);
 static_assert(static_cast<int64_t>(MessageType::Master::SERVER_INFO) == 3);
@@ -1809,6 +1809,7 @@ static_assert(static_cast<int64_t>(MessageType::Master::CHAT_HANDOFF) == 42);
 static_assert(static_cast<int64_t>(MessageType::Master::CHAT_SERVER_READY) == 43);
 static_assert(static_cast<int64_t>(MessageType::Master::PROFILE_REQUEST) == 44);
 static_assert(static_cast<int64_t>(MessageType::Master::PROFILE_RESULT) == 45);
+static_assert(static_cast<int64_t>(MessageType::Master::CDCLIENT_RELOAD) == 46);
 
 // MessageType::Server: 3 enumerators
 static_assert(static_cast<int64_t>(MessageType::Server::VERSION_CONFIRM) == 0);
