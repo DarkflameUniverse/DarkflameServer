@@ -110,10 +110,14 @@ namespace NetworkView {
 			const auto name = label ? label(server) : key;
 			const auto seconds = std::max<int64_t>(server.connectionsSeconds, 1);
 			for (const auto& c : server.connections) {
-				auto& group = groups[c.address];
-				group.address = c.address;
-				group.seconds = std::max(group.seconds, seconds);
 				const std::string kind = c.peer != TrafficStats::Peer::CLIENTS ? "server" : c.http ? "web" : "game";
+				// One entry per player (their account), else per connection: an address alone is not enough, since the
+				// servers' own links and players on the same machine or network share it
+				const std::string groupKey = kind == "game" && c.accountId ? "account:" + std::to_string(c.accountId)
+					: kind + "|" + c.address + (c.http ? std::string() : ":" + std::to_string(c.port));
+				auto& group = groups[groupKey];
+				if (group.address.empty()) group.address = c.address;
+				group.seconds = std::max(group.seconds, seconds);
 				if (rank(kind) > rank(group.kind)) group.kind = kind;
 				if (c.accountId && !group.accountId) {
 					group.accountId = c.accountId;

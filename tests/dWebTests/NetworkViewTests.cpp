@@ -72,7 +72,7 @@ TEST(NetworkViewTest, HttpSplitOfTheUgcServer) {
 	EXPECT_DOUBLE_EQ(ugc["split"]["http_from_servers"].get<double>(), 1.0);
 }
 
-TEST(NetworkViewTest, ConnectionsGroupByAddressAndHideIt) {
+TEST(NetworkViewTest, ConnectionsGroupByPlayerOrConnectionAndHideIt) {
 	TrafficHistory history;
 	auto world = WorldReport(true);
 	Connection player{ .address = "203.0.113.5", .port = 50000, .peer = Peer::CLIENTS, .packetsIn = 50, .packetsOut = 100, .bytesIn = 5000, .bytesOut = 10000,
@@ -92,15 +92,22 @@ TEST(NetworkViewTest, ConnectionsGroupByAddressAndHideIt) {
 
 	const auto shown = NetworkView::Connections(history, NOW, 20, true, 1234, Label);
 	EXPECT_TRUE(shown["addresses_shown"].get<bool>());
-	ASSERT_EQ(shown["peers"].size(), 2u);
-	const auto& first = shown["peers"][0]; // the busiest: the player on the world and the UGC server
-	EXPECT_EQ(first["address"], "203.0.113.5");
-	EXPECT_EQ(first["kind"], "game");
-	EXPECT_EQ(first["account"], "alice");
-	EXPECT_EQ(first["character"], "Alice");
-	EXPECT_EQ(first["character_id"], "1152921504606846976");
-	ASSERT_EQ(first["servers"].size(), 2u);
-	EXPECT_EQ(shown["peers"][1]["kind"], "server");
+	// The player's game connection, the same address fetching from the UGC server, and the master link are three
+	// entries: an address shared by a player's browser, other players or the servers' own links is not one peer
+	ASSERT_EQ(shown["peers"].size(), 3u);
+	const auto find = [&](const std::string& kind) -> const nlohmann::json& {
+		for (const auto& p : shown["peers"]) if (p["kind"] == kind) return p;
+		return shown["peers"][0];
+	};
+	const auto& gamePeer = find("game");
+	EXPECT_EQ(gamePeer["kind"], "game");
+	EXPECT_EQ(gamePeer["address"], "203.0.113.5");
+	EXPECT_EQ(gamePeer["account"], "alice");
+	EXPECT_EQ(gamePeer["character"], "Alice");
+	EXPECT_EQ(gamePeer["character_id"], "1152921504606846976");
+	ASSERT_EQ(gamePeer["servers"].size(), 1u);
+	EXPECT_EQ(find("web")["kind"], "web");
+	EXPECT_EQ(find("server")["kind"], "server");
 	ASSERT_EQ(shown["others"].size(), 1u);
 	EXPECT_EQ(shown["others"][0]["count"], 4);
 
@@ -109,11 +116,37 @@ TEST(NetworkViewTest, ConnectionsGroupByAddressAndHideIt) {
 	const auto dump = hidden.dump();
 	EXPECT_EQ(dump.find("203.0.113.5"), std::string::npos);
 	EXPECT_EQ(dump.find("127.0.0.1"), std::string::npos);
-	EXPECT_EQ(hidden["peers"][0]["address"], NetworkView::MaskAddress("203.0.113.5", 1234));
+	for (const auto& p : hidden["peers"]) if (p["kind"] == "game") EXPECT_EQ(p["address"], NetworkView::MaskAddress("203.0.113.5", 1234));
 	for (const auto& entry : hidden["peers"][0]["servers"]) EXPECT_TRUE(!entry.contains("port") || entry["port"].is_null());
 	EXPECT_NE(NetworkView::MaskAddress("203.0.113.5", 1234), NetworkView::MaskAddress("203.0.113.5", 99));
 	EXPECT_NE(NetworkView::MaskAddress("203.0.113.5", 1234), NetworkView::MaskAddress("203.0.113.6", 1234));
 
 	// The summary never carries addresses
 	EXPECT_EQ(NetworkView::Summary(history, NOW, 20, Label).dump().find("203.0.113.5"), std::string::npos);
+}
+
+TEST(NetworkViewTest, ServerLinksOnThePlayersAddressStayApart) {
+	// Everything on one machine: a player and the chat server's links from the worlds all come from 127.0.0.1
+	TrafficHistory history;
+	auto world = WorldReport(true);
+	world.connections = { Connection{ .address = "127.0.0.1", .port = 50001, .peer = Peer::CLIENTS, .bytesIn = 900, .bytesOut = 900, .accountId = 7, .account = "alice" } };
+	world.hasConnections = true;
+	history.Ingest(static_cast<uint16_t>(ServiceType::WORLD), 1200, 3, world, NOW);
+	auto chat = WorldReport(true);
+	chat.connections = { Connection{ .address = "127.0.0.1", .port = 50100, .peer = Peer::SERVERS, .bytesIn = 50 },
+		Connection{ .address = "127.0.0.1", .port = 50101, .peer = Peer::SERVERS, .bytesIn = 50 } };
+	chat.hasConnections = true;
+	history.Ingest(static_cast<uint16_t>(ServiceType::CHAT), 0, 0, chat, NOW);
+
+	const auto json = NetworkView::Connections(history, NOW, 20, true, 1, Label);
+	ASSERT_EQ(json["peers"].size(), 3u);
+	for (const auto& p : json["peers"]) {
+		if (p["kind"] == "game") {
+			EXPECT_EQ(p["account"], "alice");
+			ASSERT_EQ(p["servers"].size(), 1u); // only the world, not the chat server's links
+		} else {
+			EXPECT_EQ(p["kind"], "server");
+			EXPECT_FALSE(p.contains("account"));
+		}
+	}
 }
