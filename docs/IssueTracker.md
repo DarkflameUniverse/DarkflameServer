@@ -10,6 +10,7 @@ State: **done** = fixed on this branch, needs an in-game check; **partial** = pa
 |---|---|---|---|
 | 159 | BUG: Brick-by-brick models are deleted instead of put away | done | `6ce261c5` fix: brick by brick and model placement work the way the client expects |
 | 185 | BUG: Assembly Engineer Fortress Knockback | partial | `2d76c81b` feat: server side knockback for AI moved objects |
+| 215 | ENH: Bring chat filter closer to Live | partial | `c1bcda8d` fix(chat-filter): portable .dcf hashing, block list phrases; `b279d187` shipped blocklist.dcf in the portable format; `cef170ae` dashboard phrases. The block list works on every platform and takes phrases; the rest of the issue is open |
 | 225 | ENH: "bind_ip" config option | done | `e36f894f` feat: bind_ip setting for the server sockets |
 | 257 | EH: Crux Prime shields stun instead of knockback | done | `2d76c81b` feat: server side knockback for AI moved objects |
 | 307 | Spider Queen scream on spiderling death | done | `4900f11c` fix(scripts): the Spider Queen screams from the mountain when a spiderling dies (issue 307) |
