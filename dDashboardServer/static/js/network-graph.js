@@ -31,7 +31,7 @@
 				var zone = num(server.zone);
 				// "World 1200 Nimbus Station #3" -> "World 1200 Nimbus Station"
 				var zoneLabel = String(server.label || ('World ' + zone)).replace(/\s+#\d+$/, '');
-				if (expanded && expanded[zone]) return { id: server.key, kind: 'world', label: server.label || server.key, column: 1, order: 2 + zone + num(server.instance) / 1e6, zone: zone };
+				if (expanded && expanded[zone]) return { id: server.key, kind: 'world', label: server.label || server.key, column: 1, order: 2 + zone + num(server.instance) / 1e6, zone: zone, group: 'zone:' + zone };
 				return { id: 'zone:' + zone, kind: 'zone', label: zoneLabel, column: 1, order: 2 + zone, zone: zone };
 			}
 			default: return { id: server.key, kind: 'other', label: server.label || server.key, column: 1, order: 1e9 };
@@ -47,7 +47,7 @@
 		function node(spec) {
 			var n = nodes[spec.id];
 			if (!n) {
-				n = nodes[spec.id] = { id: spec.id, kind: spec.kind, label: spec.label, column: spec.column, order: spec.order, zone: spec.zone, servers: [], instances: 0,
+				n = nodes[spec.id] = { id: spec.id, kind: spec.kind, label: spec.label, column: spec.column, order: spec.order, zone: spec.zone, group: spec.group, servers: [], instances: 0,
 					connections: 0, pingSum: 0, pingCount: 0, resends: 0, resendQueue: 0, workersBusy: 0, workersThreads: 0, workersQueued: 0, websockets: 0,
 					packetsIn: 0, packetsOut: 0, bytesIn: 0, bytesOut: 0, http: 0, noSplit: false };
 			}
@@ -144,7 +144,7 @@
 			if (shownOfKind >= limit) return;
 			var id = 'peer:' + peer.address;
 			var who = peer.character || peer.account || peer.address;
-			var p = node({ id: id, kind: 'peer', label: who, column: peer.kind === 'game' ? 0 : 4, order: 0.1 + shownOfKind / 100 });
+			var p = node({ id: id, kind: 'peer', label: who, column: peer.kind === 'game' ? 0 : 4, order: 0.1 + shownOfKind / 100, group: peer.kind === 'game' ? 'clients' : 'web' });
 			p.peer = peer;
 			(peer.servers || []).forEach(function (entry) {
 				var target = servers[entry.server];
@@ -200,16 +200,35 @@
 		var usable = totalWidth - nodeWidth - pad * 2;
 		var xs = [0, 0.28, 0.54, 0.78, 1].map(function (f) { return Math.round(pad + nodeWidth / 2 + f * usable); });
 		var at = {};
+		// Rows at a fixed pitch from the top, each column centred on the tallest: opening a group only moves the boxes
+		// of its own column
 		byColumn.forEach(function (column, c) {
-			var step = (height - pad * 2) / Math.max(column.length, 1);
-			column.forEach(function (n, i) { at[n.id] = { x: xs[c], y: Math.round(pad + step * (i + 0.5)), column: c }; });
+			var top = pad + (rows - column.length) * rowHeight / 2;
+			column.forEach(function (n, i) { at[n.id] = { x: xs[c], y: Math.round(top + rowHeight * (i + 0.5)), column: c }; });
 		});
-		Object.keys(moved || {}).forEach(function (id) {
-			var m = moved[id], a = at[id];
-			if (!a || !(m.fx >= 0) || !(m.y >= 0)) return;
-			a.x = Math.round(Math.min(totalWidth - pad - nodeWidth / 2, Math.max(pad + nodeWidth / 2, m.fx * totalWidth)));
-			a.y = Math.round(Math.max(pad + nodeHeight / 2, m.y));
-			height = Math.max(height, a.y + nodeHeight / 2 + pad);
+		moved = moved || {};
+		var clampX = function (x) { return Math.round(Math.min(totalWidth - pad - nodeWidth / 2, Math.max(pad + nodeWidth / 2, x))); };
+		var place = function (a, x, y) { a.x = clampX(x); a.y = Math.round(Math.max(pad + nodeHeight / 2, y)); height = Math.max(height, a.y + nodeHeight / 2 + pad); };
+		// Boxes the viewer dragged
+		graph.nodes.forEach(function (n) {
+			var m = moved[n.id];
+			if (n.group || !m || !(m.fx >= 0) || !(m.y >= 0)) return;
+			place(at[n.id], m.fx * totalWidth, m.y);
+		});
+		// An opened group's members stack from where the group is: under the Game/Web clients box, or where the zone's
+		// box stood (or was dragged to)
+		var members = {};
+		graph.nodes.forEach(function (n) { if (n.group) (members[n.group] = members[n.group] || []).push(n); });
+		Object.keys(members).forEach(function (group) {
+			var list = members[group], owner = at[group], m = moved[group], x, y0;
+			if (owner) { x = owner.x; y0 = owner.y + rowHeight * 0.8; }
+			else if (m && m.fx >= 0 && m.y >= 0) { x = m.fx * totalWidth; y0 = m.y; }
+			else { x = at[list[0].id].x; y0 = at[list[0].id].y; }
+			list.forEach(function (n, k) {
+				var own = moved[n.id];
+				if (own && own.fx >= 0 && own.y >= 0) place(at[n.id], own.fx * totalWidth, own.y);
+				else place(at[n.id], x, y0 + k * rowHeight * (owner ? 0.8 : 1));
+			});
 		});
 		var paths = {};
 		graph.edges.forEach(function (e) {

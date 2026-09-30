@@ -25,9 +25,17 @@
 	.nf-svg .node .name { fill: var(--bs-body-color); font-size: 12px; font-weight: 600; }
 	.nf-svg .node .meta { fill: var(--bs-secondary-color); font-size: 11px; }
 	.nf-svg .node .warn { fill: var(--bs-warning-text-emphasis); }
-	.nf-svg .node .toggle { fill: var(--bs-primary); font-size: 11px; }
+	.nf-svg .node .toggle { cursor: pointer; }
+	.nf-svg .node .toggle rect { fill: var(--bs-primary-bg-subtle); stroke: var(--bs-primary-border-subtle); stroke-width: 1; }
+	.nf-svg .node .toggle:hover rect { fill: var(--bs-primary); }
+	.nf-svg .node .toggle text { fill: var(--bs-primary-text-emphasis); font-size: 11px; font-weight: 600; }
+	.nf-svg .node .toggle:hover text { fill: var(--bs-white); }
+	.nf-svg .node.anim { transition: transform .28s ease; }
+	.nf-svg .enter { animation: nf-in .28s ease; }
+	.nf-svg.settling .edge { animation: nf-in .35s ease; }
+	@keyframes nf-in { from { opacity: 0; } }
 	.nf-svg.paused .flow { animation-play-state: paused; }
-	@media (prefers-reduced-motion: reduce) { .nf-svg .flow { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .nf-svg .flow, .nf-svg .enter, .nf-svg.settling .edge { animation: none; } .nf-svg .node.anim { transition: none; } }
 	@keyframes nf-dash { to { stroke-dashoffset: -24; } }
 	.nf-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
 		padding: .35rem .5rem; font-size: .75rem; box-shadow: var(--bs-box-shadow-sm); max-width: 320px; }
@@ -49,7 +57,7 @@
 	<div>
 		<h2 class="mb-1">Network</h2>
 		<p class="text-body-secondary mb-0 small">What goes between the players, the servers and web clients right now: each line is a link, one lane each way,
-			as thick as its bytes per second and coloured by its load against the busiest link right now. Drag the boxes to arrange them; the layout is kept in this browser. Rates are over each server's last report (5 seconds).
+			as thick as its bytes per second and coloured by its load against the busiest link right now. Drag the boxes to arrange them; open a group with its ▸ button or a double click. The layout and open groups are kept in this browser. Rates are over each server's last report (5 seconds).
 			Hover a line for its numbers, click a box for its details. History is on <a href="/diagnostics">Diagnostics</a>.</p>
 	</div>
 	<div class="d-flex flex-wrap gap-2 align-items-center">
@@ -113,6 +121,12 @@
 	var PEAK_SECONDS = 300;
 	var summary = null, peers = null, selected = null, detail = null;
 	var expanded = {}, clientsExpanded = false, webExpanded = false, kind = '', search = '';
+	try {
+		var open = JSON.parse(localStorage.getItem('network.open') || '{}') || {};
+		expanded = open.zones || {}; clientsExpanded = !!open.clients; webExpanded = !!open.web;
+	} catch (e) { /* private window */ }
+	function saveOpen() { try { localStorage.setItem('network.open', JSON.stringify({ zones: expanded, clients: clientsExpanded, web: webExpanded })); } catch (e) { /* ignore */ } }
+	var animateNext = false;
 	var view = (document.querySelector('input[name="nfView"]:checked') || {}).value || 'diagram';
 	var history = {}; // edge id -> [[time, value]] for the load colours
 	var svg = document.getElementById('nfSvg'), box = document.getElementById('nfBox'), stack = document.getElementById('nfStack');
@@ -179,13 +193,18 @@
 	}
 
 	// Boxes the viewer dragged, kept in this browser: {id: {fx, y}}
-	var moved = {}, lastLayout = null;
+	var moved = {}, lastLayout = null, zoneFirst = {};
 	try { moved = JSON.parse(localStorage.getItem('network.positions') || '{}') || {}; } catch (e) { moved = {}; }
 	function saveMoved() { try { localStorage.setItem('network.positions', JSON.stringify(moved)); } catch (e) { /* private window */ } }
 	var busiest = 0;
 	function renderDiagram(width) {
+		var before = animateNext && lastLayout ? lastLayout.nodes : null;
+		var beforeZones = zoneFirst;
+		animateNext = false;
 		var L = G.layout(graph, width, moved);
 		lastLayout = L;
+		zoneFirst = {};
+		graph.nodes.forEach(function (n) { if (n.kind === 'world' && !zoneFirst[n.zone]) zoneFirst[n.zone] = L.nodes[n.id]; });
 		busiest = graph.edges.reduce(function (m, e) { return Math.max(m, edgeValue(e)); }, 0);
 		var html = '';
 		graph.edges.forEach(function (e) {
@@ -207,7 +226,9 @@
 			var x = at.x - L.nodeWidth / 2, y = at.y - L.nodeHeight / 2;
 			var meta = nodeMeta(n);
 			var chars = Math.floor((L.nodeWidth - 16) / 6.6);
-			var name = n.label.length > chars ? n.label.slice(0, chars - 1) + '…' : n.label;
+			var canToggleName = n.kind === 'zone' && n.instances > 1 || n.kind === 'world' && expanded[n.zone] || n.kind === 'clients' || n.kind === 'web';
+			var nameChars = canToggleName ? chars - 8 : chars;
+			var name = n.label.length > nameChars ? n.label.slice(0, nameChars - 1) + '…' : n.label;
 			var canToggle = n.kind === 'zone' && n.instances > 1 || n.kind === 'world' && expanded[n.zone] || n.kind === 'clients' || n.kind === 'web';
 			var open = n.kind === 'world' || (n.kind === 'clients' && clientsExpanded) || (n.kind === 'web' && webExpanded);
 			html += '<g class="node' + (selected === n.id ? ' selected' : '') + '" data-node="' + esc(n.id) + '" tabindex="0" role="button" aria-label="' + esc(n.label) + '">' +
@@ -217,12 +238,42 @@
 				html += '<text class="meta' + (/resent/.test(line) ? ' warn' : '') + '" x="' + (x + 8) + '" y="' + (y + 32 + i * 13) + '">' + esc(line.length > chars + 4 ? line.slice(0, chars + 3) + '…' : line) + '</text>';
 			});
 			if (n.noSplit) html += '<text class="meta warn" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end"><title>This server reports only totals: its links are estimated</title>≈</text>';
-			else if (canToggle) html += '<text class="toggle" data-toggle="' + esc(n.id) + '" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end">' + (open ? '−' : '+') + '</text>';
+			else if (canToggle) {
+				var pill = open ? '▾ group' : n.kind === 'zone' ? '▸ ' + n.instances : '▸ each';
+				var pw = pill.length * 6.2 + 12, px = x + L.nodeWidth - pw - 6, py = y + 5;
+				var tipText = open ? (n.kind === 'world' ? 'Show the zone as one box' : 'Hide the separate connections') : (n.kind === 'zone' ? 'Show each instance' : 'Show the busiest connections one by one');
+				html += '<g class="toggle" data-toggle="' + esc(n.id) + '" role="button" aria-label="' + esc(tipText) + '"><title>' + esc(tipText) + '</title>' +
+					'<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="16" rx="8"/>' +
+					'<text x="' + (px + pw / 2) + '" y="' + (py + 12) + '" text-anchor="middle">' + esc(pill) + '</text></g>';
+			}
 			html += '</g>';
 		});
 		svg.setAttribute('viewBox', '0 0 ' + L.width + ' ' + L.height);
 		svg.setAttribute('height', L.height);
 		svg.innerHTML = html;
+		if (before) glide(before, beforeZones, L);
+	}
+
+	// After opening or closing a group: boxes glide from where they were, new ones grow out of their group, links fade in
+	function glide(before, beforeZones, L) {
+		svg.classList.remove('settling');
+		void svg.getBoundingClientRect();
+		svg.classList.add('settling');
+		setTimeout(function () { svg.classList.remove('settling'); }, 400);
+		svg.querySelectorAll('.node').forEach(function (g) {
+			var id = g.getAttribute('data-node'), n = graphNodes[id], now = L.nodes[id];
+			if (!now) return;
+			var from = before[id] || (n && n.group && (before[n.group] || before['zone:' + n.zone])) ||
+				(n && n.kind === 'zone' && beforeZones[n.zone]) || null; // a zone box coming back: where its first instance was
+			if (!before[id]) g.classList.add('enter');
+			if (!from || (from.x === now.x && from.y === now.y)) return;
+			g.style.transform = 'translate(' + (from.x - now.x) + 'px,' + (from.y - now.y) + 'px)';
+			requestAnimationFrame(function () {
+				g.classList.add('anim');
+				g.style.transform = '';
+				setTimeout(function () { g.classList.remove('anim'); }, 320);
+			});
+		});
 	}
 
 	// Phones: every box with its links, busiest first
@@ -265,19 +316,24 @@
 	});
 	svg.addEventListener('mouseleave', function () { tip.classList.add('d-none'); });
 
+	function toggleGroup(n) {
+		if (n.kind === 'zone' || n.kind === 'world') { if (expanded[n.zone]) delete expanded[n.zone]; else expanded[n.zone] = true; }
+		else if (n.kind === 'clients') { clientsExpanded = !clientsExpanded; if (clientsExpanded) loadPeers(); }
+		else if (n.kind === 'web') { webExpanded = !webExpanded; if (webExpanded) loadPeers(); }
+		else return false;
+		saveOpen();
+		animateNext = true;
+		render();
+		return true;
+	}
+
 	function onNode(ev) {
 		var toggle = ev.target.closest('[data-toggle]');
 		var el = ev.target.closest('[data-node]');
 		if (!el || !graph) return;
 		var n = graphNodes[el.dataset.node];
 		if (!n) return;
-		if (toggle) {
-			if (n.kind === 'zone' || n.kind === 'world') expanded[n.zone] = !expanded[n.zone];
-			else if (n.kind === 'clients') { clientsExpanded = !clientsExpanded; if (clientsExpanded) loadPeers(); }
-			else if (n.kind === 'web') { webExpanded = !webExpanded; if (webExpanded) loadPeers(); }
-			render();
-			return;
-		}
+		if (toggle) { toggleGroup(n); return; }
 		selected = n.id;
 		render();
 		showDetail(n);
@@ -311,7 +367,13 @@
 	}
 	svg.addEventListener('pointerup', endDrag);
 	svg.addEventListener('pointercancel', endDrag);
-	document.getElementById('nfResetLayout').addEventListener('click', function () { moved = {}; saveMoved(); render(); });
+	document.getElementById('nfResetLayout').addEventListener('click', function () { moved = {}; saveMoved(); animateNext = true; render(); });
+	svg.addEventListener('dblclick', function (ev) {
+		var el = ev.target.closest('[data-node]');
+		var n = el && graphNodes[el.getAttribute('data-node')];
+		if (!n || (n.kind === 'zone' && !(n.instances > 1))) return;
+		if (toggleGroup(n)) ev.preventDefault();
+	});
 	svg.addEventListener('click', function (ev) { if (justDragged) { ev.stopPropagation(); return; } onNode(ev); });
 	stack.addEventListener('click', onNode);
 	[svg, stack].forEach(function (el) {
