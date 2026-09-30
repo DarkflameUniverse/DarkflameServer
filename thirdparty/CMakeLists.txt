@@ -209,6 +209,17 @@ if(DLU_OIDN)
 	message(STATUS "Open Image Denoise ${OpenImageDenoise_VERSION}: the UGC server can denoise icons")
 endif()
 
+# Tracy (BSD-3-Clause), a native profiler for deep dives: optional, off by default. Built with it, every server's
+# frames and scopes (dCommon/Profiler.h) also go to Tracy's viewer, which connects to a running server (port 8086 and up;
+# see docs/Dashboard.md, Performance). The dashboard's own profiling works without it.
+option(DLU_TRACY "Build the servers with the Tracy profiler client" OFF)
+if(DLU_TRACY)
+	set(TRACY_ON_DEMAND ON CACHE BOOL "Tracy collects only while a viewer is connected" FORCE)
+	FetchContent_Declare(tracy GIT_REPOSITORY https://github.com/wolfpld/tracy.git GIT_TAG v0.11.1 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+	FetchContent_MakeAvailable(tracy)
+	message(STATUS "Tracy: the servers can be profiled with Tracy's viewer")
+endif()
+
 # HIPRT (MIT), the UGC server's ray_backend=hiprt on the GPU: optional, off by default. Needs HIPRT's SDK (its headers;
 # HIPRT_ROOT, else ROCm's /opt/rocm), whose library is loaded at run time (hiprtew), as HIP or CUDA are by Orochi (MIT,
 # fetched here; CUDA too when its toolkit is found). The headers are copied next to the servers: the GPU kernels are

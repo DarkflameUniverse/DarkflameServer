@@ -33,6 +33,7 @@ set(DCOMMONTEST_SOURCES
 	"PropertyReputationRulesTests.cpp"
 	"BindAddressTests.cpp"
 	"TrafficStatsTests.cpp"
+	"ProfilerTests.cpp"
 	"Sd0Tests.cpp"
 	"FdbReaderTests.cpp"
 )

@@ -6,6 +6,7 @@ set(DCOMMON_SOURCES
 		"dConfig.cpp"
 		"Diagnostics.cpp"
 		"TrafficStats.cpp"
+		"Profiler.cpp"
 		"Locale.cpp"
 		"Logger.cpp"
 		"Game.cpp"
@@ -115,3 +116,9 @@ target_link_libraries(dCommon
 	PUBLIC glm::glm dBuildInfo
 	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
 	INTERFACE dDatabase)
+
+# Profiler.h's frames and scopes also go to Tracy (thirdparty/CMakeLists.txt, DLU_TRACY)
+if(DLU_TRACY)
+	target_link_libraries(dCommon PUBLIC Tracy::TracyClient)
+	target_compile_definitions(dCommon PRIVATE DLU_TRACY)
+endif()
