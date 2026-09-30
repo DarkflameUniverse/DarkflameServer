@@ -9,7 +9,9 @@
  *    the past so each player glides between two reports (world3d-core.js Track).
  *  - Replay (players_history): recorded positions over a time range, with a scrubber, play/pause, speed and trails.
  *    Trails are one LineSegments whose shader hides what is in the future or older than the trail length, so
- *    scrubbing never rebuilds geometry.
+ *    scrubbing never rebuilds geometry. A packet capture's movement plays the same way, driven by its timeline.
+ *  - Following a player keeps the camera on them across worlds: live, when the position feed reports them in another
+ *    world; in a capture, at the time their packets move to another world server (a marker on the timeline).
  *  - Heat map (reports_view): the economy map events of one kind per day as coloured 4x4 squares on the ground,
  *    played back day by day.
  * Names come from the server (kinds, path types, map event kinds); nothing about the game is kept here.
@@ -20,7 +22,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildTerrainChunks, TERRAIN_LOOKS } from '/js/lddviewer.js';
 import { createScenery } from '/js/scenery.js';
 import { nearPlaneFor } from '/js/scenery-core.js';
-import { Track, replayPosition, trailSegments, heatFrames, heatLevel, heatColor, formatSpan, coreBounds, isPlaceholderTerrain } from '/js/world3d-core.js';
+import { Track, replayPosition, trailSegments, heatFrames, heatLevel, heatColor, formatSpan, coreBounds, isPlaceholderTerrain,
+	followedMove, captureSwitch, worldMarkers, markersHtml } from '/js/world3d-core.js';
 
 const LIVE_DELAY = 1.2;        // seconds live players are drawn behind the newest report
 const LIVE_FORGET = 8;         // seconds without a report before a live player is dropped
@@ -182,12 +185,16 @@ const state = {
 	terrainLayers: null,
 	selected: null,   // {type: 'player', id} or {type: 'object', index} or {type: 'heat', cell}
 	follow: null,     // player id the camera tracks
+	followCharacter: null, // in a capture: the character the camera tracks (their player id differs per instance)
+	switching: false, // loading the world the followed player moved to
+	capture: null,    // the capture being replayed: {id, data (every zone's movement), worlds}
 	live: new Map(),  // id -> {id, name, instance, clone, track}
 	replay: null,     // {from, to, players, gap, hold, t, playing, trails}
 	heat: null        // {data, frames, cells, index, playing, mesh}
 };
 
 function setStatus(text) { $('worldStatus').textContent = text || ''; }
+const isFollowed = (p) => !!p && (state.followCharacter ? p.character === state.followCharacter : state.follow === p.id);
 const zoneName = (id) => (state.meta && state.meta.zones[String(id)]) || ('Zone ' + id);
 
 // ---- players (one InstancedMesh, grown when needed) ----
@@ -216,7 +223,7 @@ function drawPlayers(list) {
 		matrix.makeTranslation(p.x, p.y + 1.2, p.z);
 		playerMesh.setMatrixAt(i, matrix);
 		const picked = state.selected && state.selected.type === 'player' && state.selected.id === p.id;
-		playerMesh.setColorAt(i, color.set(picked || state.follow === p.id ? PICKED_COLOR : PLAYER_COLOR));
+		playerMesh.setColorAt(i, color.set(picked || isFollowed(p) ? PICKED_COLOR : PLAYER_COLOR));
 	});
 	playerMesh.count = list.length;
 	playerMesh.instanceMatrix.needsUpdate = true;
@@ -230,7 +237,7 @@ function currentPlayers(nowSeconds) {
 		const r = state.replay;
 		for (const p of r.players) {
 			if (!replayPosition(p.samples, r.t, r.gap, r.hold, point)) continue;
-			list.push({ id: p.id, name: p.name, x: point.x, y: point.y, z: point.z });
+			list.push({ id: p.id, character: p.character, name: p.name, x: point.x, y: point.y, z: point.z });
 		}
 	} else if (state.mode === 'live') {
 		const t = nowSeconds - LIVE_DELAY;
@@ -245,6 +252,14 @@ function currentPlayers(nowSeconds) {
 // ---- live positions ----
 
 function onPositions(players) {
+	noteInstances(players);
+	// The followed player reached another world: show it and keep following
+	const move = state.mode === 'live' && !state.switching ? followedMove(state.follow, players, state.zone, state.instance) : null;
+	if (move) {
+		const followed = (players || []).find((p) => p.id === state.follow);
+		switchWorld(move, followed ? followed.name : '');
+		return;
+	}
 	const now = performance.now() / 1000;
 	for (const p of players || []) {
 		if (p.zone !== state.zone || (state.instance && p.instance !== state.instance)) continue;
@@ -256,7 +271,6 @@ function onPositions(players) {
 		entry.track.push(now, p.x, p.y, p.z);
 	}
 	for (const [id, entry] of state.live) if (now - entry.seen > LIVE_FORGET) state.live.delete(id);
-	noteInstances(players);
 	renderPlayerList();
 }
 
@@ -471,12 +485,17 @@ function renderSceneLegend() {
 }
 
 let loadToken = 0;
-async function loadZone(zone) {
+// keep: the followed player moved here, so following (and what is selected) stays
+async function loadZone(zone, keep = false) {
 	const token = ++loadToken;
 	state.zone = zone;
 	state.live.clear();
-	state.selected = null;
-	state.follow = null;
+	if (!keep) {
+		state.selected = null;
+		setFollow(null);
+	}
+	// A capture replays on whichever zone is shown: carry on from the same moment
+	const resume = state.capture && state.replay ? { t: state.replay.t, playing: state.replay.playing } : null;
 	stopReplay();
 	clearHeat();
 	// The old zone goes at once: its models, flairs, terrain and markers, and whatever of them is still loading
@@ -520,6 +539,28 @@ async function loadZone(zone) {
 	showScenery();
 	api.get('/api/live/players').then((d) => onPositions(d.players)).catch(() => {});
 	if (state.mode === 'replay') loadReplayInstances();
+	if (state.capture && state.mode === 'replay') showCaptureZone(resume);
+}
+
+/**
+ * The followed player moved to another world (live: the position feed; capture: their packets): load it, keep the
+ * camera on them and say where they went.
+ */
+async function switchWorld(move, name) {
+	state.switching = true;
+	try {
+		const option = $('zoneSelect').querySelector('option[value="' + CSS.escape(String(move.zone)) + '"]');
+		if (option) $('zoneSelect').value = String(move.zone);
+		// A picked instance follows them; "All instances" stays
+		if (state.instance && !state.capture) state.instance = move.instance;
+		toast((name ? name + ' moved' : 'Moved') + ' to ' + zoneName(move.zone) + ' #' + move.instance, 'info');
+		await loadZone(move.zone, true);
+		// Loading framed the whole zone: come back close, the camera then goes with them
+		const offset = camera.position.clone().sub(controls.target);
+		if (offset.length() > 120) camera.position.copy(controls.target).add(offset.setLength(60));
+	} finally {
+		state.switching = false;
+	}
 }
 
 // ---- zones and instances ----
@@ -576,7 +617,7 @@ async function loadMeta() {
 // ---- panel: players, selection, layers ----
 
 function listedPlayers() {
-	if (state.mode === 'replay' && state.replay) return state.replay.players.map((p) => ({ id: p.id, name: p.name, instance: p.instances.join(', ') }));
+	if (state.mode === 'replay' && state.replay) return state.replay.players.map((p) => ({ id: p.id, character: p.character, name: p.name, instance: p.instances.join(', ') }));
 	return [...state.live.values()].map((p) => ({ id: p.id, name: p.name, instance: p.instance }));
 }
 
@@ -589,7 +630,7 @@ function renderPlayerListNow() {
 	$('playerList').innerHTML = shown.map((p) =>
 		'<a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-2' +
 		(state.selected && state.selected.type === 'player' && state.selected.id === p.id ? ' active' : '') + '" data-id="' + esc(p.id) + '">' +
-		'<span>' + esc(p.name) + (state.follow === p.id ? ' <span class="badge text-bg-warning">following</span>' : '') + '</span>' +
+		'<span>' + esc(p.name) + (isFollowed(p) ? ' <span class="badge text-bg-warning">following</span>' : '') + '</span>' +
 		'<span class="text-body-secondary">' + esc(p.instance) + '</span></a>').join('') ||
 		'<div class="text-body-secondary p-2">' + (state.mode === 'heat' ? 'Players are hidden while the heat map is shown.' :
 			state.mode === 'replay' ? (state.replay ? 'Nobody was recorded here then.' : 'Pick a range and press Load.') : 'Nobody is online in this zone.') + '</div>';
@@ -597,9 +638,17 @@ function renderPlayerListNow() {
 
 function selectPlayer(id, follow) {
 	state.selected = { type: 'player', id };
-	if (follow !== undefined) state.follow = follow ? id : null;
+	if (follow !== undefined) setFollow(follow ? id : null);
 	renderSelection();
 	renderPlayerListNow();
+}
+
+// Follow a player (null: nobody). In a capture the character is followed, whichever instance's movement is drawn
+function setFollow(id) {
+	state.follow = id;
+	const replayed = id && state.capture && state.replay ? state.replay.players.find((p) => p.id === id) : null;
+	state.followCharacter = replayed ? replayed.character : null;
+	renderMarkers();
 }
 
 function renderSelection() {
@@ -616,7 +665,7 @@ function renderSelection() {
 			(replayed ? '<div>Recorded in instance ' + esc(replayed.instances.join(', ')) + ', ' + (replayed.samples.length / 4) + ' samples</div>' : '') +
 			'<div class="text-body-secondary" id="selectedPosition">' + (drawn ? positionText(drawn) : 'Not here right now') + '</div>' +
 			'<div class="d-flex flex-wrap gap-1 mt-2">' +
-			'<button class="btn btn-sm btn-outline-primary" data-act="follow">' + (state.follow === sel.id ? 'Stop following' : 'Follow') + '</button>' +
+			'<button class="btn btn-sm btn-outline-primary" data-act="follow">' + (isFollowed(replayed || { id: sel.id }) ? 'Stop following' : 'Follow') + '</button>' +
 			'<button class="btn btn-sm btn-outline-secondary" data-act="focus">Look at</button>' +
 			(canHistory && state.mode === 'live' ? '<button class="btn btn-sm btn-outline-secondary" data-act="replay">Replay last hour</button>' : '') + '</div>';
 	} else if (sel.type === 'object') {
@@ -645,7 +694,10 @@ $('selectionInfo').addEventListener('click', (e) => {
 	const act = e.target.closest('[data-act]');
 	if (!act || !state.selected || state.selected.type !== 'player') return;
 	const id = state.selected.id;
-	if (act.dataset.act === 'follow') selectPlayer(id, state.follow !== id);
+	if (act.dataset.act === 'follow') {
+		const replayed = state.replay && state.replay.players.find((p) => p.id === id);
+		selectPlayer(id, !isFollowed(replayed || { id }));
+	}
 	else if (act.dataset.act === 'focus') focusPlayer(id);
 	else if (act.dataset.act === 'replay') {
 		const live = state.live.get(id);
@@ -674,7 +726,7 @@ function showSelectedTab() {
 }
 
 function focusPlayer(id) {
-	const p = drawnPlayers.find((d) => d.id === id);
+	const p = drawnPlayers.find((d) => d.id === id) || drawnPlayers.find((d) => isFollowed(d));
 	if (!p) return;
 	const offset = camera.position.clone().sub(controls.target);
 	if (offset.length() > 120) offset.setLength(60);
@@ -792,7 +844,7 @@ function updateLabels() {
 	if ($('labelsToggle').checked) {
 		const width = labelLayer.clientWidth, height = labelLayer.clientHeight;
 		const candidates = [];
-		for (const p of drawnPlayers) candidates.push({ text: p.name, x: p.x, y: p.y + 2.6, z: p.z, cls: 'world-label' + (state.follow === p.id ? ' picked' : ''), rank: 0 });
+		for (const p of drawnPlayers) candidates.push({ text: p.name, x: p.x, y: p.y + 2.6, z: p.z, cls: 'world-label' + (isFollowed(p) ? ' picked' : ''), rank: 0 });
 		if (layers.spawns.visible) {
 			for (const s of state.spawnPoints) {
 				if (camera.position.distanceTo(projected.set(s.x, s.y, s.z)) > SPAWN_LABEL_RANGE) continue;
@@ -884,16 +936,56 @@ async function loadReplay() {
  */
 async function loadCaptureReplay(capture) {
 	setStatus('Loading the capture…');
-	const data = await api.get('/api/inspector/sessions/' + encodeURIComponent(capture) + '/positions?zone=' + state.zone).catch(() => null);
+	const data = await api.get('/api/inspector/sessions/' + encodeURIComponent(capture) + '/positions?zone=all').catch(() => null);
 	setStatus('');
 	if (!data || data.success === false) { toast((data && data.error) || 'Could not load the capture', 'danger'); return; }
-	startReplay(data);
-	state.replay.capture = String(capture);
-	if (!data.players.length) toast('No movement was captured in this zone' + (data.zones && data.zones.length ? ' (captured in: ' + data.zones.map(zoneName).join(', ') + ')' : ''), 'info');
+	state.capture = { id: String(capture), data, worlds: data.worlds || [] };
+	// One character captured: follow them from the start
+	const characters = new Set(state.capture.worlds.filter((w) => w.zone).map((w) => w.character));
+	const only = characters.size === 1 ? [...characters][0] : null;
+	showCaptureZone(null);
+	if (only) {
+		const mine = state.replay.players.find((p) => p.character === only);
+		state.follow = mine ? mine.id : only;
+		state.followCharacter = only;
+		renderMarkers();
+		renderPlayerListNow();
+	}
+	const here = data.players.some((p) => p.zone === state.zone);
+	if (!here && !only) toast('No movement was captured in this zone' + (data.zones && data.zones.length ? ' (captured in: ' + data.zones.map(zoneName).join(', ') + ')' : ''), 'info');
 }
 
-function startReplay(data) {
+// The capture's movement in the zone shown (players of every instance of it), from `resume` ({t, playing}) or the start
+function showCaptureZone(resume) {
+	const c = state.capture;
+	startReplay({ ...c.data, players: c.data.players.filter((p) => p.zone === state.zone) }, true);
+	state.replay.capture = c.id;
+	if (resume) {
+		setReplayTime(resume.t);
+		state.replay.playing = resume.playing;
+		$('replayPlay').textContent = resume.playing ? 'Pause' : 'Play';
+	}
+	if (state.followCharacter) {
+		const mine = state.replay.players.find((p) => p.character === state.followCharacter);
+		if (mine) state.follow = mine.id;
+	}
+	renderMarkers();
+	renderPlayerListNow();
+}
+
+// The capture timeline's world changes: the followed character's, or everyone's
+function renderMarkers() {
+	const el = $('replayMarkers');
+	if (!el) return;
+	const c = state.capture, r = state.replay;
+	if (!c || !r) { el.innerHTML = ''; return; }
+	const names = !state.followCharacter && new Set(c.worlds.map((w) => w.character)).size > 1;
+	el.innerHTML = markersHtml(worldMarkers(c.worlds, r.to - r.from, state.followCharacter), esc, names);
+}
+
+function startReplay(data, capture = false) {
 	stopReplay();
+	if (!capture) state.capture = state.followCharacter = null;
 	const gap = Math.max(data.idleSeconds * 1.6, data.bucket * 2.5, data.interval * 3);
 	const replay = { from: data.from, to: data.to, players: data.players, gap, hold: data.idleSeconds, t: 0, playing: false, trails: null };
 	const segments = trailSegments(data.players, gap);
@@ -918,9 +1010,10 @@ function startReplay(data) {
 	scrub.disabled = $('replayPlay').disabled = false;
 	setReplayTime(0);
 	if (data.truncated) toast('That was a lot of movement: only the first part is shown. Pick a shorter range.', 'warning');
-	if (!data.players.length) toast('Nobody was recorded here then', 'info');
+	if (!data.players.length && !capture) toast('Nobody was recorded here then', 'info');
 	replay.playing = data.players.length > 0;
 	$('replayPlay').textContent = replay.playing ? 'Pause' : 'Play';
+	renderMarkers();
 	renderPlayerListNow();
 }
 
@@ -952,6 +1045,10 @@ if (canHistory) {
 		$('replayPlay').textContent = r.playing ? 'Pause' : 'Play';
 	});
 	$('replayScrub').addEventListener('input', () => setReplayTime(Number($('replayScrub').value)));
+	$('replayMarkers').addEventListener('click', (e) => {
+		const marker = e.target.closest('[data-t]');
+		if (marker) setReplayTime(Number(marker.dataset.t));
+	});
 }
 
 if ('BroadcastChannel' in window) {
@@ -1081,7 +1178,12 @@ async function setMode(mode) {
 		bar.classList.toggle('d-none', mode !== m);
 		bar.classList.toggle('d-flex', mode === m);
 	}
-	if (mode !== 'replay') stopReplay();
+	if (mode !== 'replay') {
+		stopReplay();
+		if (state.capture) setFollow(null);
+		state.capture = null;
+		renderMarkers();
+	}
 	if (mode !== 'heat') clearHeat();
 	if (state.selected && state.selected.type === 'heat' && mode !== 'heat') state.selected = null;
 	if (mode === 'replay') await loadReplayInstances();
@@ -1095,10 +1197,11 @@ $('zoneSelect').addEventListener('change', () => loadZone(Number($('zoneSelect')
 $('instanceSelect').addEventListener('change', () => {
 	state.instance = Number($('instanceSelect').value);
 	state.live.clear();
-	if (state.mode === 'replay' && state.replay) loadReplay();
+	// A capture draws every instance of the zone; a recorded range is loaded again for the instance
+	if (state.mode === 'replay' && state.replay && !state.capture) loadReplay();
 	api.get('/api/live/players').then((d) => onPositions(d.players)).catch(() => {});
 });
-$('resetViewBtn').addEventListener('click', () => { state.follow = null; frameAll(); renderPlayerListNow(); });
+$('resetViewBtn').addEventListener('click', () => { setFollow(null); frameAll(); renderPlayerListNow(); });
 $('fullscreenBtn').addEventListener('click', () => {
 	if (document.fullscreenElement) document.exitFullscreen();
 	else $('worldWrap').requestFullscreen().catch(() => {});
@@ -1144,8 +1247,12 @@ function animate() {
 	}
 
 	drawPlayers(currentPlayers(now / 1000));
+	if (state.capture && r && !state.switching) {
+		const move = captureSwitch(state.capture.worlds, state.followCharacter, r.t, state.zone);
+		if (move) switchWorld(move, move.name);
+	}
 	if (state.follow) {
-		const p = drawnPlayers.find((d) => d.id === state.follow);
+		const p = drawnPlayers.find((d) => isFollowed(d));
 		if (p) {
 			followDelta.set(p.x, p.y + 1, p.z).sub(controls.target);
 			controls.target.add(followDelta);

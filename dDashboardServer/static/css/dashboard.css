@@ -250,3 +250,15 @@ html.nav-loading .nav-progress { opacity: 1; animation: nav-progress 10s cubic-b
 html.nav-loading main { opacity: .65; transition: opacity .2s; }
 @keyframes nav-progress { from { transform: scaleX(.08); } to { transform: scaleX(.92); } }
 @media (prefers-reduced-motion: reduce) { html.nav-loading .nav-progress { animation: none; transform: scaleX(.5); } }
+
+/* A playback slider with world change markers above it (World 3D capture replay, Packet Captures): one tick per change,
+   labelled with the zone; clicking one seeks to it */
+.timeline-track { position: relative; min-width: 10rem; padding-top: 1.1rem; }
+.timeline-track > input[type=range] { width: 100%; display: block; }
+.timeline-markers { position: absolute; left: .5rem; right: .5rem; top: 0; height: 100%; pointer-events: none; }
+.timeline-marker { position: absolute; top: 0; bottom: .35rem; width: 0; padding: 0; border: 0; border-left: 2px solid var(--bs-warning);
+	background: none; pointer-events: auto; cursor: pointer; }
+.timeline-marker > span { position: absolute; left: 2px; top: 0; font-size: .68rem; line-height: 1; white-space: nowrap; padding: .05rem .25rem;
+	border-radius: .2rem; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); max-width: 9rem; overflow: hidden;
+	text-overflow: ellipsis; }
+.timeline-marker:hover > span, .timeline-marker:focus-visible > span { max-width: none; z-index: 1; }

@@ -87,7 +87,10 @@
 							<option value="1">1&times;</option><option value="10">10&times;</option><option value="60" selected>60&times;</option>
 							<option value="300">300&times;</option><option value="1800">1800&times;</option>
 						</select>
-						<input type="range" class="form-range flex-grow-1 w-auto" id="replayScrub" min="0" max="1" step="1" value="0" disabled aria-label="Replay time">
+						<div class="timeline-track flex-grow-1">
+							<div class="timeline-markers" id="replayMarkers" aria-label="World changes"></div>
+							<input type="range" class="form-range" id="replayScrub" min="0" max="1" step="1" value="0" disabled aria-label="Replay time">
+						</div>
 						<span id="replayTime" class="text-nowrap font-monospace"></span>
 						<select id="trailLength" class="form-select form-select-sm w-auto" data-pref="world3d.trail" title="Trail">
 							<option value="0">No trails</option><option value="60">1 minute trails</option><option value="300" selected>5 minute trails</option>
