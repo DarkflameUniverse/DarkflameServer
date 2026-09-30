@@ -11,10 +11,24 @@
 #include "GeneralUtils.h"
 #include "magic_enum.hpp"
 #include "MessageIdentifiers.h"
+#include "ZCompression.h"
 
 namespace {
 	using json = nlohmann::json;
 	using enum eReplicaComponentType;
+
+	bool IsUtf8(std::string_view text) {
+		for (size_t i = 0; i < text.size();) {
+			const auto byte = static_cast<uint8_t>(text[i]);
+			const size_t length = byte < 0x80 ? 1 : (byte >> 5) == 0x6 ? 2 : (byte >> 4) == 0xE ? 3 : (byte >> 3) == 0x1E ? 4 : 0;
+			if (length == 0 || i + length > text.size()) return false;
+			for (size_t k = 1; k < length; k++) {
+				if ((static_cast<uint8_t>(text[i + k]) & 0xC0) != 0x80) return false;
+			}
+			i += length;
+		}
+		return true;
+	}
 
 	// Reads values in order; the first read past the end marks the reader as failed and every later read gives 0
 	struct Reader {
@@ -46,13 +60,28 @@ namespace {
 			const auto length = Get<Length>();
 			std::u16string text;
 			for (Length i = 0; ok && i < length; i++) text += static_cast<char16_t>(Get<uint16_t>());
-			return GeneralUtils::UTF16ToWTF8(text);
+			return Printable(GeneralUtils::UTF16ToWTF8(text));
 		}
 		template<typename Length> std::string Text() {
 			const auto length = Get<Length>();
 			std::string text;
 			for (Length i = 0; ok && i < length; i++) text += static_cast<char>(Get<uint8_t>());
-			return text;
+			return Printable(text);
+		}
+
+		// Narrow text is shown as is when it is UTF-8, else byte by byte as Latin-1 (JSON only takes UTF-8)
+		static std::string Printable(const std::string& text) {
+			if (IsUtf8(text)) return text;
+			std::string out;
+			for (const auto c : text) {
+				const auto byte = static_cast<uint8_t>(c);
+				if (byte < 0x80) out += c;
+				else {
+					out += static_cast<char>(0xC0 | (byte >> 6));
+					out += static_cast<char>(0x80 | (byte & 0x3F));
+				}
+			}
+			return out;
 		}
 	};
 
@@ -83,21 +112,38 @@ namespace {
 			case 13: value = r.Text<uint32_t>(); break;
 			default: r.ok = false; break;
 			}
-			out.push_back(GeneralUtils::UTF16ToWTF8(key) + "=" + std::to_string(type) + ":" + value);
+			out.push_back(Reader::Printable(GeneralUtils::UTF16ToWTF8(key)) + "=" + std::to_string(type) + ":" + value);
 		}
 		return out;
 	}
 
-	// u32 size, u8 compressed, then the entries (or the compressed bytes, which are shown as their size)
+	/**
+	 * u32 size, u8 compressed, then the entries (a u32 count and each entry). Compressed: u32 uncompressed size, u32
+	 * compressed size and that many bytes of zlib data holding the entries, inflated here.
+	 */
 	json ReadLdf(Reader& r) {
 		const auto size = r.Get<uint32_t>();
 		const auto compressed = r.Get<uint8_t>();
-		if (compressed) {
-			const auto compressedSize = r.Get<uint32_t>();
-			for (uint32_t i = 0; r.ok && i < compressedSize; i++) r.Get<uint8_t>();
-			return json{ {"compressed", true}, {"size", size}, {"compressedSize", compressedSize} };
+		if (!compressed) return ReadLdfEntries(r, r.Get<int32_t>());
+		const auto uncompressedSize = r.Get<uint32_t>();
+		const auto compressedSize = r.Get<uint32_t>();
+		std::string data;
+		for (uint32_t i = 0; r.ok && i < compressedSize; i++) data += static_cast<char>(r.Get<uint8_t>());
+		json out{ {"compressed", true}, {"size", size}, {"uncompressedSize", uncompressedSize}, {"compressedSize", compressedSize} };
+		if (!r.ok || uncompressedSize > 1024 * 1024) return out;
+		std::string entries(uncompressedSize, '\0');
+		int32_t error = 0;
+		const auto inflated = ZCompression::Decompress(reinterpret_cast<const uint8_t*>(data.data()), compressedSize,
+			reinterpret_cast<uint8_t*>(entries.data()), uncompressedSize, error);
+		if (inflated != static_cast<int32_t>(uncompressedSize)) {
+			out["(did not inflate)"] = true;
+			return out;
 		}
-		return ReadLdfEntries(r, r.Get<int32_t>());
+		RakNet::BitStream stream(reinterpret_cast<unsigned char*>(entries.data()), uncompressedSize, false);
+		Reader inner{ stream };
+		out["entries"] = ReadLdfEntries(inner, inner.Get<int32_t>());
+		if (!inner.ok || stream.GetNumberOfUnreadBits() > 0) out["(entries did not read)"] = true;
+		return out;
 	}
 
 	// Activity user info: object ID and 10 values each
@@ -125,6 +171,39 @@ namespace {
 			j["position"] = r.Point();
 			j["rotation"] = r.Rotation();
 		}
+	}
+
+	// The object a character stands on and where on it (LWOBasePhysComponent's frame stats)
+	json LocalSpace(Reader& r) {
+		json out{ {"object", r.Id()}, {"position", r.Point()} };
+		if (r.Bit()) out["velocity"] = r.Point();
+		return out;
+	}
+
+	// LWOBuffComponent::ReadBuffs: a u32 count and each buff
+	json Buffs(Reader& r) {
+		json buffs = json::array();
+		const auto count = r.Get<uint32_t>();
+		for (uint32_t i = 0; r.ok && i < count && i < 256; i++) {
+			json buff{ {"id", r.Get<uint32_t>()} };
+			if (r.Bit()) buff["timeMs"] = r.Get<uint32_t>();
+			for (const char* flag : { "cancelOnDeath", "cancelOnZone", "cancelOnDamaged", "cancelOnRemoveBuff", "cancelOnUi", "cancelOnLogout", "cancelOnUnequip", "cancelOnDamageAbsorbRanOut" }) buff[flag] = r.Bit();
+			const bool addedByTeammate = r.Bit();
+			buff["addedByTeammate"] = addedByTeammate;
+			buff["applyOnTeammates"] = r.Bit();
+			if (addedByTeammate) buff["source"] = r.Id();
+			buff["refCount"] = r.Get<uint32_t>();
+			buffs.push_back(buff);
+		}
+		return buffs;
+	}
+
+	void ModelBase(Reader& r, json& j) {
+		if (!r.Bit()) return;
+		j["pickable"] = r.Bit();
+		j["modelType"] = r.Get<uint32_t>();
+		j["originalPosition"] = r.Point();
+		j["originalRotation"] = r.RawRotation();
 	}
 
 	using ComponentReader = std::function<void(Reader&, json&, bool initial, const std::vector<eReplicaComponentType>& components)>;
@@ -178,7 +257,7 @@ namespace {
 					j["onRail"] = r.Bit();
 					if (r.Bit()) j["velocity"] = r.Point();
 					if (r.Bit()) j["angularVelocity"] = r.Point();
-					if (r.Bit()) NotRead(r, j, "localSpaceInfo");
+					if (r.Bit()) j["localSpace"] = LocalSpace(r);
 					if (!initial) j["teleporting"] = r.Bit();
 				}
 			} },
@@ -203,7 +282,7 @@ namespace {
 					j["onRail"] = r.Bit();
 					if (r.Bit()) j["velocity"] = r.Point();
 					if (r.Bit()) j["angularVelocity"] = r.Point();
-					if (r.Bit()) NotRead(r, j, "localSpaceInfo");
+					if (r.Bit()) j["localSpace"] = LocalSpace(r);
 					if (r.Bit()) {
 						j["remoteInputX"] = r.Get<float>();
 						j["remoteInputY"] = r.Get<float>();
@@ -225,7 +304,10 @@ namespace {
 				if (!(j["effectActive"] = r.Bit()).get<bool>()) return;
 				j["effectType"] = r.Get<uint32_t>();
 				j["directionalMultiplier"] = r.Get<float>();
-				if (r.Bit()) return NotRead(r, j, "distanceInfo");
+				if (r.Bit()) {
+					j["minDistance"] = r.Get<float>();
+					j["maxDistance"] = r.Get<float>();
+				}
 				if ((j["directional"] = r.Bit()).get<bool>()) j["direction"] = r.Point();
 			} },
 			{ SOUND_TRIGGER, [](Reader& r, json& j, bool, const auto&) {
@@ -264,23 +346,8 @@ namespace {
 			} },
 			{ BUFF, [](Reader& r, json& j, bool initial, const auto&) {
 				if (!initial) return;
-				if (r.Bit()) {
-					json buffs = json::array();
-					const auto count = r.Get<uint32_t>();
-					for (uint32_t i = 0; r.ok && i < count && i < 256; i++) {
-						json buff{ {"id", r.Get<uint32_t>()} };
-						if (r.Bit()) buff["timeMs"] = r.Get<uint32_t>();
-						for (const char* flag : { "cancelOnDeath", "cancelOnZone", "cancelOnDamaged", "cancelOnRemoveBuff", "cancelOnUi", "cancelOnLogout", "cancelOnUnequip", "cancelOnDamageAbsorbRanOut" }) buff[flag] = r.Bit();
-						const bool addedByTeammate = r.Bit();
-						buff["addedByTeammate"] = addedByTeammate;
-						buff["applyOnTeammates"] = r.Bit();
-						if (addedByTeammate) buff["source"] = r.Id();
-						buff["refCount"] = r.Get<uint32_t>();
-						buffs.push_back(buff);
-					}
-					j["buffs"] = buffs;
-				}
-				if (r.Bit()) NotRead(r, j, "immunityBuffs");
+				if (r.Bit()) j["buffs"] = Buffs(r);
+				if (r.Bit()) j["immunities"] = Buffs(r);
 			} },
 			{ DESTROYABLE, [](Reader& r, json& j, bool initial, const auto&) {
 				if (initial && r.Bit()) {
@@ -320,14 +387,14 @@ namespace {
 				if (r.Bit()) j["onThreatList"] = r.Bit();
 			} },
 			{ COLLECTIBLE, [](Reader& r, json& j, bool, const auto&) { j["collectibleID"] = r.Get<int16_t>(); } },
-			{ PET, [](Reader& r, json& j, bool initial, const auto&) {
+			// LWOPetComponent::Deserialize: everything under the dirty bit, the names on updates too
+			{ PET, [](Reader& r, json& j, bool, const auto&) {
+				if (!r.Bit()) return;
+				j["status"] = r.Get<uint32_t>();
+				j["ability"] = r.Get<uint32_t>();
+				if (r.Bit()) j["interaction"] = r.Id();
+				if (r.Bit()) j["owner"] = r.Id();
 				if (r.Bit()) {
-					j["status"] = r.Get<uint32_t>();
-					j["ability"] = r.Get<uint32_t>();
-					if (r.Bit()) j["interaction"] = r.Id();
-					if (r.Bit()) j["owner"] = r.Id();
-				}
-				if (initial && r.Bit()) {
 					j["moderationStatus"] = r.Get<uint32_t>();
 					j["name"] = r.WideText<uint8_t>();
 					j["ownerName"] = r.WideText<uint8_t>();
@@ -398,7 +465,35 @@ namespace {
 				if (initial && r.Bit()) j["networkSettings"] = ReadLdf(r);
 			} },
 			{ SKILL, [](Reader& r, json& j, bool initial, const auto&) {
-				if (initial && r.Bit()) NotRead(r, j, "skillsInProgress");
+				// LWOSkillComponent::Deserialize: the skills being cast and each one's running behaviors
+				if (!initial || !r.Bit()) return;
+				json skills = json::array();
+				const auto count = r.Get<uint32_t>();
+				for (uint32_t i = 0; r.ok && i < count && i < 256; i++) {
+					json skill{ {"skillUID", r.Get<uint32_t>()} };
+					skill["skillID"] = r.Get<uint32_t>();
+					skill["castType"] = r.Get<uint32_t>();
+					skill["cancelType"] = r.Get<uint32_t>();
+					json behaviors = json::array();
+					const auto behaviorCount = r.Get<uint32_t>();
+					for (uint32_t b = 0; r.ok && b < behaviorCount && b < 256; b++) {
+						json behavior{ {"behaviorHandle", r.Get<uint32_t>()} };
+						behavior["action"] = r.Get<uint32_t>();
+						behavior["waitTimeMs"] = r.Get<uint32_t>();
+						behavior["templateID"] = r.Get<uint32_t>();
+						behavior["caster"] = r.Id();
+						behavior["originator"] = r.Id();
+						behavior["target"] = r.Id();
+						behavior["usedMouse"] = r.Bit();
+						behavior["cooldown"] = r.Get<float>();
+						behavior["chargeTime"] = r.Get<float>();
+						behavior["imaginationCost"] = r.Get<float>();
+						behaviors.push_back(behavior);
+					}
+					skill["behaviors"] = behaviors;
+					skills.push_back(skill);
+				}
+				j["skillsInProgress"] = skills;
 			} },
 			{ BASE_COMBAT_AI, [](Reader& r, json& j, bool, const auto&) {
 				if (!r.Bit()) return;
@@ -420,38 +515,58 @@ namespace {
 					j["timeSinceStart"] = r.Get<float>();
 					j["pausedTime"] = r.Get<float>();
 					if (initial) {
-						j["choiceBuild"] = r.Bit();
+						// LWOQuickBuildComponent::Deserialize: a choice build has a u32 of its settings after the bit
+						if ((j["choiceBuild"] = r.Bit()).get<bool>()) j["choiceBuildSetting"] = r.Get<uint32_t>();
 						j["activatorPosition"] = r.Point();
 						j["repositionPlayer"] = r.Bit();
 					}
 				}
 			} },
+			// LWOMovingPlatformComponent::Deserialize: the path when dirty, then each subcomponent (a 1 bit before
+			// each, a 0 bit after the last) as its type
 			{ MOVING_PLATFORM, [](Reader& r, json& j, bool, const auto&) {
-				if (!r.Bit()) {
-					r.Bit();
-					return;
-				}
-				if (r.Bit()) {
-					j["pathFlag"] = r.Bit();
+				const bool hasSubcomponents = r.Bit();
+				if (r.Bit() && r.Bit()) {
 					j["pathName"] = r.WideText<uint16_t>();
 					j["startingWaypoint"] = r.Get<uint32_t>();
 					j["reverse"] = r.Bit();
 				}
-				if (!r.Bit()) return;
-				const auto type = r.Get<uint32_t>();
-				j["moverType"] = type;
-				if (type == 5) return; // simple mover: nothing more
-				if (!r.Bit()) return;
-				j["state"] = r.Get<uint32_t>();
-				j["desiredWaypoint"] = r.Get<int32_t>();
-				j["stopAtDesiredWaypoint"] = r.Bit();
-				j["reverse"] = r.Bit();
-				j["percentBetweenPoints"] = r.Get<float>();
-				j["position"] = r.Point();
-				j["currentWaypoint"] = r.Get<uint32_t>();
-				j["nextWaypoint"] = r.Get<uint32_t>();
-				j["idleTimeElapsed"] = r.Get<float>();
-				j["moveTimeElapsed"] = r.Get<float>();
+				if (!hasSubcomponents) return;
+				json subcomponents = json::array();
+				while (r.ok && subcomponents.size() < 16 && r.Bit()) {
+					const auto type = r.Get<uint32_t>();
+					json sub{ {"type", type} };
+					if (type == 4) {
+						// LWOPlatformMover
+						if (r.Bit()) {
+							sub["state"] = r.Get<uint32_t>();
+							sub["desiredWaypoint"] = r.Get<int32_t>();
+							sub["stopAtDesiredWaypoint"] = r.Bit();
+							sub["reverse"] = r.Bit();
+							sub["percentBetweenPoints"] = r.Get<float>();
+							sub["position"] = r.Point();
+							sub["currentWaypoint"] = r.Get<uint32_t>();
+							sub["nextWaypoint"] = r.Get<uint32_t>();
+							sub["idleTimeElapsed"] = r.Get<float>();
+							sub["moveTimeElapsed"] = r.Get<float>();
+						}
+					} else if (type == 5) {
+						// LWOPlatformSimpleMover
+						if (r.Bit() && r.Bit()) {
+							sub["startPosition"] = r.Point();
+							sub["startRotation"] = r.Rotation();
+						}
+						if (r.Bit()) {
+							sub["state"] = r.Get<uint32_t>();
+							sub["currentWaypoint"] = r.Get<uint32_t>();
+							sub["reverse"] = r.Bit();
+						}
+					} else {
+						NotRead(r, sub, "subcomponent");
+					}
+					subcomponents.push_back(sub);
+				}
+				j["subcomponents"] = subcomponents;
 			} },
 			{ SWITCH, [](Reader& r, json& j, bool, const auto&) { j["active"] = r.Bit(); } },
 			{ VENDOR, [](Reader& r, json& j, bool, const auto&) {
@@ -535,24 +650,25 @@ namespace {
 				}
 			} },
 			{ LUP_EXHIBIT, [](Reader& r, json& j, bool, const auto&) { if (r.Bit()) j["exhibitLOT"] = r.Get<int32_t>(); } },
-			{ MODEL, [](Reader& r, json& j, bool initial, const std::vector<eReplicaComponentType>& components) {
-				if (std::find(components.begin(), components.end(), PET) == components.end() && r.Bit()) {
-					j["modelID"] = r.Id();
-					j["modelModerationStatus"] = r.Get<int32_t>();
-					if (r.Bit()) j["ugDescription"] = r.WideText<uint32_t>();
-				}
-				if (r.Bit()) {
-					j["pickable"] = r.Bit();
-					j["physicsType"] = r.Get<uint32_t>();
-					j["originalPosition"] = r.Point();
-					j["originalRotation"] = r.RawRotation();
-				}
+			// LWOModelBehaviorComponent::Deserialize (the user-generated-content block before it is the item's)
+			{ MODEL, [](Reader& r, json& j, bool, const auto&) { ModelBase(r, j); } },
+			// LWOMutableModelBehaviorComponent::Deserialize: the model's block, the behaviors, and on construction who
+			// is editing it
+			{ MUTABLE_MODEL_BEHAVIORS, [](Reader& r, json& j, bool initial, const auto&) {
+				ModelBase(r, j);
 				if (r.Bit()) {
 					j["behaviors"] = r.Get<uint32_t>();
 					j["paused"] = r.Bit();
 				}
-				if (initial && r.Bit()) NotRead(r, j, "editingInfo");
+				if (initial && r.Bit()) {
+					j["oldObjectID"] = r.Id();
+					j["editor"] = r.Id();
+				}
 			} },
+			// LWOBBBComponent::Deserialize (characters carry one in live captures)
+			{ BBB, [](Reader& r, json& j, bool, const auto&) { if (r.Bit()) j["metadataSourceItem"] = r.Id(); } },
+			// LWOTriggerComponent::Deserialize, on objects whose header sets the trigger bit
+			{ TRIGGER, [](Reader& r, json& j, bool, const auto&) { if (r.Bit()) j["triggerID"] = r.Get<int32_t>(); } },
 			{ RENDER, [](Reader& r, json& j, bool initial, const auto&) {
 				if (!initial) return;
 				json effects = json::array();
@@ -582,7 +698,7 @@ namespace {
 		PHANTOM_PHYSICS, SOUND_TRIGGER, RACING_SOUND_TRIGGER, BUFF, DESTROYABLE, COLLECTIBLE, PET, POSSESSOR, LEVEL_PROGRESSION,
 		PLAYER_FORCED_MOVEMENT, CHARACTER, INVENTORY, SCRIPT, SKILL, BASE_COMBAT_AI, ITEM, QUICK_BUILD, MOVING_PLATFORM, SWITCH,
 		VENDOR, DONATION_VENDOR, ACHIEVEMENT_VENDOR, BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, LUP_EXHIBIT,
-		MODEL, RENDER, MINI_GAME_CONTROL,
+		MODEL, MUTABLE_MODEL_BEHAVIORS, RENDER, MINI_GAME_CONTROL, BBB,
 	};
 
 	/**
@@ -593,7 +709,14 @@ namespace {
 	std::vector<eReplicaComponentType> Arrange(std::set<eReplicaComponentType> has, bool extraDestroyable) {
 		if (has.contains(DESTROYABLE)) has.insert(BUFF);
 		if (has.contains(CHARACTER)) has.insert({ POSSESSOR, LEVEL_PROGRESSION, PLAYER_FORCED_MOVEMENT });
-		if (has.contains(PET)) has.erase(MODEL);
+		// The client drops a pet's model and item components (ObjectLoader2::DoObjectComponentLoad)
+		if (has.contains(PET)) {
+			has.erase(MODEL);
+			has.erase(MUTABLE_MODEL_BEHAVIORS);
+			has.erase(ITEM);
+		}
+		// Objects listing component 107 (characters) write a BBB component's data after the others in live captures
+		if (has.contains(CRAFTING)) has.insert(BBB);
 		// Collectibles get one; a quick build without one writes the same empty bits itself in the same place
 		const bool destroyable = has.contains(DESTROYABLE) || has.contains(COLLECTIBLE) || has.contains(QUICK_BUILD) || extraDestroyable;
 		eReplicaComponentType slot = MINI_GAME_CONTROL;
@@ -610,17 +733,25 @@ namespace {
 
 	std::set<eReplicaComponentType> Registered(LOT lot, const ReplicaDecoder::ComponentTable& table) {
 		// BBB models (LOT 14) are made up in code: simple physics, model, render and a destroyable after them
-		if (lot == 14) return { SIMPLE_PHYSICS, MODEL, RENDER };
+		if (lot == 14) return { SIMPLE_PHYSICS, ITEM, MODEL, RENDER };
 		const auto it = table.find(lot);
 		if (it == table.end()) return {};
 		return { it->second.begin(), it->second.end() };
 	}
 
 	// The layouts to try for an object, the registry's own first
-	std::vector<std::vector<eReplicaComponentType>> Candidates(LOT lot, const ReplicaDecoder::ComponentTable& table) {
-		const auto has = Registered(lot, table);
+	/**
+	 * `mutableModel`: the object's config has propertyObjectID or inInventory set, for which the client makes a model's
+	 * mutable component instead of the plain one (ObjectLoader2::LoadModelBehaviorsComponent)
+	 */
+	std::vector<std::vector<eReplicaComponentType>> Candidates(LOT lot, const ReplicaDecoder::ComponentTable& table, bool mutableModel) {
+		auto has = Registered(lot, table);
+		if (mutableModel && has.contains(MODEL)) {
+			has.erase(MODEL);
+			has.insert(MUTABLE_MODEL_BEHAVIORS);
+		}
 		// Models get a destroyable too (Entity::Initialize), BBB models always
-		const bool model = has.contains(MODEL) && !has.contains(PET);
+		const bool model = (has.contains(MODEL) || has.contains(MUTABLE_MODEL_BEHAVIORS)) && !has.contains(PET);
 		std::vector<std::vector<eReplicaComponentType>> out{ Arrange(has, lot == 14 || model) };
 		auto add = [&out](std::vector<eReplicaComponentType> candidate) {
 			if (std::find(out.begin(), out.end(), candidate) == out.end()) out.push_back(std::move(candidate));
@@ -638,6 +769,23 @@ namespace {
 		auto withoutScript = has;
 		withoutScript.erase(SCRIPT);
 		add(Arrange(withoutScript, false));
+		// A simple physics object the zone file sets markedAsPhantom on gets phantom physics instead
+		// (LWOSimplePhysicsComponent::Allocator)
+		if (has.contains(SIMPLE_PHYSICS)) {
+			auto phantom = has;
+			phantom.erase(SIMPLE_PHYSICS);
+			phantom.insert(PHANTOM_PHYSICS);
+			add(Arrange(phantom, false));
+			add(Arrange(phantom, true));
+		}
+		// The client makes no FX component (the render data) when the zone file sets renderDisabled, as on trigger
+		// volumes (ObjectLoader2::LoadRenderComponent)
+		if (has.contains(RENDER)) {
+			auto withoutRender = has;
+			withoutRender.erase(RENDER);
+			add(Arrange(withoutRender, false));
+			add(Arrange(withoutRender, true));
+		}
 		return out;
 	}
 
@@ -685,10 +833,12 @@ namespace {
 	}
 
 	// Reads the components in order from `start`; true when they read the stream exactly
-	bool ReadComponents(RakNet::BitStream& stream, BitSize_t start, const std::vector<eReplicaComponentType>& components, bool initial, json& out) {
+	bool ReadComponents(RakNet::BitStream& stream, BitSize_t start, std::vector<eReplicaComponentType> components, bool trigger, bool initial, json& out) {
 		stream.SetReadOffset(start);
 		out = json::array();
 		Reader r{ stream };
+		// Made for objects with a trigger after all the others (ObjectLoader2::DoObjectComponentLoad), so read last
+		if (trigger) components.push_back(TRIGGER);
 		for (const auto type : components) {
 			json fields = json::object();
 			const auto reader = Readers().find(type);
@@ -703,6 +853,18 @@ namespace {
 			out.push_back({ {"component", Name(type)}, {"fields", fields} });
 		}
 		return OnlyPadding(stream);
+	}
+
+	// Whether a construction's config (entries as "key=type:value") names a property or says it is in an inventory
+	bool MutableModel(const json& config) {
+		const auto& entries = config.is_object() ? config.value("entries", json::array()) : config;
+		if (!entries.is_array()) return false;
+		for (const auto& entry : entries) {
+			if (!entry.is_string()) continue;
+			const auto text = entry.get<std::string>();
+			if (text.starts_with("propertyObjectID=") || text == "inInventory=7:1") return true;
+		}
+		return false;
 	}
 
 	json ReadParentChild(Reader& r) {
@@ -734,7 +896,7 @@ namespace ReplicaDecoder {
 	}
 
 	std::vector<eReplicaComponentType> ComponentsOf(LOT lot, const ComponentTable& table) {
-		return Candidates(lot, table).front();
+		return Candidates(lot, table, false).front();
 	}
 
 	std::optional<json> Session::Decode(std::string_view bytes, uint64_t connection) {
@@ -773,7 +935,7 @@ namespace ReplicaDecoder {
 			out["parentChild"] = ReadParentChild(r);
 			json components;
 			const auto start = stream.GetReadOffset();
-			if (!r.ok || !ReadComponents(stream, start, it->second.components, false, components)) {
+			if (!r.ok || !ReadComponents(stream, start, it->second.components, it->second.trigger, false, components)) {
 				out["(layout did not match)"] = true;
 				out["(rest)"] = RestHex(stream);
 			}
@@ -792,7 +954,8 @@ namespace ReplicaDecoder {
 		out["name"] = r.WideText<uint8_t>();
 		out["timeSinceCreatedMs"] = r.Get<uint32_t>();
 		if (r.Bit()) out["config"] = ReadLdf(r);
-		out["trigger"] = r.Bit();
+		const bool trigger = r.Bit();
+		out["trigger"] = trigger;
 		if (r.Bit()) out["spawner"] = r.Id();
 		if (r.Bit()) out["spawnerNode"] = r.Get<uint32_t>();
 		if (r.Bit()) out["scale"] = r.Get<float>();
@@ -805,13 +968,13 @@ namespace ReplicaDecoder {
 		}
 
 		const auto start = stream.GetReadOffset();
-		const auto candidates = Candidates(lot, m_Table);
+		const auto candidates = Candidates(lot, m_Table, out.contains("config") && MutableModel(out["config"]));
 		std::vector<eReplicaComponentType> chosen = candidates.front();
 		json components;
 		bool matched = false;
 		for (const auto& candidate : candidates) {
 			json attempt;
-			if (ReadComponents(stream, start, candidate, true, attempt)) {
+			if (ReadComponents(stream, start, candidate, trigger, true, attempt)) {
 				chosen = candidate;
 				components = std::move(attempt);
 				matched = true;
@@ -820,13 +983,13 @@ namespace ReplicaDecoder {
 		}
 		if (!matched) {
 			// Shown as the registry says, as far as it reads, with the rest as bytes
-			ReadComponents(stream, start, chosen, true, components);
+			ReadComponents(stream, start, chosen, trigger, true, components);
 			out["(layout did not match)"] = true;
 			out["(rest)"] = RestHex(stream);
 		}
 		if (!m_Table.contains(lot) && lot != 14) out["(LOT not in ComponentsRegistry)"] = true;
 		out["components"] = components;
-		m_Objects[{ connection, network }] = Object{ objectId, lot, chosen };
+		m_Objects[{ connection, network }] = Object{ objectId, lot, chosen, trigger };
 		return out;
 	}
 }
