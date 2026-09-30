@@ -40,6 +40,8 @@ json ToJson(const ChatPackets::GuildKick& m);
 json ToJson(const ChatPackets::GuildSetRank& m);
 json ToJson(const ChatPackets::GuildDisband& m);
 json ToJson(const ChatPackets::GuildStatus& m);
+json ToJson(const ChatPackets::MatchRequest& m);
+json ToJson(const ChatPackets::MatchTransfer& m);
 json ToJson(const ChatPackets::Client::GeneralChatMessage& m);
 json ToJson(const ChatPackets::Client::PrivateChatMessage& m);
 json ToJson(const ClientPackets::LoginResponse& m);
@@ -479,6 +481,33 @@ json ToJson(const ChatPackets::GuildStatus& m) {
 	j["characterID"] = ToJson(m.characterID);
 	j["guildID"] = ToJson(m.guildID);
 	j["guildName"] = ToJson(m.guildName);
+	return j;
+}
+json ToJson(const ChatPackets::MatchRequest& m) {
+	json j = json::object();
+	j["playerID"] = ToJson(m.playerID);
+	j["type"] = ToJson(m.type);
+	j["value"] = ToJson(m.value);
+	j["activityID"] = ToJson(m.activityID);
+	j["playerName"] = ToJson(m.playerName);
+	j["playerChoices"] = ToJson(m.playerChoices);
+	j["instanceMapID"] = ToJson(m.instanceMapID);
+	j["minTeams"] = ToJson(m.minTeams);
+	j["maxTeams"] = ToJson(m.maxTeams);
+	j["minTeamSize"] = ToJson(m.minTeamSize);
+	j["maxTeamSize"] = ToJson(m.maxTeamSize);
+	j["waitTime"] = ToJson(m.waitTime);
+	j["startDelay"] = ToJson(m.startDelay);
+	return j;
+}
+json ToJson(const ChatPackets::MatchTransfer& m) {
+	json j = json::object();
+	j["activityID"] = ToJson(m.activityID);
+	j["zoneID"] = ToJson(m.zoneID);
+	j["serverIP"] = ToJson(m.serverIP);
+	j["serverPort"] = ToJson(m.serverPort);
+	j["mythranShift"] = ToJson(m.mythranShift);
+	j["players"] = ToJson(m.players);
 	return j;
 }
 json ToJson(const ChatPackets::Client::GeneralChatMessage& m) {
@@ -1057,6 +1086,7 @@ json ToJson(const MasterPackets::ServerListResponse::Instance& m) {
 	j["port"] = ToJson(m.port);
 	j["isPrivate"] = ToJson(m.isPrivate);
 	j["state"] = ToJson(m.state);
+	j["outdated"] = ToJson(m.outdated);
 	return j;
 }
 json ToJson(const MasterPackets::ServerListResponse::Endpoint& m) {
@@ -1524,6 +1554,7 @@ json ToJson(const WorldFilesStatus::Instance& m) {
 	j["players"] = ToJson(m.players);
 	j["stale"] = ToJson(m.stale);
 	j["reloading"] = ToJson(m.reloading);
+	j["outdated"] = ToJson(m.outdated);
 	return j;
 }
 json ToJson(const WorldFilesStatus::Zone& m) {
@@ -1771,6 +1802,8 @@ const std::vector<Entry>& Entries() {
 		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::GUILD_SET_RANK), "GuildSetRank", false, &ReadWith<ChatPackets::GuildSetRank> },
 		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::GUILD_DISBAND), "GuildDisband", false, &ReadWith<ChatPackets::GuildDisband> },
 		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::GUILD_GET_STATUS), "GuildStatus", false, &ReadWith<ChatPackets::GuildStatus> },
+		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::MATCH_REQUEST), "MatchRequest", false, &ReadWith<ChatPackets::MatchRequest> },
+		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::MATCH_TRANSFER), "MatchTransfer", false, &ReadWith<ChatPackets::MatchTransfer> },
 		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::GENERAL_CHAT_MESSAGE), "GeneralChatMessage", false, &ReadWith<ChatPackets::Client::GeneralChatMessage> },
 		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::PRIVATE_CHAT_MESSAGE), "PrivateChatMessage", false, &ReadWith<ChatPackets::Client::PrivateChatMessage> },
 		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::LOGIN_RESPONSE), "LoginResponse", false, &ReadWith<ClientPackets::LoginResponse> },

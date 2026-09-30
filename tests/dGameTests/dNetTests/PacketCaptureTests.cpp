@@ -337,7 +337,7 @@ TEST(PacketDecoderTests, NamesEveryService) {
 	EXPECT_EQ(decoded.service, "WORLD");
 	EXPECT_EQ(decoded.name, "POSITION_UPDATE");
 	ASSERT_TRUE(decoded.fields);
-	EXPECT_FLOAT_EQ((*decoded.fields)["position"][1].get<float>(), 2.0f);
+	EXPECT_FLOAT_EQ((*decoded.fields)["update"]["position"][1].get<float>(), 2.0f);
 	const auto where = PacketDecoder::Position(bytes);
 	ASSERT_TRUE(where);
 	EXPECT_FLOAT_EQ(where->z, 3.0f);
