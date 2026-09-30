@@ -326,6 +326,8 @@ CREATE DATABASE darkflame;
 ```
 
 ## Build the server
+The server only builds for 64-bit targets; CMake refuses to configure a 32-bit build.
+
 You can either run `build.sh` when in the root folder of the repository:
 
 ```bash

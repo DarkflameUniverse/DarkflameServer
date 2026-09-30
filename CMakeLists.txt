@@ -9,6 +9,11 @@ if("${CMAKE_SOURCE_DIR}" MATCHES " ")
 	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
 endif()
 
+# Only 64-bit builds are supported: sent and stored values assume 64-bit pointers and sizes
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+	message(FATAL_ERROR "The server only builds for 64-bit targets (this configuration is ${CMAKE_SIZEOF_VOID_P}-byte pointers). Use a 64-bit compiler and generator, e.g. -A x64 with Visual Studio.")
+endif()
+
 include(CTest)
 
 set(CMAKE_C_STANDARD 99)
