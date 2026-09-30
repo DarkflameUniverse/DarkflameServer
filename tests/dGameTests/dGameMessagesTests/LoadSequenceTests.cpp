@@ -65,18 +65,34 @@ TEST_F(LoadSequenceTests, SavedCheckpointIsSentUnrotated) {
 	EXPECT_EQ(checkpoints[0].rot, QuatUtils::IDENTITY);
 }
 
-// Unread mail is announced during the load without the client asking; nothing is sent without unread mail.
-// Live's packet (56 bytes) also fills the three fields DLU leaves 0 with object IDs the client does not use here.
+// Unread mail is announced during the load without the client asking, one NewMail notice per unread mail (oldest
+// first, a count of 1 each, as live sent two notices for two mails); nothing is sent without unread mail.
 TEST_F(LoadSequenceTests, UnreadMailIsAnnouncedOnLoad) {
-	auto sent = Capture([&] { Mail::NotifyUnreadMailOnLoad(0, ClientAddress()); });
-	EXPECT_TRUE(sent.empty());
+	EXPECT_TRUE(Mail::UnreadMailNotices({}, PLAYER).empty());
 
-	sent = Capture([&] { Mail::NotifyUnreadMailOnLoad(1, ClientAddress()); });
-	ASSERT_EQ(sent.size(), 1u);
-	EXPECT_EQ(sent[0].sysAddr, ClientAddress());
-	EXPECT_PACKET_EQ(FromHex(
-		"53 05 00 31 00 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "
-		"00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00"), FromCapture(sent[0]));
+	MailInfo read;
+	read.id = 1;
+	read.wasRead = true;
+	MailInfo newer;
+	newer.id = 9;
+	newer.itemLOT = 0;
+	newer.itemCount = 1;
+	MailInfo older;
+	older.id = 4;
+	older.itemID = 0x1000000000000123;
+	older.itemLOT = 3038;
+	older.itemCount = 100;
+	const auto notices = Mail::UnreadMailNotices({ read, newer, older }, PLAYER);
+	ASSERT_EQ(notices.size(), 2u);
+	EXPECT_EQ(notices[0].mailID, 4u);
+	EXPECT_EQ(notices[0].attachmentLOT, 3038);
+	EXPECT_EQ(notices[1].mailID, 9u);
+	EXPECT_EQ(notices[1].attachmentLOT, LOT_NULL);
+	for (const auto& notice : notices) {
+		EXPECT_EQ(notice.status, Mail::eNotificationResponse::NewMail);
+		EXPECT_EQ(notice.receiverID, PLAYER);
+		EXPECT_EQ(notice.mailCount, 1u);
+	}
 }
 
 // Live, right before TRANSFER_TO_WORLD on a rocket launch to Nimbus Station (spawn point MedPropLand): flag 32 on,

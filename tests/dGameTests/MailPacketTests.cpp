@@ -129,23 +129,40 @@ TEST(MailPacketTests, NoAttachmentIsLotNull) {
 	EXPECT_EQ(lot, -1);
 }
 
-// Answer to NotificationRequest: 56 bytes, the unread count at offset 48 (live sent 2 there for two unread mails).
-TEST(MailPacketTests, NotificationResponseLayout) {
+// The answer to NotificationRequest names no mail: the player, no attachment (LOT -1) and the unread count at
+// offset 48. Live capture (its padding held stale memory; zero here).
+TEST(MailPacketTests, NotificationRequestAnswerMatchesLive) {
 	Mail::NotificationResponse response;
 	response.status = Mail::eNotificationResponse::NewMail;
+	response.receiverID = 0x100000015b7b141f;
 	response.mailCount = 2;
-	const auto actual = Write(response);
-	ASSERT_EQ(actual.bytes.size(), 56u);
-	Bytes expected;
-	PutClientMailHeader(expected, Mail::eMessageID::NotificationResponse);
-	expected.Put<uint32_t>(0); // NewMail
-	expected.Put<uint64_t>(0);
-	expected.Put<uint64_t>(0);
-	expected.Put<uint64_t>(0);
-	expected.Put<uint64_t>(0);
-	expected.Put<uint32_t>(2); // mail count
-	expected.Put<uint32_t>(0);
-	EXPECT_TRUE(PacketsEqual(expected.Packet(), actual));
+	EXPECT_TRUE(PacketsEqual(
+		FromHex("530500310000000002000000000000000000000000000000""1f147b5b010000100000000000000000ffffffff0000000002000000""00000000"),
+		Write(response)));
+}
+
+// A new mail notice: the mail, the player, the attachment and a count of 1. Live capture (padding zeroed).
+TEST(MailPacketTests, NewMailNoticeMatchesLive) {
+	MailInfo mail;
+	mail.id = 0x10000001733377d7;
+	mail.itemID = 0x10000001733377d6;
+	mail.itemLOT = 0x3e6c;
+	mail.itemCount = 1;
+	EXPECT_TRUE(PacketsEqual(
+		FromHex("53050031000000000200000000000000d7773373010000105e7dea8e00000010d6773373010000106c3e00000100000001000000""00000000"),
+		Write(Mail::NewMailNotice(mail, 0x100000008eea7d5e))));
+}
+
+// Without an attachment the notice carries LOT -1, as live did for mission mail.
+TEST(MailPacketTests, NewMailNoticeWithoutAttachment) {
+	MailInfo mail;
+	mail.id = 7;
+	mail.itemLOT = 0;
+	mail.itemCount = 1;
+	const auto notice = Mail::NewMailNotice(mail, 0x100000015b7b141f);
+	EXPECT_EQ(notice.attachmentLOT, LOT_NULL);
+	EXPECT_EQ(notice.mailCount, 1u);
+	EXPECT_EQ(Write(notice).bytes.size(), 56u);
 }
 
 // The mailbox opens the Mail UI with pushGameState {state: "Mail"}; bytes from a live capture.

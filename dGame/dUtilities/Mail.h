@@ -2,6 +2,7 @@
 #define __MAIL_H__
 
 #include <cstdint>
+#include <vector>
 #include "BitStream.h"
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
@@ -131,9 +132,15 @@ namespace Mail {
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
+	// Live filled a NewMail notice with the mail it was about (the answer to NotificationRequest named no mail and
+	// carried the unread count). The client reads the status and mailCount, and the object for auction notices.
 	struct NotificationResponse : public MailLUBitStream {
 		eNotificationResponse status = eNotificationResponse::UnknownError;
-		LWOOBJID auctionID = LWOOBJID_EMPTY;
+		uint64_t mailID = 0;
+		LWOOBJID receiverID = LWOOBJID_EMPTY; // the player's object ID
+		LWOOBJID attachmentID = LWOOBJID_EMPTY;
+		LOT attachmentLOT = LOT_NULL;
+		uint16_t attachmentCount = 0;
 		uint32_t mailCount = 1;
 		NotificationResponse() : MailLUBitStream(eMessageID::NotificationResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
@@ -210,9 +217,15 @@ namespace Mail {
 
 	void HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player);
 
+	// A NewMail notice about one mail, the way live sent it: the mail, its attachment and a count of 1.
+	NotificationResponse NewMailNotice(const MailInfo& mail, LWOOBJID playerID);
+
 	// Part of a player's load: live told the client about unread mail right after the respawn checkpoint, without
-	// being asked (NotificationResponse NewMail with the count), and sent nothing when there was none.
-	void NotifyUnreadMailOnLoad(uint32_t unreadCount, const SystemAddress& sysAddr);
+	// being asked, one NewMail notice per mail, and sent nothing when there was none.
+	void NotifyUnreadMailOnLoad(LWOOBJID characterID, LWOOBJID playerID, const SystemAddress& sysAddr);
+
+	// The notices NotifyUnreadMailOnLoad sends for this mail: one per unread mail, oldest first.
+	std::vector<NotificationResponse> UnreadMailNotices(std::vector<MailInfo> mail, LWOOBJID playerID);
 
 	// Tells the receiver about their unread mail if they are a player in this world. Returns false if they are not.
 	bool NotifyNewMailHere(LWOOBJID receiver);

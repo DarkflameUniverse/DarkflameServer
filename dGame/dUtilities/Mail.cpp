@@ -181,10 +181,12 @@ namespace Mail {
 	void NotificationResponse::Serialize(RakNet::BitStream& bitStream) const {
 		MailLUBitStream::Serialize(bitStream);
 		bitStream.Write(status);
-		bitStream.Write<uint64_t>(0); // unused
-		bitStream.Write<uint64_t>(0); // unused
-		bitStream.Write(auctionID);
-		bitStream.Write<uint64_t>(0); // unused
+		bitStream.Write(mailID);
+		bitStream.Write(receiverID);
+		bitStream.Write(attachmentID);
+		bitStream.Write(attachmentLOT);
+		bitStream.Write(attachmentCount);
+		bitStream.Write<uint16_t>(0); // packing
 		bitStream.Write(mailCount);
 		bitStream.Write<uint32_t>(0); // packing
 	}
@@ -339,6 +341,7 @@ namespace Mail {
 		if (character) {
 			auto unreadMailCount = Database::Get()->GetUnreadMailCount(character->GetID());
 			response.status = eNotificationResponse::NewMail;
+			response.receiverID = player->GetObjectID();
 			response.mailCount = unreadMailCount;
 		}
 
@@ -418,7 +421,7 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const 
 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJID recipient,
 	const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
-	const uint16_t attachmentCount, const SystemAddress& sysAddr) {
+	const uint16_t attachmentCount, [[maybe_unused]] const SystemAddress& sysAddr) {
 	MailInfo mailInsert;
 	mailInsert.senderUsername = senderName;
 	mailInsert.recipient = recipientName;
@@ -434,21 +437,32 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	Database::Get()->InsertNewMail(mailInsert);
 	DashboardNotify::Changed("mail", mailInsert.receiverId);
 
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
-		NotifyNewMail(recipient);
-		return;
-	}
-	NotificationResponse response;
-	response.status = eNotificationResponse::NewMail;
-	response.Send(sysAddr);
+	NotifyNewMail(recipient);
 }
 
-void Mail::NotifyUnreadMailOnLoad(const uint32_t unreadCount, const SystemAddress& sysAddr) {
-	if (unreadCount == 0) return;
-	NotificationResponse response;
-	response.status = eNotificationResponse::NewMail;
-	response.mailCount = unreadCount;
-	response.Send(sysAddr);
+Mail::NotificationResponse Mail::NewMailNotice(const MailInfo& mail, const LWOOBJID playerID) {
+	NotificationResponse notice;
+	notice.status = eNotificationResponse::NewMail;
+	notice.mailID = mail.id;
+	notice.receiverID = playerID;
+	notice.attachmentID = mail.itemID;
+	notice.attachmentLOT = mail.itemLOT > 0 ? mail.itemLOT : LOT_NULL;
+	notice.attachmentCount = static_cast<uint16_t>(mail.itemCount);
+	notice.mailCount = 1;
+	return notice;
+}
+
+std::vector<Mail::NotificationResponse> Mail::UnreadMailNotices(std::vector<MailInfo> mail, const LWOOBJID playerID) {
+	std::sort(mail.begin(), mail.end(), [](const MailInfo& a, const MailInfo& b) { return a.id < b.id; });
+	std::vector<NotificationResponse> notices;
+	for (const auto& entry : mail) {
+		if (!entry.wasRead) notices.push_back(NewMailNotice(entry, playerID));
+	}
+	return notices;
+}
+
+void Mail::NotifyUnreadMailOnLoad(const LWOOBJID characterID, const LWOOBJID playerID, const SystemAddress& sysAddr) {
+	for (const auto& notice : UnreadMailNotices(Database::Get()->GetMailForPlayer(characterID, 20), playerID)) notice.Send(sysAddr);
 }
 
 bool Mail::NotifyNewMailHere(LWOOBJID receiver) {
@@ -459,10 +473,13 @@ bool Mail::NotifyNewMailHere(LWOOBJID receiver) {
 	auto* const character = player->GetCharacter();
 	if (!character) return false;
 
-	NotificationResponse response;
-	response.status = eNotificationResponse::NewMail;
-	response.mailCount = Database::Get()->GetUnreadMailCount(character->GetID());
-	response.Send(player->GetSystemAddress());
+	// About the newest unread mail, the one that just arrived
+	const auto mail = Database::Get()->GetMailForPlayer(character->GetID(), 20);
+	const MailInfo* newest = nullptr;
+	for (const auto& entry : mail) {
+		if (!entry.wasRead && (!newest || entry.id > newest->id)) newest = &entry;
+	}
+	if (newest) NewMailNotice(*newest, player->GetObjectID()).Send(player->GetSystemAddress());
 	return true;
 }
 
