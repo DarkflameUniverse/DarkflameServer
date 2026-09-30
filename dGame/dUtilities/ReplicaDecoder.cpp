@@ -11,6 +11,7 @@
 #include "GeneralUtils.h"
 #include "magic_enum.hpp"
 #include "MessageIdentifiers.h"
+#include "ZCompression.h"
 
 namespace {
 	using json = nlohmann::json;
@@ -62,6 +63,9 @@ namespace {
 		return name.empty() ? json(value) : json(std::string(name) + " (" + std::to_string(value) + ")");
 	}
 
+	// Larger compressed LDF is not inflated (a construction's config is a few hundred bytes)
+	constexpr uint32_t MAX_LDF_BYTES = 1024 * 1024;
+
 	// LDF entries as the client reads them: "key=type:value"
 	json ReadLdfEntries(Reader& r, int32_t count) {
 		json out = json::array();
@@ -88,16 +92,26 @@ namespace {
 		return out;
 	}
 
-	// u32 size, u8 compressed, then the entries (or the compressed bytes, which are shown as their size)
+	// u32 size, u8 compressed, then the entries; compressed: u32 uncompressed size, u32 compressed size and the zlib
+	// bytes of the entries (the count, then each entry)
 	json ReadLdf(Reader& r) {
 		const auto size = r.Get<uint32_t>();
 		const auto compressed = r.Get<uint8_t>();
-		if (compressed) {
-			const auto compressedSize = r.Get<uint32_t>();
-			for (uint32_t i = 0; r.ok && i < compressedSize; i++) r.Get<uint8_t>();
-			return json{ {"compressed", true}, {"size", size}, {"compressedSize", compressedSize} };
-		}
-		return ReadLdfEntries(r, r.Get<int32_t>());
+		if (!compressed) return ReadLdfEntries(r, r.Get<int32_t>());
+		const auto uncompressedSize = r.Get<uint32_t>();
+		const auto compressedSize = r.Get<uint32_t>();
+		std::vector<uint8_t> bytes;
+		for (uint32_t i = 0; r.ok && i < compressedSize; i++) bytes.push_back(r.Get<uint8_t>());
+		json shown{ {"compressed", true}, {"size", size}, {"uncompressedSize", uncompressedSize}, {"compressedSize", compressedSize} };
+		if (!r.ok || uncompressedSize > MAX_LDF_BYTES) return shown;
+		std::vector<uint8_t> entries(uncompressedSize);
+		int32_t error{};
+		const auto read = ZCompression::Decompress(bytes.data(), compressedSize, entries.data(), uncompressedSize, error);
+		if (read != static_cast<int32_t>(uncompressedSize)) return shown;
+		RakNet::BitStream inflated(entries.data(), uncompressedSize, false);
+		Reader inner{ inflated };
+		auto out = ReadLdfEntries(inner, inner.Get<int32_t>());
+		return inner.ok ? out : shown;
 	}
 
 	// Activity user info: object ID and 10 values each
@@ -594,6 +608,9 @@ namespace {
 		if (has.contains(DESTROYABLE)) has.insert(BUFF);
 		if (has.contains(CHARACTER)) has.insert({ POSSESSOR, LEVEL_PROGRESSION, PLAYER_FORCED_MOVEMENT });
 		if (has.contains(PET)) has.erase(MODEL);
+		// A model's item info is written by its model component (live: by its item component, the same bits in the
+		// same place), so the item component isn't made for it
+		if (has.contains(MODEL)) has.erase(ITEM);
 		// Collectibles get one; a quick build without one writes the same empty bits itself in the same place
 		const bool destroyable = has.contains(DESTROYABLE) || has.contains(COLLECTIBLE) || has.contains(QUICK_BUILD) || extraDestroyable;
 		eReplicaComponentType slot = MINI_GAME_CONTROL;
