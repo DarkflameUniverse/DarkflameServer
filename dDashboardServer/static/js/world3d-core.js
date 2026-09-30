@@ -1,6 +1,7 @@
 /**
  * The 3D world view's bookkeeping, without three.js so it can be tested with node: smoothing live positions (worlds
- * report about once a second), finding where a player was at a moment of a replay, and the heat map timelapse frames.
+ * report about once a second), finding where a player was at a moment of a replay, the heat map timelapse frames, and
+ * following a player from one world to the next (live and in capture playback) with the timeline's world markers.
  */
 
 /**
@@ -182,4 +183,77 @@ export function coreBounds(pos, trim = 0.02) {
 export function isPlaceholderTerrain(minY, maxY, objectMiddleY, flat = 1, away = 50) {
 	if (!(maxY - minY < flat) || objectMiddleY === null || objectMiddleY === undefined) return false;
 	return Math.abs(objectMiddleY - (minY + maxY) / 2) > away;
+}
+
+// ---- following a player across worlds ----
+
+/**
+ * Live view: where the followed player went, from one player_positions report (it lists every world's players).
+ * Returns {zone, instance, clone} when they are reported only in a world the view isn't showing (another zone, or
+ * another instance when one instance is picked; `instance` 0 is all of them), else null: while the old world still
+ * reports them too, or before the new one does, the view stays. Character select (zone 0) has nothing to draw.
+ */
+export function followedMove(followId, players, zone, instance) {
+	if (!followId) return null;
+	let here = false, elsewhere = null;
+	for (const p of players || []) {
+		if (p.id !== followId) continue;
+		if (p.zone === zone && (!instance || p.instance === instance)) here = true;
+		else if (p.zone) elsewhere = p;
+	}
+	return !here && elsewhere ? { zone: elsewhere.zone, instance: elsewhere.instance, clone: elsewhere.clone } : null;
+}
+
+/**
+ * Capture playback: the world a character was on at time t, from a capture's world moves ([{character, t, zone,
+ * instance, clone, ...}] in time order, the positions route's `worlds`). Character select (zone 0) in between keeps the
+ * world before it; before their first world, null.
+ */
+export function worldAt(worlds, character, t) {
+	let found = null;
+	for (const w of worlds || []) {
+		if (w.t > t) break;
+		if (w.character === character && w.zone) found = w;
+	}
+	return found;
+}
+
+/** Capture playback: the world to switch the 3D view to so it shows the followed character at time t, or null. */
+export function captureSwitch(worlds, character, t, zone) {
+	if (!character) return null;
+	const w = worldAt(worlds, character, t);
+	return w && w.zone !== zone ? w : null;
+}
+
+/**
+ * Timeline markers for a capture's world changes: each time a character (every one, or only `character`) reaches a
+ * world other than the one they were last in. Character select in between isn't a change; their first world is one
+ * when the capture saw them before it (logging in from character select). Returns [{t, at (0 to 1 along
+ * `duration` seconds), character, name, zone, zoneName, instance}].
+ */
+export function worldMarkers(worlds, duration, character = null) {
+	const last = new Map(), out = [];
+	for (const w of worlds || []) {
+		if (character && w.character !== character) continue;
+		const seen = last.has(w.character), before = last.get(w.character);
+		if (!w.zone) { if (!seen) last.set(w.character, null); continue; }
+		last.set(w.character, w);
+		if (!seen || (before && before.zone === w.zone && before.instance === w.instance)) continue;
+		out.push({ t: w.t, at: duration > 0 ? Math.max(0, Math.min(1, w.t / duration)) : 0, character: w.character, name: w.name,
+			zone: w.zone, zoneName: w.zoneName, instance: w.instance });
+	}
+	return out;
+}
+
+/**
+ * The markers over a timeline's slider: one tick per world change, labelled with the zone's name (and the character's,
+ * when `names`); clicking one seeks to it (data-t). `esc` escapes text for HTML.
+ */
+export function markersHtml(markers, esc, names = false) {
+	return markers.map((m) => {
+		const zone = m.zoneName || ('Zone ' + m.zone);
+		const title = (m.name ? m.name + ' → ' : '') + zone + ' #' + m.instance;
+		return '<button type="button" class="timeline-marker" style="left:' + (m.at * 100).toFixed(3) + '%" data-t="' + m.t + '" title="' + esc(title) + '">' +
+			'<span>' + esc(names && m.name ? m.name + ': ' + zone : zone) + '</span></button>';
+	}).join('');
 }

@@ -116,4 +116,7 @@ if(NODE_EXECUTABLE)
 	# The Performance page's flame graph, timeline and phase layouts (static/js/perf-charts.js)
 	add_test(NAME PerfChartsJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/perf-charts.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/perf-charts.js")
+	# Following a player across worlds in World 3D (live and capture playback) and the timeline's world markers (static/js/world3d-core.js)
+	add_test(NAME World3dFollowJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/world3d-follow.test.mjs"
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/world3d-core.js")
 endif()
