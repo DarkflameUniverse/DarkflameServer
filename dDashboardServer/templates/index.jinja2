@@ -60,8 +60,9 @@
 				<p class="small text-body-secondary">Moves everything onto the server binaries on disk now, without a restart: the UGC server finishes its jobs
 					and restarts, auth restarts (logins pause for a few seconds), chat hands its teams over and restarts, every world instance is
 					replaced by a new one and its players are moved there (the game's Mythran maintenance warning, then a short loading screen), and
-					the dashboard restarts last. Properties are saved before their new instance loads them; races and minigames finish first.
-					Master keeps running: updating master itself takes a normal restart.</p>
+					the dashboard restarts last. Races and minigames finish first. <strong>Properties are not moved</strong> (building in progress
+					isn't saved): their players are told an update is waiting, and a property updates once everyone has left it. Instances on the old
+					build take nobody new. Master keeps running: updating master itself takes a normal restart.</p>
 				<div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="liveUpdateForm">
 					<div class="input-group input-group-sm" style="max-width: 20rem">
 						<span class="input-group-text">Warn players</span>
@@ -214,6 +215,9 @@ $(function () {
 		if (row.state === 'starting') return ' ' + fmt.badge('Starting', 'info');
 		if (row.state === 'stopping') return ' ' + fmt.badge('Shutting down', 'secondary');
 		if (row.state === 'draining') return ' ' + fmt.badge('Moving players', 'warning');
+		// Old binary or old zone files: nobody new goes there; it stops once the players still there have left
+		if (row.outdated) return ' ' + fmt.badge('Draining (old version)', 'warning') + ' <span class="small text-body-secondary text-nowrap">' +
+			Number(row.players || 0).toLocaleString() + ' player(s) still there</span>';
 		return '';
 	}
 	// Zone names in the viewer's language (the live status carries the server's)

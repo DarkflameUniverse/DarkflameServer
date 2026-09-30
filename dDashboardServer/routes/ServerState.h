@@ -42,6 +42,8 @@ struct WorldInstanceInfo {
 	// "starting" (launched, not connected yet) or "stopping" (in g_PendingWorlds), or "draining" for a world that is up
 	// but whose players are being moved to a new instance (in g_WorldInstances); empty for one that is just up
 	std::string state{};
+	// On an old binary or old zone files (a live update or world reload): takes nobody new and stops once empty
+	bool outdated{false};
 };
 
 // Where a server listens and the machine it runs on, from master's server list
@@ -88,7 +90,8 @@ namespace ServerState {
 				{"players", world.players},
 				{"isPrivate", world.isPrivate},
 				{"zoneName", world.zoneName},
-				{"state", world.state}
+				{"state", world.state},
+				{"outdated", world.outdated}
 			});
 		}
 

@@ -90,7 +90,9 @@
 	<div class="card-body">
 		<p class="small text-body-secondary">The zone files each running world loaded (<code>.luz</code>, <code>.lvl</code>, <code>.lutriggers</code>, terrain,
 			navmesh). When one changes on disk, the master server replaces the instances that loaded the old version with new ones and moves their
-			players over. <strong>Reload</strong> does the same for every instance of a zone now. Files read from the client's packs are not watched.</p>
+			players over. <strong>Reload</strong> does the same for every instance of a zone now. <strong>Properties are not moved</strong> (building in
+			progress isn't saved): an instance of a property on old files takes nobody new, its players are told an update is waiting, and it updates
+			once everyone has left. Files read from the client's packs are not watched.</p>
 		<div id="worldFilesZones"><p class="text-body-secondary mb-0">Waiting for the master server&hellip;</p></div>
 	</div>
 </div>
@@ -257,7 +259,8 @@
 				(z.changed ? ' ' + fmt.badge('changed on disk', 'warning') : '') + '</h6>' +
 				'<button type="button" class="btn btn-outline-primary btn-sm" data-reload-zone="' + esc(z.zone) + '">Reload</button></div>';
 			var instances = '<div class="small mb-1">' + z.instances.map(function (i) {
-				var badges = (i.stale ? ' ' + fmt.badge('old files', 'warning') : '') + (i.reloading ? ' ' + fmt.badge('being replaced', 'info') : '');
+				var badges = (i.stale ? ' ' + fmt.badge('old files', 'warning') : '') + (i.reloading ? ' ' + fmt.badge('being replaced', 'info') :
+					i.outdated ? ' ' + fmt.badge(i.clone ? 'updates when empty' : 'draining (old version)', 'secondary') : '');
 				return '<span class="me-3 text-nowrap">Instance ' + esc(i.instance) + (i.clone ? ' (clone ' + esc(i.clone) + ')' : '') + ', ' +
 					nf.format(i.players) + ' player(s)' + badges + '</span>';
 			}).join('') + '</div>';

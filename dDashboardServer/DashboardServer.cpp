@@ -229,6 +229,7 @@ namespace {
 			info.ip = instance.ip.string;
 			info.port = instance.port;
 			info.isPrivate = instance.isPrivate != 0;
+			info.outdated = instance.outdated != 0;
 			info.zoneName = GameText::ZoneName(info.mapID);
 			AddPropertyDetails(info);
 			using eState = MasterPackets::ServerListResponse::eState;

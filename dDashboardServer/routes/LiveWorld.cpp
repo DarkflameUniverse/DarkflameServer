@@ -253,13 +253,13 @@ namespace LiveWorld {
 				for (const auto& w : ServerState::g_WorldInstances) {
 					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", GameText::ZoneName(w.mapID)}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", w.players},
 						{"isPrivate", w.isPrivate}, {"ip", w.ip}, {"port", w.port}, {"propertyId", w.propertyId}, {"propertyName", w.propertyName},
-						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state} });
+						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state}, {"outdated", w.outdated} });
 				}
 				// Launched but not connected yet, or shutting down
 				for (const auto& w : ServerState::g_PendingWorlds) {
 					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", GameText::ZoneName(w.mapID)}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", 0},
 						{"isPrivate", w.isPrivate}, {"ip", w.ip}, {"port", w.port}, {"propertyId", w.propertyId}, {"propertyName", w.propertyName},
-						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state} });
+						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state}, {"outdated", w.outdated} });
 				}
 				JsonSuccess(reply, { {"worlds", worlds} });
 			});
