@@ -1,4 +1,5 @@
 #include "LeaderboardRoutes.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <set>
@@ -8,7 +9,7 @@
 #include "WSRoutes.h"
 #include "CDClientDatabase.h"
 #include "Database.h"
-#include "Locale.h"
+#include "GameLabels.h"
 #include "Game.h"
 #include "dConfig.h"
 #include "GeneralUtils.h"
@@ -27,7 +28,7 @@ namespace {
 	};
 
 	std::string ActivityName(uint32_t id) {
-		std::string name = Locale::GetPhrase("Activities_" + std::to_string(id) + "_ActivityName");
+		std::string name = GameText::Phrase(GameText::Key("Activities", id, "ActivityName"));
 		if (name.empty()) return "Activity " + std::to_string(id);
 		// The client's locale has Windows-1252 dashes stored as U+0096 ("Foot Race \u0096 Nimbus Station"); make them real dashes
 		for (size_t at = name.find("\xC2\x96"); at != std::string::npos; at = name.find("\xC2\x96", at)) name.replace(at, 2, "\xE2\x80\x93");
@@ -57,10 +58,9 @@ namespace {
 		const char* hint = "";
 	};
 
-	// The client's column header for a locale phrase ("RACE_BESTTIME" -> "Best Time"); fallback when the locale lacks it
-	std::string Label(const char* phrase, const char* fallback) {
-		const auto& text = Locale::GetPhrase(phrase);
-		return text.empty() ? fallback : text;
+	// The client's column header for a locale phrase ("RACE_BESTTIME" -> "Best Time"); the key as words when the locale lacks it
+	std::string Label(const char* phrase) {
+		return GameText::Text(phrase, GameLabels::Words(phrase));
 	}
 
 	/**
@@ -71,26 +71,26 @@ namespace {
 	 */
 	nlohmann::json Columns(eLeaderboardType type) {
 		using enum eLeaderboardType;
-		std::vector<std::pair<Column, const char*>> columns; // column, English fallback
+		std::vector<Column> columns;
 		switch (type) {
-		case ShootingGallery: columns = { { {"primary", "SCORE", "number"}, "Score" }, { {"secondary", "UI_SG_STREAK", "number"}, "Streak" }, { {"tertiary", "UI_SG_ACCURACY", "percent"}, "Accuracy" } }; break;
-		case Racing: columns = { { {"primary", "RACE_BESTTIME", "laptime", "Less is better"}, "Best Time" }, { {"secondary", "RACE_BESTLAP", "laptime"}, "Best Lap" }, { {"wins", "RACE_NUMWINS", "number"}, "Wins" } }; break;
-		case MonumentRace: columns = { { {"primary", "TIME", "time", "Time taken: less is better"}, "Time" } }; break;
+		case ShootingGallery: columns = { {"primary", "SCORE", "number"}, {"secondary", "UI_SG_STREAK", "number"}, {"tertiary", "UI_SG_ACCURACY", "percent"} }; break;
+		case Racing: columns = { {"primary", "RACE_BESTTIME", "laptime", "Less is better"}, {"secondary", "RACE_BESTLAP", "laptime"}, {"wins", "RACE_NUMWINS", "number"} }; break;
+		case MonumentRace: columns = { {"primary", "TIME", "time", "Time taken: less is better"} }; break;
 		// The foot race scripts save the time left on the race's countdown when the player finishes
-		case FootRace: columns = { { {"primary", "TIME", "time", "Time left on the clock at the finish: more is better"}, "Time" } }; break;
-		case UnusedLeaderboard4: columns = { { {"primary", "POINTS", "number"}, "Points" } }; break;
-		case Survival: columns = { { {"secondary", "TIME", "time"}, "Time" }, { {"primary", "POINTS", "number"}, "Points" } }; break;
-		case SurvivalNS: columns = { { {"primary", "WAVE", "number"}, "Wave" }, { {"secondary", "TIME", "time", "Less is better for the same wave"}, "Time" } }; break;
-		case Donations: columns = { { {"primary", "DONATIONS", "number"}, "Donations" } }; break;
-		default: columns = { { {"primary", "SCORE", "number"}, "Score" } }; break;
+		case FootRace: columns = { {"primary", "TIME", "time", "Time left on the clock at the finish: more is better"} }; break;
+		case UnusedLeaderboard4: columns = { {"primary", "POINTS", "number"} }; break;
+		case Survival: columns = { {"secondary", "TIME", "time"}, {"primary", "POINTS", "number"} }; break;
+		case SurvivalNS: columns = { {"primary", "WAVE", "number"}, {"secondary", "TIME", "time", "Less is better for the same wave"} }; break;
+		case Donations: columns = { {"primary", "DONATIONS", "number"} }; break;
+		default: columns = { {"primary", "SCORE", "number"} }; break;
 		}
-		if (type != Donations) columns.push_back({ {"played", "TIMES_PLAYED", "number"}, "Times Played" });
+		if (type != Donations) columns.push_back({ "played", "TIMES_PLAYED", "number" });
 		// The score the order goes by first: survival ranks by time with classic_survival_scoring (as GetAgsLeaderboard does)
 		const bool byTime = type == Survival && Game::config && Game::config->GetValue("classic_survival_scoring") == "1";
 		const std::string ranksBy = byTime ? "secondary" : "primary";
 		nlohmann::json out = nlohmann::json::array();
-		for (const auto& [column, fallback] : columns) {
-			out.push_back({ {"key", column.key}, {"label", Label(column.phrase, fallback)}, {"format", column.format}, {"hint", column.hint}, {"ranks", column.key == ranksBy} });
+		for (const auto& column : columns) {
+			out.push_back({ {"key", column.key}, {"label", Label(column.phrase)}, {"format", column.format}, {"hint", column.hint}, {"ranks", column.key == ranksBy} });
 		}
 		return out;
 	}

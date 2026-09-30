@@ -1,4 +1,5 @@
 #include "EventsCalendar.h"
+#include "GameText.h"
 #include "EventSchedule.h"
 #include "AnnouncementSchedule.h"
 #include "LevelGating.h"
@@ -156,22 +157,17 @@ namespace {
 			GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor")).value_or(ClientVersion::minor) };
 	}
 
-	std::string ZoneName(uint32_t zone) {
-		const auto& names = ZoneNames();
-		const auto key = std::to_string(zone);
-		return names.contains(key) ? names[key].get<std::string>() : "Zone " + key;
-	}
 
 	std::string ZoneList(const std::vector<uint32_t>& zones) {
 		if (zones.empty()) return "every world";
 		std::string text;
-		for (const auto zone : zones) text += (text.empty() ? "" : ", ") + ZoneName(zone);
+		for (const auto zone : zones) text += (text.empty() ? "" : ", ") + GameText::ZoneName(zone);
 		return text;
 	}
 
 	nlohmann::json ZoneOptions() {
 		std::vector<std::pair<uint32_t, std::string>> zones;
-		for (const auto& [id, name] : ZoneNames().items()) {
+		for (const auto& [id, name] : GameText::ZoneNames().items()) {
 			if (const auto zone = GeneralUtils::TryParse<uint32_t>(id); zone && *zone > 0) zones.emplace_back(*zone, name.get<std::string>());
 		}
 		std::sort(zones.begin(), zones.end());
@@ -186,14 +182,14 @@ namespace {
 		std::lock_guard lock(ServerState::g_StatusMutex);
 		for (const auto& world : ServerState::g_WorldInstances) {
 			if (!zones.contains(world.mapID)) continue;
-			worlds.push_back({ {"zone", world.mapID}, {"zoneName", ZoneName(world.mapID)}, {"instance", world.instanceID}, {"clone", world.cloneID}, {"players", world.players} });
+			worlds.push_back({ {"zone", world.mapID}, {"zoneName", GameText::ZoneName(world.mapID)}, {"instance", world.instanceID}, {"clone", world.cloneID}, {"players", world.players} });
 		}
 		return worlds;
 	}
 
 	nlohmann::json FeatureJson(const std::string& name, const Feature& feature) {
 		nlohmann::json zones = nlohmann::json::array();
-		for (const auto& [zone, objects] : feature.zones) zones.push_back({ {"id", zone}, {"name", ZoneName(zone)}, {"objects", objects} });
+		for (const auto& [zone, objects] : feature.zones) zones.push_back({ {"id", zone}, {"name", GameText::ZoneName(zone)}, {"objects", objects} });
 		nlohmann::json json{ {"name", name}, {"description", feature.description}, {"zones", zones}, {"version", nullptr}, {"unlocked", false} };
 		if (feature.version) {
 			const auto& [major, current, minor] = *feature.version;
@@ -214,7 +210,7 @@ namespace {
 		const auto zones = ZonesOf(feature);
 		if (zones.empty()) return "No zone has objects gated on it; players see client-side changes the next time they log in.";
 		std::string names;
-		for (const auto& [zone, objects] : zones) names += (names.empty() ? "" : ", ") + ZoneName(zone);
+		for (const auto& [zone, objects] : zones) names += (names.empty() ? "" : ", ") + GameText::ZoneName(zone);
 		return "Worlds of " + names + " that are already running keep what they loaded until they are restarted; new logins get the change straight away.";
 	}
 
@@ -608,7 +604,7 @@ namespace {
 		}
 		nlohmann::json zones = nlohmann::json::array();
 		if (config.contains("zones") && config["zones"].is_array()) {
-			const auto& known = ZoneNames();
+			const auto& known = GameText::ZoneNames();
 			for (const auto& zone : config["zones"]) {
 				if (!zone.is_number_unsigned() || !known.contains(std::to_string(zone.get<uint32_t>()))) { error = "Pick zones from the list"; return std::nullopt; }
 				if (std::find(zones.begin(), zones.end(), zone) == zones.end()) zones.push_back(zone);

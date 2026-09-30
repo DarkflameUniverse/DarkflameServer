@@ -1,4 +1,5 @@
 #include "FeaturedProperties.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <ctime>
@@ -59,11 +60,6 @@ namespace {
 		return mapId;
 	}
 
-	std::string ZoneName(uint32_t zoneId) {
-		const auto& zones = ZoneNames();
-		const auto key = std::to_string(zoneId);
-		return zones.contains(key) && zones[key].is_string() ? zones[key].get<std::string>() : "Zone " + key;
-	}
 
 	nlohmann::json PropertyJson(const IProperty::Info& info, const std::string& ownerName) {
 		return {
@@ -75,7 +71,7 @@ namespace {
 			{"performance_cost", info.performanceCost},
 			{"last_updated", info.lastUpdatedTime},
 			{"zone_id", info.zoneId},
-			{"zone_name", ZoneName(info.zoneId)},
+			{"zone_name", GameText::ZoneName(info.zoneId)},
 		};
 	}
 
@@ -144,10 +140,10 @@ namespace {
 			nlohmann::json entry{
 				{"template_id", slot.templateId},
 				{"map_id", slot.mapId},
-				{"zone_name", ZoneName(slot.mapId)},
+				{"zone_name", GameText::ZoneName(slot.mapId)},
 				{"spawn_name", slot.spawnName},
 				{"location", choice.mapId},
-				{"location_name", ZoneName(choice.mapId)},
+				{"location_name", GameText::ZoneName(choice.mapId)},
 				{"mode", HotPropertySlots::ModeName(choice.mode)},
 				{"property_id", nullptr},
 				{"picked", nullptr},
@@ -169,7 +165,7 @@ namespace {
 		}
 
 		nlohmann::json worlds = nlohmann::json::array();
-		for (const auto world : news.worlds) worlds.push_back({ {"map_id", world}, {"zone_name", ZoneName(world)} });
+		for (const auto world : news.worlds) worlds.push_back({ {"map_id", world}, {"zone_name", GameText::ZoneName(world)} });
 		return {
 			{"full_auto", settings.fullAuto},
 			{"settings_updated_at", settings.updatedAt},
@@ -252,12 +248,12 @@ void FeaturedProperties::RegisterRoutes() {
 					: idValue.is_number_integer() ? std::optional<LWOOBJID>(idValue.get<LWOOBJID>()) : std::nullopt;
 				if (!propertyId) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "property_id is required to pick a property");
 				const auto picked = Featurable(*propertyId, *location);
-				if (!picked) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Only an approved public property in " + ZoneName(*location) + " can be picked there");
+				if (!picked) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Only an approved public property in " + GameText::ZoneName(*location) + " can be picked there");
 				for (const auto& other : Database::Get()->GetFeaturedPropertySlots()) {
 					if (other.templateId == slot->templateId || HotPropertySlots::ModeFromInt(other.mode) != eMode::PICKED || other.propertyId != *propertyId) continue;
 					const auto* otherSlot = FindSlot(other.templateId);
 					if (!otherSlot) continue;
-					return JsonError(reply, eHTTPStatusCode::CONFLICT, "That property is already picked for the " + ZoneName(otherSlot->mapId) + " slot");
+					return JsonError(reply, eHTTPStatusCode::CONFLICT, "That property is already picked for the " + GameText::ZoneName(otherSlot->mapId) + " slot");
 				}
 				const auto& [info, ownerName] = *picked;
 				row.propertyId = *propertyId;
@@ -266,7 +262,7 @@ void FeaturedProperties::RegisterRoutes() {
 			}
 
 			Database::Get()->SetFeaturedPropertySlot(row);
-			Audit(context, "feature_property", "Top properties slot " + ZoneName(slot->mapId) + " (template " + std::to_string(slot->templateId) + "): " + ZoneName(*location) + ", " + what, target);
+			Audit(context, "feature_property", "Top properties slot " + GameText::ZoneName(slot->mapId) + " (template " + std::to_string(slot->templateId) + "): " + GameText::ZoneName(*location) + ", " + what, target);
 			BroadcastTableChanged("featured_properties", std::to_string(slot->templateId));
 			JsonSuccess(reply, StateJson());
 		});

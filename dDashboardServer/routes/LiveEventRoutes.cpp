@@ -1,4 +1,5 @@
 #include "LiveEventRoutes.h"
+#include "GameText.h"
 #include "LiveWorld.h"
 #include "DashboardRoutes.h"
 #include "ClientAssets.h"
@@ -48,7 +49,7 @@ namespace {
 	std::string ZoneList(const std::vector<uint32_t>& zones) {
 		if (zones.empty()) return "every world";
 		std::string text;
-		const auto& names = ZoneNames();
+		const auto& names = GameText::ZoneNames();
 		for (const auto zone : zones) {
 			const auto key = std::to_string(zone);
 			text += (text.empty() ? "" : ", ") + (names.contains(key) ? names[key].get<std::string>() : "zone " + key);
@@ -58,7 +59,7 @@ namespace {
 
 	nlohmann::json ZoneOptions() {
 		std::vector<std::pair<uint32_t, std::string>> zones;
-		for (const auto& [id, name] : ZoneNames().items()) {
+		for (const auto& [id, name] : GameText::ZoneNames().items()) {
 			if (const auto zone = GeneralUtils::TryParse<uint32_t>(id); zone && *zone > 0) zones.emplace_back(*zone, name.get<std::string>());
 		}
 		std::sort(zones.begin(), zones.end());
@@ -277,7 +278,7 @@ namespace {
 		if (event.message.size() > MAX_MESSAGE) { error = "The message is up to 300 characters"; return false; }
 		event.zones.clear();
 		if (body.contains("zones") && body["zones"].is_array()) {
-			const auto& known = ZoneNames();
+			const auto& known = GameText::ZoneNames();
 			for (const auto& zone : body["zones"]) {
 				if (!zone.is_number_unsigned() || zone.get<uint32_t>() == 0 || !known.contains(std::to_string(zone.get<uint32_t>()))) { error = "Pick zones from the list"; return false; }
 				if (std::find(event.zones.begin(), event.zones.end(), zone.get<uint32_t>()) == event.zones.end()) event.zones.push_back(zone.get<uint32_t>());

@@ -1,4 +1,5 @@
 #include "LiveWorld.h"
+#include "GameText.h"
 #include "MasterPackets.h"
 #include "WorldView.h"
 #include "Permissions.h"
@@ -250,13 +251,13 @@ namespace LiveWorld {
 				nlohmann::json worlds = nlohmann::json::array();
 				std::lock_guard lock(ServerState::g_StatusMutex);
 				for (const auto& w : ServerState::g_WorldInstances) {
-					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", w.zoneName}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", w.players},
+					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", GameText::ZoneName(w.mapID)}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", w.players},
 						{"isPrivate", w.isPrivate}, {"ip", w.ip}, {"port", w.port}, {"propertyId", w.propertyId}, {"propertyName", w.propertyName},
 						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state} });
 				}
 				// Launched but not connected yet, or shutting down
 				for (const auto& w : ServerState::g_PendingWorlds) {
-					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", w.zoneName}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", 0},
+					worlds.push_back({ {"mapID", w.mapID}, {"zoneName", GameText::ZoneName(w.mapID)}, {"instanceID", w.instanceID}, {"cloneID", w.cloneID}, {"players", 0},
 						{"isPrivate", w.isPrivate}, {"ip", w.ip}, {"port", w.port}, {"propertyId", w.propertyId}, {"propertyName", w.propertyName},
 						{"ownerId", w.ownerId}, {"ownerName", w.ownerName}, {"state", w.state} });
 				}
@@ -266,10 +267,8 @@ namespace LiveWorld {
 		Route(eHTTPMethod::GET, "/api/players/online", Perm("players_view"), "Everyone online: character, account, GM level, world and position",
 			[](HTTPReply& reply, const HTTPContext&) {
 				auto players = PlayersJson();
-				const auto& zones = ZoneNames();
 				for (auto& player : players) {
-					const auto zone = std::to_string(player.value("zone", 0));
-					player["zone_name"] = zones.contains(zone) ? zones[zone].get<std::string>() : "Zone " + zone;
+					player["zone_name"] = GameText::ZoneName(player.value("zone", 0u));
 					const auto id = GeneralUtils::TryParse<LWOOBJID>(player.value("id", std::string{})).value_or(0);
 					if (const auto info = Database::Get()->GetCharacterInfo(id)) {
 						player["account_id"] = info->accountId;

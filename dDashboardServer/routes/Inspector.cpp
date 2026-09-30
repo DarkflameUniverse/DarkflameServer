@@ -1,4 +1,5 @@
 #include "Inspector.h"
+#include "GameText.h"
 #include "MasterPackets.h"
 
 #include <chrono>
@@ -114,9 +115,7 @@ namespace {
 	}
 
 	std::string ZoneName(uint32_t zoneId) {
-		const auto& zones = ZoneNames();
-		const auto zone = std::to_string(zoneId);
-		return zoneId == 0 ? "" : zones.contains(zone) ? zones[zone].get<std::string>() : "Zone " + zone;
+		return zoneId == 0 ? "" : GameText::ZoneName(zoneId);
 	}
 
 	// A session for the page; `state` is the live state, or "ended" for one only in the database

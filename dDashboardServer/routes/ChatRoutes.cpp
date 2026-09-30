@@ -1,4 +1,5 @@
 #include "ChatRoutes.h"
+#include "GameText.h"
 
 #include <ctime>
 #include <map>
@@ -29,7 +30,7 @@ namespace {
 	}
 
 	nlohmann::json RowJson(const IChatLog::ChatMessage& m, const ChatHistory::Access& access) {
-		const auto& zones = ZoneNames();
+		const auto& zones = GameText::ZoneNames();
 		const auto zone = std::to_string(m.zoneId);
 		auto json = ChatHistory::MessageJson(m, access);
 		json["zone_name"] = zones.contains(zone) ? zones[zone] : nlohmann::json("");

@@ -1,4 +1,5 @@
 #include "WorldView.h"
+#include "GameText.h"
 #include "PositionHistory.h"
 #include "WorldScene.h"
 #include "Scenery.h"
@@ -78,11 +79,6 @@ namespace {
 
 	// ---- Zone data ----
 
-	std::string ZoneName(uint32_t zone) {
-		const auto& names = ZoneNames();
-		const auto key = std::to_string(zone);
-		return names.contains(key) ? names[key].get<std::string>() : "Zone " + key;
-	}
 
 	std::optional<std::string> LuzPath(uint32_t zone) {
 		return ZoneLuzPath(zone);
@@ -158,7 +154,7 @@ namespace {
 		}
 
 		nlohmann::json json{
-			{"zone", zone}, {"name", ZoneName(zone)},
+			{"zone", zone}, {"name", GameText::ZoneName(zone)},
 			{"spawn", { Round(zoneFile->spawnpoint.x), Round(zoneFile->spawnpoint.y), Round(zoneFile->spawnpoint.z) }},
 			{"scenes", scenes}, {"kinds", kinds},
 			{"objects", { {"lot", lots}, {"kind", kindOf}, {"flags", flags}, {"scene", sceneOf}, {"pos", positions}, {"names", names} }}, {"lotNames", lotNames},
@@ -289,7 +285,7 @@ namespace WorldView {
 				nlohmann::json mapKinds = nlohmann::json::array();
 				for (const auto kind : magic_enum::enum_values<IEconomyLedger::eMapEvent>()) mapKinds.push_back({ {"value", static_cast<int>(kind)}, {"name", GameLabels::Name(kind)} });
 				JsonReply(reply, eHTTPStatusCode::OK, {
-					{"zones", ZoneNames()}, {"worlds", worlds}, {"mapKinds", mapKinds}, {"cellSize", IEconomyLedger::MAP_CELL_SIZE},
+					{"zones", GameText::ZoneNames()}, {"worlds", worlds}, {"mapKinds", mapKinds}, {"cellSize", IEconomyLedger::MAP_CELL_SIZE},
 					{"propertyZones", EconomyPlaces::PropertyZones()},
 					{"today", Now() / DAY_SECONDS}, {"now", Now()},
 					{"history", { {"enabled", Setting("position_history", 1) != 0}, {"days", Setting("position_history_days", 3)},
@@ -381,7 +377,7 @@ namespace WorldView {
 				const auto from = QueryInt(context, "from", 0);
 				nlohmann::json instances = nlohmann::json::array();
 				for (const auto& i : Database::Get()->GetPositionInstances(zone, from, to)) {
-					instances.push_back({ {"zone", i.zoneId}, {"zoneName", ZoneName(i.zoneId)}, {"instance", i.instanceId}, {"clone", i.cloneId},
+					instances.push_back({ {"zone", i.zoneId}, {"zoneName", GameText::ZoneName(i.zoneId)}, {"instance", i.instanceId}, {"clone", i.cloneId},
 						{"first", i.first}, {"last", i.last}, {"players", i.players} });
 				}
 				JsonReply(reply, eHTTPStatusCode::OK, { {"instances", instances} });
@@ -416,7 +412,7 @@ namespace WorldView {
 					}
 					players.push_back({ {"id", std::to_string(first.characterId)}, {"name", CharacterName(first.characterId)}, {"instances", instances}, {"samples", points} });
 				}
-				Audit(context, "view_position_history", ZoneName(zone) + (instance ? " instance " + std::to_string(instance) : "") + ", " +
+				Audit(context, "view_position_history", GameText::ZoneName(zone) + (instance ? " instance " + std::to_string(instance) : "") + ", " +
 					std::to_string((to - from + 59) / 60) + " minute(s) ending " + std::to_string(to));
 				JsonReply(reply, eHTTPStatusCode::OK, {
 					{"zone", zone}, {"instance", instance}, {"from", from}, {"to", to}, {"bucket", bucket}, {"interval", interval}, {"idleSeconds", IDLE_INTERVAL},

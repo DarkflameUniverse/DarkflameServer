@@ -1,4 +1,5 @@
 #include "ServerRoutes.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <chrono>
@@ -365,7 +366,7 @@ void RegisterServerRoutes() {
 			const auto filter = BundleFilter(reply, context);
 			if (!filter) return;
 			const auto files = LogBundle::Select(LogFolder(), DumpFolder(), *filter);
-			const auto& zoneNames = ZoneNames();
+			const auto& zoneNames = GameText::ZoneNames();
 			nlohmann::json list = nlohmann::json::array();
 			uint64_t total = 0;
 			for (const auto& file : files) {

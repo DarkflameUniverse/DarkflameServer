@@ -1,4 +1,5 @@
 #include "SettingsRoutes.h"
+#include "GameText.h"
 #include "MasterPackets.h"
 #include "Permissions.h"
 #include "SettingsCatalog.h"
@@ -63,7 +64,8 @@ namespace {
 			{"title", info ? info->title : name}, {"section", info ? info->section : "Custom settings"},
 			{"category", section ? section->category : "other"},
 			// Known settings use the catalog's description (the .ini comments are for people editing the file)
-			{"description", info ? info->description : row ? row->description : ""},
+			// Game names in descriptions are locale keys (%[ZoneTable_1000_DisplayDescription]), shown in the viewer's language
+			{"description", GameText::Expand(info ? info->description : row ? row->description : "")},
 			{"type", info ? SettingsCatalog::TypeName(info->type) : "text"}, {"default", info ? info->defaultValue : ""},
 			{"unit", info ? info->unit : ""}, {"format", info ? SettingsCatalog::FormatName(info->format) : "plain"},
 			{"listOf", info ? SettingsCatalog::ListOfName(info->listOf) : "number"}, {"condition", ConditionJson(info ? info->condition : std::nullopt)},
@@ -105,7 +107,7 @@ namespace {
 	// Names for the numbers in a list setting: zones, items or reward codes
 	nlohmann::json ListNames(const std::string& of, const std::vector<int64_t>& ids) {
 		nlohmann::json names = nlohmann::json::object();
-		const auto& zones = ZoneNames();
+		const auto& zones = GameText::ZoneNames();
 		for (const auto id : ids) {
 			const auto key = std::to_string(id);
 			if (of == "zone") {
@@ -128,14 +130,14 @@ namespace {
 		nlohmann::json options = nlohmann::json::array();
 		if (of == "zone") {
 			std::vector<std::pair<int64_t, std::string>> zones;
-			for (const auto& [id, name] : ZoneNames().items()) {
+			for (const auto& [id, name] : GameText::ZoneNames().items()) {
 				if (const auto zoneId = GeneralUtils::TryParse<int64_t>(id); zoneId && *zoneId > 0) zones.emplace_back(*zoneId, name.get<std::string>());
 			}
 			std::sort(zones.begin(), zones.end());
 			for (const auto& [id, name] : zones) options.push_back({ {"id", id}, {"label", name}, {"detail", ""} });
 		} else if (of == "reward_code") {
 			// What the client does with the two codes that don't just give an item
-			static const std::map<int64_t, std::string> effects{ { 4, "Opens LEGO Club" }, { 30, "Bricks aren't used up in build mode" } };
+			const std::map<int64_t, std::string> effects{ { 4, "Opens " + GameText::ZoneName(1700) }, { 30, "Bricks aren't used up in build mode" } };
 			auto result = CDClientDatabase::ExecuteQuery("SELECT id, code, attachmentLOT FROM RewardCodes ORDER BY id;");
 			for (; !result.eof(); result.nextRow()) {
 				const int64_t id = result.getIntField(0);
@@ -375,11 +377,11 @@ void RegisterSettingsRoutes() {
 			nlohmann::json files = nlohmann::json::array();
 			for (const auto& [file, name] : SettingsCatalog::Files()) files.push_back({ {"file", file}, {"name", name} });
 			nlohmann::json categories = nlohmann::json::array();
-			for (const auto& category : SettingsCatalog::Categories()) categories.push_back({ {"id", category.id}, {"name", category.name}, {"description", category.description} });
+			for (const auto& category : SettingsCatalog::Categories()) categories.push_back({ {"id", category.id}, {"name", category.name}, {"description", GameText::Expand(category.description)} });
 			categories.push_back({ {"id", "other"}, {"name", "Custom"}, {"description", "Settings this page doesn't know, e.g. from a modified server."} });
 			nlohmann::json sections = nlohmann::json::array();
 			for (const auto& section : SettingsCatalog::Sections()) {
-				sections.push_back({ {"category", section.category}, {"name", section.name}, {"description", section.description},
+				sections.push_back({ {"category", section.category}, {"name", section.name}, {"description", GameText::Expand(section.description)},
 					{"layout", SettingsCatalog::LayoutName(section.layout)}, {"condition", ConditionJson(section.condition)} });
 			}
 			sections.push_back({ {"category", "other"}, {"name", "Custom settings"}, {"description", ""}, {"layout", "rows"}, {"condition", nullptr} });

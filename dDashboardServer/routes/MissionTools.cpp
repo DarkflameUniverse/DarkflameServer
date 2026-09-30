@@ -1,4 +1,5 @@
 #include "MissionTools.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <ctime>
@@ -12,7 +13,6 @@
 #include "WSRoutes.h"
 #include "CDClientDatabase.h"
 #include "Database.h"
-#include "Locale.h"
 #include "GeneralUtils.h"
 #include "eHTTPMethod.h"
 
@@ -72,12 +72,12 @@ namespace MissionCatalog {
 	}
 
 	std::string Name(uint32_t id) {
-		const auto& name = Locale::GetPhrase("Missions_" + std::to_string(id) + "_name");
+		const auto& name = GameText::Phrase(GameText::Key("Missions", id));
 		return name.empty() ? "Mission " + std::to_string(id) : name;
 	}
 
 	std::string TaskText(uint32_t uid) {
-		return Locale::GetPhrase("MissionTasks_" + std::to_string(uid) + "_description");
+		return GameText::Phrase(GameText::Key("MissionTasks", uid, "description"));
 	}
 }
 

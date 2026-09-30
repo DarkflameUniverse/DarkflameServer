@@ -1,4 +1,5 @@
 #include "APIRoutes.h"
+#include "GameText.h"
 #include "PropertyAssets.h"
 #include "OpenApi.h"
 #include "RouteUtils.h"
@@ -40,8 +41,6 @@
 #include "Sd0.h"
 #include <sstream>
 #include <map>
-#include "Locale.h"
-#include "LocaleText.h"
 #include <bcrypt/BCrypt.hpp>
 #include <algorithm>
 #include <ctime>
@@ -84,11 +83,7 @@ namespace {
 	std::string WithZoneNames(const std::string& table) {
 		auto json = nlohmann::json::parse(table, nullptr, false);
 		if (json.is_discarded()) return table;
-		const auto& zones = ZoneNames();
-		for (auto& row : json["data"]) {
-			const auto zone = std::to_string(row.value("zone_id", 0));
-			row["zone_name"] = zones.contains(zone) ? zones[zone].get<std::string>() : "Zone " + zone;
-		}
+		for (auto& row : json["data"]) row["zone_name"] = GameText::ZoneName(row.value("zone_id", 0u));
 		return json.dump();
 	}
 
@@ -130,7 +125,7 @@ namespace {
 	}
 
 	std::string Localized(const std::string& text) {
-		return LocaleText::Expand(text, [](const std::string& key) -> const std::string& { return Locale::GetPhrase(key); });
+		return GameText::Expand(text);
 	}
 
 	// One mail row for the Mail page and mailboxes: the stored text, the text as the client shows it (locale keys
@@ -338,9 +333,9 @@ namespace {
 			row["path"] = points;
 		}
 		const auto prefix = "PropertyTemplate_" + std::to_string(templateId);
-		row["localized_name"] = Locale::GetPhrase(prefix + "_name");
-		row["localized_description"] = Locale::GetPhrase(prefix + "_description");
-		const auto& zones = ZoneNames();
+		row["localized_name"] = GameText::Phrase(prefix + "_name");
+		row["localized_description"] = GameText::Phrase(prefix + "_description");
+		const auto& zones = GameText::ZoneNames();
 		for (const auto* key : { "mapID", "vendorMapID" }) {
 			if (!row.contains(key) || !row[key].is_number_integer()) continue;
 			const auto zone = std::to_string(row[key].get<int64_t>());
@@ -1244,7 +1239,7 @@ namespace {
 					{"claimed", info->claimedTime},
 					{"performance_cost", info->performanceCost},
 					{"zone_id", info->zoneId},
-					{"zone_name", ZoneNames().contains(std::to_string(info->zoneId)) ? ZoneNames()[std::to_string(info->zoneId)].get<std::string>() : ""},
+					{"zone_name", GameText::ZoneNames().contains(std::to_string(info->zoneId)) ? GameText::ZoneNames()[std::to_string(info->zoneId)].get<std::string>() : ""},
 					{"models", models}
 				});
 			});

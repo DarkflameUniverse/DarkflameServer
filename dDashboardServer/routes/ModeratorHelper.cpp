@@ -1,4 +1,5 @@
 #include "ModeratorHelper.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <condition_variable>
@@ -197,11 +198,6 @@ namespace {
 		return info ? info->name : "";
 	}
 
-	std::string ZoneName(uint32_t zoneId) {
-		const auto& zones = ZoneNames();
-		const auto key = std::to_string(zoneId);
-		return zones.contains(key) && zones[key].is_string() ? zones[key].get<std::string>() : "Zone " + key;
-	}
 
 	ModeratorPrompt::ChatLine Line(const IChatLog::ChatMessage& m, uint64_t subjectId, LWOOBJID subjectSender) {
 		return { m.time, m.channel, m.senderName, m.recipientName, m.message, m.blocked, subjectId ? m.id == subjectId : m.senderId == subjectSender };
@@ -291,7 +287,7 @@ namespace {
 		item["sent"] = ModeratorPrompt::FormatTime(report->createdAt);
 		item["reporter"] = CharacterName(report->reporterId);
 		item["reported_player"] = report->targetCharacterId ? CharacterName(report->targetCharacterId) : "unknown";
-		if (report->zoneId) item["where"] = ZoneName(report->zoneId);
+		if (report->zoneId) item["where"] = GameText::ZoneName(report->zoneId);
 		if (report->objectLot && (!kind || *kind != ePlayerReportKind::PLAYER)) item["model"] = ClientAssets::ItemName(report->objectLot);
 		if (report->propertyId) {
 			if (const auto property = Database::Get()->GetPropertyInfo(report->propertyId)) item["property"] = property->name;
@@ -339,7 +335,7 @@ namespace {
 		item["sender"] = message->senderName;
 		item["channel"] = message->channel;
 		if (!message->recipientName.empty()) item["to"] = message->recipientName;
-		if (message->zoneId) item["where"] = ZoneName(message->zoneId);
+		if (message->zoneId) item["where"] = GameText::ZoneName(message->zoneId);
 		item["when"] = ModeratorPrompt::FormatTime(message->time);
 		item["message"] = message->message;
 		item["stopped_by_filter"] = message->blocked;

@@ -1,4 +1,5 @@
 #include "InstanceLoad.h"
+#include "GameText.h"
 #include "MasterPackets.h"
 #include "InstanceLimits.h"
 #include "DashboardRoutes.h"
@@ -50,11 +51,6 @@ namespace {
 		return it == ClientCaps().end() ? InstanceLimits::Caps{ 8, 12 } : it->second;
 	}
 
-	std::string ZoneName(uint32_t zone) {
-		const auto& names = ZoneNames();
-		const auto key = std::to_string(zone);
-		return names.contains(key) ? names[key].get<std::string>() : "Zone " + key;
-	}
 
 	nlohmann::json OptionalJson(const std::optional<uint32_t>& value) {
 		return value ? nlohmann::json(*value) : nlohmann::json(nullptr);
@@ -114,7 +110,7 @@ namespace InstanceLoad {
 					const auto caps = ClientCapsOf(zone);
 					nlohmann::json points = nlohmann::json::array();
 					for (const auto& s : samples) points.push_back({ {"time", s.time}, {"instance", s.instanceId}, {"clone", s.cloneId}, {"players", s.players} });
-					json["zone"] = { {"id", zone}, {"name", ZoneName(zone)} };
+					json["zone"] = { {"id", zone}, {"name", GameText::ZoneName(zone)} };
 					json["samples"] = points;
 					json["clientCaps"] = { {"soft", caps.soft}, {"hard", caps.hard} };
 				} else {
@@ -135,7 +131,7 @@ namespace InstanceLoad {
 					}
 					nlohmann::json list = nlohmann::json::array();
 					for (const auto& [id, summary] : zones) {
-						list.push_back({ {"id", id}, {"name", ZoneName(id)}, {"busiest", summary.busiest}, {"instances", summary.instances}, {"players", summary.players} });
+						list.push_back({ {"id", id}, {"name", GameText::ZoneName(id)}, {"busiest", summary.busiest}, {"instances", summary.instances}, {"players", summary.players} });
 					}
 					json["zones"] = list;
 				}
@@ -153,7 +149,7 @@ namespace InstanceLoad {
 					const auto it = limits.find(id);
 					const auto* limit = it == limits.end() ? nullptr : &it->second;
 					const auto effective = InstanceLimits::Effective(limit ? limit->softCap : std::nullopt, limit ? limit->hardCap : std::nullopt, caps);
-					zones.push_back({ {"id", id}, {"name", ZoneName(id)}, {"clientSoft", caps.soft}, {"clientHard", caps.hard},
+					zones.push_back({ {"id", id}, {"name", GameText::ZoneName(id)}, {"clientSoft", caps.soft}, {"clientHard", caps.hard},
 						{"softCap", limit ? OptionalJson(limit->softCap) : nullptr}, {"hardCap", limit ? OptionalJson(limit->hardCap) : nullptr},
 						{"spare", limit ? limit->spareInstances : 0}, {"soft", effective.soft}, {"hard", effective.hard},
 						{"updatedAt", limit ? limit->updatedAt : 0}, {"updatedBy", limit ? limit->updatedBy : ""} });
@@ -193,7 +189,7 @@ namespace InstanceLoad {
 				else Database::Get()->SetZoneLimit(limit);
 				const auto effective = InstanceLimits::Effective(limit.softCap, limit.hardCap, client);
 				const auto text = [](const std::optional<uint32_t>& value) { return value ? std::to_string(*value) : std::string("client's"); };
-				Audit(context, "set_zone_limits", ZoneName(zone) + " (" + std::to_string(zone) + "): " + (reset ? std::string("back to the client's caps, no spare instances") :
+				Audit(context, "set_zone_limits", GameText::ZoneName(zone) + " (" + std::to_string(zone) + "): " + (reset ? std::string("back to the client's caps, no spare instances") :
 					"soft cap " + text(limit.softCap) + ", hard cap " + text(limit.hardCap) + ", " + std::to_string(limit.spareInstances) + " spare instance(s)"));
 				BroadcastTableChanged("zone_limits", std::to_string(zone));
 				const bool told = TellMaster();

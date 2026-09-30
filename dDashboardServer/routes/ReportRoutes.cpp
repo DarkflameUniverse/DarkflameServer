@@ -1,4 +1,5 @@
 #include "ReportRoutes.h"
+#include "GameText.h"
 #include "OnceCache.h"
 #include <deque>
 #include <future>
@@ -385,8 +386,8 @@ namespace {
 		return stats;
 	}
 
+	// Where a zone's files are (its name comes from the locale: GameText::ZoneName)
 	struct ZoneInfo {
-		std::string name;
 		std::string luzPath; // relative to res/maps
 	};
 
@@ -414,11 +415,10 @@ namespace {
 	std::map<uint32_t, ZoneInfo> ReadZoneTable() {
 		std::map<uint32_t, ZoneInfo> zones;
 		try {
-			auto result = CDClientDatabase::ExecuteQuery("SELECT zoneID, zoneName, DisplayDescription FROM ZoneTable;");
+			auto result = CDClientDatabase::ExecuteQuery("SELECT zoneID, zoneName FROM ZoneTable;");
 			for (; !result.eof(); result.nextRow()) {
-				const std::string description = result.getStringField("DisplayDescription", "");
 				const auto zoneId = static_cast<uint32_t>(result.getIntField("zoneID", 0));
-				zones.try_emplace(zoneId, ZoneInfo{ description.empty() ? "Zone " + std::to_string(zoneId) : description, result.getStringField("zoneName", "") });
+				zones.try_emplace(zoneId, ZoneInfo{ result.getStringField("zoneName", "") });
 			}
 		} catch (const std::exception& ex) {
 			LOG("Could not read the zone table: %s", ex.what());
@@ -959,7 +959,7 @@ void RegisterReportRoutes() {
 					WithItemNames(history);
 					for (auto& hop : history) {
 						const auto zone = GetZoneInfo(hop.value("zone", 0u));
-						hop["zone_name"] = zone ? zone->name : "";
+						hop["zone_name"] = zone ? GameText::ZoneName(hop.value("zone", 0u)) : "";
 					}
 					const auto names = CharacterNames();
 					std::set<std::string> latest;
@@ -1066,7 +1066,7 @@ void RegisterReportRoutes() {
 				if (zone.is_null()) {
 					const auto info = GetZoneInfo(zoneId);
 					const bool property = EconomyPlaces::IsPropertyZone(zoneId);
-					zone = { {"zone", zoneId}, {"name", info ? info->name : "Zone " + std::to_string(zoneId)}, {"events", 0}, {"quantity", 0}, {"property", property} };
+					zone = { {"zone", zoneId}, {"name", GameText::ZoneName(zoneId)}, {"events", 0}, {"quantity", 0}, {"property", property} };
 					if (property) zone["properties"] = nlohmann::json::array();
 				}
 				zone["events"] = zone["events"].get<int64_t>() + events;
@@ -1107,7 +1107,7 @@ void RegisterReportRoutes() {
 			}
 			const auto info = GetZoneInfo(*zone);
 			nlohmann::json response{
-				{"zone", *zone}, {"name", info ? info->name : ""}, {"from", from}, {"to", to}, {"lot", lot}, {"clone", clone ? nlohmann::json(*clone) : nlohmann::json()},
+				{"zone", *zone}, {"name", info ? GameText::ZoneName(*zone) : ""}, {"from", from}, {"to", to}, {"lot", lot}, {"clone", clone ? nlohmann::json(*clone) : nlohmann::json()},
 				{"cellSize", static_cast<int>(IEconomyLedger::MAP_CELL_SIZE)}, {"lots", lots}, {"cells", Database::Get()->GetMapCells(*zone, clone, *kind, from, to, lot)}
 			};
 			if (EconomyPlaces::IsPropertyZone(*zone)) {
@@ -1159,7 +1159,7 @@ void RegisterReportRoutes() {
 			const auto describe = [&owners](nlohmann::json& row) {
 				const auto zoneId = row.value("zone", 0u);
 				const auto zone = GetZoneInfo(zoneId);
-				row["name"] = zone ? zone->name : "Zone " + std::to_string(zoneId);
+				row["name"] = GameText::ZoneName(zoneId);
 				if (!EconomyPlaces::IsPropertyZone(zoneId)) return;
 				const auto info = owners.Info(zoneId, row.value("clone", 0u));
 				row["property"] = true;

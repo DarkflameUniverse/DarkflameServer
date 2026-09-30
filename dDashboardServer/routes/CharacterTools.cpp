@@ -1,4 +1,5 @@
 #include "CharacterTools.h"
+#include "GameText.h"
 
 #include <ctime>
 
@@ -72,14 +73,9 @@ namespace {
 		for (auto& inventory : summary["inventories"]) for (auto& item : inventory["items"]) item["name"] = ClientAssets::ItemName(item["lot"].get<LOT>());
 	}
 
-	nlohmann::json ZoneName(uint32_t zone) {
-		const auto& zones = ZoneNames();
-		const auto key = std::to_string(zone);
-		return zones.contains(key) ? zones[key] : nlohmann::json("Zone " + key);
-	}
 
 	nlohmann::json WithZones(nlohmann::json rows) {
-		for (auto& row : rows) row["zone_name"] = ZoneName(row.value("zone_id", 0u));
+		for (auto& row : rows) row["zone_name"] = GameText::ZoneName(row.value("zone_id", 0u));
 		return rows;
 	}
 

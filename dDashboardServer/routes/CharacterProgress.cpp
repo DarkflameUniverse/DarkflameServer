@@ -1,4 +1,5 @@
 #include "CharacterProgress.h"
+#include "GameText.h"
 
 #include <chrono>
 #include <ctime>
@@ -186,10 +187,8 @@ namespace {
 		for (const auto& [zoneId, s] : stats) zoneIds.insert(zoneId);
 		for (const auto& [zoneId, zone] : catalog.zones) if (zone.released) zoneIds.insert(zoneId);
 		zoneIds.erase(0); // character select
-		const auto& names = ZoneNames();
 		nlohmann::json zones = nlohmann::json::array();
 		for (const auto zoneId : zoneIds) {
-			const auto key = std::to_string(zoneId);
 			const auto zone = catalog.zones.find(zoneId);
 			nlohmann::json summary = nlohmann::json::array();
 			if (zone != catalog.zones.end()) {
@@ -206,7 +205,7 @@ namespace {
 				}
 			}
 			const auto category = zone != catalog.zones.end() ? zone->second.category : std::nullopt;
-			zones.push_back({ {"id", zoneId}, {"name", names.contains(key) ? names[key] : nlohmann::json("Zone " + key)}, {"visited", visited.contains(zoneId)},
+			zones.push_back({ {"id", zoneId}, {"name", GameText::ZoneName(zoneId)}, {"visited", visited.contains(zoneId)},
 				{"category", category ? nlohmann::json(*category) : nlohmann::json(nullptr)}, {"stats", stats.contains(zoneId) ? stats[zoneId] : nlohmann::json(nullptr)},
 				{"summary", summary} });
 		}

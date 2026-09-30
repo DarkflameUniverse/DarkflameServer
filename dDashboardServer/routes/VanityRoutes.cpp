@@ -1,4 +1,5 @@
 #include "VanityRoutes.h"
+#include "GameText.h"
 
 #include <filesystem>
 #include <fstream>
@@ -31,7 +32,7 @@ namespace {
 
 	// The markdown files the game reads, and where players see them
 	const std::vector<std::pair<std::string, std::string>> TEXTS{
-		{ "TESTAMENT.md", "The plaque by the Nimbus Station launch pad (zone 1200)" },
+		{ "TESTAMENT.md", "The plaque by the %[ZoneTable_1200_DisplayDescription] launch pad (zone 1200)" },
 		{ "CREDITS.md", "Shown by the /credits command" },
 		{ "INFO.md", "Shown by the /info command; __VERSION__, __SOURCE__, __LICENSE__ and __TIMESTAMP__ are filled in" },
 	};
@@ -180,9 +181,9 @@ void RegisterVanityRoutes() {
 				files.push_back(entry);
 			}
 			nlohmann::json texts = nlohmann::json::array();
-			for (const auto& [name, where] : TEXTS) texts.push_back({ {"name", name}, {"where", where} });
+			for (const auto& [name, where] : TEXTS) texts.push_back({ {"name", name}, {"where", GameText::Expand(where)} });
 			nlohmann::json zones = nlohmann::json::array();
-			for (const auto& [id, name] : ZoneNames().items()) {
+			for (const auto& [id, name] : GameText::ZoneNames().items()) {
 				if (const auto zone = GeneralUtils::TryParse<uint32_t>(id); zone && *zone > 0) zones.push_back({ {"id", *zone}, {"name", name} });
 			}
 			std::sort(zones.begin(), zones.end(), [](const auto& a, const auto& b) { return a["id"].template get<uint32_t>() < b["id"].template get<uint32_t>(); });

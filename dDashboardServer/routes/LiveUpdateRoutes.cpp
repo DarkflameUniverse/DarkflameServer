@@ -1,4 +1,5 @@
 #include "LiveUpdateRoutes.h"
+#include "GameText.h"
 
 #include <chrono>
 #include <ctime>
@@ -29,7 +30,6 @@ namespace {
 
 	nlohmann::json ToJson(const LiveUpdateStatus& status) {
 		using namespace LiveUpdate;
-		const auto& zones = ZoneNames();
 		nlohmann::json units = nlohmann::json::array();
 		size_t done = 0, failed = 0;
 		for (const auto& unit : status.units) {
@@ -37,9 +37,8 @@ namespace {
 			if (unit.state == eUnitState::FAILED) failed++;
 			nlohmann::json row{ {"kind", KindName(unit.kind)}, {"state", StateName(unit.state)}, {"message", unit.message} };
 			if (unit.kind == eUnitKind::WORLD) {
-				const auto zone = std::to_string(unit.zoneId);
 				row["zone"] = unit.zoneId;
-				row["zoneName"] = unit.zoneId == 0 ? "Character Select" : zones.contains(zone) ? zones[zone].get<std::string>() : "Zone " + zone;
+				row["zoneName"] = GameText::ZoneName(unit.zoneId);
 				row["instance"] = unit.instanceId;
 				row["clone"] = unit.cloneId;
 				row["replacement"] = unit.replacement;

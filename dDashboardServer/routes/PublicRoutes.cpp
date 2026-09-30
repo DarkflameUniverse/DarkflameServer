@@ -1,4 +1,5 @@
 #include "PublicRoutes.h"
+#include "GameText.h"
 
 #include <chrono>
 #include <cmath>
@@ -79,7 +80,7 @@ namespace {
 			std::lock_guard lock(ServerState::g_StatusMutex);
 			loginUp = ServerState::g_AuthStatus.online;
 			chatUp = ServerState::g_ChatStatus.online;
-			for (const auto& world : ServerState::g_WorldInstances) worlds.push_back({ world.mapID, world.zoneName, world.players });
+			for (const auto& world : ServerState::g_WorldInstances) worlds.push_back({ world.mapID, GameText::ZoneName(world.mapID), world.players });
 		}
 
 		nlohmann::json status{ {"name", ServerName()}, {"online", loginUp}, {"generated_at", now}, {"refresh_seconds", CacheSeconds()} };

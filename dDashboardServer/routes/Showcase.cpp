@@ -1,4 +1,5 @@
 #include "Showcase.h"
+#include "GameText.h"
 #include "Workers.h"
 
 #include <chrono>
@@ -88,24 +89,19 @@ namespace {
 		return info;
 	}
 
-	std::string ZoneName(uint32_t zoneId) {
-		const auto& zones = ZoneNames();
-		const auto key = std::to_string(zoneId);
-		return zones.contains(key) && zones[key].is_string() ? zones[key].get<std::string>() : "Zone " + key;
-	}
 
 	// The zones properties can be claimed in (PropertyTemplate), for the zone filter
-	const nlohmann::json& PropertyZones() {
-		static const nlohmann::json zones = [] {
-			nlohmann::json list = nlohmann::json::array();
+	nlohmann::json PropertyZones() {
+		static const std::vector<uint32_t> ids = [] {
+			std::vector<uint32_t> ids;
 			auto result = CDClientDatabase::ExecuteQuery("SELECT DISTINCT mapID FROM PropertyTemplate ORDER BY mapID;");
-			for (; !result.eof(); result.nextRow()) {
-				const auto id = static_cast<uint32_t>(result.getIntField(0));
-				list.push_back({ {"id", id}, {"name", ZoneName(id)} });
-			}
-			return list;
+			for (; !result.eof(); result.nextRow()) ids.push_back(static_cast<uint32_t>(result.getIntField(0)));
+			return ids;
 		}();
-		return zones;
+		// Named in the viewer's language each time
+		nlohmann::json list = nlohmann::json::array();
+		for (const auto id : ids) list.push_back({ {"id", id}, {"name", GameText::ZoneName(id)} });
+		return list;
 	}
 
 	std::shared_ptr<const std::map<LWOOBJID, IPropertyContents::Model>> Models(LWOOBJID propertyId) {
@@ -139,7 +135,7 @@ namespace {
 			{"description", info.description},
 			{"owner_name", owner ? owner->name : ""},
 			{"zone_id", info.zoneId},
-			{"zone_name", ZoneName(info.zoneId)},
+			{"zone_name", GameText::ZoneName(info.zoneId)},
 			{"reputation", info.reputation},
 			{"last_updated", info.lastUpdatedTime},
 			{"models", models}
@@ -233,7 +229,7 @@ void RegisterShowcaseRoutes() {
 						{"description", entry.info.description},
 						{"owner_name", entry.ownerName},
 						{"zone_id", entry.info.zoneId},
-						{"zone_name", ZoneName(entry.info.zoneId)},
+						{"zone_name", GameText::ZoneName(entry.info.zoneId)},
 						{"models", entry.modelCount},
 						{"reputation", entry.info.reputation},
 						{"last_updated", entry.info.lastUpdatedTime}

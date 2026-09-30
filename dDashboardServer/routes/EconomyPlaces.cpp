@@ -1,4 +1,5 @@
 #include "EconomyPlaces.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <cmath>
@@ -47,10 +48,7 @@ namespace EconomyPlaces {
 	}
 
 	std::string ZoneName(uint32_t zone) {
-		const auto& names = ZoneNames();
-		const auto key = std::to_string(zone);
-		if (names.contains(key) && names[key].is_string()) return names[key].get<std::string>();
-		return "Zone " + key;
+		return GameText::ZoneName(zone);
 	}
 
 	std::optional<IEconomyLedger::PlaceFilter> Parse(std::string_view place) {

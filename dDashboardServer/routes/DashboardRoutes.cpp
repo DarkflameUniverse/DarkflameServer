@@ -1,4 +1,5 @@
 #include "DashboardRoutes.h"
+#include "GameText.h"
 #include "RouteUtils.h"
 #include "Permissions.h"
 #include "EmailService.h"
@@ -14,7 +15,6 @@
 #include "Game.h"
 #include "Database.h"
 #include "Logger.h"
-#include "Locale.h"
 #include "GeneralUtils.h"
 #include "CDClientDatabase.h"
 #include "tinyxml2.h"
@@ -32,35 +32,12 @@
 using namespace RouteUtils;
 
 namespace {
-	std::string ZoneName(int zoneId) {
-		if (zoneId == 0) return "Character Select";
-		const auto& name = Locale::GetPhrase("ZoneTable_" + std::to_string(zoneId) + "_DisplayDescription");
-		return name.empty() ? "Zone " + std::to_string(zoneId) : name;
-	}
-
-	// Built once (worker threads read it too, so never lazily twice)
-	const nlohmann::json& GetZoneNamesJson() {
-		static const nlohmann::json names = [] {
-			nlohmann::json names;
-			names["0"] = "Character Select";
-			for (const auto& key : Locale::GetPhraseIdsWithPrefix("ZoneTable_")) {
-				if (key.find("_DisplayDescription") == std::string::npos) continue;
-				const auto start = std::string("ZoneTable_").length();
-				const auto end = key.find("_DisplayDescription");
-				const auto& name = Locale::GetPhrase(key);
-				if (!name.empty()) names[key.substr(start, end - start)] = name;
-			}
-			return names;
-		}();
-		return names;
-	}
-
 	nlohmann::json ParseCharacterXml(const std::string& xml) {
 		// Every value the template reads has a default, since inja fails on missing variables and
 		// character XML may lack sections (e.g. a character that never finished loading in)
 		nlohmann::json stats{
 			{"coins", 0}, {"universe_score", 0}, {"reputation", 0}, {"gm_level", 0}, {"level", 0},
-			{"last_zone_id", 0}, {"last_zone", ZoneName(0)},
+			{"last_zone_id", 0}, {"last_zone", GameText::ZoneName(0)},
 			{"health", 0}, {"max_health", 0}, {"armor", 0}, {"max_armor", 0}, {"imagination", 0}, {"max_imagination", 0},
 			{"missions_completed", 0}, {"missions_active", 0}, {"total_items", 0}
 		};
@@ -79,7 +56,7 @@ namespace {
 
 			auto lastZone = charEl->IntAttribute("lwid", 0);
 			stats["last_zone_id"] = lastZone;
-			stats["last_zone"] = ZoneName(lastZone);
+			stats["last_zone"] = GameText::ZoneName(lastZone);
 		}
 
 		auto* lvlEl = obj->FirstChildElement("lvl");
@@ -117,7 +94,7 @@ namespace {
 				std::map<int, std::set<int>> clones;
 				for (auto* l = vl->FirstChildElement("l"); l; l = l->NextSiblingElement("l")) clones[l->IntAttribute("id", 0)].insert(l->IntAttribute("cid", 0));
 				nlohmann::json visited = nlohmann::json::array();
-				for (const auto& [zid, cids] : clones) visited.push_back({ {"id", zid}, {"name", ZoneName(zid)}, {"clones", cids.size()} });
+				for (const auto& [zid, cids] : clones) visited.push_back({ {"id", zid}, {"name", GameText::ZoneName(zid)}, {"clones", cids.size()} });
 				stats["visited_zones"] = visited;
 			}
 
@@ -127,7 +104,7 @@ namespace {
 				for (auto* s = zs->FirstChildElement("s"); s; s = s->NextSiblingElement("s")) {
 					auto zid = s->IntAttribute("map", 0);
 					zoneStats.push_back({
-						{"map_id", zid}, {"name", ZoneName(zid)},
+						{"map_id", zid}, {"name", GameText::ZoneName(zid)},
 						{"achievements", s->IntAttribute("ac", 0)},
 						{"coins_collected", s->IntAttribute("cc", 0)},
 						{"enemies_smashed", s->IntAttribute("es", 0)}
@@ -205,10 +182,6 @@ namespace {
 
 		return stats;
 	}
-}
-
-const nlohmann::json& ZoneNames() {
-	return GetZoneNamesJson();
 }
 
 namespace {
@@ -430,7 +403,7 @@ void RegisterDashboardRoutes() {
 		const std::string selection = report.value("selection", std::string{});
 		report["selection_text"] = selection;
 		if (selection.starts_with("%[") && selection.ends_with("]")) {
-			const auto& phrase = Locale::GetPhrase(selection.substr(2, selection.size() - 3));
+			const auto& phrase = GameText::Phrase(selection.substr(2, selection.size() - 3));
 			if (!phrase.empty()) report["selection_text"] = phrase;
 		}
 		RenderPage(reply, context, "bug_report-view.jinja2", "bug_reports", { {"report", report} });
@@ -453,7 +426,7 @@ void RegisterDashboardRoutes() {
 	SimplePage("/tasks", Perm("tasks_view"), "tasks.jinja2", "tasks", "Scheduled tasks: schedules, runs and logs");
 	Route(eHTTPMethod::GET, "/api/zones", Perm("characters_rescue"), "Every zone with its name, for pickers: {zones: [{id, name}]}", [](HTTPReply& reply, const HTTPContext&) {
 		nlohmann::json zones = nlohmann::json::array();
-		for (const auto& [id, name] : GetZoneNamesJson().items()) {
+		for (const auto& [id, name] : GameText::ZoneNames().items()) {
 			if (const auto zone = GeneralUtils::TryParse<uint32_t>(id); zone && *zone > 0) zones.push_back({ {"id", *zone}, {"name", name} });
 		}
 		std::sort(zones.begin(), zones.end(), [](const auto& a, const auto& b) { return a["id"].template get<uint32_t>() < b["id"].template get<uint32_t>(); });
@@ -492,7 +465,7 @@ void RegisterDashboardRoutes() {
 
 	// Logs
 	Route(eHTTPMethod::GET, "/activity_log", Perm("logs_activity"), "Activity log", [](HTTPReply& reply, const HTTPContext& context) {
-		RenderPage(reply, context, "activity_log.jinja2", "activity_log", { {"zone_names", GetZoneNamesJson()} });
+		RenderPage(reply, context, "activity_log.jinja2", "activity_log", { {"zone_names", GameText::ZoneNames()} });
 	});
 	SimplePage("/command_log", Perm("logs_command"), "command_log.jinja2", "command_log", "Command log");
 	SimplePage("/audit_log", Perm("logs_audit"), "audit_log.jinja2", "audit_log", "Audit log");
@@ -516,7 +489,7 @@ void RegisterDashboardRoutes() {
 			if (const auto zone = GeneralUtils::TryParse<uint32_t>(server.substr(12, server.find('_', 12) - 12))) zoneIds.insert(*zone);
 		}
 		nlohmann::json zones = nlohmann::json::array();
-		for (const auto zone : zoneIds) zones.push_back({ {"id", zone}, {"name", GetZoneNamesJson().value(std::to_string(zone), "")} });
+		for (const auto zone : zoneIds) zones.push_back({ {"id", zone}, {"name", GameText::ZoneNames().value(std::to_string(zone), "")} });
 		nlohmann::json data{ {"servers", servers}, {"server_types", types}, {"selected_server", selected}, {"files", nlohmann::json::array()}, {"bundle_zones", zones} };
 		if (!selected.empty()) {
 			const auto& files = logs.at(selected);

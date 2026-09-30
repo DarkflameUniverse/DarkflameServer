@@ -16,6 +16,7 @@
 #include "NetworkView.h"
 #include "Permissions.h"
 #include "RouteUtils.h"
+#include "GameText.h"
 #include "ServerState.h"
 #include "ServiceType.h"
 #include "TrafficHistory.h"
@@ -107,13 +108,10 @@ namespace {
 		case ServiceType::DASHBOARD: return "Dashboard";
 		case ServiceType::UGC: return "UGC";
 		case ServiceType::WORLD: {
-			std::string zoneName;
-			{
-				std::lock_guard lock(ServerState::g_StatusMutex);
-				for (const auto& world : ServerState::g_WorldInstances) {
-					if (world.mapID == server.zoneId && world.instanceID == server.instanceId) zoneName = world.zoneName;
-				}
-			}
+			// The zone's name from the client's locale, in the viewer's language (none for a zone it doesn't name)
+			const auto& names = GameText::ZoneNames();
+			const auto known = names.find(std::to_string(server.zoneId));
+			const std::string zoneName = known != names.end() && known->is_string() ? known->get<std::string>() : "";
 			return "World " + std::to_string(server.zoneId) + (zoneName.empty() ? "" : " " + zoneName) + " #" + std::to_string(server.instanceId);
 		}
 		default: return server.key;

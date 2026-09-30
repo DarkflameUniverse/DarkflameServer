@@ -1,4 +1,5 @@
 #include "ModerationTools.h"
+#include "GameText.h"
 #include "ChatFilterWords.h"
 
 #include <ctime>
@@ -73,7 +74,7 @@ namespace {
 	nlohmann::json ReportJson(const IModeration::PlayerReport& r, Names& names) {
 		const auto kind = magic_enum::enum_cast<ePlayerReportKind>(r.kind);
 		const auto status = static_cast<ePlayerReportStatus>(r.status);
-		const auto& zones = ZoneNames();
+		const auto& zones = GameText::ZoneNames();
 		const auto zone = std::to_string(r.zoneId);
 		std::string propertyName;
 		if (r.propertyId) {
@@ -387,7 +388,7 @@ namespace {
 				query.blockedOnly = allowed;
 				query.newestFirst = true;
 				query.limit = CHECK_MESSAGES;
-				const auto& zones = ZoneNames();
+				const auto& zones = GameText::ZoneNames();
 				nlohmann::json messages = nlohmann::json::array();
 				uint32_t searched = 0;
 				for (const auto& m : Database::Get()->GetChatMessages(query)) {

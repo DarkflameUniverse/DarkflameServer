@@ -1,4 +1,5 @@
 #include "ClientAssets.h"
+#include "GameText.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -15,7 +16,6 @@
 #include "CDClientDatabase.h"
 #include "Game.h"
 #include "Logger.h"
-#include "Locale.h"
 #include "dConfig.h"
 #include "eHTTPMethod.h"
 #include "GeneralUtils.h"
@@ -27,7 +27,7 @@ namespace {
 	constexpr uint32_t MAX_ITEMS_PER_REQUEST = 500;
 	constexpr size_t MAX_LISTING_ENTRIES = 2000;
 
-	std::map<LOT, nlohmann::json> g_ItemCache;
+	std::map<std::pair<std::string, LOT>, nlohmann::json> g_ItemCache; // by language (GameText) and LOT
 	std::map<LOT, std::vector<int>> g_ItemSetsByLot; // lot -> set ids containing it
 	bool g_ItemSetsLoaded = false;
 
@@ -95,9 +95,9 @@ namespace {
 		return data;
 	}
 
+	// In the viewer's language (GameText.h)
 	std::string Phrase(const std::string& key) {
-		const auto& phrase = Locale::GetPhrase(key);
-		return phrase;
+		return GameText::Phrase(key);
 	}
 
 	struct Stats {
@@ -243,7 +243,7 @@ namespace ClientAssets {
 	}
 
 	std::string ItemName(LOT lot) {
-		const auto& localized = Locale::GetPhrase("Objects_" + std::to_string(lot) + "_name");
+		const auto& localized = GameText::Phrase(GameText::Key("Objects", lot));
 		if (!localized.empty()) return localized;
 		const auto& table = ObjectNameTable();
 		const auto it = table.find(lot);
@@ -252,7 +252,8 @@ namespace ClientAssets {
 	}
 
 	nlohmann::json ItemInfo(LOT lot) {
-		if (const auto cached = g_ItemCache.find(lot); cached != g_ItemCache.end()) return cached->second;
+		const auto cacheKey = std::make_pair(GameText::Language(), lot);
+		if (const auto cached = g_ItemCache.find(cacheKey); cached != g_ItemCache.end()) return cached->second;
 
 		nlohmann::json info{ {"lot", lot}, {"name", ItemName(lot)} };
 
@@ -284,7 +285,7 @@ namespace ClientAssets {
 		info["stats"] = StatsJson(stats);
 		info["set"] = ItemSet(lot);
 
-		g_ItemCache[lot] = info;
+		g_ItemCache[cacheKey] = info;
 		return info;
 	}
 
