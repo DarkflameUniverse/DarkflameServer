@@ -125,6 +125,8 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
 * **CDClient:** the hot lookup tables (ComponentsRegistry, ItemComponent, Objects) are read straight from the client's
   `cdclient.fdb`, memory-mapped once and shared by every server process (Windows, Linux, macOS), so loading a character
   with thousands of different items no longer stalls a world. The CDClient data is never modified.
+  Servers read a copy of the client's `cdclient.fdb`, so it can be replaced while they run, and master reloads it on
+  every server when it changes or on `/reloadcdclient` ([docs/CDClientFdb.md](docs/CDClientFdb.md)).
 * The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
 
 ## License
