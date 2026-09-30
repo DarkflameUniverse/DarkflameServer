@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 
 #include "LiveUpdateMachine.h"
@@ -203,6 +204,16 @@ TEST(LiveUpdateTest, RoutingSkipsDrainingAndFullInstances) {
 	world.shuttingDown = false;
 	world.isPrivate = true;
 	EXPECT_FALSE(AcceptsNewPlayers(world, 1100, 0, true));
+	world.isPrivate = false;
+	// On the old binary or old files: nobody new, friends and properties included
+	world.outdated = true;
+	EXPECT_FALSE(AcceptsNewPlayers(world, 1100, 0, false));
+	EXPECT_FALSE(AcceptsNewPlayers(world, 1100, 0, true));
+	auto property = World(1150, 3, 1, 42);
+	EXPECT_TRUE(AcceptsNewPlayers(property, 1150, 42, false));
+	property.outdated = true;
+	EXPECT_FALSE(AcceptsNewPlayers(property, 1150, 42, false));
+	EXPECT_FALSE(AcceptsNewPlayers(property, 1150, 42, true));
 	// A replacement still starting takes players: they wait for it
 	auto starting = World(1100, 2, 0);
 	starting.ready = false;
@@ -325,20 +336,46 @@ TEST(LiveUpdateTest, OldInstanceThatNeverStopsFails) {
 	EXPECT_EQ(h.WorldUnit(1100, 1).state, eUnitState::FAILED);
 }
 
-TEST(LiveUpdateTest, PropertiesAreSavedFirst) {
+TEST(LiveUpdateTest, PropertiesAreNeverInThePlan) {
+	EXPECT_FALSE(InReplacePlan(World(1150, 1, 2, 42)));
+	EXPECT_FALSE(InReplacePlan(World(1150, 2, 0, 43)));
+	EXPECT_TRUE(InReplacePlan(World(1100, 3, 2)));
+	auto stopping = World(1100, 4, 0);
+	stopping.shuttingDown = true;
+	EXPECT_FALSE(InReplacePlan(stopping));
+
 	Harness h;
-	h.master.Add(World(1150, 1, 2, 42));
+	h.master.Add(World(1150, 1, 2, 42)); // busy property
+	h.master.Add(World(1150, 2, 0, 43)); // empty property
+	h.master.Add(World(1100, 3, 2));
 	h.Start();
+	size_t worlds = 0;
+	for (const auto& unit : h.machine.Units()) {
+		if (unit.kind != eUnitKind::WORLD) continue;
+		worlds++;
+		EXPECT_EQ(unit.clone, 0u);
+	}
+	EXPECT_EQ(worlds, 1u);
 	h.ServicesComeBack();
 	ASSERT_EQ(h.master.moves.size(), 1u);
-	EXPECT_TRUE(h.master.moves[0].prepare);
-	EXPECT_EQ(h.master.moves[0].prepareWaitSeconds, h.settings.propertyBuildWaitSeconds);
-	const auto& unit = h.WorldUnit(1150, 1);
-	EXPECT_EQ(unit.state, eUnitState::PREPARING);
-	h.machine.OnMigration(Status(1, InstanceMigration::eState::PREPARED));
-	EXPECT_EQ(unit.state, eUnitState::STARTING);
-	h.machine.OnMigration(Status(1, InstanceMigration::eState::FAILED));
-	EXPECT_EQ(unit.state, eUnitState::FAILED);
+	EXPECT_EQ(h.master.moves[0].zone, 1100u);
+	EXPECT_FALSE(h.master.moves[0].prepare);
+	EXPECT_TRUE(h.master.log.end() == std::find_if(h.master.log.begin(), h.master.log.end(), [](const std::string& line) {
+		return line.find("1150") != std::string::npos;
+	})) << "nothing is done to a property";
+}
+
+TEST(LiveUpdateTest, ZoneWithANewInstanceAlreadyIsNotStartedAgain) {
+	Harness h;
+	h.master.Add(World(1000, 1, 0));
+	h.Start();
+	// Someone went to the zone after the update began: master started a new instance for them
+	h.master.Add(World(1000, 50, 1));
+	h.ServicesComeBack();
+	h.Tick();
+	EXPECT_EQ(h.WorldUnit(1000, 1).plan, eWorldPlan::STOP);
+	EXPECT_TRUE(h.master.Logged("stop world 1000/1"));
+	EXPECT_TRUE(std::none_of(h.master.log.begin(), h.master.log.end(), [](const std::string& line) { return line.rfind("start world 1000/", 0) == 0; }));
 }
 
 TEST(LiveUpdateTest, EmptyInstancesStopOrAreReplaced) {
@@ -602,7 +639,7 @@ TEST(LiveUpdateTest, ShuttingDownInstancesAreLeftOut) {
 
 TEST(LiveUpdateTest, StatusCarriesEveryUnit) {
 	Harness h;
-	h.master.Add(World(1150, 4, 2, 42));
+	h.master.Add(World(1150, 4, 2));
 	h.Start();
 	LiveUpdateStatus status;
 	h.machine.FillStatus(status);
@@ -624,7 +661,7 @@ TEST(LiveUpdateTest, StatusCarriesEveryUnit) {
 	EXPECT_EQ(read.units[4].kind, eUnitKind::WORLD);
 	EXPECT_EQ(read.units[4].zoneId, 1150u);
 	EXPECT_EQ(read.units[4].instanceId, 4u);
-	EXPECT_EQ(read.units[4].cloneId, 42u);
+	EXPECT_EQ(read.units[4].cloneId, 0u);
 	EXPECT_EQ(read.units[4].players, 2u);
 	EXPECT_EQ(read.units[5].kind, eUnitKind::DASHBOARD);
 }

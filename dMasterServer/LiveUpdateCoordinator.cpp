@@ -4,6 +4,7 @@
 #include <ctime>
 #include <filesystem>
 #include <map>
+#include <set>
 
 #include "BinaryPathFinder.h"
 #include "CDActivitiesTable.h"
@@ -31,6 +32,10 @@ namespace {
 	uint32_t g_UpdateId = 0;
 	uint32_t g_NextMigrationId = 0;
 	Clock::time_point g_NextTick{};
+	// The instances running when the update started: marked outdated once the database is up to date
+	std::set<std::pair<uint32_t, uint32_t>> g_OldInstances;
+	bool g_OldMarked = false;
+	void MarkOldInstances();
 	std::map<size_t, std::pair<eUnitState, std::string>> g_Logged; // unit index -> what was logged last
 	ePhase g_LoggedPhase = ePhase::IDLE;
 
@@ -237,7 +242,13 @@ bool LiveUpdateCoordinator::Start(const std::string& by, LWOOBJID requesterId, i
 	}
 	if (!CheckBinaries(error)) return false;
 	const auto settings = ReadSettings(warnSeconds);
-	if (!g_Machine.Start(settings, Observe(), Clock::now(), error)) return false;
+	const auto observed = Observe();
+	if (!g_Machine.Start(settings, observed, Clock::now(), error)) return false;
+	g_OldInstances.clear();
+	for (const auto& world : observed.worlds) {
+		if (!world.view.shuttingDown) g_OldInstances.insert({ world.view.zoneId, world.view.instanceId });
+	}
+	g_OldMarked = false;
 	g_UpdateId++;
 	g_Logged.clear();
 	g_LoggedPhase = ePhase::IDLE;
@@ -295,6 +306,22 @@ void LiveUpdateCoordinator::Update() {
 	const auto phaseBefore = g_Machine.Phase();
 	const auto finishedBefore = FinishedUnits();
 	if (g_Machine.Tick(Observe(), now, g_Actions)) Publish(phaseBefore != g_Machine.Phase() || finishedBefore != FinishedUnits());
+	MarkOldInstances();
+}
+
+namespace {
+void MarkOldInstances() {
+	if (g_OldMarked || g_Machine.Units().empty()) return;
+	const auto database = g_Machine.Units().front().state;
+	if (database != eUnitState::STOPPED && database != eUnitState::SKIPPED) return;
+	g_OldMarked = true;
+	// Nobody new goes to an instance on the old binaries: requests start new ones. Properties aren't moved; they stop
+	// once everyone left (OutdatedInstances.h)
+	const auto marked = Game::im->MarkOutdated([](const Instance& instance) {
+		return g_OldInstances.contains({ instance.GetMapID(), instance.GetInstanceID() });
+	});
+	LOG("Live update %u: %u instance(s) on the old build take nobody new; properties among them stop once empty", g_UpdateId, marked);
+}
 }
 
 void LiveUpdateCoordinator::Abort(const std::string& why) {

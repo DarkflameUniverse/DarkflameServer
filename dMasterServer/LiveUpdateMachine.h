@@ -121,7 +121,7 @@ namespace LiveUpdate {
 	enum class eWorldPlan : uint8_t {
 		STOP,           // nobody there: shut it down (a new one starts when someone goes there)
 		REPLACE_EMPTY,  // nobody there, but the zone should always have one: start the new one, then stop this one
-		MOVE,           // replace it and move its players (properties save and freeze first)
+		MOVE,           // replace it and move its players (properties are never planned: InReplacePlan)
 		WAIT_THEN_MOVE, // activity zones and character selection: nobody new goes there; its players leave by
 		                // themselves or, after a while, are moved
 	};
@@ -145,6 +145,16 @@ namespace LiveUpdate {
 		if (view.zoneId == 0 || activityZone) return eWorldPlan::WAIT_THEN_MOVE;
 		return eWorldPlan::MOVE;
 	}
+
+	/**
+	 * Which running instances a live update replaces: all but those already shutting down and properties. A property
+	 * (clone) is never moved: building in progress there isn't saved. It is marked outdated like every other instance
+	 * (master: nobody new goes there) and stops by itself once everyone left (OutdatedInstances.h).
+	 */
+	inline bool InReplacePlan(const InstanceMigration::InstanceView& view) {
+		return !view.shuttingDown && view.cloneId == 0;
+	}
+
 
 	struct Unit {
 		eUnitKind kind{};
@@ -189,7 +199,7 @@ namespace LiveUpdate {
 			// Character selection first (logins go to the new one soonest), then the busiest
 			std::vector<WorldView> worlds;
 			for (const auto& world : observed.worlds) {
-				if (!world.view.shuttingDown) worlds.push_back(world);
+				if (InReplacePlan(world.view)) worlds.push_back(world);
 			}
 			std::stable_sort(worlds.begin(), worlds.end(), [](const WorldView& a, const WorldView& b) {
 				if ((a.view.zoneId == 0) != (b.view.zoneId == 0)) return a.view.zoneId == 0;
@@ -487,10 +497,24 @@ namespace LiveUpdate {
 			SetState(unit, eUnitState::STOPPING, message);
 		}
 
+		// Whether zone has a public instance on the new build already: one started after the update began (not in the
+		// plan), running and taking players
+		bool HasNewInstance(const Observed& observed, uint32_t zone) const {
+			return std::any_of(observed.worlds.begin(), observed.worlds.end(), [&](const WorldView& world) {
+				const auto& view = world.view;
+				if (view.zoneId != zone || view.cloneId != 0 || view.isPrivate || view.outdated || view.shuttingDown || view.draining) return false;
+				return std::none_of(m_Units.begin(), m_Units.end(), [&](const Unit& unit) {
+					return unit.kind == eUnitKind::WORLD && unit.zone == view.zoneId && unit.instance == view.instanceId;
+				});
+			});
+		}
+
 		void StartWorld(Unit& unit, const Observed& observed, Clock::time_point now, IActions& actions) {
 			const auto* world = observed.Find(unit.zone, unit.instance);
 			if (!world || world->view.shuttingDown) return SetState(unit, eUnitState::STOPPED, "It stopped by itself");
 			unit.players = static_cast<uint32_t>(std::max(world->view.players, 0));
+			// A zone somebody went to since the update began has its new instance already
+			if (HasNewInstance(observed, unit.zone)) m_ReplacedZones.insert(unit.zone);
 			unit.plan = PlanWorld(world->view, world->activityZone, m_Settings.keepZones.contains(unit.zone), m_ReplacedZones.contains(unit.zone));
 			switch (unit.plan) {
 			case eWorldPlan::STOP:
