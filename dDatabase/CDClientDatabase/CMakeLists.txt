@@ -1,6 +1,7 @@
 set(DDATABASE_CDCLIENTDATABASE_SOURCES
 	"CDClientDatabase.cpp"
 	"CDClientManager.cpp"
+	"CDFdb.cpp"
 )
 
 add_subdirectory(CDClientTables)
@@ -15,7 +16,8 @@ target_include_directories(dDatabaseCDClient PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dCommon"
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
 )
-target_link_libraries(dDatabaseCDClient PRIVATE sqlite3 glm::glm)
+# FdbReader lives in dCommon
+target_link_libraries(dDatabaseCDClient PRIVATE sqlite3 glm::glm dCommon)
 
 if (${CDCLIENT_CACHE_ALL})
 	add_compile_definitions(dDatabaseCDClient PRIVATE CDCLIENT_CACHE_ALL=${CDCLIENT_CACHE_ALL})

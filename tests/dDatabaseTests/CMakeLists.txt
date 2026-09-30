@@ -27,6 +27,6 @@ target_include_directories(dDatabaseSqliteTests PRIVATE
 )
 
 # dCommon uses raknet without linking it: link them as a group so the order of the static libraries does not matter
-target_link_libraries(dDatabaseSqliteTests glm::glm "dNet" "magic_enum" "$<LINK_GROUP:RESCAN,dDatabase,dDatabaseGame,dCommon,raknet>" MariaDB::ConnCpp sqlite3 GTest::gtest_main ${CMAKE_DL_LIBS})
+target_link_libraries(dDatabaseSqliteTests glm::glm "dNet" "magic_enum" "$<LINK_GROUP:RESCAN,dDatabase,dDatabaseGame,dDatabaseCDClient,dCommon,raknet>" MariaDB::ConnCpp sqlite3 GTest::gtest_main ${CMAKE_DL_LIBS})
 
 gtest_discover_tests(dDatabaseSqliteTests)
