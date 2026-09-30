@@ -40,7 +40,14 @@ A web dashboard for running and moderating a server, started and supervised by m
   challenges and tasks, backups, webhooks and alerts, server health and instance load, per-server traffic diagnostics,
   system logs with downloadable log bundles, crash dumps, a live **Network** page (a draggable flow diagram of the
   traffic between clients and every server, grouped per zone, with each connected player or address; addresses behind a
-  permission), and each server's build identifier on the About page.
+  permission; opening a group lists its members in the box with a filter, and web clients are named by their signed-in
+  user or API key), a **Performance** page (frame times, time per main-loop phase, slow-frame captures naming what took
+  the time, and profiling sessions with a flame graph), and each server's build identifier on the About page.
+* **Game text from the client:** zone, item and other game names and labels come from the client's locale, in the
+  viewer's language (picker in the user menu, or the browser's language), never written into the pages.
+* **Packet capture and replay:** record whole packets for an account, a character or everything; play them back with
+  movement in World 3D; replay bundles against a sandbox stack with a headless client. See
+  [docs/CaptureReplay.md](docs/CaptureReplay.md).
 * **Settings:** every setting the servers read, grouped by purpose with typed inputs, conditions, fuzzy search,
   history, and hot reload; values can be set on the page or kept in the `.ini` files.
 * **Players and characters:** online players, character editing with history and lost-item recovery, inventory with
@@ -99,7 +106,8 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   blocking volumes, as the level data and client collision groups say.
 * **Loot like live captures:** activity and quickbuild loot comes from the player and spawns at the object, reward coins
   use the reward's level, coins drop before items, quickbuild item costs are taken at build start and refunded on cancel.
-* **Combat:** area attacks and TacArcs handle targets once each, in the client's order.
+* **Combat:** area attacks and TacArcs handle targets once each, in the client's order; TacArcs pick targets like the
+  client (distance or weights, then `attack_priority` when `use_attack_priority` is set).
 * **Zones:** level and zone files read for every version the client reads.
 * Server-side knockback for AI-moved objects, switchable trigger volumes, missing force field, jetpack NPC and
   Skullkin volume scripts, deletion restrictions enforced, cross-world new-mail notices, pet LOTs stored with names,
@@ -114,8 +122,9 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
 * `bind_ip` for the server sockets; login steps timed from auth through master to the world.
 * **Build identifier:** every server logs its version, branch and commit at startup and sends it in its handshake
   reply, after the bytes the client reads.
-* **CDClient:** the tables every entity and item look up (ComponentsRegistry, ItemComponent) are kept in memory, so
-  loading a character with thousands of different items no longer stalls a world. The CDClient data is never modified.
+* **CDClient:** the hot lookup tables (ComponentsRegistry, ItemComponent, Objects) are read straight from the client's
+  `cdclient.fdb`, memory-mapped once and shared by every server process (Windows, Linux, macOS), so loading a character
+  with thousands of different items no longer stalls a world. The CDClient data is never modified.
 * The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
 
 ## License
