@@ -31,7 +31,7 @@ void CDDestructibleComponentTable::LoadValuesFromDatabase() {
 		entry.armor = tableData.getFloatField("armor", -1.0f);
 		entry.death_behavior = tableData.getIntField("death_behavior", -1);
 		entry.isnpc = tableData.getIntField("isnpc", -1) == 1 ? true : false;
-		entry.attack_priority = tableData.getIntField("attack_priority", -1);
+		entry.attack_priority = tableData.getIntField("attack_priority", 1);
 		entry.isSmashable = tableData.getIntField("isSmashable", -1) == 1 ? true : false;
 		entry.difficultyLevel = tableData.getIntField("difficultyLevel", -1);
 

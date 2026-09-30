@@ -439,6 +439,7 @@ void Entity::Initialize() {
 
 					comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
 					comp->SetIsNPC(destCompData[0].isnpc);
+					comp->SetAttackPriority(destCompData[0].attack_priority);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
 					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);

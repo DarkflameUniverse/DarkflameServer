@@ -254,6 +254,12 @@ public:
 	bool GetIsNPC() const { return m_IsNPC; }
 
 	/**
+	 * The DestructibleComponent's attack_priority: TacArcs that use attack priority target lower values first
+	 */
+	void SetAttackPriority(const int32_t value) { m_AttackPriority = value; }
+	int32_t GetAttackPriority() const { return m_AttackPriority; }
+
+	/**
 	 * Returns the current is-dead value, this is mostly unused
 	 * @return the current is-dead value, this is mostly unused
 	 */
@@ -605,6 +611,9 @@ private:
 	bool m_IsSmashable;
 
 	bool m_IsNPC = false;
+
+	// The client's LWODestroyableComponent starts at 1 and keeps it when the column is empty
+	int32_t m_AttackPriority = 1;
 
 	/**
 	 * Whether this entity is dead. Unused, here for serialization
