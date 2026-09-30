@@ -267,6 +267,9 @@ namespace MasterPackets {
 			uint32_t port{};
 			uint8_t isPrivate{};
 			eState state{ eState::READY }; // written after the UGC fields, one byte per instance
+			// On an old binary or old zone files: takes nobody new and stops once empty. Written after the endpoints,
+			// one byte per instance, and read only when there (older masters didn't write it)
+			uint8_t outdated{};
 		};
 
 		uint8_t authOnline{};

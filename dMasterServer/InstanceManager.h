@@ -1,9 +1,12 @@
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <algorithm>
+#include <optional>
 #include "SpareBackoff.h"
 #include <map>
+#include <set>
 #include <vector>
 #include "dCommonVars.h"
 #include "IServerOperations.h"
@@ -62,6 +65,17 @@ public:
 	// Its players are being moved to another instance (InstanceMigration.h): nobody new is sent here
 	bool GetIsDraining() const { return m_IsDraining; }
 	void SetIsDraining(bool value) { m_IsDraining = value; }
+	// Started before a live update, or on zone files that changed since: nobody new is sent here, and it stops once
+	// empty (OutdatedInstances.h)
+	bool GetIsOutdated() const { return m_IsOutdated; }
+	void SetIsOutdated(bool value) { m_IsOutdated = value; }
+	// A property instance waiting for the outdated instance of the same property to stop before its world server is
+	// started (so the two never both save it); requests for it wait as pending requests
+	bool GetIsWaitingForOld() const { return m_WaitingForOld; }
+	void SetIsWaitingForOld(bool value) { m_WaitingForOld = value; }
+	// When its players were last told an update is waiting (outdated properties)
+	std::optional<std::chrono::steady_clock::time_point> GetLastUpdateNotice() const { return m_LastUpdateNotice; }
+	void SetLastUpdateNotice(std::chrono::steady_clock::time_point value) { m_LastUpdateNotice = value; }
 	// Seats held for players being moved in; they count towards the caps until the move is over
 	int GetReserved() const { return m_Reserved; }
 	void SetReserved(int value) { m_Reserved = std::max(0, value); }
@@ -113,6 +127,7 @@ public:
 		view.isPrivate = GetIsPrivate();
 		view.shuttingDown = GetIsShuttingDown() || GetShutdownComplete();
 		view.draining = GetIsDraining();
+		view.outdated = GetIsOutdated();
 		return view;
 	}
 
@@ -129,6 +144,9 @@ private:
 	bool m_Ready{};
 	bool m_IsShuttingDown{};
 	bool m_IsDraining{};
+	bool m_IsOutdated{};
+	bool m_WaitingForOld{};
+	std::optional<std::chrono::steady_clock::time_point> m_LastUpdateNotice{};
 	int m_Reserved{};
 	std::vector<PendingInstanceRequest> m_PendingRequests{};
 	std::vector<PendingInstanceRequest> m_PendingAffirmations{};
@@ -192,6 +210,16 @@ public:
 	// Start an instance of each zone that has fewer instances with room than its spare_instances (one per call)
 	void KeepSpareInstances();
 
+	/**
+	 * Outdated instances (OutdatedInstances.h): reminds players on outdated properties that an update is waiting, and
+	 * stops outdated instances nobody is in or on the way to (not public instances of prestart_worlds zones: the live
+	 * update or reload replaces those). Called every frame; does its work once a second.
+	 */
+	void UpdateOutdatedInstances();
+
+	// Mark the running instances which() picks outdated (old binary or old zone files); returns how many were new
+	uint32_t MarkOutdated(const std::function<bool(const Instance&)>& which);
+
 private:
 	std::string mExternalIP;
 	std::vector<std::unique_ptr<Instance>> m_Instances;
@@ -210,5 +238,8 @@ private:
 	int GetSoftCap(LWOMAPID mapID);
 	int GetHardCap(LWOMAPID mapID);
 	const InstancePtr& CreateInstance(LWOMAPID mapID, LWOCLONEID cloneID);
+	// Start the world servers of property instances whose outdated predecessor is gone
+	void StartWaitingInstances();
 	std::function<void()> m_OnInstancesChanged;
+	std::chrono::steady_clock::time_point m_NextOutdatedCheck{};
 };

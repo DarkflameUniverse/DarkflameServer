@@ -89,6 +89,9 @@ namespace InstanceMigration {
 		bool isPrivate{};
 		bool shuttingDown{};
 		bool draining{}; // its players are being moved away; nobody new is sent there
+		// Started before a live update or on zone files that changed since (old binary or old files): nobody new is
+		// sent there, and it stops once empty (OutdatedInstances.h)
+		bool outdated{};
 
 		int32_t Load() const { return players + reserved; }
 	};
@@ -108,6 +111,7 @@ namespace InstanceMigration {
 		TARGET_FULL,
 		NO_TARGET,
 		MASTER_SHUTTING_DOWN,
+		TARGET_OUTDATED,
 	};
 
 	inline const char* Describe(eRefusal refusal) {
@@ -126,6 +130,7 @@ namespace InstanceMigration {
 		case eRefusal::TARGET_FULL: return "The other instance doesn't have room for everyone";
 		case eRefusal::NO_TARGET: return "No other instance of that zone has room for everyone";
 		case eRefusal::MASTER_SHUTTING_DOWN: return "The server is shutting down";
+		case eRefusal::TARGET_OUTDATED: return "That instance runs an old version and takes nobody new";
 		}
 		return "Unknown reason";
 	}
@@ -145,8 +150,8 @@ namespace InstanceMigration {
 
 	/**
 	 * A live update replaces every instance, so it moves what CheckSource refuses too: character selection, private
-	 * instances, properties (after MIGRATE_PREPARE) and activity zones (once their players had time to finish). Only
-	 * an instance that isn't running properly is left alone. A draining one is fine: the live update drains activity
+	 * instances and activity zones (once their players had time to finish). Properties are never moved (live updates
+	 * and reloads leave them out). Only an instance that isn't running properly is left alone. A draining one is fine: the live update drains activity
 	 * zones and character selection itself before moving whoever is left.
 	 */
 	inline eRefusal CheckLiveUpdateSource(const InstanceView& source) {
@@ -157,12 +162,13 @@ namespace InstanceMigration {
 
 	/**
 	 * Whether master may send a new player to this instance of zone/clone (InstanceManager::FindInstance): not
-	 * private, not shutting down, not draining (being emptied for a live update or migration), and with room: under
+	 * private, not shutting down, not draining (being emptied for a live update or migration), not outdated (on an old
+	 * binary or old zone files), and with room: under
 	 * the soft cap, or under the hard cap for players following a friend. Seats held for players being moved in count.
 	 */
 	inline bool AcceptsNewPlayers(const InstanceView& instance, uint32_t zone, uint32_t clone, bool friendTransfer) {
 		if (instance.zoneId != zone || instance.cloneId != clone) return false;
-		if (instance.isPrivate || instance.shuttingDown || instance.draining) return false;
+		if (instance.isPrivate || instance.shuttingDown || instance.draining || instance.outdated) return false;
 		return instance.Load() < (friendTransfer ? instance.hardCap : instance.softCap);
 	}
 
@@ -174,6 +180,7 @@ namespace InstanceMigration {
 		if (target.isPrivate) return eRefusal::PRIVATE_INSTANCE;
 		if (target.shuttingDown) return eRefusal::SHUTTING_DOWN;
 		if (target.draining) return eRefusal::ALREADY_MIGRATING;
+		if (target.outdated) return eRefusal::TARGET_OUTDATED;
 		if (!target.ready) return eRefusal::NOT_READY;
 		if (target.Load() + source.players > target.hardCap) return eRefusal::TARGET_FULL;
 		return eRefusal::NONE;
@@ -227,7 +234,7 @@ namespace InstanceMigration {
 				if (takingIn[i] || list[i].players <= 0) continue;
 				// Into the fullest one it still fits in; only ones at least as full (later in the list)
 				for (size_t j = list.size(); j-- > i + 1;) {
-					if (mergedAway[j] || list[j].Load() + list[i].players > list[j].softCap) continue;
+					if (mergedAway[j] || list[j].outdated || list[j].Load() + list[i].players > list[j].softCap) continue;
 					suggestions.push_back({ zone, list[i].instanceId, list[j].instanceId, list[i].players, list[j].Load() + list[i].players });
 					list[j].reserved += list[i].players;
 					mergedAway[i] = true;

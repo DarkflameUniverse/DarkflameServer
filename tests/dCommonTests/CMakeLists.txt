@@ -5,6 +5,7 @@ set(DCOMMONTEST_SOURCES
 	"ToUnderlyingTests.cpp"
 	"InstanceMigrationTests.cpp"
 	"LiveUpdateTests.cpp"
+	"OutdatedInstancesTests.cpp"
 	"TestCDFeatureGatingTable.cpp"
 	"TestLDFFormat.cpp"
 	"TestNiPoint3.cpp"

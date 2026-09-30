@@ -1,6 +1,7 @@
 #include "InstanceManager.h"
 #include <string>
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include "Game.h"
 #include "dServer.h"
@@ -14,6 +15,8 @@
 #include "BitStreamUtils.h"
 #include "ServiceType.h"
 #include "MessageType/Master.h"
+#include "OutdatedInstances.h"
+#include "master/DashboardMessages.h"
 
 #include "Start.h"
 
@@ -76,8 +79,19 @@ const InstancePtr& InstanceManager::CreateInstance(LWOMAPID mapID, LWOCLONEID cl
 	uint32_t port = GetFreePort();
 	auto newInstance = make_unique<Instance>(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
 
-	//Start the actual process:
-	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
+	// A property whose old instance still runs: its world server starts once that one is gone (never two instances
+	// saving the same property). Requests for it wait meanwhile.
+	std::vector<InstanceMigration::InstanceView> views;
+	for (const auto& instance : m_Instances) {
+		if (instance && !instance->GetShutdownComplete()) views.push_back(instance->View());
+	}
+	if (OutdatedInstances::MustWaitForOld(views, mapID, cloneID)) {
+		newInstance->SetIsWaitingForOld(true);
+		LOG("Instance %i/%i/%i waits for the old instance of the property to stop before it starts", mapID, m_LastInstanceID, cloneID);
+	} else {
+		//Start the actual process:
+		StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
+	}
 
 	m_Instances.push_back(std::move(newInstance));
 	if (m_OnInstancesChanged) m_OnInstancesChanged();
@@ -163,6 +177,69 @@ void InstanceManager::RemoveInstance(const InstancePtr& instance) {
 			break;
 		}
 	}
+	if (!m_IsShuttingDown && !Game::ShouldShutdown()) StartWaitingInstances();
+}
+
+void InstanceManager::StartWaitingInstances() {
+	std::vector<InstanceMigration::InstanceView> views;
+	for (const auto& instance : m_Instances) {
+		if (instance && !instance->GetShutdownComplete()) views.push_back(instance->View());
+	}
+	for (const auto& instance : m_Instances) {
+		if (!instance || !instance->GetIsWaitingForOld()) continue;
+		if (OutdatedInstances::MustWaitForOld(views, instance->GetMapID(), instance->GetCloneID())) continue;
+		instance->SetIsWaitingForOld(false);
+		LOG("The old instance of property %i/%i is gone; starting instance %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID());
+		StartWorldServer(instance->GetMapID(), instance->GetPort(), instance->GetInstanceID(), instance->GetHardCap(), instance->GetCloneID());
+	}
+}
+
+uint32_t InstanceManager::MarkOutdated(const std::function<bool(const Instance&)>& which) {
+	uint32_t marked = 0;
+	for (const auto& instance : m_Instances) {
+		// One still waiting to start runs the new binaries and files already
+		if (!instance || instance->GetShutdownComplete() || instance->GetIsWaitingForOld() || instance->GetIsOutdated() || !which(*instance)) continue;
+		instance->SetIsOutdated(true);
+		marked++;
+	}
+	if (marked && m_OnInstancesChanged) m_OnInstancesChanged();
+	return marked;
+}
+
+void InstanceManager::UpdateOutdatedInstances() {
+	const auto now = std::chrono::steady_clock::now();
+	if (now < m_NextOutdatedCheck) return;
+	m_NextOutdatedCheck = now + std::chrono::seconds(1);
+	if (m_IsShuttingDown) return;
+	bool changed = false;
+	std::optional<std::set<uint32_t>> keepZones;
+	for (const auto& instance : m_Instances) {
+		if (!instance || !instance->GetIsOutdated() || instance->GetShutdownComplete()) continue;
+		if (!keepZones) {
+			keepZones.emplace();
+			for (auto part : GeneralUtils::SplitString(Game::config->GetValue("prestart_worlds", "0,1000"), ',')) {
+				std::erase_if(part, [](const char c) { return std::isspace(static_cast<unsigned char>(c)); });
+				if (const auto zone = GeneralUtils::TryParse<uint32_t>(part)) keepZones->insert(*zone);
+			}
+		}
+		const auto view = instance->View();
+		if (OutdatedInstances::NoticeDue(view, instance->GetLastUpdateNotice(), now)) {
+			Announcement notice;
+			notice.title = OutdatedInstances::NOTICE_TITLE;
+			notice.message = OutdatedInstances::NOTICE_MESSAGE;
+			MasterPackets::SendTo(instance->GetSysAddr(), notice);
+			instance->SetLastUpdateNotice(now);
+			LOG("Told the %i player(s) on outdated property %i/%i/%i that an update is waiting", view.players, view.zoneId, view.cloneId, view.instanceId);
+		}
+		const bool pending = !instance->GetPendingAffirmations().empty() || !instance->GetPendingRequests().empty();
+		if (OutdatedInstances::ShouldStop(view, keepZones->contains(view.zoneId), pending)) {
+			LOG("Outdated instance %i/%i/%i is empty; stopping it", view.zoneId, view.cloneId, view.instanceId);
+			instance->Shutdown();
+			instance->SetIsShuttingDown(true);
+			changed = true;
+		}
+	}
+	if (changed && m_OnInstancesChanged) m_OnInstancesChanged();
 }
 
 void InstanceManager::ReadyInstance(const InstancePtr& instance) {
@@ -304,8 +381,9 @@ const InstancePtr& InstanceManager::FindPrivateInstance(const std::string& passw
 	for (const auto& instance : m_Instances) {
 		if (!instance) continue;
 
-		// A private instance being replaced (live update) takes nobody new: its replacement has the same password
-		if (!instance->GetIsPrivate() || instance->GetIsDraining() || instance->GetIsShuttingDown() || instance->GetShutdownComplete()) {
+		// A private instance being replaced (live update) or on an old version takes nobody new: its replacement has
+		// the same password
+		if (!instance->GetIsPrivate() || instance->GetIsDraining() || instance->GetIsOutdated() || instance->GetIsShuttingDown() || instance->GetShutdownComplete()) {
 			continue;
 		}
 

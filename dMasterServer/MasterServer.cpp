@@ -158,6 +158,7 @@ namespace {
 			entry.isPrivate = inst->GetIsPrivate() ? 1 : 0;
 			entry.state = inst->GetIsShuttingDown() ? eState::STOPPING : !inst->GetIsReady() ? eState::STARTING :
 				inst->GetIsDraining() ? eState::DRAINING : eState::READY;
+			entry.outdated = inst->GetIsOutdated() ? 1 : 0;
 			auto& endpoint = response.endpoints.emplace_back();
 			endpoint.type = ServiceType::WORLD;
 			endpoint.zoneID = entry.mapID;
@@ -632,6 +633,8 @@ int main(int argc, char** argv) {
 		LiveUpdateCoordinator::Update();
 		CDClientReloader::Update();
 		WorldReloader::Update();
+		// Instances on an old binary or old zone files: reminders on properties, and stopping empty ones
+		Game::im->UpdateOutdatedInstances();
 		CheckPlayerActionTimeouts();
 
 		// Spare instances for busy zones (zone_limits), checked every few seconds

@@ -257,6 +257,7 @@ namespace MasterPackets {
 			bitStream.Write(endpoint.port);
 			bitStream.Write(endpoint.host);
 		}
+		for (const auto& instance : instances) bitStream.Write(instance.outdated);
 	}
 
 	bool ServerListResponse::Deserialize(RakNet::BitStream& bitStream) {
@@ -295,6 +296,9 @@ namespace MasterPackets {
 			VALIDATE_READ(bitStream.Read(endpoint.ip));
 			VALIDATE_READ(bitStream.Read(endpoint.port));
 			VALIDATE_READ(bitStream.Read(endpoint.host));
+		}
+		if (bitStream.GetNumberOfUnreadBits() >= instances.size() * 8) {
+			for (auto& instance : instances) VALIDATE_READ(bitStream.Read(instance.outdated));
 		}
 		return true;
 	}
