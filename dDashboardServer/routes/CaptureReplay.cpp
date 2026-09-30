@@ -15,6 +15,7 @@
 #include "Database.h"
 #include "DashboardRoutes.h"
 #include "Game.h"
+#include "GameText.h"
 #include "LiveWorld.h"
 #include "Logger.h"
 #include "master/MessageCapture.h"
@@ -255,6 +256,24 @@ namespace {
 		cached.startUs = cached.bundle.records.empty() ? session.startedAt * 1000000 : std::min(session.startedAt * 1000000, cached.bundle.records.front().header.timeUs);
 		g_Cache = std::move(cached);
 		return &g_Cache;
+	}
+
+	std::string CharacterName(LWOOBJID id) {
+		const auto info = id ? Database::Get()->GetCharacterInfo(id) : std::nullopt;
+		return info ? info->name : "Character " + std::to_string(id);
+	}
+
+	// Each captured character's moves between world servers (CaptureTools::Worlds), with the zone's name from the locale
+	json WorldsJson(const Cached& cached) {
+		json out = json::array();
+		std::map<LWOOBJID, std::string> names;
+		for (const auto& visit : CaptureTools::Worlds(cached.bundle.records, cached.startUs)) {
+			if (!names.contains(visit.characterId)) names[visit.characterId] = CharacterName(visit.characterId);
+			out.push_back({ {"character", std::to_string(visit.characterId)}, {"name", names[visit.characterId]}, {"t", visit.t},
+				{"zone", visit.zoneId}, {"zoneName", visit.zoneId ? GameText::ZoneName(visit.zoneId) : std::string{}},
+				{"instance", visit.instanceId}, {"clone", visit.cloneId} });
+		}
+		return out;
 	}
 
 	json StoredSessionJson(const Session& s) {
@@ -599,7 +618,7 @@ namespace CaptureReplay {
 			});
 
 		Route(eHTTPMethod::GET, "/api/inspector/sessions/:id/positions", Perm(PERMISSION),
-			"Where the captured characters moved, in the World 3D replay's shape. Query: ?zone= (default: the first zone with movement)",
+			"Where the captured characters moved, in the World 3D replay's shape, and which world each was on when (worlds). Query: ?zone=<zone>|all (default: the first zone with movement)",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto session = FindSession(context, reply);
 				if (!session) return;
@@ -608,18 +627,28 @@ namespace CaptureReplay {
 				const auto tracks = CaptureTools::Tracks(cached->bundle.records, cached->startUs);
 				std::set<uint32_t> zones;
 				for (const auto& t : tracks) zones.insert(t.zoneId);
+				const bool all = QueryValue(context.queryString, "zone") == "all";
 				auto zone = GeneralUtils::TryParse<uint32_t>(QueryValue(context.queryString, "zone")).value_or(zones.empty() ? 0 : *zones.begin());
 				json players = json::array();
 				for (const auto& t : tracks) {
-					if (t.zoneId != zone) continue;
-					const auto info = t.characterId ? Database::Get()->GetCharacterInfo(t.characterId) : std::nullopt;
-					players.push_back({ {"id", std::to_string(t.characterId) + ":" + std::to_string(t.instanceId)}, {"name", info ? info->name : "Character " + std::to_string(t.characterId)},
-						{"instances", json::array({ t.instanceId })}, {"samples", t.samples} });
+					if (!all && t.zoneId != zone) continue;
+					players.push_back({ {"id", std::to_string(t.characterId) + ":" + std::to_string(t.instanceId)}, {"character", std::to_string(t.characterId)},
+						{"name", CharacterName(t.characterId)}, {"zone", t.zoneId}, {"instances", json::array({ t.instanceId })}, {"samples", t.samples} });
 				}
 				const auto from = cached->startUs / 1000000;
 				const auto to = cached->bundle.records.empty() ? from + 1 : cached->bundle.records.back().header.timeUs / 1000000 + 1;
-				JsonSuccess(reply, { {"zone", zone}, {"zones", zones}, {"from", from}, {"to", to}, {"players", players},
-					{"idleSeconds", 3}, {"bucket", 1}, {"interval", 1}, {"truncated", false} });
+				JsonSuccess(reply, { {"zone", all ? json(nullptr) : json(zone)}, {"zones", zones}, {"from", from}, {"to", to}, {"players", players},
+					{"worlds", WorldsJson(*cached)}, {"idleSeconds", 3}, {"bucket", 1}, {"interval", 1}, {"truncated", false} });
+			});
+
+		Route(eHTTPMethod::GET, "/api/inspector/sessions/:id/worlds", Perm(PERMISSION),
+			"Which world server each captured character was on, in time order: one entry per move to another zone or instance (zone 0 is character select)",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto session = FindSession(context, reply);
+				if (!session) return;
+				const auto* cached = Load(*session, reply);
+				if (!cached) return;
+				JsonSuccess(reply, { {"worlds", WorldsJson(*cached)} });
 			});
 
 		Route(eHTTPMethod::GET, "/api/inspector/sessions/:id/bundle", Perm(PERMISSION),
