@@ -36,6 +36,8 @@ set(DWEBTESTS_SOURCES
 	"ModeratorHelperTests.cpp"
 	"ChatHistoryTests.cpp"
 	"ClientSysInfoViewTests.cpp"
+	"GameTextTests.cpp"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/GameText.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/ClientSysInfoView.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/ChatHistory.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/ai/ClaudeClient.cpp"

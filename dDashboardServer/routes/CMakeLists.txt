@@ -11,6 +11,7 @@ set(DASHBOARDROUTES_SOURCES
 	"PlayerActions.cpp"
 	"AccountRoutes.cpp"
 	"ClientAssets.cpp"
+	"GameText.cpp"
 	"MaintenanceRoutes.cpp"
 	"ReportRoutes.cpp"
 	"EconomyPlaces.cpp"
