@@ -123,7 +123,10 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDBehaviorTemplateTable::Instance().LoadValuesFromDatabase();
 	CDBrickIDTableTable::Instance().LoadValuesFromDatabase();
 	CDCollectibleComponentTable::Instance().LoadValuesFromDatabase();
-	CDCLIENT_DONT_CACHE_TABLE(CDComponentsRegistryTable::Instance().LoadValuesFromDatabase());
+	// Always in memory: every entity and every inventory item asks for its components and item data, and looking up an
+	// id not seen yet in the unindexed CDClient scans the whole table (a character holding 3000 different items took a
+	// minute to load)
+	CDComponentsRegistryTable::Instance().LoadValuesFromDatabase();
 	CDCurrencyTableTable::Instance().LoadValuesFromDatabase();
 	CDDeletionRestrictionsTable::Instance().LoadValuesFromDatabase();
 	CDDestructibleComponentTable::Instance().LoadValuesFromDatabase();
@@ -131,7 +134,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDEventGatingTable::Instance().LoadValuesFromDatabase();
 	CDFeatureGatingTable::Instance().LoadValuesFromDatabase();
 	CDInventoryComponentTable::Instance().LoadValuesFromDatabase();
-	CDCLIENT_DONT_CACHE_TABLE(CDItemComponentTable::Instance().LoadValuesFromDatabase());
+	CDItemComponentTable::Instance().LoadValuesFromDatabase();
 	CDItemSetSkillsTable::Instance().LoadValuesFromDatabase();
 	CDItemSetsTable::Instance().LoadValuesFromDatabase();
 	CDLevelProgressionLookupTable::Instance().LoadValuesFromDatabase();
