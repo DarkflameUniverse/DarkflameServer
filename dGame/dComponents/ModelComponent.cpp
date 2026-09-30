@@ -146,6 +146,11 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 	outBitStream.Write(m_OriginalPosition); // Original position
 	outBitStream.Write(m_OriginalRotation); // Original rotation
 
+	// The client makes the mutable model component, which reads the behaviors and editing info, only for objects whose
+	// config (the settings sent with a model) has propertyObjectID or inInventory; the plain one it makes for every
+	// other model reads only the block above, as live wrote it
+	if (!m_Parent->HasVar(u"propertyObjectID") && !m_Parent->GetVar<bool>(u"inInventory")) return;
+
 	outBitStream.Write1(); // We are writing behavior info
 	outBitStream.Write<uint32_t>(m_Behaviors.size()); // Number of behaviors
 	outBitStream.Write(m_IsPaused); // Is this model paused

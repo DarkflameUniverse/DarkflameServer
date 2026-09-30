@@ -157,7 +157,7 @@ namespace {
 			}
 			const auto j = CaptureTools::RecordJson(record, i, start, fields, replica ? &*replica : nullptr);
 			std::printf("%7zu %10.3f %-12s %-18s %s%s\n", i, j["t"].get<double>() / 1000.0, (j.value("from", std::string()) + ">" + j.value("to", std::string())).c_str(),
-				j.value("source", std::string()).c_str(), j.value("name", std::string()).c_str(), fields && j.contains("fields") ? (" " + j["fields"].dump()).c_str() : "");
+				j.value("source", std::string()).c_str(), j.value("name", std::string()).c_str(), fields && j.contains("fields") ? (" " + j["fields"].dump(-1, ' ', false, json::error_handler_t::replace)).c_str() : "");
 		}
 		if (!cdServer.empty()) std::printf("%zu constructions, %zu whose components didn't read exactly\n", constructions, unmatched);
 		return 0;

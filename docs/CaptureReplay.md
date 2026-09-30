@@ -127,12 +127,28 @@ thread, and the result is kept with the loaded capture:
   each component's update. An object constructed before the capture started shows "object not constructed in this
   capture" and the bytes.
 
-Each component reader mirrors the component's `Serialize(bIsInitialUpdate)` (`ReplicaDecoderTests` writes real
-components with the server's serializers and reads them back). Some objects have components their LOT doesn't list
-(a smashable, moving platform or script set up by the zone file): when the registry's list doesn't read the packet
-exactly (to the last whole byte, padding zero), those variants are tried. When none fits, what read is shown with
-`(layout did not match)` and the rest as bits; parts the server never writes (only live did, such as local space
-info) stop the reader with `(... present, not read)`. Nothing is guessed.
+Each component reader follows the client's `Deserialize` for that component, checked against the 2014 live captures
+and against the server's own serializers (`ReplicaDecoderTests` has live byte samples, and writes real components and
+reads them back). Beyond the registry's list, the client makes a few components from other data, which the reader
+adds the same way:
+
+| Component | When |
+|---|---|
+| Trigger (a 1 bit, then the trigger ID) | the header's trigger bit is set; read after every other component |
+| BBB (a 1 bit, then an object ID) | the registry lists component 107 (characters) |
+| Mutable model behaviors (model block, behaviors, editing info) | a model whose config has `propertyObjectID` or `inInventory`; any other model reads only the model block |
+| none for a pet's model and item | the client drops them |
+
+Some objects differ from their LOT because of the zone file: a smashable's destroyable, a moving platform, a script,
+`markedAsPhantom` (phantom physics instead of simple) and `renderDisabled` (no render data, as on trigger volumes).
+When the registry's list doesn't read the packet exactly (to the last whole byte, padding zero), those variants are
+tried. When none fits, what read is shown with `(layout did not match)` and the rest as bits. Nothing is guessed.
+Compressed LDF (item and script settings, object config) is inflated and shown as its entries; narrow text that isn't
+UTF-8 is shown byte by byte.
+
+Against the live captures (every capture in the archive imported: 60,659 constructions, and 609,919 serializations of
+objects constructed in the same capture), 83 constructions and 5 serializations don't read exactly: primitive models
+(LOT 10042), the campfire activator (LOT 2248) and a quick build's updates (LOT 7001).
 
 The capture tool reads game messages the same way (it links the game), so replays compare their fields, not only their
 size.
@@ -275,3 +291,7 @@ decoder registry knows and checks it writes back to the same bytes; without fixt
   `(layout did not match)` on players, enemies, smashables, NPCs); a later `ID_REPLICA_MANAGER_SERIALIZE` of an enemy
   hit in the capture shows its new health; game messages both ways (a skill, an emote, a vendor purchase) show fields.
 - Export a bundle, replay it with `CaptureTool replay`, and open a kept sandbox's logs.
+- Moving platforms (Starbase 3001's snail, Nexus Tower's lifts) move as before, and objects built with them look right.
+- A tamed pet that follows you through a fight and an untamed one being tamed: status and name updates show as before.
+- A model placed in the world outside a property (a model reward) renders without stray effects; property models still
+  show their behaviors in property edit mode.

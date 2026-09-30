@@ -19,6 +19,7 @@
 #include "PlayerForcedMovementComponent.h"
 #include "PossessorComponent.h"
 #include "ReplicaDecoder.h"
+#include "ZCompression.h"
 #include "SimplePhysicsComponent.h"
 #include "SkillComponent.h"
 #include "User.h"
@@ -146,8 +147,8 @@ TEST_F(ReplicaDecoderTest, ModelWithTheDestroyableTheRegistryDoesNotList) {
 	info.lot = 6000;
 	Entity model(288300744895900200, info);
 	model.AddComponent<SimplePhysicsComponent>(-1);
+	// The model component writes the item's user-generated-content block itself, where the client reads the item
 	model.AddComponent<ModelComponent>(-1)->LoadBehaviors();
-	model.AddComponent<ItemComponent>(-1);
 	auto* const destroyable = model.AddComponent<DestroyableComponent>(-1);
 	destroyable->SetIsSmashable(true);
 
@@ -189,4 +190,180 @@ TEST_F(ReplicaDecoderTest, LiveConstructionHeader) {
 	EXPECT_EQ((*constructed)["objectID"], "70368744177662");
 	EXPECT_EQ((*constructed)["lot"], 13006);
 	EXPECT_EQ((*constructed)["timeSinceCreatedMs"], 3814335);
+}
+
+namespace {
+	std::string FromHex(std::string_view hex) {
+		std::string bytes;
+		for (size_t i = 0; i + 1 < hex.size(); i += 2) bytes += static_cast<char>(std::stoi(std::string(hex.substr(i, 2)), nullptr, 16));
+		return bytes;
+	}
+
+	nlohmann::json DecodeLive(std::string_view hex, LOT lot, std::vector<eReplicaComponentType> registry) {
+		const ReplicaDecoder::ComponentTable table{ { lot, std::move(registry) } };
+		ReplicaDecoder::Session session(table);
+		const auto decoded = session.Decode(FromHex(hex), 1);
+		return decoded ? *decoded : nlohmann::json();
+	}
+}
+
+// Live constructions (2014 captures): each reads to its last whole byte
+
+// A trigger object (the header's trigger bit set) has a trigger component read after all the others: a 1 bit and the
+// trigger ID, -1 in every live capture. This trigger volume has no render data: its zone file sets renderDisabled.
+TEST_F(ReplicaDecoderTest, LiveTriggerIsReadLast) {
+	const auto constructed = DecodeLive("24818c061f8000002000020a0b000000734cf8803de3f04008040000080000000773fe3d00928d12ec38dcef343c926e0c200000000a010e6bd000000002c617e3fbfffffffe", 5652, { RENDER, PHANTOM_PHYSICS });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	EXPECT_EQ(constructed["trigger"], true);
+	EXPECT_EQ(Names(constructed), "PHANTOM_PHYSICS TRIGGER ");
+	EXPECT_EQ((*FieldsOf(constructed, "TRIGGER"))["triggerID"], -1);
+}
+
+// A phantom physics effect (a gravity scale, 4) with its amount
+TEST_F(ReplicaDecoderTest, LivePhantomPhysicsEffect) {
+	const auto constructed = DecodeLive("24da8d409f0000002000023f09000000445b780031126020040420000800000004675ecd009b85b16c4cfa9514363a7b4c10000000086db54bf000000005b390e3fc10000003373130f4ffffffff80", 4734, { RENDER, PHANTOM_PHYSICS });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	const auto* physics = FieldsOf(constructed, "PHANTOM_PHYSICS");
+	ASSERT_TRUE(physics);
+	EXPECT_EQ((*physics)["effectType"], 4);
+	EXPECT_FLOAT_EQ((*physics)["directionalMultiplier"].get<float>(), 0.05f);
+}
+
+// A phantom physics effect with its distance range (min and max)
+TEST_F(ReplicaDecoderTest, LivePhantomPhysicsDistance) {
+	const auto constructed = DecodeLive("24ac038f86800000200002710680000040d88400398e03a00004000008000000009891de442d7ad85434aaaa9c30000000000000000000000000000803fc000000000001210a0001007e0000908522b93642588a88c107b330c1ffffffff80", 3554, { RENDER, PHANTOM_PHYSICS });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	const auto* physics = FieldsOf(constructed, "PHANTOM_PHYSICS");
+	ASSERT_TRUE(physics);
+	EXPECT_TRUE(physics->contains("minDistance"));
+	EXPECT_TRUE(physics->contains("maxDistance"));
+}
+
+// A moving platform: its mover subcomponent, then the 0 bit that ends the subcomponent list
+TEST_F(ReplicaDecoderTest, LiveMovingPlatform) {
+	const auto constructed = DecodeLive("248d800e0000000020000216848000006f3786801da2c3b0000400000800000005d45238fc80000000080000000000000000000000000000000000000000000000041000000346f43d874d0ca28689b34f82177a657ee056e67a8f0a6c7f7f99a679a0800000109000000ffffffff0000000000000000000000000000000000000000000000000000000000000000000000000", 2349, { RENDER, SIMPLE_PHYSICS, MOVING_PLATFORM, PLATFORM_BOUNDARY });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	const auto* platform = FieldsOf(constructed, "MOVING_PLATFORM");
+	ASSERT_TRUE(platform);
+	ASSERT_EQ((*platform)["subcomponents"].size(), 1u);
+	EXPECT_EQ((*platform)["subcomponents"][0]["type"], 4);
+}
+
+// An enemy mid-attack: the skill it is casting with its running behaviors
+TEST_F(ReplicaDecoderTest, LiveSkillsInProgress) {
+	const auto constructed = DecodeLive("24dff38ba48300002000021612000000200a80001c9f33a0000000000808000000800000000414000002a3720b896d24b48794199a820000000000000000000000000001007e4000000000000000000000000000000000000000000000000000000000000000000000002020000000001007e00000000000000000000000000000000000000000000200fc0000000000000000040000002c000000480800000008000001f81800000000000000000000080000001000000471e0000465c8000090000000ba48300002000020ba48300002000020000000000000000000000000000000000000000000000000", 9260, { RENDER, SIMPLE_PHYSICS, SCRIPT, DESTROYABLE, SKILL });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	const auto* skill = FieldsOf(constructed, "SKILL");
+	ASSERT_TRUE(skill);
+	ASSERT_FALSE((*skill)["skillsInProgress"].empty());
+	EXPECT_FALSE((*skill)["skillsInProgress"][0]["behaviors"].empty());
+}
+
+// An object the zone file sets markedAsPhantom on: phantom physics where its LOT lists simple physics
+TEST_F(ReplicaDecoderTest, LiveMarkedAsPhantom) {
+	const auto constructed = DecodeLive("24a302e403000000200002390e0000002cdd22009a506004040420000800000005e050b8f89da600ec2e412b3439e8626c300000000defb533f00000000e2850f3f8800000000000000000000000000000000000000000000000000000000000000000000000404000000000200fc00000000000000000000000000000000000000000000401f8000000000000000008000001b80000008000000000", 7282, { RENDER, SIMPLE_PHYSICS, DESTROYABLE, SKILL });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	EXPECT_EQ(Names(constructed), "PHANTOM_PHYSICS BUFF DESTROYABLE SKILL RENDER ");
+}
+
+// Compressed LDF (as live sent item and script settings): u32 size, a 1 byte, u32 uncompressed and compressed sizes,
+// then zlib data holding the entries, shown inflated
+TEST_F(ReplicaDecoderTest, CompressedLdfIsInflated) {
+	RakNet::BitStream entries;
+	entries.Write<int32_t>(1);
+	const std::u16string key = u"name";
+	entries.Write<uint8_t>(key.size() * 2);
+	for (const auto c : key) entries.Write<uint16_t>(c);
+	entries.Write<uint8_t>(1); // i32
+	entries.Write<int32_t>(42);
+	std::vector<uint8_t> compressed(ZCompression::GetMaxCompressedLength(entries.GetNumberOfBytesUsed()));
+	const auto compressedSize = ZCompression::Compress(entries.GetData(), entries.GetNumberOfBytesUsed(), compressed.data(), compressed.size());
+	ASSERT_GT(compressedSize, 0);
+
+	RakNet::BitStream packet;
+	packet.Write<uint8_t>(ID_REPLICA_MANAGER_CONSTRUCTION);
+	packet.Write1();
+	packet.Write<uint16_t>(5);
+	packet.Write<int64_t>(288300744895900300);
+	packet.Write<int32_t>(7000);
+	packet.Write<uint8_t>(0); // name
+	packet.Write<uint32_t>(0);
+	packet.Write1(); // config
+	packet.Write<uint32_t>(1 + 4 + 4 + compressedSize);
+	packet.Write<uint8_t>(1);
+	packet.Write<uint32_t>(entries.GetNumberOfBytesUsed());
+	packet.Write<uint32_t>(compressedSize);
+	for (int32_t i = 0; i < compressedSize; i++) packet.Write<uint8_t>(compressed[i]);
+	for (int i = 0; i < 7; i++) packet.Write0(); // trigger, spawner, spawner node, scale, world state, GM level, parent/child
+
+	const ReplicaDecoder::ComponentTable table{ { 7000, {} } };
+	ReplicaDecoder::Session session(table);
+	const auto constructed = session.Decode(Bytes(packet), 1);
+	ASSERT_TRUE(constructed);
+	EXPECT_FALSE(constructed->contains("(layout did not match)")) << constructed->dump();
+	ASSERT_TRUE(constructed->contains("config")) << constructed->dump();
+	EXPECT_EQ((*constructed)["config"].value("entries", json()), json::array({ "name=1:42" })) << constructed->dump();
+}
+
+// Narrow text that isn't UTF-8 is shown byte by byte, so the viewer's JSON always writes
+TEST_F(ReplicaDecoderTest, TextThatIsNotUtf8StillWrites) {
+	RakNet::BitStream packet;
+	packet.Write<uint8_t>(ID_REPLICA_MANAGER_CONSTRUCTION);
+	packet.Write1();
+	packet.Write<uint16_t>(6);
+	packet.Write<int64_t>(288300744895900301);
+	packet.Write<int32_t>(7001);
+	packet.Write<uint8_t>(0);
+	packet.Write<uint32_t>(0);
+	packet.Write1(); // config: one narrow string entry with a byte that isn't UTF-8
+	RakNet::BitStream entries;
+	entries.Write<int32_t>(1);
+	entries.Write<uint8_t>(2);
+	entries.Write<uint16_t>(u'k');
+	entries.Write<uint8_t>(13);
+	entries.Write<uint32_t>(2);
+	entries.Write<uint8_t>(0x10);
+	entries.Write<uint8_t>(0xE9);
+	packet.Write<uint32_t>(1 + entries.GetNumberOfBytesUsed());
+	packet.Write<uint8_t>(0);
+	for (uint32_t i = 0; i < entries.GetNumberOfBytesUsed(); i++) packet.Write<uint8_t>(entries.GetData()[i]);
+	for (int i = 0; i < 7; i++) packet.Write0();
+
+	const ReplicaDecoder::ComponentTable table{ { 7001, {} } };
+	ReplicaDecoder::Session session(table);
+	const auto constructed = session.Decode(Bytes(packet), 1);
+	ASSERT_TRUE(constructed);
+	EXPECT_NO_THROW(constructed->dump());
+	EXPECT_EQ((*constructed)["config"][0], "k=13:\x10\xC3\xA9");
+}
+
+// A model outside a property (a model reward in the world): the client makes the plain model component, which reads
+// only the model's block, no behaviors; not in an inventory, it is smashable, with its destroyable last
+TEST_F(ReplicaDecoderTest, LiveModelOutsideAProperty) {
+	const auto constructed = DecodeLive("248a802380000000200002458b800000375d87004f800000004f0000000d4000001e2718d898180432997219d2185219721842186a190a002c8620708318a94331501d8460cbd737a4f061606cd6e700430005b78231d2f2f3b0000400000800000000800000000414000002546af7863532ba87960375840000000000000000000000000001007f8b1700000000000000000000400000000546af7863532ba87960375840001007e000000000000000000000000000000000", 6027, { RENDER, SIMPLE_PHYSICS, ITEM, MODEL });
+	EXPECT_FALSE(constructed.contains("(layout did not match)")) << constructed.dump();
+	EXPECT_EQ(Names(constructed), "SIMPLE_PHYSICS ITEM MODEL RENDER DESTROYABLE ");
+	EXPECT_FALSE(FieldsOf(constructed, "MODEL")->contains("behaviors"));
+}
+
+// DLU's models: a property model (propertyObjectID in its settings) writes its behaviors, which the client reads with
+// the mutable model component; any other writes only the model's block
+TEST_F(ReplicaDecoderTest, ModelBehaviorsOnlyOnPropertyModels) {
+	const ReplicaDecoder::ComponentTable table{ { 6001, { SIMPLE_PHYSICS, ITEM, MODEL } } };
+	for (const bool onProperty : { false, true }) {
+		info.lot = 6001;
+		info.settings.values.clear();
+		if (onProperty) info.settings.Insert<bool>(u"propertyObjectID", true);
+		Entity model(288300744895900210, info);
+		model.AddComponent<SimplePhysicsComponent>(-1);
+		model.AddComponent<ModelComponent>(-1)->LoadBehaviors();
+		ReplicaDecoder::Session session(table);
+		const auto constructed = session.Decode(Construction(model, 4), 1);
+		ASSERT_TRUE(constructed);
+		EXPECT_FALSE(constructed->contains("(layout did not match)")) << constructed->dump();
+		const auto* fields = FieldsOf(*constructed, onProperty ? "MUTABLE_MODEL_BEHAVIORS" : "MODEL");
+		ASSERT_TRUE(fields) << Names(*constructed);
+		EXPECT_EQ(fields->contains("behaviors"), onProperty);
+	}
+	info.settings.values.clear();
 }

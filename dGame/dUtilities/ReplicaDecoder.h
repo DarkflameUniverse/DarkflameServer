@@ -51,6 +51,7 @@ namespace ReplicaDecoder {
 			LWOOBJID objectId{};
 			LOT lot{};
 			std::vector<eReplicaComponentType> components;
+			bool trigger{}; // its trigger component is read after the others
 		};
 
 		const ComponentTable& m_Table;
