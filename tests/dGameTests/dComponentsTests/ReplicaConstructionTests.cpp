@@ -258,6 +258,33 @@ TEST_F(ReplicaConstructionTest, SimplePhysicsConstructionLikeLive) {
 	info.settings.values.clear();
 }
 
+// The client reads a moving platform's subcomponents while a 1 bit comes before one (as live wrote them): the list
+// ends with a 0 bit, which DLU left out, so the client took the next component's first bit for it
+TEST_F(ReplicaConstructionTest, MovingPlatformEndsItsSubcomponentList) {
+	info.lot = 2349;
+	Entity platform(288300744895900005, info);
+	auto* const component = platform.AddComponent<MovingPlatformComponent>(-1, "");
+	component->SetSerialized(true);
+	RakNet::BitStream stream;
+	component->Serialize(stream, true);
+
+	bool bit{};
+	ASSERT_TRUE(stream.Read(bit));
+	EXPECT_TRUE(bit); // has subcomponents
+	ASSERT_TRUE(stream.Read(bit));
+	EXPECT_FALSE(bit); // no path
+	ASSERT_TRUE(stream.Read(bit));
+	EXPECT_TRUE(bit); // a subcomponent follows
+	uint32_t type{};
+	ASSERT_TRUE(stream.Read(type));
+	EXPECT_EQ(type, 4u); // mover
+	// The mover: a 1 bit, state, desired waypoint, 2 flags, percent, position, current and next waypoint, 2 times
+	stream.IgnoreBits(1 + 32 + 32 + 2 + 32 + 96 + 32 + 32 + 32 + 32);
+	ASSERT_TRUE(stream.Read(bit));
+	EXPECT_FALSE(bit); // no more subcomponents
+	EXPECT_EQ(stream.GetNumberOfUnreadBits(), 0u);
+}
+
 // Live replicated the DestructibleComponent factionList, so a list of -1 as [-1] (12,829 constructions: vendors,
 // quickbuilds, bouncers; DLU dropped it and sent []), and a row with no faction but factionList 6 as [6].
 TEST_F(ReplicaConstructionTest, TemplateFactionMinusOneIsReplicated) {

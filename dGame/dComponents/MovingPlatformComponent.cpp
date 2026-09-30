@@ -118,6 +118,9 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 		} else {
 			mover->Serialize(outBitStream, bIsInitialUpdate);
 		}
+
+		// The client reads subcomponents while a 1 bit comes before one: a 0 bit ends the list
+		outBitStream.Write0();
 	}
 }
 
