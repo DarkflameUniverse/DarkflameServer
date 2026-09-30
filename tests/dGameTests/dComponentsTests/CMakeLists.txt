@@ -1,5 +1,6 @@
 set(DCOMPONENTS_TESTS
 	"DeletionRestrictionTests.cpp"
+	"MovingPlatformComponentTests.cpp"
 	"InventorySaveTests.cpp"
 	"EquipMessagesTests.cpp"
 	"DestroyableLevelConfigTests.cpp"
