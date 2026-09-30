@@ -39,28 +39,31 @@ TEST(GameMessageDecoderTest, ReadsWhatTheServerWrites) {
 	EXPECT_EQ((*fields)["skillID"], 42);
 	EXPECT_EQ((*fields)["optionalOriginatorID"], "1234");
 	EXPECT_EQ((*fields)["optionalTargetID"], "77");
-	EXPECT_EQ((*fields)["sBitStream"], "0102");
+	EXPECT_EQ((*fields)["sBitStream"], nlohmann::json({ {"hex", "0102"} }));
 }
 
-TEST(GameMessageDecoderTest, DirectionMatters) {
+// A message only sent one way is read with its struct in either direction (the layout is the same)
+TEST(GameMessageDecoderTest, SentMessagesDecode) {
 	GameMessages::EchoSyncSkill sent;
 	sent.bDone = true;
 	sent.uiSkillHandle = 5;
 	RakNet::BitStream stream;
 	sent.Serialize(stream);
 
-	EXPECT_FALSE(GameMessageDecoder::CanDecode(MessageType::Game::ECHO_SYNC_SKILL, true));
+	EXPECT_TRUE(GameMessageDecoder::CanDecode(MessageType::Game::ECHO_SYNC_SKILL, false));
 	const auto fields = GameMessageDecoder::Decode(MessageType::Game::ECHO_SYNC_SKILL, false, stream);
 	ASSERT_TRUE(fields);
 	EXPECT_EQ((*fields)["bDone"], true);
 	EXPECT_EQ((*fields)["uiSkillHandle"], 5);
 }
 
-TEST(GameMessageDecoderTest, UntypedMessagesAreNotDecoded) {
+// A message the server has no struct for (live only) isn't decoded
+TEST(GameMessageDecoderTest, MessagesWithoutAStructAreNotDecoded) {
 	RakNet::BitStream payload;
 	payload.Write<uint32_t>(1);
-	EXPECT_FALSE(GameMessageDecoder::CanDecode(MessageType::Game::PLAY_EMOTE, true));
-	EXPECT_FALSE(GameMessageDecoder::Decode(MessageType::Game::PLAY_EMOTE, true, payload));
+	EXPECT_FALSE(GameMessageDecoder::HasStruct(MessageType::Game::SET_PVP_STATUS));
+	EXPECT_FALSE(GameMessageDecoder::CanDecode(MessageType::Game::SET_PVP_STATUS, true));
+	EXPECT_FALSE(GameMessageDecoder::Decode(MessageType::Game::SET_PVP_STATUS, true, payload));
 }
 
 TEST(GameMessageDecoderTest, ShortPayloadsFail) {

@@ -5,6 +5,7 @@ SET(DNET_TESTS
 	"MasterPacketsTests.cpp"
 	"MatchmakingPacketsTests.cpp"
 	"PacketCaptureTests.cpp"
+	"PacketDecoderCoverageTests.cpp"
 	"ServerTrafficTests.cpp"
 	"WorldPacketsTests.cpp")
 

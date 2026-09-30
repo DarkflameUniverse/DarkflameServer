@@ -134,6 +134,13 @@ def game_messages():
 		if path.name == "GameMessages.h":
 			continue
 		structs += [s for s in parse(path) if s["base"] != "GameMsg"]
+	# Constructors defined in the .cpp
+	for s in structs:
+		source = directory / s["file"].replace(".h", ".cpp")
+		if s["base"] == "NetGameMsg" and not s["id"] and source.exists():
+			own = s["short"].split("::")[-1]
+			if (mid := re.search(rf"\b{own}::{own}\s*\(\s*\)\s*:\s*NetGameMsg\(\s*MessageType::Game::(\w+)", source.read_text())):
+				s["enum"], s["id"] = "Game", mid.group(1)
 	wire = [s for s in structs if s["enum"] == "Game" and s["id"]]
 	lines = member_lines(reachable(structs, wire))
 	lines.append("// Wire messages: (ID, direction, reader). A struct with Handle is what the server reads from a client.")

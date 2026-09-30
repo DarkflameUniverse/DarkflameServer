@@ -129,6 +129,7 @@ json ToJson(const GameMessages::RequestLinkedMission& m);
 json ToJson(const GameMessages::SetFlag& m);
 json ToJson(const GameMessages::NotifyClientFlagChange& m);
 json ToJson(const GameMessages::HasBeenCollected& m);
+json ToJson(const GameMessages::SetMissionTypeState& m);
 json ToJson(const GameMessages::NotifyLevelRewards& m);
 json ToJson(const GameMessages::Teleport& m);
 json ToJson(const GameMessages::StartPathing& m);
@@ -230,6 +231,7 @@ json ToJson(const GameMessages::EnterProperty1& m);
 json ToJson(const GameMessages::UpdatePropertyPerformanceCost& m);
 json ToJson(const GameMessages::ReportOffensiveModel& m);
 json ToJson(const GameMessages::ReportOffensiveProperty& m);
+json ToJson(const GameMessages::ControlBehaviors& m);
 json ToJson(const GameMessages::GetHotPropertyData& m);
 json ToJson(const GameMessages::NewsSendHotPropertiesInfoToClient& m);
 json ToJson(const GameMessages::NewsSendHotPropertiesInfoToClient::HotPropertyInfo& m);
@@ -1310,6 +1312,13 @@ json ToJson(const GameMessages::HasBeenCollected& m) {
 	j["playerID"] = ToJson(m.playerID);
 	return j;
 }
+json ToJson(const GameMessages::SetMissionTypeState& m) {
+	json j = json::object();
+	j["state"] = ToJson(m.state);
+	j["subtype"] = ToJson(m.subtype);
+	j["type"] = ToJson(m.type);
+	return j;
+}
 json ToJson(const GameMessages::NotifyLevelRewards& m) {
 	json j = json::object();
 	j["level"] = ToJson(m.level);
@@ -2007,6 +2016,12 @@ json ToJson(const GameMessages::ReportOffensiveProperty& m) {
 	j["propertyPlaqueObjectID"] = ToJson(m.propertyPlaqueObjectID);
 	return j;
 }
+json ToJson(const GameMessages::ControlBehaviors& m) {
+	json j = json::object();
+	j["args"] = ToJson(m.args);
+	j["command"] = ToJson(m.command);
+	return j;
+}
 json ToJson(const GameMessages::GetHotPropertyData& m) {
 	json j = json::object();
 	return j;
@@ -2627,6 +2642,7 @@ const std::vector<Entry>& Entries() {
 		{ MessageType::Game::SET_FLAG, eDirection::TO_SERVER, "SetFlag", &ReadWith<GameMessages::SetFlag> },
 		{ MessageType::Game::NOTIFY_CLIENT_FLAG_CHANGE, eDirection::TO_CLIENT, "NotifyClientFlagChange", &ReadWith<GameMessages::NotifyClientFlagChange> },
 		{ MessageType::Game::HAS_BEEN_COLLECTED, eDirection::TO_SERVER, "HasBeenCollected", &ReadWith<GameMessages::HasBeenCollected> },
+		{ MessageType::Game::SET_MISSION_TYPE_STATE, eDirection::TO_SERVER, "SetMissionTypeState", &ReadWith<GameMessages::SetMissionTypeState> },
 		{ MessageType::Game::NOTIFY_LEVEL_REWARDS, eDirection::TO_CLIENT, "NotifyLevelRewards", &ReadWith<GameMessages::NotifyLevelRewards> },
 		{ MessageType::Game::TELEPORT, eDirection::TO_CLIENT, "Teleport", &ReadWith<GameMessages::Teleport> },
 		{ MessageType::Game::START_PATHING, eDirection::TO_CLIENT, "StartPathing", &ReadWith<GameMessages::StartPathing> },
@@ -2727,6 +2743,7 @@ const std::vector<Entry>& Entries() {
 		{ MessageType::Game::UPDATE_PROPERTY_PERFORMANCE_COST, eDirection::TO_SERVER, "UpdatePropertyPerformanceCost", &ReadWith<GameMessages::UpdatePropertyPerformanceCost> },
 		{ MessageType::Game::REPORT_OFFENSIVE_MODEL, eDirection::TO_SERVER, "ReportOffensiveModel", &ReadWith<GameMessages::ReportOffensiveModel> },
 		{ MessageType::Game::REPORT_OFFENSIVE_PROPERTY, eDirection::TO_SERVER, "ReportOffensiveProperty", &ReadWith<GameMessages::ReportOffensiveProperty> },
+		{ MessageType::Game::CONTROL_BEHAVIORS, eDirection::TO_SERVER, "ControlBehaviors", &ReadWith<GameMessages::ControlBehaviors> },
 		{ MessageType::Game::GET_HOT_PROPERTY_DATA, eDirection::TO_SERVER, "GetHotPropertyData", &ReadWith<GameMessages::GetHotPropertyData> },
 		{ MessageType::Game::SEND_HOT_PROPERTY_DATA, eDirection::TO_CLIENT, "NewsSendHotPropertiesInfoToClient", &ReadWith<GameMessages::NewsSendHotPropertiesInfoToClient> },
 		{ MessageType::Game::PLAY_BEHAVIOR_SOUND, eDirection::TO_CLIENT, "PlayBehaviorSound", &ReadWith<GameMessages::PlayBehaviorSound> },

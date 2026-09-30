@@ -66,3 +66,10 @@ target_link_libraries(dGameTests ${COMMON_LIBRARIES} sqlite3 GTest::gtest_main
 
 # Discover the tests
 gtest_discover_tests(dGameTests)
+
+# The member lists the capture viewer shows packets with are generated from the packet structs: fail when a struct
+# changed without running the generator
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+	add_test(NAME PacketFieldsUpToDate COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/gen_game_message_fields.py --check)
+endif()

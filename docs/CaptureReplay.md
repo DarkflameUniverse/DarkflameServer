@@ -90,6 +90,53 @@ A busy world sends a few thousand packets a second, so capturing everything ther
 Appending to a file is about 80 times cheaper than a database row per packet, so packets go to files and the
 database keeps only the session row (the game message inspector keeps its rows as before).
 
+## Decoding
+
+The viewer shows every packet with named fields and values, and its bytes below. Nothing is parsed twice: packets are
+read with the server's own structs and their `Deserialize`.
+
+| Packets | How |
+|---|---|
+| LU packets (auth, chat, client, master, world, common) | `dNet/PacketDecoder.cpp`: the struct for its (service, ID). An ID with a struct per direction is read with the first that reads the whole packet, the direction's own first. |
+| Game messages, both directions | `dGame/dGameMessages/GameMessageDecoder.cpp`: the `NetGameMsg` struct for its ID (the one the server reads a client's message with, else the one it sends). |
+| Replica constructions, serializations, destructions | `dGame/dUtilities/ReplicaDecoder.cpp`, below. |
+
+The members of each struct are listed by `tools/gen_game_message_fields.py`, which writes `dNet/PacketFields.inc` and
+`dGame/dGameMessages/GameMessageFields.inc` from the struct definitions; run it after changing a packet struct (the
+`PacketFieldsUpToDate` test fails until then). Every member type needs a `ToJson` overload (`dNet/PacketJson.h`), or
+the build fails. Members holding secrets (passwords, session and user keys) are never listed. Whole bytes a struct
+leaves unread are shown as `(unread bits)`.
+
+What isn't decoded shows its name (from the `MessageType` enums) and its bytes: LU packet IDs this server never sends
+or handles (listed in `PacketDecoderCoverageTests`, which fails for any other ID without a struct), game message IDs
+the server has no struct for (live-only messages), and the client's `MAIL` packet (its sub-messages are read by the
+game's mail code). Every game message the server sends or reads has a struct.
+
+### Replica packets
+
+Replica packets depend on what came before, so a capture is read once in timeline order, on a dashboard worker
+thread, and the result is kept with the loaded capture:
+
+- **Destruction:** the network ID, and the object it was when the capture had its construction.
+- **Construction:** the object header as `Entity::WriteBaseReplicaData` writes it (network ID, object ID, LOT, name,
+  age, config, trigger, spawner, spawner node, scale, world state, GM level, parent and children), then each
+  component's data in the order the client reads them (`Entity::WriteComponents`). Which components an object has
+  comes from the ComponentsRegistry rows of its LOT, read from the CDClient at startup, with the ones the server adds
+  itself (a destroyable for collectibles, quick builds and models, the character's parts, a buff with a destroyable).
+- **Serialization:** the object's LOT and components from its construction earlier on the same world instance, then
+  each component's update. An object constructed before the capture started shows "object not constructed in this
+  capture" and the bytes.
+
+Each component reader mirrors the component's `Serialize(bIsInitialUpdate)` (`ReplicaDecoderTests` writes real
+components with the server's serializers and reads them back). Some objects have components their LOT doesn't list
+(a smashable, moving platform or script set up by the zone file): when the registry's list doesn't read the packet
+exactly (to the last whole byte, padding zero), those variants are tried. When none fits, what read is shown with
+`(layout did not match)` and the rest as bits; parts the server never writes (only live did, such as local space
+info) stop the reader with `(... present, not read)`. Nothing is guessed.
+
+The capture tool reads game messages the same way (it links the game), so replays compare their fields, not only their
+size.
+
 ## The bundle format
 
 One format for the dashboard's capture files, exported bundles and converted live captures (`dNet/CaptureBundle.h`):
@@ -147,7 +194,7 @@ CaptureTool replay <bundle>... --client <game client folder> [--cdserver <CDServ
                                [--speed 4] [--port 41000] [--sandbox-root <dir>] [--keep | --keep-on-failure] [--report <file.json>]
 CaptureTool import-live <folder> <out-dir>      convert live captures
 CaptureTool anonymise <in> <out>                make a fixture
-CaptureTool info|decode <bundle>                look inside
+CaptureTool info|decode <bundle> [--cdserver <CDServer.sqlite>]   look inside (replica packets too with --cdserver)
 ```
 
 ### The sandbox
@@ -224,4 +271,7 @@ decoder registry knows and checks it writes back to the same bytes; without fixt
 - Capture a character that changes worlds (a rocket or a portal): the capture page's slider has a mark at each change
   named after the new zone; in World 3D, following the character switches the scene at the mark and the camera stays
   on them, forward and when seeking back.
+- In a capture of a zone load: every packet shows fields; constructions list their components (no
+  `(layout did not match)` on players, enemies, smashables, NPCs); a later `ID_REPLICA_MANAGER_SERIALIZE` of an enemy
+  hit in the capture shows its new health; game messages both ways (a skill, an emote, a vendor purchase) show fields.
 - Export a bundle, replay it with `CaptureTool replay`, and open a kept sandbox's logs.
