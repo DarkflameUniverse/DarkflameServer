@@ -55,11 +55,11 @@
 		<div class="card-body">
 			<dl class="small cf-explain mb-3 row">
 				<dt class="col-sm-2 text-danger">Blocked</dt><dd class="col-sm-10">Stopped in all chat, even if a word file allows it. A phrase (several words) is stopped when its words come in a row, whatever the spaces and punctuation between them.</dd>
-				<dt class="col-sm-2 text-success">Allowed</dt><dd class="col-sm-10">Usable in normal chat, like the words in <code>chatplus_en_us.txt</code>. Single words only: normal chat checks each word on its own, as the client does.</dd>
+				<dt class="col-sm-2 text-success">Allowed</dt><dd class="col-sm-10">Usable in normal chat, like the words in <code>chatplus_en_us.txt</code>. An allowed phrase lets its words through together, even where one alone isn't allowed. Block lists win: a phrase from the block list is stopped in normal chat too.</dd>
 			</dl>
 			<form class="row g-2 align-items-end mb-3" id="addForm">
 				<div class="col-md-6"><label class="form-label small mb-1" for="addWord">Add a word or phrase</label>
-					<input class="form-control form-control-sm" id="addWord" maxlength="64" required autocomplete="off" placeholder="A word, or a phrase to block"></div>
+					<input class="form-control form-control-sm" id="addWord" maxlength="64" required autocomplete="off" placeholder="A word or phrase"></div>
 				<div class="col-md-6 d-flex gap-2">
 					<button type="submit" class="btn btn-sm btn-danger" data-list="blocked">Block…</button>
 					<button type="submit" class="btn btn-sm btn-success" data-list="allowed">Allow…</button>

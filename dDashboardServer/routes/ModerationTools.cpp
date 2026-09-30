@@ -305,17 +305,14 @@ namespace {
 			});
 
 		Route(eHTTPMethod::POST, "/api/chat_filter/words", Perm("chat_filter_manage"),
-			"Allow or block a word, or block a phrase (or move it to the other list); running worlds pick it up at once. Phrases can't be allowed: "
-			"whitelist chat checks each word on its own, as the client does. Body: {word, allowed: bool}",
+			"Allow or block a word or phrase (or move it to the other list); running worlds pick it up at once. An allowed phrase lets its words "
+			"through together in normal chat. Body: {word, allowed: bool}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
 				const auto word = ModerationTools::FilterWord(body->value("word", ""));
 				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type a word or phrase, up to 64 characters");
 				const bool allowed = body->value("allowed", false);
-				if (allowed && ModerationTools::IsPhrase(*word)) {
-					return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Phrases can only be blocked: normal chat checks each word on its own, so allow the words instead");
-				}
 				Database::Get()->SetChatFilterWord({ *word, allowed, context.authenticatedUser, static_cast<int64_t>(std::time(nullptr)) });
 				Audit(context, allowed ? "chat_filter_allow" : "chat_filter_block", (allowed ? "Allowed \"" : "Blocked \"") + *word + "\" in chat");
 				BroadcastTableChanged("chat_filter");
@@ -365,7 +362,11 @@ namespace {
 				sources.blockFile = [&blocked](const std::string& entry) { return blocked.list.Contains(entry); };
 				sources.blockFileLoaded = !blocked.list.Empty();
 				sources.maxWords = blocked.list.maxWords;
-				for (const auto& [entry, allowed] : dashboard) if (!allowed) sources.maxWords = std::max(sources.maxWords, ChatFilterWords::WordCount(entry));
+				for (const auto& [entry, allowed] : dashboard) {
+					auto& longest = allowed ? sources.maxAllowedWords : sources.maxWords;
+					longest = std::max(longest, ChatFilterWords::WordCount(entry));
+				}
+				for (const auto& entry : all) sources.maxAllowedWords = std::max(sources.maxAllowedWords, ChatFilterWords::WordCount(entry));
 				nlohmann::json words = nlohmann::json::array();
 				bool stopped = false;
 				for (const auto& verdict : ModerationTools::ExplainMessage(message, allowList, sources)) {

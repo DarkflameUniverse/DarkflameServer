@@ -1218,9 +1218,11 @@ character names also count as allowed. Words are compared lower case, without `!
 running worlds and in the chat server's web chat; servers that start later read them. Changes are audited and go to the
 `moderation` webhook event.
 
-Blocked entries can be phrases: a phrase is stopped when its words come in a row in a message, whatever the spaces and
-punctuation between them, and the whole phrase is marked. Allowed entries are single words only, because normal
-(whitelist) chat checks each word on its own, as the client does.
+Entries can be phrases. A blocked phrase is stopped when its words come in a row in a message, whatever the spaces and
+punctuation between them, and the whole phrase is marked. Phrases in `blocklist.dcf` are stopped in normal (whitelist)
+chat too; its single words only matter in free chat, since normal chat already needs every word allowed. An allowed
+phrase (in `chatplus_en_us.txt` or on the dashboard) lets its words through together in normal chat, even where one
+alone isn't allowed. The client only checks single words before it sends a message; the server is the full check.
 
 #### Block list file
 
@@ -1248,7 +1250,7 @@ The page has three sections:
   word by word (in the file, allowed or blocked here, a character name, not allowed, in the blocked words file). Each
   word has a Block, Allow or Remove button.
 - **Staff lists**: **Blocked** words and phrases are stopped in all chat, even where a file allows them (phrases are
-  marked **Phrase**); **Allowed** words are usable in normal chat. Search, filter by list, 50 per page. Block, Allow (or move to the other list) and Remove each open a
+  marked **Phrase**); **Allowed** words and phrases are usable in normal chat. Search, filter by list, 50 per page. Block, Allow (or move to the other list) and Remove each open a
   confirmation that shows where the word stands now and, for Block and Allow, the recent chat it changes (players' chat
   containing it that would have been stopped, or stopped messages containing it; the newest 1000 messages with the
   text; needs `chat_view`).

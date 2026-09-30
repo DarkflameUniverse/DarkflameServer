@@ -90,7 +90,7 @@
 			return '<tr><td>' + esc(w.word) + phraseBadge(w.word) + '</td><td>' + (w.allowed ? fmt.badge('Allowed', 'success') : fmt.badge('Blocked', 'danger')) + '</td>' +
 				'<td class="small">' + esc(w.added_by) + '</td><td class="small text-nowrap">' + esc(fmt.unix(w.added_at)) + '</td>' +
 				'<td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-secondary" data-test="' + esc(w.word) + '">Test</button> ' +
-				(isPhrase(w.word) && !w.allowed ? '' : '<button type="button" class="btn btn-sm btn-outline-' + (w.allowed ? 'danger' : 'success') + '" data-add="' + other + '" data-word="' + esc(w.word) + '">' + (w.allowed ? 'Block…' : 'Allow…') + '</button> ') +
+				'<button type="button" class="btn btn-sm btn-outline-' + (w.allowed ? 'danger' : 'success') + '" data-add="' + other + '" data-word="' + esc(w.word) + '">' + (w.allowed ? 'Block…' : 'Allow…') + '</button> ' +
 				'<button type="button" class="btn btn-sm btn-outline-secondary" data-remove="' + esc(w.word) + '">Remove…</button></td></tr>';
 		}).join('') || '<tr><td colspan="5" class="text-body-secondary">' + (words.length ? 'No words match.' : 'No words added yet.') + '</td></tr>';
 		document.getElementById('listRange').textContent = rows.length ? (listStart + 1) + '–' + (listStart + shown.length) + ' of ' + rows.length : '';
@@ -120,7 +120,6 @@
 		e.preventDefault();
 		var word = addWord.value.trim().replace(/\s+/g, ' ');
 		if (!word) return;
-		if (addList === 'allowed' && isPhrase(word)) { toast('Phrases can only be blocked: normal chat checks each word on its own, so allow the words instead', 'warning'); return; }
 		confirmAdd(word, addList === 'allowed').then(function (done) { if (done) addWord.value = ''; });
 	});
 
@@ -191,7 +190,7 @@
 	function confirmAdd(word, allowed) {
 		var p = openConfirm({
 			title: (allowed ? 'Allow "' : 'Block "') + word + '"?',
-			text: allowed ? 'Players may use it in normal chat. Running worlds apply it at once.'
+			text: allowed ? (isPhrase(word) ? 'Players may use these words together in normal chat, even where one alone isn\'t allowed. Running worlds apply it at once.' : 'Players may use it in normal chat. Running worlds apply it at once.')
 				: (isPhrase(word) ? 'The phrase is stopped in all chat when its words come in a row. Running worlds apply it at once.' : 'It is stopped in all chat, even where a word file allows it. Running worlds apply it at once.'),
 			tone: allowed ? 'success' : 'danger',
 			button: allowed ? 'Allow' : 'Block',

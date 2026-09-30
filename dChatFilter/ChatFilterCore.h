@@ -57,6 +57,9 @@ namespace ChatFilterWords {
 		return entry.empty() ? 0 : static_cast<uint32_t>(std::count(entry.begin(), entry.end(), ' ')) + 1;
 	}
 
+	// Whether an entry is several words (entries are normalized words joined by single spaces)
+	inline bool IsPhrase(std::string_view entry) { return entry.find(' ') != std::string_view::npos; }
+
 	// 64-bit FNV-1a: offset basis 0xcbf29ce484222325, prime 0x100000001b3, one byte at a time
 	constexpr uint64_t Hash(std::string_view entry) {
 		uint64_t hash = 0xcbf29ce484222325ULL;
@@ -151,19 +154,20 @@ namespace ChatFilterWords {
 	};
 
 	/**
-	 * The pieces of a message the filter stops, as (position, length) in the message. Blocked words and phrases (the
-	 * dashboard's always, blocklist.dcf's in free chat) are stopped as one span each. In whitelist chat (allowList) every
-	 * other piece must be an allowed word, one at a time, as the client checks words. In free chat without a block list
-	 * the whole message is stopped.
+	 * The pieces of a message the filter stops, as (position, length) in the message. Blocked words and phrases are
+	 * stopped as one span each: the dashboard's in all chat, blocklist.dcf's phrases in all chat and its single words in
+	 * free chat (whitelist chat already stops a word that isn't allowed). In whitelist chat (allowList) every other piece
+	 * must be allowed, as a word or as part of an allowed phrase; the client only checks single words before sending,
+	 * the server is the full check. In free chat without a block list the whole message is stopped.
 	 */
 	inline std::set<std::pair<uint8_t, uint8_t>> CheckMessage(std::string_view message, bool allowList, const Lists& lists) {
 		if (message.empty()) return {};
 		if (!allowList && lists.denied.Empty()) return { { 0, static_cast<uint8_t>(message.length()) } };
 
 		const auto tokens = Tokenize(message);
-		const uint32_t maxWords = std::max(lists.customBlocked.maxWords, allowList ? 0u : lists.denied.maxWords);
+		const uint32_t maxWords = std::max(lists.customBlocked.maxWords, lists.denied.maxWords);
 		const auto matches = FindBlocked(tokens, maxWords, [&](const std::string& entry) {
-			return lists.customBlocked.Contains(entry) || (!allowList && lists.denied.Contains(entry));
+			return lists.customBlocked.Contains(entry) || ((!allowList || IsPhrase(entry)) && lists.denied.Contains(entry));
 		});
 
 		std::set<std::pair<uint8_t, uint8_t>> bad;
@@ -176,6 +180,17 @@ namespace ChatFilterWords {
 		}
 
 		if (allowList) {
+			// Allowed phrases let their words through together, even where one alone isn't allowed
+			const uint32_t allowedWords = std::max(lists.approved.maxWords, lists.customAllowed.maxWords);
+			if (allowedWords > 1) {
+				std::vector<Token> open = tokens;
+				// A stopped word breaks a phrase (a word no entry can hold, so it isn't skipped like an empty piece)
+				for (size_t i = 0; i < open.size(); i++) if (covered[i] && !open[i].word.empty()) open[i].word = "\x01";
+				const auto allowed = FindBlocked(open, allowedWords, [&](const std::string& entry) {
+					return IsPhrase(entry) && (lists.approved.Contains(entry) || lists.customAllowed.Contains(entry));
+				});
+				for (const auto& match : allowed) for (size_t i = match.first; i <= match.last; i++) covered[i] = true;
+			}
 			for (size_t i = 0; i < tokens.size(); i++) {
 				if (covered[i]) continue;
 				const auto hash = Hash(tokens[i].word);
@@ -303,8 +318,13 @@ namespace dChatFilterDCF {
 			std::string line(text.substr(start, end - start));
 			std::erase(line, '\r');
 			line = ChatFilterWords::AsciiLower(std::move(line));
-			list.hashes.insert(ChatFilterWords::Hash(line));
-			list.maxWords = std::max(list.maxWords, 1u);
+			// A line with spaces is an allowed phrase, compared as the filter reads messages; words stay as written
+			if (line.find(' ') != std::string::npos) {
+				list.AddEntry(ChatFilterWords::NormalizeEntry(line));
+			} else {
+				list.hashes.insert(ChatFilterWords::Hash(line));
+				list.maxWords = std::max(list.maxWords, 1u);
+			}
 			start = end + 1;
 		}
 		return list;

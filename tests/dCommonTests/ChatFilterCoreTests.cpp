@@ -142,10 +142,40 @@ TEST(ChatFilterCoreTest, DashboardPhrasesInWhitelistChat) {
 	// Blocked on the dashboard: stopped in whitelist chat too, even though each word is allowed
 	EXPECT_EQ(CheckMessage("hello bad phrase", true, lists), (Spans{ { 6, 10 } }));
 	EXPECT_TRUE(CheckMessage("hello bad there phrase", true, lists).empty());
-	// Whitelist chat checks one word at a time, as the client does
+	// A word that isn't allowed is stopped in whitelist chat
 	EXPECT_EQ(CheckMessage("hello stranger", true, lists), (Spans{ { 6, 8 } }));
 	lists.customAllowed.AddEntry("stranger");
 	EXPECT_TRUE(CheckMessage("hello stranger", true, lists).empty());
+}
+
+TEST(ChatFilterCoreTest, BlockListPhrasesInWhitelistChat) {
+	// Each word is allowed, the phrase is on the block list: the server stops it in whitelist chat too
+	const auto lists = FreeChatLists("bad phrase\nfriend\n");
+	EXPECT_EQ(CheckMessage("hello bad phrase", true, lists), (Spans{ { 6, 10 } }));
+	// A single blocked word only counts in free chat; whitelist chat goes by the allowed words
+	EXPECT_TRUE(CheckMessage("hello friend", true, lists).empty());
+	EXPECT_EQ(CheckMessage("hello friend", false, lists), (Spans{ { 6, 6 } }));
+}
+
+TEST(ChatFilterCoreTest, AllowedPhrasesInWhitelistChat) {
+	auto lists = FreeChatLists("");
+	lists.customAllowed.AddEntry(NormalizeEntry("Nexus Tower"));
+	// Neither word is allowed alone, together they are
+	EXPECT_TRUE(CheckMessage("hello nexus tower", true, lists).empty());
+	EXPECT_TRUE(CheckMessage("Nexus  Tower!", true, lists).empty());
+	EXPECT_EQ(CheckMessage("hello tower", true, lists), (Spans{ { 6, 5 } }));
+	EXPECT_EQ(CheckMessage("nexus hello tower", true, lists), (Spans{ { 0, 5 }, { 12, 5 } }));
+	// From the allowed words file as well
+	Lists fromFile;
+	fromFile.approved = dChatFilterDCF::AllowListFromText("hello\nnexus tower\n");
+	EXPECT_TRUE(CheckMessage("hello nexus tower", true, fromFile).empty());
+	// A blocked word breaks the phrase
+	lists.customBlocked.AddEntry("tower");
+	EXPECT_EQ(CheckMessage("nexus tower", true, lists), (Spans{ { 0, 5 }, { 6, 5 } }));
+	// Free chat ignores the allowed lists
+	auto freeChat = FreeChatLists("tower\n");
+	freeChat.customAllowed.AddEntry(NormalizeEntry("Nexus Tower"));
+	EXPECT_EQ(CheckMessage("nexus tower", false, freeChat), (Spans{ { 6, 5 } }));
 }
 
 TEST(ChatFilterCoreTest, ShippedBlockListIsPortable) {

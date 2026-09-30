@@ -123,7 +123,25 @@ TEST(ChatFilterWordsTest, ExplainPhrases) {
 	EXPECT_EQ(Reasons(verdicts), (std::vector<std::string>{ "ok allow_file", "x blocked_here", "x blocked_here", "x blocked_here" }));
 	EXPECT_EQ(verdicts[1].phrase, "no way");
 	EXPECT_EQ(verdicts[3].text, "way!");
-	// The block file's phrases only in free chat
+	// The block file's phrases in free chat and in normal chat, even when each word is allowed
 	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("very rude", false, sources)), (std::vector<std::string>{ "x block_file", "x block_file" }));
+	sources.allowFile = [](const std::string& w) { return w == "very" || w == "rude"; };
+	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("very rude", true, sources)), (std::vector<std::string>{ "x block_file", "x block_file" }));
 	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("rude very", false, sources)), (std::vector<std::string>{ "ok not_in_block_file", "ok not_in_block_file" }));
+}
+
+TEST(ChatFilterWordsTest, ExplainAllowedPhrases) {
+	auto sources = Sources();
+	sources.dashboard = [](const std::string& w) -> std::optional<bool> {
+		if (w == "nexus tower") return true;
+		return std::nullopt;
+	};
+	sources.maxAllowedWords = 2;
+	// Neither word is allowed alone; together they are
+	auto verdicts = ModerationTools::ExplainMessage("hello Nexus  Tower", true, sources);
+	EXPECT_EQ(Reasons(verdicts), (std::vector<std::string>{ "ok allow_file", "ok allowed_here", "ok allowed_here", "ok allowed_here" }));
+	EXPECT_EQ(verdicts[1].phrase, "nexus tower");
+	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("tower", true, sources)), (std::vector<std::string>{ "x not_allowed" }));
+	// Free chat doesn't use allowed phrases
+	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("nexus tower", false, sources)), (std::vector<std::string>{ "ok not_in_block_file", "ok not_in_block_file" }));
 }

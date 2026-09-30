@@ -25,7 +25,7 @@ namespace ModerationTools {
 		return entry;
 	}
 
-	// Whether an entry is a phrase (more than one word). Phrases can only be blocked: whitelist chat checks one word at a time.
+	// Whether an entry is a phrase (more than one word)
 	inline bool IsPhrase(const std::string& entry) { return ChatFilterWords::WordCount(entry) > 1; }
 
 	// The words of a plain word list (chatplus_en_us.txt) as the filter reads them: one per line, lower case; sorted, each once
@@ -59,7 +59,7 @@ namespace ModerationTools {
 		std::string word;   // as the filter compares it
 		bool stopped{};
 		std::string reason; // blocked_here, allowed_here, allow_file, character_name, not_allowed, block_file, not_in_block_file, no_block_file
-		std::string phrase; // the blocked phrase this word is part of (blocked_here or block_file), when it was a phrase
+		std::string phrase; // the blocked or allowed phrase this word is part of, when it was a phrase
 	};
 
 	// Where the filter finds its words (callbacks keep this pure; the route reads the files and the database)
@@ -70,12 +70,14 @@ namespace ModerationTools {
 		std::function<bool(const std::string&)> blockFile;                // blocklist.dcf (by hash)
 		bool blockFileLoaded{};
 		uint32_t maxWords{ 1 };                                           // the longest blocked phrase, in words (here or in the file)
+		uint32_t maxAllowedWords{ 1 };                                    // the longest allowed phrase, in words (here or in the file)
 	};
 
 	/**
 	 * Each word of a message with what dChatFilter::IsSentenceOkay decides about it for a player below GM level 2 (higher
-	 * levels skip the filter). Blocked words and phrases (here always, the block file's in free chat) are stopped; a phrase
-	 * stops each of its words. Normal chat (allowList) needs every other word allowed, one at a time; best friends' free
+	 * levels skip the filter). Blocked words and phrases are stopped (here always, the block file's phrases always and its
+	 * single words in free chat); a phrase stops each of its words. Normal chat (allowList) needs every other word allowed,
+	 * on its own or as part of an allowed phrase; best friends' free
 	 * chat stops only blocked ones, or every word when there is no blocked words file. Words are split at spaces as the
 	 * filter splits them (ChatFilterWords::CheckMessage). Pure; unit tested.
 	 */
@@ -93,7 +95,7 @@ namespace ModerationTools {
 
 		const auto blockedHere = [&sources](const std::string& entry) { const auto here = sources.dashboard(entry); return here && !*here; };
 		const auto matches = ChatFilterWords::FindBlocked(tokens, std::max(sources.maxWords, 1u), [&](const std::string& entry) {
-			return blockedHere(entry) || (!allowList && sources.blockFile(entry));
+			return blockedHere(entry) || ((!allowList || ChatFilterWords::IsPhrase(entry)) && sources.blockFile(entry));
 		});
 		for (const auto& match : matches) {
 			const auto reason = blockedHere(match.entry) ? "blocked_here" : "block_file";
@@ -104,8 +106,25 @@ namespace ModerationTools {
 			}
 		}
 
+		// Allowed phrases in normal chat: their words pass together (a stopped word breaks a phrase)
+		if (allowList && sources.maxAllowedWords > 1) {
+			auto open = tokens;
+			for (size_t i = 0; i < open.size(); i++) if (verdicts[i].stopped && !open[i].word.empty()) open[i].word = "\x01";
+			const auto allowedHere = [&sources](const std::string& entry) { const auto here = sources.dashboard(entry); return here && *here; };
+			const auto allowed = ChatFilterWords::FindBlocked(open, sources.maxAllowedWords, [&](const std::string& entry) {
+				return ChatFilterWords::IsPhrase(entry) && (sources.allowFile(entry) || allowedHere(entry));
+			});
+			for (const auto& match : allowed) {
+				const auto reason = sources.allowFile(match.entry) ? "allow_file" : "allowed_here";
+				for (size_t i = match.first; i <= match.last; i++) {
+					verdicts[i].reason = reason;
+					verdicts[i].phrase = match.entry;
+				}
+			}
+		}
+
 		for (auto& verdict : verdicts) {
-			if (verdict.stopped) continue;
+			if (verdict.stopped || !verdict.phrase.empty()) continue;
 			const auto here = sources.dashboard(verdict.word);
 			if (!allowList) {
 				verdict.reason = "not_in_block_file";
