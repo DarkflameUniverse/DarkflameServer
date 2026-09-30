@@ -513,6 +513,31 @@ namespace GameMessages {
 		bitStream.Write(text);
 	}
 
+	bool DisplayTooltip::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(doOrDie));
+		VALIDATE_READ(bitStream.Read(noRepeat));
+		VALIDATE_READ(bitStream.Read(noRevive));
+		VALIDATE_READ(bitStream.Read(isPropertyTooltip));
+		VALIDATE_READ(bitStream.Read(show));
+		VALIDATE_READ(bitStream.Read(translate));
+		VALIDATE_READ(bitStream.Read(time));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<int32_t>(bitStream, id));
+		// The parameters are "key=type:value" lines, followed by a null terminator when there are any
+		std::u16string params;
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<int32_t>(bitStream, params));
+		if (!params.empty()) {
+			uint16_t terminator{};
+			VALIDATE_READ(bitStream.Read(terminator));
+		}
+		localizeParams.values.clear();
+		for (const auto& line : GeneralUtils::SplitString(GeneralUtils::UTF16ToWTF8(params), '\n')) {
+			if (!line.empty()) localizeParams.ParseInsert(line);
+		}
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<int32_t>(bitStream, imageName));
+		VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<int32_t>(bitStream, text));
+		return true;
+	}
+
 	void EmotePlayed::Serialize(RakNet::BitStream& stream) const {
 		stream.Write(emoteID);
 		stream.Write(targetID);

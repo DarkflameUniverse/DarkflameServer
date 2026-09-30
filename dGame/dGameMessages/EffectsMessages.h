@@ -337,6 +337,7 @@ namespace GameMessages {
 		std::u16string imageName{};
 		std::u16string text{};
 		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
 
 	struct EmotePlayed : public NetGameMsg {
