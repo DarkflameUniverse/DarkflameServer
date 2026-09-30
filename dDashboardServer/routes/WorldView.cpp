@@ -383,6 +383,26 @@ namespace WorldView {
 				JsonReply(reply, eHTTPStatusCode::OK, { {"instances", instances} });
 			});
 
+		Route(eHTTPMethod::GET, "/api/world3d/property_models", Perm("players_history"),
+			"The models placed on a property now, for replays of recorded positions there (which don't record models): "
+			"{property: {id, name, ownerId, ownerName} or null, models: [{id, lot, ugcId, position, rotation}]}. Query: ?zone=&clone=",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto zone = static_cast<uint32_t>(std::max<int64_t>(0, QueryInt(context, "zone", 0)));
+				const auto clone = static_cast<uint32_t>(std::max<int64_t>(0, QueryInt(context, "clone", 0)));
+				const auto info = zone && clone ? Database::Get()->GetPropertyInfo(zone, clone) : std::nullopt;
+				if (!info) return JsonReply(reply, eHTTPStatusCode::OK, { {"property", nullptr}, {"models", nlohmann::json::array()} });
+				nlohmann::json models = nlohmann::json::array();
+				for (const auto& model : Database::Get()->GetPropertyModels(info->id)) {
+					models.push_back({ {"id", std::to_string(model.id)}, {"lot", model.lot}, {"name", ClientAssets::ItemName(model.lot)}, {"ugcId", std::to_string(model.ugcId)},
+						{"position", {model.position.x, model.position.y, model.position.z}},
+						{"rotation", {model.rotation.x, model.rotation.y, model.rotation.z, model.rotation.w}} });
+				}
+				JsonReply(reply, eHTTPStatusCode::OK, {
+					{"property", { {"id", std::to_string(info->id)}, {"name", info->name}, {"ownerId", std::to_string(info->ownerId)}, {"ownerName", CharacterName(info->ownerId)} }},
+					{"models", models}
+				});
+			});
+
 		Route(eHTTPMethod::GET, "/api/world3d/history", Perm("players_history"),
 			"Where players went in a zone between two times, for replays: per character its samples as [seconds after from, x, y, z, ...]. "
 			"Query: ?zone=&instance= (0: all)&from=&to= (Unix seconds, at most 7 days apart). Long ranges are thinned to about 3000 samples per player. Audited",
