@@ -8,6 +8,8 @@
 #include "SlashCommandHandler.h"
 #include "ChatServerLink.h"
 #include "ChatPackets.h"
+#include "MasterPackets.h"
+#include "master/CDClientReload.h"
 #include "WorldMigration.h"
 
 #include <algorithm>
@@ -1812,6 +1814,20 @@ void SlashCommandHandler::Startup() {
 		.handle = WorldMigration::LiveUpdateCommand,
 		.requiredLevel = eGameMasterLevel::OPERATOR,
 		.dashboardPermission = "server_live_update"
+	});
+
+	RegisterCommand({
+		.help = "Reloads the client's cdclient.fdb on every server",
+		.info = "Master copies the client's cdclient.fdb (if it changed), makes a new CDServer.sqlite from it with the cdserver migrations, and every server switches to them between frames. What is already spawned keeps what it loaded; what is made from now on reads the new data. Master also does this by itself a few seconds after the file changes. Usage: /reloadcdclient",
+		.aliases = {"reloadcdclient"},
+		.handle = [](Entity* entity, const SystemAddress& sysAddr, const std::string) {
+			CDClientReload request;
+			request.requesterId = entity->GetObjectID();
+			MasterPackets::SendToMaster(request);
+			ChatPackets::SendSystemMessage(sysAddr, u"Asked master to check the client's cdclient.fdb; the server logs say what changed.");
+		},
+		.requiredLevel = eGameMasterLevel::OPERATOR,
+		.dashboardPermission = "cdclient_reload"
 	});
 
 	RegisterCommand({
