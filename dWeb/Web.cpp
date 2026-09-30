@@ -266,6 +266,7 @@ namespace {
 		uint64_t requestBytes{};
 		uint32_t accountId{};
 		std::string user;
+		std::string apiKey; // the API key's name, when the request used one
 	};
 	std::unordered_map<unsigned long, DeferredTiming> g_DeferredTiming;
 
@@ -288,10 +289,10 @@ namespace {
 
 	// `accountId` and `user`: who the request was signed in as (0 and "" for none), for the Network page's web clients
 	void CountRequest(const std::string& route, uint16_t status, TrafficClock::time_point started, uint64_t bytes, bool fromServer,
-		const std::string& address, uint64_t requestBytes, uint32_t accountId = 0, const std::string& user = {}) {
+		const std::string& address, uint64_t requestBytes, uint32_t accountId = 0, const std::string& user = {}, const std::string& apiKeyName = {}) {
 		const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(TrafficClock::now() - started).count();
 		TrafficStats::Local().Http(TrafficStats::Now(), route, status, static_cast<uint64_t>(std::max<int64_t>(micros, 0)), bytes, fromServer);
-		TrafficStats::Local().HttpClient(address, fromServer, requestBytes, bytes, accountId, user);
+		TrafficStats::Local().HttpClient(address, fromServer, requestBytes, bytes, accountId, user, apiKeyName);
 	}
 }
 
@@ -308,7 +309,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 	const uint64_t requestBytes = http_msg ? http_msg->message.len : 0;
 	// Who the request was signed in as, once the middleware has looked (the dashboard's session or API key)
 	uint32_t signedInAccount = 0;
-	std::string signedInUser;
+	std::string signedInUser, signedInKey; // signedInKey: the API key's name when the request used one
 	
 	if (!http_msg) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
@@ -395,7 +396,8 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 				}
 			}
 			
-			CountRequest("GET /ws", level ? 101 : 401, started, 0, fromServer, clientAddress, requestBytes, level ? level->accountId : 0);
+			CountRequest("GET /ws", level ? 101 : 401, started, 0, fromServer, clientAddress, requestBytes, level ? level->accountId : 0, {},
+				level && level->apiKey ? level->apiKey->name : std::string());
 			if (level) {
 				mg_ws_upgrade(connection, const_cast<mg_http_message*>(http_msg), NULL);
 				g_AuthenticatedWSConnections[connection] = { level->level, level->accountId, connectToken, apiToken,
@@ -506,6 +508,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 			if (context.isAuthenticated) {
 				signedInAccount = context.accountId;
 				signedInUser = context.authenticatedUser;
+				if (context.apiKey) signedInKey = context.apiKey->name;
 			}
 
 			// Call handler only if all middleware passed. A failing handler (e.g. a database error) answers 500
@@ -534,14 +537,14 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		g_Deferred.SetReplyOptions(connection->id, reply.headers, cc && mg_strcasecmp(*cc, mg_str("close")) == 0);
 		// Requests the answers never came for (the client left) are forgotten now and then
 		if (g_DeferredTiming.size() > 10000) g_DeferredTiming.clear();
-		g_DeferredTiming[connection->id] = { std::move(trafficRoute), started, fromServer, clientAddress, requestBytes, signedInAccount, std::move(signedInUser) };
+		g_DeferredTiming[connection->id] = { std::move(trafficRoute), started, fromServer, clientAddress, requestBytes, signedInAccount, std::move(signedInUser), std::move(signedInKey) };
 		return;
 	}
 	// The handler deferred and then failed: its late answer is dropped
 	if (g_Deferred.IsPending(connection->id)) g_Deferred.Close(connection->id);
 
 	SendReply(connection, reply, http_msg);
-	CountRequest(trafficRoute, static_cast<uint16_t>(reply.status), started, ReplyBytes(reply), fromServer, clientAddress, requestBytes, signedInAccount, signedInUser);
+	CountRequest(trafficRoute, static_cast<uint16_t>(reply.status), started, ReplyBytes(reply), fromServer, clientAddress, requestBytes, signedInAccount, signedInUser, signedInKey);
 	RemoveSentFile(reply);
 }
 
@@ -823,7 +826,7 @@ void Web::SendDeferredReplies() {
 		SendReply(connection, finished.reply, nullptr);
 		if (const auto timing = g_DeferredTiming.find(finished.connection); timing != g_DeferredTiming.end()) {
 			CountRequest(timing->second.route, static_cast<uint16_t>(finished.reply.status), timing->second.started, ReplyBytes(finished.reply), timing->second.fromServer,
-				timing->second.address, timing->second.requestBytes, timing->second.accountId, timing->second.user);
+				timing->second.address, timing->second.requestBytes, timing->second.accountId, timing->second.user, timing->second.apiKey);
 			g_DeferredTiming.erase(timing);
 		}
 		RemoveSentFile(finished.reply);

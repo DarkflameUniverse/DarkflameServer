@@ -201,7 +201,8 @@ namespace TrafficStats {
 		// An HTTP client's request by its address (bytes of the request and of the answer's body). `accountId` and `user`:
 		// the account the request was signed in as (the dashboard's session or API key), 0 and "" when none; each
 		// signed-in account on an address is counted apart
-		void HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut, uint32_t accountId = 0, const std::string& user = {});
+		void HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut, uint32_t accountId = 0, const std::string& user = {},
+			const std::string& apiKeyName = {});
 
 		// Evaluated when a report is taken (on the thread that takes it)
 		void SetGauge(const std::string& name, std::function<double()> source);

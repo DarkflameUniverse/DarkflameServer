@@ -208,9 +208,12 @@ namespace TrafficStats {
 		if (list.size() > limit) list.resize(limit);
 	}
 
-	void Recorder::HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut, uint32_t accountId, const std::string& user) {
-		// One entry per address and signed-in account: people sharing an address (behind one NAT or proxy) stay apart
-		const auto key = accountId ? address + '\n' + std::to_string(accountId) : address;
+	void Recorder::HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut, uint32_t accountId, const std::string& user,
+		const std::string& apiKeyName) {
+		// One entry per address and signed-in account: people sharing an address (behind one NAT or proxy) stay apart.
+		// An API key is its own entry, named after the key, apart from its owner's browser sessions
+		const auto key = accountId ? address + '\n' + std::to_string(accountId) + (apiKeyName.empty() ? std::string() : "\nkey:" + apiKeyName) : address;
+		const auto label = apiKeyName.empty() || user.empty() ? user : user + " (API key \"" + apiKeyName + "\")";
 		std::lock_guard lock(m_Mutex);
 		auto it = m_HttpClients.find(key);
 		if (it == m_HttpClients.end()) {
@@ -220,11 +223,11 @@ namespace TrafficStats {
 			it->second.http = true;
 			if (!full) {
 				it->second.accountId = accountId;
-				it->second.account = user;
+				it->second.account = label;
 			}
 		}
 		auto& client = it->second;
-		if (client.account.empty() && !user.empty() && client.accountId == accountId) client.account = user; // a WebSocket upgrade knows only the account
+		if (client.account.empty() && !label.empty() && client.accountId == accountId) client.account = label; // a WebSocket upgrade knows only the account
 		if (fromServer) client.peer = Peer::SERVERS;
 		client.packetsIn++;
 		client.packetsOut++;

@@ -292,3 +292,20 @@ TEST(TrafficStatsTest, HttpClientsApartBySignedInAccount) {
 		}
 	}
 }
+
+TEST(TrafficStatsTest, ApiKeyTrafficIsNamedAfterTheKey) {
+	Recorder r;
+	r.HttpClient("203.0.113.5", false, 100, 1000, 7, "alice");                   // alice's browser
+	r.HttpClient("203.0.113.5", false, 50, 500, 7, "alice", "status bot");        // alice's API key
+	r.HttpClient("203.0.113.5", false, 50, 500, 7, "alice", "status bot");
+	const auto report = r.Take(1);
+	ASSERT_EQ(report.connections.size(), 2u);
+	bool sawKey = false, sawBrowser = false;
+	for (const auto& c : report.connections) {
+		EXPECT_EQ(c.accountId, 7u);
+		if (c.account == "alice (API key \"status bot\")") { sawKey = true; EXPECT_EQ(c.packetsIn, 2u); }
+		else if (c.account == "alice") sawBrowser = true;
+	}
+	EXPECT_TRUE(sawKey);
+	EXPECT_TRUE(sawBrowser);
+}
