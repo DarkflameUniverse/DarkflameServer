@@ -12,6 +12,9 @@
 #include "RakNetTypes.h"
 #include "ServiceType.h"
 #include "sqlite3.h"
+#include "GameMessageDecoder.h"
+#include "ObjectMessages.h"
+#include "MessageType/World.h"
 
 #include <chrono>
 #include <cstdio>
@@ -526,30 +529,153 @@ TEST_F(PacketCaptureTest, OverheadOfCapturingEverything) {
 	EXPECT_LT(static_cast<double>(tapNs) / PACKETS, 20000.0);
 }
 
+namespace {
+	struct FixtureResult {
+		size_t packets{};  // records read
+		size_t checked{};  // packets with a struct, read and written again
+		size_t gameMessages{}; // of them, client game messages read with the server's own struct
+		std::vector<std::string> failures;
+	};
+
+	// Game message fields come from the server's own structs (the tests link the game)
+	void UseGameMessageDecoder() {
+		PacketDecoder::SetGameMessageDecoder([](MessageType::Game id, bool toServer, RakNet::BitStream& payload) {
+			return GameMessageDecoder::Decode(id, toServer, payload);
+		});
+	}
+
+	/**
+	 * What every fixture must pass: each packet the server has a struct for reads and writes back to the same bytes,
+	 * client game messages included (with the struct the server reads them with), and none fails to decode.
+	 */
+	FixtureResult CheckFixture(const CaptureBundle::Bundle& bundle) {
+		FixtureResult result;
+		for (const auto& record : bundle.records) {
+			if (record.header.flags & (PacketRecordFlags::GAP | PacketRecordFlags::CUT)) continue;
+			result.packets++;
+			const auto decoded = PacketDecoder::Decode(record.bytes, CaptureTools::FromClient(record.header));
+			const auto where = "record " + std::to_string(record.header.seq) + " " + decoded.name;
+			if (decoded.failed) result.failures.push_back(where + " doesn't read with its struct");
+			if (const auto same = PacketDecoder::RoundTrip(record.bytes)) {
+				result.checked++;
+				if (!*same) result.failures.push_back(where + " doesn't write back to the same bytes");
+				continue;
+			}
+			// A client game message: the LU header, the object and the message ID, then its fields
+			if (decoded.gameMessageId < 0 || decoded.serviceId != static_cast<uint16_t>(ServiceType::WORLD)) continue;
+			constexpr size_t FIELDS = 8 + sizeof(LWOOBJID) + sizeof(uint16_t);
+			if (record.bytes.size() < FIELDS) continue;
+			RakNet::BitStream payload(reinterpret_cast<unsigned char*>(const_cast<char*>(record.bytes.data())) + FIELDS,
+				static_cast<unsigned int>(record.bytes.size() - FIELDS), false);
+			const auto same = GameMessageDecoder::RoundTripReceived(static_cast<MessageType::Game>(decoded.gameMessageId), payload);
+			if (!same) continue;
+			result.checked++;
+			result.gameMessages++;
+			if (!*same) result.failures.push_back(where + " doesn't write back to the same bits");
+		}
+		return result;
+	}
+
+	// A client game message as it arrives: WORLD GAME_MSG, the object, the message ID, then Serialize
+	std::string ClientGameMessage(LWOOBJID object, const GameMessages::NetGameMsg& message) {
+		RakNet::BitStream stream;
+		LUBitStream(ServiceType::WORLD, MessageType::World::GAME_MSG).WriteHeader(stream);
+		stream.Write(object);
+		stream.Write(message.msgId);
+		message.Serialize(stream);
+		return std::string(reinterpret_cast<const char*>(stream.GetData()), stream.GetNumberOfBytesUsed());
+	}
+
+	CaptureBundle::Record Recorded(uint32_t seq, eCaptureSource source, bool sent, std::string bytes) {
+		CaptureBundle::Record record;
+		record.header.seq = seq;
+		record.header.timeUs = 1000000 + seq * 1000;
+		record.header.source = static_cast<uint8_t>(source);
+		record.header.direction = static_cast<uint8_t>(sent ? ePacketDirection::SENT : ePacketDirection::RECEIVED);
+		record.header.bits = static_cast<uint32_t>(bytes.size() * 8);
+		record.bytes = std::move(bytes);
+		return record;
+	}
+}
+
+/**
+ * A synthetic fixture, made here from the server's structs (committed fixtures are never recorded ones): it goes
+ * through the same export steps as a real capture (portable, anonymised, saved and read again) and passes the same
+ * checks as local fixtures.
+ */
+TEST(CaptureFixtureTests, SyntheticFixturePassesTheFixtureChecks) {
+	UseGameMessageDecoder();
+	constexpr LWOOBJID CHARACTER = 1152921510436607007;
+	CaptureBundle::Bundle bundle;
+	bundle.meta = { {"format", CaptureBundle::FORMAT_VERSION}, {"origin", "dlu-capture"}, {"target", "character"} };
+
+	AuthPackets::LoginRequest login;
+	login.username = LUWString("", 33);
+	login.password = LUWString("", 41);
+	bundle.records.push_back(Recorded(1, eCaptureSource::AUTH, false, Bytes(login)));
+
+	WorldPackets::PositionUpdate position;
+	position.update.position = NiPoint3(10.0f, 20.0f, 30.0f);
+	bundle.records.push_back(Recorded(2, eCaptureSource::WORLD, false, Bytes(position)));
+
+	GameMessages::RequestUse use;
+	use.object = 70000;
+	use.secondary = true;
+	auto used = Recorded(3, eCaptureSource::WORLD, false, ClientGameMessage(CHARACTER, use));
+	used.header.characterId = CHARACTER;
+	bundle.records.push_back(used);
+
+	CaptureTools::MakePortable(bundle);
+	CaptureTools::Anonymise(bundle);
+	const auto path = std::filesystem::temp_directory_path() / "dlu_synthetic_fixture.bundle";
+	ASSERT_TRUE(CaptureBundle::Save(path, bundle));
+	CaptureBundle::Bundle loaded;
+	std::string error;
+	ASSERT_TRUE(CaptureBundle::Load(path, loaded, error)) << error;
+	std::filesystem::remove(path);
+	ASSERT_EQ(loaded.records.size(), 3u);
+
+	const auto result = CheckFixture(loaded);
+	EXPECT_TRUE(result.failures.empty()) << result.failures.front();
+	EXPECT_EQ(result.checked, 3u);
+	EXPECT_EQ(result.gameMessages, 1u);
+	// The character's ID is a placeholder once the bundle is portable
+	EXPECT_EQ(loaded.records[2].bytes.find(std::string(reinterpret_cast<const char*>(&CHARACTER), sizeof(CHARACTER))), std::string::npos);
+}
+
+// A message with more than its struct reads (a field the struct leaves out) fails the check
+TEST(CaptureFixtureTests, FixtureCheckCatchesFieldsTheStructLeavesOut) {
+	GameMessages::RequestUse use;
+	use.object = 70000;
+	CaptureBundle::Bundle bundle;
+	bundle.records.push_back(Recorded(1, eCaptureSource::WORLD, false, ClientGameMessage(1152921510436607007, use)));
+	EXPECT_TRUE(CheckFixture(bundle).failures.empty());
+	bundle.records[0].bytes += std::string("\x12\x34", 2);
+	EXPECT_EQ(CheckFixture(bundle).failures.size(), 1u);
+}
+
 /**
  * Local fixtures (docs/CaptureReplay.md): bundles exported with anonymise=1 and put in tests/fixtures-local (never
- * committed). Every packet the server has a struct for must read and write back to the same bytes.
+ * committed). Every packet the server has a struct for must read and write back to the same bytes, client game
+ * messages included.
  */
 TEST(CaptureFixtureTests, RecordedPacketsRoundTrip) {
+	UseGameMessageDecoder();
 	const std::filesystem::path folder = std::filesystem::path(DLU_SOURCE_DIR) / "tests" / "fixtures-local";
 	std::error_code ec;
 	if (!std::filesystem::is_directory(folder, ec)) GTEST_SKIP() << "No local fixtures in " << folder.string();
-	size_t checked = 0, bundles = 0;
+	size_t checked = 0, gameMessages = 0, bundles = 0;
 	for (const auto& entry : std::filesystem::directory_iterator(folder)) {
 		if (entry.path().extension() != ".bundle") continue;
 		CaptureBundle::Bundle bundle;
 		std::string error;
 		ASSERT_TRUE(CaptureBundle::Load(entry.path(), bundle, error)) << entry.path() << ": " << error;
 		bundles++;
-		for (const auto& record : bundle.records) {
-			if (record.header.flags & (PacketRecordFlags::GAP | PacketRecordFlags::CUT)) continue;
-			const auto same = PacketDecoder::RoundTrip(record.bytes);
-			if (!same) continue;
-			EXPECT_TRUE(*same) << entry.path().filename() << " record " << record.header.seq << " "
-				<< PacketDecoder::Decode(record.bytes, CaptureTools::FromClient(record.header)).name << " doesn't write back to the same bytes";
-			checked++;
-		}
+		const auto result = CheckFixture(bundle);
+		for (const auto& failure : result.failures) ADD_FAILURE() << entry.path().filename() << " " << failure;
+		checked += result.checked;
+		gameMessages += result.gameMessages;
 	}
 	if (bundles == 0) GTEST_SKIP() << "No .bundle files in " << folder.string();
-	std::printf("[fixtures] %zu bundle(s), %zu packets checked\n", bundles, checked);
+	std::printf("[fixtures] %zu bundle(s), %zu packets checked (%zu client game messages)\n", bundles, checked, gameMessages);
 }

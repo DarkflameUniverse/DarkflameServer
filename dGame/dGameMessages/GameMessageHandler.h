@@ -23,6 +23,10 @@
 
 namespace GameMessageHandler {
 	void HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, MessageType::Game messageID);
+
+	// A new, empty typed struct for a message a client sends, or nullptr when the server reads it inline (capture
+	// fixtures read recorded messages with it)
+	std::unique_ptr<GameMessages::NetGameMsg> CreateReceived(MessageType::Game messageID);
 };
 
 #endif // GAMEMESSAGEHANDLER_H

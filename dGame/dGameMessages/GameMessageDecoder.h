@@ -19,6 +19,13 @@ namespace GameMessageDecoder {
 	// The message's fields, read from `payload` (the bits after the object ID and message ID), or nullopt when it has
 	// no typed struct or doesn't read cleanly
 	std::optional<nlohmann::json> Decode(MessageType::Game messageId, bool toServer, RakNet::BitStream& payload);
+
+	/**
+	 * Reads a message a client sent with the struct the server reads it with, and writes it again. nullopt when the
+	 * server has no typed struct for it or it doesn't read; otherwise whether it read the whole message (padding
+	 * after the last field aside) and the same bits came back. The capture fixture tests run it on every recorded client message.
+	 */
+	std::optional<bool> RoundTripReceived(MessageType::Game messageId, RakNet::BitStream& payload);
 }
 
 #endif  //!__GAMEMESSAGEDECODER__H__

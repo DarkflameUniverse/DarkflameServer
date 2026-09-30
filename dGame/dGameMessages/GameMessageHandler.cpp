@@ -269,3 +269,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 }
+
+std::unique_ptr<GameMessages::NetGameMsg> GameMessageHandler::CreateReceived(MessageType::Game messageID) {
+	const auto handler = g_MessageHandlers.find(messageID);
+	return handler == g_MessageHandlers.end() ? nullptr : handler->second();
+}

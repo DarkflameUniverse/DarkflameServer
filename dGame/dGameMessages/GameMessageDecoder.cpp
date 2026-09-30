@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "GameMessages.h"
+#include "GameMessageHandler.h"
 #include "ActivityMessages.h"
 #include "InventoryMessages.h"
 #include "ObjectMessages.h"
@@ -93,5 +94,25 @@ namespace GameMessageDecoder {
 		const auto it = Decoders().find({ toServer, messageId });
 		if (it == Decoders().end()) return std::nullopt;
 		return it->second(payload);
+	}
+
+	std::optional<bool> RoundTripReceived(MessageType::Game messageId, RakNet::BitStream& payload) {
+		auto message = GameMessageHandler::CreateReceived(messageId);
+		if (!message) return std::nullopt;
+		const auto start = payload.GetReadOffset();
+		if (!message->Deserialize(payload)) return std::nullopt;
+		const auto read = payload.GetReadOffset() - start;
+		// A whole byte or more left over: the struct stopped short of fields the message has
+		if (payload.GetNumberOfUnreadBits() >= 8) return false;
+		RakNet::BitStream written;
+		message->Serialize(written);
+		if (written.GetNumberOfBitsUsed() != read) return false;
+		// The bits read, compared with the bits written
+		payload.SetReadOffset(start);
+		for (uint32_t bit = 0; bit < read; bit++) {
+			bool original{}, again{};
+			if (!payload.Read(original) || !written.Read(again) || original != again) return false;
+		}
+		return true;
 	}
 }
