@@ -36,6 +36,8 @@ set(DASHBOARDROUTES_SOURCES
 	"Traffic.cpp"
 	"TrafficHistory.cpp"
 	"NetworkView.cpp"
+	"PerfHistory.cpp"
+	"Performance.cpp"
 	"LeaderboardRoutes.cpp"
 	"VanityRoutes.cpp"
 	"ChatRoutes.cpp"

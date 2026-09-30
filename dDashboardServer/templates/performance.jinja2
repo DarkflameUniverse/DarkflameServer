@@ -1,0 +1,288 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Performance - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	/* The Diagnostics page's series colours (checked for colour blindness against both themes); grey is "other" */
+	:root, [data-bs-theme=light] { --tr-1: #0d6efd; --tr-2: #fd7e14; --tr-3: #20c997; --tr-4: #6f42c1; --tr-5: #d63384; --tr-6: #0aa2c0; --tr-other: #6c757d; }
+	[data-bs-theme=dark] { --tr-1: #3d8bfd; --tr-2: #ca6510; --tr-3: #1aa179; --tr-4: #8c68cd; --tr-5: #d63384; --tr-6: #0aa2c0; --tr-other: #8c959f; }
+	.pf-chart-box { position: relative; height: 200px; }
+	.pf-chart { width: 100%; height: 100%; display: block; position: absolute; inset: 0; }
+	.pf-chart .grid { stroke: var(--bs-border-color); stroke-width: 1; }
+	.pf-chart .axis { fill: var(--bs-secondary-color); font-size: 11px; }
+	.pf-chart .line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+	.pf-chart .line.dashed { stroke-dasharray: 4 3; }
+	.pf-chart .area { stroke: var(--bs-body-bg); stroke-width: 1; }
+	.pf-chart .cross { stroke: var(--bs-secondary-color); stroke-width: 1; stroke-dasharray: 3 3; }
+	.pf-chart .threshold { stroke: var(--bs-danger); stroke-width: 1; stroke-dasharray: 6 4; }
+	.pf-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
+		padding: .35rem .5rem; font-size: .75rem; white-space: nowrap; box-shadow: var(--bs-box-shadow-sm); }
+	.pf-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+	.pf-legend { font-size: .75rem; color: var(--bs-secondary-color); }
+	.pf-bars-box { position: relative; overflow: hidden; }
+	.pf-bars { width: 100%; display: block; }
+	.pf-bar { cursor: pointer; }
+	.pf-bar rect { stroke: var(--bs-body-bg); stroke-width: 1; }
+	.pf-bar rect.tone-0 { fill: color-mix(in srgb, var(--tr-2) 45%, var(--bs-body-bg)); }
+	.pf-bar rect.tone-1 { fill: color-mix(in srgb, var(--tr-2) 30%, var(--bs-body-bg)); }
+	.pf-bar rect.tone-2 { fill: color-mix(in srgb, var(--tr-5) 30%, var(--bs-body-bg)); }
+	.pf-bar.ancestor rect { fill: var(--bs-secondary-bg); }
+	.pf-bar:hover rect { stroke: var(--bs-emphasis-color); }
+	.pf-label { font-size: 11px; fill: var(--bs-body-color); pointer-events: none; }
+	.pf-table td, .pf-table th { font-variant-numeric: tabular-nums; }
+	.pf-table tr[data-key], .pf-table tr[data-frame] { cursor: pointer; }
+	.pf-path { font-size: .8rem; word-break: break-word; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+	<div>
+		<h2 class="mb-1">Performance</h2>
+		<p class="text-body-secondary mb-0 small">How long each server's main loop takes per frame and what it spends the time on. Frames over
+			<code>slow_frame_ms</code> are kept with their scopes and logged. Kept in memory: the last hour.</p>
+	</div>
+	<div class="d-flex flex-wrap gap-2 align-items-center">
+		<select class="form-select form-select-sm w-auto" id="serverPick" aria-label="Server"></select>
+		<div class="btn-group btn-group-sm text-nowrap" role="group" aria-label="Range">
+			<input type="radio" class="btn-check" name="pfRange" id="range5m" value="5m" checked data-pref="performance.range"><label class="btn btn-outline-secondary" for="range5m">5 minutes</label>
+			<input type="radio" class="btn-check" name="pfRange" id="range1h" value="1h" data-pref="performance.range"><label class="btn btn-outline-secondary" for="range1h">1 hour</label>
+		</div>
+	</div>
+</div>
+
+<div class="row g-3">
+	<div class="col-xl-8 d-flex flex-column gap-3">
+		<div class="card"><div class="card-header py-2 d-flex justify-content-between flex-wrap gap-1"><h5 class="mb-0 fs-6">Frame time <span class="text-body-secondary fw-normal" id="frameCaption"></span></h5><span class="pf-legend" id="legendFrames"></span></div>
+			<div class="card-body p-2 pf-chart-box"><svg class="pf-chart" id="chartFrames" role="img" aria-label="Average, 95th percentile and longest frame time"></svg></div></div>
+		<div class="card"><div class="card-header py-2 d-flex justify-content-between flex-wrap gap-1"><h5 class="mb-0 fs-6">Time per phase <span class="text-body-secondary fw-normal">(ms per second)</span></h5><span class="pf-legend" id="legendPhases"></span></div>
+			<div class="card-body p-2 pf-chart-box"><svg class="pf-chart" id="chartPhases" role="img" aria-label="Milliseconds per second spent in each phase of the main loop"></svg></div></div>
+		<div class="card"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6">Slow frames <span class="text-body-secondary fw-normal small">(every server, the last 50)</span></h5>
+			<div class="form-check form-switch small mb-0"><input class="form-check-input" type="checkbox" id="slowThisServer"><label class="form-check-label" for="slowThisServer">This server only</label></div></div>
+			<div class="card-body p-0" id="slow"></div></div>
+		<div class="card d-none" id="detailCard"><div class="card-header py-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fs-6" id="detailTitle"></h5>
+			<div class="d-flex gap-2 align-items-center"><button class="btn btn-sm btn-outline-secondary d-none" id="detailReset">Whole tree</button><a class="btn btn-sm btn-outline-secondary d-none" id="detailFolded" download>Folded stacks</a><button class="btn-close" id="detailClose" aria-label="Close"></button></div></div>
+			<div class="card-body p-2"><div class="pf-path mb-2" id="detailPath"></div><div class="pf-bars-box"><svg class="pf-bars" id="detailBars" role="img" aria-label="Scopes"></svg></div>
+				<div class="small text-body-secondary mt-1" id="detailHint"></div></div></div>
+	</div>
+	<div class="col-xl-4 d-flex flex-column gap-3">
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Servers <span class="text-body-secondary fw-normal small">(last 5 minutes; click to pick)</span></h5></div><div class="card-body p-0" id="servers"></div></div>
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Longest frames <span class="text-body-secondary fw-normal small">(this server, 10 minutes)</span></h5></div><div class="card-body p-0" id="worst"></div></div>
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Packet handling <span class="text-body-secondary fw-normal small">(this server, 5 minutes)</span></h5></div><div class="card-body p-0" id="messages"></div></div>
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Profiling</h5></div>
+			<div class="card-body py-2 small">
+				<div class="d-none" id="profileForm">
+					<div class="input-group input-group-sm mb-2">
+						<span class="input-group-text">Seconds</span>
+						<input type="number" class="form-control" id="profileSeconds" min="1" max="60" value="10">
+						<button class="btn btn-primary" id="profileStart">Profile this server</button>
+					</div>
+					<div class="text-body-secondary mb-2">Merges every frame's scopes for that long into a flame graph. One session per server at a time.</div>
+				</div>
+				<div class="text-body-secondary d-none" id="profileDenied">Running a session needs the <code>profiling_run</code> permission.</div>
+				<div id="profileError" class="text-danger"></div>
+			</div>
+			<div class="card-body p-0" id="sessions"></div></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/perf-charts.js"></script>
+<script>
+(function () {
+	var C = window.PerfCharts, nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+	var range = (document.querySelector('input[name="pfRange"]:checked') || {}).value || '5m';
+	var server = new URLSearchParams(location.search).get('server') || '';
+	var data = null, slowFrames = [], detail = null;
+
+	function ms(v) { return C.ms(v); }
+	function when(t) { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+	function legend(elId, series) {
+		document.getElementById(elId).innerHTML = series.map(function (s) {
+			return '<span class="me-2 text-nowrap"><span class="pf-key" style="background:' + s.color + '"></span>' + esc(s.label) + '</span>';
+		}).join('');
+	}
+	function table(head, rows) {
+		return '<div class="table-responsive"><table class="table table-sm table-hover mb-0 pf-table small"><thead><tr>' + head.map(function (h) { return '<th>' + h + '</th>'; }).join('') +
+			'</tr></thead><tbody>' + (rows.length ? rows.join('') : '<tr><td colspan="' + head.length + '" class="text-body-secondary">Nothing yet</td></tr>') + '</tbody></table></div>';
+	}
+	function phasesText(phases) {
+		return Object.keys(phases || {}).sort(function (a, b) { return phases[b] - phases[a]; }).slice(0, 3).map(function (k) { return esc(k.replace('_', ' ')) + ' ' + ms(phases[k]); }).join(', ');
+	}
+
+	function load() {
+		var q = '/api/diagnostics/performance?range=' + encodeURIComponent(range) + (server ? '&server=' + encodeURIComponent(server) : '');
+		api.get(q).then(function (d) {
+			if (!d.success) return;
+			data = d;
+			server = d.server || '';
+			draw();
+		}).catch(function () {});
+		api.get('/api/diagnostics/performance/slow').then(function (d) { if (d.success) { slowFrames = d.frames; drawSlow(); } }).catch(function () {});
+	}
+
+	function draw() {
+		var pick = document.getElementById('serverPick');
+		pick.innerHTML = data.servers.map(function (s) { return '<option value="' + esc(s.key) + '"' + (s.key === server ? ' selected' : '') + '>' + esc(s.label) + (s.online ? '' : ' (offline)') + '</option>'; }).join('') ||
+			'<option value="">No server has reported frame timing yet</option>';
+
+		document.getElementById('servers').innerHTML = table(['Server', 'Frames/s', 'Avg', 'p95', 'Longest', 'Busy', 'Slow'], data.servers.map(function (s) {
+			return '<tr data-key="' + esc(s.key) + '"' + (s.key === server ? ' class="table-active"' : '') + '><td>' + esc(s.label) + (s.online ? '' : ' ' + fmt.badge('Offline', 'secondary')) + '</td><td>' + nf.format(s.ticks_per_second) +
+				'</td><td>' + ms(s.avg_ms) + '</td><td>' + ms(s.p95_ms) + '</td><td>' + ms(s.max_ms) + '</td><td>' + nf.format(s.busy_percent) + '%</td><td>' + (s.slow ? fmt.badge(s.slow, 'warning') : '0') + '</td></tr>';
+		}));
+		document.querySelectorAll('#servers tr[data-key]').forEach(function (tr) { tr.onclick = function () { choose(tr.dataset.key); }; });
+
+		var series = data.series;
+		if (series) {
+			document.getElementById('frameCaption').textContent = '(' + (data.server_label || server) + ')';
+			var frameLines = [
+				{ label: 'Average', color: 'var(--tr-1)', values: series.avg_ms },
+				{ label: 'p95', color: 'var(--tr-2)', values: series.p95_ms },
+				{ label: 'Longest', color: 'var(--tr-5)', values: series.max_ms, dash: true },
+			];
+			legend('legendFrames', frameLines);
+			C.timeChart(document.getElementById('chartFrames'), series.times, frameLines, {
+				format: ms, threshold: series.slow_threshold_ms || 0,
+				extra: function (i) { return ['<div class="text-body-secondary">' + (series.ticks_per_second[i] == null ? 'not reported' : nf.format(series.ticks_per_second[i]) + ' frames per second') + '</div>']; },
+			});
+			var phases = C.phaseSeries(series.phases_ms_per_second);
+			legend('legendPhases', phases);
+			C.timeChart(document.getElementById('chartPhases'), series.times, phases, {
+				stacked: true, format: ms,
+				extra: function (i) {
+					var all = series.phases_ms_per_second, parts = Object.keys(all).filter(function (k) { return all[k][i]; }).map(function (k) { return esc(k.replace('_', ' ')) + ' ' + ms(all[k][i]); });
+					return parts.length ? ['<div class="text-body-secondary">' + parts.join(', ') + '</div>'] : [];
+				},
+			});
+		}
+
+		var worst = data.worst || [];
+		document.getElementById('worst').innerHTML = table(['When', 'Took', 'Mostly'], worst.map(function (f, i) {
+			return '<tr data-frame="worst:' + i + '"><td class="text-nowrap">' + esc(when(f.time_ms)) + (f.implicit ? ' ' + fmt.badge('outside loop', 'info') : '') + '</td><td>' + ms(f.duration_ms) + '</td><td>' + phasesText(f.phases) + '</td></tr>';
+		}));
+		document.querySelectorAll('#worst tr[data-frame]').forEach(function (tr) { tr.onclick = function () { showFrame(worst[+tr.dataset.frame.split(':')[1]], data.server_label); }; });
+
+		document.getElementById('messages').innerHTML = table(['Packet', 'Count', 'Total', 'Avg', 'Longest'], (data.messages || []).map(function (m) {
+			var name = m.game_message || (m.service + ' ' + m.packet);
+			return '<tr><td><span title="' + esc(m.service + ' / ' + m.packet) + '">' + esc(name) + '</span></td><td>' + nf.format(m.count) + '</td><td>' + ms(m.total_ms) + '</td><td>' + ms(m.avg_ms) + '</td><td>' + ms(m.max_ms) + '</td></tr>';
+		}));
+
+		document.getElementById('profileForm').classList.toggle('d-none', !data.can_profile || !server);
+		document.getElementById('profileDenied').classList.toggle('d-none', !!data.can_profile);
+		drawSlow();
+	}
+
+	function drawSlow() {
+		var only = document.getElementById('slowThisServer').checked;
+		var list = slowFrames.filter(function (f) { return !only || f.server === server; });
+		document.getElementById('slow').innerHTML = table(['When', 'Server', 'Took', 'What took the time'], list.map(function (f, i) {
+			return '<tr data-frame="' + slowFrames.indexOf(f) + '"><td class="text-nowrap">' + esc(when(f.time_ms)) + '</td><td class="text-nowrap">' + esc(f.server_label) + (f.implicit ? ' ' + fmt.badge('outside loop', 'info') : '') +
+				'</td><td>' + ms(f.duration_ms) + '</td><td class="pf-path">' + esc(f.path || phasesText(f.phases)) + '</td></tr>';
+		}));
+		document.querySelectorAll('#slow tr[data-frame]').forEach(function (tr) { tr.onclick = function () { var f = slowFrames[+tr.dataset.frame]; showFrame(f, f.server_label); }; });
+	}
+
+	function openDetail(title, path) {
+		document.getElementById('detailCard').classList.remove('d-none');
+		document.getElementById('detailTitle').textContent = title;
+		document.getElementById('detailPath').textContent = path || '';
+		document.getElementById('detailCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+	}
+
+	// A slow or long frame: its scopes on a timeline (each from when it first started, for all its time)
+	function showFrame(frame, label) {
+		detail = { kind: 'frame', frame: frame };
+		openDetail((label || '') + ' - ' + ms(frame.duration_ms) + ' at ' + when(frame.time_ms), frame.path ? 'Heaviest path: ' + frame.path : '');
+		document.getElementById('detailReset').classList.add('d-none');
+		document.getElementById('detailFolded').classList.add('d-none');
+		var scopes = frame.scopes || [];
+		C.bars(document.getElementById('detailBars'), C.timelineLayout(scopes, frame.duration_ms), scopes, {
+			describe: function (i) {
+				var s = scopes[i];
+				return '<div class="fw-semibold">' + esc(s.label) + '</div><div>' + ms(s.total_ms) + (s.count > 1 ? ' in ' + nf.format(s.count) + ' calls' : '') + ', own ' + ms(s.self_ms) + '</div><div class="text-body-secondary">first at +' + ms(s.start_ms) + '</div>';
+			},
+		});
+		document.getElementById('detailHint').textContent = 'Phases: ' + phasesText(frame.phases) + '. A scope entered many times is one bar of all its time, from its first start. Only the heaviest scopes are kept.';
+	}
+
+	// A profiling session: a flame graph (click a bar to zoom into it)
+	function showProfile(session, focus) {
+		var p = session.profile, nodes = p.nodes.map(function (n) { return Object.assign({}, n); });
+		detail = { kind: 'profile', session: session };
+		openDetail('Flame graph: ' + session.server_label + ', ' + nf.format(p.frames) + ' frames in ' + nf.format(p.duration_ms / 1000) + ' s',
+			'Time in frames: ' + ms(p.total_ms) + ' (' + nf.format(p.duration_ms ? p.total_ms / p.duration_ms * 100 : 0) + '% of the time)' + (p.truncated ? '; the lightest scopes were left out' : ''));
+		var reset = document.getElementById('detailReset');
+		reset.classList.toggle('d-none', !focus);
+		reset.onclick = function () { showProfile(session, 0); };
+		var folded = document.getElementById('detailFolded');
+		folded.classList.remove('d-none');
+		folded.href = URL.createObjectURL(new Blob([p.folded], { type: 'text/plain' }));
+		folded.setAttribute('download', 'profile-' + session.server.replace(/:/g, '-') + '-' + session.id + '.folded');
+		var total = nodes[0] ? nodes[0].total_us || 1 : 1;
+		C.bars(document.getElementById('detailBars'), C.flameLayout(nodes, focus || 0, 0.001), nodes, {
+			describe: function (i) {
+				var n = nodes[i];
+				return '<div class="fw-semibold">' + esc(n.label) + '</div><div>' + ms(n.total_us / 1000) + ' (' + nf.format(n.total_us / total * 100) + '%), own ' + ms(n.self_us / 1000) + '</div><div class="text-body-secondary">' + nf.format(n.count) + ' calls</div>';
+			},
+			onClick: function (i) { showProfile(session, i); },
+		});
+		document.getElementById('detailHint').textContent = 'Widths are time in the scope (children included) over all frames of the session. Click a bar to zoom in. "Folded stacks" works with other flame graph tools.';
+	}
+
+	function loadSessions() {
+		api.get('/api/diagnostics/performance/profiles').then(function (d) {
+			if (!d.success) return;
+			var running = false;
+			document.getElementById('sessions').innerHTML = table(['Server', 'Started', 'State', ''], d.sessions.map(function (s) {
+				var state = s.status === 'done' ? fmt.badge('Done', 'success') + ' ' + nf.format(s.frames) + ' frames' : s.status === 'failed' ? fmt.badge('Failed', 'danger') + ' ' + esc(s.error) :
+					fmt.badge(s.status === 'running' ? 'Running' : 'Asked', 'info') + ' ' + s.seconds + ' s';
+				running = running || s.status === 'running' || s.status === 'requested';
+				var action = s.status === 'done' ? '<button class="btn btn-sm btn-outline-primary py-0" data-open="' + s.id + '">Show</button>' :
+					(s.status === 'running' || s.status === 'requested') && d.can_profile ? '<button class="btn btn-sm btn-outline-secondary py-0" data-stop="' + s.id + '">Stop</button>' : '';
+				return '<tr><td>' + esc(s.server_label) + '</td><td class="text-nowrap">' + esc(when(s.started * 1000)) + '<div class="text-body-secondary">' + esc(s.by) + '</div></td><td>' + state + '</td><td>' + action + '</td></tr>';
+			}));
+			document.querySelectorAll('#sessions [data-open]').forEach(function (b) {
+				b.onclick = function () { api.get('/api/diagnostics/performance/profiles/' + b.dataset.open).then(function (r) { if (r.success) showProfile(r.session, 0); }); };
+			});
+			document.querySelectorAll('#sessions [data-stop]').forEach(function (b) {
+				b.onclick = function () { api.post('/api/diagnostics/performance/profiles/' + b.dataset.stop + '/stop', {}).then(loadSessions); };
+			});
+			clearTimeout(loadSessions.timer);
+			loadSessions.timer = setTimeout(loadSessions, running ? 2000 : 15000);
+		}).catch(function () {});
+	}
+
+	document.getElementById('profileStart').onclick = function () {
+		var seconds = parseInt(document.getElementById('profileSeconds').value, 10) || 10;
+		document.getElementById('profileError').textContent = '';
+		api.post('/api/diagnostics/performance/profiles', { server: server, seconds: seconds }).then(function (d) {
+			if (!d.success) document.getElementById('profileError').textContent = d.error || 'Could not start';
+			loadSessions();
+		}).catch(function (e) { document.getElementById('profileError').textContent = (e && e.message) || 'Could not start'; });
+	};
+
+	function choose(key) {
+		server = key;
+		var url = new URL(location.href);
+		url.searchParams.set('server', key);
+		history.replaceState(null, '', url);
+		load();
+	}
+	document.getElementById('serverPick').onchange = function () { choose(this.value); };
+	document.querySelectorAll('input[name="pfRange"]').forEach(function (r) { r.onchange = function () { range = r.value; load(); }; });
+	document.getElementById('slowThisServer').onchange = drawSlow;
+	document.getElementById('detailClose').onclick = function () { document.getElementById('detailCard').classList.add('d-none'); detail = null; };
+	window.addEventListener('resize', function () {
+		if (data) draw();
+		if (detail && detail.kind === 'frame') showFrame(detail.frame, document.getElementById('detailTitle').textContent.split(' - ')[0]);
+	});
+
+	load();
+	loadSessions();
+	// Reports come every 5 seconds; stop while the tab is hidden
+	setInterval(function () { if (!document.hidden) load(); }, 5000);
+})();
+</script>
+{% endblock %}

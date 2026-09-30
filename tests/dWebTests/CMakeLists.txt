@@ -59,6 +59,8 @@ set(DWEBTESTS_SOURCES
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/TrafficHistory.cpp"
 	"NetworkViewTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/NetworkView.cpp"
+	"PerfHistoryTests.cpp"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/PerfHistory.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/SettingsCatalog.cpp"
 	"AlertsAndTwoFactorTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/auth/Totp.cpp"
@@ -111,4 +113,7 @@ if(NODE_EXECUTABLE)
 	# The Network page's diagram model: nodes and links from the traffic summary (static/js/network-graph.js)
 	add_test(NAME NetworkGraphJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/network-graph.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/network-graph.js")
+	# The Performance page's flame graph, timeline and phase layouts (static/js/perf-charts.js)
+	add_test(NAME PerfChartsJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/perf-charts.test.mjs"
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/perf-charts.js")
 endif()

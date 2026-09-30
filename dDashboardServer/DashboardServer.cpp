@@ -6,6 +6,8 @@
 #include <csignal>
 #include <memory>
 
+#include "Profiler.h"
+#include <optional>
 #include "CDClientDatabase.h"
 #include "ConfigSync.h"
 #include "CDClientManager.h"
@@ -91,6 +93,8 @@
 #include "PrometheusMetrics.h"
 #include "Traffic.h"
 #include "master/ServerTraffic.h"
+#include "master/Profiling.h"
+#include "Performance.h"
 #include "Background.h"
 #include "master/DashboardMessages.h"
 #include "master/DataChanged.h"
@@ -342,6 +346,7 @@ namespace {
 			handlers.On<PlayerActionResult>(Master::PLAYER_ACTION_RESULT, [](const PlayerActionResult& result, const SystemAddress&) { PlayerActions::HandleResult(result); });
 			handlers.On<MasterPackets::WorldShutDown>(Master::SHUTDOWN_RESPONSE, OnWorldShutDown);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, [](const ServerTraffic& report, const SystemAddress&) { Traffic::Ingest(report); });
+			handlers.On<ProfileResult>(Master::PROFILE_RESULT, [](const ProfileResult& result, const SystemAddress&) { Performance::IngestProfile(result); });
 			handlers.On<LiveUpdateStatus>(Master::LIVE_UPDATE_STATUS, [](const LiveUpdateStatus& status, const SystemAddress&) { LiveUpdateRoutes::HandleStatus(status); });
 			return handlers;
 		}();
@@ -562,6 +567,7 @@ int main(int argc, char** argv) {
 	Scenery::RegisterRoutes();
 	PrometheusMetrics::RegisterRoutes();
 	Traffic::RegisterRoutes();
+	Performance::RegisterRoutes();
 	RegisterPublicRoutes();
 	RegisterShowcaseRoutes();
 	FeaturedProperties::RegisterRoutes();
@@ -594,12 +600,19 @@ int main(int argc, char** argv) {
 		const auto elapsedSinceBroadcast = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastBroadcast).count();
 
 		if (elapsed >= 1000.0f / 60.0f) {
+			Profiler::FrameScope frame;
+			std::optional<Profiler::Scope> masterScope;
+			masterScope.emplace("Master packets", Profiler::Phase::PACKETS);
 			Packet* packet = g_Server->ReceiveFromMaster();
 			while (packet) {
-				HandleMasterPacket(packet);
+				{
+					Profiler::PacketScope scope(packet->data, packet->length);
+					HandleMasterPacket(packet);
+				}
 				g_Server->DeallocateMasterPacket(packet);
 				packet = g_Server->ReceiveFromMaster();
 			}
+			masterScope.reset();
 
 			// Only once the master link is up; sent earlier, the request is dropped and auth/chat look offline
 			if (g_Server->GetIsConnectedToMaster() && std::chrono::steady_clock::now() >= g_NextServerListRequest) {
@@ -607,23 +620,24 @@ int main(int argc, char** argv) {
 				g_NextServerListRequest = std::chrono::steady_clock::now() + SERVER_LIST_INTERVAL;
 			}
 
-			PlayerActions::Update();
-			EmailService::Update();
-			Alerts::Update();
-			Background::Update();
-			ModeratorHelper::Update();
-			Scheduler::Update();
-			ServerRoutes::Update();
-			LiveWorld::Update();
-			LiveUpdateRoutes::Update();
-			Inspector::Update();
-			Announcements::Update();
-			EventsCalendar::Update();
-			LiveEventRoutes::Update();
-			ChallengeRoutes::Update();
-			InstanceLoad::Update();
-			Traffic::Update();
-			ApiKeyService::Update();
+			{ Profiler::Scope scope("PlayerActions::Update"); PlayerActions::Update(); }
+			{ Profiler::Scope scope("EmailService::Update"); EmailService::Update(); }
+			{ Profiler::Scope scope("Alerts::Update"); Alerts::Update(); }
+			{ Profiler::Scope scope("Background::Update"); Background::Update(); }
+			{ Profiler::Scope scope("ModeratorHelper::Update"); ModeratorHelper::Update(); }
+			{ Profiler::Scope scope("Scheduler::Update"); Scheduler::Update(); }
+			{ Profiler::Scope scope("ServerRoutes::Update"); ServerRoutes::Update(); }
+			{ Profiler::Scope scope("LiveWorld::Update"); LiveWorld::Update(); }
+			{ Profiler::Scope scope("LiveUpdateRoutes::Update"); LiveUpdateRoutes::Update(); }
+			{ Profiler::Scope scope("Inspector::Update"); Inspector::Update(); }
+			{ Profiler::Scope scope("Announcements::Update"); Announcements::Update(); }
+			{ Profiler::Scope scope("EventsCalendar::Update"); EventsCalendar::Update(); }
+			{ Profiler::Scope scope("LiveEventRoutes::Update"); LiveEventRoutes::Update(); }
+			{ Profiler::Scope scope("ChallengeRoutes::Update"); ChallengeRoutes::Update(); }
+			{ Profiler::Scope scope("InstanceLoad::Update"); InstanceLoad::Update(); }
+			{ Profiler::Scope scope("Traffic::Update"); Traffic::Update(); }
+			{ Profiler::Scope scope("Performance::Update"); Performance::Update(); }
+			{ Profiler::Scope scope("ApiKeyService::Update"); ApiKeyService::Update(); }
 
 			// Broadcast dashboard updates periodically
 			if (elapsedSinceBroadcast >= broadcastInterval) {

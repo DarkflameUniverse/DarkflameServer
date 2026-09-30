@@ -1,6 +1,7 @@
 #include "Traffic.h"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -14,6 +15,7 @@
 #include "MessageIdentifiers.h"
 #include "MetricsFormat.h"
 #include "NetworkView.h"
+#include "Performance.h"
 #include "Permissions.h"
 #include "RouteUtils.h"
 #include "GameText.h"
@@ -344,6 +346,21 @@ namespace Traffic {
 	void Ingest(const ServerTraffic& report) {
 		g_History.Ingest(static_cast<uint16_t>(report.serverType), report.zoneId, report.instanceId, report.report, TrafficStats::Now());
 		g_Changed = true;
+		Performance::Ingest(TrafficHistory::KeyFor(static_cast<uint16_t>(report.serverType), report.zoneId, report.instanceId), report.frames);
+	}
+
+	std::string Label(const std::string& key) {
+		const auto& servers = g_History.Servers();
+		const auto it = servers.find(key);
+		if (it != servers.end()) return LabelOf(it->second);
+		if (key.starts_with("world:")) return "World " + key.substr(6);
+		if (!key.empty()) return std::string(1, static_cast<char>(std::toupper(static_cast<unsigned char>(key[0])))) + key.substr(1);
+		return key;
+	}
+
+	nlohmann::json MessageNames(uint64_t packedKey) {
+		const auto names = NamesOf(TrafficStats::MessageKey::Unpack(packedKey));
+		return { {"service", names.service}, {"packet", names.packet}, {"game_message", names.gameMessage} };
 	}
 
 	void Update() {

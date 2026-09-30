@@ -90,6 +90,7 @@ namespace {
 		{ "logs_audit", "Logs", "Audit log", "What staff did on the dashboard", 8 },
 		{ "logs_system", "Logs", "Server logs", "Server log files, log search and crash dumps", 8 },
 		{ "health_view", "Logs", "Server health", "Player counts, running worlds, uptime and memory over time", 8 },
+		{ "profiling_run", "Logs", "Run profiling", "Start a profiling session of a server's main loop on the Performance page (up to a minute; costs the server a little time while it runs)", 8 },
 		{ "network_ips", "Logs", "Network addresses", "See the IP addresses of game and web clients on the Network page (without it they are shown as tokens)", 9 },
 		{ "metrics_view", "Logs", "Prometheus metrics", "Read /metrics (and /api/metrics) with an API token, when metrics_enabled is on", 8 },
 

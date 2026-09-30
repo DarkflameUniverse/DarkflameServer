@@ -22,6 +22,12 @@ namespace Traffic {
 	// Main thread: one server's last report ("ugc", "chat", ...): {key, label, online, last_seen, link, gauges}
 	nlohmann::json Server(const std::string& key);
 
+	// "World 1200 Nimbus Station #3" for world:1200:3, "Master" for master, ...
+	std::string Label(const std::string& key);
+
+	// A packet type's names (MessageKey::Packed): {service, packet, game_message}
+	nlohmann::json MessageNames(uint64_t packedKey);
+
 	// Counters for /metrics
 	void AddMetrics(MetricsFormat::Writer& w);
 }
