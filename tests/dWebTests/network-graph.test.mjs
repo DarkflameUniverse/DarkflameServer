@@ -164,6 +164,87 @@ same(G.layout(graph, 1000), L, 'the same layout every time');
 	same(Z.paths['clients>world:1200:1'] && Z.paths['world:1200:1>chat'] ? true : false, true, 'instance rows are linked on both sides');
 }
 
+// Listening ports: on a server's box, and on an open zone's instance rows; remote ports only when the list has them
+{
+	const withPorts = JSON.parse(JSON.stringify(summary));
+	withPorts.servers.auth.port = 1001;
+	withPorts.servers['world:1200:1'].port = 3015;
+	withPorts.servers['world:1200:2'].port = 3016;
+	same(G.portLabel(1001), ':1001', 'port label');
+	same(G.portLabel(null), '', 'no port, no label');
+	const g = G.build(withPorts, {});
+	same(G.nameOf(g.nodes.find((n) => n.id === 'auth')), 'Auth :1001', 'auth box with its port');
+	same(g.nodes.find((n) => n.id === 'zone:1200').port, null, 'a zone of two instances has no one port');
+	same(G.nameOf(g.nodes.find((n) => n.id === 'chat')), 'Chat', 'no port known: just the name');
+	const one = JSON.parse(JSON.stringify(withPorts));
+	delete one.servers['world:1200:2'];
+	same(G.nameOf(G.build(one, {}).nodes.find((n) => n.id === 'zone:1200')), 'World 1200 Nimbus Station :3015', 'a zone of one instance has its port');
+	const open = G.build(withPorts, { expanded: { 1200: true } });
+	same(open.members['world:1200:2'].port, 3016, 'an instance row has its port');
+	same(G.peerAddress({ address: '203.0.113.5', servers: [{ port: 51234 }, { http: true, port: 80 }] }), '203.0.113.5:51234', 'a player\'s remote port');
+	same(G.peerAddress({ address: 'peer-0001', servers: [{ port: null }] }), 'peer-0001', 'no remote port without network_ips');
+	same(G.build(withPorts, { clientsExpanded: true, addressesShown: true, peers: [{ address: '203.0.113.5', kind: 'game', account: 'x', servers: [{ server: 'auth', port: 51234 }] }],
+		filters: { clients: '51234' } }).nodes.find((n) => n.id === 'clients').shown.length, 1, 'filter by remote port with network_ips');
+}
+
+// One machine: no frames, nothing marked, the same layout as without machines
+{
+	const same1 = JSON.parse(JSON.stringify(summary));
+	Object.values(same1.servers).forEach((s) => { s.host = 'peer-aaaa'; });
+	const g = G.build(same1, {});
+	same(g.hosts, [], 'one machine: no hosts');
+	same(g.edges.some((e) => e.cross), false, 'no link crosses machines');
+	same(g.nodes.map((n) => n.id), ids, 'the same boxes');
+	const L1 = G.layout(g, 1000);
+	same(L1.frames, {}, 'no frames');
+	same(L1.nodes, G.layout(graph, 1000).nodes, 'the same places');
+}
+
+// Two machines: the second world, chat and UGC on another; frames, totals and marked links
+{
+	const two = JSON.parse(JSON.stringify(summary));
+	Object.values(two.servers).forEach((s) => { s.host = 'peer-aaaa'; });
+	two.servers['world:1200:2'].host = 'peer-bbbb';
+	two.servers.chat.host = 'peer-bbbb';
+	delete two.servers['service:99:0:0'];
+	const g = G.build(two, { hostNames: { 'peer-bbbb': '198.51.100.20' } });
+	same(g.hosts.map((h) => h.id), ['peer-aaaa', 'peer-bbbb'], 'two machines, master\'s first');
+	same(g.hosts[0].master, true, 'master\'s machine is marked');
+	same(g.hosts[1].label, '198.51.100.20', 'an address when the viewer may see it');
+	same(g.hosts[0].label, 'peer-aaaa', 'else its token');
+	same(g.hosts[1].servers, 2, 'servers on the second machine');
+	same(g.hosts[1].connections, 6 + 2, 'its connections');
+	same(g.hosts[1].packetsIn, 10 + 2, 'its packets');
+	same(g.nodes.some((n) => n.id === 'zone:1200@peer-aaaa') && g.nodes.some((n) => n.id === 'zone:1200@peer-bbbb'), true, 'a zone on both machines is a box on each');
+	same(g.hosts[1].nodes.sort(), ['chat', 'zone:1200@peer-bbbb'], 'the second machine\'s boxes');
+	same(g.edges.find((e) => e.id === 'zone:1200@peer-aaaa>chat').cross, true, 'a world to chat on another machine is marked');
+	same(g.edges.find((e) => e.id === 'zone:1200@peer-bbbb>master').cross, true, 'the other machine\'s world to master too');
+	same(g.edges.find((e) => e.id === 'zone:1200@peer-aaaa>master').cross, false, 'on the same machine it is not');
+	same(g.edges.find((e) => e.id === 'auth>master').cross, false, 'auth and master share a machine');
+	same(g.edges.find((e) => e.id === 'clients>auth').cross, false, 'players are no machine');
+	const L2 = G.layout(g, 1000);
+	same(Object.keys(L2.frames), ['peer-aaaa', 'peer-bbbb'], 'a frame per machine');
+	const fa = L2.frames['peer-aaaa'], fb = L2.frames['peer-bbbb'];
+	same(fa.y + fa.h <= fb.y, true, 'the frames do not overlap: one under the other');
+	const inside = (f, id) => { const a = L2.nodes[id]; return a.x - L2.nodeWidth / 2 >= f.x && a.x + L2.nodeWidth / 2 <= f.x + f.w && a.y - L2.nodeHeight / 2 >= f.y && a.y - L2.nodeHeight / 2 + a.h <= f.y + f.h; };
+	same(['auth', 'master', 'dashboard', 'ugc', 'zone:1200@peer-aaaa'].every((id) => inside(fa, id)), true, 'master\'s machine frames its boxes');
+	same(['chat', 'zone:1200@peer-bbbb'].every((id) => inside(fb, id)), true, 'and the other its own');
+	same(L2.paths['zone:1200@peer-aaaa>chat'].mid && typeof L2.paths['zone:1200@peer-aaaa>chat'].mid.x === 'number', true, 'a crossing link has a mark half way');
+	same(L2.paths['auth>master'].mid, undefined, 'others have none');
+	// A dragged box takes its frame along
+	const D = G.layout(g, 1000, { chat: { fx: 0.5, y: 1500 } });
+	same(D.frames['peer-bbbb'].y + D.frames['peer-bbbb'].h >= 1500 + D.nodeHeight / 2, true, 'the frame follows a dragged box');
+	// Collapsed: the machine is one box, its links go to it, links inside it are gone
+	const c = G.build(two, { collapsedHosts: { 'peer-bbbb': true } });
+	same(c.nodes.some((n) => n.id === 'chat'), false, 'the collapsed machine\'s boxes are gone');
+	const hostBox = c.nodes.find((n) => n.id === 'host:peer-bbbb');
+	same(hostBox && hostBox.kind, 'host', 'one box for the machine');
+	same(c.edges.find((e) => e.id === 'zone:1200@peer-aaaa>host:peer-bbbb').cross, true, 'links into it are marked');
+	same(c.edges.some((e) => e.from === e.to), false, 'links inside it are gone');
+	same(c.hosts[1].collapsed, true, 'collapsed');
+	same(Object.keys(G.layout(c, 1000).frames).length, 2, 'still framed');
+}
+
 if (failures) {
 	console.error(`${failures} failure(s)`);
 	process.exit(1);
