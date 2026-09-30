@@ -343,7 +343,12 @@ namespace {
 		c.Add(Text(DASHBOARD, "challenge_milestones", "Challenge milestones", "Percentages of a community challenge announced in game as it gets there, e.g. 25,50,75 (completing it is always announced).", "25,50,75,100"));
 		c.Add(Bool(DASHBOARD, "enable_char_xml_upload", "Character XML editing", "Let staff with permission replace a character's XML.", false));
 
-		c.AddSection("Public pages", "Pages anyone can open without signing in. They never show account names, addresses or anything else private.");
+		c.AddSection("Update check", "Asks GitHub now and then whether a newer release (or, for development builds, newer commits on the build's branch) is out, and shows it on the About page and in master's log. Nothing is downloaded or installed.");
+		c.Add(Bool(DASHBOARD, "update_check_enabled", "Check for updates", "Off: GitHub is never asked.", true));
+		c.Add(When(Text(DASHBOARD, "update_check_repo", "Repository", "owner/name on GitHub, for a fork.", "DarkflameUniverse/DarkflameServer"), DASHBOARD, "update_check_enabled", { "1" }));
+		c.Add(When(Unit(Int(DASHBOARD, "update_check_interval_hours", "Check every", "Unchanged answers don't count against GitHub's limit of 60 requests an hour.", "6", 1, 168), "hours"), DASHBOARD, "update_check_enabled", { "1" }));
+
+		c.AddSection("Public pages","Pages anyone can open without signing in. They never show account names, addresses or anything else private.");
 		c.Add(Bool(DASHBOARD, "public_status", "Public server status", "The page at /status, its JSON at /api/public/status (for server lists) and a widget for other sites.", false));
 		c.Add(When(Text(DASHBOARD, "public_server_name", "Server name", "Shown on the status page and widget.", "DarkflameServer"), DASHBOARD, "public_status", { "1" }));
 		c.Add(When(Bool(DASHBOARD, "public_status_players", "Players per world", "How many players are in each world.", true), DASHBOARD, "public_status", { "1" }));

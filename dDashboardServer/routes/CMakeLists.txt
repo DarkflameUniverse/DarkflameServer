@@ -80,6 +80,8 @@ set(DASHBOARDROUTES_SOURCES
 	"../email/OAuth2.cpp"
 	"../notify/WebhookFormat.cpp"
 	"../notify/Alerts.cpp"
+	"../notify/UpdateCheck.cpp"
+	"../notify/UpdateChecker.cpp"
 	# Shared with the world servers, which add items and models the same way
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities/ObjectIDManager.cpp"
 )

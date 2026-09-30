@@ -110,6 +110,7 @@
 #include "DashboardAuthService.h"
 #include "Totp.h"
 #include "Alerts.h"
+#include "UpdateChecker.h"
 #include "DashboardAuthService.h"
 #include "AuthTokenHandler.h"
 #include "ApiKeyService.h"
@@ -539,6 +540,7 @@ int main(int argc, char** argv) {
 	if (!Totp::LoadKey()) LOG("Two-factor login is unavailable: no usable key");
 	EmailService::Initialize();
 	Alerts::Initialize();
+	UpdateChecker::Initialize();
 	Background::Initialize();
 	RegisterEconomyTasks();
 	RegisterMaintenanceTasks();
@@ -609,6 +611,7 @@ int main(int argc, char** argv) {
 	RegisterShowcaseRoutes();
 	FeaturedProperties::RegisterRoutes();
 	ContrabandRoutes::RegisterRoutes();
+	UpdateChecker::RegisterRoutes();
 	UgcRoutes::RegisterRoutes();
 	UgcLinks::RegisterRoutes();
 	PropertyRentRoutes::RegisterRoutes();
@@ -660,6 +663,7 @@ int main(int argc, char** argv) {
 			{ Profiler::Scope scope("PlayerActions::Update"); PlayerActions::Update(); }
 			{ Profiler::Scope scope("EmailService::Update"); EmailService::Update(); }
 			{ Profiler::Scope scope("Alerts::Update"); Alerts::Update(); }
+			{ Profiler::Scope scope("UpdateChecker::Update"); UpdateChecker::Update(g_Server->GetIsConnectedToMaster()); }
 			{ Profiler::Scope scope("Background::Update"); Background::Update(); }
 			{ Profiler::Scope scope("ModeratorHelper::Update"); ModeratorHelper::Update(); }
 			{ Profiler::Scope scope("Scheduler::Update"); Scheduler::Update(); }
@@ -698,6 +702,7 @@ int main(int argc, char** argv) {
 	ModeratorHelper::Shutdown();
 	Background::Shutdown();
 	Alerts::Shutdown();
+	UpdateChecker::Shutdown();
 	Database::Destroy("DashboardServer");
 	delete g_Server;
 	g_Server = nullptr;
