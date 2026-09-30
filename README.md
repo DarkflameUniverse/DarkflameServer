@@ -118,6 +118,8 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   Items say where they came from (the `_Metric_*` keys: the dropping object, mission, activity, vendor, mail or trade).
 * **Combat:** area attacks and TacArcs handle targets once each, in the client's order; TacArcs pick targets like the
   client (distance or weights, then `attack_priority` when `use_attack_priority` is set).
+* **Moving platforms:** mover, simple mover or rotater chosen as the client chooses (level settings, else the
+  component row); simple movers from `MovingPlatforms`; scripts get the client's arrival events.
 * **Zones:** level and zone files read for every version the client reads.
 * Server-side knockback for AI-moved objects, switchable trigger volumes, missing force field, jetpack NPC and
   Skullkin volume scripts, deletion restrictions enforced, cross-world new-mail notices, pet LOTs stored with names,
