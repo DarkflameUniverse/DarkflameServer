@@ -1537,7 +1537,10 @@ void Entity::PickupItem(const LWOOBJID& objectID) const {
 			}
 			EconomyLedger::RecordMapEvent(IEconomyLedger::eMapEvent::POWERUP_PICKUPS, info.lot, GetPosition(), 1, this);
 		} else {
-			inv->AddItem(info.lot, info.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
+			// Live told the client which object the item dropped from (all 2,344 live pickups of a dropped item)
+			LootMetrics metrics{};
+			if (info.sourceLot != 0) metrics.sourceLot = info.sourceLot;
+			inv->AddItem(info.lot, info.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1, false, -1, metrics);
 		}
 
 		droppedLoot.erase(objectID);
@@ -2118,10 +2121,12 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfoEve
 bool Entity::MsgDropClientLoot(GameMessages::DropClientLootEvent& event) {
 	const auto& dropLootMsg = event.msg;
 	if (dropLootMsg.item != LOT_NULL && dropLootMsg.item != 0) {
+		const auto* const source = Game::entityManager->GetEntity(dropLootMsg.sourceID);
 		Loot::Info info{
 			.id = dropLootMsg.lootID,
 			.lot = dropLootMsg.item,
 			.count = dropLootMsg.count,
+			.sourceLot = source ? source->GetLOT() : 0,
 		};
 		AddLootItem(info);
 	}

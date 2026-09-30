@@ -20,6 +20,9 @@ namespace Loot {
 		LWOOBJID id = 0;
 		LOT lot = 0;
 		int32_t count = 0;
+		// The LOT of the object it dropped from (1 when a player was the source), 0 when that object was not found.
+		// Sent back as the item's source when it is picked up (LootMetrics::sourceLot).
+		LOT sourceLot = 0;
 	};
 
 	using Return = std::map<LOT, int32_t>;
