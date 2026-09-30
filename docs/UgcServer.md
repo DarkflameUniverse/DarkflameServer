@@ -452,9 +452,11 @@ all of its levels, so each look needs a group of its own.
 | `satin_whiten` | 20 | Percent: how far satin colors are moved towards white (in linear RGB, after the color variation). |
 
 Which color has which look is data, not a list in the code (`UgcModel::LookOf`): glow is LU Toolbox's glow table
-(`UgcPalette::Glow`: 50, 294, 329, 9000-9027), metal is LU Toolbox's metallic table (`UgcPalette::IsMetallic`) plus
-the Materials.xml types above (the clients checked have 8 or 14 `shinySteel` colors, and 1 or 3 `glitter` ones: 129,
-341, 351), glitter is the `glitter` type plus `glitter_colors`. Pearl stays plastic (the client has no shader for it).
+(`UgcPalette::Glow`: 50, 294, 329, 9000-9027), metal is the Materials.xml types above (the clients checked have 8 or
+14 `shinySteel` colors, and 1 or 3 `glitter` ones: 129, 341, 351), glitter is the `glitter` type plus
+`glitter_colors`. LU Toolbox's metallic table only colors bricks, it gives no look: most of it is `shinyPlastic` in the
+client's Materials.xml (131, the grey of many baseplates, is plastic in the client's brick colors too), and it put
+whole baseplates in `S88_Metal_Model`. Pearl stays plastic (the client has no shader for it).
 Only opaque bricks get metal and glow: a transparent glowing color (294 with the brick database palette, alpha 150)
 stays in `S01_Alpha_Model`. Transparent bricks can be glitter (every glitter color the clients have is transparent:
 341 and 351 have alpha 150, 129 is in `transparent_colors`).

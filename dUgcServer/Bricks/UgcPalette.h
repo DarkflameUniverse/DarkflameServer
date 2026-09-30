@@ -18,7 +18,6 @@ namespace UgcPalette {
 	std::optional<glm::vec3> Linear(uint32_t id, bool icon = false);
 
 	bool IsTransparent(uint32_t id);
-	bool IsMetallic(uint32_t id);
 
 	// The glow color (linear) of a glowing material, nullopt for the others
 	std::optional<glm::vec3> Glow(uint32_t id);

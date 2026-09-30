@@ -476,7 +476,7 @@ TEST(UgcPalette, ColorVariationMatchesLuToolbox) {
 	EXPECT_FALSE(UgcPalette::IsTransparent(21));
 	EXPECT_TRUE(UgcPalette::Glow(9013).has_value());
 	EXPECT_FALSE(UgcPalette::Glow(21).has_value());
-	EXPECT_TRUE(UgcPalette::IsMetallic(309));
+	EXPECT_TRUE(UgcPalette::Linear(309).has_value()); // LU Toolbox's metallic colors are colors, not looks
 	EXPECT_FALSE(UgcPalette::Linear(123456).has_value());
 	EXPECT_NEAR(UgcPalette::LinearToSrgb(*UgcPalette::Linear(1, true)).r, 0.7f, 1e-5f);
 	EXPECT_NEAR(UgcPalette::LinearToSrgb(red).r * 255.0f, 222.0f, 0.5f); // LDD's bright red
@@ -1146,7 +1146,8 @@ TEST(UgcShaders, LooksComeFromTheColorData) {
 	EXPECT_EQ(UgcModel::LookOf(21, plastic, rules), UgcModel::eLook::PLASTIC);
 	EXPECT_EQ(UgcModel::LookOf(5000, steel, rules), UgcModel::eLook::METAL);       // a Materials.xml shinySteel
 	EXPECT_EQ(UgcModel::LookOf(5000, brushed, rules), UgcModel::eLook::BRUSHED);
-	EXPECT_EQ(UgcModel::LookOf(183, plastic, rules), UgcModel::eLook::METAL);      // LU Toolbox's metallic, shinyPlastic in Materials.xml
+	EXPECT_EQ(UgcModel::LookOf(183, plastic, rules), UgcModel::eLook::PLASTIC);    // LU Toolbox's metallic, shinyPlastic in Materials.xml
+	EXPECT_EQ(UgcModel::LookOf(131, plastic, rules), UgcModel::eLook::PLASTIC);    // the same (a grey that is often a whole baseplate)
 	EXPECT_EQ(UgcModel::LookOf(329, plastic, rules), UgcModel::eLook::GLOW);       // LU Toolbox's glow colors
 	EXPECT_EQ(UgcModel::LookOf(50, plastic, rules), UgcModel::eLook::GLOW);
 	EXPECT_EQ(UgcModel::LookOf(9016, plastic, rules), UgcModel::eLook::GLOW);
@@ -1158,13 +1159,12 @@ TEST(UgcShaders, LooksComeFromTheColorData) {
 	EXPECT_EQ(UgcModel::LookOf(150, steel, named), UgcModel::eLook::METAL);
 	UgcModel::LookRules none;
 	none.materialTypes.clear();
-	none.paletteMetallic = false;
 	EXPECT_EQ(UgcModel::LookOf(5000, steel, none), UgcModel::eLook::PLASTIC);
 	EXPECT_EQ(UgcModel::LookOf(150, steel, none), UgcModel::eLook::PLASTIC);
 
 	// Built: opaque vertices get their color's look, transparent bricks none (their glow stays with them)
 	UgcBricks::BrickLibrary library(MakeRes(), 0);
-	library.SetMaterials({ { 5000, brushed } });
+	library.SetMaterials({ { 150, steel }, { 5000, brushed } });
 	std::string error;
 	const auto model = UgcModel::Build(UgcModel::ParseLxfml(R"(<LXFML versionMajor="5"><Bricks>
 		<Brick><Part designID="3001" materials="150"><Bone transformation="1,0,0,0,1,0,0,0,1,0,0,0"/></Part></Brick>
@@ -1189,6 +1189,7 @@ TEST(UgcShaders, LooksComeFromTheColorData) {
 
 TEST(UgcShaders, WritesAGroupPerLookWithEveryLevel) {
 	UgcBricks::BrickLibrary library(MakeRes(), 0);
+	library.SetMaterials({ { 150, { 152, 155, 153, 255, "shinySteel" } } }); // the client's Materials.xml entry
 	auto settings = SmallSettings();
 	settings.build.colorVariation = 0.0f;
 	settings.shaders.metal = 88;

@@ -171,10 +171,6 @@ namespace UgcPalette {
 		return Transparent().contains(id);
 	}
 
-	bool IsMetallic(uint32_t id) {
-		return Metallic().contains(id);
-	}
-
 	std::optional<glm::vec3> Glow(uint32_t id) {
 		const auto it = GlowColors().find(id);
 		return it != GlowColors().end() ? std::optional(it->second) : std::nullopt;

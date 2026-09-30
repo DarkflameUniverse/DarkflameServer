@@ -81,15 +81,15 @@ namespace UgcModel {
 	};
 
 	/**
-	 * Which colors have which look, from the client's data: a Materials.xml MaterialType (brickdb.zip) and LU Toolbox's
-	 * metallic and glow colors (UgcPalette), and colors named in the settings. A named color wins, then glow over metal;
-	 * transparent bricks are plastic unless their color is glitter.
+	 * Which colors have which look, from the client's data: a Materials.xml MaterialType (brickdb.zip), LU Toolbox's
+	 * glow colors (UgcPalette) and colors named in the settings. A named color wins, then glow; transparent bricks are
+	 * plastic unless their color is glitter. LU Toolbox's metallic table is not a look: it has colors the client types
+	 * shinyPlastic (131, 139, 179, 183, 184, ...), plastic in the client's data.
 	 */
 	struct LookRules {
 		std::map<uint32_t, eLook> colors;  // LEGO color ids given a look by the settings (brushed_colors, glitter_colors)
 		std::map<std::string, eLook> materialTypes{ { "shinySteel", eLook::METAL }, { "brushedSteel", eLook::BRUSHED }, { "matteSteel", eLook::BRUSHED },
 			{ "glitter", eLook::GLITTER } };
-		bool paletteMetallic{ true }; // LU Toolbox's Metallic colors (UgcPalette::IsMetallic) are METAL
 		bool paletteGlow{ true };     // its glow colors (UgcPalette::Glow) are GLOW
 	};
 

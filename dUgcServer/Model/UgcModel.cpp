@@ -204,7 +204,6 @@ namespace UgcModel {
 	eLook LookOf(uint32_t id, const UgcBricks::Material& material, const LookRules& rules) {
 		if (const auto color = rules.colors.find(id); color != rules.colors.end()) return color->second;
 		if (rules.paletteGlow && UgcPalette::Glow(id)) return eLook::GLOW;
-		if (rules.paletteMetallic && UgcPalette::IsMetallic(id)) return eLook::METAL;
 		const auto type = rules.materialTypes.find(material.type);
 		return type != rules.materialTypes.end() ? type->second : eLook::PLASTIC;
 	}
