@@ -73,13 +73,18 @@ protected:
 
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
-		if (Game::entityManager) delete Game::entityManager;
-		if (Game::zoneManager) delete Game::zoneManager;
+		// Cleared too: tests without these fixtures (packet capture) run after them and check them
+		delete Game::entityManager;
+		Game::entityManager = nullptr;
+		delete Game::zoneManager;
+		Game::zoneManager = nullptr;
 		if (Game::logger) {
 			Game::logger->Flush();
 			delete Game::logger;
+			Game::logger = nullptr;
 		}
-		if (Game::config) delete Game::config;
+		delete Game::config;
+		Game::config = nullptr;
 	}
 
 	EntityInfo info{};
