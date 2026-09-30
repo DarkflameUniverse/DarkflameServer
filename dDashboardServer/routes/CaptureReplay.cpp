@@ -14,7 +14,9 @@
 
 #include "BinaryPathFinder.h"
 #include "CaptureBundle.h"
+#include "CaptureProperty.h"
 #include "CaptureTools.h"
+#include "ClientAssets.h"
 #include "Database.h"
 #include "DashboardRoutes.h"
 #include "Game.h"
@@ -112,6 +114,20 @@ namespace {
 		}
 
 		const nlohmann::json* ReplicaFields(size_t i) const { return i < replica.size() && replica[i] ? &*replica[i] : nullptr; }
+
+		// The properties the capture saw (CaptureProperty), read once after the replica pass, on a worker thread
+		std::once_flag propertyOnce;
+		std::atomic<bool> propertyBuilt{};
+		nlohmann::json property;
+
+		const nlohmann::json& Property() {
+			Decode();
+			std::call_once(propertyOnce, [this] {
+				property = CaptureProperty::Build(bundle.records, startUs, [this](size_t i) { return ReplicaFields(i); });
+				propertyBuilt = true;
+			});
+			return property;
+		}
 	};
 	std::shared_ptr<Cached> g_Cache;
 
@@ -684,6 +700,46 @@ namespace CaptureReplay {
 				const auto to = cached->bundle.records.empty() ? from + 1 : cached->bundle.records.back().header.timeUs / 1000000 + 1;
 				JsonSuccess(reply, { {"zone", all ? json(nullptr) : json(zone)}, {"zones", zones}, {"from", from}, {"to", to}, {"players", players},
 					{"worlds", WorldsJson(*cached)}, {"idleSeconds", 3}, {"bucket", 1}, {"interval", 1}, {"truncated", false} });
+			});
+
+		Route(eHTTPMethod::GET, "/api/inspector/sessions/:id/property", Perm(PERMISSION),
+			"The properties the capture saw, per world (zone, instance, clone): {worlds: [{zone, zoneName, instance, clone, saved, info, counts, "
+			"models: [{object, lot, spawner, ugcId, behaviors, spans: [{from, to, i, position, rotation}]}], events}]}. From the captured replica "
+			"packets and property game messages; `saved` is the property saved for that zone and clone now (its id for links and UGC meshes)",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto session = FindSession(context, reply);
+				if (!session) return;
+				const auto cached = Load(*session, reply);
+				if (!cached) return;
+				// On the main thread: zone names and the saved property of each world the capture was on
+				std::map<std::pair<uint32_t, uint32_t>, json> saved;
+				std::map<uint32_t, std::string> zoneNames;
+				for (const auto& record : cached->bundle.records) {
+					const auto& h = record.header;
+					if (h.source != static_cast<uint8_t>(eCaptureSource::WORLD) || !h.zoneId || saved.contains({ h.zoneId, h.cloneId })) continue;
+					saved[{ h.zoneId, h.cloneId }] = nullptr;
+					if (!zoneNames.contains(h.zoneId)) zoneNames[h.zoneId] = GameText::ZoneName(h.zoneId);
+					const auto info = h.cloneId ? Database::Get()->GetPropertyInfo(h.zoneId, h.cloneId) : std::nullopt;
+					if (!info) continue;
+					saved[{ h.zoneId, h.cloneId }] = { {"id", std::to_string(info->id)}, {"name", info->name}, {"ownerId", std::to_string(info->ownerId)},
+						{"ownerName", CharacterName(info->ownerId)} };
+				}
+				Workers::Reply(reply, context, cached->propertyBuilt, [cached, saved = std::move(saved), zoneNames = std::move(zoneNames)](HTTPReply& out) {
+					json worlds = cached->Property()["worlds"];
+					for (auto& world : worlds) {
+						const auto zone = world["zone"].get<uint32_t>(), clone = world["clone"].get<uint32_t>();
+						const auto name = zoneNames.find(zone);
+						world["zoneName"] = name == zoneNames.end() ? std::string{} : name->second;
+						const auto found = saved.find({ zone, clone });
+						world["saved"] = found == saved.end() ? json(nullptr) : found->second;
+						// Names from the locale, in the viewer's language (read once at startup, so workers may read them)
+						for (auto& model : world["models"]) model["name"] = ClientAssets::ItemName(model["lot"].get<LOT>());
+						for (auto& event : world["events"]) {
+							if (event.contains("lot")) event["name"] = ClientAssets::ItemName(event["lot"].get<LOT>());
+						}
+					}
+					JsonSuccess(out, { {"worlds", worlds} });
+				});
 			});
 
 		Route(eHTTPMethod::GET, "/api/inspector/sessions/:id/worlds", Perm(PERMISSION),
