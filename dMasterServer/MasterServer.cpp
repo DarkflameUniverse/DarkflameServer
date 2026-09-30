@@ -61,6 +61,8 @@
 #include "master/UgcModelsMade.h"
 #include "master/CDClientReload.h"
 #include "CDClientReloader.h"
+#include "WorldReloader.h"
+#include "master/WorldFiles.h"
 #include "BuildInfo.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
@@ -629,6 +631,7 @@ int main(int argc, char** argv) {
 		}
 		LiveUpdateCoordinator::Update();
 		CDClientReloader::Update();
+		WorldReloader::Update();
 		CheckPlayerActionTimeouts();
 
 		// Spare instances for busy zones (zone_limits), checked every few seconds
@@ -702,6 +705,7 @@ int main(int argc, char** argv) {
 
 			if (instance->GetShutdownComplete()) {
 				MigrationCoordinator::OnInstanceGone(*instance);
+				WorldReloader::OnInstanceGone(*instance);
 				Game::im->RemoveInstance(instance);
 			}
 		}
@@ -794,6 +798,7 @@ namespace {
 		case ServiceType::DASHBOARD:
 			dashboardServerMasterPeerSysAddr = sysAddr;
 			g_DashboardConnects++;
+			WorldReloader::Republish();
 			// Its traffic isn't a player's; packet captures leave it out
 			PacketCapture::IgnorePeer(sysAddr);
 			break;
@@ -1143,6 +1148,25 @@ namespace {
 		else CDClientReloader::Request("a GM, character " + std::to_string(request.requesterId));
 	}
 
+	// World hot reload (docs/WorldHotReload.md): a world's zone files, and a GM's /reloadworld or the dashboard
+	void OnWorldFiles(const WorldFilesReport& report, const SystemAddress& sysAddr) {
+		WorldReloader::HandleReport(sysAddr, report);
+	}
+
+	void OnWorldReload(const WorldReloadRequest& request, const SystemAddress& sysAddr) {
+		const bool fromDashboard = sysAddr == dashboardServerMasterPeerSysAddr && sysAddr != UNASSIGNED_SYSTEM_ADDRESS;
+		if (!fromDashboard && !Game::im->GetInstanceBySysAddr(sysAddr)) {
+			LOG("Ignoring a world reload request from a server that is neither the dashboard nor a world");
+			return;
+		}
+		if (shutdownSequenceStarted) {
+			LOG("Shutdown sequence has been started. Not reloading zone %u.", request.zoneId);
+			return;
+		}
+		const std::string by = request.requestedBy.empty() ? (fromDashboard ? "the dashboard" : "a GM") : request.requestedBy;
+		WorldReloader::HandleRequest(request, fromDashboard ? "the dashboard, " + by : by);
+	}
+
 	void OnConfigReload(const ConfigReload& reload, const SystemAddress& sysAddr) {
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
 			LOG("Ignoring config reload from a server that is not the dashboard");
@@ -1247,6 +1271,8 @@ namespace {
 			handlers.On<DataChanged>(Master::DATA_CHANGED, ForwardWorldToDashboard<DataChanged>);
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);
 			handlers.On<CDClientReload>(Master::CDCLIENT_RELOAD, OnCDClientReload);
+			handlers.On<WorldFilesReport>(Master::WORLD_FILES, OnWorldFiles);
+			handlers.On<WorldReloadRequest>(Master::WORLD_RELOAD, OnWorldReload);
 			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, OnMessageCaptureData);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
@@ -1281,6 +1307,7 @@ void HandlePacket(Packet* packet) {
 			}
 
 			MigrationCoordinator::OnInstanceGone(*instance);
+			WorldReloader::OnInstanceGone(*instance);
 			Game::im->RemoveInstance(instance);
 		}
 
@@ -1343,6 +1370,7 @@ void HandlePacket(Packet* packet) {
 int ShutdownSequence(int32_t signal) {
 	if (!Game::logger) return -1;
 	CDClientReloader::Shutdown();
+	WorldReloader::Shutdown();
 	LOG("Recieved Signal %d", signal);
 	if (shutdownSequenceStarted) {
 		LOG("Duplicate Shutdown Sequence");
@@ -1532,7 +1560,13 @@ void InitializeLiveUpdates() {
 		}
 	};
 	LiveUpdateCoordinator::Initialize(std::move(hooks));
-	MigrationCoordinator::SetObserver(LiveUpdateCoordinator::OnMigrationStatus);
+	MigrationCoordinator::SetObserver([](const MigrationStatus& status) {
+		LiveUpdateCoordinator::OnMigrationStatus(status);
+		WorldReloader::OnMigrationStatus(status);
+	});
+	WorldReloader::SetPublisher([](const WorldFilesStatus& status) {
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, status);
+	});
 
 	// The worlds; the UGC and dashboard servers read the current files when they start (docs/CDClientFdb.md)
 	CDClientReloader::SetBroadcast([](const CDClientReload& reload) {

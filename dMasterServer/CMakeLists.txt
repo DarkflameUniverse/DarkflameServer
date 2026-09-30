@@ -1,5 +1,6 @@
 set(DMASTERSERVER_SOURCES
 	"CDClientReloader.cpp"
+	"WorldReloader.cpp"
 	"InstanceManager.cpp"
 	"MigrationCoordinator.cpp"
 	"LiveUpdateCoordinator.cpp"
