@@ -80,6 +80,8 @@
 #include "CDClientBrowser.h"
 #include "master/MessageCapture.h"
 #include "CaptureReplay.h"
+#include "GameMessageDecoder.h"
+#include "PacketDecoder.h"
 #include "PublicRoutes.h"
 #include "Showcase.h"
 #include "ContrabandRoutes.h"
@@ -127,6 +129,15 @@ namespace Game {
 	dConfig* config = nullptr;
 	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
+	// Also defined by every program that links the game's libraries (it decodes game messages with the game's own
+	// message structs); the dashboard runs no game, so they stay empty
+	dChatFilter* chatFilter = nullptr;
+	AssetManager* assetManager = nullptr;
+	RakPeerInterface* chatServer = nullptr;
+	SystemAddress chatSysAddr;
+	EntityManager* entityManager = nullptr;
+	dZoneManager* zoneManager = nullptr;
+	std::string projectVersion = PROJECT_VERSION;
 }
 
 // Define global server state
@@ -476,6 +487,10 @@ int main(int argc, char** argv) {
 		PreloadZoneData();
 		Scenery::Preload();
 		WorldView::Preload();
+		// The capture viewer decodes game messages with the game's own structs and replica packets with the
+		// components of each LOT
+		PacketDecoder::SetGameMessageDecoder(GameMessageDecoder::Decode);
+		CaptureReplay::PreloadDecoding();
 		LOG("Read the client data for the 3D views in %lld ms", static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()));
 	}
 	Workers::Start();

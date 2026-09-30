@@ -22,6 +22,9 @@ namespace CaptureReplay {
 
 	void RegisterRoutes();
 
+	// Reads what decoding captured replica packets needs from the CDClient (main thread, before the workers start)
+	void PreloadDecoding();
+
 	// MESSAGE_CAPTURE_DATA with status PACKETS, via master
 	void HandleData(const MessageCaptureData& data);
 

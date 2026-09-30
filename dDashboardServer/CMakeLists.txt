@@ -30,7 +30,9 @@ target_include_directories(DashboardServer PRIVATE
 )
 
 target_compile_definitions(DashboardServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
-target_link_libraries(DashboardServer ${COMMON_LIBRARIES} dWeb dServer bcrypt OpenSSL::Crypto CURL::libcurl DashboardRoutes DashboardAuth)
+# The game's libraries: the capture viewer reads game messages and replica packets with the game's own structs
+target_link_libraries(DashboardServer ${COMMON_LIBRARIES} dWeb dServer bcrypt OpenSSL::Crypto CURL::libcurl DashboardRoutes DashboardAuth
+	dScripts dGameBase dComponents dUtilities dGameMessages dInventory dGame dChatFilter dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dNavigation)
 
 
 # Copy static files and templates to the build directory on every build, so editing only a template or

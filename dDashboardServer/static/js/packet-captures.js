@@ -302,7 +302,7 @@
 			byId('detailMeta').textContent = '#' + r.i + ' at ' + timeText(r.t) + ' · ' + (r.from || '') + ' → ' + (r.to || '') + ' · ' + r.source +
 				(r.zone ? ' ' + r.zone + ':' + r.instance + (r.clone ? ':' + r.clone : '') : '') + ' · ' + nf.format(r.bytes) + ' bytes' +
 				(r.account ? ' · account ' + r.account : '') + (r.character !== '0' ? ' · character ' + r.character : '') + (r.peer ? ' · ' + r.peer : '');
-			byId('detailFields').textContent = r.fields ? JSON.stringify(r.fields, null, 2) : (r.gap ? r.gap + ' packets were lost here (a server buffer was full)' : 'No decoder for this packet; its bytes are below.');
+			byId('detailFields').textContent = r.fields ? JSON.stringify(r.fields, null, 2) : (r.gap ? r.gap + ' packets were lost here (a server buffer was full)' : 'Not decoded: no struct reads this packet (the server never sends or handles it). Its bytes are below.');
 			byId('detailHex').textContent = hexdump(r.hex || '');
 		}).catch(function () {});
 	});
