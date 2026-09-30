@@ -150,3 +150,36 @@ TEST(NetworkViewTest, ServerLinksOnThePlayersAddressStayApart) {
 		}
 	}
 }
+
+TEST(NetworkViewTest, WebClientsBySignedInAccountWithTheirUserName) {
+	// Two staff members behind one address and a request that wasn't signed in, on the dashboard
+	TrafficHistory history;
+	Report dashboard;
+	dashboard.seconds = { Second{ .time = NOW - 1 } };
+	dashboard.connections = {
+		Connection{ .address = "198.51.100.7", .peer = Peer::CLIENTS, .http = true, .packetsIn = 4, .packetsOut = 4, .bytesIn = 400, .bytesOut = 40000, .accountId = 7, .account = "alice" },
+		Connection{ .address = "198.51.100.7", .peer = Peer::CLIENTS, .http = true, .packetsIn = 2, .packetsOut = 2, .bytesIn = 200, .bytesOut = 20000, .accountId = 9, .account = "bob" },
+		Connection{ .address = "198.51.100.7", .peer = Peer::CLIENTS, .http = true, .packetsIn = 1, .packetsOut = 1, .bytesIn = 100, .bytesOut = 100 } };
+	dashboard.hasConnections = true;
+	history.Ingest(static_cast<uint16_t>(ServiceType::DASHBOARD), 0, 0, dashboard, NOW);
+
+	const auto shown = NetworkView::Connections(history, NOW, 20, true, 5, Label);
+	ASSERT_EQ(shown["peers"].size(), 3u);
+	std::vector<std::string> users;
+	for (const auto& p : shown["peers"]) {
+		EXPECT_EQ(p["kind"], "web");
+		EXPECT_EQ(p["address"], "198.51.100.7");
+		EXPECT_FALSE(p.contains("account")); // a web client's name is its dashboard user, not a player
+		users.push_back(p.value("user", std::string("-")));
+	}
+	EXPECT_EQ(users, (std::vector<std::string>{ "alice", "bob", "-" })); // busiest first
+	EXPECT_EQ(shown["peers"][0]["account_id"], 7);
+
+	// Without network_ips: still the user names, and the address as its token (the same for all three)
+	const auto hidden = NetworkView::Connections(history, NOW, 20, false, 5, Label);
+	EXPECT_EQ(hidden.dump().find("198.51.100.7"), std::string::npos);
+	ASSERT_EQ(hidden["peers"].size(), 3u);
+	EXPECT_EQ(hidden["peers"][0]["user"], "alice");
+	EXPECT_EQ(hidden["peers"][1]["user"], "bob");
+	for (const auto& p : hidden["peers"]) EXPECT_EQ(p["address"], NetworkView::MaskAddress("198.51.100.7", 5));
+}

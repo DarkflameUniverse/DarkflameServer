@@ -26,9 +26,11 @@ namespace NetworkView {
 	nlohmann::json Summary(const TrafficHistory& history, int64_t now, int64_t onlineSeconds, const Labeler& label);
 
 	/**
-	 * The remote ends of every server (from each one's last report) grouped by address: game clients by their RakNet
-	 * connections, HTTP clients of the dashboard and the UGC server, and the servers' own links. Rates per second.
-	 * Without `showAddresses` each address is replaced by a token that stays the same for the same address and `salt`.
+	 * The remote ends of every server (from each one's last report): game clients by player (else by RakNet connection),
+	 * HTTP clients of the dashboard and the UGC server by address and signed-in account (`user`, the dashboard account
+	 * the requests were signed in as), and the servers' own links. Rates per second. Account and user names are always
+	 * included; without `showAddresses` each address is replaced by a token that stays the same for the same address
+	 * and `salt`, and ports are left out.
 	 */
 	nlohmann::json Connections(const TrafficHistory& history, int64_t now, int64_t onlineSeconds, bool showAddresses, uint64_t salt, const Labeler& label);
 

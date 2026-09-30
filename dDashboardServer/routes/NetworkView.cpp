@@ -112,9 +112,11 @@ namespace NetworkView {
 			for (const auto& c : server.connections) {
 				const std::string kind = c.peer != TrafficStats::Peer::CLIENTS ? "server" : c.http ? "web" : "game";
 				// One entry per player (their account), else per connection: an address alone is not enough, since the
-				// servers' own links and players on the same machine or network share it
+				// servers' own links and players on the same machine or network share it. Web clients: one per address
+				// and signed-in dashboard account, so people behind one address are listed apart
 				const std::string groupKey = kind == "game" && c.accountId ? "account:" + std::to_string(c.accountId)
-					: kind + "|" + c.address + (c.http ? std::string() : ":" + std::to_string(c.port));
+					: kind + "|" + c.address + (c.http ? std::string() : ":" + std::to_string(c.port))
+					+ (c.http && c.accountId ? "|" + std::to_string(c.accountId) : std::string());
 				auto& group = groups[groupKey];
 				if (group.address.empty()) group.address = c.address;
 				group.seconds = std::max(group.seconds, seconds);
@@ -157,7 +159,11 @@ namespace NetworkView {
 			entry["address"] = showAddresses ? group->address : MaskAddress(group->address, salt);
 			entry["kind"] = group->kind;
 			entry["servers"] = group->servers;
-			if (group->accountId) {
+			if (group->accountId && group->kind == "web") {
+				// The dashboard account the requests were signed in as (a session or an API key)
+				entry["account_id"] = group->accountId;
+				entry["user"] = group->account;
+			} else if (group->accountId) {
 				entry["account_id"] = group->accountId;
 				entry["account"] = group->account;
 				if (group->characterId) {
