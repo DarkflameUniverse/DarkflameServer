@@ -30,6 +30,12 @@ namespace CDFdb {
 	bool Open(const std::filesystem::path& path, bool allowMapping = true);
 	void Close();
 
+	/**
+	 * Closes the fdb for a CDClient reload, but keeps its view open until the next Retire, so a row or table pointer
+	 * handed out before the reload still reads from memory that is there. Only the latest retired fdb is kept.
+	 */
+	void Retire();
+
 	// The open fdb, or nullptr
 	const FdbReader* Get();
 

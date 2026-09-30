@@ -26,6 +26,12 @@ namespace CDClientDatabase {
 	 */
 	void Connect(const std::string& filename);
 
+	/**
+	 * Switches to another CDServer.sqlite (a CDClient reload, see FdbSnapshot.h). The new file is opened before the
+	 * old connection is let go; throws CppSQLite3Exception and keeps the old one if it can't be opened.
+	 */
+	void Reconnect(const std::string& filename);
+
 	//! Queries the CDClient
 	/*!
 	  \param query The query

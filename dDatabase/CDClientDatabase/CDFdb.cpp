@@ -7,6 +7,7 @@
 
 namespace {
 	std::unique_ptr<FdbReader> g_Fdb;
+	std::unique_ptr<FdbReader> g_Retired;
 
 	// Column name -> index for each table handed out by GetTable, so RowFields looks up names in O(1)
 	std::unordered_map<const FdbReader::Table*, std::unordered_map<std::string, int32_t>> g_ColumnIndices;
@@ -125,6 +126,11 @@ bool CDFdb::Open(const std::filesystem::path& path, bool allowMapping) {
 void CDFdb::Close() {
 	g_ColumnIndices.clear();
 	g_Fdb.reset();
+}
+
+void CDFdb::Retire() {
+	g_ColumnIndices.clear();
+	if (g_Fdb) g_Retired = std::move(g_Fdb);
 }
 
 const FdbReader* CDFdb::Get() {

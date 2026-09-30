@@ -67,6 +67,23 @@ void CDClientDatabase::Connect(const std::string& filename) {
 	sqlite3_trace_v2(conn->handle(), SQLITE_TRACE_STMT | SQLITE_TRACE_PROFILE, Trace, nullptr);
 }
 
+void CDClientDatabase::Reconnect(const std::string& filename) {
+	auto* next = new CppSQLite3DB();
+	try {
+		next->open(filename.c_str());
+	} catch (...) {
+		delete next;
+		throw;
+	}
+	sqlite3_trace_v2(next->handle(), SQLITE_TRACE_STMT | SQLITE_TRACE_PROFILE, Trace, nullptr);
+	g_Running.clear();
+	auto* old = std::exchange(conn, next);
+	isConnected = true;
+	// close_v2 waits for statements still open on the old file (a query a caller holds) before it really closes. The
+	// wrapper is left behind on purpose: its destructor would close the handle a second time
+	sqlite3_close_v2(old->handle());
+}
+
 //! Queries the CDClient
 CppSQLite3Query CDClientDatabase::ExecuteQuery(const std::string& query) {
 	return conn->execQuery(query.c_str());

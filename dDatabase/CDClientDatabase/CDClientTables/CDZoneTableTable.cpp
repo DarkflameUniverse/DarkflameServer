@@ -1,7 +1,16 @@
 #include "CDZoneTableTable.h"
 
+#include <memory>
+#include <vector>
+
 namespace CDZoneTableTable {
 	Table entries;
+
+	void Reset() {
+		static std::vector<std::unique_ptr<Table>> retired;
+		retired.push_back(std::make_unique<Table>(std::move(entries)));
+		entries = {};
+	}
 
 	void LoadValuesFromDatabase() {
 		// Get the data from the database

@@ -37,6 +37,9 @@ namespace CDZoneTableTable {
 	using Table = std::map<uint32_t, CDZoneTable>;
 	void LoadValuesFromDatabase();
 
+	// Empties the table for a CDClient reload. The old entries are kept alive, so a pointer from Query stays valid
+	void Reset();
+
 	// Queries the table with a zoneID to find.
 	const CDZoneTable* Query(uint32_t zoneID);
 };

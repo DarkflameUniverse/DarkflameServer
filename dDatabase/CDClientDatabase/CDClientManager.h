@@ -18,6 +18,20 @@ namespace CDClientManager {
 	void LoadValuesFromDefaults();
 
 	/**
+	 * Loads every table again after a CDClient reload (the caller has already reconnected CDClientDatabase to the new
+	 * CDServer.sqlite). Each table's old entries are emptied out but kept alive, and so is the old fdb's view, so a
+	 * reference an entity took from a table before the reload stays valid: what is spawned keeps what it loaded, and
+	 * what is made afterwards reads the new data. Main thread only.
+	 */
+	void Reload(const std::filesystem::path& fdbPath);
+
+	// The first half of Reload: lets go of the fdb and empties every table, keeping the old entries alive
+	void ResetTables();
+
+	// How many tables ResetTables empties
+	uint32_t GetTableCount();
+
+	/**
 	 * Fetch a table from CDClient
 	 * 
 	 * @tparam Table type to fetch

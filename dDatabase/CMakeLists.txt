@@ -1,7 +1,7 @@
 add_subdirectory(CDClientDatabase)
 add_subdirectory(GameDatabase)
 
-add_library(dDatabase STATIC "MigrationRunner.cpp" "ModelNormalizeMigration.cpp" "ModularBuildIdMigration.cpp" "ConfigSync.cpp")
+add_library(dDatabase STATIC "MigrationRunner.cpp" "ModelNormalizeMigration.cpp" "ModularBuildIdMigration.cpp" "ConfigSync.cpp" "CDClientSnapshot.cpp")
 
 add_custom_target(conncpp_dylib
 	${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${PROJECT_BINARY_DIR})

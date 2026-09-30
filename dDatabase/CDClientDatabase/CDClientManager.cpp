@@ -1,4 +1,9 @@
 #include "CDClientManager.h"
+
+#include <functional>
+#include <memory>
+#include <vector>
+
 #include "CDFdb.h"
 #include "Logger.h"
 #include "CDActivityRewardsTable.h"
@@ -66,7 +71,25 @@
 #define SPECIALIZE_TABLE_STORAGE(table) \
 	template<> typename table::StorageType& CDClientManager::GetEntriesMutable<table>() { return table##Entries; };
 
-#define DEFINE_TABLE_STORAGE(table) namespace { table::StorageType table##Entries; }; SPECIALIZE_TABLE_STORAGE(table)
+namespace {
+	// Empties each table's storage for Reload, keeping the old entries alive in g_Retired
+	std::vector<std::function<void()>>& Resetters() {
+		static std::vector<std::function<void()>> resetters;
+		return resetters;
+	}
+	std::vector<std::shared_ptr<void>> g_Retired;
+
+	template<typename Storage>
+	bool RegisterReset(Storage& storage) {
+		Resetters().push_back([&storage]() {
+			g_Retired.push_back(std::make_shared<Storage>(std::move(storage)));
+			storage = Storage{};
+		});
+		return true;
+	}
+}
+
+#define DEFINE_TABLE_STORAGE(table) namespace { table::StorageType table##Entries; const bool table##Reset = RegisterReset(table##Entries); }; SPECIALIZE_TABLE_STORAGE(table)
 
 DEFINE_TABLE_STORAGE(CDActivityRewardsTable);
 DEFINE_TABLE_STORAGE(CDActivitiesTable);
@@ -176,6 +199,21 @@ void CDClientManager::LoadValuesFromDatabase(const std::filesystem::path& fdbPat
 	CDTamingBuildPuzzleTable::Instance().LoadValuesFromDatabase();
 	CDVendorComponentTable::Instance().LoadValuesFromDatabase();
 	CDZoneTableTable::LoadValuesFromDatabase();
+}
+
+void CDClientManager::ResetTables() {
+	CDFdb::Retire();
+	for (const auto& reset : Resetters()) reset();
+	CDZoneTableTable::Reset();
+}
+
+void CDClientManager::Reload(const std::filesystem::path& fdbPath) {
+	ResetTables();
+	LoadValuesFromDatabase(fdbPath);
+}
+
+uint32_t CDClientManager::GetTableCount() {
+	return static_cast<uint32_t>(Resetters().size()) + 1;
 }
 
 void CDClientManager::LoadValuesFromDefaults() {
