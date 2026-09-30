@@ -109,10 +109,12 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   [docs/Matchmaking.md](docs/Matchmaking.md).
 * **Guilds:** create, invite, ranks, kick, disband and guild chat (`/g`), enabled with a login event
   (`event_N=guilds`). See [docs/Guilds.md](docs/Guilds.md).
-* **Enemies:** de-aggro trigger walls get their real size, and enemies' paths stop at navmesh carvers and enemy-only
-  blocking volumes, as the level data and client collision groups say.
+* **Enemies and pets:** de-aggro trigger walls and navmesh carvers get their real size, and enemies' and pets' paths
+  stop at the walls their collision group can't cross. Carver-only level objects aren't spawned, as in the client; they
+  stay as walls.
 * **Loot like live captures:** activity and quickbuild loot comes from the player and spawns at the object, reward coins
   use the reward's level, coins drop before items, quickbuild item costs are taken at build start and refunded on cancel.
+  Items say where they came from (the `_Metric_*` keys: the dropping object, mission, activity, vendor, mail or trade).
 * **Combat:** area attacks and TacArcs handle targets once each, in the client's order; TacArcs pick targets like the
   client (distance or weights, then `attack_priority` when `use_attack_priority` is set).
 * **Zones:** level and zone files read for every version the client reads.
