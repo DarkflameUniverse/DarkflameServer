@@ -139,6 +139,10 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
 * **World hot reload:** worlds report the zone files they loaded (`.luz`, `.lvl`, triggers, terrain, navmesh); when one
   changes on disk, or on `/reloadworld` or the dashboard's Reload, master replaces those instances with new ones and
   moves their players over; properties are kept until empty instead ([docs/WorldHotReload.md](docs/WorldHotReload.md)).
+* **Chat filter:** the block list and the allowed words cache (`.dcf`) are hashed with 64-bit FNV-1a, so a list works
+  on every platform (before, `std::hash` values made on one system never matched on another); old files are refused
+  with a log line. Servers build `blocklist.dcf` from a plain `blocklist.txt` next to them, and blocked entries can be
+  phrases. See "Block list file" in [docs/Dashboard.md](docs/Dashboard.md).
 * The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
 
 ## License
@@ -377,7 +381,7 @@ All listed files are required for a server to start.
 * masterconfig.ini
 * WorldServer(.exe)
 * worldconfig.ini
-* blocklist.dcf
+* blocklist.dcf (or blocklist.txt, one blocked word or phrase per line, which the servers build it from)
 * migrations
 * vanity
 * navmeshes

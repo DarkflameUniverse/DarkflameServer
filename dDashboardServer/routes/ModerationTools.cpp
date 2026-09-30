@@ -31,7 +31,8 @@ namespace {
 	// The chat filter's files, as the servers load them: the allowed words from the client's res folder, the blocked
 	// words (only their hashes) next to the servers
 	constexpr const char* ALLOW_FILE = "chatplus_en_us.txt";
-	constexpr const char* BLOCK_FILE = "blocklist.dcf";
+	constexpr const char* BLOCK_FILE = dChatFilterDCF::BLOCK_LIST_FILE;
+	constexpr const char* BLOCK_TEXT = dChatFilterDCF::BLOCK_LIST_TEXT;
 	constexpr uint32_t FILE_WORDS_PAGE = 200;
 	// Recent chat searched when checking what a word would change
 	constexpr uint32_t CHECK_MESSAGES = 1000;
@@ -216,11 +217,8 @@ namespace {
 		return text ? ModerationTools::FileWords(*text) : std::vector<std::string>{};
 	}
 
-	std::optional<std::vector<size_t>> BlockFileHashes() {
-		std::ifstream in(BLOCK_FILE, std::ios::binary);
-		if (!in) return std::nullopt;
-		return ModerationTools::DcfHashes(std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>()));
-	}
+	// blocklist.dcf as the servers read it (an old-format file is refused, as they refuse it)
+	dChatFilterDCF::ParseResult BlockFile() { return dChatFilterDCF::ReadFile(BLOCK_FILE); }
 
 	// The dashboard's own lists by word: true allowed, false blocked
 	std::map<std::string, bool> DashboardWords() {
@@ -258,25 +256,27 @@ namespace {
 					const auto it = dashboard.find(word);
 					words.push_back({ {"word", word}, {"dashboard", it == dashboard.end() ? nlohmann::json(nullptr) : nlohmann::json(it->second ? "allowed" : "blocked")} });
 				}
-				const auto blocked = BlockFileHashes();
+				const auto blocked = BlockFile();
 				uint32_t imported = 0;
 				for (const auto& word : all) if (dashboard.contains(word)) imported++;
 				JsonSuccess(reply, { {"allowFile", ALLOW_FILE}, {"allowFileFound", !all.empty()}, {"allowTotal", all.size()}, {"matched", matched},
 					{"start", start}, {"pageSize", FILE_WORDS_PAGE}, {"words", words}, {"onDashboard", imported},
-					{"blockFile", BLOCK_FILE}, {"blockFileFound", blocked.has_value()}, {"blockTotal", blocked ? blocked->size() : 0} });
+					{"blockFile", BLOCK_FILE}, {"blockFileFound", blocked.status == dChatFilterDCF::eStatus::OK}, {"blockTotal", blocked.list.Size()},
+					{"blockMaxWords", blocked.list.maxWords}, {"blockFileStatus", dChatFilterDCF::StatusText(blocked.status)},
+					{"blockFileOld", blocked.status == dChatFilterDCF::eStatus::OLD_FORMAT}, {"blockText", BLOCK_TEXT} });
 			});
 
 		Route(eHTTPMethod::GET, "/api/chat_filter/lookup", Perm("chat_filter_manage"),
-			"Where a word stands: in the allowed words file, in the blocked words file (by its hash), and on the dashboard's lists. Query: word",
+			"Where a word or phrase stands: in the allowed words file, in the blocked words file (by its hash), and on the dashboard's lists. Query: word",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto word = ModerationTools::FilterWord(QueryValue(context.queryString, "word"));
-				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type one word (no spaces), up to 64 characters");
+				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type a word or phrase, up to 64 characters");
 				const auto all = AllowFileWords();
-				const auto blocked = BlockFileHashes();
+				const auto blocked = BlockFile();
 				const auto dashboard = DashboardWords();
 				const auto it = dashboard.find(*word);
-				JsonSuccess(reply, { {"word", *word}, {"inAllowFile", std::binary_search(all.begin(), all.end(), *word)},
-					{"inBlockFile", blocked && std::find(blocked->begin(), blocked->end(), ModerationTools::WordHash(*word)) != blocked->end()},
+				JsonSuccess(reply, { {"word", *word}, {"phrase", ModerationTools::IsPhrase(*word)}, {"inAllowFile", std::binary_search(all.begin(), all.end(), *word)},
+					{"inBlockFile", blocked.list.Contains(*word)},
 					{"dashboard", it == dashboard.end() ? nlohmann::json(nullptr) : nlohmann::json(it->second ? "allowed" : "blocked")} });
 			});
 
@@ -293,7 +293,7 @@ namespace {
 				for (const auto& word : all) {
 					// Only words the filter could compare (the file's odd lines with spaces or punctuation stay in the file only)
 					const auto filterWord = ModerationTools::FilterWord(word);
-					if (!filterWord || *filterWord != word || dashboard.contains(word)) continue;
+					if (!filterWord || *filterWord != word || ModerationTools::IsPhrase(word) || dashboard.contains(word)) continue;
 					Database::Get()->SetChatFilterWord({ word, true, context.authenticatedUser, now });
 					added++;
 				}
@@ -305,13 +305,17 @@ namespace {
 			});
 
 		Route(eHTTPMethod::POST, "/api/chat_filter/words", Perm("chat_filter_manage"),
-			"Allow or block a word (or move it to the other list); running worlds pick it up at once. Body: {word, allowed: bool}",
+			"Allow or block a word, or block a phrase (or move it to the other list); running worlds pick it up at once. Phrases can't be allowed: "
+			"whitelist chat checks each word on its own, as the client does. Body: {word, allowed: bool}",
 			[](HTTPReply& reply, const HTTPContext& context) {
 				const auto body = ParseBody(context);
 				if (!body) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid JSON");
 				const auto word = ModerationTools::FilterWord(body->value("word", ""));
-				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type one word (no spaces), up to 64 characters");
+				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type a word or phrase, up to 64 characters");
 				const bool allowed = body->value("allowed", false);
+				if (allowed && ModerationTools::IsPhrase(*word)) {
+					return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Phrases can only be blocked: normal chat checks each word on its own, so allow the words instead");
+				}
 				Database::Get()->SetChatFilterWord({ *word, allowed, context.authenticatedUser, static_cast<int64_t>(std::time(nullptr)) });
 				Audit(context, allowed ? "chat_filter_allow" : "chat_filter_block", (allowed ? "Allowed \"" : "Blocked \"") + *word + "\" in chat");
 				BroadcastTableChanged("chat_filter");
@@ -345,12 +349,11 @@ namespace {
 				if (message.empty() || message.size() > 300) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type a message of 1 to 300 characters");
 				const bool allowList = QueryValue(context.queryString, "chat") != "free";
 				const auto all = AllowFileWords();
-				const auto blocked = BlockFileHashes();
+				const auto blocked = BlockFile();
 				const auto dashboard = DashboardWords();
 				std::set<std::string> names;
 				for (auto name : Database::Get()->GetApprovedCharacterNames()) {
-					std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-					names.insert(std::move(name));
+					names.insert(ChatFilterWords::AsciiLower(std::move(name)));
 				}
 				ModerationTools::WordSources sources;
 				sources.dashboard = [&dashboard](const std::string& word) -> std::optional<bool> {
@@ -359,18 +362,18 @@ namespace {
 				};
 				sources.allowFile = [&all](const std::string& word) { return std::binary_search(all.begin(), all.end(), word); };
 				sources.characterName = [&names](const std::string& word) { return names.contains(word); };
-				sources.blockFile = [&blocked](const std::string& word) {
-					return blocked && std::find(blocked->begin(), blocked->end(), ModerationTools::WordHash(word)) != blocked->end();
-				};
-				sources.blockFileLoaded = blocked && !blocked->empty();
+				sources.blockFile = [&blocked](const std::string& entry) { return blocked.list.Contains(entry); };
+				sources.blockFileLoaded = !blocked.list.Empty();
+				sources.maxWords = blocked.list.maxWords;
+				for (const auto& [entry, allowed] : dashboard) if (!allowed) sources.maxWords = std::max(sources.maxWords, ChatFilterWords::WordCount(entry));
 				nlohmann::json words = nlohmann::json::array();
 				bool stopped = false;
 				for (const auto& verdict : ModerationTools::ExplainMessage(message, allowList, sources)) {
 					stopped |= verdict.stopped;
-					words.push_back({ {"text", verdict.text}, {"word", verdict.word}, {"stopped", verdict.stopped}, {"reason", verdict.reason} });
+					words.push_back({ {"text", verdict.text}, {"word", verdict.word}, {"stopped", verdict.stopped}, {"reason", verdict.reason}, {"phrase", verdict.phrase} });
 				}
 				JsonSuccess(reply, { {"message", message}, {"chat", allowList ? "normal" : "free"}, {"stopped", stopped}, {"words", words},
-					{"allowFileFound", !all.empty()}, {"blockFileFound", blocked.has_value()} });
+					{"allowFileFound", !all.empty()}, {"blockFileFound", blocked.status == dChatFilterDCF::eStatus::OK} });
 			});
 
 		Route(eHTTPMethod::GET, "/api/chat_filter/check", Perm("chat_filter_manage"),
@@ -379,7 +382,7 @@ namespace {
 			[](HTTPReply& reply, const HTTPContext& context) {
 				if (!Can(context, "chat_view")) return JsonError(reply, eHTTPStatusCode::FORBIDDEN, "Reading chat needs the chat_view permission");
 				const auto word = ModerationTools::FilterWord(QueryValue(context.queryString, "word"));
-				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type one word (no spaces), up to 64 characters");
+				if (!word) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Type a word or phrase, up to 64 characters");
 				const bool allowed = QueryValue(context.queryString, "allowed") == "1";
 				IChatLog::ChatQuery query;
 				query.search = *word;

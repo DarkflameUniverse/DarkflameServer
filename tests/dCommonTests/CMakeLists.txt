@@ -39,6 +39,7 @@ set(DCOMMONTEST_SOURCES
 	"FdbReaderTests.cpp"
 	"FdbSnapshotTests.cpp"
 	"WorldFileWatchTests.cpp"
+	"ChatFilterCoreTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)
@@ -59,6 +60,8 @@ endif()
 target_link_libraries(dCommonTests ${COMMON_LIBRARIES} MD5 GTest::gtest_main)
 # SpareBackoff.h (header only)
 target_include_directories(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dMasterServer")
+# ChatFilterCore.h (header only)
+target_include_directories(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dChatFilter")
 
 # Copy test files to testing directory
 add_subdirectory(TestBitStreams)

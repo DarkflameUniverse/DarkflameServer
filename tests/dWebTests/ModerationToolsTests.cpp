@@ -43,7 +43,10 @@ TEST(ChatFilterWordsTest, FilterWord) {
 	EXPECT_EQ(ModerationTools::FilterWord("  Hello! "), "hello");
 	EXPECT_EQ(ModerationTools::FilterWord("W.o,r;d?"), "word");
 	EXPECT_FALSE(ModerationTools::FilterWord(""));
-	EXPECT_FALSE(ModerationTools::FilterWord("two words"));
+	// Phrases: words normalized and joined by one space
+	EXPECT_EQ(ModerationTools::FilterWord(" Two   Words! "), "two words");
+	EXPECT_TRUE(ModerationTools::IsPhrase("two words"));
+	EXPECT_FALSE(ModerationTools::IsPhrase("word"));
 	EXPECT_FALSE(ModerationTools::FilterWord("!!!"));
 	EXPECT_FALSE(ModerationTools::FilterWord(std::string(65, 'a')));
 }
@@ -53,33 +56,17 @@ TEST(ChatFilterWordsTest, HasFilterWord) {
 	EXPECT_TRUE(ModerationTools::HasFilterWord("bad", "bad"));
 	EXPECT_FALSE(ModerationTools::HasFilterWord("badger badminton", "bad"));
 	EXPECT_FALSE(ModerationTools::HasFilterWord("", "bad"));
+	// Phrases: the words in a row, whatever the spaces and punctuation between them
+	EXPECT_TRUE(ModerationTools::HasFilterWord("well, Bad  Phrase!", "bad phrase"));
+	EXPECT_TRUE(ModerationTools::HasFilterWord("bad ... phrase", "bad phrase"));
+	EXPECT_FALSE(ModerationTools::HasFilterWord("bad other phrase", "bad phrase"));
+	EXPECT_FALSE(ModerationTools::HasFilterWord("phrase bad", "bad phrase"));
 }
 
 TEST(ChatFilterWordsTest, FileWords) {
 	const auto words = ModerationTools::FileWords("Hello\r\nworld\n\nhello\nZebra\r\n");
 	ASSERT_EQ(words, (std::vector<std::string>{ "hello", "world", "zebra" }));
 	ASSERT_TRUE(ModerationTools::FileWords("").empty());
-}
-
-TEST(ChatFilterWordsTest, DcfHashes) {
-	const std::vector<size_t> hashes{ ModerationTools::WordHash("badword"), 42 };
-	std::string bytes(sizeof(dChatFilterDCF::fileHeader) + sizeof(size_t) * (hashes.size() + 1), '\0');
-	const dChatFilterDCF::fileHeader header{ dChatFilterDCF::header, dChatFilterDCF::formatVersion };
-	const size_t count = hashes.size();
-	std::memcpy(bytes.data(), &header, sizeof(header));
-	std::memcpy(bytes.data() + sizeof(header), &count, sizeof(count));
-	std::memcpy(bytes.data() + sizeof(header) + sizeof(count), hashes.data(), sizeof(size_t) * count);
-	ASSERT_EQ(ModerationTools::DcfHashes(bytes), hashes);
-
-	// Wrong header, other version, or fewer hashes than it says
-	auto wrong = bytes;
-	wrong[0] = 'X';
-	ASSERT_FALSE(ModerationTools::DcfHashes(wrong).has_value());
-	auto version = bytes;
-	version[sizeof(uint32_t)] = 9;
-	ASSERT_FALSE(ModerationTools::DcfHashes(version).has_value());
-	ASSERT_FALSE(ModerationTools::DcfHashes(bytes.substr(0, bytes.size() - sizeof(size_t) * 2)).has_value());
-	ASSERT_FALSE(ModerationTools::DcfHashes("DCFB").has_value());
 }
 
 namespace {
@@ -120,4 +107,23 @@ TEST(ChatFilterWordsTest, ExplainFreeChat) {
 	// Without blocklist.dcf free chat stops every word
 	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("zzz darn", false, Sources(false))),
 		(std::vector<std::string>{ "x no_block_file", "x no_block_file" }));
+}
+
+TEST(ChatFilterWordsTest, ExplainPhrases) {
+	auto sources = Sources();
+	sources.dashboard = [](const std::string& w) -> std::optional<bool> {
+		if (w == "no way") return false;
+		return std::nullopt;
+	};
+	sources.allowFile = [](const std::string& w) { return w == "hello" || w == "no" || w == "way" || w == "rude"; };
+	sources.blockFile = [](const std::string& w) { return w == "very rude"; };
+	sources.maxWords = 2;
+	// A phrase blocked here stops each of its words (and the empty piece between two spaces inside it), in normal chat too
+	auto verdicts = ModerationTools::ExplainMessage("hello No  way!", true, sources);
+	EXPECT_EQ(Reasons(verdicts), (std::vector<std::string>{ "ok allow_file", "x blocked_here", "x blocked_here", "x blocked_here" }));
+	EXPECT_EQ(verdicts[1].phrase, "no way");
+	EXPECT_EQ(verdicts[3].text, "way!");
+	// The block file's phrases only in free chat
+	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("very rude", false, sources)), (std::vector<std::string>{ "x block_file", "x block_file" }));
+	EXPECT_EQ(Reasons(ModerationTools::ExplainMessage("rude very", false, sources)), (std::vector<std::string>{ "ok not_in_block_file", "ok not_in_block_file" }));
 }

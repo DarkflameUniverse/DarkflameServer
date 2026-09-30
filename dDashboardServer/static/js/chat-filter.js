@@ -8,6 +8,9 @@
 	var page = document.getElementById('chatFilterPage');
 	var canChat = !!page.dataset.canChat;
 	var PAGE = 50;
+	function isPhrase(word) { return String(word).indexOf(' ') !== -1; }
+	function phraseBadge(word) { return isPhrase(word) ? ' ' + fmt.badge('Phrase', 'secondary') : ''; }
+
 	var REASONS = {
 		blocked_here: 'Blocked on the staff list',
 		allowed_here: 'Allowed on the staff list',
@@ -26,7 +29,8 @@
 
 	function wordAction(w) {
 		if (!w.word) return '';
-		if (w.reason === 'blocked_here' || w.reason === 'allowed_here') return '<button type="button" class="btn btn-sm btn-outline-secondary" data-remove="' + esc(w.word) + '">Remove…</button>';
+		if (w.reason === 'blocked_here' || w.reason === 'allowed_here') return '<button type="button" class="btn btn-sm btn-outline-secondary" data-remove="' + esc(w.phrase || w.word) + '">Remove…</button>';
+		if (w.phrase) return '';
 		if (w.reason === 'not_allowed') return '<button type="button" class="btn btn-sm btn-outline-success" data-add="allowed" data-word="' + esc(w.word) + '">Allow…</button>';
 		return '<button type="button" class="btn btn-sm btn-outline-danger" data-add="blocked" data-word="' + esc(w.word) + '">Block…</button>';
 	}
@@ -48,7 +52,7 @@
 			}).join('');
 			document.getElementById('testRows').innerHTML = d.words.map(function (w) {
 				return '<tr><td>' + esc(w.word || '(empty: two spaces in a row)') + '</td><td>' + (w.stopped ? fmt.badge('Stopped', 'danger') : fmt.badge('OK', 'success')) + '</td>' +
-					'<td class="small">' + esc(REASONS[w.reason] || w.reason) + '</td><td class="text-end">' + wordAction(w) + '</td></tr>';
+					'<td class="small">' + esc(REASONS[w.reason] || w.reason) + (w.phrase ? ' (the phrase <strong>' + esc(w.phrase) + '</strong>)' : '') + '</td><td class="text-end">' + wordAction(w) + '</td></tr>';
 			}).join('');
 			document.getElementById('testResult').classList.remove('d-none');
 		}).catch(function () {});
@@ -83,10 +87,10 @@
 		var shown = rows.slice(listStart, listStart + PAGE);
 		document.getElementById('listRows').innerHTML = shown.map(function (w) {
 			var other = w.allowed ? 'blocked' : 'allowed';
-			return '<tr><td>' + esc(w.word) + '</td><td>' + (w.allowed ? fmt.badge('Allowed', 'success') : fmt.badge('Blocked', 'danger')) + '</td>' +
+			return '<tr><td>' + esc(w.word) + phraseBadge(w.word) + '</td><td>' + (w.allowed ? fmt.badge('Allowed', 'success') : fmt.badge('Blocked', 'danger')) + '</td>' +
 				'<td class="small">' + esc(w.added_by) + '</td><td class="small text-nowrap">' + esc(fmt.unix(w.added_at)) + '</td>' +
 				'<td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-secondary" data-test="' + esc(w.word) + '">Test</button> ' +
-				'<button type="button" class="btn btn-sm btn-outline-' + (w.allowed ? 'danger' : 'success') + '" data-add="' + other + '" data-word="' + esc(w.word) + '">' + (w.allowed ? 'Block…' : 'Allow…') + '</button> ' +
+				(isPhrase(w.word) && !w.allowed ? '' : '<button type="button" class="btn btn-sm btn-outline-' + (w.allowed ? 'danger' : 'success') + '" data-add="' + other + '" data-word="' + esc(w.word) + '">' + (w.allowed ? 'Block…' : 'Allow…') + '</button> ') +
 				'<button type="button" class="btn btn-sm btn-outline-secondary" data-remove="' + esc(w.word) + '">Remove…</button></td></tr>';
 		}).join('') || '<tr><td colspan="5" class="text-body-secondary">' + (words.length ? 'No words match.' : 'No words added yet.') + '</td></tr>';
 		document.getElementById('listRange').textContent = rows.length ? (listStart + 1) + '–' + (listStart + shown.length) + ' of ' + rows.length : '';
@@ -114,8 +118,9 @@
 	addForm.addEventListener('click', function (e) { var b = e.target.closest('button[data-list]'); if (b) addList = b.dataset.list; });
 	addForm.addEventListener('submit', function (e) {
 		e.preventDefault();
-		var word = addWord.value.trim();
+		var word = addWord.value.trim().replace(/\s+/g, ' ');
 		if (!word) return;
+		if (addList === 'allowed' && isPhrase(word)) { toast('Phrases can only be blocked: normal chat checks each word on its own, so allow the words instead', 'warning'); return; }
 		confirmAdd(word, addList === 'allowed').then(function (done) { if (done) addWord.value = ''; });
 	});
 
@@ -129,7 +134,7 @@
 		var parts = [d.inAllowFile ? 'in chatplus_en_us.txt' : 'not in chatplus_en_us.txt'];
 		if (d.inBlockFile) parts.push('in blocklist.dcf');
 		parts.push(d.dashboard ? (d.dashboard === 'blocked' ? 'on the Blocked list' : 'on the Allowed list') : 'on neither staff list');
-		return '<strong>' + esc(d.word) + '</strong> now: ' + esc(parts.join(', ')) + '.';
+		return '<strong>' + esc(d.word) + '</strong>' + phraseBadge(d.word) + ' now: ' + esc(parts.join(', ')) + '.';
 	}
 
 	function openConfirm(options) {
@@ -186,7 +191,8 @@
 	function confirmAdd(word, allowed) {
 		var p = openConfirm({
 			title: (allowed ? 'Allow "' : 'Block "') + word + '"?',
-			text: allowed ? 'Players may use it in normal chat. Running worlds apply it at once.' : 'It is stopped in all chat, even where a word file allows it. Running worlds apply it at once.',
+			text: allowed ? 'Players may use it in normal chat. Running worlds apply it at once.'
+				: (isPhrase(word) ? 'The phrase is stopped in all chat when its words come in a row. Running worlds apply it at once.' : 'It is stopped in all chat, even where a word file allows it. Running worlds apply it at once.'),
 			tone: allowed ? 'success' : 'danger',
 			button: allowed ? 'Allow' : 'Block',
 			run: function () { return api.action('/api/chat_filter/words', { word: word, allowed: allowed }).then(function (d) { toast(d.message, 'success'); }); }
@@ -228,8 +234,11 @@
 					? esc(d.allowTotal) + ' words normal chat may use (from the client); ' + esc(d.onDashboard) + ' are on a staff list too, which wins.'
 					: 'could not be read. Set <code>client_location</code>.') + '</li>' +
 				'<li><code>' + esc(d.blockFile) + '</code>: ' + (d.blockFileFound
-					? esc(d.blockTotal) + ' words best friends\' free chat may not use. Stored as hashes, so they can\'t be listed; test a word to see if it is one.'
-					: 'not found next to the servers, so best friends\' free chat stops everything.') + '</li>';
+					? esc(d.blockTotal) + ' words' + (d.blockMaxWords > 1 ? ' and phrases (up to ' + esc(d.blockMaxWords) + ' words)' : '') + ' best friends\' free chat may not use. Stored as hashes, so they can\'t be listed; test a word or phrase to see if it is one.'
+					: d.blockFileOld
+						? 'in the old format (its hashes depended on the platform), so the servers can\'t read it and best friends\' free chat stops everything.'
+						: 'not found next to the servers (' + esc(d.blockFileStatus) + '), so best friends\' free chat stops everything.') +
+					' To change it, put the words in <code>' + esc(d.blockText) + '</code> next to the servers (one word or phrase per line) and start the servers again; they build <code>' + esc(d.blockFile) + '</code> from it.</li>';
 			document.getElementById('fileWords').innerHTML = d.words.map(function (w) {
 				var cls = w.dashboard === 'blocked' ? 'text-bg-danger' : w.dashboard === 'allowed' ? 'text-bg-success' : 'text-bg-secondary';
 				return '<button type="button" class="badge border-0 ' + cls + '" data-test="' + esc(w.word) + '">' + esc(w.word) + '</button>';

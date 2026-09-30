@@ -1,15 +1,8 @@
 #include "dChatFilter.h"
-#include "BinaryIO.h"
-#include <fstream>
-#include <string>
-#include <functional>
-#include <algorithm>
-#include <sstream>
-#include <regex>
 
-#include "dCommonVars.h"
+#include <system_error>
+
 #include "Logger.h"
-#include "dConfig.h"
 #include "Database.h"
 #include "Game.h"
 #include "eGameMasterLevel.h"
@@ -19,154 +12,96 @@ using namespace dChatFilterDCF;
 dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	m_DontGenerateDCF = dontGenerateDCF;
 
-	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
-		ReadWordlistPlaintext(filepath + ".txt", true);
-		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf", true);
-	} else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
-		ReadWordlistPlaintext(filepath + ".txt", true);
-		ExportWordlistToDCF(filepath + ".dcf", true);
-	}
+	LoadAllowList(filepath);
+	LoadBlockList();
 
-	if (BinaryIO::DoesFileExist("blocklist.dcf")) {
-		ReadWordlistDCF("blocklist.dcf", false);
-	}
-
-	//Read player names that are ok as well:
-	auto approvedNames = Database::Get()->GetApprovedCharacterNames();
-	for (auto& name : approvedNames) {
-		std::transform(name.begin(), name.end(), name.begin(), ::tolower); //Transform to lowercase
-		m_ApprovedWords.push_back(CalculateHash(name));
+	// Approved character names count as allowed words
+	for (const auto& name : Database::Get()->GetApprovedCharacterNames()) {
+		m_Lists.approved.hashes.insert(ChatFilterWords::Hash(ChatFilterWords::AsciiLower(name)));
 	}
 
 	ReloadCustomWords();
 }
 
-void dChatFilter::ReloadCustomWords() {
-	m_CustomAllowedWords.clear();
-	m_CustomBlockedWords.clear();
-	// Words remembered as not allowed may be allowed now
-	m_UserUnapprovedWordCache.clear();
-	for (const auto& word : Database::Get()->GetChatFilterWords()) {
-		(word.allowed ? m_CustomAllowedWords : m_CustomBlockedWords).insert(CalculateHash(NormalizeWord(word.word)));
-	}
-}
-
-dChatFilter::~dChatFilter() {
-	m_ApprovedWords.clear();
-	m_DeniedWords.clear();
-}
-
-void dChatFilter::ReadWordlistPlaintext(const std::string& filepath, bool allowList) {
-	std::ifstream file(filepath);
-	if (file) {
-		std::string line;
-		while (std::getline(file, line)) {
-			line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
-			std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-			if (allowList) m_ApprovedWords.push_back(CalculateHash(line));
-			else m_DeniedWords.push_back(CalculateHash(line));
+void dChatFilter::LoadAllowList(const std::string& filepath) {
+	const std::string dcf = filepath + ".dcf";
+	const std::string txt = filepath + ".txt";
+	if (!m_DontGenerateDCF) {
+		auto cached = ReadFile(dcf);
+		if (cached.status == eStatus::OK) {
+			m_Lists.approved = std::move(cached.list);
+			return;
 		}
+		if (cached.status != eStatus::MISSING) LOG("%s is %s; building it again from %s", dcf.c_str(), StatusText(cached.status), txt.c_str());
 	}
+
+	const auto text = ReadBytes(txt);
+	if (!text) {
+		LOG("Could not read the chat filter's allowed words (%s)", txt.c_str());
+		return;
+	}
+	m_Lists.approved = AllowListFromText(*text);
+	if (!m_DontGenerateDCF && !WriteFile(dcf, m_Lists.approved)) LOG("Could not write %s", dcf.c_str());
 }
 
-bool dChatFilter::ReadWordlistDCF(const std::string& filepath, bool allowList) {
-	std::ifstream file(filepath, std::ios::binary);
-	if (file) {
-		fileHeader hdr;
-		BinaryIO::BinaryRead(file, hdr);
-		if (hdr.header != header) {
-			file.close();
-			return false;
+void dChatFilter::LoadBlockList() {
+	std::error_code error;
+	const bool hasText = std::filesystem::exists(BLOCK_LIST_TEXT, error);
+	if (hasText) {
+		const auto text = ReadBytes(BLOCK_LIST_TEXT);
+		const auto existing = ReadFile(BLOCK_LIST_FILE);
+		// Rebuilt when the .dcf is missing, unreadable or older than the text
+		bool stale = existing.status != eStatus::OK;
+		if (!stale) {
+			std::error_code textError, fileError;
+			const auto textTime = std::filesystem::last_write_time(BLOCK_LIST_TEXT, textError);
+			const auto fileTime = std::filesystem::last_write_time(BLOCK_LIST_FILE, fileError);
+			stale = textError || fileError || fileTime < textTime;
 		}
-
-		if (hdr.formatVersion == formatVersion) {
-			size_t wordsToRead = 0;
-			BinaryIO::BinaryRead(file, wordsToRead);
-			if (allowList) m_ApprovedWords.reserve(wordsToRead);
-			else m_DeniedWords.reserve(wordsToRead);
-
-			size_t word = 0;
-			for (size_t i = 0; i < wordsToRead; ++i) {
-				BinaryIO::BinaryRead(file, word);
-				if (allowList) m_ApprovedWords.push_back(word);
-				else m_DeniedWords.push_back(word);
+		if (text && (m_DontGenerateDCF || stale)) {
+			m_Lists.denied = BlockListFromText(*text);
+			if (m_DontGenerateDCF) {
+				LOG("Loaded %zu blocked words and phrases from %s", m_Lists.denied.Size(), BLOCK_LIST_TEXT);
+				return;
 			}
-
-			return true;
-		} else {
-			file.close();
-			return false;
+			if (WriteFile(BLOCK_LIST_FILE, m_Lists.denied)) {
+				LOG("Built %s from %s (%zu words and phrases)", BLOCK_LIST_FILE, BLOCK_LIST_TEXT, m_Lists.denied.Size());
+			} else {
+				LOG("Could not write %s", BLOCK_LIST_FILE);
+			}
+			return;
 		}
 	}
 
-	return false;
+	auto blocked = ReadFile(BLOCK_LIST_FILE);
+	switch (blocked.status) {
+	case eStatus::OK:
+		m_Lists.denied = std::move(blocked.list);
+		break;
+	case eStatus::MISSING:
+		LOG("No %s: best friends' free chat stops every message. Put the blocked words in %s next to the servers (one word or phrase per line) and start the servers again.",
+			BLOCK_LIST_FILE, BLOCK_LIST_TEXT);
+		break;
+	case eStatus::OLD_FORMAT:
+		LOG("%s is in the old format (version 2), whose hashes depend on the compiler and platform, so it can't be read; best friends' free chat stops every message. "
+			"Put the plain word list in %s next to the servers (one word or phrase per line) and start the servers again to rebuild it.",
+			BLOCK_LIST_FILE, BLOCK_LIST_TEXT);
+		break;
+	default:
+		LOG("%s is %s and can't be read; best friends' free chat stops every message. Rebuild it from %s.", BLOCK_LIST_FILE, StatusText(blocked.status), BLOCK_LIST_TEXT);
+		break;
+	}
 }
 
-void dChatFilter::ExportWordlistToDCF(const std::string& filepath, bool allowList) {
-	std::ofstream file(filepath, std::ios::binary | std::ios_base::out);
-	if (file) {
-		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::header));
-		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::formatVersion));
-		BinaryIO::BinaryWrite(file, size_t(allowList ? m_ApprovedWords.size() : m_DeniedWords.size()));
-
-		for (size_t word : allowList ? m_ApprovedWords : m_DeniedWords) {
-			BinaryIO::BinaryWrite(file, word);
-		}
-
-		file.close();
+void dChatFilter::ReloadCustomWords() {
+	m_Lists.customAllowed = {};
+	m_Lists.customBlocked = {};
+	for (const auto& word : Database::Get()->GetChatFilterWords()) {
+		(word.allowed ? m_Lists.customAllowed : m_Lists.customBlocked).AddEntry(ChatFilterWords::NormalizeEntry(word.word));
 	}
 }
 
 std::set<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList) {
 	if (gmLevel > eGameMasterLevel::FORUM_MODERATOR) return { }; //If anything but a forum mod, return true.
-	if (message.empty()) return { };
-	if (!allowList && m_DeniedWords.empty()) return { { 0, message.length() } };
-
-	std::stringstream sMessage(message);
-	std::string segment;
-
-	std::set<std::pair<uint8_t, uint8_t>> listOfBadSegments;
-
-	uint32_t position = 0;
-
-	while (std::getline(sMessage, segment, ' ')) {
-		std::string originalSegment = segment;
-
-		segment = NormalizeWord(segment);
-
-		size_t hash = CalculateHash(segment);
-
-		// Blocked on the dashboard: stopped in every kind of chat
-		if (m_CustomBlockedWords.contains(hash)) {
-			listOfBadSegments.emplace(position, originalSegment.length());
-			position += originalSegment.length() + 1;
-			continue;
-		}
-
-		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end() && allowList) {
-			listOfBadSegments.emplace(position, originalSegment.length());
-		}
-
-		if (std::find(m_ApprovedWords.begin(), m_ApprovedWords.end(), hash) == m_ApprovedWords.end() && !m_CustomAllowedWords.contains(hash) && allowList) {
-			m_UserUnapprovedWordCache.push_back(hash);
-			listOfBadSegments.emplace(position, originalSegment.length());
-		}
-
-		if (std::find(m_DeniedWords.begin(), m_DeniedWords.end(), hash) != m_DeniedWords.end() && !allowList) {
-			m_UserUnapprovedWordCache.push_back(hash);
-			listOfBadSegments.emplace(position, originalSegment.length());
-		}
-
-		position += originalSegment.length() + 1;
-	}
-
-	return listOfBadSegments;
-}
-
-size_t dChatFilter::CalculateHash(const std::string& word) {
-	std::hash<std::string> hash{};
-
-	size_t value = hash(word);
-
-	return value;
+	return ChatFilterWords::CheckMessage(message, allowList, m_Lists);
 }

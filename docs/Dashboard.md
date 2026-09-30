@@ -1213,18 +1213,42 @@ character's owner sees only what is still in their mailbox. Deleting a character
 
 The **Chat Filter** page (GM 5+, `chat_filter_manage`, under Moderation) decides which words players below GM 2 may use
 in chat. The filter's files: `chatplus_en_us.txt` (client `res` folder) lists the words normal chat may use,
-`blocklist.dcf` (next to the servers, hashes only) the words best friends' free chat may not. Approved character names
-also count as allowed. Words are compared lower case, without `! ? ; . ,`. Changes apply at once in running worlds and in
-the chat server's web chat; servers that start later read them. Changes are audited and go to the `moderation` webhook
-event.
+`blocklist.dcf` (next to the servers, hashes only) the words and phrases best friends' free chat may not. Approved
+character names also count as allowed. Words are compared lower case, without `! ? ; . ,`. Changes apply at once in
+running worlds and in the chat server's web chat; servers that start later read them. Changes are audited and go to the
+`moderation` webhook event.
+
+Blocked entries can be phrases: a phrase is stopped when its words come in a row in a message, whatever the spaces and
+punctuation between them, and the whole phrase is marked. Allowed entries are single words only, because normal
+(whitelist) chat checks each word on its own, as the client does.
+
+#### Block list file
+
+`blocklist.dcf` is DLU's own file (the client reads no `.dcf` and doesn't hash chat words). To make or change it, put the
+blocked words in `blocklist.txt` next to the servers (the build folder, beside `blocklist.dcf`): one word or phrase per
+line, any case, punctuation `! ? ; . ,` ignored, blank lines skipped. The world and chat servers rebuild `blocklist.dcf`
+from it when they start and it is newer than the `.dcf` (or the `.dcf` is missing or unreadable), then log how many
+entries it has. With `dont_generate_dcf=1` they read `blocklist.txt` directly and write no file. `blocklist.txt` can be
+removed afterwards; only the `.dcf` is needed.
+
+Format (little-endian): `uint32` magic `DCFB`, `uint32` version `3`, `uint32` most words in one entry, `uint64` count,
+then that many `uint64` hashes, sorted. Each hash is 64-bit FNV-1a (offset basis `0xcbf29ce484222325`, prime
+`0x100000001b3`) over the entry's bytes: the words lower case (ASCII), without `! ? ; . ,`, joined by one space. The
+same words give the same file on every platform. The allowed words cache, `chatplus_en_us.dcf` in the client's `res`
+folder, uses the same format and is built from `chatplus_en_us.txt`.
+
+Version 2 files (older DLU) stored `std::hash` values, which differ between compilers and platforms, so a list made on
+one system never matched on another (issue 215). Servers refuse them: an old `chatplus_en_us.dcf` is rebuilt from
+the `.txt`, and an old `blocklist.dcf` is logged as unreadable (free chat then stops every message) until it is rebuilt
+from `blocklist.txt`. The **Word files** section shows which it is.
 
 The page has three sections:
 
 - **Test a message**: type a message, pick normal or best friends' free chat, and see whether it would be sent and why,
   word by word (in the file, allowed or blocked here, a character name, not allowed, in the blocked words file). Each
   word has a Block, Allow or Remove button.
-- **Staff lists**: **Blocked** words are stopped in all chat, even where a file allows them; **Allowed** words are usable
-  in normal chat. Search, filter by list, 50 per page. Block, Allow (or move to the other list) and Remove each open a
+- **Staff lists**: **Blocked** words and phrases are stopped in all chat, even where a file allows them (phrases are
+  marked **Phrase**); **Allowed** words are usable in normal chat. Search, filter by list, 50 per page. Block, Allow (or move to the other list) and Remove each open a
   confirmation that shows where the word stands now and, for Block and Allow, the recent chat it changes (players' chat
   containing it that would have been stopped, or stopped messages containing it; the newest 1000 messages with the
   text; needs `chat_view`).
