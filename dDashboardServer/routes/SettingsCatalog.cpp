@@ -140,6 +140,7 @@ namespace {
 		c.AddSection("Live updates", "Moving every server and world instance onto a new build without a restart (the dashboard's Live update, /liveupdate or SIGUSR2 to master). Read when one starts.");
 		c.Add(Unit(Int(MASTER, "live_update_warn_seconds", "Warning before moving players", "The game's Mythran maintenance warning is shown this long before players are moved. The dashboard can pick another for one update.", "10", 0, 300), "seconds"));
 		c.Add(Int(MASTER, "live_update_parallel_worlds", "Worlds at once", "World instances replaced at the same time.", "4", 1, 64));
+		c.Add(Int(MASTER, "cdclient_watch_seconds", "CDClient watch interval", "Seconds between checks of the client's cdclient.fdb for changes; a change reloads it on every server. 0 turns the check off (/reloadcdclient still works).", "5", 0, 3600));
 		c.Add(Unit(Int(MASTER, "live_update_player_wait", "Wait for busy players", "Players who are dead or building are moved once they are done, or after this long.", "30", 0, 600), "seconds"));
 		c.Add(Unit(Int(MASTER, "live_update_property_build_wait", "Wait for property builders", "A property is saved for its new instance once nobody builds there, or after this long (they leave build mode then).", "60", 0, 600), "seconds"));
 		c.Add(Unit(Int(MASTER, "live_update_char_select_wait", "Wait at character select", "Players picking a character get this long to go in by themselves; then they are moved to the new character select.", "60", 0, 3600), "seconds"));

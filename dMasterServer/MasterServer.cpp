@@ -59,6 +59,8 @@
 #include "master/ServerTraffic.h"
 #include "master/Profiling.h"
 #include "master/UgcModelsMade.h"
+#include "master/CDClientReload.h"
+#include "CDClientReloader.h"
 #include "BuildInfo.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
@@ -335,9 +337,14 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	// Servers read a copy of the client's fdb and the CDServer.sqlite made from it, never the client's own file, so it
+	// can be replaced while they run (docs/CDClientFdb.md)
+	const auto cdclientFiles = CDClientReloader::Init(Game::assetManager->GetResPath() / "cdclient.fdb", resServerPath,
+		BinaryPathFinder::GetBinaryDir() / "migrations" / "cdserver");
+
 	//Connect to CDClient
 	try {
-		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
+		CDClientDatabase::Connect(cdclientFiles.sqlite.string());
 	} catch (CppSQLite3Exception& e) {
 		LOG("Unable to connect to CDServer SQLite Database");
 		LOG("Error: %s", e.errorMessage());
@@ -501,7 +508,7 @@ int main(int argc, char** argv) {
 
 	//Get CDClient initial information
 	try {
-		CDClientManager::LoadValuesFromDatabase(Game::assetManager->GetResPath() / "cdclient.fdb");
+		CDClientManager::LoadValuesFromDatabase(cdclientFiles.fdb);
 	} catch (CppSQLite3Exception& e) {
 		LOG("Failed to initialize CDServer SQLite Database");
 		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
@@ -591,6 +598,7 @@ int main(int argc, char** argv) {
 			}
 		}
 		LiveUpdateCoordinator::Update();
+		CDClientReloader::Update();
 		CheckPlayerActionTimeouts();
 
 		// Spare instances for busy zones (zone_limits), checked every few seconds
@@ -1090,6 +1098,13 @@ namespace {
 		}
 	}
 
+	// A GM's /reloadcdclient or the dashboard: check the client's fdb now
+	void OnCDClientReload(const CDClientReload& request, const SystemAddress& sysAddr) {
+		if (!request.IsRequest()) return;
+		if (sysAddr == dashboardServerMasterPeerSysAddr) CDClientReloader::Request("the dashboard");
+		else CDClientReloader::Request("a GM, character " + std::to_string(request.requesterId));
+	}
+
 	void OnConfigReload(const ConfigReload& reload, const SystemAddress& sysAddr) {
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
 			LOG("Ignoring config reload from a server that is not the dashboard");
@@ -1193,6 +1208,7 @@ namespace {
 			// Only world servers report game writes; pass them on unchanged
 			handlers.On<DataChanged>(Master::DATA_CHANGED, ForwardWorldToDashboard<DataChanged>);
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);
+			handlers.On<CDClientReload>(Master::CDCLIENT_RELOAD, OnCDClientReload);
 			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, OnMessageCaptureData);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
@@ -1288,6 +1304,7 @@ void HandlePacket(Packet* packet) {
 
 int ShutdownSequence(int32_t signal) {
 	if (!Game::logger) return -1;
+	CDClientReloader::Shutdown();
 	LOG("Recieved Signal %d", signal);
 	if (shutdownSequenceStarted) {
 		LOG("Duplicate Shutdown Sequence");
@@ -1478,4 +1495,11 @@ void InitializeLiveUpdates() {
 	};
 	LiveUpdateCoordinator::Initialize(std::move(hooks));
 	MigrationCoordinator::SetObserver(LiveUpdateCoordinator::OnMigrationStatus);
+
+	// The worlds; the UGC and dashboard servers read the current files when they start (docs/CDClientFdb.md)
+	CDClientReloader::SetBroadcast([](const CDClientReload& reload) {
+		for (const auto& instance : Game::im->GetInstances()) {
+			if (instance && instance->GetIsReady() && !instance->GetIsShuttingDown()) MasterPackets::SendTo(instance->GetSysAddr(), reload);
+		}
+	});
 }
