@@ -58,8 +58,8 @@ A web dashboard for running and moderating a server, started and supervised by m
 * **Moderation:** review queue, warnings, bans and strikes, player reports, linked accounts, chat filter, chat log and
   chat bridges, an AI helper for staff (never for players), pet name moderation, leaderboards. Chat history per guild,
   per team and per character's whisper threads (whispers behind their own permission), and a chat flags queue with
-  notes, status and history. The client's system info as it reports it at login (OS, memory, video card, CPU), with
-  each field's caveats.
+  notes, status and history. The client's system info as it reports it at login (OS, memory, video card, CPU): each
+  account's reports on its page and every report browsable, with unreliable values marked and each caveat as a tooltip.
 * **Guilds:** pending guild names in the review queue, guild pages with their chat.
 * **Properties:** property pages with models, rent, reputation, moderation, import/remove/reprocess of models, a 3D
   property view that plays model behaviours, and a public property showcase.
