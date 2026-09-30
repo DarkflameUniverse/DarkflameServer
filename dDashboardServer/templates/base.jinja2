@@ -15,7 +15,7 @@
 	{% block css %}{% endblock %}
 	<meta name="page-head-end">
 </head>
-<body data-username="{{ username }}" data-gm-level="{{ gmLevel }}" data-account-id="{{ accountId }}" data-prefs="{{ prefs }}" data-labels="{{ labelsJson }}" data-can="{% for key, allowed in can %}{% if allowed %}{{ key }} {% endif %}{% endfor %}">
+<body data-username="{{ username }}" data-gm-level="{{ gmLevel }}" data-account-id="{{ accountId }}" data-prefs="{{ prefs }}" data-labels="{{ labelsJson }}" data-game="{{ gameJson }}" data-can="{% for key, allowed in can %}{% if allowed %}{{ key }} {% endif %}{% endfor %}">
 	{% if username and username != "" %}
 	<div class="d-flex">
 		{% include "header.jinja2" %}
@@ -32,6 +32,8 @@
 					<ul class="dropdown-menu dropdown-menu-end shadow">
 						<li><h6 class="dropdown-header">{{ username }} &middot; GM level {{ gmLevel }}</h6></li>
 						<li><a class="dropdown-item" href="/account">My account</a></li>
+						<li class="px-3 py-1"><label class="form-label small text-body-secondary mb-1" for="gameLanguage">Game text language</label>
+							<select class="form-select form-select-sm" id="gameLanguage" data-game-language><option value="">Browser's language</option></select></li>
 						<li><hr class="dropdown-divider"></li>
 						<li><a class="dropdown-item" href="/api_docs">API</a></li>
 						<li><a class="dropdown-item" href="/about">About</a></li>

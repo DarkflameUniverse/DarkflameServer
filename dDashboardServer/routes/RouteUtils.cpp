@@ -4,6 +4,7 @@
 
 #include "Database.h"
 #include "GameLabels.h"
+#include "GameText.h"
 #include "Game.h"
 #include "Logger.h"
 #include "dConfig.h"
@@ -24,7 +25,16 @@ namespace {
 		static inja::Environment env = [] {
 			// No trim_blocks/lstrip_blocks: inja's versions also eat the spaces around a tag on the same line
 			// ('class="a{% if x %} b{% endif %}"' would render "ab"), unlike Jinja2's
-			return inja::Environment{ TEMPLATE_DIR };
+			inja::Environment env{ TEMPLATE_DIR };
+			// Game text from the client's locale in the viewer's language (GameText.h), escaped like the page data:
+			// {{ zone_name(1150) }}, {{ phrase("UI_COINS") }}
+			env.add_callback("zone_name", 1, [](inja::Arguments& args) {
+				return RouteUtils::EscapeHtml(GameText::ZoneName(args.at(0)->get<uint32_t>()));
+			});
+			env.add_callback("phrase", 1, [](inja::Arguments& args) {
+				return RouteUtils::EscapeHtml(GameText::TextOrKey(args.at(0)->get<std::string>()));
+			});
+			return env;
 		}();
 		return env;
 	}
@@ -54,6 +64,8 @@ namespace RouteUtils {
 			.method = method,
 			.middleware = std::move(middleware),
 			.handle = [path, handler = std::move(handler)](HTTPReply& reply, const HTTPContext& context) {
+				// Game text in this request comes in the viewer's language
+				const GameText::LanguageScope language(context);
 				try {
 					handler(reply, context);
 				} catch (const std::exception& ex) {
@@ -293,6 +305,9 @@ namespace RouteUtils {
 			// Names for the game's numbered values, from the server's enums (GameLabels.h)
 			data["labels"] = GameLabels::Json();
 			data["labelsJson"] = GameLabels::Json().dump();
+			// The game's words and zone names in the viewer's language: `game` for templates, <body data-game> for scripts
+			data["game"] = GameText::PageJson();
+			data["gameJson"] = data["game"].dump();
 			data["prefs"] = context.isAuthenticated && context.accountId ? Database::Get()->GetDashboardPreferences(context.accountId) : "{}";
 			EscapeHtmlStrings(data);
 

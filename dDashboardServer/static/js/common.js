@@ -177,8 +177,10 @@
 			return '<span class="text-nowrap"><img src="/api/icon/' + esc(lot) + '" width="28" height="28" class="me-1 align-middle" alt="" loading="lazy">' +
 				esc(kind || ('LOT ' + lot)) + ' <span class="small text-body-secondary">(' + esc(lot) + ')</span></span>';
 		},
+		// A zone's name (the locale's, in the viewer's language, when it has one) and ID
 		zone: function (id, name) {
-			return esc(name || ('Zone ' + id)) + ' <span class="small text-body-secondary">(' + esc(id) + ')</span>';
+			var known = window.GameText && GameText.zones()[String(id)];
+			return esc(known || name || ('Zone ' + id)) + ' <span class="small text-body-secondary">(' + esc(id) + ')</span>';
 		}
 	};
 
@@ -331,6 +333,55 @@
 			// Set the inputs (and folding cards) under root as they were left: for content put in without a reload (nav.js)
 			apply: function (root) { applyAll(root); applyOpen(root); }
 		};
+	})();
+
+	/**
+	 * The game's own text from the client's locale, in the viewer's language (GameText.h), on <body data-game>:
+	 * GameText.term('coins') is "Coins", GameText.zone(1200) the zone's name. Pages never write game text themselves.
+	 * The language is the account's gameLanguage preference (the user menu's picker), else the browser's; the server
+	 * reads it from the game_lang cookie kept here.
+	 */
+	window.GameText = (function () {
+		var game = {};
+		try { game = JSON.parse(document.body.dataset.game || '{}') || {}; } catch (e) {}
+		var COOKIE = 'game_lang';
+		function cookie() {
+			var match = document.cookie.match(/(?:^|;\s*)game_lang=([^;]*)/);
+			return match ? decodeURIComponent(match[1]) : '';
+		}
+		function setCookie(value) {
+			document.cookie = COOKIE + '=' + encodeURIComponent(value) + '; path=/; SameSite=Lax; max-age=' + (value ? 31536000 : 0);
+		}
+		// A locale name ("de_DE") as its own language calls it ("Deutsch (Deutschland)")
+		function languageName(code) {
+			try { return new Intl.DisplayNames([code.replace('_', '-')], { type: 'language' }).of(code.replace('_', '-')) || code; } catch (e) { return code; }
+		}
+		var api = {
+			language: game.language || 'en_US',
+			languages: game.languages || [],
+			languageName: languageName,
+			term: function (name) { return (game.terms || {})[name] || name; },
+			zone: function (id) { return (game.zones || {})[String(id)] || ('Zone ' + id); },
+			zones: function () { return game.zones || {}; }
+		};
+		// Keep the cookie in step with the saved choice (signed in on another browser, or chosen before)
+		var picked = window.Prefs ? Prefs.get('gameLanguage', '') : '';
+		if (document.body.dataset.username && picked !== cookie() && (picked === '' || api.languages.indexOf(picked) !== -1)) setCookie(picked);
+		document.querySelectorAll('[data-game-language]').forEach(function (select) {
+			api.languages.forEach(function (code) {
+				var option = document.createElement('option');
+				option.value = code;
+				option.textContent = languageName(code);
+				select.appendChild(option);
+			});
+			select.value = api.languages.indexOf(picked) !== -1 ? picked : '';
+			select.addEventListener('change', function () {
+				if (window.Prefs) Prefs.set('gameLanguage', select.value);
+				setCookie(select.value);
+				location.reload();
+			});
+		});
+		return api;
 	})();
 
 	/**

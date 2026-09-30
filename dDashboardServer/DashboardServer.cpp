@@ -24,6 +24,7 @@
 #include "dCommonVars.h"
 #include "Diagnostics.h"
 #include "Locale.h"
+#include "GameText.h"
 #include "Web.h"
 #include "Server.h"
 
@@ -138,14 +139,6 @@ namespace {
 	std::chrono::steady_clock::time_point g_NextServerListRequest{};
 	constexpr auto SERVER_LIST_INTERVAL = std::chrono::seconds(30);
 
-	std::string GetZoneDisplayName(uint32_t mapID) {
-		if (mapID == 0) return "Character Select";
-		std::string key = "ZoneTable_" + std::to_string(mapID) + "_DisplayDescription";
-		const auto& name = Locale::GetPhrase(key);
-		if (!name.empty()) return name;
-		return "Zone " + std::to_string(mapID);
-	}
-
 	/**
 	 * Load the JWT signing secret: jwt_secret from config if set, otherwise a random secret generated
 	 * on first start and kept in a file next to the binary so sessions survive restarts.
@@ -226,7 +219,7 @@ namespace {
 			info.ip = instance.ip.string;
 			info.port = instance.port;
 			info.isPrivate = instance.isPrivate != 0;
-			info.zoneName = GetZoneDisplayName(info.mapID);
+			info.zoneName = GameText::ZoneName(info.mapID);
 			AddPropertyDetails(info);
 			using eState = MasterPackets::ServerListResponse::eState;
 			if (instance.state == eState::READY || instance.state == eState::DRAINING) {
@@ -280,7 +273,7 @@ namespace {
 		info.ip = ready.ip.string;
 		info.port = ready.port;
 		info.isPrivate = ready.isPrivate != 0;
-		info.zoneName = GetZoneDisplayName(zoneID);
+		info.zoneName = GameText::ZoneName(zoneID);
 		AddPropertyDetails(info);
 		// Master can report a world more than once (in the server list and when it becomes ready): replace, don't add
 		auto& instances = ServerState::g_WorldInstances;
@@ -411,12 +404,13 @@ int main(int argc, char** argv) {
 	// Settings edited on the dashboard (server_config table) are layered over the files from here on
 	Game::config->SetDatabaseSync(ConfigSync::Sync);
 
-	// Load locale translations
+	// Load the client's locale, every language in it: the pages show game text in the viewer's language (GameText.h)
 	std::string clientPath = Game::config->GetValue("client_location");
 	if (!clientPath.empty()) {
 		std::string localePath = clientPath + "/locale/locale.xml";
-		Locale::LoadFromFile(localePath);
+		Locale::LoadFromFile(localePath, GameText::DEFAULT_LANGUAGE, true);
 	}
+	GameText::Init();
 
 	// Get master info from database
 	std::string masterIP = "localhost";
@@ -458,7 +452,6 @@ int main(int argc, char** argv) {
 		PreloadZoneData();
 		Scenery::Preload();
 		WorldView::Preload();
-		ZoneNames();
 		LOG("Read the client data for the 3D views in %lld ms", static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()));
 	}
 	Workers::Start();

@@ -4,6 +4,7 @@
 #include <exception>
 #include <thread>
 
+#include "GameText.h"
 #include "RouteUtils.h"
 #include "Web.h"
 
@@ -37,8 +38,10 @@ namespace Workers {
 		if (ready || !g_Pool.Running()) return fill(reply);
 		const auto deferred = Web::Defer(reply, context);
 		const auto path = context.path;
-		g_Pool.Submit(priority, [deferred, path, fill = std::move(fill)] {
+		// The worker writes game text in the viewer's language too
+		g_Pool.Submit(priority, [deferred, path, language = GameText::Language(), fill = std::move(fill)] {
 			if (deferred.Cancelled()) return;
+			const GameText::LanguageScope scope(language);
 			HTTPReply out;
 			try {
 				fill(out);
