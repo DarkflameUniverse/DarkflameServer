@@ -17,6 +17,10 @@ namespace ClientSysInfoView {
 	// field -> what it is and how far to trust it, for the page and the API
 	const nlohmann::json& Caveats();
 
+	// field -> "unreliable" (says little or nothing about the player's system) or "approximate" (usually right, with
+	// exceptions); fields not listed can be taken as sent
+	const nlohmann::json& Trust();
+
 	// One row as the dashboard sends it: the raw values, plus labels and the memory text split into numbers. The
 	// address is only included when showIp (logs_audit).
 	nlohmann::json RowJson(const IClientSysInfo::SysInfoRow& row, bool showIp);

@@ -1,7 +1,10 @@
 #include "SQLiteDatabase.h"
 
+#include "ClientSysInfoSql.h"
+#include "GeneralUtils.h"
+
 namespace {
-	IClientSysInfo::SysInfoRow Row(CppSQLite3Query& r) {
+	IClientSysInfo::SysInfoRow Row(CppSQLite3Query& r, const bool withName = false) {
 		IClientSysInfo::SysInfoRow s;
 		s.id = static_cast<uint64_t>(r.getInt64Field("id"));
 		s.accountId = static_cast<uint32_t>(r.getInt64Field("account_id"));
@@ -22,6 +25,7 @@ namespace {
 		s.minorVersion = static_cast<uint32_t>(r.getInt64Field("os_minor_version"));
 		s.buildNumber = static_cast<uint32_t>(r.getInt64Field("os_build_number"));
 		s.platformId = static_cast<uint32_t>(r.getInt64Field("os_platform_id"));
+		if (withName) s.accountName = r.getStringField("account_name");
 		return s;
 	}
 }
@@ -57,4 +61,20 @@ std::vector<IClientSysInfo::SysInfoRow> SQLiteDatabase::GetLatestClientSysInfo(c
 		"ORDER BY c.id DESC LIMIT ?;", limit);
 	for (; !result.eof(); result.nextRow()) rows.push_back(Row(result));
 	return rows;
+}
+
+std::vector<IClientSysInfo::SysInfoRow> SQLiteDatabase::ListClientSysInfo(const SysInfoQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto [_, result] = ExecuteSelect("SELECT c.*, COALESCE(a.name, '') AS account_name" + ClientSysInfoSql::From(q, "'%' || ? || '%'") +
+		ClientSysInfoSql::Order(q) + " LIMIT ? OFFSET ?;", q.accountId, q.accountId, q.search, pattern, pattern, q.limit, q.offset);
+	std::vector<SysInfoRow> rows;
+	for (; !result.eof(); result.nextRow()) rows.push_back(Row(result, true));
+	return rows;
+}
+
+uint64_t SQLiteDatabase::CountClientSysInfo(const SysInfoQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto [_, result] = ExecuteSelect("SELECT COUNT(*) AS count" + ClientSysInfoSql::From(q, "'%' || ? || '%'") + ";",
+		q.accountId, q.accountId, q.search, pattern, pattern);
+	return result.eof() ? 0 : static_cast<uint64_t>(result.getInt64Field("count"));
 }

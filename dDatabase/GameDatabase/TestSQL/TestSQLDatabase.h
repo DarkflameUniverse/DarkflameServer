@@ -384,6 +384,8 @@ class TestSQLDatabase : public GameDatabase {
 	void RecordClientSysInfo(const SysInfoRow& info) override {}
 	std::vector<SysInfoRow> GetClientSysInfo(uint32_t accountId, uint32_t limit) override { return {}; }
 	std::vector<SysInfoRow> GetLatestClientSysInfo(uint32_t limit) override { return {}; }
+	std::vector<SysInfoRow> ListClientSysInfo(const SysInfoQuery& query) override { return {}; }
+	uint64_t CountClientSysInfo(const SysInfoQuery& query) override { return 0; }
 	void InsertModerationDecision(const std::string& kind, int64_t subjectId, const std::string& subject, bool approved, const std::string& reason, int64_t time) override {}
 	nlohmann::json GetModerationDecisions(const std::string& kind, int64_t subjectId, uint32_t limit) override { return nlohmann::json::array(); }
 	Totp GetTotp(uint32_t accountId) override { return {}; }

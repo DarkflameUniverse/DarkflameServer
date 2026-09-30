@@ -64,6 +64,15 @@ const nlohmann::json& ClientSysInfoView::Caveats() {
 	return caveats;
 }
 
+const nlohmann::json& ClientSysInfoView::Trust() {
+	static const nlohmann::json trust = {
+		{"clientOs", "unreliable"}, {"processorType", "unreliable"}, {"osVersionInfoSize", "unreliable"}, {"osVersion", "unreliable"},
+		{"platformId", "unreliable"}, {"memoryStats", "approximate"}, {"videoCard", "approximate"}, {"numberOfProcessors", "approximate"},
+		{"processorLevel", "approximate"}, {"processorRevision", "approximate"},
+	};
+	return trust;
+}
+
 std::string ClientSysInfoView::OsVersion(const IClientSysInfo::SysInfoRow& row) {
 	return std::to_string(row.majorVersion) + "." + std::to_string(row.minorVersion) + "." + std::to_string(row.buildNumber);
 }
@@ -116,6 +125,7 @@ nlohmann::json ClientSysInfoView::RowJson(const IClientSysInfo::SysInfoRow& row,
 		{"os_version", OsVersion(row)}, {"os_label", OsLabel(row)},
 	};
 	if (showIp) out["ip"] = row.ip;
+	if (!row.accountName.empty()) out["account_name"] = row.accountName;
 	return out;
 }
 

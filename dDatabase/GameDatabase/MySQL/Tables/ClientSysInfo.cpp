@@ -1,7 +1,10 @@
 #include "MySQLDatabase.h"
 
+#include "ClientSysInfoSql.h"
+#include "GeneralUtils.h"
+
 namespace {
-	IClientSysInfo::SysInfoRow Row(sql::ResultSet& r) {
+	IClientSysInfo::SysInfoRow Row(sql::ResultSet& r, const bool withName = false) {
 		IClientSysInfo::SysInfoRow s;
 		s.id = r.getUInt64("id");
 		s.accountId = r.getUInt("account_id");
@@ -22,6 +25,7 @@ namespace {
 		s.minorVersion = r.getUInt("os_minor_version");
 		s.buildNumber = r.getUInt("os_build_number");
 		s.platformId = r.getUInt("os_platform_id");
+		if (withName) s.accountName = r.getString("account_name").c_str();
 		return s;
 	}
 }
@@ -55,4 +59,20 @@ std::vector<IClientSysInfo::SysInfoRow> MySQLDatabase::GetLatestClientSysInfo(co
 		"ORDER BY c.id DESC LIMIT ?;", limit);
 	while (result->next()) rows.push_back(Row(*result.m_resultSet));
 	return rows;
+}
+
+std::vector<IClientSysInfo::SysInfoRow> MySQLDatabase::ListClientSysInfo(const SysInfoQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto result = ExecuteSelect("SELECT c.*, COALESCE(a.name, '') AS account_name" + ClientSysInfoSql::From(q, "CONCAT('%', ?, '%')") +
+		ClientSysInfoSql::Order(q) + " LIMIT ? OFFSET ?;", q.accountId, q.accountId, q.search, pattern, pattern, q.limit, q.offset);
+	std::vector<SysInfoRow> rows;
+	while (result->next()) rows.push_back(Row(*result.m_resultSet, true));
+	return rows;
+}
+
+uint64_t MySQLDatabase::CountClientSysInfo(const SysInfoQuery& q) {
+	const auto pattern = GeneralUtils::LikeEscape(q.search, '!');
+	auto result = ExecuteSelect("SELECT COUNT(*) AS count" + ClientSysInfoSql::From(q, "CONCAT('%', ?, '%')") + ";",
+		q.accountId, q.accountId, q.search, pattern, pattern);
+	return result->next() ? result->getUInt64("count") : 0;
 }

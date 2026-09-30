@@ -164,7 +164,13 @@
 		<p class="small text-body-secondary mb-2">What this account's game client said about its system at each login, exactly as sent. The client asks old Windows
 			functions from a 32-bit program, so several values are compatibility defaults, not the player's real hardware; each field says how far it can be trusted.
 			A new entry starts when anything but the memory in use changes.{% if not can.logs_audit %} Addresses are only shown with logs_audit.{% endif %}</p>
-		<div id="sysinfoList"><p class="text-body-secondary mb-0">Loading&hellip;</p></div>
+		<p class="small text-body-secondary mb-2">Dotted values have a tooltip saying what they're worth; &#9888; marks values that say little or nothing about the
+			player's real system. Click a row for every field.</p>
+		<table id="sysinfoTable" class="table table-sm table-hover table-stack align-middle w-100">
+			<thead><tr><th>Last seen</th><th>Account</th><th class="text-end">Logins</th><th data-caveat="os">Windows reported</th><th data-caveat="video">Video card</th>
+				<th class="text-end" data-caveat="cpus">CPUs</th><th class="text-end" data-caveat="memory">Memory</th><th data-caveat="client">Client build</th><th>First seen</th></tr></thead>
+			<tbody></tbody>
+		</table>
 	</div>
 </div>
 {% endif %}

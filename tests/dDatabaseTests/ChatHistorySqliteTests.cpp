@@ -389,3 +389,40 @@ TEST(ClientSysInfoSqlite, PruningDropsRowsNotSeenSince) {
 	EXPECT_TRUE(g_Db->GetClientSysInfo(903, 10).empty());
 	EXPECT_EQ(g_Db->GetClientSysInfo(904, 10).size(), 1u);
 }
+
+TEST(ClientSysInfoSqlite, ListsAcrossAccounts) {
+	auto s = SysInfo(910, 7000);
+	g_Db->RecordClientSysInfo(s);
+	s.buildNumber = 2600;
+	s.lastSeen = 7100;
+	g_Db->RecordClientSysInfo(s);
+	s.accountId = 911;
+	s.videoCard = "Other Adapter (HAL-hw vp)";
+	g_Db->RecordClientSysInfo(s);
+
+	IClientSysInfo::SysInfoQuery q;
+	q.accountId = 910;
+	auto rows = g_Db->ListClientSysInfo(q);
+	ASSERT_EQ(rows.size(), 2u);
+	EXPECT_EQ(rows[0].buildNumber, 2600u); // newest first
+	EXPECT_EQ(g_Db->CountClientSysInfo(q), 2u);
+	q.ascending = true;
+	q.order = IClientSysInfo::eSysInfoOrder::OS_VERSION;
+	EXPECT_EQ(g_Db->ListClientSysInfo(q)[0].buildNumber, 2600u);
+
+	IClientSysInfo::SysInfoQuery search;
+	search.search = "Other Adapter";
+	rows = g_Db->ListClientSysInfo(search);
+	ASSERT_EQ(rows.size(), 1u);
+	EXPECT_EQ(rows[0].accountId, 911u);
+	// A LIKE wildcard in the search is taken literally
+	search.search = "%";
+	EXPECT_EQ(g_Db->CountClientSysInfo(search), 0u);
+
+	IClientSysInfo::SysInfoQuery latest;
+	latest.latestOnly = true;
+	latest.accountId = 910;
+	rows = g_Db->ListClientSysInfo(latest);
+	ASSERT_EQ(rows.size(), 1u);
+	EXPECT_EQ(rows[0].buildNumber, 2600u);
+}

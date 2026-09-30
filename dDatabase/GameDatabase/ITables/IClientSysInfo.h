@@ -32,6 +32,7 @@ public:
 		uint32_t minorVersion{};
 		uint32_t buildNumber{};
 		uint32_t platformId{};
+		std::string accountName;        // only filled by ListClientSysInfo
 
 		// Whether two logins describe the same client (memory in use and the time are left out: they change each login)
 		bool SameAs(const SysInfoRow& other) const {
@@ -53,6 +54,23 @@ public:
 
 	// Each account's newest row, for the spread across players
 	virtual std::vector<SysInfoRow> GetLatestClientSysInfo(uint32_t limit) = 0;
+
+	// What ListClientSysInfo sorts by
+	enum class eSysInfoOrder : uint8_t { LAST_SEEN, ACCOUNT, LOGINS, OS_VERSION, VIDEO_CARD, PROCESSORS, MEMORY, CLIENT_OS, FIRST_SEEN };
+
+	struct SysInfoQuery {
+		std::string search;         // part of the account name or video card
+		uint32_t accountId{};       // 0: every account
+		bool latestOnly{};          // only each account's newest row
+		eSysInfoOrder order{ eSysInfoOrder::LAST_SEEN };
+		bool ascending{};
+		uint32_t offset{};
+		uint32_t limit{ 25 };
+	};
+
+	// Rows across accounts for browsing, with the account's name
+	virtual std::vector<SysInfoRow> ListClientSysInfo(const SysInfoQuery& query) = 0;
+	virtual uint64_t CountClientSysInfo(const SysInfoQuery& query) = 0;
 };
 
 #endif  //!__ICLIENTSYSINFO__H__

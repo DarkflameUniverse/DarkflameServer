@@ -262,3 +262,8 @@ html.nav-loading main { opacity: .65; transition: opacity .2s; }
 	border-radius: .2rem; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); max-width: 9rem; overflow: hidden;
 	text-overflow: ellipsis; }
 .timeline-marker:hover > span, .timeline-marker:focus-visible > span { max-width: none; z-index: 1; }
+
+/* Client system info: values whose caveat is a tooltip; unreliable ones stand out more */
+.sysinfo-tip { text-decoration: underline dotted; text-underline-offset: .2em; cursor: help; }
+.sysinfo-unreliable { text-decoration-color: var(--bs-warning); }
+#sysinfoTable tbody tr { cursor: pointer; }

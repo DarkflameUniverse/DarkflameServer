@@ -335,6 +335,8 @@ public:
 	void RecordClientSysInfo(const SysInfoRow& info) override;
 	std::vector<SysInfoRow> GetClientSysInfo(uint32_t accountId, uint32_t limit) override;
 	std::vector<SysInfoRow> GetLatestClientSysInfo(uint32_t limit) override;
+	std::vector<SysInfoRow> ListClientSysInfo(const SysInfoQuery& query) override;
+	uint64_t CountClientSysInfo(const SysInfoQuery& query) override;
 	void InsertModerationDecision(const std::string& kind, int64_t subjectId, const std::string& subject, bool approved, const std::string& reason, int64_t time) override;
 	nlohmann::json GetModerationDecisions(const std::string& kind, int64_t subjectId, uint32_t limit) override;
 	Totp GetTotp(uint32_t accountId) override;

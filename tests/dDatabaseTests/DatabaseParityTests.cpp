@@ -1485,6 +1485,33 @@ TEST_F(ParitySeeded, Moderation) {
 		}
 		return out;
 	});
+	Both("ListClientSysInfo", [](GameDatabase& db) {
+		json out = json::array();
+		const auto list = [&db, &out](const IClientSysInfo::SysInfoQuery& q) {
+			json rows = json::array();
+			for (const auto& r : db.ListClientSysInfo(q)) rows.push_back({ r.accountId, r.accountName, r.buildNumber, r.logins });
+			out.push_back({ rows, db.CountClientSysInfo(q) });
+		};
+		IClientSysInfo::SysInfoQuery q;
+		list(q);
+		q.latestOnly = true;
+		list(q);
+		q = {};
+		q.accountId = 1;
+		q.order = IClientSysInfo::eSysInfoOrder::OS_VERSION;
+		q.ascending = true;
+		list(q);
+		q = {};
+		q.search = "Card";
+		q.order = IClientSysInfo::eSysInfoOrder::ACCOUNT;
+		q.limit = 2;
+		q.offset = 1;
+		list(q);
+		q = {};
+		q.search = "no such card";
+		list(q);
+		return out;
+	});
 	Both("PruneLog client sysinfo", [](GameDatabase& db) { return db.PruneLog(IDashboardAdmin::eLog::CLIENT_SYSINFO, 1700000150); });
 	Both("InsertModerationDecision", [](GameDatabase& db) {
 		db.InsertModerationDecision("name", CHAR_ALICE2, "AliceRenamed", false, "Not allowed", 1700000000);
