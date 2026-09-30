@@ -756,7 +756,7 @@ How it is counted:
 ### Network
 
 **Network** (`health_view`, next to Diagnostics) draws the traffic live, from the same reports: game clients on the
-left, auth, chat, the worlds (one box per zone; + shows each instance) and any other server that reports in the middle,
+left, auth, chat, the worlds (one box per zone) and any other server that reports in the middle,
 then master, then the dashboard and the UGC server, and web clients (browsers and API users) right of the dashboard. Servers appear as they report, so a new kind of
 server shows up without changes. Each link has a lane each way, as thick as its bytes per second, with dashes moving
 faster with more packets, and coloured by its load against its own peak over the last 5 minutes; hover it for the
@@ -766,6 +766,18 @@ Diagnostics filtered to it (`/diagnostics?server=<key>`). It updates with the `t
 seconds while reports arrive), stops drawing while the tab is hidden. **Diagram** or **List** (each box with its links, for phones) is remembered
 per browser. Drag boxes to rearrange the diagram; links leave from the sides that face each other, and **Reset layout**
 puts everything back.
+
+Game clients, Web clients and a zone with more than one instance are groups: ▸ on the box (or a double click) opens it
+in place. The box grows into a list of its members, one row each (players, and HTTP clients of the UGC server only,
+under Game clients; one row per address and signed-in dashboard account under Web clients; each instance of a zone),
+with a filter at the top that matches the name, the account or dashboard user, the instance and, with `network_ips`,
+the address. At most 8 rows show at once and the rest scroll inside the box. Each row in view is a link end of its
+own and shows only its member's traffic; the open box's header has no links, since its traffic is its rows'. Closed,
+the box shows the summed links as before. Opening moves only the boxes under it in its column. Open groups are
+remembered per browser; the filter and the scroll position last while the page is open and survive the live updates.
+The List view nests an open group's members, with their links, under it, with the same filter. The rows and filters
+are HTML laid over the SVG diagram, made once and then only moved and updated, so a redraw never takes the focus,
+the typed text or the scroll position.
 
 The links, and how exact they are:
 
@@ -781,15 +793,21 @@ The links, and how exact they are:
 
 **Connections** lists every server's remote ends from its last report, grouped by address: game clients (RakNet
 datagrams and bytes each way, ping, resends, and on worlds the logged-in account and character), web clients (requests
-and bytes of the dashboard and the UGC server) and server links, with the rest of each server's connections summed. +
-on the Game clients or Web clients box draws the busiest 8 of them in the diagram. IP addresses are personal data:
+and bytes of the dashboard and the UGC server, with the dashboard account each was signed in as) and server links, with
+the rest of each server's connections summed. The web server counts each client address's requests by the account the
+request was signed in as (the dashboard's session cookie or an API key, from the auth middleware), so several people
+behind one address are separate entries; requests made before signing in are one more entry for the address. The UGC
+server has no sessions (browsers get UGC files through the dashboard, which counts them as that user's requests), so
+its HTTP clients carry no user. User names (like players' account names) are shown to anyone with `health_view`.
+IP addresses are personal data:
 they are shown only with `network_ips` (Network addresses, level 9 by default; grant it like any other permission) and
 are otherwise replaced by a token that stays the same for the same address until the dashboard restarts. They are kept
 in memory from the last report only and never written to the database.
 
 - `GET /api/diagnostics/network`: the live summary (what the `traffic` topic sends).
 - `GET /api/diagnostics/network/server?key=world:1200:3`: one server's details.
-- `GET /api/diagnostics/network/connections`: the connection list (addresses with `network_ips`).
+- `GET /api/diagnostics/network/connections`: the connection list (addresses with `network_ips`; `user` and
+  `account_id` on web clients that were signed in).
 
 **Prometheus**: `/metrics` has the same counters, totals since the dashboard started: `darkflame_net_packets_total`,
 `darkflame_net_bytes_total` and `darkflame_net_datagrams_total` (labels `server`, `direction`),
