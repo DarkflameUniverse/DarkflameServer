@@ -297,7 +297,9 @@ namespace MasterPackets {
 			VALIDATE_READ(bitStream.Read(endpoint.port));
 			VALIDATE_READ(bitStream.Read(endpoint.host));
 		}
-		if (bitStream.GetNumberOfUnreadBits() >= instances.size() * 8) {
+		// Each world's outdated flag, when the master is new enough to send them: all of them or none
+		if (bitStream.GetNumberOfUnreadBits() > 0) {
+			if (bitStream.GetNumberOfUnreadBits() < instances.size() * 8) return false;
 			for (auto& instance : instances) VALIDATE_READ(bitStream.Read(instance.outdated));
 		}
 		return true;

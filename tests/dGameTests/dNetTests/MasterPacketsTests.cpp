@@ -426,7 +426,16 @@ TEST(MasterPacketsTests, ServerListMatchesLegacy) {
 			EXPECT_EQ(copy.endpoints[i].port, 3000 + i);
 			EXPECT_EQ(copy.endpoints[i].host.string, i == 2 ? "192.168.1.20" : "localhost");
 		}
-		ExpectTruncatedFails(response);
+		// Cut short anywhere it fails, except exactly before the outdated flags (an older master's list), which reads
+		RakNet::BitStream full;
+		response.Serialize(full);
+		const auto olderMaster = full.GetNumberOfBitsUsed() - static_cast<uint32_t>(count) * 8;
+		for (uint32_t bits = 0; bits < full.GetNumberOfBitsUsed(); bits++) {
+			RakNet::BitStream prefix;
+			prefix.WriteBits(full.GetData(), bits, false);
+			MasterPackets::ServerListResponse cut;
+			EXPECT_EQ(cut.Deserialize(prefix), bits == olderMaster && count > 0) << "read from only " << bits << " bits";
+		}
 	}
 }
 
