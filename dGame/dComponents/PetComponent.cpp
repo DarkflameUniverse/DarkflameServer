@@ -96,7 +96,10 @@ void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpd
 		outBitStream.Write(m_Owner);
 	}
 
-	if (bIsInitialUpdate) {
+	// The client reads this bit on every update while dirty (as live wrote it): the names follow when it is set
+	if (!bIsInitialUpdate) {
+		outBitStream.Write0();
+	} else {
 		outBitStream.Write(tamed);
 		if (tamed) {
 			outBitStream.Write(m_ModerationStatus);

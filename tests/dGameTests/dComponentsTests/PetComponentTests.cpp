@@ -41,3 +41,15 @@ TEST_F(PetTest, PlacementNewAddComponentTest) {
 	ASSERT_EQ(petComponent->GetParent()->GetObjectID(), 15);
 	ASSERT_EQ(petComponent->GetAbility(), ePetAbilityType::Invalid);
 }
+
+// The client reads the names bit on every update while the pet is dirty (as live wrote it); DLU wrote it only on
+// construction, so the client took the next component's first bit for it
+TEST_F(PetTest, UpdateWritesTheNamesBit) {
+	petComponent->Serialize(bitStream, false);
+	// dirty, status, ability, interaction, owner, names
+	EXPECT_EQ(bitStream.GetNumberOfBitsUsed(), 1u + 32 + 32 + 1 + 1 + 1);
+	bitStream.IgnoreBits(1 + 32 + 32 + 1 + 1);
+	bool names = true;
+	ASSERT_TRUE(bitStream.Read(names));
+	EXPECT_FALSE(names);
+}
