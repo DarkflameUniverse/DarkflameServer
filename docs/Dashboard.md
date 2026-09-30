@@ -952,6 +952,23 @@ to read or download for staff who also have `logs_system`.
 The **Activity Log**, **Command Log** and **Audit Log** pages show zone changes, slash commands used and what staff did
 on the dashboard. How long each is kept is under Settings, Data retention (`log_*_days`; 0 keeps everything).
 
+### Update check
+
+The **About** page says what build is running: a release (`release v3.0.0`), or a local development or CI build with
+its commit, branch and a mark for uncommitted changes. The dashboard asks GitHub's API about `update_check_repo`
+(default `DarkflameUniverse/DarkflameServer`) for the latest release and, for development and CI builds, how many
+commits the build's branch (or `main`, when the branch isn't there) has that the build doesn't. The page shows the newest
+release with its release notes, how many commits behind the build is with a link to the comparison, when it last
+checked and any error. The home page's Server Status card shows the build and an **Update available** badge. Master's
+log gets a line whenever the result changes, and again when master restarts. Nothing is downloaded or installed.
+
+Settings, Dashboard, Update check: `update_check_enabled` (default on), `update_check_repo`, and
+`update_check_interval_hours` (default 6, 1 to 168). Requests aren't signed in and send `If-None-Match`, so unchanged
+answers don't count against GitHub's limit of 60 an hour for an address. The first check runs 15 seconds after the
+dashboard starts. When GitHub can't be reached or the rate limit is used up, the last answer stays with the error next
+to it, and a used-up limit waits for its reset. **Check now** (`settings` permission, at most once a minute) checks at
+once. The same data is at `GET /api/update_check`, and `POST /api/update_check/check` starts a check.
+
 ## Players and characters
 
 ### Online players
