@@ -10,6 +10,7 @@
 #include "ChatPackets.h"
 #include "MasterPackets.h"
 #include "master/CDClientReload.h"
+#include "master/WorldFiles.h"
 #include "WorldMigration.h"
 
 #include <algorithm>
@@ -1828,6 +1829,44 @@ void SlashCommandHandler::Startup() {
 		},
 		.requiredLevel = eGameMasterLevel::OPERATOR,
 		.dashboardPermission = "cdclient_reload"
+	});
+
+	RegisterCommand({
+		.help = "Replaces every instance of a zone with one on the zone files on disk now",
+		.info = "Master starts a new instance of the zone (properties keep their clone, private instances their password) that loads the .luz, .lvl, triggers, terrain and navmesh on disk now, moves the players over (the Mythran shift, or the seamless mode with world_reload_seamless=1) and stops the old instances; empty ones are just stopped. Master also does this by itself a few seconds after a file a world loaded changes (world_watch_seconds). Usage: /reloadworld [zone, default this one] [warn seconds, 0-300, default 10]",
+		.aliases = {"reloadworld"},
+		.handle = [](Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+			const auto words = GeneralUtils::SplitString(args, ' ');
+			WorldReloadRequest request;
+			request.zoneId = Game::server->GetZoneID();
+			if (!words.empty() && !words[0].empty()) {
+				const auto zone = GeneralUtils::TryParse<uint32_t>(words[0]);
+				if (!zone || *zone == 0) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reloadworld [zone] [warn seconds, 0-300]");
+					return;
+				}
+				request.zoneId = *zone;
+			}
+			if (words.size() > 1) {
+				const auto warn = GeneralUtils::TryParse<uint16_t>(words[1]);
+				if (!warn || *warn > InstanceMigrationRequest::MAX_WARN_SECONDS) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Usage: /reloadworld [zone] [warn seconds, 0-300]");
+					return;
+				}
+				request.warnSeconds = *warn;
+			}
+			if (request.zoneId == 0) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Character selection loads no zone; name one: /reloadworld <zone>");
+				return;
+			}
+			request.requesterId = entity->GetObjectID();
+			if (auto* character = entity->GetCharacter()) request.requestedBy = character->GetName();
+			MasterPackets::SendToMaster(request);
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Asked master to reload zone " + std::to_string(request.zoneId) +
+				"; you are told how each instance's move goes, and the server log says what was stopped."));
+		},
+		.requiredLevel = eGameMasterLevel::OPERATOR,
+		.dashboardPermission = "world_reload"
 	});
 
 	RegisterCommand({

@@ -111,6 +111,7 @@ namespace {
 		{ "challenges_manage", "Server", "Community challenges", "Create, change, cancel and delete server-wide challenges and their rewards (rewards are mailed to everyone who took part)", 8 },
 		{ "events_manage", "Server", "Scheduled events: features", "Scheduled events that switch game features (event_1..event_8) on and off", 8 },
 		{ "cdclient_reload", "Server", "Reload CDClient", "Make every server read the client's cdclient.fdb again after it changed (master also does this by itself)", 9 },
+		{ "world_reload", "Server", "Reload worlds", "See the zone files each running world loaded and whether they changed on disk, and replace a zone's instances with ones on the files on disk now (players are moved over; master also does this by itself when a file changes)", 9 },
 		{ "server_live_update", "Server", "Live updates", "Move every server and world instance onto a new build without a restart (players see a short loading screen), and cancel one", 9 },
 		{ "instances_manage", "Server", "Instance limits", "Change players per instance and spare instances per zone (the master server applies them)", 9 },
 		{ "backups", "Server", "Database backups", "Make, download and delete database backups (downloads also need your password)", 9 },
