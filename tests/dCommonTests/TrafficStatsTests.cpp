@@ -267,3 +267,28 @@ TEST(TrafficStatsTest, RecorderSplitsHttpByWhoAsked) {
 	EXPECT_EQ(report.seconds[0].httpOutRequests, 1u);
 	EXPECT_EQ(report.seconds[0].httpOutBytesIn, 700u);
 }
+
+TEST(TrafficStatsTest, HttpClientsApartBySignedInAccount) {
+	Recorder r;
+	r.HttpClient("203.0.113.5", false, 100, 1000, 7, "alice");
+	r.HttpClient("203.0.113.5", false, 100, 1000, 7, "alice");
+	r.HttpClient("203.0.113.5", false, 50, 500, 9, "bob");
+	r.HttpClient("203.0.113.5", false, 10, 20); // not signed in (the sign-in page)
+	const auto report = r.Take(1);
+	ASSERT_EQ(report.connections.size(), 3u);
+	for (const auto& c : report.connections) {
+		EXPECT_EQ(c.address, "203.0.113.5");
+		EXPECT_TRUE(c.http);
+		if (c.accountId == 7) {
+			EXPECT_EQ(c.account, "alice");
+			EXPECT_EQ(c.packetsIn, 2u);
+			EXPECT_EQ(c.bytesOut, 2000u);
+		} else if (c.accountId == 9) {
+			EXPECT_EQ(c.account, "bob");
+		} else {
+			EXPECT_EQ(c.accountId, 0u);
+			EXPECT_TRUE(c.account.empty());
+			EXPECT_EQ(c.bytesIn, 10u);
+		}
+	}
+}

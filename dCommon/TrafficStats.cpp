@@ -208,16 +208,23 @@ namespace TrafficStats {
 		if (list.size() > limit) list.resize(limit);
 	}
 
-	void Recorder::HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut) {
+	void Recorder::HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut, uint32_t accountId, const std::string& user) {
+		// One entry per address and signed-in account: people sharing an address (behind one NAT or proxy) stay apart
+		const auto key = accountId ? address + '\n' + std::to_string(accountId) : address;
 		std::lock_guard lock(m_Mutex);
-		auto it = m_HttpClients.find(address);
+		auto it = m_HttpClients.find(key);
 		if (it == m_HttpClients.end()) {
 			const bool full = m_HttpClients.size() >= MAX_HTTP_CLIENTS;
-			it = m_HttpClients.try_emplace(full ? std::string() : address).first;
-			it->second.address = it->first;
+			it = m_HttpClients.try_emplace(full ? std::string() : key).first;
+			it->second.address = full ? std::string() : address;
 			it->second.http = true;
+			if (!full) {
+				it->second.accountId = accountId;
+				it->second.account = user;
+			}
 		}
 		auto& client = it->second;
+		if (client.account.empty() && !user.empty() && client.accountId == accountId) client.account = user; // a WebSocket upgrade knows only the account
 		if (fromServer) client.peer = Peer::SERVERS;
 		client.packetsIn++;
 		client.packetsOut++;

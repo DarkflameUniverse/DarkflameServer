@@ -160,7 +160,7 @@ namespace TrafficStats {
 		uint64_t bytesIn{}, bytesOut{};
 		uint32_t resends{};
 		uint32_t pingMs{};
-		uint32_t accountId{};   // a logged-in player's (world servers), else 0
+		uint32_t accountId{};   // a logged-in player's (world servers) or a signed-in dashboard account's (HTTP), else 0
 		uint64_t characterId{};
 		std::string account, character;
 
@@ -198,8 +198,10 @@ namespace TrafficStats {
 		void Http(int64_t now, const std::string& route, uint16_t status, uint64_t microseconds, uint64_t bytesOut, bool fromServer = false);
 		// A request this server made to another server's web server (the dashboard to the UGC server); any thread
 		void HttpOut(int64_t now, uint64_t bytesIn);
-		// An HTTP client's request by its address (bytes of the request and of the answer's body)
-		void HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut);
+		// An HTTP client's request by its address (bytes of the request and of the answer's body). `accountId` and `user`:
+		// the account the request was signed in as (the dashboard's session or API key), 0 and "" when none; each
+		// signed-in account on an address is counted apart
+		void HttpClient(const std::string& address, bool fromServer, uint64_t bytesIn, uint64_t bytesOut, uint32_t accountId = 0, const std::string& user = {});
 
 		// Evaluated when a report is taken (on the thread that takes it)
 		void SetGauge(const std::string& name, std::function<double()> source);
