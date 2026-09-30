@@ -143,18 +143,17 @@ namespace GameMessages {
 					auto* comp = scriptedAct->GetComponent<ScriptedActivityComponent>();
 					if (!comp) continue;
 					if (comp->GetActivityID() == value) {
-						comp->PlayerJoin(&entity);
+						comp->PlayerJoin(&entity, playerChoices);
 					}
 				}
 			}
 		} else if (type == 1) { // ready/unready
-			for (Entity* scriptedAct : scriptedActs) {
-				auto* comp = scriptedAct->GetComponent<ScriptedActivityComponent>();
-				if (!comp) continue;
-				if (comp->PlayerIsInQueue(&entity)) {
-					comp->PlayerReady(&entity, value);
-				}
-			}
+			// Answered like a join (live), then the chat server tells the lobby (docs/Matchmaking.md)
+			MatchResponse response;
+			response.target = entity.GetObjectID();
+			response.response = 0;
+			response.SendToClient(sysAddr);
+			ActivityComponent::PlayerReady(&entity, value != 0);
 		}
 	}
 

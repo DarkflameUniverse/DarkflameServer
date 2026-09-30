@@ -14,6 +14,10 @@ namespace GameMessages {
 	class GameMsg;
 };
 
+namespace ChatPackets {
+	struct MatchTransfer;
+};
+
 /**
  * Represents an instance of an activity, having participants and score
  */
@@ -34,9 +38,10 @@ public:
 	void ClearParticipants() { m_Participants.clear(); };
 
 	/**
-	 * Starts the instance world for this activity and sends all participants there
+	 * Sends the participants to the activity's instance that master started (the chat server's matchmaking found it)
+	 * @param transfer the instance's zone, address and the players chat sent here
 	 */
-	void StartZone();
+	void TransferParticipants(const ChatPackets::MatchTransfer& transfer);
 
 	/**
 	 * Gives the rewards for completing this activity to some participant
@@ -98,44 +103,6 @@ private:
 };
 
 /**
- * Represents an entity in a lobby
- */
-struct LobbyPlayer {
-
-	/**
-	 * The ID of the entity that is in the lobby
-	 */
-	LWOOBJID entityID = LWOOBJID_EMPTY;
-
-	/**
-	 * Whether or not the entity is ready
-	 */
-	bool ready = false;
-
-	/**
-	 * Returns the entity that is in the lobby
-	 * @return the entity that is in the lobby
-	 */
-	Entity* GetEntity() const;
-};
-
-/**
- * Represents a lobby of players with a timer until it should start the activity
- */
-struct Lobby {
-
-	/**
-	 * The lobby of players
-	 */
-	std::vector<LobbyPlayer> players;
-
-	/**
-	 * The timer that determines when the activity should start
-	 */
-	float timer{};
-};
-
-/**
  * Represents the score for the player in an activity, one index might represent score, another one time, etc.
  */
 struct ActivityPlayer {
@@ -163,23 +130,25 @@ public:
 
 	void LoadActivityData(const int32_t activityId);
 
-	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Makes some entity join the minigame, if it's a lobbied one, the entity will be placed in the lobby
 	 * @param player the entity to join the game
+	 * @param playerChoices the name-value text of the client's MatchRequest (a racing car), shown to the lobby
 	 */
-	void PlayerJoin(Entity* player);
+	void PlayerJoin(Entity* player, const std::string& playerChoices = "");
 
 	/**
-	 * Makes an entity join the lobby for this minigame, if it exists
+	 * Makes an entity join the lobby for this minigame. The lobbies are the chat server's, across every world
+	 * (docs/Matchmaking.md).
 	 * @param player the entity to join
+	 * @param playerChoices the name-value text of the client's MatchRequest
 	 */
-	void PlayerJoinLobby(Entity* player);
+	void PlayerJoinLobby(Entity* player, const std::string& playerChoices = "");
 
 	/**
-	 * Makes the player leave the lobby
+	 * Makes the player leave the lobby (the chat server's)
 	 * @param playerID the entity to leave the lobby
 	 */
 	void PlayerLeave(LWOOBJID playerID);
@@ -191,24 +160,17 @@ public:
 	void PlayerRemove(LWOOBJID playerID);
 
 	/**
-	 * Adds all the players to an instance of some activity
-	 * @param instance the instance to load the players into
-	 * @param lobby the players to load into the instance
+	 * A lobby's match for this activity has its instance: the players of it in this world who can pay go there
+	 * @param transfer the instance and the players, from the chat server
 	 */
-	void LoadPlayersIntoInstance(ActivityInstance& instance, const std::vector<LobbyPlayer>& lobby) const;
+	void StartMatch(const ChatPackets::MatchTransfer& transfer);
 
 	/**
-	 * Removes a lobby from the activity manager
-	 * @param lobby the lobby to remove
-	 */
-	void RemoveLobby(const LWOOBJID lobbyID);
-
-	/**
-	 * Marks a player as (un)ready in a lobby
+	 * Marks a player as (un)ready in the lobby they wait in (the chat server knows which)
 	 * @param player the entity to mark
 	 * @param bReady true if the entity is ready, false otherwise
 	 */
-	void PlayerReady(Entity* player, bool bReady);
+	static void PlayerReady(Entity* player, bool bReady);
 
 	/**
 	 * Returns the ID of this activity
@@ -225,13 +187,6 @@ public:
 	 * @return true if this activity has a lobby, false otherwise
 	 */
 	bool HasLobby() const;
-
-	/**
-	 * Checks if a player is currently waiting in a lobby
-	 * @param player the entity to check for
-	 * @return true if the entity is waiting in a lobby, false otherwise
-	 */
-	bool PlayerIsInQueue(Entity* player);
 
 	/**
 	 * Checks if an entity is currently playing this activity
@@ -333,11 +288,6 @@ private:
 	 * All the active instances of this activity
 	 */
 	std::vector<ActivityInstance> m_Instances;
-
-	/**
-	 * The current lobbies for this activity
-	 */
-	std::map<LWOOBJID, Lobby> m_Queue;
 
 	/**
 	 * All the activity score for the players in this activity

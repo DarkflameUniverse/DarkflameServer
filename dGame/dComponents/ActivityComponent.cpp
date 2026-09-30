@@ -7,7 +7,6 @@
 #include "MissionComponent.h"
 #include "Character.h"
 #include "dZoneManager.h"
-#include "ZoneInstanceManager.h"
 #include "Game.h"
 #include "Logger.h"
 #include "ClientPackets.h"
@@ -25,7 +24,6 @@
 #include "eMatchUpdate.h"
 #include "ServiceType.h"
 #include "MessageType/Chat.h"
-#include "ObjectIDManager.h"
 
 #include "CDActivityRewardsTable.h"
 #include "CDActivitiesTable.h"
@@ -113,211 +111,77 @@ void ActivityComponent::HandleMessageBoxResponse(Entity* player, const std::stri
 	}
 }
 
-void ActivityComponent::PlayerJoin(Entity* player) {
-	if (PlayerIsInQueue(player)) return;
+void ActivityComponent::PlayerJoin(Entity* player, const std::string& playerChoices) {
 	// If we have a lobby, queue the player and allow others to join, otherwise spin up an instance on the spot
 	if (HasLobby()) {
-		PlayerJoinLobby(player);
+		PlayerJoinLobby(player, playerChoices);
 	} else if (!IsPlayedBy(player)) {
 		NewInstance().AddParticipant(player);
 	}
 }
 
-void ActivityComponent::PlayerJoinLobby(Entity* player) {
+namespace {
+	void SendMatchRequest(const LWOOBJID playerID, const ChatPackets::eMatchRequestType type, const int32_t value) {
+		ChatPackets::MatchRequest request;
+		request.playerID = playerID;
+		request.type = type;
+		request.value = value;
+		ChatServerLink::Send(request);
+	}
+}
+
+void ActivityComponent::PlayerJoinLobby(Entity* player, const std::string& playerChoices) {
 	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD)) {
 		GameMessages::MatchResponse matchResponse;
 		matchResponse.target = player->GetObjectID();
 		matchResponse.response = 0;
 		matchResponse.SendToClient(player->GetSystemAddress()); // tell the client they joined a lobby
 	}
-	LobbyPlayer newLobbyPlayer{};
-	newLobbyPlayer.entityID = player->GetObjectID();
-	LWOOBJID playerLobbyID = LWOOBJID_EMPTY;
 
 	auto* character = player->GetCharacter();
 	if (character != nullptr)
 		character->SetLastNonInstanceZoneID(Game::zoneManager->GetZone()->GetWorldID());
 
-	for (auto& [lobbyID, lobby] : m_Queue) {
-		if (lobby.players.size() < m_ActivityInfo.maxTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() < m_ActivityInfo.maxTeams) {
-			// If an empty slot in an existing lobby is found
-			lobby.players.push_back(newLobbyPlayer);
-			playerLobbyID = lobbyID;
-
-			// Update the joining player on players already in the lobby, and update players already in the lobby on the joining player
-			LDFData<LWOOBJID> playerLDF("player", player->GetObjectID());
-			LDFData<std::string> playerName("playerName", player->GetCharacter()->GetName());
-			std::string matchUpdateJoined = playerLDF.GetString() + "\n" + playerName.GetString();
-			for (const auto& joinedPlayer : lobby.players) {
-				auto* const entity = joinedPlayer.GetEntity();
-
-				if (entity == nullptr) {
-					continue;
-				}
-
-				LDFData<LWOOBJID> entityLDF("player", entity->GetObjectID());
-				LDFData<std::string> entityName("playerName", entity->GetCharacter()->GetName());
-				std::string matchUpdate = entityLDF.GetString() + "\n" + entityName.GetString();
-				GameMessages::MatchUpdate existingPlayerUpdate;
-				existingPlayerUpdate.target = player->GetObjectID();
-				existingPlayerUpdate.data = matchUpdate;
-				existingPlayerUpdate.type = eMatchUpdate::PLAYER_ADDED;
-				existingPlayerUpdate.SendToClient(player->GetSystemAddress());
-				PlayerReady(entity, joinedPlayer.ready);
-				GameMessages::MatchUpdate joinedPlayerUpdate;
-				joinedPlayerUpdate.target = entity->GetObjectID();
-				joinedPlayerUpdate.data = matchUpdateJoined;
-				joinedPlayerUpdate.type = eMatchUpdate::PLAYER_ADDED;
-				joinedPlayerUpdate.SendToClient(entity->GetSystemAddress());
-			}
-			break;
-		}
-	}
-
-	if (playerLobbyID == LWOOBJID_EMPTY) {
-		// If all lobbies are full
-		playerLobbyID = ObjectIDManager::GenerateObjectID();
-		auto& newLobby = m_Queue[playerLobbyID];
-		newLobby.players.push_back(newLobbyPlayer);
-		newLobby.timer = m_ActivityInfo.waitTime / 1000;
-	}
-	const auto& lobby = m_Queue[playerLobbyID];
-
-	if (m_ActivityInfo.maxTeamSize != 1 && lobby.players.size() >= m_ActivityInfo.minTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() >= m_ActivityInfo.minTeams) {
-		// Update the joining player on the match timer
-		LDFData<float> matchTimer("time", lobby.timer);
-		GameMessages::MatchUpdate matchUpdate;
-		matchUpdate.target = player->GetObjectID();
-		matchUpdate.data = matchTimer.GetString();
-		matchUpdate.type = eMatchUpdate::PHASE_WAIT_READY;
-		matchUpdate.SendToClient(player->GetSystemAddress());
-	}
+	// The lobbies are the chat server's, so players of every instance of this zone wait together (docs/Matchmaking.md).
+	// It gets what this world read from the activity, overrides (solo racing, transfer zone) included.
+	ChatPackets::MatchRequest request;
+	request.playerID = player->GetObjectID();
+	request.type = ChatPackets::eMatchRequestType::JOIN;
+	request.activityID = m_ActivityInfo.ActivityID;
+	request.playerName = character != nullptr ? character->GetName() : "";
+	request.playerChoices = playerChoices;
+	request.instanceMapID = m_ActivityInfo.instanceMapID;
+	request.minTeams = m_ActivityInfo.minTeams;
+	request.maxTeams = m_ActivityInfo.maxTeams;
+	request.minTeamSize = m_ActivityInfo.minTeamSize;
+	request.maxTeamSize = m_ActivityInfo.maxTeamSize;
+	request.waitTime = m_ActivityInfo.waitTime;
+	request.startDelay = m_ActivityInfo.startDelay;
+	ChatServerLink::Send(request);
 }
 
 void ActivityComponent::PlayerLeave(LWOOBJID playerID) {
-	// Removes the player from a lobby and notifies the others, not applicable for non-lobby instances
-	for (auto& lobby : m_Queue | std::views::values) {
-		for (int i = 0; i < lobby.players.size(); i++) {
-			const auto& player = lobby.players[i];
-			if (player.entityID == playerID) {
-				LDFData<LWOOBJID> matchUpdateLeft("player", playerID);
-				for (const auto& lobbyPlayer : lobby.players) {
-					auto* const entity = lobbyPlayer.GetEntity();
-					if (entity == nullptr)
-						continue;
-
-					GameMessages::MatchUpdate matchUpdate;
-					matchUpdate.target = entity->GetObjectID();
-					matchUpdate.data = matchUpdateLeft.GetString();
-					matchUpdate.type = eMatchUpdate::PLAYER_REMOVED;
-					matchUpdate.SendToClient(entity->GetSystemAddress());
-				}
-
-				lobby.players.erase(lobby.players.begin() + i);
-
-				return;
-			}
-		}
-	}
+	// Not applicable for non-lobby instances
+	if (!HasLobby()) return;
+	SendMatchRequest(playerID, ChatPackets::eMatchRequestType::LEAVE, 0);
 }
 
-void ActivityComponent::Update(float deltaTime) {
-	std::vector<LWOOBJID> lobbiesToRemove{};
-	// Ticks all the lobbies, not applicable for non-instance activities
-	for (auto& [lobbyID, lobby] : m_Queue) {
-		for (const auto& player : lobby.players) {
-			const auto* const entity = player.GetEntity();
-			if (entity == nullptr) {
-				PlayerLeave(player.entityID);
-				return;
-			}
-		}
-
-		if (lobby.players.empty()) {
-			lobbiesToRemove.push_back(lobbyID);
+void ActivityComponent::StartMatch(const ChatPackets::MatchTransfer& transfer) {
+	auto& instance = NewInstance();
+	for (const auto playerID : transfer.players) {
+		auto* const entity = Game::entityManager->GetEntity(playerID);
+		if (entity == nullptr || !CheckCost(entity)) {
 			continue;
 		}
 
-		// Update the match time for all players
-		if (m_ActivityInfo.maxTeamSize != 1 && lobby.players.size() >= m_ActivityInfo.minTeamSize
-			|| m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() >= m_ActivityInfo.minTeams) {
-			if (lobby.timer == m_ActivityInfo.waitTime / 1000) {
-				for (const auto& joinedPlayer : lobby.players) {
-					auto* const entity = joinedPlayer.GetEntity();
-
-					if (entity == nullptr)
-						continue;
-
-					LDFData<float> matchTimerUpdate("time", lobby.timer);
-					GameMessages::MatchUpdate matchUpdate;
-					matchUpdate.target = entity->GetObjectID();
-					matchUpdate.data = matchTimerUpdate.GetString();
-					matchUpdate.type = eMatchUpdate::PHASE_WAIT_READY;
-					matchUpdate.SendToClient(entity->GetSystemAddress());
-				}
-			}
-
-			lobby.timer -= deltaTime;
-		}
-
-		bool lobbyReady = true;
-		for (const auto& player : lobby.players) {
-			if (player.ready) continue;
-			lobbyReady = false;
-		}
-
-		// If everyone's ready, jump the timer
-		if (lobbyReady && lobby.timer > m_ActivityInfo.startDelay / 1000) {
-			lobby.timer = m_ActivityInfo.startDelay / 1000;
-
-			// Update players in lobby on switch to start delay
-			LDFData<float> matchTimerUpdate("time", lobby.timer);
-			for (const auto& player : lobby.players) {
-				auto* const entity = player.GetEntity();
-
-				if (entity == nullptr)
-					continue;
-
-				GameMessages::MatchUpdate matchUpdate;
-				matchUpdate.target = entity->GetObjectID();
-				matchUpdate.data = matchTimerUpdate.GetString();
-				matchUpdate.type = eMatchUpdate::PHASE_WAIT_START;
-				matchUpdate.SendToClient(entity->GetSystemAddress());
-			}
-		}
-
-		// The timer has elapsed, start the instance
-		if (lobby.timer <= 0.0f) {
-			LOG("Setting up instance.");
-			auto& instance = NewInstance();
-			LoadPlayersIntoInstance(instance, lobby.players);
-			instance.StartZone();
-			lobbiesToRemove.push_back(lobbyID);
-		}
+		instance.AddParticipant(entity);
 	}
-
-	for (const auto id : lobbiesToRemove) {
-		RemoveLobby(id);
-	}
-}
-
-void ActivityComponent::RemoveLobby(const LWOOBJID lobbyID) {
-	if (m_Queue.contains(lobbyID)) m_Queue.erase(lobbyID);
+	instance.TransferParticipants(transfer);
 }
 
 bool ActivityComponent::HasLobby() const {
 	// If the player is not in the world he has to be, create a lobby for the transfer
 	return m_ActivityInfo.instanceMapID != UINT_MAX && m_ActivityInfo.instanceMapID != Game::server->GetZoneID();
-}
-
-bool ActivityComponent::PlayerIsInQueue(Entity* player) {
-	for (const auto& lobby : m_Queue | std::views::values) {
-		for (const auto& lobbyPlayer : lobby.players) {
-			if (player->GetObjectID() == lobbyPlayer.entityID) return true;
-		}
-	}
-
-	return false;
 }
 
 bool ActivityComponent::IsPlayedBy(Entity* player) const {
@@ -362,46 +226,12 @@ bool ActivityComponent::TakeCost(Entity* player) const {
 }
 
 void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
-	for (auto& lobby : m_Queue | std::views::values) {
-		for (auto& lobbyPlayer : lobby.players) {
-			if (lobbyPlayer.entityID == player->GetObjectID()) {
-
-				lobbyPlayer.ready = bReady;
-
-				// Update players in lobby on player being ready
-				LDFData<LWOOBJID> matchReadyUpdate("player", player->GetObjectID());
-				eMatchUpdate readyStatus = eMatchUpdate::PLAYER_READY;
-				if (!bReady) readyStatus = eMatchUpdate::PLAYER_NOT_READY;
-				for (const auto& otherPlayer : lobby.players) {
-					auto* const entity = otherPlayer.GetEntity();
-					if (entity == nullptr)
-						continue;
-
-					GameMessages::MatchUpdate matchUpdate;
-					matchUpdate.target = entity->GetObjectID();
-					matchUpdate.data = matchReadyUpdate.GetString();
-					matchUpdate.type = readyStatus;
-					matchUpdate.SendToClient(entity->GetSystemAddress());
-				}
-			}
-		}
-	}
+	SendMatchRequest(player->GetObjectID(), ChatPackets::eMatchRequestType::READY, bReady ? 1 : 0);
 }
 
 ActivityInstance& ActivityComponent::NewInstance() {
 	m_Instances.push_back(ActivityInstance(m_Parent, m_ActivityInfo));
 	return m_Instances.back();
-}
-
-void ActivityComponent::LoadPlayersIntoInstance(ActivityInstance& instance, const std::vector<LobbyPlayer>& lobby) const {
-	for (const auto& player : lobby) {
-		auto* const entity = player.GetEntity();
-		if (entity == nullptr || !CheckCost(entity)) {
-			continue;
-		}
-
-		instance.AddParticipant(entity);
-	}
 }
 
 const ActivityInstance& ActivityComponent::GetInstance(const LWOOBJID playerID) const {
@@ -462,59 +292,28 @@ void ActivityComponent::PlayerRemove(LWOOBJID playerID) {
 	}
 }
 
-void ActivityInstance::StartZone() {
-	if (m_Participants.empty())
-		return;
-
-	const auto& participants = GetParticipants();
-	if (participants.empty())
-		return;
-
-	auto* leader = participants[0];
-	LWOZONEID zoneId = LWOZONEID(m_ActivityInfo.instanceMapID, 0, leader->GetCharacter()->GetPropertyCloneID());
-
-	// only make a team if we have more than one participant
-	if (participants.size() > 1) {
-		ChatPackets::CreateTeam createTeam;
-		createTeam.leaderID = leader->GetObjectID();
-
-		for (const auto& participant : m_Participants) {
-			createTeam.members.push_back(participant);
-		}
-
-		createTeam.zoneID = zoneId;
-
-		ChatServerLink::Send(createTeam);
-	}
-
-	const auto cloneId = GeneralUtils::GenerateRandomNumber<uint32_t>(1, UINT32_MAX);
-	for (Entity* player : participants) {
-		const auto objid = player->GetObjectID();
-		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, m_ActivityInfo.instanceMapID, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-
-			auto* player = Game::entityManager->GetEntity(objid);
-			if (player == nullptr)
-				return;
-
-			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
-			if (player->GetCharacter()) {
-				auto* characterComponent = player->GetComponent<CharacterComponent>();
-				if (characterComponent) {
-					characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
-				}
-
-				player->GetCharacter()->SetZoneID(zoneID);
-				player->GetCharacter()->SetZoneInstance(zoneInstance);
-				player->GetCharacter()->SetZoneClone(zoneClone);
+void ActivityInstance::TransferParticipants(const ChatPackets::MatchTransfer& transfer) {
+	const auto zoneID = transfer.zoneID.GetMapID();
+	const auto zoneInstance = transfer.zoneID.GetInstanceID();
+	const auto zoneClone = transfer.zoneID.GetCloneID();
+	for (Entity* player : GetParticipants()) {
+		LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, transfer.mythranShift == true ? "true" : "false", transfer.serverIP.c_str(), transfer.serverPort);
+		if (player->GetCharacter()) {
+			auto* characterComponent = player->GetComponent<CharacterComponent>();
+			if (characterComponent) {
+				characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
 			}
 
-			ClientPackets::TransferToWorld transfer;
-			transfer.serverIP = LUString(serverIP);
-			transfer.serverPort = serverPort;
-			transfer.mythranShift = mythranShift;
-			transfer.Send(player->GetSystemAddress());
-			return;
-			});
+			player->GetCharacter()->SetZoneID(zoneID);
+			player->GetCharacter()->SetZoneInstance(zoneInstance);
+			player->GetCharacter()->SetZoneClone(zoneClone);
+		}
+
+		ClientPackets::TransferToWorld transferToWorld;
+		transferToWorld.serverIP = LUString(transfer.serverIP);
+		transferToWorld.serverPort = transfer.serverPort;
+		transferToWorld.mythranShift = transfer.mythranShift;
+		transferToWorld.Send(player->GetSystemAddress());
 	}
 
 	m_NextZoneCloneID++;
@@ -573,10 +372,6 @@ void ActivityInstance::SetScore(uint32_t score) {
 	this->score = score;
 }
 
-Entity* LobbyPlayer::GetEntity() const {
-	return Game::entityManager->GetEntity(entityID);
-}
-
 bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	auto& activityInfo = reportInfo.info->PushDebug("Activity");
 
@@ -617,23 +412,6 @@ bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo&
 			auto* character = participant->GetCharacter();
 			if (!character) continue;
 			participants.PushDebug<AMFStringValue>(std::to_string(participant->GetObjectID()) + ": " + character->GetName()) = "";
-		}
-	}
-
-	auto& queue = activityInfo.PushDebug("Queue");
-	i = 0;
-	for (const auto& lobbyQueue : m_Queue | std::views::values) {
-		auto& lobby = queue.PushDebug("Lobby " + std::to_string(i++));
-		lobby.PushDebug<AMFDoubleValue>("Timer") = lobbyQueue.timer;
-
-		auto& players = lobby.PushDebug("Players");
-		for (const auto& player : lobbyQueue.players) {
-			const auto* const playerEntity = player.GetEntity();
-			if (!playerEntity) continue;
-			auto* character = playerEntity->GetCharacter();
-			if (!character) continue;
-
-			players.PushDebug<AMFStringValue>(std::to_string(playerEntity->GetObjectID()) + ": " + character->GetName()) = player.ready ? "Ready" : "Not Ready";
 		}
 	}
 

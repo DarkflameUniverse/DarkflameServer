@@ -69,6 +69,8 @@
 #include "Entity.h"
 #include "Character.h"
 #include "ChatPackets.h"
+#include "ScriptedActivityComponent.h"
+#include "eReplicaComponentType.h"
 #include "WorldRoutePacket.h"
 #include "ChatServerLink.h"
 #include "PacketDispatcher.h"
@@ -766,6 +768,17 @@ namespace {
 				if (!characterComponent) return;
 				characterComponent->SetGuild(status.guildID, status.guildName.string);
 				Game::entityManager->SerializeEntity(player);
+			});
+
+			// An activity lobby's match has its instance (docs/Matchmaking.md): send our players in it there
+			handlers.On<ChatPackets::MatchTransfer>(MessageType::Chat::MATCH_TRANSFER, [](const ChatPackets::MatchTransfer& transfer, const SystemAddress&) {
+				for (auto* entity : Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY)) {
+					auto* activity = entity->GetComponent<ScriptedActivityComponent>();
+					if (!activity || activity->GetActivityID() != transfer.activityID || !activity->HasLobby()) continue;
+					activity->StartMatch(transfer);
+					return;
+				}
+				LOG("Matchmaking: no activity %i in this world for a match of %zu player(s)", transfer.activityID, transfer.players.size());
 			});
 
 			// New mail for a player the chat server says is in this world
