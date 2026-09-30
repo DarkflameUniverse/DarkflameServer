@@ -940,6 +940,8 @@ async function loadCaptureReplay(capture) {
 	setStatus('');
 	if (!data || data.success === false) { toast((data && data.error) || 'Could not load the capture', 'danger'); return; }
 	state.capture = { id: String(capture), data, worlds: data.worlds || [] };
+	// A capture plays in real time (the saved speed is for scrubbing through hours of recorded positions)
+	$('replaySpeed').value = '1';
 	// One character captured: follow them from the start
 	const characters = new Set(state.capture.worlds.filter((w) => w.zone).map((w) => w.character));
 	const only = characters.size === 1 ? [...characters][0] : null;
