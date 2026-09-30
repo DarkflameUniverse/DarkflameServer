@@ -1,0 +1,11 @@
+{
+	"url": "https://api.github.com/repos/example/server/compare/1a2b3c4d5e6f...main",
+	"html_url": "https://github.com/example/server/compare/1a2b3c4d5e6f...main",
+	"permalink_url": "https://github.com/example/server/compare/example:1a2b3c4...example:9f8e7d6",
+	"status": "ahead",
+	"ahead_by": 12,
+	"behind_by": 0,
+	"total_commits": 12,
+	"commits": [],
+	"files": []
+}

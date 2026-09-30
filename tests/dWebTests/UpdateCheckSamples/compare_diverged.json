@@ -1,0 +1,7 @@
+{
+	"html_url": "https://github.com/example/server/compare/1a2b3c4d5e6f...main",
+	"status": "diverged",
+	"ahead_by": 1,
+	"behind_by": 3,
+	"total_commits": 1
+}

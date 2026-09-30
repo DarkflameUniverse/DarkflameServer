@@ -65,6 +65,8 @@ set(DWEBTESTS_SOURCES
 	"AlertsAndTwoFactorTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/auth/Totp.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/notify/WebhookFormat.cpp"
+	"UpdateCheckTests.cpp"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer/notify/UpdateCheck.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/email/OAuth2.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/email/SmtpClient.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/auth/JWTUtils.cpp"

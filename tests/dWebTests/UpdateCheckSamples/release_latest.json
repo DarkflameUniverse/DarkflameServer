@@ -1,0 +1,14 @@
+{
+	"url": "https://api.github.com/repos/example/server/releases/100",
+	"html_url": "https://github.com/example/server/releases/tag/v3.1.0",
+	"id": 100,
+	"tag_name": "v3.1.0",
+	"target_commitish": "main",
+	"name": "Version 3.1.0",
+	"draft": false,
+	"prerelease": false,
+	"created_at": "2026-08-01T10:00:00Z",
+	"published_at": "2026-08-02T12:30:00Z",
+	"assets": [],
+	"body": "Hand-written sample for the update check tests."
+}
