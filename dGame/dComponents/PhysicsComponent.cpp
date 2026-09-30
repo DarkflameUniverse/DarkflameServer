@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <map>
+#include <string>
 
 #include "eReplicaComponentType.h"
 #include "NiPoint3.h"
@@ -20,6 +22,30 @@
 #include "Amf3.h"
 #include "Entity.h"
 #include "Logger.h"
+
+namespace {
+	struct KnownBox {
+		NiPoint3 size;   // width (x), height (y, up from the base) and depth (z)
+		NiPoint3 offset; // where the box's base centre is, from the object's position in its own axes, before scaling
+	};
+
+	/**
+	 * Assets whose collision the server stands in for with a box: the bounds of all the parts of the asset's collision
+	 * shape in the client's physics files (res/physics), by file name in lower case. They are the navmesh carvers of
+	 * Robot City (hedges, greebles, robot statues) and the Ninjago Monastery (benches).
+	 * The hedge corner is an L: its box also covers the inside of the corner.
+	 */
+	const std::map<std::string, KnownBox> KNOWN_BOXES = {
+		{ "env_won_nim_bush_square-section.hkx", { { 4.3949f, 4.9645f, 9.0341f }, { -0.0343f, 0.0004f, -0.0527f } } },
+		{ "env_won_nim_bush_square-corner.hkx", { { 9.1824f, 4.7916f, 9.7440f }, { -1.0403f, 0.2150f, 1.0503f } } },
+		{ "env_nim_ag_bushinpot.hkx", { { 5.4603f, 5.7094f, 11.4660f }, { 0.1707f, -0.2426f, 0.5737f } } },
+		{ "greeble_001w.hkx", { { 3.18f, 1.90f, 3.18f }, { 0.0f, 0.01f, 0.0f } } },
+		{ "greeble_002w.hkx", { { 2.38f, 1.907f, 1.5802f }, { -0.4f, 0.01f, 0.0001f } } },
+		{ "robot_statue_01.hkx", { { 1.8642f, 3.1844f, 1.67f }, { 0.4f, 0.01f, -0.275f } } },
+		{ "robot_statue_02.hkx", { { 3.0994f, 4.1242f, 1.9228f }, { 0.0165f, 0.0117f, 0.0967f } } },
+		{ "env_won_gnar_ninja-bench.hkx", { { 6.4f, 0.9796f, 1.6f }, { 0.0f, -0.0052f, 0.0005f } } },
+	};
+}
 
 PhysicsComponent::PhysicsComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Position = NiPoint3Constant::ZERO;
@@ -91,9 +117,13 @@ void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitia
 }
 
 dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type, bool* isFallback) {
+	return CreateAssetShape(m_Parent->GetObjectID(), m_Parent->GetLOT(), type, m_CollisionGroup, m_Parent->GetDefaultScale(), m_Rotation, m_Position, isFallback);
+}
+
+dpEntity* PhysicsComponent::CreateAssetShape(const LWOOBJID id, const LOT lot, const eReplicaComponentType type, const int32_t collisionGroup, const float scale, const NiQuaternion& rotation, NiPoint3& position, bool* isFallback) {
 	if (isFallback) *isFallback = false;
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-	auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), type);
+	auto componentID = compRegistryTable->GetByIDAndType(lot, type);
 
 	CDPhysicsComponentTable* physComp = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
@@ -109,51 +139,55 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type, bool
 
 	dpEntity* toReturn;
 	if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 10.0f, 5.0f, 1.0f);
+		toReturn = new dpEntity(id, 10.0f, 5.0f, 1.0f);
 	} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
 		// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
+		toReturn = new dpEntity(id, 1638.4f, 13.521004f * 2.0f, 1638.4f);
 
 		// Move this down by 13.521004 units so it is still effectively at the same height as before
-		m_Position = m_Position - NiPoint3Constant::UNIT_Y * 13.521004f;
+		position = position - NiPoint3Constant::UNIT_Y * 13.521004f;
 	} else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 10.0f, 25.0f, 1.0f);
+		toReturn = new dpEntity(id, 10.0f, 25.0f, 1.0f);
 	} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 20.0f, 20.0f, 20.0f);
+		toReturn = new dpEntity(id, 20.0f, 20.0f, 20.0f);
 	} else if (assetFile == "poi_trigger_wall.hkx") {
 		// test\POI_trigger_wall.hkx in the CDClient (e.g. "Clear threat list Trigger Wall"), env\ in the client's files:
 		// a box 1 wide, 12.98 tall from its base and 20.45 deep
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.9755f, 20.45f);
+		toReturn = new dpEntity(id, 1.0f, 12.9755f, 20.45f);
 	} else if (assetFile == "trigger_rectangle_box.hkx") {
 		// "Trigger Rectangle Box": a box 8 wide, 8 tall from its base and 4 deep
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 8.0f, 8.0f, 4.0f);
+		toReturn = new dpEntity(id, 8.0f, 8.0f, 4.0f);
 	} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
-		m_Position += QuatUtils::Forward(m_Rotation) * 7.5f;
+		toReturn = new dpEntity(id, 18.0f, 5.0f, 15.0f);
+		position += QuatUtils::Forward(rotation) * 7.5f;
 	} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 1.0f, 1.0f, 12.0f);
-		m_Position += QuatUtils::Forward(m_Rotation) * 6.0f;
+		toReturn = new dpEntity(id, 1.0f, 1.0f, 12.0f);
+		position += QuatUtils::Forward(rotation) * 6.0f;
 	} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
+		toReturn = new dpEntity(id, 6.0f, 6.0f, 6.0f);
 	} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 4.5f);
+		toReturn = new dpEntity(id, 4.5f);
 	} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
-		m_Position.y -= (111.467964f * m_Parent->GetDefaultScale()) / 2;
+		toReturn = new dpEntity(id, 390.496826f, 111.467964f, 600.821534f, true);
+		position.y -= (111.467964f * scale) / 2;
 		// Leaving these out for now since they cause more issues than they solve in racing tracks without proper OBB checks.
 	} /* else if (info->physicsAsset == "env\\GFTrack_DeathVolume1_CaveExit.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 112.416870f, 50.363434f, 87.679268f);
+		toReturn = new dpEntity(id, 112.416870f, 50.363434f, 87.679268f);
 	} else if (info->physicsAsset == "env\\GFTrack_DeathVolume2_RoadGaps.hkx") {
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 48.386536f, 50.363434f, 259.361755f);
-	} */ else {
+		toReturn = new dpEntity(id, 48.386536f, 50.363434f, 259.361755f);
+	} */ else if (const auto known = KNOWN_BOXES.find(assetFile); known != KNOWN_BOXES.end()) {
+		const auto& [size, offset] = known->second;
+		toReturn = new dpEntity(id, size.x, size.y, size.z);
+		position += (QuatUtils::Right(rotation) * offset.x + QuatUtils::Up(rotation) * offset.y + QuatUtils::Forward(rotation) * offset.z) * scale;
+	} else {
 	// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
 
 	//add fallback cube:
-		toReturn = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
+		toReturn = new dpEntity(id, 2.0f, 2.0f, 2.0f);
 		if (isFallback) *isFallback = true;
 	}
 	// Only touch what the client lets this group touch (e.g. POI walls ignore enemies, threat clearing walls ignore players)
-	toReturn->SetCollisionGroup(static_cast<uint32_t>(m_CollisionGroup));
+	toReturn->SetCollisionGroup(static_cast<uint32_t>(collisionGroup));
 	return toReturn;
 }
 
