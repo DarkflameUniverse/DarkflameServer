@@ -167,9 +167,9 @@ namespace {
 		c.Add(Bool(SHARED, "dont_generate_dcf", "Don't build the chat filter file", "Skip compiling the chat word list to a file.", false, true));
 
 		c.AddSection("Chat web API", "A small HTTP API on the chat server, on localhost only.");
-		c.Add(Bool(CHAT, "web_server_enabled", "Chat web API", "", false, true));
-		c.Add(When(Port(CHAT, "web_server_port", "Port", "", "2005"), CHAT, "web_server_enabled", { "1" }));
-		c.Add(Unused(Port(CHAT, "web_server_listen_port", "Port (old name)", "Not read: the chat server uses web_server_port.", "2005")));
+		c.Add(Unused(Bool(CHAT, "web_server_enabled", "Chat web API", "Not read: the chat server's web API was removed; the dashboard's API covers players, teams and announcements.", false, true)));
+		c.Add(Unused(Port(CHAT, "web_server_port", "Chat web API port", "Not read: the chat server's web API was removed.", "2005")));
+		c.Add(Unused(Port(CHAT, "web_server_listen_port", "Port (old name)", "Not read.", "2005")));
 
 		c.AddSection("Physics", "How world servers split zones for collision checks.");
 		c.Add(Bool(WORLD, "phys_spatial_partitioning", "Spatial partitioning", "Faster collision checks. Leave on unless debugging physics.", true, true));

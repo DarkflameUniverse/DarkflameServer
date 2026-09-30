@@ -12,7 +12,6 @@
 #include "ChatPackets.h"
 #include "dConfig.h"
 #include "MessageType/Chat.h"
-#include "ChatWeb.h"
 #include "TeamContainer.h"
 #include "ChatGuilds.h"
 #include "GuildManager.h"
@@ -75,7 +74,6 @@ void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify
 	m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
-	ChatWeb::SendWSPlayerUpdate(data, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone);
 
 	Database::Get()->UpdateActivityLog(data.playerID, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone, data.zoneID.GetMapID());
 	m_PlayersToRemove.erase(playerId);
@@ -124,7 +122,6 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 
 	ChatGuilds::Get().PlayerOffline(playerID);
 
-	ChatWeb::SendWSPlayerUpdate(player, eActivityType::PlayerLoggedOut);
 
 	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);

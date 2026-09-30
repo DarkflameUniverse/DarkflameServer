@@ -437,9 +437,8 @@ Now follow the [build](#build-the-server) section for your system and your serve
 ## In-game commands
 * A list of all in-game commands can be found [here](./docs/Commands.md).
 
-## Chat Web API
-* The Chat server has an API that can be enabled via `chatconfig.ini`.
-* You can view the OpenAPI doc for the API here [here](./docs/ChatWebAPI.yaml).
+## Web API
+* The dashboard has the API (online players, teams, announcements and the rest), with API keys; see [the dashboard docs](./docs/Dashboard.md). The chat server no longer has its own web API.
 
 ## Verifying your client files
 

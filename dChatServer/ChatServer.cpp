@@ -38,7 +38,6 @@
 #include "RakNetDefines.h"
 #include "MessageIdentifiers.h"
 
-#include "ChatWeb.h"
 #include "BuildInfo.h"
 
 namespace Game {
@@ -110,19 +109,6 @@ int main(int argc, char** argv) {
 	// Settings edited on the dashboard (server_config table) are layered over the files from here on
 	Game::config->SetDatabaseSync(ConfigSync::Sync);
 
-	// setup the chat api web server
-	const uint32_t web_server_port = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_port")).value_or(2005);
-	if (Game::config->GetValue("web_server_enabled") == "1" && !Game::web.Startup("localhost", web_server_port)) {
-		// if we want the web server and it fails to start, exit
-		LOG("Failed to start web server, shutting down.");
-		Database::Destroy(serviceName);
-		delete Game::logger;
-		delete Game::config;
-		return EXIT_FAILURE;
-	}
-
-	if (Game::web.IsEnabled()) ChatWeb::RegisterRoutes();
-
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1000;
@@ -190,8 +176,6 @@ int main(int argc, char** argv) {
 			packet = nullptr;
 		}
 
-		// Check and handle web requests:
-		if (Game::web.IsEnabled()) Game::web.ReceiveRequests();
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
