@@ -495,14 +495,14 @@
 		switch (type) {
 		case 'treasure_hunt':
 			return '<div class="mb-2"><label class="form-label small" for="evp-' + i + '-lot">Treasure</label><input class="form-control form-control-sm" id="evp-' + i + '-lot" data-search="treasure" data-p="' + i + '" data-f="config.lot" data-value="' + esc(c.lot || '') + '" value="' + esc(c.lot ? 'LOT ' + c.lot : '') + '" placeholder="Search objects"></div>' +
-				'<div class="row g-2">' + ['count|Treasures|1', 'coins|Coins per find|0', 'radius|Pickup distance|2'].map(function (x) {
+				'<div class="row g-2">' + ['count|Treasures|1', 'coins|' + esc(GameText.term('coins')) + ' per find|0', 'radius|Pickup distance|2'].map(function (x) {
 					var bits = x.split('|');
 					return '<div class="col-4">' + field(i, 'config.' + bits[0], bits[1], c[bits[0]], 'type="number" min="' + bits[2] + '" step="any"') + '</div>';
 				}).join('') + '</div>' +
 				'<div class="row g-2"><div class="col-8"><label class="form-label small" for="evp-' + i + '-item">Item reward <span class="text-body-secondary">(optional)</span></label><input class="form-control form-control-sm" id="evp-' + i + '-item" data-search="item" data-p="' + i + '" data-f="config.itemLot" data-value="' + esc(c.itemLot || '') + '" value="' + esc(c.itemLot ? 'LOT ' + c.itemLot : '') + '" placeholder="Search items"></div>' +
 				'<div class="col-4">' + field(i, 'config.itemCount', 'Count', c.itemCount, 'type="number" min="1" max="999"') + '</div></div>';
 		case 'bonus':
-			return '<div class="row g-2">' + ['coins|Coins ×', 'uscore|U-score ×', 'lootChance|Loot chance ×'].map(function (x) {
+			return '<div class="row g-2">' + ['coins|' + esc(GameText.term('coins')) + ' ×', 'uscore|' + esc(GameText.term('uscore')) + ' ×', 'lootChance|Loot chance ×'].map(function (x) {
 				var bits = x.split('|');
 				return '<div class="col-4">' + field(i, 'config.' + bits[0], bits[1], c[bits[0]], 'type="number" min="1" step="0.1"') + '</div>';
 			}).join('') + '</div>';

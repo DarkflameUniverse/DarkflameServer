@@ -246,8 +246,8 @@
 		sourceTable(document.getElementById(ids.sources), summary, labels);
 	}
 
-	var COIN_LABELS = { title: 'Coins', up: 'Coins gained', down: 'Coins spent' };
-	var USCORE_LABELS = { title: 'U-score', up: 'U-score gained', down: 'U-score lost' };
+	var COIN_LABELS = { title: GameText.term('coins'), up: GameText.term('coins') + ' gained', down: GameText.term('coins') + ' spent' };
+	var USCORE_LABELS = { title: GameText.term('uscore'), up: GameText.term('uscore') + ' gained', down: GameText.term('uscore') + ' lost' };
 	var ITEM_LABELS = { title: 'Items', up: 'Items created', down: 'Items destroyed' };
 
 	function loadCoins() {
@@ -575,7 +575,7 @@
 
 	// ---- Saved views ----
 	var TAB_TARGETS = { coins: '#tabCoins', uscore: '#tabUScore', items: '#tabItems', activity: '#tabActivity', map: '#tabMap', transfers: '#tabTransfers', trace: '#tabTrace', dupes: '#tabDupes', flags: '#tabFlags' };
-	var TAB_NAMES = { coins: 'Coins', uscore: 'U-Score', items: 'Items', activity: 'Activity', map: 'World Map', transfers: 'Trades & Mail', trace: 'Trace', dupes: 'Duplicates', flags: 'Flags' };
+	var TAB_NAMES = { coins: GameText.term('coins'), uscore: GameText.term('uscore'), items: 'Items', activity: 'Activity', map: 'World Map', transfers: 'Trades & Mail', trace: 'Trace', dupes: 'Duplicates', flags: 'Flags' };
 	var views = [], emailReady = false;
 
 	function currentTab() {
@@ -699,7 +699,7 @@
 		transfersTable = serverTable('#transfersTable', '/api/reports/transfers', [
 			{ data: 'time', orderable: false, render: function (d) { return esc(fmt.unix(d)); } },
 			{ data: 'method', orderable: false, render: function (d) { return methodBadge(d); } },
-			{ data: 'lot', orderable: false, render: function (d, t, row) { return d ? itemLink(d, row.name) : '<span class="text-body-secondary">Coins</span>'; } },
+			{ data: 'lot', orderable: false, render: function (d, t, row) { return d ? itemLink(d, row.name) : '<span class="text-body-secondary">' + esc(GameText.term('coins')) + '</span>'; } },
 			{ data: 'count', orderable: false, className: 'text-end', render: function (d) { return d ? num(d) : ''; } },
 			{ data: 'coins', orderable: false, className: 'text-end', render: function (d) { return d ? num(d) : ''; } },
 			{ data: 'from_character', orderable: false, render: function (d, t, row) { return charLink(d, row.from_name); } },
@@ -852,7 +852,7 @@
 				el.innerHTML = '<p class="text-body-secondary mb-0">Nothing recorded.</p>';
 			} else {
 				el.innerHTML = '<table class="table table-sm align-middle mb-0"><thead><tr><th>Time</th><th>How</th><th>From</th><th>To</th><th>Zone</th>' +
-					'<th class="text-end">Count</th><th class="text-end">Coins</th><th>Old ID → new ID</th></tr></thead><tbody>' +
+					'<th class="text-end">Count</th><th class="text-end">' + esc(GameText.term('coins')) + '</th><th>Old ID → new ID</th></tr></thead><tbody>' +
 					history.map(function (h) {
 						var marks = [];
 						if (h.role === 'BRANCH') marks.push('<span class="badge text-bg-light border" title="Another part of a stack this item came from">other part</span>');

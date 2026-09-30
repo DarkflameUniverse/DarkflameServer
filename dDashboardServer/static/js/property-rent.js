@@ -17,7 +17,7 @@
 		var set = o ? esc(o.price) + ' coins' + (o.periodDays ? ' / ' + esc(o.periodDays) + ' days' : '') +
 			'<div class="small text-body-secondary">' + esc(o.updated_by) + ', ' + esc(fmt.unix(o.updated_at)) + '</div>' : '<span class="text-body-secondary">Template</span>';
 		var edit = canManage ? '<form class="d-flex gap-1 justify-content-end" data-map="' + esc(w.mapId) + '">' +
-			'<input type="number" class="form-control form-control-sm" style="width:7rem" min="0" name="price" placeholder="Coins" value="' + (o ? esc(o.price) : '') + '" aria-label="Price">' +
+			'<input type="number" class="form-control form-control-sm" style="width:7rem" min="0" name="price" placeholder="' + esc(GameText.term('coins')) + '" value="' + (o ? esc(o.price) : '') + '" aria-label="Price">' +
 			'<input type="number" class="form-control form-control-sm" style="width:6rem" min="0" name="days" placeholder="Days" value="' + (o && o.periodDays ? esc(o.periodDays) : '') + '" aria-label="Period in days">' +
 			'<button type="submit" class="btn btn-sm btn-primary">Save</button>' +
 			(o ? '<button type="button" class="btn btn-sm btn-outline-secondary" data-reset="' + esc(w.mapId) + '">Template</button>' : '') + '</form>' : '';

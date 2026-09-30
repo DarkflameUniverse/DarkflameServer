@@ -152,7 +152,7 @@ function renderDetails(p) {
 		field('Privacy', esc(Labels.name('privacy', p.privacy_option) || p.privacy_option)),
 		field('Moderation', p.mod_approved ? fmt.badge('Approved', 'success') : (p.rejection_reason ? fmt.badge('Rejected', 'danger') : fmt.badge('Unapproved', 'warning')) +
 			(p.rejection_reason ? ' <span class="small">' + esc(p.rejection_reason) + '</span>' : '')),
-		field('Reputation', num(p.reputation)),
+		field(GameText.term('reputation'), num(p.reputation)),
 		field('Performance cost', perf ? num(perf, 2) : muted('Not reported'), 'Load estimate of the placed models, reported by the owner\'s game client after building'),
 		field('Claimed', esc(fmt.unix(p.claimed))),
 		field('Last updated', esc(fmt.unix(p.last_updated))),
@@ -184,7 +184,7 @@ function renderDetails(p) {
 		field('Clone limit', num(t.cloneLimit)),
 		field('Achievement required', t.achievementRequired ? esc(t.achievementRequired) : muted('None')),
 		field('Max build height', num(t.maxBuildHeight, 1)),
-		field('Reputation per minute', num(t.reputationPerMinute)),
+		field(GameText.term('reputation') + ' per minute', num(t.reputationPerMinute)),
 		field('Zone position', [t.zoneX, t.zoneY, t.zoneZ].every((v) => typeof v === 'number') ? esc([t.zoneX, t.zoneY, t.zoneZ].map((v) => v.toFixed(1)).join(', ')) : muted('-')),
 		field('Build area outline', Array.isArray(t.path) ? esc(t.path.length + ' points') : muted('-'))
 	].concat(t.localized_description ? [ '<div class="col-12"><div class="label">Template description</div><div class="value small">' + esc(t.localized_description) + '</div></div>' ] : []).join('');

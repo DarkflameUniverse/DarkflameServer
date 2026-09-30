@@ -27,9 +27,9 @@
 		}).join('');
 		var r = m.rewards, rewards = [];
 		if (r) {
-			if (r.coins) rewards.push(nf.format(r.coins) + ' coins');
-			if (r.uscore) rewards.push(nf.format(r.uscore) + ' U-score');
-			if (r.reputation) rewards.push(nf.format(r.reputation) + ' reputation');
+			if (r.coins) rewards.push(nf.format(r.coins) + ' ' + GameText.term('coins'));
+			if (r.uscore) rewards.push(nf.format(r.uscore) + ' ' + GameText.term('uscore'));
+			if (r.reputation) rewards.push(nf.format(r.reputation) + ' ' + GameText.term('reputation'));
 			r.items.forEach(function (i) { rewards.push(nf.format(i.count) + 'x ' + (i.name || 'LOT ' + i.lot)); });
 		}
 		return (tasks ? '<ul class="small mb-1">' + tasks + '</ul>' : '') +

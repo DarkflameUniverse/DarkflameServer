@@ -62,7 +62,7 @@
 
 	function describeChanges() {
 		var body = buildEdit(), parts = [];
-		['coins', 'uscore', 'level'].forEach(function (k) { if (body[k] !== undefined) parts.push(k === 'uscore' ? 'U-score' : k); });
+		['coins', 'uscore', 'level'].forEach(function (k) { if (body[k] !== undefined) parts.push(k === 'level' ? k : GameText.term(k)); });
 		if (body.counts) parts.push(Object.keys(body.counts).length + ' count(s)');
 		if (body.remove) parts.push(body.remove.length + ' removed');
 		if (body.add) parts.push(body.add.length + ' added');
@@ -148,8 +148,8 @@
 
 	function compare(before, after) {
 		var rows = [];
-		[['coins', 'Coins'], ['uscore', 'U-score'], ['level', 'Level'], ['missions_done', 'Missions done']].forEach(function (f) {
-			if (before[f[0]] !== after[f[0]]) rows.push('<tr><td>' + f[1] + '</td><td>' + nf.format(before[f[0]]) + '</td><td>' + nf.format(after[f[0]]) + '</td></tr>');
+		[['coins', GameText.term('coins')], ['uscore', GameText.term('uscore')], ['level', 'Level'], ['missions_done', 'Missions done']].forEach(function (f) {
+			if (before[f[0]] !== after[f[0]]) rows.push('<tr><td>' + esc(f[1]) + '</td><td>' + nf.format(before[f[0]]) + '</td><td>' + nf.format(after[f[0]]) + '</td></tr>');
 		});
 		var a = itemsById(before), b = itemsById(after);
 		Object.keys(a).forEach(function (id) {

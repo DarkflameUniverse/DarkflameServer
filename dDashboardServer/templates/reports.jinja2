@@ -6,7 +6,7 @@
 <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
 	<div>
 		<h2 class="mb-1">Economy</h2>
-		<p class="text-body-secondary mb-0">Where coins, U-score and items come from and go. World servers write totals every few seconds, and the page updates as they do.</p>
+		<p class="text-body-secondary mb-0">Where {{ game.terms.coins }}, {{ game.terms.uscore }} and items come from and go. World servers write totals every few seconds, and the page updates as they do.</p>
 	</div>
 	<div class="d-flex flex-wrap align-items-center gap-3" id="reportFilters">
 		<div class="btn-group btn-group-sm" role="group" aria-label="Date range">
@@ -28,8 +28,8 @@
 </div>
 
 <ul class="nav nav-tabs mb-3" role="tablist">
-	<li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCoins" type="button" role="tab">Coins</button></li>
-	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabUScore" type="button" role="tab">U-Score</button></li>
+	<li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCoins" type="button" role="tab">{{ game.terms.coins }}</button></li>
+	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabUScore" type="button" role="tab">{{ game.terms.uscore }}</button></li>
 	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabItems" type="button" role="tab">Items</button></li>
 	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabActivity" type="button" role="tab" id="activityTabBtn">Activity</button></li>
 	<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabMap" type="button" role="tab" id="mapTabBtn">World Map</button></li>
@@ -44,7 +44,7 @@
 	<div class="tab-pane fade show active" id="tabCoins" role="tabpanel">
 		<div class="row g-3 mb-3" id="coinTiles"></div>
 		<div class="card mb-3">
-			<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Coins per day</h5><div class="d-flex align-items-center gap-3"><div class="viz-legend" data-legend="coins"></div><a class="btn btn-sm btn-outline-secondary" data-csv="currency" download>CSV</a></div></div>
+			<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">{{ game.terms.coins }} per day</h5><div class="d-flex align-items-center gap-3"><div class="viz-legend" data-legend="coins"></div><a class="btn btn-sm btn-outline-secondary" data-csv="currency" download>CSV</a></div></div>
 			<div class="card-body"><div class="viz" id="coinChart"></div>
 				<details class="mt-2"><summary class="small text-body-secondary">Show as table</summary><div class="table-responsive mt-2" id="coinDaily"></div></details>
 			</div>
@@ -59,7 +59,7 @@
 	<div class="tab-pane fade" id="tabUScore" role="tabpanel">
 		<div class="row g-3 mb-3" id="uscoreTiles"></div>
 		<div class="card mb-3">
-			<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">U-score per day</h5><div class="d-flex align-items-center gap-3"><div class="viz-legend" data-legend="uscore"></div><a class="btn btn-sm btn-outline-secondary" data-csv="uscore" download>CSV</a></div></div>
+			<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">{{ game.terms.uscore }} per day</h5><div class="d-flex align-items-center gap-3"><div class="viz-legend" data-legend="uscore"></div><a class="btn btn-sm btn-outline-secondary" data-csv="uscore" download>CSV</a></div></div>
 			<div class="card-body"><div class="viz" id="uscoreChart"></div>
 				<details class="mt-2"><summary class="small text-body-secondary">Show as table</summary><div class="table-responsive mt-2" id="uscoreDaily"></div></details>
 			</div>
@@ -179,7 +179,7 @@
 		</form>
 		<div class="card"><div class="card-body">
 			<table id="transfersTable" class="table table-striped table-hover w-100">
-				<thead><tr><th>Time</th><th>How</th><th>Item</th><th>Count</th><th>Coins</th><th>From</th><th>To</th><th>Object ID <span class="fw-normal small text-body-secondary">(click to trace)</span></th></tr></thead>
+				<thead><tr><th>Time</th><th>How</th><th>Item</th><th>Count</th><th>{{ game.terms.coins }}</th><th>From</th><th>To</th><th>Object ID <span class="fw-normal small text-body-secondary">(click to trace)</span></th></tr></thead>
 				<tbody></tbody>
 			</table>
 		</div></div>

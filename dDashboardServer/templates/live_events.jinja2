@@ -6,7 +6,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
 	<div>
 		<h2 class="mb-1">Live Events</h2>
-		<p class="text-body-secondary mb-0">Start something fun in game for a while: a treasure hunt, bonus coins, U-score or loot, an invasion or a
+		<p class="text-body-secondary mb-0">Start something fun in game for a while: a treasure hunt, bonus {{ game.terms.coins }}, {{ game.terms.uscore }} or loot, an invasion or a
 			celebration. It is announced in its zones, runs in every instance of them (worlds that open later join in), and everything it spawned is removed
 			when it ends. Players can follow it with <code>/challenge</code>. To run one at set times, together with other things, add it to a
 			<a href="/events">scheduled event</a>.</p>
@@ -36,7 +36,7 @@
 					<label class="form-label" for="evType">Kind of event</label>
 					<select class="form-select" id="evType">
 						<option value="treasure_hunt">Treasure hunt: hide objects for players to find</option>
-						<option value="bonus">Bonus: more coins, U-score or loot</option>
+						<option value="bonus">Bonus: more {{ game.terms.coins }}, {{ game.terms.uscore }} or loot</option>
 						<option value="invasion">Invasion: waves of enemies</option>
 						<option value="celebration">Celebration: effects on every player</option>
 					</select>
@@ -67,7 +67,7 @@
 					<div class="row g-2">
 						<div class="col-sm-3"><label class="form-label small" for="thCount">How many (per instance)</label><input type="number" class="form-control form-control-sm" id="thCount" min="1" max="50" value="10"></div>
 						<div class="col-sm-3"><label class="form-label small" for="thRadius">Pickup distance</label><input type="number" class="form-control form-control-sm" id="thRadius" min="2" max="15" value="4"></div>
-						<div class="col-sm-3"><label class="form-label small" for="thCoins">Coins per find</label><input type="number" class="form-control form-control-sm" id="thCoins" min="0" max="100000" value="250"></div>
+						<div class="col-sm-3"><label class="form-label small" for="thCoins">{{ game.terms.coins }} per find</label><input type="number" class="form-control form-control-sm" id="thCoins" min="0" max="100000" value="250"></div>
 						<div class="col-sm-3"><label class="form-label small" for="thItemCount">Items per find</label><input type="number" class="form-control form-control-sm" id="thItemCount" min="1" max="999" value="1"></div>
 					</div>
 					<div class="mt-2"><label class="form-label small" for="thItemSearch">Item reward <span class="text-body-secondary">(optional)</span></label><div data-picker="item" id="thItem"></div></div>
@@ -79,8 +79,8 @@
 				<fieldset class="border rounded p-3" data-for="bonus">
 					<legend class="fs-6 float-none w-auto px-1 mb-0">Multipliers</legend>
 					<div class="row g-2">
-						<div class="col-sm-4"><label class="form-label small" for="bnCoins">Coins from loot</label><input type="number" class="form-control form-control-sm" id="bnCoins" min="1" max="10" step="0.25" value="2"></div>
-						<div class="col-sm-4"><label class="form-label small" for="bnUscore">U-score from missions</label><input type="number" class="form-control form-control-sm" id="bnUscore" min="1" max="10" step="0.25" value="1"></div>
+						<div class="col-sm-4"><label class="form-label small" for="bnCoins">{{ game.terms.coins }} from loot</label><input type="number" class="form-control form-control-sm" id="bnCoins" min="1" max="10" step="0.25" value="2"></div>
+						<div class="col-sm-4"><label class="form-label small" for="bnUscore">{{ game.terms.uscore }} from missions</label><input type="number" class="form-control form-control-sm" id="bnUscore" min="1" max="10" step="0.25" value="1"></div>
 						<div class="col-sm-4"><label class="form-label small" for="bnLoot">Loot drop chance</label><input type="number" class="form-control form-control-sm" id="bnLoot" min="1" max="10" step="0.25" value="1"></div>
 					</div>
 					<p class="small text-body-secondary mb-0 mt-2">Leave the zones empty for every world. Bonuses running at once don't stack: the biggest one counts.</p>
@@ -132,7 +132,7 @@
 		if (e.type === 'invasion') return nf.format(t.kills || 0) + ' of ' + nf.format(t.spawned || 0) + ' invaders smashed, ' + nf.format(t.wavesSent || 0) + ' waves';
 		if (e.type === 'celebration') return nf.format(t.bursts || 0) + ' bursts';
 		var c = e.config || {};
-		return 'coins x' + c.coins + ', U-score x' + c.uscore + ', loot x' + c.lootChance;
+		return GameText.term('coins') + ' x' + c.coins + ', ' + GameText.term('uscore') + ' x' + c.uscore + ', loot x' + c.lootChance;
 	}
 	function instanceStatus(e, i) {
 		var s = i.status || {};

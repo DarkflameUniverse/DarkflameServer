@@ -152,19 +152,19 @@
 			</div>
 			<div class="col-6 col-md-3">
 				<div class="card text-center"><div class="card-body py-3">
-					<div class="text-body-secondary small text-uppercase mb-1">Coins</div>
+					<div class="text-body-secondary small text-uppercase mb-1">{{ game.terms.coins }}</div>
 					<div class="fs-3 fw-bold">{{ character.stats.coins }}</div>
 				</div></div>
 			</div>
 			<div class="col-6 col-md-3">
 				<div class="card text-center"><div class="card-body py-3">
-					<div class="text-body-secondary small text-uppercase mb-1">U-Score</div>
+					<div class="text-body-secondary small text-uppercase mb-1">{{ game.terms.uscore }}</div>
 					<div class="fs-3 fw-bold">{{ character.stats.universe_score }}</div>
 				</div></div>
 			</div>
 			<div class="col-6 col-md-3">
 				<div class="card text-center"><div class="card-body py-3">
-					<div class="text-body-secondary small text-uppercase mb-1">Reputation</div>
+					<div class="text-body-secondary small text-uppercase mb-1">{{ game.terms.reputation }}</div>
 					<div class="fs-3 fw-bold">{{ character.stats.reputation }}</div>
 				</div></div>
 			</div>
@@ -196,7 +196,7 @@
 			<div class="card-body">
 				<div class="row g-3">
 					<div class="col-md-4">
-						<div class="d-flex justify-content-between"><span>Health</span><span>{{ character.stats.health }} / {{ character.stats.max_health }}</span></div>
+						<div class="d-flex justify-content-between"><span>{{ game.terms.life }}</span><span>{{ character.stats.health }} / {{ character.stats.max_health }}</span></div>
 						<div class="progress mt-1" style="height: 8px;">{% if character.stats.max_health > 0 %}<div class="progress-bar bg-danger" style="width: {{ character.stats.health / character.stats.max_health * 100 }}%"></div>{% endif %}</div>
 					</div>
 					<div class="col-md-4">
@@ -204,7 +204,7 @@
 						<div class="progress mt-1" style="height: 8px;">{% if character.stats.max_armor > 0 %}<div class="progress-bar bg-secondary" style="width: {{ character.stats.armor / character.stats.max_armor * 100 }}%"></div>{% endif %}</div>
 					</div>
 					<div class="col-md-4">
-						<div class="d-flex justify-content-between"><span>Imagination</span><span>{{ character.stats.imagination }} / {{ character.stats.max_imagination }}</span></div>
+						<div class="d-flex justify-content-between"><span>{{ game.terms.imagination }}</span><span>{{ character.stats.imagination }} / {{ character.stats.max_imagination }}</span></div>
 						<div class="progress mt-1" style="height: 8px;">{% if character.stats.max_imagination > 0 %}<div class="progress-bar bg-primary" style="width: {{ character.stats.imagination / character.stats.max_imagination * 100 }}%"></div>{% endif %}</div>
 					</div>
 				</div>
@@ -319,7 +319,7 @@
 			<div class="modal-body">
 				<div class="table-responsive">
 					<table class="table table-striped table-hover mb-0">
-						<thead><tr><th>Zone</th><th>Achievements</th><th>Coins</th><th>Enemies</th></tr></thead>
+						<thead><tr><th>Zone</th><th>Achievements</th><th>{{ game.terms.coins }}</th><th>Enemies</th></tr></thead>
 						<tbody>
 						{% for zs in character.stats.zone_stats %}
 						<tr>
@@ -381,8 +381,8 @@
 			<div class="modal-body">
 				<div class="alert alert-warning small">Saving disconnects the player if they are online. The current version is kept in the history, so it can be put back.</div>
 				<div class="row g-2 mb-3">
-					<div class="col-sm-4"><label class="form-label small" for="editCoins">Coins</label><input type="number" min="0" max="2000000000" class="form-control" id="editCoins"></div>
-					<div class="col-sm-4"><label class="form-label small" for="editUScore">U-score</label><input type="number" min="0" max="2000000000" class="form-control" id="editUScore"></div>
+					<div class="col-sm-4"><label class="form-label small" for="editCoins">{{ game.terms.coins }}</label><input type="number" min="0" max="2000000000" class="form-control" id="editCoins"></div>
+					<div class="col-sm-4"><label class="form-label small" for="editUScore">{{ game.terms.uscore }}</label><input type="number" min="0" max="2000000000" class="form-control" id="editUScore"></div>
 					<div class="col-sm-4"><label class="form-label small" for="editLevel">Level</label><input type="number" min="1" max="45" class="form-control" id="editLevel"></div>
 				</div>
 				<ul class="nav nav-tabs" id="editInventoryTabs" role="tablist"></ul>
@@ -530,9 +530,9 @@ document.querySelectorAll('[data-restriction]').forEach(function (input) {
 
 function statsHtml(stats) {
 	var lines = [];
-	if (stats.life) lines.push('+' + esc(stats.life) + ' Health');
+	if (stats.life) lines.push('+' + esc(stats.life) + ' ' + esc(GameText.term('life')));
 	if (stats.armor) lines.push('+' + esc(stats.armor) + ' Armor');
-	if (stats.imagination) lines.push('+' + esc(stats.imagination) + ' Imagination');
+	if (stats.imagination) lines.push('+' + esc(stats.imagination) + ' ' + esc(GameText.term('imagination')));
 	var html = lines.length ? '<div>' + lines.join('<br>') + '</div>' : '';
 	stats.skills.forEach(function (skill) {
 		html += '<div class="d-flex gap-1 mt-1 text-start">' +
