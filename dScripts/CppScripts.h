@@ -298,6 +298,16 @@ namespace CppScripts {
 		virtual void OnWaypointReached(Entity* self, uint32_t waypointIndex) {};
 
 		/**
+		 * Invoked when a moving platform stops at the waypoint it was sent to (the client's ArrivedAtDesiredWaypoint).
+		 */
+		virtual void OnArrivedAtDesiredWaypoint(Entity* self, uint32_t waypointIndex) {};
+
+		/**
+		 * Invoked when a moving platform reaches the first or last waypoint of its path (PlatformAtLastWaypoint).
+		 */
+		virtual void OnPlatformAtLastWaypoint(Entity* self) {};
+
+		/**
 		 * Invoked when a player fired a skill event on self.
 		 *
 		 * Equivalent to 'function onSkillEventFired(self, msg)'
