@@ -154,6 +154,17 @@ bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) co
 	return success;
 }
 
+std::optional<std::filesystem::path> AssetManager::GetLoosePath(std::string fixedName) const {
+	// The same name fixing as GetFile
+	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
+	std::replace(fixedName.begin(), fixedName.end(), '\\', '/');
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) GeneralUtils::ReplaceInString(fixedName, "brickmodels", "BrickModels");
+	const auto path = m_ResPath / fixedName;
+	std::error_code code;
+	if (!std::filesystem::exists(path, code)) return std::nullopt;
+	return path;
+}
+
 AssetStream AssetManager::GetFile(const char* name) const {
 	char* buf; uint32_t len;
 

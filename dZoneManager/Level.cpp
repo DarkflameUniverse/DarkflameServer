@@ -15,6 +15,7 @@
 #include "CDClientManager.h"
 #include "AssetManager.h"
 #include "LevelFile.h"
+#include "ZoneFileLog.h"
 #include "ClientVersion.h"
 #include "dConfig.h"
 #include <ranges>
@@ -29,6 +30,7 @@ Level::Level(Zone* parentZone, const std::string& filepath, int32_t sceneID) {
 		LOG("Failed to load %s", filepath.c_str());
 		return;
 	}
+	ZoneFileLog::RecordAsset(Game::assetManager, ZoneFileLog::eKind::SCENE, filepath, stream);
 	
 	// The file itself is read by LevelFile (dCommon), which the dashboard uses too
 	LevelFile levelFile;

@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
+#include <optional>
+#include <string_view>
 
 #include "Pack.h"
 #include "PackIndex.h"
@@ -44,6 +46,12 @@ struct AssetMemoryBuffer : std::streambuf {
 			setg(eback(), eback() + off, egptr());
 		return gptr() - eback();
 	}
+
+	// Every byte of the file (empty when it wasn't found)
+	std::string_view Bytes() const {
+		if (!m_Success) return {};
+		return std::string_view(eback(), static_cast<size_t>(egptr() - eback()));
+	}
 };
 
 struct AssetStream : std::istream {
@@ -55,6 +63,11 @@ struct AssetStream : std::istream {
 
 	operator bool() {
 		return reinterpret_cast<AssetMemoryBuffer*>(rdbuf())->m_Success;
+	}
+
+	// Every byte of the file, whatever has been read of it so far
+	std::string_view Bytes() const {
+		return reinterpret_cast<const AssetMemoryBuffer*>(rdbuf())->Bytes();
 	}
 };
 
@@ -77,6 +90,10 @@ public:
 
 	[[nodiscard]]
 	bool GetFile(std::string name, char** data, uint32_t* len) const;
+
+	// Where GetFile reads name from when it is a loose file in res; nullopt when it comes from a pack or isn't there
+	[[nodiscard]]
+	std::optional<std::filesystem::path> GetLoosePath(std::string name) const;
 
 	[[nodiscard]]
 	AssetStream GetFile(const char* name) const;

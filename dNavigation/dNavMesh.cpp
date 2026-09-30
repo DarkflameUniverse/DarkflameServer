@@ -12,6 +12,7 @@
 #include "dZoneManager.h"
 #include "DluAssert.h"
 #include "DetourExtensions.h"
+#include "ZoneFileLog.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
@@ -60,6 +61,8 @@ void dNavMesh::LoadNavmesh() {
 	if (!fp.fp) {
 		return;
 	}
+	// Master watches the files a world loaded (docs/WorldHotReload.md); a broken one too, so fixing it reloads the world
+	ZoneFileLog::RecordFile(ZoneFileLog::eKind::NAVMESH, path);
 
 	// Read header.
 	NavMeshSetHeader header;

@@ -23,6 +23,7 @@ set(DCOMMON_SOURCES
 		"FdbMappedFile.cpp"
 		"FdbReader.cpp"
 		"FdbSnapshot.cpp"
+		"ZoneFileLog.cpp"
 		"JSONUtils.cpp"
 		"TinyXmlUtils.cpp"
 		"Sd0.cpp"

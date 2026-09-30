@@ -21,6 +21,7 @@
 #include "eTriggerEventType.h"
 #include "eWaypointCommandType.h"
 #include "dNavMesh.h"
+#include "ZoneFileLog.h"
 
 Zone::Zone(const LWOZONEID zoneID) :
 	m_ZoneID(zoneID) {
@@ -54,6 +55,8 @@ void Zone::LoadZoneIntoMemory() {
 	}
 
 	if (file) {
+		// Master watches the files a world loaded (docs/WorldHotReload.md)
+		ZoneFileLog::RecordAsset(Game::assetManager, ZoneFileLog::eKind::ZONE, m_ZoneFilePath, file);
 		// The file itself is read by ZoneFile (dCommon), which the dashboard uses too
 		ZoneFile zoneFile;
 		zoneFile.Read(file);
@@ -227,6 +230,7 @@ bool Zone::LoadSceneMap() {
 		LOG("Could not open the terrain file %s for its scene map", (m_ZonePath + m_ZoneRawPath).c_str());
 		return false;
 	}
+	ZoneFileLog::RecordAsset(Game::assetManager, ZoneFileLog::eKind::TERRAIN, m_ZonePath + m_ZoneRawPath, file);
 	Raw::Raw raw;
 	if (!Raw::ReadRaw(file, raw)) {
 		LOG("Could not read the terrain file %s for its scene map", (m_ZonePath + m_ZoneRawPath).c_str());
@@ -257,6 +261,7 @@ void Zone::LoadScene(ZoneScene&& zoneScene) {
 
 void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
 	auto file = Game::assetManager->GetFile((m_ZonePath + triggerFile).c_str());
+	if (file) ZoneFileLog::RecordAsset(Game::assetManager, ZoneFileLog::eKind::TRIGGERS, m_ZonePath + triggerFile, file);
 
 	std::stringstream data;
 	data << file.rdbuf();
