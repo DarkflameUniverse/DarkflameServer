@@ -674,7 +674,7 @@ TEST(MasterPacketsTests, ServerListWithoutOutdatedFlags) {
 	response.Serialize(full);
 	// Drop the last byte (the one flag)
 	RakNet::BitStream older;
-	older.Write(full.GetData(), static_cast<unsigned int>(full.GetNumberOfBytesUsed() - 1));
+	older.Write(reinterpret_cast<const char*>(full.GetData()), static_cast<unsigned int>(full.GetNumberOfBytesUsed() - 1));
 	MasterPackets::ServerListResponse read;
 	ASSERT_TRUE(read.Deserialize(older));
 	ASSERT_EQ(read.instances.size(), 1u);
