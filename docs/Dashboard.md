@@ -36,6 +36,26 @@ Detail pages (accounts, characters, properties and their 3D view, bug reports, p
 you actually got there in this tab, for example Accounts > an account > a character > a property, so you can step
 back to where you came from. Opened directly, a page shows its usual parent (Properties > a property).
 
+### Game text and languages
+
+Game text on the pages (zone, object, mission and activity names, the game's currency and stat names such as coins,
+universe score, imagination and reputation, leaderboard headers) comes from the client's `locale/locale.xml`
+(`client_location`), never from the dashboard itself. The dashboard loads every language in that file at startup.
+
+- **Language**: *Game text language* in the user menu (saved on your account), else your browser's language when the
+  locale has it (`de-AT` picks `de_DE`), else `en_US`. A phrase a language lacks falls back to `en_US`, then to its
+  locale key or ID ("Zone 1234"). Dashboard text (buttons, headings, help) stays English.
+- **For developers**: never write a game name into a template, script or route. Use `routes/GameText.h` in C++
+  (`GameText::ZoneName(id)`, `Name("Objects", lot)`, `Phrase(key)`, `Expand("%[key]")`; a catalog or help string can
+  hold `%[ZoneTable_1150_DisplayDescription]` and be expanded when served), `game.terms.coins`, `phrase("UI_COINS")`
+  and `zone_name(1150)` in templates, and `GameText.term('coins')` and `GameText.zone(1200)` in scripts. Requests run in
+  the viewer's language; `Workers::Reply` carries it to worker threads, and anything cached with names in it is cached
+  per language.
+- **Check**: the `GameTextJs` test (`tests/dWebTests/game-text.test.mjs`) fails when a known game name (zone names,
+  item names, U-score, coins) is written into a template, a script or a route's string. A legitimate use goes in
+  `tests/dWebTests/game-text-allowlist.json` with why, or gets a `game-text: ok` comment on its line. Pass a client's
+  `locale.xml` as the third argument to check every zone name in it.
+
 ## Files to back up
 
 Next to the server binaries, the dashboard creates:
