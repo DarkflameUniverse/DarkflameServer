@@ -97,6 +97,56 @@ void PhysicsComponent::RegisterMovementBlocker(const eReplicaComponentType type,
 	dpWorld::AddMovementBlocker(m_MovementBlocker, *filter);
 }
 
+namespace {
+	bool SettingIsTrue(const LwoNameValue& settings, const std::u16string& key) {
+		const auto it = settings.find(key);
+		return it != settings.end() && it->second && GeneralUtils::TryParse<int32_t>(it->second->GetValueAsString()).value_or(0) != 0;
+	}
+}
+
+bool PhysicsComponent::IsCarverOnly(const LwoNameValue& settings) {
+	return SettingIsTrue(settings, u"carver_only");
+}
+
+bool PhysicsComponent::AddLevelMovementBlocker(const LWOOBJID id, const LOT lot, const LwoNameValue& settings, const NiPoint3& position, const NiQuaternion& rotation, const float scale) {
+	auto* const registry = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	auto* const physicsTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
+
+	// The physics component it would have: fixed simple physics is solid (no level object of this kind moves), a
+	// phantom volume is not
+	for (const auto type : { eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::PHANTOM_PHYSICS }) {
+		const auto componentID = registry->GetByIDAndType(lot, type, -1);
+		if (componentID == -1) continue;
+
+		int32_t collisionGroup = 0;
+		if (const auto* const info = physicsTable->GetByID(componentID)) collisionGroup = info->collisionGroup;
+		if (const auto it = settings.find(u"CollisionGroupID"); it != settings.end() && it->second) {
+			collisionGroup = GeneralUtils::TryParse<int32_t>(it->second->GetValueAsString()).value_or(collisionGroup);
+		}
+
+		const bool solid = type == eReplicaComponentType::SIMPLE_PHYSICS;
+		const auto filter = dpMovementBlockers::BlockingFilter(SettingIsTrue(settings, u"navmesh_carver"), solid, static_cast<uint32_t>(collisionGroup));
+		if (!filter) return false;
+
+		auto shapePosition = position;
+		bool isFallback = false;
+		auto* const blocker = CreateAssetShape(id, lot, type, collisionGroup, scale, rotation, shapePosition, &isFallback);
+		if (!blocker) return false;
+		if (isFallback) {
+			LOG_DEBUG("%llu (LOT %i) should block movement, but the server doesn't know its shape", id, lot);
+			delete blocker;
+			return false;
+		}
+
+		blocker->SetScale(scale);
+		blocker->SetRotation(rotation);
+		blocker->SetPosition(shapePosition);
+		dpWorld::AddOwnedMovementBlocker(blocker, *filter);
+		return true;
+	}
+	return false;
+}
+
 bool PhysicsComponent::OnGetPosition(GameMessages::GetPosition& msg) {
 	msg.pos = GetPosition();
 	return true;

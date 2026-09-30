@@ -17,6 +17,7 @@
 #include "LevelFile.h"
 #include "ZoneFileLog.h"
 #include "ClientVersion.h"
+#include "PhysicsComponent.h"
 #include "dConfig.h"
 #include <ranges>
 
@@ -163,6 +164,13 @@ void Level::LoadSceneObjects(const std::vector<SceneObject>& objects) {
 		}
 
 		if (skipLoadingObject) {
+			continue;
+		}
+
+		// The client never loads a carver_only object (and live never sent one), but it still carves the AI navmesh:
+		// keep it as a wall the server's movers can't walk through, without an object
+		if (obj.lot != 176 && PhysicsComponent::IsCarverOnly(obj.settings)) {
+			PhysicsComponent::AddLevelMovementBlocker(obj.id, obj.lot, obj.settings, obj.position, obj.rotation, obj.scale);
 			continue;
 		}
 

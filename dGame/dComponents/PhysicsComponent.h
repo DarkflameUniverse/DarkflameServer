@@ -6,6 +6,8 @@
 #include "NiQuaternion.h"
 #include "dCommonVars.h"
 
+struct LwoNameValue;
+
 namespace GameMessages {
 	struct GetObjectReportInfo;
 	struct GetPosition;
@@ -34,6 +36,20 @@ public:
 
 	int32_t GetCollisionGroup() const noexcept { return m_CollisionGroup; }
 	void SetCollisionGroup(int32_t group) noexcept { m_CollisionGroup = group; }
+
+	/**
+	 * Whether a level object is carver_only, which the client never loads (LWOResMgr2Interface::Run skips its load
+	 * when its config has carver_only set; LWOBasePhysComponent::LoadConfigData 0x00c495c9 reads it next to
+	 * navmesh_carver). Live never sent one.
+	 */
+	[[nodiscard]] static bool IsCarverOnly(const LwoNameValue& settings);
+
+	/**
+	 * For a level object the server doesn't spawn (carver_only): adds its shape to the world's movement blockers, the
+	 * way its physics component would have (RegisterMovementBlocker), owned by the world.
+	 * @return whether it blocks movement (its data makes it a wall and the server knows its shape)
+	 */
+	static bool AddLevelMovementBlocker(LWOOBJID id, LOT lot, const LwoNameValue& settings, const NiPoint3& position, const NiQuaternion& rotation, float scale);
 protected:
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& msg);
 

@@ -34,6 +34,11 @@ namespace dpWorld {
 	 * the caller, who removes it before deleting it; it is not stepped with the world.
 	 */
 	void AddMovementBlocker(const dpEntity* entity, uint32_t filter);
+	/**
+	 * A movement blocker with no object of its own (a wall from the level files the server doesn't spawn), owned by the
+	 * world from now on and freed when it shuts down.
+	 */
+	void AddOwnedMovementBlocker(dpEntity* entity, uint32_t filter);
 	void RemoveMovementBlocker(const dpEntity* entity);
 	std::span<const dpMovementBlocker> GetMovementBlockers();
 
