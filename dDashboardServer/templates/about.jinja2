@@ -7,7 +7,8 @@
 <div class="card mb-4" style="max-width: 720px;">
 	<div class="card-body">
 		<h5>DarkflameServer <span class="text-body-secondary">{{ version }}</span></h5>
-		<p class="small text-body-secondary">{{ buildKind }} build{% if commit %} of commit <code>{{ commit }}</code>{% if dirty %} with uncommitted changes{% endif %}{% endif %}</p>
+		<p class="small text-body-secondary">This server is running {{ update.build.description }}{% if update.build.branch and not update.build.release %} from the {{ update.build.branch }} branch{% endif %}.
+			{% if commit %}Commit <code>{{ commit }}</code>.{% endif %}</p>
 		<p>A server emulator for LEGO&reg; Universe. This dashboard is part of the server and replaces the separate NexusDashboard.</p>
 		<ul class="mb-0">
 			<li><a href="https://github.com/DarkflameUniverse/DarkflameServer" target="_blank" rel="noopener">DarkflameServer on GitHub</a></li>
@@ -16,5 +17,81 @@
 		</ul>
 	</div>
 </div>
+
+<div class="card mb-4" style="max-width: 720px;" id="updateCard">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h5 class="mb-0">Updates</h5>
+		<span id="updateBadge"></span>
+	</div>
+	<div class="card-body">
+		<dl class="row small mb-2" id="updateFacts"></dl>
+		<p class="small text-danger mb-2 d-none" id="updateError"></p>
+		<div class="d-flex flex-wrap gap-2 align-items-center">
+			{% if can.settings %}<button class="btn btn-sm btn-outline-primary" type="button" id="updateCheckNow">Check now</button>{% endif %}
+			<span class="small text-body-secondary" id="updateChecked"></span>
+		</div>
+		<p class="small text-body-secondary mt-2 mb-0">Only checks GitHub; nothing is downloaded or installed.{% if can.settings %} Set it up under <a href="/settings#update_check_enabled">Settings, Dashboard, Update check</a>.{% endif %}</p>
+	</div>
+</div>
 <p class="small text-body-secondary" style="max-width: 720px;">LEGO&reg; is a trademark of the LEGO Group. DarkflameServer is not affiliated with, sponsored or endorsed by the LEGO Group.</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+	function row(label, html) { return '<dt class="col-sm-4 fw-normal text-body-secondary">' + esc(label) + '</dt><dd class="col-sm-8 mb-1">' + html + '</dd>'; }
+	function extLink(href, text) { return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(text) + '</a>'; }
+	function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+	function render(u) {
+		var b = u.build, rows = [];
+		var running = b.release ? 'Release v' + b.version : (b.kind === 'CI' ? 'A CI build' : b.kind === 'Local' ? 'A local development build' : 'An unidentified build');
+		if (!b.release && b.shortCommit) running += ' of ' + (b.commitUrl ? extLink(b.commitUrl, b.shortCommit) : '<code>' + esc(b.shortCommit) + '</code>');
+		else running = esc(running);
+		if (b.dirty) running += ' ' + fmt.badge('uncommitted changes', 'warning');
+		if (!b.release && b.branch) running += ' <span class="text-body-secondary">on ' + esc(b.branch) + '</span>';
+		rows.push(row('Running', running));
+
+		if (u.release) {
+			var r = u.release, text = r.tag + (r.name && r.name !== r.tag ? ' (' + r.name + ')' : '');
+			rows.push(row('Newest release', (r.url ? extLink(r.url, text) : esc(text)) + (r.newer ? ' ' + fmt.badge('newer', 'success') : '') +
+				(r.publishedAt ? ' <span class="text-body-secondary">' + esc(fmt.unix(Date.parse(r.publishedAt) / 1000)) + '</span>' : '')));
+		} else if (u.repoUrl) {
+			rows.push(row('Newest release', u.checkedAt ? '<span class="text-body-secondary">not known</span>' : '<span class="text-body-secondary">not checked yet</span>'));
+		}
+
+		if (u.comparison) {
+			var c = u.comparison, where = ' on ' + esc(c.branch);
+			var text2 = c.behind > 0 ? plural(c.behind, 'commit', 'commits') + ' behind' + where : 'Up to date with ' + esc(c.branch);
+			if (c.ahead > 0) text2 += ', ' + plural(c.ahead, 'commit', 'commits') + ' not on it';
+			rows.push(row('Commits', c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">' + text2 + '</a>' : text2));
+		}
+		if (u.repoUrl) rows.push(row('Repository', extLink(u.repoUrl, u.repo) + ' &middot; ' + extLink(u.repoUrl + '/releases', 'release notes')));
+		document.getElementById('updateFacts').innerHTML = rows.join('');
+
+		var badge = !u.enabled ? fmt.badge('Checks off', 'secondary')
+			: u.checking ? fmt.badge('Checking…', 'info')
+			: u.state === 'update_available' ? fmt.badge('Update available', 'success')
+			: u.state === 'up_to_date' ? fmt.badge('Up to date', 'secondary')
+			: u.state === 'failed' ? fmt.badge('Check failed', 'danger') : '';
+		document.getElementById('updateBadge').innerHTML = badge;
+
+		var error = document.getElementById('updateError');
+		error.textContent = u.error || '';
+		error.classList.toggle('d-none', !u.error);
+		document.getElementById('updateChecked').textContent = !u.enabled ? 'Update checks are turned off.'
+			: u.checkedAt ? 'Last checked ' + fmt.unix(u.checkedAt) + '; checks every ' + plural(u.intervalHours, 'hour', 'hours') + '.' : '';
+	}
+
+	function load() { return api.get('/api/update_check').then(function (d) { if (d.success) render(d.update); }); }
+
+	var button = document.getElementById('updateCheckNow');
+	if (button) button.addEventListener('click', function () {
+		button.disabled = true;
+		api.action('/api/update_check/check', {}).then(load).catch(function () {}).then(function () { button.disabled = false; });
+	});
+	if (window.Live) Live.on('update_check', Live.throttle(load, 500));
+	load();
+})();
+</script>
 {% endblock %}

@@ -27,9 +27,17 @@
 				<span class="badge text-bg-danger" id="ugc-status">Offline</span>
 				{% endif %}
 			</div>
-			<div class="d-flex justify-content-between align-items-center">
+			<div class="d-flex justify-content-between align-items-center mb-3">
 				<span>Active Worlds</span>
 				<span class="badge text-bg-primary" id="world-count">{{ stats.worlds }}</span>
+			</div>
+			{# The running build, and whether GitHub has something newer (the About page has the details) #}
+			<div class="d-flex justify-content-between align-items-center gap-2">
+				<span>Version</span>
+				<a href="/about" class="text-decoration-none text-end" title="{{ update.summary }}">
+					<span class="small text-body-secondary">{{ update.build.label }}</span>
+					{% if update.updateAvailable %}<span class="badge text-bg-success ms-1">Update available</span>{% endif %}
+				</a>
 			</div>
 		</div>
 	</div>

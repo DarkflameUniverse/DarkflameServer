@@ -24,6 +24,7 @@
 #include "BehaviorXml.h"
 #include "ClientAssets.h"
 #include "BuildInfo.h"
+#include "UpdateChecker.h"
 #include <chrono>
 #include <algorithm>
 #include <fstream>
@@ -249,6 +250,7 @@ void RegisterDashboardRoutes() {
 		data["my_characters"] = Database::Get()->GetAccountCharacters(context.accountId);
 		data["stats"]["totalAccounts"] = Database::Get()->GetAccountCount();
 		data["stats"]["totalCharacters"] = Database::Get()->GetCharacterCount();
+		data["update"] = UpdateChecker::Json();
 		RenderPage(reply, context, "index.jinja2", "home", data);
 	});
 
@@ -461,7 +463,8 @@ void RegisterDashboardRoutes() {
 	SimplePage("/client_assets", Perm("client_files"), "client_assets.jinja2", "client_assets", "Browse the game client's files");
 	Route(eHTTPMethod::GET, "/about", 0, "About this server", [](HTTPReply& reply, const HTTPContext& context) {
 		RenderPage(reply, context, "about.jinja2", "about", { {"version", std::string(BuildInfo::buildString)},
-			{"commit", std::string(BuildInfo::commit)}, {"dirty", BuildInfo::dirty}, {"buildKind", std::string(BuildInfo::BuildKindName())} });
+			{"commit", std::string(BuildInfo::commit)}, {"dirty", BuildInfo::dirty}, {"buildKind", std::string(BuildInfo::BuildKindName())},
+			{"update", UpdateChecker::Json()} });
 	});
 
 	// Logs
