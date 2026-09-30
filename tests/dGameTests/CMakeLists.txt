@@ -28,6 +28,7 @@ set(DGAMETEST_SOURCES
 	"SpiderQueenTests.cpp"
 	"TacArcTests.cpp"
 	"CDFdbTests.cpp"
+	"CDFdbBenchmark.cpp"
 )
 
 add_subdirectory(dComponentsTests)
