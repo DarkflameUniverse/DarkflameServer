@@ -3,6 +3,7 @@
 #include "master/DashboardMessages.h"
 #include "master/DataChanged.h"
 #include "master/InstanceMigration.h"
+#include "master/WorldFiles.h"
 #include "master/MessageCapture.h"
 #include "master/PlayerAction.h"
 #include "PacketDispatcher.h"
@@ -571,4 +572,90 @@ TEST(MasterPacketsTests, CDClientReload) {
 		CDClientReload read;
 		EXPECT_FALSE(read.Deserialize(stream)) << fdb;
 	}
+}
+
+TEST(MasterPacketsTests, WorldFilesReport) {
+	WorldFilesReport report;
+	report.zoneId = 1200;
+	report.instanceId = 3;
+	report.cloneId = 0;
+	report.files.push_back({ ZoneFileLog::eKind::ZONE, false, 1234, 0x0123456789abcdefULL, "/srv/res/maps/nimbusstation/nd_nimbus_station.luz" });
+	report.files.push_back({ ZoneFileLog::eKind::SCENE, true, 99, 7, "maps/nimbusstation/nd_scene.lvl" });
+	report.files.push_back({ ZoneFileLog::eKind::NAVMESH, false, 1ULL << 33, 0xffffffffffffffffULL, "C:/server/navmeshes/1200.bin" });
+	ExpectHeaderThenSerialize(report, MessageType::Master::WORLD_FILES);
+
+	RakNet::BitStream stream;
+	report.Serialize(stream);
+	WorldFilesReport read;
+	ASSERT_TRUE(read.Deserialize(stream));
+	EXPECT_EQ(read.zoneId, 1200u);
+	EXPECT_EQ(read.instanceId, 3u);
+	EXPECT_EQ(read.files, report.files);
+
+	// An empty path or an unknown kind is refused
+	for (const auto& bad : { ZoneFileLog::Entry{ ZoneFileLog::eKind::ZONE, false, 1, 1, "" },
+		ZoneFileLog::Entry{ static_cast<ZoneFileLog::eKind>(200), false, 1, 1, "x.luz" } }) {
+		WorldFilesReport badReport;
+		badReport.files.push_back(bad);
+		RakNet::BitStream badStream;
+		badReport.Serialize(badStream);
+		WorldFilesReport badRead;
+		EXPECT_FALSE(badRead.Deserialize(badStream));
+	}
+
+	RakNet::BitStream truncated;
+	report.Serialize(truncated);
+	RakNet::BitStream cut(truncated.GetData(), truncated.GetNumberOfBytesUsed() - 3, false);
+	WorldFilesReport cutRead;
+	EXPECT_FALSE(cutRead.Deserialize(cut));
+}
+
+TEST(MasterPacketsTests, WorldReloadRequest) {
+	WorldReloadRequest request;
+	request.zoneId = 1100;
+	request.warnSeconds = 0;
+	request.requesterId = 42;
+	request.requestedBy = "a GM";
+	ExpectHeaderThenSerialize(request, MessageType::Master::WORLD_RELOAD);
+
+	RakNet::BitStream stream;
+	request.Serialize(stream);
+	WorldReloadRequest read;
+	ASSERT_TRUE(read.Deserialize(stream));
+	EXPECT_EQ(read.zoneId, 1100u);
+	EXPECT_EQ(read.warnSeconds, 0);
+	EXPECT_EQ(read.requesterId, 42);
+	EXPECT_EQ(read.requestedBy, "a GM");
+}
+
+TEST(MasterPacketsTests, WorldFilesStatus) {
+	WorldFilesStatus status;
+	status.watching = true;
+	status.watchSeconds = 5;
+	status.seamless = false;
+	WorldFilesStatus::Zone zone;
+	zone.zoneId = 1100;
+	WorldFilesStatus::File file;
+	file.disk = { ZoneFileLog::eKind::TERRAIN, false, 5, 6, "/srv/res/maps/x.raw" };
+	file.hashed = true;
+	file.changed = true;
+	zone.files.push_back(file);
+	file.disk.path = "/srv/res/maps/y.raw";
+	file.missing = true;
+	file.changed = false;
+	zone.files.push_back(file);
+	zone.instances.push_back({ 1, 0, 12, true, false });
+	zone.instances.push_back({ 2, 0, 0, false, true });
+	zone.message = "Reloading 1 instance(s)";
+	status.zones.push_back(zone);
+	status.zones.push_back({});
+	ExpectHeaderThenSerialize(status, MessageType::Master::WORLD_FILES_STATUS);
+
+	RakNet::BitStream stream;
+	status.Serialize(stream);
+	WorldFilesStatus read;
+	ASSERT_TRUE(read.Deserialize(stream));
+	EXPECT_TRUE(read.watching);
+	EXPECT_EQ(read.watchSeconds, 5);
+	EXPECT_EQ(read.zones, status.zones);
 }

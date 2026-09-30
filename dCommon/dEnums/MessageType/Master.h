@@ -94,5 +94,13 @@ namespace MessageType {
 		// Master -> every server: the client's cdclient.fdb changed; switch to the named copy and CDServer.sqlite.
 		// World or dashboard -> master (no names): check the client's fdb now
 		CDCLIENT_RELOAD,
+
+		// World hot reload (see WorldFiles.h, docs/WorldHotReload.md)
+		// World -> master, once ready: the zone data files it loaded, with their sizes and hashes
+		WORLD_FILES,
+		// World (a GM's /reloadworld) or dashboard -> master: replace every instance of a zone with one on the files on disk
+		WORLD_RELOAD,
+		// Master -> dashboard: each running zone's files, whether they changed on disk, and which instances are stale
+		WORLD_FILES_STATUS,
 	};
 }

@@ -38,6 +38,7 @@
 #include "BinaryPathFinder.h"
 #include "FdbSnapshot.h"
 #include "master/CDClientReload.h"
+#include "master/WorldFiles.h"
 #include "dPlatforms.h"
 
 //RakNet includes:
@@ -716,6 +717,14 @@ int main(int argc, char** argv) {
 			worldReady.zoneID = static_cast<LWOMAPID>(Game::server->GetZoneID());
 			worldReady.instanceID = static_cast<LWOINSTANCEID>(Game::server->GetInstanceID());
 			MasterPackets::SendToMaster(worldReady);
+
+			// The zone data files this world loaded; master watches them (docs/WorldHotReload.md)
+			WorldFilesReport files;
+			files.zoneId = Game::server->GetZoneID();
+			files.instanceId = Game::server->GetInstanceID();
+			files.cloneId = g_CloneID;
+			files.files = ZoneFileLog::Entries();
+			MasterPackets::SendToMaster(files);
 
 			ready = true;
 		}
