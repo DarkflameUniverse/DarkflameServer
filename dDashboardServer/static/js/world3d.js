@@ -12,6 +12,9 @@
  *    scrubbing never rebuilds geometry. A packet capture's movement plays the same way, driven by its timeline.
  *  - Following a player keeps the camera on them across worlds: live, when the position feed reports them in another
  *    world; in a capture, at the time their packets move to another world server (a marker on the timeline).
+ *  - A property's placed models: in a capture, where the capture saw each one at the playhead, with the property's
+ *    data then and ticks on the timeline where behavior messages ran; in a replay of recorded positions, the models
+ *    placed now (position history doesn't record models), labelled as such.
  *  - Heat map (reports_view): the economy map events of one kind per day as coloured 4x4 squares on the ground,
  *    played back day by day.
  * Names come from the server (kinds, path types, map event kinds); nothing about the game is kept here.
@@ -19,11 +22,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildTerrainChunks, TERRAIN_LOOKS } from '/js/lddviewer.js';
+import { buildTerrainChunks, TERRAIN_LOOKS, loadGeneratedModel } from '/js/lddviewer.js';
 import { createScenery } from '/js/scenery.js';
 import { nearPlaneFor } from '/js/scenery-core.js';
 import { Track, replayPosition, trailSegments, heatFrames, heatLevel, heatColor, formatSpan, coreBounds, isPlaceholderTerrain,
-	followedMove, captureSwitch, worldMarkers, markersHtml } from '/js/world3d-core.js';
+	followedMove, captureSwitch, worldMarkers, markersHtml, propertyAt, propertyWorldFor, behaviorMarkers, behaviorMarkersHtml } from '/js/world3d-core.js';
 
 const LIVE_DELAY = 1.2;        // seconds live players are drawn behind the newest report
 const LIVE_FORGET = 8;         // seconds without a report before a live player is dropped
@@ -498,6 +501,7 @@ async function loadZone(zone, keep = false) {
 	const resume = state.capture && state.replay ? { t: state.replay.t, playing: state.replay.playing } : null;
 	stopReplay();
 	clearHeat();
+	clearPropertyModels();
 	// The old zone goes at once: its models, flairs, terrain and markers, and whatever of them is still loading
 	scenery.clear();
 	flairs.clear();
@@ -927,6 +931,7 @@ async function loadReplay() {
 	setStatus('');
 	if (!data || data.success === false) { toast((data && data.error) || 'Could not load the replay', 'danger'); return; }
 	startReplay(data);
+	loadCurrentProperty();
 }
 
 /**
@@ -940,6 +945,7 @@ async function loadCaptureReplay(capture) {
 	setStatus('');
 	if (!data || data.success === false) { toast((data && data.error) || 'Could not load the capture', 'danger'); return; }
 	state.capture = { id: String(capture), data, worlds: data.worlds || [] };
+	await loadCaptureProperty(capture);
 	// A capture plays in real time (the saved speed is for scrubbing through hours of recorded positions)
 	$('replaySpeed').value = '1';
 	// One character captured: follow them from the start
@@ -982,7 +988,8 @@ function renderMarkers() {
 	const c = state.capture, r = state.replay;
 	if (!c || !r) { el.innerHTML = ''; return; }
 	const names = !state.followCharacter && new Set(c.worlds.map((w) => w.character)).size > 1;
-	el.innerHTML = markersHtml(worldMarkers(c.worlds, r.to - r.from, state.followCharacter), esc, names);
+	el.innerHTML = markersHtml(worldMarkers(c.worlds, r.to - r.from, state.followCharacter), esc, names) +
+		behaviorMarkersHtml(behaviorMarkers(property.world, r.to - r.from), esc);
 }
 
 function startReplay(data, capture = false) {
@@ -1062,6 +1069,178 @@ if ('BroadcastChannel' in window) {
 		setReplayTime(Number(m.t) || 0);
 	});
 }
+
+// ---- a property's placed models ----
+
+/**
+ * A property's models drawn where they stood: in a capture replay, as the capture saw them at the playhead
+ * (/api/inspector/sessions/:id/property, world3d-core.js propertyAt); in a replay of recorded positions, the models
+ * placed now (/api/world3d/property_models), since position history doesn't record models. A player-built model is
+ * drawn from the mesh the UGC server made of it when there is one, anything else as a box (as the property view does).
+ */
+const propertyLayer = new THREE.Group();
+scene.add(propertyLayer);
+const PROPERTY_BOX = new THREE.BoxGeometry(1.6, 1.6, 1.6).translate(0, 0.8, 0);
+const PROPERTY_BOX_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xd98e3f, roughness: 0.6, transparent: true, opacity: 0.85 });
+const ugcMeshes = new Map(); // "ugcId?via" -> promise of the UGC server's parts, or null when it has none
+const property = {
+	worlds: null,      // capture: the property route's worlds
+	current: null,     // recorded positions: {zone, clone, property, models}
+	drawn: new Map(),  // model key -> {group, span}
+	world: null,       // the capture world shown
+	panelKey: ''       // what the panel shows, so it is only written again when that changes
+};
+
+function ugcParts(ugcId, via) {
+	const key = ugcId + '?' + via;
+	if (!ugcMeshes.has(key)) {
+		ugcMeshes.set(key, loadGeneratedModel('/api/ugc_links/mesh/' + encodeURIComponent(ugcId) + (via ? '?property=' + encodeURIComponent(via) : '')).catch(() => null));
+	}
+	return ugcMeshes.get(key);
+}
+
+// One model's object: a box at once, the UGC server's mesh in its place when that loads
+function modelObject(model, via) {
+	const group = new THREE.Group();
+	const box = new THREE.Mesh(PROPERTY_BOX, PROPERTY_BOX_MATERIAL);
+	group.add(box);
+	if (model.ugcId && model.ugcId !== '0') {
+		ugcParts(model.ugcId, via).then((parts) => {
+			if (!parts || !group.parent) return;
+			group.remove(box);
+			for (const part of parts) group.add(new THREE.Mesh(part.geometry, part.material));
+		});
+	}
+	return group;
+}
+
+function clearPropertyModels() {
+	for (const { group } of property.drawn.values()) propertyLayer.remove(group);
+	property.drawn.clear();
+	property.world = null;
+	property.panelKey = '';
+}
+
+// Draws [{key, model, span}] and hides what isn't in it (its object is kept for when it comes back)
+function placePropertyModels(list, via) {
+	const shown = new Set();
+	for (const { key, model, span } of list) {
+		let drawn = property.drawn.get(key);
+		if (!drawn) {
+			drawn = { group: modelObject(model, via), span: null };
+			property.drawn.set(key, drawn);
+			propertyLayer.add(drawn.group);
+		}
+		if (drawn.span !== span) {
+			drawn.span = span;
+			drawn.group.position.fromArray(span.position);
+			drawn.group.quaternion.fromArray(span.rotation);
+		}
+		drawn.group.visible = true;
+		shown.add(key);
+	}
+	for (const [key, drawn] of property.drawn) if (!shown.has(key)) drawn.group.visible = false;
+	propertyLayer.visible = $('propertyModelsToggle').checked;
+}
+
+function showPropertyTab(shown) {
+	$('propertyTabItem').classList.toggle('d-none', !shown);
+	if (!shown) $('propertyInfo').innerHTML = '';
+}
+
+function focusPoint(position) {
+	const offset = camera.position.clone().sub(controls.target);
+	if (offset.length() > 60) offset.setLength(30);
+	controls.target.fromArray(position);
+	camera.position.copy(controls.target).add(offset);
+}
+
+function modelRows(list) {
+	return '<div class="list-group list-group-flush">' + list.map(({ model, span }) => {
+		const name = model.name || ('LOT ' + model.lot);
+		const behaviors = model.behaviors ? ' · ' + model.behaviors + ' behavior' + (model.behaviors === 1 ? '' : 's') : '';
+		return '<button type="button" class="list-group-item list-group-item-action px-1 py-1" data-focus="' + esc(span.position.join(',')) + '">' +
+			'<div class="text-truncate">' + esc(name) + ' <span class="text-body-secondary">LOT ' + esc(model.lot) + '</span></div>' +
+			'<div class="text-body-secondary">' + (model.ugcId && model.ugcId !== '0' ? 'UGC ' + esc(model.ugcId) + ' · ' : '') +
+			span.position.map((v) => v.toFixed(1)).join(', ') + esc(behaviors) + '</div></button>';
+	}).join('') + '</div>';
+}
+
+// The capture's property at time t in the zone shown
+function updateCaptureProperty(t) {
+	const c = state.capture;
+	const world = propertyWorldFor(property.worlds, state.zone, c && c.worlds, state.followCharacter, t);
+	if (world !== property.world) {
+		clearPropertyModels();
+		property.world = world;
+		renderMarkers();
+	}
+	showPropertyTab(!!world);
+	if (!world) return;
+	const now = propertyAt(world, t);
+	const via = world.saved ? world.saved.id : '';
+	placePropertyModels(now.models.map(({ model, span }) => ({ key: model.object + '/' + model.spans.indexOf(span), model, span })), via);
+	const key = world.zone + ':' + world.instance + ':' + world.clone + '|' + now.models.map((m) => m.model.object + '/' + m.span.i).join(',') + '|' +
+		(now.info ? now.info.i : '') + '|' + (now.count ? now.count.i : '');
+	if (key === property.panelKey) return;
+	property.panelKey = key;
+	const info = now.info;
+	const field = (label, value) => value === '' || value === null || value === undefined ? '' : '<dt class="col-5">' + esc(label) + '</dt><dd class="col-7 text-break">' + value + '</dd>';
+	$('propertyInfo').innerHTML = '<div class="text-body-secondary mb-2">As the capture saw it at this moment: ' + esc(world.zoneName || zoneName(world.zone)) +
+		' #' + esc(world.instance) + (world.clone ? ' (clone ' + esc(world.clone) + ')' : '') + '</div>' +
+		(info ? '<dl class="row mb-2">' +
+			field('Name', esc(info.name)) +
+			field('Owner', info.ownerId && info.ownerId !== '0' ? fmt.character(info.ownerId, info.ownerName) : esc(info.ownerName)) +
+			field('Description', esc(info.description)) +
+			field('Privacy', info.accessType !== undefined ? esc(Labels.name('privacy', info.accessType) || info.accessType) : '') +
+			field('Approval', info.moderation ? esc(info.moderation) + (info.rejectionReason ? ' <span class="text-body-secondary">(' + esc(info.rejectionReason) + ')</span>' : '') : '') +
+			field(GameText.term('reputation'), info.reputation !== undefined ? esc(info.reputation) : '') +
+			field('Models', now.count ? esc(now.count.count) : '') +
+			'</dl><div class="text-body-secondary mb-2">Property data from packet ' + esc(info.i) + '.</div>'
+			: '<div class="text-body-secondary mb-2">The capture has no property data for this world yet.</div>') +
+		(world.saved ? '<div class="mb-2"><a href="/properties/' + esc(world.saved.id) + '">The property now</a></div>' : '') +
+		'<h6 class="mb-1">Models standing here (' + now.models.length + ')</h6>' +
+		(now.models.length ? modelRows(now.models) : '<div class="text-body-secondary">None at this moment.</div>');
+}
+
+async function loadCaptureProperty(capture) {
+	const data = await api.get('/api/inspector/sessions/' + encodeURIComponent(capture) + '/property').catch(() => null);
+	property.worlds = data && data.worlds ? data.worlds : [];
+	property.current = null;
+	clearPropertyModels();
+}
+
+// Recorded positions on a property: the models placed there now, labelled as now
+async function loadCurrentProperty() {
+	property.worlds = null;
+	property.current = null;
+	clearPropertyModels();
+	showPropertyTab(false);
+	const propertyZone = ((state.meta && state.meta.propertyZones) || []).includes(Number(state.zone));
+	const instance = (state.replayInstances || []).find((i) => i.instance === state.instance);
+	if (!propertyZone) return;
+	if (!instance || !instance.clone) {
+		showPropertyTab(true);
+		$('propertyInfo').innerHTML = '<div class="text-body-secondary">Each property is its own instance of this zone: pick one to see its placed models.</div>';
+		return;
+	}
+	const data = await api.get('/api/world3d/property_models?zone=' + state.zone + '&clone=' + instance.clone).catch(() => null);
+	if (!data || !data.property) return;
+	property.current = { zone: state.zone, clone: instance.clone, ...data };
+	placePropertyModels(data.models.map((m) => ({ key: m.id, model: m, span: m })), data.property.id);
+	showPropertyTab(true);
+	$('propertyInfo').innerHTML = '<div class="alert alert-warning py-1 px-2 mb-2">Placed models as they are <strong>now</strong>: position history doesn\'t record models, so they may differ from the time replayed.</div>' +
+		'<dl class="row mb-2"><dt class="col-5">Name</dt><dd class="col-7 text-break">' + esc(data.property.name) + '</dd>' +
+		'<dt class="col-5">Owner</dt><dd class="col-7">' + fmt.character(data.property.ownerId, data.property.ownerName) + '</dd></dl>' +
+		'<div class="mb-2"><a href="/properties/' + esc(data.property.id) + '">Open the property</a></div>' +
+		'<h6 class="mb-1">Placed models (' + data.models.length + ')</h6>' + modelRows(data.models.map((m) => ({ model: m, span: m })));
+}
+
+$('propertyInfo').addEventListener('click', (e) => {
+	const row = e.target.closest('[data-focus]');
+	if (row) focusPoint(row.dataset.focus.split(',').map(Number));
+});
+$('propertyModelsToggle').addEventListener('change', (e) => { propertyLayer.visible = e.target.checked; });
 
 // ---- heat map timelapse ----
 
@@ -1182,6 +1361,9 @@ async function setMode(mode) {
 	}
 	if (mode !== 'replay') {
 		stopReplay();
+		clearPropertyModels();
+		property.worlds = property.current = null;
+		showPropertyTab(false);
 		if (state.capture) setFollow(null);
 		state.capture = null;
 		renderMarkers();
@@ -1249,6 +1431,7 @@ function animate() {
 	}
 
 	drawPlayers(currentPlayers(now / 1000));
+	if (state.capture && r && property.worlds) updateCaptureProperty(r.t);
 	if (state.capture && r && !state.switching) {
 		const move = captureSwitch(state.capture.worlds, state.followCharacter, r.t, state.zone);
 		if (move) switchWorld(move, move.name);

@@ -91,6 +91,9 @@ namespace {
 		return name.empty() ? json(value) : json(std::string(name) + " (" + std::to_string(value) + ")");
 	}
 
+	// Larger compressed LDF is not inflated (a construction's config is a few hundred bytes)
+	constexpr uint32_t MAX_LDF_BYTES = 1024 * 1024;
+
 	// LDF entries as the client reads them: "key=type:value"
 	json ReadLdfEntries(Reader& r, int32_t count) {
 		json out = json::array();

@@ -16,6 +16,30 @@ The dashboard serves them with the zone's name from the client's locale (`/api/i
 its slider; World 3D switches its scene to the followed character's world at that time (`world3d-core.js`
 `captureSwitch`, `worldMarkers`).
 
+## Properties in a capture
+
+`CaptureProperty::Build` (`/api/inspector/sessions/:id/property`, `CaptureTool property`) reads the property each
+world of a capture was, from its packets alone:
+
+- **Models:** objects constructed with a model component (and brick built models, LOT 14), each with its LOT, object
+  ID, spawner, blueprint (the UGC ID, from its config) and behavior count, and where it stood per time span (its
+  physics component's position and rotation, from the construction and each serialization that moves it) until its
+  destruction.
+- **Events:** placed (a `PlaceModelResponse` saying a model was placed, with the model made at that exact position:
+  this server makes it before answering, a live server after), moved (a serialization with a new position), removed
+  (a destruction, with the reason from the `DeleteModelFromClient` that asked for it), editing, and behavior messages
+  (those named for behaviors, and any game message sent to or from a model while it stood there).
+- **Property data:** each `DownloadPropertyData` for this world's map (a live server also sent the player's other
+  properties), kept once while it says the same, and each `GetModelsOnProperty`'s model count.
+
+The dashboard adds the zone's and the models' names from the locale and the property saved now for that zone and clone
+(its link, and the `?property=` that lets the UGC mesh route serve its models). World 3D draws each model where it stood
+at the playhead (the UGC server's mesh for a brick built model when it has one, a box otherwise), shows the property
+data of that moment in its Property tab and ticks the behavior messages on the timeline; seeking either way reads the
+spans again, nothing is replayed. The capture page lists each property with its owner and every model placed, moved or
+removed, each jumping to its packet. A replay of recorded positions on one property instance shows the models placed
+now (`/api/world3d/property_models`), labelled as such, since position history doesn't record models.
+
 Captures, bundles and fixtures are player data. None of them is ever committed: `captures/`, `*.bundle` and
 `tests/fixtures-local/` are in `.gitignore`.
 
@@ -122,7 +146,9 @@ thread, and the result is kept with the loaded capture:
   age, config, trigger, spawner, spawner node, scale, world state, GM level, parent and children), then each
   component's data in the order the client reads them (`Entity::WriteComponents`). Which components an object has
   comes from the ComponentsRegistry rows of its LOT, read from the CDClient at startup, with the ones the server adds
-  itself (a destroyable for collectibles, quick builds and models, the character's parts, a buff with a destroyable).
+  itself (a destroyable for collectibles, quick builds and models, the character's parts, a buff with a destroyable)
+  and without the item component of a model (its model component writes the item info). A compressed config (live
+  servers compressed model configs) is inflated and read.
 - **Serialization:** the object's LOT and components from its construction earlier on the same world instance, then
   each component's update. An object constructed before the capture started shows "object not constructed in this
   capture" and the bytes.
@@ -211,6 +237,7 @@ CaptureTool replay <bundle>... --client <game client folder> [--cdserver <CDServ
 CaptureTool import-live <folder> <out-dir>      convert live captures
 CaptureTool anonymise <in> <out>                make a fixture
 CaptureTool info|decode <bundle> [--cdserver <CDServer.sqlite>]   look inside (replica packets too with --cdserver)
+CaptureTool property <bundle> --cdserver <CDServer.sqlite>        the properties it saw (JSON)
 ```
 
 ### The sandbox
@@ -290,6 +317,12 @@ decoder registry knows and checks it writes back to the same bytes; without fixt
 - In a capture of a zone load: every packet shows fields; constructions list their components (no
   `(layout did not match)` on players, enemies, smashables, NPCs); a later `ID_REPLICA_MANAGER_SERIALIZE` of an enemy
   hit in the capture shows its new health; game messages both ways (a skill, an emote, a vendor purchase) show fields.
+- Capture a property visit where you place, pick up and put away a model, change the name or privacy, and run a
+  model's behavior: the capture page lists the property and its owner with each placement and removal (clicking one
+  selects its packet); in World 3D the models stand where they were at the playhead (brick built ones as the UGC
+  server made them), appear and vanish at those moments forward and when seeking back, the Property tab's name,
+  privacy and model count change when the update arrives, and the behavior messages are ticks on the timeline.
+- Replay recorded positions on one property instance: its placed models show, marked as how they are now.
 - Export a bundle, replay it with `CaptureTool replay`, and open a kept sandbox's logs.
 - Moving platforms (Starbase 3001's snail, Nexus Tower's lifts) move as before, and objects built with them look right.
 - A tamed pet that follows you through a fight and an untamed one being tamed: status and name updates show as before.

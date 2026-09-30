@@ -148,7 +148,7 @@ export function parseLxfml(text) {
  * The parts of a model the UGC server made (a .nif, converted by the dashboard like the scenery's models: see
  * scenery-core.js), as [{geometry, material}] in the model's own coordinates. Each part owns its geometry and material.
  */
-async function loadGeneratedModel(url) {
+export async function loadGeneratedModel(url) {
 	const response = await limitedFetch(url);
 	if (!response.ok) throw new Error('HTTP ' + response.status);
 	const model = parseModel(await response.arrayBuffer());

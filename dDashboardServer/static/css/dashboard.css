@@ -262,6 +262,8 @@ html.nav-loading main { opacity: .65; transition: opacity .2s; }
 	border-radius: .2rem; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); max-width: 9rem; overflow: hidden;
 	text-overflow: ellipsis; }
 .timeline-marker:hover > span, .timeline-marker:focus-visible > span { max-width: none; z-index: 1; }
+/* A property's behavior messages in a capture replay: short unlabelled ticks under the world change markers */
+.timeline-marker.timeline-behavior { top: .55rem; border-left: 1px solid var(--bs-info); }
 
 /* Client system info: values whose caveat is a tooltip; unreliable ones stand out more */
 .sysinfo-tip { text-decoration: underline dotted; text-underline-offset: .2em; cursor: help; }

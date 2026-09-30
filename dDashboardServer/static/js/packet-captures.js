@@ -143,6 +143,7 @@
 		state.records = [];
 		state.worlds = [];
 		byId('worldMarkers').innerHTML = '';
+		byId('propertySummary').classList.add('d-none');
 		state.selected = -1;
 		history.replaceState(null, '', '#capture=' + id);
 		byId('viewer').classList.remove('d-none');
@@ -182,8 +183,70 @@
 			else render();
 			renderHeader();
 			loadWorlds(c.id);
+			loadProperty(c.id);
 		}, function () { state.loading = false; });
 	}
+
+	// ---- the properties the capture was on ----
+
+	function point(p) { return p && p.length === 3 ? p.map(function (v) { return v.toFixed(1); }).join(', ') : ''; }
+
+	// What happened to the models: placed, moved (a run of moves of one model is one entry) and removed
+	function modelEvents(world) {
+		var out = [];
+		(world.events || []).forEach(function (e) {
+			if (e.kind !== 'placed' && e.kind !== 'moved' && e.kind !== 'removed') return;
+			var last = out[out.length - 1];
+			if (e.kind === 'moved' && last && last.kind === 'moved' && last.object === e.object) { last.moves++; last.position = e.position; return; }
+			out.push(Object.assign({ moves: 1 }, e));
+		});
+		return out;
+	}
+
+	function eventHtml(e) {
+		var what = e.object ? esc(e.name || ('LOT ' + e.lot)) + ' <span class="text-body-secondary">LOT ' + esc(e.lot) + '</span>' : 'a model';
+		var text = e.kind === 'placed' ? 'Placed ' + what + (e.position ? ' at ' + esc(point(e.position)) : '') + (e.object ? '' : ' <span class="text-body-secondary">(not seen made)</span>')
+			: e.kind === 'moved' ? 'Moved ' + what + (e.moves > 1 ? ' ' + e.moves + ' times' : '') + ' to ' + esc(point(e.position))
+				: 'Removed ' + what + (e.reason ? ' (' + esc(e.reason) + ')' : '');
+		// Jump to the packet that said it: the client's request for a removal it asked for
+		var index = e.kind === 'removed' && e.asked !== undefined ? e.asked : e.i;
+		return '<button type="button" class="list-group-item list-group-item-action px-2 py-1" data-packet="' + esc(index) + '" data-at="' + esc(e.t) + '">' +
+			'<span class="font-monospace text-body-secondary me-2">' + timeText(e.t * 1000) + '</span>' + text + ' <span class="text-body-secondary">#' + esc(index) + '</span></button>';
+	}
+
+	function worldHtml(w) {
+		var info = (w.info || [])[0], last = (w.info || [])[(w.info || []).length - 1];
+		var owner = info ? info.ownerName : (w.saved ? w.saved.ownerName : '');
+		var ownerId = info ? info.ownerId : (w.saved ? w.saved.ownerId : '');
+		var events = modelEvents(w);
+		var name = last && last.name ? last.name : (w.saved ? w.saved.name : '');
+		return '<div class="card mb-2"><div class="card-body p-2">' +
+			'<div><strong>' + esc(name || 'Property') + '</strong>' + (owner ? ' · owner ' + (ownerId && ownerId !== '0' ? fmt.character(ownerId, owner) : esc(owner)) : '') +
+			' · ' + esc(w.zoneName || ('Zone ' + w.zone)) + ' #' + esc(w.instance) + (w.clone ? ' (clone ' + esc(w.clone) + ')' : '') +
+			' · ' + nf.format(w.models.length) + ' model' + (w.models.length === 1 ? '' : 's') + ' seen' +
+			(w.saved ? ' · <a href="/properties/' + esc(w.saved.id) + '">the property now</a>' : '') + '</div>' +
+			(info && (w.info || []).length > 1 ? '<div class="text-body-secondary">Its property data changed ' + ((w.info || []).length - 1) + ' time(s) during the capture.</div>' : '') +
+			(events.length ? '<div class="list-group list-group-flush mt-1" style="max-height: 12rem; overflow-y: auto">' + events.map(eventHtml).join('') + '</div>'
+				: '<div class="text-body-secondary">No model was placed, moved or removed during the capture.</div>') +
+			'</div></div>';
+	}
+
+	function loadProperty(id) {
+		api.get(url(id) + '/property').then(function (d) {
+			if (!state.capture || state.capture.id !== id || !d.worlds) return;
+			var box = byId('propertySummary');
+			box.innerHTML = d.worlds.map(worldHtml).join('');
+			box.classList.toggle('d-none', !d.worlds.length);
+		}).catch(function () {});
+	}
+
+	byId('propertySummary').addEventListener('click', function (e) {
+		var entry = e.target.closest('[data-packet]');
+		if (!entry) return;
+		stop();
+		setPlayhead(Number(entry.dataset.at) * 1000 + 1);
+		showPacket(parseInt(entry.dataset.packet, 10));
+	});
 
 	// The timeline's world change markers (world3d-core.js draws them, as World 3D's replay does)
 	function loadWorlds(id) {
@@ -290,9 +353,15 @@
 
 	byId('rows').addEventListener('click', function (e) {
 		var row = e.target.closest('[data-i]');
-		if (!row || !state.capture) return;
-		state.selected = parseInt(row.dataset.i, 10);
+		if (row) showPacket(parseInt(row.dataset.i, 10));
+	});
+
+	function showPacket(index) {
+		if (!state.capture) return;
+		state.selected = index;
 		render();
+		var shown = byId('rows').querySelector('tr[data-i="' + index + '"]');
+		if (shown) shown.scrollIntoView({ block: 'nearest' });
 		api.get(url(state.capture.id) + '/packets/' + state.selected).then(function (d) {
 			if (!d.record) { toast(d.error || 'Could not load the packet', 'danger'); return; }
 			var r = d.record;
@@ -305,7 +374,7 @@
 			byId('detailFields').textContent = r.fields ? JSON.stringify(r.fields, null, 2) : (r.gap ? r.gap + ' packets were lost here (a server buffer was full)' : 'Not decoded: no struct reads this packet (the server never sends or handles it). Its bytes are below.');
 			byId('detailHex').textContent = hexdump(r.hex || '');
 		}).catch(function () {});
-	});
+	}
 	byId('detailClose').addEventListener('click', function () {
 		byId('detail').classList.add('d-none');
 		byId('grid').classList.add('no-detail');
