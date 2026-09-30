@@ -526,8 +526,7 @@
 	// ---- an assembly's references: the builds that use it, and where they are ----
 
 	var refs = null, refTimer = null;
-	var INVENTORIES = { 5: 'Models', 12: 'Vault models', 14: 'Brick-building models' };
-	function inventoryName(type) { return (window.Labels && Labels.name('inventories', type)) || INVENTORIES[type] || 'Inventory ' + type; }
+	function inventoryName(type) { return (window.Labels && Labels.name('inventories', type)) || 'Inventory ' + type; }
 	// Where a creation is: placed on a property (with the name the player gave it there, and its 3D view), in a mail or
 	// in its creator's inventories (`item`: the creation, for its creator's name)
 	function whereText(w, item) {

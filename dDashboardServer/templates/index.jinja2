@@ -216,9 +216,10 @@ $(function () {
 		if (row.state === 'draining') return ' ' + fmt.badge('Moving players', 'warning');
 		return '';
 	}
+	// Zone names in the viewer's language (the live status carries the server's)
 	function withPending(data) {
-		return (data.worlds || []).concat((data.startingWorlds || []).map(function (w) {
-			return { zoneName: w.zoneName, mapID: w.mapID, instanceID: w.property ? '' : w.instanceID, cloneID: w.cloneID || 0, players: 0, state: w.state };
+		return (data.worlds || []).map(function (w) { return Object.assign({}, w, { zoneName: GameText.zone(w.mapID) }); }).concat((data.startingWorlds || []).map(function (w) {
+			return { zoneName: GameText.zone(w.mapID), mapID: w.mapID, instanceID: w.property ? '' : w.instanceID, cloneID: w.cloneID || 0, players: 0, state: w.state };
 		}));
 	}
 	var worlds = $('#worldInstancesTable').DataTable({

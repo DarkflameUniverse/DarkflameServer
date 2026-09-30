@@ -130,7 +130,7 @@ namespace {
 		c.AddSection("Startup");
 		c.Add(Bool(MASTER, "prestart_servers", "Start auth, chat and char servers", "Master starts the other servers itself.", true, true));
 		{
-			auto worlds = List(MASTER, "prestart_worlds", "Worlds started with master", "Started when master starts, before anyone asks for them. Empty: character select (0) and Venture Explorer (1000).", eListOf::ZONE, "0,1000");
+			auto worlds = List(MASTER, "prestart_worlds", "Worlds started with master", "Started when master starts, before anyone asks for them. Empty: character select (0) and %[ZoneTable_1000_DisplayDescription] (1000).", eListOf::ZONE, "0,1000");
 			worlds.restart = true;
 			c.Add(When(std::move(worlds), MASTER, "prestart_servers", { "1" }));
 		}
@@ -186,7 +186,7 @@ namespace {
 		c.Add(Bool(WORLD, "disable_extra_backpack", "No extra backpack space", "DLU gives 2 extra slots per level up; this turns that off.", false));
 		c.Add(Bool(WORLD, "disable_vanity", "No vanity NPCs", "Hide DLU's extra NPCs and plaques.", false, true));
 		c.Add(Bool(WORLD, "solo_racing", "Solo racing", "Allow racing alone.", false));
-		c.Add(Bool(WORLD, "classic_survival_scoring", "Classic survival scoring", "Rank Avant Gardens Survival by time, like live, instead of score.", false));
+		c.Add(Bool(WORLD, "classic_survival_scoring", "Classic survival scoring", "Rank %[ZoneTable_1101_DisplayDescription] by time, like live, instead of score.", false));
 		c.Add(Bool(WORLD, "pets_take_imagination", "Pets use imagination", "Like live.", false));
 		c.Add(Bool(WORLD, "allow_nameplate_off", "Players can hide their nameplate", "Staff always can; this lets players (GM 0) turn off the name above their head too.", false));
 		c.Add(Bool(WORLD, "allow_players_to_skip_cinematics", "Players can skip cinematics", "Most cutscenes get a skip option.", false));
@@ -207,7 +207,7 @@ namespace {
 		c.Add(When(List(WORLD, "hardcore_uscore_reduced_lots", "Reduced U-score enemies", "", eListOf::LOT), WORLD, "hardcore_mode", { "1" }));
 		c.Add(When(List(WORLD, "hardcore_uscore_excluded_enemies", "Enemies without U-score", "", eListOf::LOT), WORLD, "hardcore_mode", { "1" }));
 
-		c.AddSection("Property rent", "Owners pay rent for their properties, like live: each property world's PropertyTemplate price and period, or what the Property Rent page sets. Block Yard is free.");
+		c.AddSection("Property rent", "Owners pay rent for their properties, like live: each property world's PropertyTemplate price and period, or what the Property Rent page sets. %[ZoneTable_1150_DisplayDescription] is free.");
 		c.Add(Bool(WORLD, "property_rent_enabled", "Charge rent", "Rent is taken from the owner's coins when they log in. Unpaid rent makes the property private until it is paid.", false));
 		c.Add(When(Unit(Int(WORLD, "property_rent_grace_days", "Grace period", "How long rent can be unpaid before the property is made private.", "3", 0, 365), "days"), WORLD, "property_rent_enabled", { "1" }));
 
@@ -248,7 +248,7 @@ namespace {
 		c.AddSection("Logging in");
 		c.Add(Bool(AUTH, "dont_use_keys", "Don't require play keys", "Everyone with an account can log in, with or without a play key.", false));
 		c.Add(Bool(AUTH, "closed_to_non_devs", "Staff only", "Only accounts with a GM level can log in.", false));
-		c.Add(List(AUTH, "rewardcodes", "Reward codes", "Given to every account at login. 4 opens LEGO Club; 30 stops bricks being used up in build mode. Codes with an item mail it once.", eListOf::REWARD_CODE, "4,30"));
+		c.Add(List(AUTH, "rewardcodes", "Reward codes", "Given to every account at login. 4 opens %[ZoneTable_1700_DisplayDescription]; 30 stops bricks being used up in build mode. Codes with an item mail it once.", eListOf::REWARD_CODE, "4,30"));
 		c.Add(Bool(AUTH, "log_login_addresses", "Remember login addresses", "Keep the network address each account logs in to the game from, so staff see accounts that share one. "
 			"Addresses are personal data: they're only shown as links between accounts, and deleted after log_login_address_days.", true));
 		c.Add(Bool(AUTH, "log_client_sysinfo", "Remember client system info", "Keep the system description the client sends when it logs in (Windows version, video card, "
