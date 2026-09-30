@@ -9,6 +9,7 @@
 #include "Inventory.h"
 #include "InventoryComponent.h"
 #include "Item.h"
+#include "LootMetrics.h"
 #include "BrickByBrick.h"
 
 #include <ranges>
@@ -51,6 +52,13 @@ namespace GameMessages {
 		invType = item.GetInventory()->GetType();
 		itemsTotal = item.GetCount();
 		slotID = item.GetSlot();
+	}
+
+	void AddItemToInventoryClientSync::AddMetrics(const LootMetrics& metrics) {
+		const auto text = metrics.ToExtraInfo();
+		if (text.empty()) return;
+		if (!extraInfo.empty()) extraInfo += u',';
+		extraInfo += text;
 	}
 
 	void AddItemToInventoryClientSync::Serialize(RakNet::BitStream& bitStream) const {

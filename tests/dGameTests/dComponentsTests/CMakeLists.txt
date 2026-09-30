@@ -19,6 +19,7 @@ set(DCOMPONENTS_TESTS
 	"ReplicaConstructionTests.cpp"
 	"ReplicaDecoderTests.cpp"
 	"ItemRemovalTests.cpp"
+	"LootMetricsTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

@@ -228,7 +228,8 @@ void InventoryComponent::AddItem(
 	const eInventoryType inventorySourceType,
 	const int32_t sourceType,
 	const bool bound,
-	int32_t preferredSlot) {
+	int32_t preferredSlot,
+	const LootMetrics& metrics) {
 	if (count == 0) {
 		LOG("Attempted to add 0 of item (%i) to the inventory!", lot);
 
@@ -262,7 +263,7 @@ void InventoryComponent::AddItem(
 			return;
 		}
 
-		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
+		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType, metrics);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType)) {
 			missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
@@ -295,7 +296,7 @@ void InventoryComponent::AddItem(
 
 		left -= delta;
 
-		existing->SetCount(existing->GetCount() + delta, false, true, showFlyingLoot, lootSourceType);
+		existing->SetCount(existing->GetCount() + delta, false, true, showFlyingLoot, lootSourceType, metrics);
 
 		if (isModMoveAndEquip) {
 			existing->Equip();
@@ -348,7 +349,7 @@ void InventoryComponent::AddItem(
 
 			continue;
 		}
-		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
+		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType, metrics);
 
 		isModMoveAndEquip = false;
 	}
@@ -374,6 +375,7 @@ ReceivedItem InventoryComponent::ReceiveItem(const LWOOBJID id, const LOT lot, c
 		GameMessages::AddItemToInventoryClientSync addItem;
 		addItem.target = m_Parent->GetObjectID();
 		addItem.SetItem(*item);
+		addItem.AddMetrics(options.metrics);
 		addItem.eLootTypeSource = lootSourceType;
 		addItem.iSubkey = subKey;
 		addItem.itemCount = static_cast<int>(count);
@@ -398,7 +400,7 @@ ReceivedItem InventoryComponent::ReceiveItem(const LWOOBJID id, const LOT lot, c
 	for (const auto& [itemId, item] : inventory->GetItems()) {
 		if (item->GetLot() == lot) before[itemId] = item->GetCount();
 	}
-	AddItem(lot, count, lootSourceType, inventoryType, config, LWOOBJID_EMPTY, options.showFlyingLoot, options.equip, subKey, options.sourceInventory, 0, bound, options.preferredSlot);
+	AddItem(lot, count, lootSourceType, inventoryType, config, LWOOBJID_EMPTY, options.showFlyingLoot, options.equip, subKey, options.sourceInventory, 0, bound, options.preferredSlot, options.metrics);
 
 	LWOOBJID receivedBy = LWOOBJID_EMPTY;
 	int64_t largestGain = 0;
@@ -420,7 +422,7 @@ bool InventoryComponent::IsUniqueLot(const LOT lot) {
 	return !isBrick && info.stackSize <= 1;
 }
 
-bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
+bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent, const ItemRemovalSource& removalSource) {
 	if (count == 0) {
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
 		return false;
@@ -437,7 +439,7 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 			auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
 			if (!item) break;
 			const auto delta = std::min<uint32_t>(left, item->GetCount());
-			item->SetCount(item->GetCount() - delta, silent);
+			item->SetCount(item->GetCount() - delta, silent, true, true, eLootSourceType::NONE, {}, removalSource);
 			left -= delta;
 		}
 		return true;
@@ -448,7 +450,7 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 				auto* item = inventory->FindItemByLot(lot, false, ignoreBound);
 				if (!item) break;
 				const auto delta = std::min<uint32_t>(item->GetCount(), left);
-				item->SetCount(item->GetCount() - delta, silent);
+				item->SetCount(item->GetCount() - delta, silent, true, true, eLootSourceType::NONE, {}, removalSource);
 				left -= delta;
 			}
 		}

@@ -3,6 +3,7 @@
 #include "dpGrid.h"
 #include "DetourCommon.h"
 
+#include <memory>
 #include <string>
 
 #include "Game.h"
@@ -24,6 +25,7 @@ namespace {
 	bool phys_spatial_partitioning = true;
 
 	std::vector<dpMovementBlocker> m_MovementBlockers;
+	std::vector<std::unique_ptr<dpEntity>> m_OwnedMovementBlockers;
 };
 
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
@@ -88,6 +90,7 @@ void dpWorld::Shutdown() {
 	}
 
 	m_MovementBlockers.clear();
+	m_OwnedMovementBlockers.clear();
 }
 
 bool dpWorld::IsLoaded() {
@@ -195,6 +198,12 @@ bool dpWorld::ShouldUseSP(uint32_t zoneID) {
 void dpWorld::AddMovementBlocker(const dpEntity* entity, const uint32_t filter) {
 	if (!entity) return;
 	m_MovementBlockers.push_back({ entity, filter });
+}
+
+void dpWorld::AddOwnedMovementBlocker(dpEntity* entity, const uint32_t filter) {
+	if (!entity) return;
+	m_OwnedMovementBlockers.emplace_back(entity);
+	AddMovementBlocker(entity, filter);
 }
 
 void dpWorld::RemoveMovementBlocker(const dpEntity* entity) {

@@ -12,6 +12,7 @@
 #include "Entity.h"
 #include "eReplicaComponentType.h"
 #include "MovementAIComponent.h"
+#include "PetComponent.h"
 #include "PhantomPhysicsComponent.h"
 #include "SimplePhysicsComponent.h"
 
@@ -24,6 +25,11 @@ protected:
 	static constexpr int32_t ENEMY_BLOCKER_PHYSICS = 4237;
 	static constexpr int32_t CARVER_PHYSICS = 3901;
 	static constexpr int32_t CLEAR_THREAT_PHYSICS = 6691;
+	static constexpr LOT PET_BLOCKER_LOT = 3913; // PR - Pet Blocker: solid, group 18
+	static constexpr int32_t PET_BLOCKER_PHYSICS = 1913;
+	static constexpr LOT HEDGE_LOT = 3027; // AG - bush square section: solid, a navmesh carver in Robot City
+	static constexpr int32_t HEDGE_PHYSICS = 90301;
+	static constexpr int32_t PET_GROUP = 3;
 
 	void SetUp() override {
 		SetUpDependencies();
@@ -42,10 +48,13 @@ protected:
 		AddPhysics(ENEMY_BLOCKER_LOT, eReplicaComponentType::SIMPLE_PHYSICS, ENEMY_BLOCKER_PHYSICS, "miscellaneous\\misc_phys_10x1x5.hkx", 18);
 		AddPhysics(CARVER_LOT, eReplicaComponentType::PHANTOM_PHYSICS, CARVER_PHYSICS, "miscellaneous\\misc_phys_10x1x5.hkx", 7);
 		AddPhysics(CLEAR_THREAT_LOT, eReplicaComponentType::PHANTOM_PHYSICS, CLEAR_THREAT_PHYSICS, "test\\POI_trigger_wall.hkx", 18);
+		AddPhysics(PET_BLOCKER_LOT, eReplicaComponentType::SIMPLE_PHYSICS, PET_BLOCKER_PHYSICS, "miscellaneous\\misc_phys_10x1x5.hkx", 18);
+		AddPhysics(HEDGE_LOT, eReplicaComponentType::SIMPLE_PHYSICS, HEDGE_PHYSICS, "env\\env_won_nim_bush_square-section.hkx", 7);
 		CDClientManager::GetEntriesMutable<CDComponentsRegistryTable>().insert_or_assign(static_cast<uint64_t>(info.lot), 0);
 	}
 
 	void TearDown() override {
+		dpWorld::Shutdown(); // frees the blockers the world owns
 		TearDownDependencies();
 	}
 
@@ -135,4 +144,73 @@ TEST_F(MovementBlockerScenarioTest, NonEnemyMoverIsNotClamped) {
 	auto* const movement = npc.AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
 	movement->SetDestination({ 0.0f, 0.0f, 10.0f });
 	EXPECT_NEAR(movement->GetDestination().z, 10.0f, 1e-3f);
+}
+
+// Pets are walked by the server too; the pet ranch's pet blockers keep them in (group 18 touches pets, group 3)
+TEST_F(MovementBlockerScenarioTest, PetBlockerStopsAPet) {
+	auto wall = Wall(PET_BLOCKER_LOT, 104);
+	wall->AddComponent<SimplePhysicsComponent>(PET_BLOCKER_PHYSICS);
+	ASSERT_EQ(dpWorld::GetMovementBlockers().size(), 1u);
+
+	EntityInfo petInfo = info;
+	petInfo.pos = { 0.0f, 0.0f, -10.0f };
+	Entity pet(204, petInfo);
+	pet.AddComponent<SimplePhysicsComponent>(-1)->SetCollisionGroup(PET_GROUP);
+	pet.AddComponent<PetComponent>(-1);
+	auto* const movement = pet.AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
+	movement->SetDestination({ 0.0f, 0.0f, 10.0f });
+	EXPECT_LT(movement->GetDestination().z, -0.5f);
+	EXPECT_GT(movement->GetDestination().z, -3.0f);
+}
+
+// A carver_only object is never spawned (the client never loads one), but it still stops the chase
+TEST_F(MovementBlockerScenarioTest, CarverOnlyWallBlocksWithoutAnObject) {
+	LwoNameValue settings;
+	settings.Insert<bool>(u"carver_only", true);
+	settings.Insert<bool>(u"navmesh_carver", true);
+	EXPECT_TRUE(PhysicsComponent::IsCarverOnly(settings));
+	ASSERT_TRUE(PhysicsComponent::AddLevelMovementBlocker(105, CARVER_LOT, settings, NiPoint3Constant::ZERO, QuatUtils::IDENTITY, 1.0f));
+	ASSERT_EQ(dpWorld::GetMovementBlockers().size(), 1u);
+
+	EntityInfo enemyInfo = info;
+	enemyInfo.pos = { 0.0f, 0.0f, -10.0f };
+	Entity enemy(205, enemyInfo);
+	EXPECT_LT(ChaseAcross(enemy).z, -0.5f);
+
+	dpWorld::Shutdown();
+	EXPECT_TRUE(dpWorld::GetMovementBlockers().empty());
+}
+
+TEST_F(MovementBlockerScenarioTest, CarverOnlyNeedsItsFlagAndAWall) {
+	LwoNameValue settings;
+	EXPECT_FALSE(PhysicsComponent::IsCarverOnly(settings));
+	settings.Insert<bool>(u"carver_only", false);
+	EXPECT_FALSE(PhysicsComponent::IsCarverOnly(settings));
+	// carver_only without navmesh_carver (most of them): nothing to block with
+	settings.Insert<bool>(u"carver_only", true);
+	EXPECT_TRUE(PhysicsComponent::IsCarverOnly(settings));
+	EXPECT_FALSE(PhysicsComponent::AddLevelMovementBlocker(106, CARVER_LOT, settings, NiPoint3Constant::ZERO, QuatUtils::IDENTITY, 1.0f));
+	EXPECT_TRUE(dpWorld::GetMovementBlockers().empty());
+}
+
+// The Robot City hedges carve the navmesh; their size comes from the client's collision shape (4.39 x 4.96 x 9.03)
+TEST_F(MovementBlockerScenarioTest, HedgeHasItsRealSize) {
+	auto hedge = Wall(HEDGE_LOT, 107);
+	hedge->SetVar<bool>(u"navmesh_carver", true);
+	hedge->AddComponent<SimplePhysicsComponent>(HEDGE_PHYSICS);
+	const auto blockers = dpWorld::GetMovementBlockers();
+	ASSERT_EQ(blockers.size(), 1u);
+	const auto* const box = dynamic_cast<const dpShapeBox*>(blockers[0].entity->GetShape());
+	ASSERT_NE(box, nullptr);
+	EXPECT_NEAR(box->m_MaxX - box->m_MinX, 4.3949f, 1e-3f);
+	EXPECT_NEAR(box->m_MaxY - box->m_MinY, 4.9645f, 1e-3f);
+	EXPECT_NEAR(box->m_MaxZ - box->m_MinZ, 9.0341f, 1e-3f);
+	// Centred where the shape is, a little off the object's position
+	EXPECT_NEAR((box->m_MaxX + box->m_MinX) / 2.0f, -0.0343f, 1e-3f);
+	EXPECT_NEAR((box->m_MaxZ + box->m_MinZ) / 2.0f, -0.0527f, 1e-3f);
+
+	EntityInfo enemyInfo = info;
+	enemyInfo.pos = { 0.0f, 0.0f, -10.0f };
+	Entity enemy(206, enemyInfo);
+	EXPECT_LT(ChaseAcross(enemy).z, -4.5f);
 }

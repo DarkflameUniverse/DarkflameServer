@@ -208,7 +208,11 @@ void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	}
 
 	character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
-	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
+	// Live sent the vendor's LOT, and the coins paid when there were any, with the bought items
+	LootMetrics metrics{};
+	metrics.sourceLot = m_Parent->GetLOT();
+	if (coinCost > 0) metrics.currencyDelta = -static_cast<int32_t>(coinCost);
+	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 0, false, -1, metrics);
 	SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
 }
 

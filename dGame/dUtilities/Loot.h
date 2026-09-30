@@ -8,6 +8,7 @@
 #include <vector>
 
 class Entity;
+struct LootMetrics;
 struct CDActivityRewards;
 struct CDCurrencyTable;
 
@@ -20,6 +21,9 @@ namespace Loot {
 		LWOOBJID id = 0;
 		LOT lot = 0;
 		int32_t count = 0;
+		// The LOT of the object it dropped from (1 when a player was the source), 0 when that object was not found.
+		// Sent back as the item's source when it is picked up (LootMetrics::sourceLot).
+		LOT sourceLot = 0;
 	};
 
 	using Return = std::map<LOT, int32_t>;
@@ -28,6 +32,9 @@ namespace Loot {
 	void CacheMatrix(const uint32_t matrixIndex);
 	void GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceType lootSourceType = eLootSourceType::NONE);
 	void GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType lootSourceType = eLootSourceType::NONE);
+	// As above, telling the client where the items came from (LootMetrics)
+	void GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceType lootSourceType, const LootMetrics& metrics);
+	void GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType lootSourceType, const LootMetrics& metrics);
 	void GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating = 0);
 	void DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins);
 	void DropItem(Entity& player, GameMessages::DropClientLoot& lootMsg, bool useTeam = false, bool forceFfa = false);

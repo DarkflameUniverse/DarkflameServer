@@ -8,6 +8,7 @@
 #include "Preconditions.h"
 #include "eInventoryType.h"
 #include "eLootSourceType.h"
+#include "LootMetrics.h"
 
 namespace tinyxml2 {
 	class XMLElement;
@@ -58,6 +59,7 @@ public:
 	 * @param isModMoveAndEquip equips the item
 	 * @param subKey optional subkey for this item, e.g. for pets
 	 * @param bound if the item should be bound
+	 * @param metrics where the items came from, sent with the item (not kept)
 	 */
 	explicit Item(
 		LOT lot,
@@ -70,7 +72,8 @@ public:
 		bool isModMoveAndEquip = false,
 		LWOOBJID subKey = LWOOBJID_EMPTY,
 		bool bound = false,
-		eLootSourceType lootSourceType = eLootSourceType::NONE
+		eLootSourceType lootSourceType = eLootSourceType::NONE,
+		const LootMetrics& metrics = {}
 	);
 
 	~Item();
@@ -93,8 +96,10 @@ public:
 	 * @param silent if true, the client will not be notified of the change with GMs
 	 * @param disassemble if items were removed, this returns all the sub parts of the item individually if it had assembly part lots
 	 * @param showFlyingLoot shows flying loot to the client, if not silent
+	 * @param metrics where added items came from, sent with them (not kept)
+	 * @param removalSource what took removed items away, sent with the removal
 	 */
-	void SetCount(uint32_t value, bool silent = false, bool disassemble = true, bool showFlyingLoot = true, eLootSourceType lootSourceType = eLootSourceType::NONE);
+	void SetCount(uint32_t value, bool silent = false, bool disassemble = true, bool showFlyingLoot = true, eLootSourceType lootSourceType = eLootSourceType::NONE, const LootMetrics& metrics = {}, const ItemRemovalSource& removalSource = {});
 
 	/**
 	 * Returns the number of items this item represents (e.g. for stacks)

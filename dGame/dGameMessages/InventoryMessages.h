@@ -17,6 +17,8 @@ class Item;
 // and groups.
 // Field names follow the client (legouniverse.exe 1.10.64); fields are listed in wire order.
 // Received messages are handled by the target's InventoryComponent.
+struct LootMetrics;
+
 namespace GameMessages {
 	// Server -> client.
 	struct AddItemToInventoryClientSync : public NetGameMsg {
@@ -27,6 +29,9 @@ namespace GameMessages {
 		// Fills the fields that describe the item itself (bound flags, extra info, LOT, inventory, stack total and
 		// slot). The caller sets the rest.
 		void SetItem(const Item& item);
+
+		// Adds where the items came from (LootMetrics) to the extra info, after the item's config
+		void AddMetrics(const LootMetrics& metrics);
 
 		bool bBound{};
 		bool bIsBOE{};

@@ -664,9 +664,11 @@ void QuickBuildComponent::TakeItemCosts(Entity& user) {
 	if (!inventoryComponent) return;
 
 	// Live took the precondition items (for example the FV Stone Warrior pedestal's 5 Maelstrom Infected Bricks)
-	// when the build started and gave them back when it was cancelled
+	// when the build started and gave them back when it was cancelled. The removal names the quickbuild as its loot
+	// source (Quickbuild, the quickbuild's object ID), as live's did.
+	const ItemRemovalSource removalSource{ eLootSourceType::QUICKBUILD, m_Parent->GetObjectID() };
 	for (const auto& cost : m_Precondition->GetItemCosts(&user)) {
-		if (inventoryComponent->RemoveItem(cost.lot, cost.count, eInventoryType::ALL)) m_TakenItems.push_back(cost);
+		if (inventoryComponent->RemoveItem(cost.lot, cost.count, eInventoryType::ALL, false, false, removalSource)) m_TakenItems.push_back(cost);
 	}
 	if (!m_TakenItems.empty()) m_TakenItemsFrom = user.GetObjectID();
 }

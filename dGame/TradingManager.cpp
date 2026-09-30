@@ -189,7 +189,8 @@ void Trade::Complete() {
 	recordCoins(m_CoinsA, characterA->GetID(), characterB->GetID());
 	recordCoins(m_CoinsB, characterB->GetID(), characterA->GetID());
 
-	const auto giveItems = [zone](const std::vector<TradeItem>& items, InventoryComponent* from, MissionComponent* fromMissions,
+	const auto tradeId = m_TradeId;
+	const auto giveItems = [zone, tradeId](const std::vector<TradeItem>& items, InventoryComponent* from, MissionComponent* fromMissions,
 		InventoryComponent* to, const LWOOBJID fromCharacter, const LWOOBJID toCharacter) {
 		for (const auto& tradeItem : items) {
 			auto* itemToRemove = from->FindItemById(tradeItem.itemId);
@@ -204,9 +205,12 @@ void Trade::Complete() {
 			const auto bound = itemToRemove->GetBound();
 			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 			fromMissions->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(tradeItem.itemCount));
+			// Live sent the trade's ID with the traded items
+			ReceiveItemOptions options{};
+			options.metrics.transactionId = tradeId;
 			const auto received = whole
-				? to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE, config, subKey, bound)
-				: to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE);
+				? to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE, config, subKey, bound, options)
+				: to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE, {}, LWOOBJID_EMPTY, false, options);
 
 			EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::TRADE, .itemId = tradeItem.itemId, .newItemId = received.id,
 				.lot = tradeItem.itemLot, .count = tradeItem.itemCount, .fromCharacter = fromCharacter, .toCharacter = toCharacter, .zone = zone,

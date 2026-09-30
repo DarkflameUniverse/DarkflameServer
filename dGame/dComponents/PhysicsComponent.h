@@ -4,6 +4,9 @@
 #include "Component.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
+#include "dCommonVars.h"
+
+struct LwoNameValue;
 
 namespace GameMessages {
 	struct GetObjectReportInfo;
@@ -33,11 +36,32 @@ public:
 
 	int32_t GetCollisionGroup() const noexcept { return m_CollisionGroup; }
 	void SetCollisionGroup(int32_t group) noexcept { m_CollisionGroup = group; }
+
+	/**
+	 * Whether a level object is carver_only, which the client never loads (LWOResMgr2Interface::Run skips its load
+	 * when its config has carver_only set; LWOBasePhysComponent::LoadConfigData 0x00c495c9 reads it next to
+	 * navmesh_carver). Live never sent one.
+	 */
+	[[nodiscard]] static bool IsCarverOnly(const LwoNameValue& settings);
+
+	/**
+	 * For a level object the server doesn't spawn (carver_only): adds its shape to the world's movement blockers, the
+	 * way its physics component would have (RegisterMovementBlocker), owned by the world.
+	 * @return whether it blocks movement (its data makes it a wall and the server knows its shape)
+	 */
+	static bool AddLevelMovementBlocker(LWOOBJID id, LOT lot, const LwoNameValue& settings, const NiPoint3& position, const NiQuaternion& rotation, float scale);
 protected:
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& msg);
 
 	// isFallback, when given, says whether the asset had no known shape and got a stand in cube
 	dpEntity* CreatePhysicsEntity(eReplicaComponentType type, bool* isFallback = nullptr);
+
+	/**
+	 * The shape of the physics asset of a LOT's physics component of the given type, for an object placed with this
+	 * scale and rotation, or nullptr when it has none. Some shapes move position (in and out) to line up with the
+	 * client's. isFallback, when given, says whether the asset had no known shape and got a stand in cube.
+	 */
+	static dpEntity* CreateAssetShape(LWOOBJID id, LOT lot, eReplicaComponentType type, int32_t collisionGroup, float scale, const NiQuaternion& rotation, NiPoint3& position, bool* isFallback = nullptr);
 
 	/**
 	 * Makes this object a wall the server's movers can't walk through when its data says it is one
