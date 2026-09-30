@@ -38,13 +38,19 @@ A web dashboard for running and moderating a server, started and supervised by m
 * **Running the server:** server and world lists with live state (starting, ready, stopping), prestarted worlds as a
   setting, announcements, scheduled and cancellable restarts, live updates, scheduled announcements, events, community
   challenges and tasks, backups, webhooks and alerts, server health and instance load, per-server traffic diagnostics,
-  system logs with downloadable log bundles, crash dumps.
+  system logs with downloadable log bundles, crash dumps, a live **Network** page (a draggable flow diagram of the
+  traffic between clients and every server, grouped per zone, with each connected player or address; addresses behind a
+  permission), and each server's build identifier on the About page.
 * **Settings:** every setting the servers read, grouped by purpose with typed inputs, conditions, fuzzy search,
   history, and hot reload; values can be set on the page or kept in the `.ini` files.
 * **Players and characters:** online players, character editing with history and lost-item recovery, inventory with
   item search, missions and progress, a 3D world view with player positions and position history, related accounts.
 * **Moderation:** review queue, warnings, bans and strikes, player reports, linked accounts, chat filter, chat log and
-  chat bridges, an AI helper for staff (never for players), pet name moderation, leaderboards.
+  chat bridges, an AI helper for staff (never for players), pet name moderation, leaderboards. Chat history per guild,
+  per team and per character's whisper threads (whispers behind their own permission), and a chat flags queue with
+  notes, status and history. The client's system info as it reports it at login (OS, memory, video card, CPU), with
+  each field's caveats.
+* **Guilds:** pending guild names in the review queue, guild pages with their chat.
 * **Properties:** property pages with models, rent, reputation, moderation, import/remove/reprocess of models, a 3D
   property view that plays model behaviours, and a public property showcase.
 * **Economy:** economy reports, contraband list with flagging and optional removal, saved views and report emails.
@@ -53,10 +59,15 @@ A web dashboard for running and moderating a server, started and supervised by m
   the client's own files (scenes streamed like the game, zone lighting, hidden objects toggle).
 
 ### UGC server (`UgcServer`)
-Makes and serves player-built (Brick-by-Brick) models the way LU Toolbox does, so every player sees them and their
-icons without building them locally. See [docs/UgcServer.md](docs/UgcServer.md).
-* Builds each model's meshes from the client's brick primitives with LU Toolbox's palette, color variation, hidden
-  face removal and baked ambient occlusion, at two levels of detail, and draws its icon (DXT5 DDS like the client's).
+Makes and serves player-built (Brick-by-Brick) models, so every player sees them and their icons without building them
+locally. See [docs/UgcServer.md](docs/UgcServer.md).
+* Builds each model's meshes from the client's brick primitives with LU Toolbox's palette and color variation, removes
+  faces nobody can see (the model rendered from 42 directions), bakes ambient occlusion, at two levels of detail, and
+  draws its icon (DXT5 DDS like the client's).
+* Processing options to compare side by side, per model or as defaults: rays traced by Intel Embree on the CPU (always
+  built), or optionally on AMD/NVIDIA GPUs (HIPRT) or Intel GPUs (Embree SYCL); icons optionally denoised with Intel
+  Open Image Denoise; or the whole model made by LU Toolbox itself in a headless Blender. The UGC page compares their
+  times and results.
 * Optional looks with the client's own shaders: metal, brushed steel, glow, glitter (animated flecks) and satin.
 * Serves models and icons to clients with or without the client's 3D services (the manifest the client asks worlds
   for, sd0 downloads); served models keep collision, built by each client from the model's LXFML.
@@ -82,9 +93,17 @@ icons without building them locally. See [docs/UgcServer.md](docs/UgcServer.md).
   every bone and rigid system moved together. See [docs/BuildWorkflow.md](docs/BuildWorkflow.md).
 * **Scene ghosting** (on by default, `ghosting_scenes`): players get the objects of the scenes the client streams;
   zones without a terrain scene map keep distance ghosting.
+* **Guilds:** create, invite, ranks, kick, disband and guild chat (`/g`), enabled with a login event
+  (`event_N=guilds`). See [docs/Guilds.md](docs/Guilds.md).
+* **Enemies:** de-aggro trigger walls get their real size, and enemies' paths stop at navmesh carvers and enemy-only
+  blocking volumes, as the level data and client collision groups say.
+* **Loot like live captures:** activity and quickbuild loot comes from the player and spawns at the object, reward coins
+  use the reward's level, coins drop before items, quickbuild item costs are taken at build start and refunded on cancel.
+* **Combat:** area attacks and TacArcs handle targets once each, in the client's order.
+* **Zones:** level and zone files read for every version the client reads.
 * Server-side knockback for AI-moved objects, switchable trigger volumes, missing force field, jetpack NPC and
   Skullkin volume scripts, deletion restrictions enforced, cross-world new-mail notices, pet LOTs stored with names,
-  stale character saves refused.
+  stale character saves refused, and many smaller fixes tracked in [docs/IssueTracker.md](docs/IssueTracker.md).
 
 ### Networking and data
 * **Packets:** packets and game messages moved to structs with Serialize/Deserialize, each conversion verified byte for
@@ -93,6 +112,11 @@ icons without building them locally. See [docs/UgcServer.md](docs/UgcServer.md).
 * **Databases:** MySQL/MariaDB and SQLite kept in step by parity tests; new tables for the dashboard, UGC, API keys,
   traffic and more; settings kept in the database for the dashboard, with the `.ini` files listing every setting.
 * `bind_ip` for the server sockets; login steps timed from auth through master to the world.
+* **Build identifier:** every server logs its version, branch and commit at startup and sends it in its handshake
+  reply, after the bytes the client reads.
+* **CDClient:** the tables every entity and item look up (ComponentsRegistry, ItemComponent) are kept in memory, so
+  loading a character with thousands of different items no longer stalls a world. The CDClient data is never modified.
+* The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
 
 ## License
 Darkflame Universe is licensed under AGPLv3, please read [LICENSE](LICENSE). Some important points:
