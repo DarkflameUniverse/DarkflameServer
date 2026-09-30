@@ -1005,10 +1005,52 @@ Account pages have a **Linked accounts** card (GM 3+, `accounts_links`): other a
 email address, or that logged in to the game from the same network address, with how many reports are about the account.
 
 Login addresses are recorded by the auth server at each successful game login while `log_login_addresses` is on (the
-default; Settings, Players and access). An address is personal data: the dashboard never shows it, only that two
-accounts share one, and an address an account hasn't used for `log_login_address_days` (90) is deleted by the nightly
+default; Settings, Players and access). An address is personal data: the Linked accounts card never shows it, only that
+two accounts share one (the client system info history shows it to staff with `logs_audit`), and an address an account hasn't used for `log_login_address_days` (90) is deleted by the nightly
 log pruning. A shared address can also be a family, a school or a public network, so treat it as a hint. Turn
 `log_login_addresses` off if you don't want addresses kept (and mention it in your privacy notice if you do).
+
+### Client system info
+
+The game client describes its system in every login request. The auth server keeps it **exactly as the client sent
+it** in `client_sysinfo` while `log_client_sysinfo` is on (the default; Settings, Players and access). Staff with
+`client_sysinfo` (GM 5+, grantable) see it:
+
+- the account page's **Client system info (as reported)** card: every description the account's client sent, newest
+  first, each field with its caveat;
+- **Client System Info** (Logs & Health): the spread across players from each account's newest report: Windows version,
+  video card, physical memory buckets, logical processor count and client build. It is approximate and says so.
+
+One row per account covers every login while nothing but the memory in use changes (it keeps first and last seen, the
+number of logins and the newest login's memory text); any other change starts a new row. The address is only kept while
+`log_login_addresses` is on and only shown to staff who also have `logs_audit` (the audit log already shows the
+addresses staff sign in to the dashboard from). Rows not seen for `log_client_sysinfo_days` (90, Data retention) are
+deleted by the Log pruning task. Deleting an account deletes its rows.
+
+**These are not the player's real hardware.** The client is a 32-bit program without a compatibility manifest and uses
+old Windows functions, so Windows answers with compatibility values. Under Wine or Proton every value is what Wine
+reports. Per field:
+
+| Field | Where the client gets it | How far to trust it |
+|---|---|---|
+| `clientOS` | the client's own settings | 1 Windows, 2 Mac: which client build, not the system it runs on |
+| `memoryStats` | GetProcessMemoryInfo and GlobalMemoryStatusEx, as text | physical memory and commit limit are the system's totals (under Wine, the host's). The `vmem` figures are the 32-bit client's own address space (2 or 4 GB). `p`/`v` bytes are the client process's own use. Load and free amounts change every login. Cut at 255 characters |
+| `videoCard` | Direct3D 9 adapter description, then `(HAL-<vertex processing>)` | usually the real card as the driver names it; under Wine or DXVK whatever the translation layer reports (normally the real card, sometimes a stand-in). Cut at 127 characters |
+| `numberOfProcessors` | GetSystemInfo | logical processors a 32-bit program sees (at most 32) |
+| `processorType` | GetSystemInfo | an old field: 586 for every x86 processor. Says nothing |
+| `processorLevel` | GetSystemInfo | the CPU family number (6 for most Intel CPUs, 23 or 25 for AMD Ryzen) |
+| `processorRevision` | GetSystemInfo | model (high byte) and stepping (low byte) |
+| `osVersionInfoSize` | the size the client passes to GetVersionExW | always 276; not system info |
+| major, minor, build | GetVersionExW | without a manifest, Windows 8.1, 10 and 11 all report 6.2 build 9200. A compatibility mode reports what it imitates (XP SP3: 5.1.2600); Wine reports its configured version. If the call fails the fields are whatever was in memory |
+| `platformID` | GetVersionExW | 2 (Windows NT) on every Windows the client runs on |
+
+The memory text is a run of parts with no separators: `<ws> p,<pf> vbytes.<load> n-use.<kb> TKb-pmem.<kb> FKb pmem.<kb>
+TKb pfile.<kb> FKb pfile.<kb> TKbytes vmem. <kb> FKb vmem.P <peak ws> p,<peak pf> v.` (numbers right-aligned to 7
+characters). The dashboard splits it into numbers (`ClientSysInfo::ParseMemoryStats`) and keeps the text as sent; the
+physical memory total is also stored on its own for the spread.
+
+API: `GET /api/accounts/:id/client_sysinfo` (`rows`, newest first, with the raw values, the memory split into numbers
+and labels; `caveats`; `showsIp`) and `GET /api/client_sysinfo/spread`.
 
 ### Mail
 
@@ -1385,7 +1427,8 @@ active players and places, not with events). Each night, shortly after midnight 
   into monthly totals,
 - delete trades and mail older than `economy_transfer_days` (730),
 - delete log rows older than `log_activity_days`, `log_command_days`, `log_audit_days`, `log_cheat_detection_days`,
-  `log_chat_days`, `log_login_address_days`, `health_days` and `log_task_days` (0 keeps everything).
+  `log_chat_days`, `log_login_address_days`, `log_client_sysinfo_days`, `health_days` and `log_task_days` (0 keeps
+  everything).
 
 Flags can be marked dismissed or actioned (`reports_review_flags`, GM 3+); `reports_run_checks` (GM 8+) runs the
 checks by hand.
