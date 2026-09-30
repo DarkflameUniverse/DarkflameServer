@@ -31,11 +31,29 @@
 	.nf-svg .node .toggle text { fill: var(--bs-primary-text-emphasis); font-size: 11px; font-weight: 600; }
 	.nf-svg .node .toggle:hover text { fill: var(--bs-white); }
 	.nf-svg .node.anim { transition: transform .28s ease; }
+	.nf-svg .node rect.box { transform-box: fill-box; transform-origin: top; }
 	.nf-svg .enter { animation: nf-in .28s ease; }
 	.nf-svg.settling .edge { animation: nf-in .35s ease; }
 	@keyframes nf-in { from { opacity: 0; } }
 	.nf-svg.paused .flow { animation-play-state: paused; }
-	@media (prefers-reduced-motion: reduce) { .nf-svg .flow, .nf-svg .enter, .nf-svg.settling .edge { animation: none; } .nf-svg .node.anim { transition: none; } }
+	/* An open group's filter and rows: HTML laid over its box (they outlive the diagram's redraws) */
+	.nf-layer { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 2; }
+	.nf-group { position: absolute; }
+	.nf-group.anim { transition: transform .28s ease; }
+	.nf-group.enter { animation: nf-in .28s ease; }
+	.nf-group.leaving { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+	.nf-group .nf-filter { height: 24px; margin-bottom: 6px; padding: 0 .4rem; font-size: .75rem; min-height: 0; }
+	.nf-rows { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+	.nf-member { box-sizing: border-box; padding: 0 5px; border-radius: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; line-height: 1.2; overflow: hidden; }
+	.nf-member .nm, .nf-member .mt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.nf-member .nm { font-size: 12px; font-weight: 600; color: var(--bs-body-color); }
+	.nf-member .mt { font-size: 10.5px; color: var(--bs-secondary-color); }
+	.nf-member:hover, .nf-member:focus { background: var(--bs-tertiary-bg); outline: none; }
+	.nf-member.active { background: var(--bs-primary-bg-subtle); }
+	.nf-none { font-size: .75rem; color: var(--bs-secondary-color); padding: 0 5px; display: flex; align-items: center; }
+	.nf-stack .nf-members { max-height: 24rem; overflow-y: auto; overscroll-behavior: contain; border-left: 2px solid var(--bs-border-color); margin: .35rem 0 0 .25rem; padding-left: .5rem; }
+	.nf-stack .nf-members .nf-row { padding: .35rem .25rem; }
+	@media (prefers-reduced-motion: reduce) { .nf-svg .flow, .nf-svg .enter, .nf-svg.settling .edge, .nf-group.enter { animation: none; } .nf-svg .node.anim, .nf-group.anim, .nf-group.leaving { transition: none; } }
 	@keyframes nf-dash { to { stroke-dashoffset: -24; } }
 	.nf-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
 		padding: .35rem .5rem; font-size: .75rem; box-shadow: var(--bs-box-shadow-sm); max-width: 320px; }
@@ -57,7 +75,7 @@
 	<div>
 		<h2 class="mb-1">Network</h2>
 		<p class="text-body-secondary mb-0 small">What goes between the players, the servers and web clients right now: each line is a link, one lane each way,
-			as thick as its bytes per second and coloured by its load against the busiest link right now. Drag the boxes to arrange them; open a group with its ▸ button or a double click. The layout and open groups are kept in this browser. Rates are over each server's last report (5 seconds).
+			as thick as its bytes per second and coloured by its load against the busiest link right now. Drag the boxes to arrange them; open a group (game clients, web clients, a zone's instances) with its ▸ button or a double click to list its members in the box, each with its own links, and filter them. The layout and open groups are kept in this browser. Rates are over each server's last report (5 seconds).
 			Hover a line for its numbers, click a box for its details. History is on <a href="/diagnostics">Diagnostics</a>.</p>
 	</div>
 	<div class="d-flex flex-wrap gap-2 align-items-center">
@@ -84,6 +102,7 @@
 			<div class="card-body p-2 nf-box" id="nfBox">
 				<p class="text-body-secondary p-3 mb-0" id="nfEmpty">Waiting for the servers' traffic reports (every 5 seconds through master)…</p>
 				<svg class="nf-svg d-none" id="nfSvg" role="img" aria-label="Traffic between clients and servers"></svg>
+				<div class="nf-layer" id="nfLayer"></div>
 				<div class="nf-stack d-none" id="nfStack"></div>
 			</div>
 		</div>
@@ -121,6 +140,9 @@
 	var PEAK_SECONDS = 300;
 	var summary = null, peers = null, selected = null, detail = null;
 	var expanded = {}, clientsExpanded = false, webExpanded = false, kind = '', search = '';
+	// Open groups' filter text and how far their lists are scrolled (layout pixels), by group id; kept while the page is
+	// open, across live updates
+	var filters = {}, scrolls = {};
 	try {
 		var open = JSON.parse(localStorage.getItem('network.open') || '{}') || {};
 		expanded = open.zones || {}; clientsExpanded = !!open.clients; webExpanded = !!open.web;
@@ -129,7 +151,8 @@
 	var animateNext = false;
 	var view = (document.querySelector('input[name="nfView"]:checked') || {}).value || 'diagram';
 	var history = {}; // edge id -> [[time, value]] for the load colours
-	var svg = document.getElementById('nfSvg'), box = document.getElementById('nfBox'), stack = document.getElementById('nfStack');
+	var svg = document.getElementById('nfSvg'), box = document.getElementById('nfBox'), stack = document.getElementById('nfStack'), layer = document.getElementById('nfLayer');
+	var reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
 	function bytes(v) {
 		if (v >= 1073741824) return (v / 1073741824).toFixed(2) + ' GB';
@@ -142,7 +165,12 @@
 		return nf.format(side.packets) + unit + (known ? ', ' + bytes(side.bytes) + '/s' : '');
 	}
 	function edgeValue(e) { return e.fwd.bytes + e.back.bytes || e.fwd.packets + e.back.packets; }
-	function labelOf(id) { var n = graphNodes[id]; return n ? n.label : id; }
+	function labelOf(id) {
+		var n = graphNodes[id] || (graph && graph.members[id]);
+		if (!n) return id;
+		var owner = n.group && graphNodes[n.group];
+		return n.kind === 'world' ? n.title : owner && owner.kind === 'web' ? memberName(n) : n.label;
+	}
 
 	// Keeps each link's value for PEAK_SECONDS, to colour it by its load against its own recent peak
 	function remember(graph, now) {
@@ -157,27 +185,37 @@
 	var graphNodes = {}, graph = null;
 	function render() {
 		if (!summary) return;
-		graph = G.build(summary, { expanded: expanded, clientsExpanded: clientsExpanded, webExpanded: webExpanded, peers: peers ? peers.peers : null });
+		graph = G.build(summary, { expanded: expanded, clientsExpanded: clientsExpanded, webExpanded: webExpanded, peers: peers ? peers.peers : null,
+			addressesShown: !!(peers && peers.addresses_shown), filters: filters });
 		graphNodes = {};
 		graph.nodes.forEach(function (n) { graphNodes[n.id] = n; });
 		var hasServers = Object.keys(summary.servers || {}).length > 0;
 		document.getElementById('nfEmpty').classList.toggle('d-none', hasServers);
-		var width = box.clientWidth || 800;
 		var list = view === 'list';
 		svg.classList.toggle('d-none', !hasServers || list);
 		stack.classList.toggle('d-none', !hasServers || !list);
+		layer.classList.toggle('d-none', !hasServers || list);
 		if (!hasServers) return;
-		if (list) renderStack(); else renderDiagram(width);
+		if (list) renderStack(); else renderDiagram(diagramWidth());
 	}
+	// The diagram is laid out at the width it is drawn at, so the boxes and the HTML over them line up
+	function diagramWidth() {
+		var cs = getComputedStyle(box);
+		return Math.max(320, Math.floor(box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))) || 800;
+	}
+
+	// Whether a group is open (asked for; a Game/Web clients box has its rows once the connection list is in)
+	function isOpen(n) { return n.kind === 'zone' ? !!expanded[n.zone] : n.kind === 'clients' ? clientsExpanded : n.kind === 'web' ? webExpanded : false; }
+	function canToggle(n) { return n.kind === 'zone' && (n.instances > 1 || isOpen(n)) || n.kind === 'clients' || n.kind === 'web'; }
 
 	function nodeMeta(n) {
 		var lines = [];
-		if (n.kind === 'clients') lines.push(nf.format(n.connections) + ' connected' + (clientsExpanded ? '' : ''));
-		else if (n.kind === 'web') lines.push(n.websockets ? nf.format(n.websockets) + ' live pages' : 'browsers, API');
-		else if (n.kind === 'peer') {
-			var p = n.peer;
-			lines.push(p.kind === 'web' ? 'web' : (n.ping != null ? n.ping + ' ms' : ''));
-		} else {
+		if (n.open) {
+			var noun = n.kind === 'zone' ? ' instances' : ' connections';
+			lines.push(n.shown.length !== n.members.length ? nf.format(n.shown.length) + ' of ' + nf.format(n.members.length) + noun : nf.format(n.members.length) + noun);
+		} else if (n.kind === 'clients') lines.push(nf.format(n.connections) + ' connected' + (isOpen(n) ? ' · loading…' : ''));
+		else if (n.kind === 'web') lines.push(isOpen(n) ? 'loading…' : n.websockets ? nf.format(n.websockets) + ' live pages' : 'browsers, API');
+		else {
 			var parts = [];
 			if (n.instances > 1) parts.push(n.instances + ' instances');
 			if (n.connections) parts.push(nf.format(n.connections) + ' conn');
@@ -192,24 +230,54 @@
 		return lines.filter(Boolean);
 	}
 
+	// A member row's name and the line under it: an instance, a player, or a web client (its dashboard user)
+	function ugcOnly(p) { return (p.servers || []).length > 0 && p.servers.every(function (e) { return (summary.servers[e.server] || {}).type === 'UGC'; }); }
+	function memberName(m) {
+		if (m.kind === 'world') return m.label;
+		var p = m.peer;
+		if (p.kind !== 'web' || ugcOnly(p)) return m.label;
+		return p.user || (p.account_id ? 'account ' + p.account_id : 'not signed in');
+	}
+	function memberMeta(m) {
+		var parts = [];
+		if (m.kind === 'world') {
+			if (m.connections) parts.push(nf.format(m.connections) + ' conn');
+			if (m.ping != null) parts.push(m.ping + ' ms');
+			if (m.resends) parts.push(nf.format(m.resends) + ' resent');
+			return parts.join(' · ');
+		}
+		var p = m.peer;
+		if (p.kind === 'web') {
+			if (ugcOnly(p)) parts.push('UGC files');
+			else parts.push(p.address);
+		} else {
+			if (p.character && p.account) parts.push(p.account);
+			if (m.ping != null) parts.push(m.ping + ' ms');
+			parts.push(p.address);
+		}
+		return parts.join(' · ');
+	}
+	function memberTitle(m) {
+		if (m.kind === 'world') return m.title;
+		var p = m.peer;
+		return [memberName(m), memberMeta(m)].concat((p.servers || []).map(function (e) { return e.label; })).join('\n');
+	}
+
 	// Boxes the viewer dragged, kept in this browser: {id: {fx, y}}
-	var moved = {}, lastLayout = null, zoneFirst = {};
+	var moved = {}, lastLayout = null;
 	try { moved = JSON.parse(localStorage.getItem('network.positions') || '{}') || {}; } catch (e) { moved = {}; }
 	function saveMoved() { try { localStorage.setItem('network.positions', JSON.stringify(moved)); } catch (e) { /* private window */ } }
 	var busiest = 0;
 	function renderDiagram(width) {
 		var before = animateNext && lastLayout ? lastLayout.nodes : null;
-		var beforeZones = zoneFirst;
 		animateNext = false;
-		var L = G.layout(graph, width, moved);
+		var L = G.layout(graph, width, moved, scrolls);
 		lastLayout = L;
-		zoneFirst = {};
-		graph.nodes.forEach(function (n) { if (n.kind === 'world' && !zoneFirst[n.zone]) zoneFirst[n.zone] = L.nodes[n.id]; });
 		busiest = graph.edges.reduce(function (m, e) { return Math.max(m, edgeValue(e)); }, 0);
 		var html = '';
 		graph.edges.forEach(function (e) {
 			var p = L.paths[e.id];
-			if (!p) return;
+			if (!p) return; // a row scrolled out of view
 			var load = G.loadClass(edgeValue(e), busiest);
 			var lanes = [['fwd', e.fwd, e.bytesKnown.fwd], ['back', e.back, e.bytesKnown.back]];
 			html += '<g class="edge' + (e.exact ? '' : ' estimated') + '" data-edge="' + esc(e.id) + '">';
@@ -225,23 +293,22 @@
 			var at = L.nodes[n.id];
 			var x = at.x - L.nodeWidth / 2, y = at.y - L.nodeHeight / 2;
 			var meta = nodeMeta(n);
+			if (n.open) meta = meta.slice(0, 1); // the header has room for one line
 			var chars = Math.floor((L.nodeWidth - 16) / 6.6);
-			var canToggleName = n.kind === 'zone' && n.instances > 1 || n.kind === 'world' && expanded[n.zone] || n.kind === 'clients' || n.kind === 'web';
-			var nameChars = canToggleName ? chars - 8 : chars;
+			var toggle = canToggle(n), open = isOpen(n);
+			var nameChars = toggle ? chars - 5 : chars;
 			var name = n.label.length > nameChars ? n.label.slice(0, nameChars - 1) + '…' : n.label;
-			var canToggle = n.kind === 'zone' && n.instances > 1 || n.kind === 'world' && expanded[n.zone] || n.kind === 'clients' || n.kind === 'web';
-			var open = n.kind === 'world' || (n.kind === 'clients' && clientsExpanded) || (n.kind === 'web' && webExpanded);
-			html += '<g class="node' + (selected === n.id ? ' selected' : '') + '" data-node="' + esc(n.id) + '" tabindex="0" role="button" aria-label="' + esc(n.label) + '">' +
-				'<rect x="' + x + '" y="' + y + '" width="' + L.nodeWidth + '" height="' + L.nodeHeight + '" rx="8"/>' +
+			html += '<g class="node' + (selected === n.id ? ' selected' : '') + '" data-node="' + esc(n.id) + '" tabindex="0" role="button" aria-label="' + esc(n.label) + '"' + (toggle ? ' aria-expanded="' + open + '"' : '') + '>' +
+				'<rect class="box" x="' + x + '" y="' + y + '" width="' + L.nodeWidth + '" height="' + at.h + '" rx="8"/>' +
 				'<text class="name" x="' + (x + 8) + '" y="' + (y + 17) + '">' + esc(name) + '</text>';
 			meta.forEach(function (line, i) {
 				html += '<text class="meta' + (/resent/.test(line) ? ' warn' : '') + '" x="' + (x + 8) + '" y="' + (y + 32 + i * 13) + '">' + esc(line.length > chars + 4 ? line.slice(0, chars + 3) + '…' : line) + '</text>';
 			});
-			if (n.noSplit) html += '<text class="meta warn" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end"><title>This server reports only totals: its links are estimated</title>≈</text>';
-			else if (canToggle) {
-				var pill = open ? '▾ group' : n.kind === 'zone' ? '▸ ' + n.instances : '▸ each';
-				var pw = pill.length * 6.2 + 12, px = x + L.nodeWidth - pw - 6, py = y + 5;
-				var tipText = open ? (n.kind === 'world' ? 'Show the zone as one box' : 'Hide the separate connections') : (n.kind === 'zone' ? 'Show each instance' : 'Show the busiest connections one by one');
+			if (n.noSplit && !toggle) html += '<text class="meta warn" x="' + (x + L.nodeWidth - 8) + '" y="' + (y + 17) + '" text-anchor="end"><title>This server reports only totals: its links are estimated</title>≈</text>';
+			else if (toggle) {
+				var pill = open ? '▾' : n.kind === 'zone' ? '▸ ' + n.instances : '▸ each';
+				var pw = Math.max(22, pill.length * 6.2 + 12), px = x + L.nodeWidth - pw - 6, py = y + 5;
+				var tipText = open ? 'Close the list' : (n.kind === 'zone' ? 'List each instance in the box' : 'List each connection in the box');
 				html += '<g class="toggle" data-toggle="' + esc(n.id) + '" role="button" aria-label="' + esc(tipText) + '"><title>' + esc(tipText) + '</title>' +
 					'<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="16" rx="8"/>' +
 					'<text x="' + (px + pw / 2) + '" y="' + (py + 12) + '" text-anchor="middle">' + esc(pill) + '</text></g>';
@@ -249,46 +316,221 @@
 			html += '</g>';
 		});
 		svg.setAttribute('viewBox', '0 0 ' + L.width + ' ' + L.height);
+		svg.setAttribute('width', L.width);
 		svg.setAttribute('height', L.height);
 		svg.innerHTML = html;
-		if (before) glide(before, beforeZones, L);
+		var fresh = renderLayer(L);
+		if (before) glide(before, L, fresh);
 	}
 
-	// After opening or closing a group: boxes glide from where they were, new ones grow out of their group, links fade in
-	function glide(before, beforeZones, L) {
+	// The open groups' filters and rows, over their boxes. Each panel, its filter and its rows are made once and then
+	// only moved and updated, so a live update keeps what is typed, the focus and the scroll position.
+	var panels = {}; // group id -> {el, input, rows, items: {memberId: element}}
+	var scrollFrame = 0;
+	function renderLayer(L) {
+		var k = (svg.getBoundingClientRect().width / L.width) || 1;
+		// The layer sits at the top left of the box's padding box
+		var sr = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
+		var ox = sr.left - br.left - box.clientLeft, oy = sr.top - br.top - box.clientTop, fresh = {};
+		graph.nodes.forEach(function (n) {
+			if (!n.open) return;
+			var at = L.nodes[n.id], list = L.lists[n.id];
+			var panel = panels[n.id];
+			if (!panel) {
+				panel = panels[n.id] = makePanel(n);
+				fresh[n.id] = true;
+			}
+			var el = panel.el;
+			el.classList.remove('leaving');
+			el.style.left = (ox + (at.x - L.nodeWidth / 2 + 5) * k) + 'px';
+			el.style.top = (oy + (at.y - L.nodeHeight / 2 + G.GROUP.head) * k) + 'px';
+			el.style.width = ((L.nodeWidth - 10) * k) + 'px';
+			panel.rows.style.height = (list.height * k) + 'px';
+			fillRows(panel, n, G.GROUP.row * k, 'nf-member');
+			// Where the layout has the list scrolled to (a list shown again after the List view starts at its top)
+			if (Math.abs(panel.rows.scrollTop - list.scroll * k) > 1) panel.rows.scrollTop = list.scroll * k;
+			panel.k = k;
+		});
+		Object.keys(panels).forEach(function (id) {
+			var n = graphNodes[id];
+			if (n && n.open) return;
+			closePanel(panels, id);
+		});
+		return fresh;
+	}
+	function makePanel(n) {
+		var el = document.createElement('div');
+		el.className = 'nf-group';
+		el.setAttribute('data-group', n.id);
+		var input = document.createElement('input');
+		input.type = 'search';
+		input.className = 'form-control form-control-sm nf-filter';
+		input.placeholder = n.kind === 'zone' ? 'Filter instances' : 'Filter';
+		input.setAttribute('aria-label', 'Filter ' + n.label);
+		input.value = filters[n.id] || '';
+		input.addEventListener('input', function () { setFilter(n.id, input.value); });
+		var rows = document.createElement('div');
+		rows.className = 'nf-rows';
+		rows.setAttribute('role', 'list');
+		rows.setAttribute('aria-label', n.label);
+		rows.addEventListener('scroll', function () {
+			var panel = panels[n.id];
+			scrolls[n.id] = rows.scrollTop / ((panel && panel.k) || 1);
+			// The rows' links follow the scroll, once a frame
+			if (scrollFrame) return;
+			scrollFrame = requestAnimationFrame(function () { scrollFrame = 0; if (graph && view !== 'list') renderDiagram(lastLayout ? lastLayout.width : diagramWidth()); });
+		}, { passive: true });
+		el.appendChild(input);
+		el.appendChild(rows);
+		layer.appendChild(el);
+		return { el: el, input: input, rows: rows, items: {} };
+	}
+	function closePanel(set, id) {
+		var panel = set[id];
+		delete set[id];
+		if (reducedMotion.matches || !panel.el.classList.contains('nf-group')) { panel.el.remove(); return; }
+		panel.el.classList.add('leaving');
+		setTimeout(function () { panel.el.remove(); }, 220);
+	}
+	// A filter typed in either view: both show it; the list starts from its top again
+	function setFilter(id, value) {
+		filters[id] = value;
+		scrolls[id] = 0;
+		[panels[id], stackPanels[id]].forEach(function (p) {
+			if (!p) return;
+			if (p.input.value !== value) p.input.value = value;
+			p.rows.scrollTop = 0;
+		});
+		render();
+	}
+	// The group's shown members as rows, keyed by member id: kept, updated in place and put in order
+	function fillRows(panel, n, rowHeight, className, extra) {
+		var keep = {};
+		n.shown.forEach(function (id, i) {
+			var m = graph.members[id];
+			keep[id] = true;
+			var row = panel.items[id];
+			if (!row) {
+				row = panel.items[id] = document.createElement('div');
+				row.className = className;
+				row.setAttribute('data-member', id);
+				row.setAttribute('role', 'listitem');
+				row.tabIndex = 0;
+				row.innerHTML = '<div class="nm"></div><div class="mt"></div>' + (extra ? '<div class="nf-links"></div>' : '');
+			}
+			if (rowHeight) row.style.height = rowHeight + 'px';
+			setText(row.children[0], memberName(m));
+			setText(row.children[1], memberMeta(m));
+			if (row.title !== memberTitle(m)) row.title = memberTitle(m);
+			row.classList.toggle('active', selected === id);
+			if (extra) { var html = extra(m); if (row.children[2].innerHTML !== html) row.children[2].innerHTML = html; }
+			if (panel.rows.children[i] !== row) panel.rows.insertBefore(row, panel.rows.children[i] || null);
+		});
+		Object.keys(panel.items).forEach(function (id) { if (!keep[id]) { panel.items[id].remove(); delete panel.items[id]; } });
+		// Nothing to list: one line saying why
+		var none = panel.rows.querySelector('.nf-none');
+		if (!n.shown.length) {
+			if (!none) { none = document.createElement('div'); none.className = 'nf-none'; panel.rows.appendChild(none); }
+			if (rowHeight) none.style.height = rowHeight + 'px';
+			setText(none, n.members.length ? 'Nothing matches the filter' : 'Nothing connected');
+		} else if (none) none.remove();
+	}
+	function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+
+	// After opening or closing a group: boxes glide from where they were, a box grows or shrinks to its list, new ones
+	// and links fade in
+	function glide(before, L, fresh) {
 		svg.classList.remove('settling');
 		void svg.getBoundingClientRect();
 		svg.classList.add('settling');
 		setTimeout(function () { svg.classList.remove('settling'); }, 400);
-		svg.querySelectorAll('.node').forEach(function (g) {
-			var id = g.getAttribute('data-node'), n = graphNodes[id], now = L.nodes[id];
-			if (!now) return;
-			var from = before[id] || (n && n.group && (before[n.group] || before['zone:' + n.zone])) ||
-				(n && n.kind === 'zone' && beforeZones[n.zone]) || null; // a zone box coming back: where its first instance was
-			if (!before[id]) g.classList.add('enter');
-			if (!from || (from.x === now.x && from.y === now.y)) return;
-			g.style.transform = 'translate(' + (from.x - now.x) + 'px,' + (from.y - now.y) + 'px)';
+		var move = function (el, from, now) {
+			el.style.transform = 'translate(' + (from.x - now.x) + 'px,' + (from.y - now.y) + 'px)';
 			requestAnimationFrame(function () {
-				g.classList.add('anim');
-				g.style.transform = '';
-				setTimeout(function () { g.classList.remove('anim'); }, 320);
+				el.classList.add('anim');
+				el.style.transform = '';
+				setTimeout(function () { el.classList.remove('anim'); }, 320);
 			});
+		};
+		svg.querySelectorAll('.node').forEach(function (g) {
+			var id = g.getAttribute('data-node'), now = L.nodes[id], from = before[id];
+			if (!now) return;
+			if (!from) { g.classList.add('enter'); return; }
+			if (from.h !== now.h && !reducedMotion.matches && g.firstChild && g.firstChild.animate) {
+				try { g.firstChild.animate([{ transform: 'scaleY(' + (from.h / now.h) + ')' }, { transform: 'none' }], { duration: 280, easing: 'ease' }); } catch (e) { /* older browser: no grow */ }
+			}
+			if (from.x !== now.x || from.y !== now.y) {
+				move(g, from, now);
+				var panel = panels[id];
+				if (panel && !fresh[id]) move(panel.el, from, now);
+			}
 		});
+		Object.keys(fresh).forEach(function (id) { if (panels[id]) panels[id].el.classList.add('enter'); });
 	}
 
-	// Phones: every box with its links, busiest first
-	function renderStack() {
-		var max = graph.edges.reduce(function (m, e) { return Math.max(m, edgeValue(e)); }, 0) || 1;
-		stack.innerHTML = graph.nodes.map(function (n) {
-			var links = graph.edges.filter(function (e) { return e.from === n.id; }).sort(function (a, b) { return edgeValue(b) - edgeValue(a); });
-			return '<div class="nf-row" data-node="' + esc(n.id) + '" role="button" tabindex="0"><div class="d-flex justify-content-between"><b>' + esc(n.label) + '</b><span class="small text-body-secondary">' + esc(nodeMeta(n).join(' · ')) + '</span></div>' +
-				links.map(function (e) {
-					var load = G.loadClass(edgeValue(e), graph.edges.reduce(function (m, x) { return Math.max(m, edgeValue(x)); }, 0));
-					return '<div class="small mt-1">→ ' + esc(labelOf(e.to)) + (e.exact ? '' : ' <span class="badge text-bg-secondary">estimated</span>') +
-						'<div class="text-body-secondary">out ' + esc(rateText(e.fwd, e, e.bytesKnown.fwd)) + ' · back ' + esc(rateText(e.back, e, e.bytesKnown.back)) + '</div>' +
-						'<div class="nf-bar" style="width:' + Math.max(2, edgeValue(e) / max * 100).toFixed(1) + '%;background:var(--nf-' + load + ')"></div></div>';
-				}).join('') + '</div>';
+	// Phones: every box with its links, busiest first; an open group lists its members under it with the same filter.
+	// Boxes, filters and member rows are kept and updated in place, like the diagram's.
+	var stackItems = {}, stackPanels = {};
+	function linkLines(id, max) {
+		var links = graph.edges.filter(function (e) { return e.from === id; }).sort(function (a, b) { return edgeValue(b) - edgeValue(a); });
+		return links.map(function (e) {
+			var load = G.loadClass(edgeValue(e), busiest);
+			return '<div class="small mt-1">→ ' + esc(labelOf(e.to)) + (e.exact ? '' : ' <span class="badge text-bg-secondary">estimated</span>') +
+				'<div class="text-body-secondary">out ' + esc(rateText(e.fwd, e, e.bytesKnown.fwd)) + ' · back ' + esc(rateText(e.back, e, e.bytesKnown.back)) + '</div>' +
+				'<div class="nf-bar" style="width:' + Math.max(2, edgeValue(e) / max * 100).toFixed(1) + '%;background:var(--nf-' + load + ')"></div></div>';
 		}).join('');
+	}
+	function renderStack() {
+		busiest = graph.edges.reduce(function (m, e) { return Math.max(m, edgeValue(e)); }, 0);
+		var max = busiest || 1;
+		var keep = {};
+		graph.nodes.forEach(function (n, i) {
+			keep[n.id] = true;
+			var item = stackItems[n.id];
+			if (!item) {
+				item = stackItems[n.id] = document.createElement('div');
+				item.className = 'nf-row';
+				item.setAttribute('data-node', n.id);
+				item.innerHTML = '<div class="nf-head" role="button" tabindex="0"></div><div class="nf-links"></div>';
+			}
+			var toggle = canToggle(n), open = isOpen(n);
+			var head = '<div class="d-flex justify-content-between gap-2"><b>' + esc(n.label) + '</b><span class="small text-body-secondary text-end">' + esc(nodeMeta(n).join(' · ')) +
+				(toggle ? ' <button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 ms-1" data-toggle="' + esc(n.id) + '" aria-expanded="' + open + '">' + (open ? '▾' : '▸') + '</button>' : '') + '</span></div>';
+			if (item.children[0].innerHTML !== head) item.children[0].innerHTML = head;
+			var links = linkLines(n.id, max);
+			if (item.children[1].innerHTML !== links) item.children[1].innerHTML = links;
+			// An open group's members, with their filter
+			var panel = stackPanels[n.id];
+			if (n.open) {
+				if (!panel) {
+					panel = stackPanels[n.id] = { el: document.createElement('div'), items: {} };
+					panel.input = document.createElement('input');
+					panel.input.type = 'search';
+					panel.input.className = 'form-control form-control-sm mt-2';
+					panel.input.placeholder = n.kind === 'zone' ? 'Filter instances' : 'Filter';
+					panel.input.setAttribute('aria-label', 'Filter ' + n.label);
+					panel.input.value = filters[n.id] || '';
+					panel.input.addEventListener('input', function () { setFilter(n.id, panel.input.value); });
+					panel.rows = document.createElement('div');
+					panel.rows.className = 'nf-members';
+					panel.rows.setAttribute('role', 'list');
+					panel.el.appendChild(panel.input);
+					panel.el.appendChild(panel.rows);
+					item.appendChild(panel.el);
+				}
+				fillRows(panel, n, 0, 'nf-row nf-member', function (m) { return linkLines(m.id, max); });
+			} else if (panel) {
+				panel.el.remove();
+				delete stackPanels[n.id];
+			}
+			if (stack.children[i] !== item) stack.insertBefore(item, stack.children[i] || null);
+		});
+		Object.keys(stackItems).forEach(function (id) {
+			if (keep[id]) return;
+			stackItems[id].remove();
+			delete stackItems[id];
+			delete stackPanels[id];
+		});
 	}
 
 	// Hover: a link's numbers each way
@@ -317,7 +559,7 @@
 	svg.addEventListener('mouseleave', function () { tip.classList.add('d-none'); });
 
 	function toggleGroup(n) {
-		if (n.kind === 'zone' || n.kind === 'world') { if (expanded[n.zone]) delete expanded[n.zone]; else expanded[n.zone] = true; }
+		if (n.kind === 'zone') { if (expanded[n.zone]) delete expanded[n.zone]; else expanded[n.zone] = true; }
 		else if (n.kind === 'clients') { clientsExpanded = !clientsExpanded; if (clientsExpanded) loadPeers(); }
 		else if (n.kind === 'web') { webExpanded = !webExpanded; if (webExpanded) loadPeers(); }
 		else return false;
@@ -328,15 +570,24 @@
 	}
 
 	function onNode(ev) {
+		if (ev.target.closest('input')) return;
+		var row = ev.target.closest('[data-member]');
+		if (row && graph && graph.members[row.getAttribute('data-member')]) { showMember(graph.members[row.getAttribute('data-member')]); return; }
 		var toggle = ev.target.closest('[data-toggle]');
 		var el = ev.target.closest('[data-node]');
 		if (!el || !graph) return;
-		var n = graphNodes[el.dataset.node];
+		var n = graphNodes[el.getAttribute('data-node')];
 		if (!n) return;
 		if (toggle) { toggleGroup(n); return; }
 		selected = n.id;
 		render();
 		showDetail(n);
+	}
+	function showMember(m) {
+		selected = m.id;
+		render();
+		if (m.kind === 'world') showDetail({ id: m.id, kind: 'world', label: m.title, servers: [m.server] });
+		else showDetail({ id: m.id, kind: 'peer', label: memberName(m), peer: m.peer, servers: [] });
 	}
 	// Dragging a box moves it (a short press is still a click)
 	var drag = null, justDragged = false;
@@ -371,13 +622,17 @@
 	svg.addEventListener('dblclick', function (ev) {
 		var el = ev.target.closest('[data-node]');
 		var n = el && graphNodes[el.getAttribute('data-node')];
-		if (!n || (n.kind === 'zone' && !(n.instances > 1))) return;
+		if (!n || !canToggle(n)) return;
 		if (toggleGroup(n)) ev.preventDefault();
 	});
 	svg.addEventListener('click', function (ev) { if (justDragged) { ev.stopPropagation(); return; } onNode(ev); });
+	layer.addEventListener('click', onNode);
 	stack.addEventListener('click', onNode);
-	[svg, stack].forEach(function (el) {
-		el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onNode(ev); } });
+	[svg, stack, layer].forEach(function (el) {
+		el.addEventListener('keydown', function (ev) {
+			if (ev.target.closest('input')) return;
+			if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onNode(ev); }
+		});
 	});
 
 	function sparkline(series) {
@@ -417,15 +672,15 @@
 		var intro = linkList(n);
 		if (n.kind === 'clients' || n.kind === 'web' || n.kind === 'peer') {
 			var who = n.kind === 'peer' ? n.peer : null;
-			body.innerHTML = intro + (who ? '<div>' + esc(who.address) + (who.account ? ' · ' + esc(who.account) : '') + (who.character ? ' · ' + esc(who.character) : '') + '</div>' : '') +
-				'<p class="text-body-secondary mb-0">Each connection is in the Connections table below.' + (n.kind === 'peer' ? '' : ' The + on the box shows the busiest ones in the diagram.') + '</p>';
+			body.innerHTML = intro + (who ? '<div>' + esc(who.address) + (who.user ? ' · ' + esc(who.user) : '') + (who.account ? ' · ' + esc(who.account) : '') + (who.character ? ' · ' + esc(who.character) : '') + '</div>' : '') +
+				'<p class="text-body-secondary mb-0">Each connection is in the Connections table below.' + (n.kind === 'peer' ? '' : ' ▸ on the box lists them in it, each with its own links.') + '</p>';
 			return;
 		}
 		if (n.servers.length > 1) {
 			body.innerHTML = intro + '<p class="mb-1">' + esc(n.servers.length) + ' instances:</p><ul class="mb-2">' + n.servers.map(function (k) {
 				var s = summary.servers[k];
 				return '<li><a href="/diagnostics?server=' + encodeURIComponent(k) + '">' + esc(s.label) + '</a> <span class="text-body-secondary">' + esc(nf.format(s.packets_in + s.packets_out)) + ' pkt/s</span></li>';
-			}).join('') + '</ul><p class="text-body-secondary mb-0">The + on the box shows each instance in the diagram.</p>';
+			}).join('') + '</ul><p class="text-body-secondary mb-0">▸ on the box lists each instance in it, each with its own links.</p>';
 			return;
 		}
 		var key = n.servers[0];
@@ -454,15 +709,15 @@
 		var rows = peers.peers.filter(function (p) {
 			if (kind && p.kind !== kind) return false;
 			if (!search) return true;
-			var text = [p.address, p.account, p.character].concat(p.servers.map(function (s) { return s.label; })).join(' ').toLowerCase();
+			var text = [p.address, p.account, p.character, p.user].concat(p.servers.map(function (s) { return s.label; })).join(' ').toLowerCase();
 			return text.indexOf(search) !== -1;
 		});
 		if (!peers.reported) { el.innerHTML = '<p class="text-body-secondary p-3 mb-0">No server has reported its connections yet (servers older than this dashboard don\'t).</p>'; return; }
 		var KIND = { game: 'Game client', web: 'Web client', server: 'Server' };
-		var html = '<table class="table table-sm table-hover align-middle mb-0 nf-table small"><thead><tr><th>Address</th><th>Kind</th><th>Player</th><th>Servers</th><th class="text-end">In/s</th><th class="text-end">Out/s</th><th class="text-end">Ping</th></tr></thead><tbody>';
+		var html = '<table class="table table-sm table-hover align-middle mb-0 nf-table small"><thead><tr><th>Address</th><th>Kind</th><th>Player or user</th><th>Servers</th><th class="text-end">In/s</th><th class="text-end">Out/s</th><th class="text-end">Ping</th></tr></thead><tbody>';
 		html += rows.slice(0, 300).map(function (p) {
 			var pings = p.servers.filter(function (s) { return s.ping_ms != null; }).map(function (s) { return s.ping_ms; });
-			var player = p.character ? esc(p.character) + ' <span class="text-body-secondary">(' + esc(p.account) + ')</span>' : p.account ? esc(p.account) : '';
+			var player = p.character ? esc(p.character) + ' <span class="text-body-secondary">(' + esc(p.account) + ')</span>' : p.account ? esc(p.account) : p.user ? esc(p.user) : '';
 			if (p.account_id) player = '<a href="/accounts/' + encodeURIComponent(p.account_id) + '">' + player + '</a>';
 			return '<tr><td><code>' + esc(p.address) + '</code></td><td>' + esc(KIND[p.kind] || p.kind) + '</td><td>' + player + '</td>' +
 				'<td>' + p.servers.map(function (s) {
