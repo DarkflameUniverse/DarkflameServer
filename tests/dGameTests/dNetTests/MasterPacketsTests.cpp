@@ -6,6 +6,7 @@
 #include "master/WorldFiles.h"
 #include "master/MessageCapture.h"
 #include "master/PlayerAction.h"
+#include "master/UpdateStatus.h"
 #include "PacketDispatcher.h"
 #include "PacketTestUtils.h"
 #include "Game.h"
@@ -670,6 +671,31 @@ TEST(MasterPacketsTests, WorldFilesStatus) {
 	EXPECT_TRUE(read.watching);
 	EXPECT_EQ(read.watchSeconds, 5);
 	EXPECT_EQ(read.zones, status.zones);
+}
+
+TEST(MasterPacketsTests, UpdateStatus) {
+	UpdateStatus status;
+	status.state = 2;
+	status.summary = "Update available: release v3.1.0 (this server is running release v3.0.0)";
+	ExpectHeaderThenSerialize(status, MessageType::Master::UPDATE_STATUS);
+
+	RakNet::BitStream stream;
+	status.Serialize(stream);
+	UpdateStatus read;
+	ASSERT_TRUE(read.Deserialize(stream));
+	EXPECT_EQ(read.state, 2);
+	EXPECT_EQ(read.summary, status.summary);
+
+	// Longer than the cap: cut on the way out, refused on the way in
+	status.summary.assign(UpdateStatus::MAX_SUMMARY + 10, 'x');
+	RakNet::BitStream cut;
+	status.Serialize(cut);
+	ASSERT_TRUE(read.Deserialize(cut));
+	EXPECT_EQ(read.summary.size(), UpdateStatus::MAX_SUMMARY);
+	RakNet::BitStream tooLong;
+	tooLong.Write<uint8_t>(1);
+	tooLong.Write<uint16_t>(UpdateStatus::MAX_SUMMARY + 1);
+	EXPECT_FALSE(read.Deserialize(tooLong));
 }
 
 // A master without the outdated flags (written after the endpoints) still reads: nothing is outdated

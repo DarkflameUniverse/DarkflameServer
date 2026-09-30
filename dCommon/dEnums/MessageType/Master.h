@@ -102,5 +102,8 @@ namespace MessageType {
 		WORLD_RELOAD,
 		// Master -> dashboard: each running zone's files, whether they changed on disk, and which instances are stale
 		WORLD_FILES_STATUS,
+
+		// Dashboard -> master: what the update check found about this build (see UpdateStatus.h), for master's log
+		UPDATE_STATUS,
 	};
 }

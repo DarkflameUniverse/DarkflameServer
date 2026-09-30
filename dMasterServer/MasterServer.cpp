@@ -63,6 +63,7 @@
 #include "CDClientReloader.h"
 #include "WorldReloader.h"
 #include "master/WorldFiles.h"
+#include "master/UpdateStatus.h"
 #include "BuildInfo.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
@@ -1211,6 +1212,14 @@ namespace {
 		Game::lastSignal = -1;
 	}
 
+	// The dashboard's update check: logged when what it says changes (so the first one after master starts, and news)
+	void OnUpdateStatus(const UpdateStatus& status, const SystemAddress& sysAddr) {
+		static std::string lastSummary;
+		if (sysAddr != dashboardServerMasterPeerSysAddr || status.summary.empty() || status.summary == lastSummary) return;
+		lastSummary = status.summary;
+		LOG("%s", status.summary.c_str());
+	}
+
 	void OnMessageCaptureControl(const MessageCaptureControl& control, const SystemAddress& sysAddr) {
 		// Only the dashboard starts message captures; every world gets it, and the one with the player acts on it
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
@@ -1270,6 +1279,7 @@ namespace {
 			handlers.On<ConfigReload>(Master::CONFIG_RELOAD, OnConfigReload);
 			handlers.On<InstanceShutdown>(Master::INSTANCE_SHUTDOWN, OnInstanceShutdown);
 			handlers.On<DashboardShutdown>(Master::DASHBOARD_SHUTDOWN, OnDashboardShutdown);
+			handlers.On<UpdateStatus>(Master::UPDATE_STATUS, OnUpdateStatus);
 			// Only world servers report game writes; pass them on unchanged
 			handlers.On<DataChanged>(Master::DATA_CHANGED, ForwardWorldToDashboard<DataChanged>);
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);

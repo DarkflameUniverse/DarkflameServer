@@ -1816,6 +1816,7 @@ static_assert(static_cast<int64_t>(MessageType::Master::CDCLIENT_RELOAD) == 46);
 static_assert(static_cast<int64_t>(MessageType::Master::WORLD_FILES) == 47);
 static_assert(static_cast<int64_t>(MessageType::Master::WORLD_RELOAD) == 48);
 static_assert(static_cast<int64_t>(MessageType::Master::WORLD_FILES_STATUS) == 49);
+static_assert(static_cast<int64_t>(MessageType::Master::UPDATE_STATUS) == 50);
 
 // MessageType::Server: 3 enumerators
 static_assert(static_cast<int64_t>(MessageType::Server::VERSION_CONFIRM) == 0);
