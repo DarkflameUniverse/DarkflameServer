@@ -157,6 +157,18 @@
 </div>
 {% endif %}
 
+{% if can.client_sysinfo %}
+<div class="card mb-4" id="sysinfoCard" data-account="{{ account.id }}">
+	<div class="card-header"><h5 class="mb-0">Client system info (as reported) <span class="badge rounded-pill text-bg-secondary align-middle" id="sysinfoCount"></span></h5></div>
+	<div class="card-body">
+		<p class="small text-body-secondary mb-2">What this account's game client said about its system at each login, exactly as sent. The client asks old Windows
+			functions from a 32-bit program, so several values are compatibility defaults, not the player's real hardware; each field says how far it can be trusted.
+			A new entry starts when anything but the memory in use changes.{% if not can.logs_audit %} Addresses are only shown with logs_audit.{% endif %}</p>
+		<div id="sysinfoList"><p class="text-body-secondary mb-0">Loading&hellip;</p></div>
+	</div>
+</div>
+{% endif %}
+
 {% if can.accounts_notes %}
 <div class="card mb-4" id="historyCard">
 	<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Moderation history</h5><span class="small text-body-secondary" id="warningCount"></span></div>
@@ -701,6 +713,7 @@ function disconnectMailAccount() {
 <script src="/js/related.js"></script>
 <script src="/js/strikes.js"></script>
 <script src="/js/account-links.js"></script>
+<script src="/js/client-sysinfo.js"></script>
 <script src="/js/api-keys.js"></script>
 <script src="/js/grants.js"></script>
 <script>

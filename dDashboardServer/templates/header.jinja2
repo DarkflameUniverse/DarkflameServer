@@ -105,8 +105,8 @@
 	</div>
 	{% endif %}
 
-	{% set logsPages = ["health", "instances", "diagnostics", "network", "activity_log", "command_log", "audit_log", "system_log"] %}
-	{% if can.health_view or can.logs_activity or can.logs_command or can.logs_audit or can.logs_system %}
+	{% set logsPages = ["health", "instances", "diagnostics", "network", "activity_log", "command_log", "audit_log", "system_log", "client_sysinfo"] %}
+	{% if can.health_view or can.logs_activity or can.logs_command or can.logs_audit or can.logs_system or can.client_sysinfo %}
 	<div class="nav-group">
 		<button class="nav-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#nav-logs" aria-expanded="{% if current_page in logsPages %}true{% else %}false{% endif %}" aria-controls="nav-logs">
 			Logs &amp; Health<span class="nav-group-dot" title="Something in here needs attention"></span>
@@ -117,6 +117,7 @@
 				{% if can.logs_activity %}<a href="/activity_log" class="list-group-item list-group-item-action{% if current_page == "activity_log" %} active{% endif %}">Activity Log</a>{% endif %}
 				{% if can.logs_command %}<a href="/command_log" class="list-group-item list-group-item-action{% if current_page == "command_log" %} active{% endif %}">Command Log</a>{% endif %}
 				{% if can.logs_audit %}<a href="/audit_log" class="list-group-item list-group-item-action{% if current_page == "audit_log" %} active{% endif %}">Audit Log</a>{% endif %}
+				{% if can.client_sysinfo %}<a href="/client_sysinfo" class="list-group-item list-group-item-action{% if current_page == "client_sysinfo" %} active{% endif %}">Client System Info</a>{% endif %}
 				{% if can.logs_system %}<a href="/system_log" class="list-group-item list-group-item-action{% if current_page == "system_log" %} active{% endif %}">System Log</a>{% endif %}
 			</div>
 		</div>

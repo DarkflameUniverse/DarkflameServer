@@ -40,6 +40,8 @@ set(DASHBOARDROUTES_SOURCES
 	"ChatRoutes.cpp"
 	"ChatHistory.cpp"
 	"ChatFlagRoutes.cpp"
+	"ClientSysInfoRoutes.cpp"
+	"ClientSysInfoView.cpp"
 	"Strikes.cpp"
 	"Inspector.cpp"
 	"CDClientBrowser.cpp"

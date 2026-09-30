@@ -1,0 +1,68 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Client System Info - DarkflameServer{% endblock %}
+
+{% block content %}
+<div id="sysinfoPage">
+	<h2 class="mb-1">Client System Info</h2>
+	<div class="alert alert-warning small" role="note">
+		<strong>As reported by the client, approximate.</strong> The game client describes its system with old Windows functions called from a 32-bit program
+		with no compatibility manifest. Windows answers with compatibility values (8.1, 10 and 11 all say 6.2 build 9200; the processor type is always 586),
+		and under Wine or Proton the answers are whatever Wine reports. Treat this as what clients claim, not as players' real hardware.
+	</div>
+	<p class="text-body-secondary">From each account's newest report (<span id="sysinfoAccounts">&hellip;</span> accounts), kept for <code>log_client_sysinfo_days</code>.
+		Each account's own history is on its account page.</p>
+
+	<div class="row g-4">
+		<div class="col-lg-6">
+			<div class="card h-100" id="spread-os">
+				<div class="card-header"><h5 class="mb-0">Windows version reported</h5></div>
+				<div class="card-body">
+					<p class="small text-body-secondary" data-caveat></p>
+					<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody><tr><td class="text-body-secondary">Loading&hellip;</td></tr></tbody></table></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="card h-100" id="spread-video">
+				<div class="card-header"><h5 class="mb-0">Video card (Direct3D adapter)</h5></div>
+				<div class="card-body">
+					<p class="small text-body-secondary" data-caveat></p>
+					<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody><tr><td class="text-body-secondary">Loading&hellip;</td></tr></tbody></table></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="card h-100" id="spread-memory">
+				<div class="card-header"><h5 class="mb-0">Physical memory reported</h5></div>
+				<div class="card-body">
+					<p class="small text-body-secondary" data-caveat></p>
+					<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody><tr><td class="text-body-secondary">Loading&hellip;</td></tr></tbody></table></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="card h-100" id="spread-processors">
+				<div class="card-header"><h5 class="mb-0">Logical processors reported</h5></div>
+				<div class="card-body">
+					<p class="small text-body-secondary" data-caveat></p>
+					<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody><tr><td class="text-body-secondary">Loading&hellip;</td></tr></tbody></table></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="card h-100" id="spread-clientOs">
+				<div class="card-header"><h5 class="mb-0">Client build</h5></div>
+				<div class="card-body">
+					<p class="small text-body-secondary" data-caveat></p>
+					<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody><tr><td class="text-body-secondary">Loading&hellip;</td></tr></tbody></table></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/client-sysinfo.js"></script>
+{% endblock %}

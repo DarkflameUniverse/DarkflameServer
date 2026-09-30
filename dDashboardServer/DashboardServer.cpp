@@ -56,6 +56,7 @@
 #include "VanityRoutes.h"
 #include "ChatRoutes.h"
 #include "ChatFlagRoutes.h"
+#include "ClientSysInfoRoutes.h"
 #include "Strikes.h"
 #include "ModerationTools.h"
 #include "ModeratorHelper.h"
@@ -549,6 +550,7 @@ int main(int argc, char** argv) {
 	RegisterVanityRoutes();
 	RegisterChatRoutes();
 	ChatFlagRoutes::RegisterRoutes();
+	ClientSysInfoRoutes::RegisterRoutes();
 	RegisterStrikeRoutes();
 	RegisterModerationToolRoutes();
 	ModeratorHelper::RegisterRoutes();
