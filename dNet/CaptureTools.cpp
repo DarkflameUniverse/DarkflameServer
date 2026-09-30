@@ -151,6 +151,21 @@ namespace CaptureTools {
 		return tracks;
 	}
 
+	std::vector<WorldVisit> Worlds(const std::vector<Record>& records, int64_t startUs) {
+		std::vector<WorldVisit> visits;
+		std::map<LWOOBJID, size_t> last; // character -> their latest entry in visits
+		for (const auto& record : records) {
+			const auto& h = record.header;
+			// Only what the client sent: the old world can still send a few packets after the client reached the new one
+			if (h.source != static_cast<uint8_t>(eCaptureSource::WORLD) || !h.characterId || (h.flags & PacketRecordFlags::GAP) || !FromClient(h)) continue;
+			const auto it = last.find(h.characterId);
+			if (it != last.end() && visits[it->second].zoneId == h.zoneId && visits[it->second].instanceId == h.instanceId) continue;
+			last[h.characterId] = visits.size();
+			visits.push_back({ h.characterId, static_cast<float>(h.timeUs - startUs) / 1e6f, h.zoneId, h.instanceId, h.cloneId });
+		}
+		return visits;
+	}
+
 	std::map<std::string, LWOOBJID> MakePortable(CaptureBundle::Bundle& bundle) {
 		std::map<LWOOBJID, std::string> characters;
 		std::map<uint32_t, uint32_t> accounts;

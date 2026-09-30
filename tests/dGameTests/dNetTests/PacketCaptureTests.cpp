@@ -416,6 +416,39 @@ TEST(CaptureToolsTests, TimelineTracksAndBundles) {
 	std::filesystem::remove(path);
 }
 
+TEST(CaptureToolsTests, WorldsFollowTheClientAcrossWorldServers) {
+	constexpr LWOOBJID character = 1152921510436607007LL;
+	WorldPackets::PositionUpdate move;
+	const auto at = [&](int64_t timeUs, uint32_t zone, uint32_t instance, ePacketDirection direction = ePacketDirection::RECEIVED) {
+		auto record = MakeRecord(move, timeUs, eCaptureSource::WORLD, direction, character);
+		record.header.zoneId = zone;
+		record.header.instanceId = instance;
+		record.header.cloneId = zone == 1200 ? 0 : 7;
+		return record;
+	};
+	std::vector<CaptureBundle::Record> records{
+		at(1000000, 0, 1),                            // character select
+		at(2000000, 1000, 2), at(2500000, 1000, 2),   // the first world
+		at(4000000, 1100, 3),                         // transferred to another zone
+		at(4100000, 1000, 2, ePacketDirection::SENT), // the old world still sending: not a move
+		at(5000000, 1100, 3),
+		at(6000000, 1100, 4),                         // another instance of the same zone
+		MakeRecord(move, 7000000, eCaptureSource::WORLD, ePacketDirection::RECEIVED, 0) // nobody's
+	};
+	const auto worlds = CaptureTools::Worlds(records, 1000000);
+	ASSERT_EQ(worlds.size(), 4u);
+	EXPECT_EQ(worlds[0].zoneId, 0u);
+	EXPECT_FLOAT_EQ(worlds[0].t, 0.0f);
+	EXPECT_EQ(worlds[1].zoneId, 1000u);
+	EXPECT_FLOAT_EQ(worlds[1].t, 1.0f);
+	EXPECT_EQ(worlds[2].zoneId, 1100u);
+	EXPECT_EQ(worlds[2].instanceId, 3u);
+	EXPECT_EQ(worlds[2].cloneId, 7u);
+	EXPECT_FLOAT_EQ(worlds[2].t, 3.0f);
+	EXPECT_EQ(worlds[3].instanceId, 4u);
+	EXPECT_EQ(worlds[3].characterId, character);
+}
+
 TEST(CaptureToolsTests, AnonymiseKeepsSizes) {
 	WorldPackets::GeneralChatMessage chat;
 	chat.message = u"my secret plans";

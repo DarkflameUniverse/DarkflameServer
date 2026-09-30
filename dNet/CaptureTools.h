@@ -35,6 +35,17 @@ namespace CaptureTools {
 	// Where each captured character moved (their POSITION_UPDATEs), per zone and instance
 	std::vector<Track> Tracks(const std::vector<CaptureBundle::Record>& records, int64_t startUs);
 
+	struct WorldVisit {
+		LWOOBJID characterId{};
+		float t{}; // seconds from the capture's start: the character's first packet on this world server
+		uint32_t zoneId{};
+		uint32_t instanceId{};
+		uint32_t cloneId{};
+	};
+	// Which world server each captured character was on, in time order: one entry each time the packets their client
+	// sends move to another zone or instance (zone 0 is character select)
+	std::vector<WorldVisit> Worlds(const std::vector<CaptureBundle::Record>& records, int64_t startUs);
+
 	/**
 	 * Makes a bundle portable: the source server's character and account IDs are replaced by placeholders
 	 * (PLACEHOLDER_BASE + n, written in the records' bytes and headers), listed in meta.ids as "char#n" / "account#n";
