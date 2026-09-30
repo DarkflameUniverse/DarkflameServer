@@ -5,6 +5,8 @@
 
 #include <unordered_map>
 
+#include "FdbReader.h"
+
 enum class eReplicaComponentType : uint32_t;
 struct CDComponentsRegistry {
 	uint32_t id;                    //!< The LOT is used as the ID
@@ -16,5 +18,17 @@ struct CDComponentsRegistry {
 class CDComponentsRegistryTable : public CDTable<CDComponentsRegistryTable, std::unordered_map<uint64_t, uint32_t>> {
 public:
 	void LoadValuesFromDatabase();
+
+	// Reads rows from the client's fdb from now on, if it is open; false keeps the table on CDServer.sqlite
+	bool LoadFromFdb();
+
 	int32_t GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue = 0);
+
+private:
+	// Caches every row of one id from CDServer.sqlite
+	void LoadFromSqlite(uint32_t id);
+
+	const FdbReader::Table* m_FdbTable = nullptr;
+	int32_t m_TypeColumn = -1;
+	int32_t m_ComponentIdColumn = -1;
 };

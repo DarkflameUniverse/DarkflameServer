@@ -27,6 +27,7 @@ set(DGAMETEST_SOURCES
 	"PreconditionItemCostTests.cpp"
 	"SpiderQueenTests.cpp"
 	"TacArcTests.cpp"
+	"CDFdbTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

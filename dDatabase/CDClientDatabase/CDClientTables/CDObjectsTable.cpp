@@ -1,21 +1,30 @@
 #include "CDObjectsTable.h"
+#include "CDFdb.h"
+#include "Logger.h"
 
 namespace {
 	CDObjects ObjDefault;
+
+	// Fills an entry from a CDServer.sqlite row or an fdb row (CDFdb::RowFields), which read alike
+	template<typename Row>
+	void ReadEntry(Row& row, CDObjects& entry) {
+		entry.name = row.getStringField("name", "");
+		UNUSED_COLUMN(entry.placeable = row.getIntField("placeable", -1);)
+		entry.type = row.getStringField("type", "");
+		UNUSED_COLUMN(entry.description = row.getStringField("description", "");)
+		UNUSED_COLUMN(entry.localize = row.getIntField("localize", -1);)
+		UNUSED_COLUMN(entry.npcTemplateID = row.getIntField("npcTemplateID", -1);)
+		UNUSED_COLUMN(entry.displayName = row.getStringField("displayName", "");)
+		entry.interactionDistance = row.getFloatField("interactionDistance", -1.0f);
+		UNUSED_COLUMN(entry.nametag = row.getIntField("nametag", -1);)
+		UNUSED_COLUMN(entry._internalNotes = row.getStringField("_internalNotes", "");)
+		UNUSED_COLUMN(entry.locStatus = row.getIntField("locStatus", -1);)
+		UNUSED_COLUMN(entry.gate_version = row.getStringField("gate_version", "");)
+		UNUSED_COLUMN(entry.HQ_valid = row.getIntField("HQ_valid", -1);)
+	}
 };
 
 void CDObjectsTable::LoadValuesFromDatabase() {
-	// First, get the size of the table
-	uint32_t size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Objects");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
-
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
-
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Objects");
 	auto& entries = GetEntriesMutable();
@@ -24,19 +33,7 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 
 		auto& entry = entries[lot];
 		entry.id = lot;
-		entry.name = tableData.getStringField("name", "");
-		UNUSED_COLUMN(entry.placeable = tableData.getIntField("placeable", -1);)
-		entry.type = tableData.getStringField("type", "");
-		UNUSED_COLUMN(entry.description = tableData.getStringField("description", "");)
-		UNUSED_COLUMN(entry.localize = tableData.getIntField("localize", -1);)
-		UNUSED_COLUMN(entry.npcTemplateID = tableData.getIntField("npcTemplateID", -1);)
-		UNUSED_COLUMN(entry.displayName = tableData.getStringField("displayName", "");)
-		entry.interactionDistance = tableData.getFloatField("interactionDistance", -1.0f);
-		UNUSED_COLUMN(entry.nametag = tableData.getIntField("nametag", -1);)
-		UNUSED_COLUMN(entry._internalNotes = tableData.getStringField("_internalNotes", "");)
-		UNUSED_COLUMN(entry.locStatus = tableData.getIntField("locStatus", -1);)
-		UNUSED_COLUMN(entry.gate_version = tableData.getStringField("gate_version", "");)
-		UNUSED_COLUMN(entry.HQ_valid = tableData.getIntField("HQ_valid", -1);)
+		ReadEntry(tableData, entry);
 
 		tableData.nextRow();
 	}
@@ -44,13 +41,24 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 	ObjDefault.id = 0;
 }
 
-const CDObjects& CDObjectsTable::GetByID(const uint32_t lot) {
-	auto& entries = GetEntriesMutable();
-	const auto& it = entries.find(lot);
-	if (it != entries.end()) {
-		return it->second;
-	}
+bool CDObjectsTable::LoadFromFdb() {
+	m_FdbTable = nullptr;
+	const auto* table = CDFdb::GetTable("Objects");
+	if (!table) return false;
 
+	const auto changed = CDFdb::FindChangedKeys(*table);
+	if (!changed) return false;
+
+	// Ids whose rows CDServer.sqlite changes are read from it once and kept; everything else comes from the fdb
+	for (const auto id : *changed) LoadFromSqlite(static_cast<uint32_t>(id));
+	LOG("Objects: reading from the fdb, %zu ids differ in CDServer.sqlite and are kept in memory", changed->size());
+
+	m_FdbTable = table;
+	return true;
+}
+
+const CDObjects& CDObjectsTable::LoadFromSqlite(const uint32_t lot) {
+	auto& entries = GetEntriesMutable();
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM Objects WHERE id = ?;");
 	query.bind(1, static_cast<int32_t>(lot));
 
@@ -62,33 +70,42 @@ const CDObjects& CDObjectsTable::GetByID(const uint32_t lot) {
 
 	// Now get the data
 	while (!tableData.eof()) {
-		const uint32_t lot = tableData.getIntField("id", 0);
+		const uint32_t rowLot = tableData.getIntField("id", 0);
 
-		auto& entry = entries[lot];
-		entry.id = lot;
-		entry.name = tableData.getStringField("name", "");
-		UNUSED(entry.placeable = tableData.getIntField("placeable", -1));
-		entry.type = tableData.getStringField("type", "");
-		UNUSED(entry.description = tableData.getStringField(4, ""));
-		UNUSED(entry.localize = tableData.getIntField("localize", -1));
-		UNUSED(entry.npcTemplateID = tableData.getIntField("npcTemplateID", -1));
-		UNUSED(entry.displayName = tableData.getStringField("displayName", ""));
-		entry.interactionDistance = tableData.getFloatField("interactionDistance", -1.0f);
-		UNUSED(entry.nametag = tableData.getIntField("nametag", -1));
-		UNUSED(entry._internalNotes = tableData.getStringField("_internalNotes", ""));
-		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
-		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
-		UNUSED(entry.HQ_valid = tableData.getIntField("HQ_valid", -1));
+		auto& entry = entries[rowLot];
+		entry.id = rowLot;
+		ReadEntry(tableData, entry);
 
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
 
-	const auto& it2 = entries.find(lot);
-	if (it2 != entries.end()) {
-		return it2->second;
+	const auto& it = entries.find(lot);
+	return it != entries.end() ? it->second : ObjDefault;
+}
+
+const CDObjects& CDObjectsTable::GetByID(const uint32_t lot) {
+	auto& entries = GetEntriesMutable();
+	const auto& it = entries.find(lot);
+	if (it != entries.end()) {
+		return it->second;
 	}
 
-	return ObjDefault;
+	if (!m_FdbTable) return LoadFromSqlite(lot);
+
+	// Only the objects asked for are kept in memory; the last row of an id wins, as in the SQLite path
+	std::optional<CDObjects> found;
+	m_FdbTable->ForEachRowWithKey(static_cast<int32_t>(lot), [&](const FdbReader::Row& row) {
+		if (!found) found.emplace();
+		found->id = lot;
+		const CDFdb::RowFields fields(*m_FdbTable, row);
+		ReadEntry(fields, *found);
+	});
+	if (!found) {
+		entries.emplace(lot, ObjDefault);
+		return ObjDefault;
+	}
+
+	return entries.emplace(lot, std::move(*found)).first->second;
 }

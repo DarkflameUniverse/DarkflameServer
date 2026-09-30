@@ -494,7 +494,7 @@ int main(int argc, char** argv) {
 
 	//Get CDClient initial information
 	try {
-		CDClientManager::LoadValuesFromDatabase();
+		CDClientManager::LoadValuesFromDatabase(Game::assetManager->GetResPath() / "cdclient.fdb");
 	} catch (CppSQLite3Exception& e) {
 		LOG("Failed to initialize CDServer SQLite Database");
 		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());

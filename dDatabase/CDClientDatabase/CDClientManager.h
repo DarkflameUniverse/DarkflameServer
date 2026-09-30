@@ -3,11 +3,18 @@
 
 #define UNUSED_TABLE(v)
 
+#include <filesystem>
+
 /**
  * Initialize the CDClient tables so they are all loaded into memory.
  */
 namespace CDClientManager {
-	void LoadValuesFromDatabase();
+	/**
+	 * @param fdbPath The client's cdclient.fdb. When it opens, the tables looked up by their first
+	 * column read their rows from it (shared between processes) instead of caching them. Empty, or
+	 * a file that doesn't open, keeps every table on CDServer.sqlite.
+	 */
+	void LoadValuesFromDatabase(const std::filesystem::path& fdbPath = {});
 	void LoadValuesFromDefaults();
 
 	/**

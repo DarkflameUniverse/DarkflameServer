@@ -5,6 +5,8 @@
 
 #include <cstdint>
 
+#include "FdbReader.h"
+
 struct CDObjects {
 	uint32_t id;                            //!< The LOT of the object
 	std::string name;                      //!< The internal name of the object
@@ -25,7 +27,17 @@ struct CDObjects {
 class CDObjectsTable : public CDTable<CDObjectsTable, std::map<uint32_t, CDObjects>> {
 public:
 	void LoadValuesFromDatabase();
+
+	// Reads rows from the client's fdb from now on, if it is open; false keeps the table on CDServer.sqlite
+	bool LoadFromFdb();
+
 	// Gets an entry by ID
 	const CDObjects& GetByID(const uint32_t lot);
+
+private:
+	// Caches the entry of one id from CDServer.sqlite (the default entry when there is none) and returns it
+	const CDObjects& LoadFromSqlite(const uint32_t lot);
+
+	const FdbReader::Table* m_FdbTable = nullptr;
 };
 

@@ -3,6 +3,7 @@
 // Custom Classes
 #include "CDTable.h"
 #include "dCommonVars.h"
+#include "FdbReader.h"
 
 struct CDItemComponent {
 	uint32_t id;                        //!< The Component ID
@@ -52,10 +53,20 @@ struct CDItemComponent {
 class CDItemComponentTable : public CDTable<CDItemComponentTable, std::map<uint32_t, CDItemComponent>> {
 public:
 	void LoadValuesFromDatabase();
+
+	// Reads rows from the client's fdb from now on, if it is open; false keeps the table on CDServer.sqlite
+	bool LoadFromFdb();
+
 	static std::map<LOT, uint32_t> ParseCraftingCurrencies(const CDItemComponent& itemComponent);
 
 	// Gets an entry by ID
 	const CDItemComponent& GetItemComponentByID(uint32_t skillID);
 
 	static CDItemComponent Default;
+
+private:
+	// Caches the entry of one id from CDServer.sqlite (Default when there is none) and returns it
+	const CDItemComponent& LoadFromSqlite(uint32_t id);
+
+	const FdbReader::Table* m_FdbTable = nullptr;
 };

@@ -275,7 +275,8 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	CDClientManager::LoadValuesFromDatabase();
+	// The client's fdb, read in place and shared between all server processes, when there is one
+	CDClientManager::LoadValuesFromDatabase(Game::assetManager->GetResPath() / "cdclient.fdb");
 
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 

@@ -1,4 +1,6 @@
 #include "CDClientManager.h"
+#include "CDFdb.h"
+#include "Logger.h"
 #include "CDActivityRewardsTable.h"
 #include "CDAnimationsTable.h"
 #include "CDBehaviorParameterTable.h"
@@ -111,9 +113,18 @@ DEFINE_TABLE_STORAGE(CDSkillBehaviorTable);
 DEFINE_TABLE_STORAGE(CDTamingBuildPuzzleTable);
 DEFINE_TABLE_STORAGE(CDVendorComponentTable);
 
-void CDClientManager::LoadValuesFromDatabase() {
+void CDClientManager::LoadValuesFromDatabase(const std::filesystem::path& fdbPath) {
 	if (!CDClientDatabase::isConnected) {
 		throw std::runtime_error{ "CDClientDatabase is not connected!" };
+	}
+
+	if (!fdbPath.empty()) {
+		if (CDFdb::Open(fdbPath)) {
+			LOG("Reading CDClient rows by id from %s (%s)", fdbPath.string().c_str(),
+				CDFdb::Get()->IsMapped() ? "mapped, shared between processes" : "could not map it, read into memory");
+		} else {
+			LOG("Could not open %s, reading CDClient from CDServer.sqlite only", fdbPath.string().c_str());
+		}
 	}
 
 	CDActivityRewardsTable::Instance().LoadValuesFromDatabase();
@@ -123,10 +134,11 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDBehaviorTemplateTable::Instance().LoadValuesFromDatabase();
 	CDBrickIDTableTable::Instance().LoadValuesFromDatabase();
 	CDCollectibleComponentTable::Instance().LoadValuesFromDatabase();
-	// Always in memory: every entity and every inventory item asks for its components and item data, and looking up an
+	// ComponentsRegistry, ItemComponent and Objects read rows from the fdb when it is open. Without it, the first two are
+	// always in memory: every entity and every inventory item asks for its components and item data, and looking up an
 	// id not seen yet in the unindexed CDClient scans the whole table (a character holding 3000 different items took a
 	// minute to load)
-	CDComponentsRegistryTable::Instance().LoadValuesFromDatabase();
+	if (!CDComponentsRegistryTable::Instance().LoadFromFdb()) CDComponentsRegistryTable::Instance().LoadValuesFromDatabase();
 	CDCurrencyTableTable::Instance().LoadValuesFromDatabase();
 	CDDeletionRestrictionsTable::Instance().LoadValuesFromDatabase();
 	CDDestructibleComponentTable::Instance().LoadValuesFromDatabase();
@@ -134,7 +146,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDEventGatingTable::Instance().LoadValuesFromDatabase();
 	CDFeatureGatingTable::Instance().LoadValuesFromDatabase();
 	CDInventoryComponentTable::Instance().LoadValuesFromDatabase();
-	CDItemComponentTable::Instance().LoadValuesFromDatabase();
+	if (!CDItemComponentTable::Instance().LoadFromFdb()) CDItemComponentTable::Instance().LoadValuesFromDatabase();
 	CDItemSetSkillsTable::Instance().LoadValuesFromDatabase();
 	CDItemSetsTable::Instance().LoadValuesFromDatabase();
 	CDLevelProgressionLookupTable::Instance().LoadValuesFromDatabase();
@@ -146,7 +158,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDMissionsTable::Instance().LoadValuesFromDatabase();
 	CDMovementAIComponentTable::Instance().LoadValuesFromDatabase();
 	CDObjectSkillsTable::Instance().LoadValuesFromDatabase();
-	CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
+	if (!CDObjectsTable::Instance().LoadFromFdb()) CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
 	CDPhysicsComponentTable::Instance().LoadValuesFromDatabase();
 	CDPackageComponentTable::Instance().LoadValuesFromDatabase();
 	CDPetComponentTable::Instance().LoadValuesFromDatabase();
