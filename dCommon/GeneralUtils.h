@@ -145,8 +145,6 @@ namespace GeneralUtils {
 
 	std::u16string ReadWString(RakNet::BitStream& inStream);
 
-	std::vector<std::wstring> SplitString(const std::wstring_view str, const wchar_t delimiter);
-
 	std::vector<std::u16string> SplitString(const std::u16string_view str, const char16_t delimiter);
 
 	std::vector<std::string> SplitString(const std::string_view str, const char delimiter);

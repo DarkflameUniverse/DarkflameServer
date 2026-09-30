@@ -237,23 +237,6 @@ bool GeneralUtils::ReplaceInString(std::string& str, const std::string_view from
 	return true;
 }
 
-std::vector<std::wstring> GeneralUtils::SplitString(const std::wstring_view str, const wchar_t delimiter) {
-	std::vector<std::wstring> vector = std::vector<std::wstring>();
-	std::wstring current;
-
-	for (const wchar_t c : str) {
-		if (c == delimiter) {
-			vector.push_back(current);
-			current = L"";
-		} else {
-			current += c;
-		}
-	}
-
-	vector.push_back(std::move(current));
-	return vector;
-}
-
 std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string_view str, const char16_t delimiter) {
 	std::vector<std::u16string> vector = std::vector<std::u16string>();
 	std::u16string current;
