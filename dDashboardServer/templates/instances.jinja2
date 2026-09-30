@@ -80,6 +80,21 @@
 		</div>
 	</div>
 </div>
+
+{% if can.world_reload %}
+<div class="card mt-3" id="worldFilesCard">
+	<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+		<h5 class="mb-0">World files</h5>
+		<span class="small text-body-secondary" id="worldFilesWatch"></span>
+	</div>
+	<div class="card-body">
+		<p class="small text-body-secondary">The zone files each running world loaded (<code>.luz</code>, <code>.lvl</code>, <code>.lutriggers</code>, terrain,
+			navmesh). When one changes on disk, the master server replaces the instances that loaded the old version with new ones and moves their
+			players over. <strong>Reload</strong> does the same for every instance of a zone now. Files read from the client's packs are not watched.</p>
+		<div id="worldFilesZones"><p class="text-body-secondary mb-0">Waiting for the master server&hellip;</p></div>
+	</div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -219,4 +234,56 @@
 	loadLimits().then(loadZones);
 })();
 </script>
+{% if can.world_reload %}
+<script>
+(function () {
+	var nf = new Intl.NumberFormat();
+	function size(bytes) {
+		if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+		if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+		return nf.format(bytes) + ' B';
+	}
+	function name(path) { var i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')); return i < 0 ? path : path.slice(i + 1); }
+
+	function show(status) {
+		var watch = document.getElementById('worldFilesWatch');
+		watch.textContent = !status.received ? '' : status.watching ? 'Checked every ' + status.watchSeconds + ' s' + (status.seamless ? ', seamless moves' : '') : 'Not watched (world_watch_seconds = 0)';
+		var box = document.getElementById('worldFilesZones');
+		if (!status.received) return;
+		if (!status.zones.length) { box.innerHTML = '<p class="text-body-secondary mb-0">No world has reported its files yet.</p>'; return; }
+		box.innerHTML = status.zones.map(function (z) {
+			var stale = z.instances.filter(function (i) { return i.stale; }).length;
+			var head = '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1"><h6 class="mb-0">' + fmt.zone(z.zone, z.zoneName) +
+				(z.changed ? ' ' + fmt.badge('changed on disk', 'warning') : '') + '</h6>' +
+				'<button type="button" class="btn btn-outline-primary btn-sm" data-reload-zone="' + esc(z.zone) + '">Reload</button></div>';
+			var instances = '<div class="small mb-1">' + z.instances.map(function (i) {
+				var badges = (i.stale ? ' ' + fmt.badge('old files', 'warning') : '') + (i.reloading ? ' ' + fmt.badge('being replaced', 'info') : '');
+				return '<span class="me-3 text-nowrap">Instance ' + esc(i.instance) + (i.clone ? ' (clone ' + esc(i.clone) + ')' : '') + ', ' +
+					nf.format(i.players) + ' player(s)' + badges + '</span>';
+			}).join('') + '</div>';
+			var message = z.message ? '<div class="small text-body-secondary mb-1">' + esc(z.message) + '</div>' : '';
+			var rows = z.files.map(function (f) {
+				var badges = (f.changed ? fmt.badge('changed on disk', 'warning') + ' ' : '') + (f.missing ? fmt.badge('missing', 'danger') + ' ' : '') +
+					(f.packed ? fmt.badge('in a pack', 'secondary') + ' ' : '');
+				return '<tr><td class="text-nowrap">' + esc(f.kind) + '</td><td><span title="' + esc(f.path) + '">' + esc(name(f.path)) + '</span></td>' +
+					'<td class="text-end text-nowrap">' + esc(size(f.size)) + '</td><td><code class="small">' + esc(f.hash) + '</code></td><td>' + badges + '</td></tr>';
+			}).join('');
+			return '<div class="mb-3">' + head + instances + message + '<div class="table-responsive"><table class="table table-sm align-middle mb-0">' +
+				'<thead><tr><th>Kind</th><th>File</th><th class="text-end">Size</th><th>Hash</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+		}).join('');
+	}
+
+	function load() { api.get('/api/worlds/files').then(function (d) { if (d.success) show(d.worldFiles); }).catch(function () {}); }
+
+	document.getElementById('worldFilesZones').addEventListener('click', function (e) {
+		var button = e.target.closest('[data-reload-zone]');
+		if (!button) return;
+		if (!confirm('Reload this zone? Every instance of it is replaced with a new one on the files on disk now; players there are warned and moved over (a short loading screen).')) return;
+		api.action('/api/worlds/reload', { zone: +button.dataset.reloadZone }, 'Reload requested').then(load).catch(function () {});
+	});
+	if (window.Live) Live.onTopic('world_files', show);
+	load();
+})();
+</script>
+{% endif %}
 {% endblock %}

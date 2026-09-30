@@ -66,6 +66,8 @@
 #include "ModeratorHelper.h"
 #include "LiveWorld.h"
 #include "LiveUpdateRoutes.h"
+#include "WorldReloadRoutes.h"
+#include "master/WorldFiles.h"
 #include "Scenery.h"
 #include "Workers.h"
 #include "ReportRoutes.h"
@@ -361,6 +363,7 @@ namespace {
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, [](const ServerTraffic& report, const SystemAddress&) { Traffic::Ingest(report); });
 			handlers.On<ProfileResult>(Master::PROFILE_RESULT, [](const ProfileResult& result, const SystemAddress&) { Performance::IngestProfile(result); });
 			handlers.On<LiveUpdateStatus>(Master::LIVE_UPDATE_STATUS, [](const LiveUpdateStatus& status, const SystemAddress&) { LiveUpdateRoutes::HandleStatus(status); });
+			handlers.On<WorldFilesStatus>(Master::WORLD_FILES_STATUS, [](const WorldFilesStatus& status, const SystemAddress&) { WorldReloadRoutes::HandleStatus(status); });
 			return handlers;
 		}();
 		return handlers;
@@ -570,6 +573,7 @@ int main(int argc, char** argv) {
 	ModeratorHelper::RegisterRoutes();
 	LiveWorld::RegisterRoutes();
 	LiveUpdateRoutes::RegisterRoutes();
+	WorldReloadRoutes::RegisterRoutes();
 	Inspector::RegisterRoutes();
 	CaptureReplay::RegisterRoutes();
 	RegisterCDClientBrowserRoutes();

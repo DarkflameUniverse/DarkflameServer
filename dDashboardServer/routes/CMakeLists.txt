@@ -20,6 +20,7 @@ set(DASHBOARDROUTES_SOURCES
 	"EconomyJobs.cpp"
 	"LiveWorld.cpp"
 	"LiveUpdateRoutes.cpp"
+	"WorldReloadRoutes.cpp"
 	"SettingsRoutes.cpp"
 	"Background.cpp"
 	"Scheduler.cpp"
