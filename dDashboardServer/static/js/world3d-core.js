@@ -257,3 +257,55 @@ export function markersHtml(markers, esc, names = false) {
 			'<span>' + esc(names && m.name ? m.name + ': ' + zone : zone) + '</span></button>';
 	}).join('');
 }
+
+// ---- a property as a capture saw it ----
+
+/**
+ * Capture playback: a property world at time t (one entry of /api/inspector/sessions/:id/property's worlds): each model
+ * standing then with the span it stood in ({model, span}), the property data then (the latest DownloadPropertyData)
+ * and the model count the property gave then. Every answer comes from t alone, so seeking back and forth is the same.
+ */
+export function propertyAt(world, t) {
+	const models = [];
+	for (const model of (world && world.models) || []) {
+		const span = model.spans.find((s) => s.from <= t && (s.to === null || s.to === undefined || t < s.to));
+		if (span) models.push({ model, span });
+	}
+	const latest = (list) => {
+		let found = null;
+		for (const entry of list || []) {
+			if (entry.t > t) break;
+			found = entry;
+		}
+		return found;
+	};
+	return { models, info: latest(world && world.info), count: latest(world && world.counts) };
+}
+
+/**
+ * The property world to show in the zone on screen at time t: the one the followed character was on (worldAt), else
+ * the first captured on this zone. `worlds`: the property route's worlds; `moves`: the positions route's worlds.
+ */
+export function propertyWorldFor(worlds, zone, moves, character, t) {
+	const here = (worlds || []).filter((w) => w.zone === zone);
+	if (!here.length) return null;
+	const on = character ? worldAt(moves, character, t) : null;
+	return (on && here.find((w) => w.instance === on.instance && w.clone === on.clone)) || here[0];
+}
+
+/**
+ * Timeline ticks for a property's behavior messages (and what was sent to or from a model): [{t, at, title}] along
+ * `duration` seconds, one per message, `title` naming the message.
+ */
+export function behaviorMarkers(world, duration) {
+	return ((world && world.events) || []).filter((e) => e.kind === 'behavior').map((e) => ({
+		t: e.t, at: duration > 0 ? Math.max(0, Math.min(1, e.t / duration)) : 0,
+		title: e.message + (e.command ? ' ' + e.command : '') + (e.lot !== undefined ? ' (LOT ' + e.lot + ')' : '')
+	}));
+}
+
+/** The behavior ticks over the timeline's slider (as markersHtml); clicking one seeks to it (data-t). */
+export function behaviorMarkersHtml(markers, esc) {
+	return markers.map((m) => '<button type="button" class="timeline-marker timeline-behavior" style="left:' + (m.at * 100).toFixed(3) + '%" data-t="' + m.t +
+		'" title="' + esc(m.title) + '"></button>').join('');
+}

@@ -124,6 +124,7 @@
 						<li class="nav-item" role="presentation"><button class="nav-link active py-1" data-bs-toggle="pill" data-bs-target="#tabPlayers" type="button" role="tab">Players <span class="badge text-bg-secondary" id="playerCount">0</span></button></li>
 						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabSelected" type="button" role="tab" id="selectedTabBtn">Selected</button></li>
 						<li class="nav-item" role="presentation"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabLayers" type="button" role="tab">Layers</button></li>
+						<li class="nav-item d-none" role="presentation" id="propertyTabItem"><button class="nav-link py-1" data-bs-toggle="pill" data-bs-target="#tabProperty" type="button" role="tab">Property</button></li>
 					</ul>
 				</div>
 				<div class="tab-content flex-grow-1 overflow-hidden">
@@ -133,6 +134,10 @@
 					</div>
 					<div class="tab-pane h-100 p-2 small" id="tabSelected" role="tabpanel">
 						<div id="selectionInfo"><span class="text-body-secondary">Click a player or an object.</span></div>
+					</div>
+					<div class="tab-pane h-100 p-2 small overflow-auto" id="tabProperty" role="tabpanel">
+						<div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="propertyModelsToggle" data-pref="world3d.propertyModels" checked><label class="form-check-label" for="propertyModelsToggle">Placed models</label></div>
+						<div id="propertyInfo"></div>
 					</div>
 					<div class="tab-pane h-100 p-2 small" id="tabLayers" role="tabpanel">
 						<div class="fw-semibold mb-1">View</div>

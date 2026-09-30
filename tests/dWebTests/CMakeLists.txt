@@ -119,4 +119,7 @@ if(NODE_EXECUTABLE)
 	# Following a player across worlds in World 3D (live and capture playback) and the timeline's world markers (static/js/world3d-core.js)
 	add_test(NAME World3dFollowJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/world3d-follow.test.mjs"
 		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/world3d-core.js")
+	# A property in a capture replay: its models at the playhead, its data then, and its behavior ticks (static/js/world3d-core.js)
+	add_test(NAME World3dPropertyJs COMMAND ${NODE_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/world3d-property.test.mjs"
+		"${PROJECT_SOURCE_DIR}/dDashboardServer/static/js/world3d-core.js")
 endif()
