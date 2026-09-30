@@ -11,6 +11,8 @@
 
 enum class eSqliteDataType : int32_t;
 
+#include "CppSQLite3.h"
+
 namespace FdbToSqlite {
 	class Convert {
 	public:
@@ -23,11 +25,20 @@ namespace FdbToSqlite {
 		Convert(std::string binaryOutPath);
 
 		/**
+		 * Converts into a connection of the caller's own instead of the shared CDClient one, so it can run on a
+		 * worker thread. Nothing is logged; GetError says what went wrong.
+		 */
+		explicit Convert(CppSQLite3DB& db);
+
+		// Why the last ConvertDatabase failed
+		[[nodiscard]] const std::string& GetError() const { return m_Error; }
+
+		/**
 		 * Converts the input file to sqlite.  Calling multiple times is safe.
 		 * 
 		 * @return true if the database was converted properly, false otherwise. 
 		 */
-		bool ConvertDatabase(AssetStream& buffer);
+		bool ConvertDatabase(std::istream& buffer);
 
 		/**
 		 * @brief Reads a 32 bit int from the fdb file.
@@ -139,6 +150,13 @@ namespace FdbToSqlite {
 		 * The path where the CDServer will be stored
 		 */
 		std::string m_BinaryOutPath{};
+
+		// The caller's own connection, or nullptr for the shared CDClient one
+		CppSQLite3DB* m_Db{};
+
+		std::string m_Error{};
+
+		void ExecDML(const std::string& sql);
 	}; //! class FdbToSqlite
 }; //! namespace FdbToSqlite
 

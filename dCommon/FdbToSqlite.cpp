@@ -28,21 +28,29 @@ FdbToSqlite::Convert::Convert(std::string binaryOutPath) {
 	this->m_BinaryOutPath = binaryOutPath;
 }
 
-bool FdbToSqlite::Convert::ConvertDatabase(AssetStream& buffer) {
+FdbToSqlite::Convert::Convert(CppSQLite3DB& db) : m_Db(&db) {}
+
+void FdbToSqlite::Convert::ExecDML(const std::string& sql) {
+	if (m_Db) m_Db->execDML(sql.c_str());
+	else CDClientDatabase::ExecuteDML(sql);
+}
+
+bool FdbToSqlite::Convert::ConvertDatabase(std::istream& buffer) {
 	if (m_ConversionStarted) return false;
 
 	this->m_ConversionStarted = true;
 	try {
-		CDClientDatabase::Connect(m_BinaryOutPath + "/CDServer.sqlite");
+		if (!m_Db) CDClientDatabase::Connect(m_BinaryOutPath + "/CDServer.sqlite");
 
-		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
+		ExecDML("BEGIN TRANSACTION;");
 
 		int32_t numberOfTables = ReadInt32(buffer);
 		ReadTables(numberOfTables, buffer);
 
-		CDClientDatabase::ExecuteQuery("COMMIT;");
+		ExecDML("COMMIT;");
 	} catch (CppSQLite3Exception& e) {
-		LOG("Encountered error %s converting FDB to SQLite", e.errorMessage());
+		m_Error = e.errorMessage();
+		if (!m_Db) LOG("Encountered error %s converting FDB to SQLite", e.errorMessage());
 		return false;
 	}
 
@@ -91,7 +99,7 @@ std::string FdbToSqlite::Convert::ReadColumnHeader(std::istream& cdClientBuffer)
 
 	auto columns = ReadColumns(numberOfColumns, cdClientBuffer);
 	std::string newTable = "CREATE TABLE IF NOT EXISTS '" + tableName + "' (" + columns + ");";
-	CDClientDatabase::ExecuteDML(newTable);
+	ExecDML(newTable);
 
 	cdClientBuffer.seekg(prevPosition);
 
@@ -241,6 +249,6 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 	insertedRow << ");";
 
 	auto copiedString = insertedRow.str();
-	CDClientDatabase::ExecuteDML(copiedString);
+	ExecDML(copiedString);
 	cdClientBuffer.seekg(prevPosition);
 }
