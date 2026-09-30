@@ -105,10 +105,22 @@ namespace {
 		for (const auto& choice : choices) {
 			const auto& view = choice.view;
 			auto& counts = perZone[view.zoneId];
+			if (choice.action != eAction::SKIP) {
+				// On the old files: nobody new goes there (a request starts an instance on the files on disk now)
+				Game::im->MarkOutdated([&view](const Instance& instance) {
+					return instance.GetMapID() == view.zoneId && instance.GetInstanceID() == view.instanceId;
+				});
+			}
 			switch (choice.action) {
 			case eAction::SKIP:
 				LOG("World reload (%s): zone %u instance %u left alone: %s", by.c_str(), view.zoneId, view.instanceId, choice.reason.c_str());
 				counts.second++;
+				continue;
+			case eAction::KEEP_UNTIL_EMPTY:
+				LOG("World reload (%s): property zone %u clone %u instance %u keeps its %d player(s); it takes nobody new and stops once empty",
+					by.c_str(), view.zoneId, view.cloneId, view.instanceId, view.players);
+				counts.first++;
+				acted++;
 				continue;
 			case eAction::STOP:
 			case eAction::START_THEN_STOP: {
@@ -141,9 +153,8 @@ namespace {
 				request.requesterId = requesterId;
 				request.requestedBy = ("world reload (" + by + ")").substr(0, InstanceMigrationRequest::MAX_BY);
 				MigrationCoordinator::Options options;
-				// Properties, private instances and activity zones are moved too; a property is saved and frozen first
+				// Private instances and activity zones are moved too (properties never get here: KEEP_UNTIL_EMPTY)
 				options.liveUpdate = true;
-				options.prepare = view.cloneId != 0;
 				g_Migrations[request.requestId] = { view.zoneId, view.instanceId };
 				const auto refusal = MigrationCoordinator::Start(request, options);
 				if (refusal != InstanceMigration::eRefusal::NONE) {
@@ -159,7 +170,7 @@ namespace {
 			}
 		}
 		for (const auto& [zone, counts] : perZone) {
-			std::string message = "Reload (" + by + "): " + std::to_string(counts.first) + " instance(s) replaced or stopped";
+			std::string message = "Reload (" + by + "): " + std::to_string(counts.first) + " instance(s) replaced, stopped or left to empty";
 			if (counts.second) message += ", " + std::to_string(counts.second) + " left alone";
 			SetZoneMessage(zone, message);
 		}
@@ -224,6 +235,7 @@ namespace {
 				row.players = instance->GetCurrentClientCount();
 				row.stale = g_Tracker.IsStale({ zoneId, row.instanceId });
 				row.reloading = instance->GetIsShuttingDown() || instance->GetIsDraining();
+				row.outdated = instance->GetIsOutdated();
 				zone.instances.push_back(row);
 			}
 			if (const auto message = g_ZoneMessages.find(zoneId); message != g_ZoneMessages.end()) zone.message = message->second;

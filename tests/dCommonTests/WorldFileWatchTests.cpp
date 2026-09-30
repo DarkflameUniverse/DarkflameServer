@@ -193,7 +193,7 @@ TEST(WorldFileWatchTests, ChooseReplacesBusyAndStopsEmptyInstances) {
 		View(1100, 1, 5),
 		View(1100, 2, 0),
 		View(1200, 3, 2),
-		View(1150, 4, 1, 77),      // a property keeps its clone: replaced like any other
+		View(1150, 4, 1, 77),      // a property with players: never moved, kept until they left
 		View(0, 5, 3),             // character selection
 	};
 	auto starting = View(1100, 6, 0);
@@ -212,7 +212,7 @@ TEST(WorldFileWatchTests, ChooseReplacesBusyAndStopsEmptyInstances) {
 	EXPECT_EQ(byInstance.size(), 7u);           // 1200 wasn't wanted
 	EXPECT_EQ(byInstance[1], eAction::REPLACE);
 	EXPECT_EQ(byInstance[2], eAction::STOP);
-	EXPECT_EQ(byInstance[4], eAction::REPLACE);
+	EXPECT_EQ(byInstance[4], eAction::KEEP_UNTIL_EMPTY);
 	EXPECT_EQ(byInstance[5], eAction::SKIP);
 	EXPECT_EQ(byInstance[6], eAction::SKIP);
 	EXPECT_EQ(byInstance[7], eAction::SKIP);

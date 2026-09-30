@@ -34,7 +34,7 @@ namespace {
 			nlohmann::json instances = nlohmann::json::array();
 			for (const auto& instance : zone.instances) {
 				instances.push_back({ {"instance", instance.instanceId}, {"clone", instance.cloneId}, {"players", instance.players},
-					{"stale", instance.stale}, {"reloading", instance.reloading} });
+					{"stale", instance.stale}, {"reloading", instance.reloading}, {"outdated", instance.outdated} });
 			}
 			zones.push_back({ {"zone", zone.zoneId}, {"zoneName", GameText::ZoneName(zone.zoneId)}, {"changed", changed},
 				{"files", files}, {"instances", instances}, {"message", zone.message} });

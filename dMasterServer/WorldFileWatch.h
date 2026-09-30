@@ -216,6 +216,9 @@ namespace WorldFileWatch {
 		START_THEN_STOP,  // nobody there, but the zone always has an instance: start a new one, stop this one
 		STOP,             // nobody there: stop it (a new instance starts when someone goes there)
 		SKIP,
+		// A property with players: never moved (building in progress isn't saved). It takes nobody new, its players
+		// are told an update is waiting, and it stops once everyone left (OutdatedInstances.h)
+		KEEP_UNTIL_EMPTY,
 	};
 
 	inline const char* ActionName(eAction action) {
@@ -224,6 +227,7 @@ namespace WorldFileWatch {
 		case eAction::START_THEN_STOP: return "start a new one, then stop it";
 		case eAction::STOP: return "stop";
 		case eAction::SKIP: return "skip";
+		case eAction::KEEP_UNTIL_EMPTY: return "keep until everyone left";
 		}
 		return "skip";
 	}
@@ -235,8 +239,8 @@ namespace WorldFileWatch {
 	};
 
 	/**
-	 * What to do with each instance wanted() picks: replace it when players are there, stop it when it is empty (a zone
-	 * in keepZones gets one new public instance first). Character selection loads no zone; instances still starting
+	 * What to do with each instance wanted() picks: replace it when players are there (a property is kept until they
+	 * all left instead), stop it when it is empty (a zone in keepZones gets one new public instance first). Character selection loads no zone; instances still starting
 	 * load the files on disk now (and report them); instances shutting down or being emptied already are left alone.
 	 */
 	inline std::vector<Choice> Choose(const std::vector<InstanceMigration::InstanceView>& instances,
@@ -250,7 +254,7 @@ namespace WorldFileWatch {
 			else if (view.shuttingDown) choice.reason = "Already shutting down";
 			else if (view.draining) choice.reason = "Its players are already being moved";
 			else if (!view.ready) choice.reason = "Still starting; it loads the files on disk now";
-			else if (view.players > 0) choice.action = eAction::REPLACE;
+			else if (view.players > 0) choice.action = view.cloneId != 0 ? eAction::KEEP_UNTIL_EMPTY : eAction::REPLACE;
 			else choice.action = eAction::STOP;
 			choices.push_back(std::move(choice));
 		}

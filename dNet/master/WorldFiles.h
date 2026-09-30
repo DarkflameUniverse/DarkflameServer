@@ -127,6 +127,7 @@ struct WorldFilesStatus : public LUBitStream {
 		int32_t players{};
 		bool stale{};              // loaded a version of a file that isn't on disk any more
 		bool reloading{};          // being replaced, or shutting down
+		bool outdated{};           // takes nobody new and stops once empty (a property kept until its players left)
 
 		bool operator==(const Instance& other) const = default;
 	};
@@ -168,7 +169,7 @@ struct WorldFilesStatus : public LUBitStream {
 				stream.Write(instance.instanceId);
 				stream.Write(instance.cloneId);
 				stream.Write(instance.players);
-				stream.Write<uint8_t>((instance.stale ? 1 : 0) | (instance.reloading ? 2 : 0));
+				stream.Write<uint8_t>((instance.stale ? 1 : 0) | (instance.reloading ? 2 : 0) | (instance.outdated ? 4 : 0));
 			}
 			InstanceMigration::WriteText(stream, zone.message, WorldFiles::MAX_MESSAGE);
 		}
@@ -201,6 +202,7 @@ struct WorldFilesStatus : public LUBitStream {
 				if (!stream.Read(instance.instanceId) || !stream.Read(instance.cloneId) || !stream.Read(instance.players) || !stream.Read(flags)) return false;
 				instance.stale = flags & 1;
 				instance.reloading = flags & 2;
+				instance.outdated = flags & 4;
 			}
 			if (!InstanceMigration::ReadText(stream, zone.message, WorldFiles::MAX_MESSAGE)) return false;
 		}
