@@ -57,13 +57,17 @@ What happens to each instance (`WorldFileWatch::Choose`):
 
 | Instance | Action |
 | --- | --- |
-| Players there | Replaced: a new instance of the same zone and clone starts (a private instance keeps its password), the players are warned and moved, the old one stops once empty. A property is saved and frozen first (`MIGRATE_PREPARE`). |
+| Players there | Replaced: a new instance of the same zone starts (a private instance keeps its password), the players are warned and moved, the old one stops once empty. |
+| Property (clone) with players | Never moved (building in progress isn't saved): kept on the old files until everyone left, its players reminded every 10 minutes, then stopped (`KEEP_UNTIL_EMPTY`). See [LiveUpdate.md](LiveUpdate.md), Properties. |
 | Empty, in a zone of `prestart_worlds` (public, clone 0) | A new instance starts, then the old one stops. Only one per zone, and none when a busy instance of the zone is being replaced anyway. |
 | Empty | Stopped; a new instance starts when someone goes there. |
 | Character selection, still starting, shutting down, or already being emptied | Left alone. An instance still starting loads the files on disk now and reports them. |
 
-Moves use `MigrationCoordinator::Start` with the live update's options, so properties, private instances and activity
-zones are moved too (an activity in progress is lost). The move is the Mythran shift (warning, then a short loading
+Every instance acted on (all but the ones left alone) is marked **outdated**, as in a live update
+([LiveUpdate.md](LiveUpdate.md), Old instances): nobody new is sent there, and a request for the zone or property
+starts an instance on the files on disk now (for a property, once the old instance is gone). Moves use
+`MigrationCoordinator::Start` with the live update's options, so private instances and activity zones are moved too (an
+activity in progress is lost); properties are not. The move is the Mythran shift (warning, then a short loading
 screen); with `world_reload_seamless=1` it uses the experimental seamless mode instead (no loading screen; untested
 with the real client). Automatic reloads warn players 10 seconds before they are moved.
 
@@ -73,7 +77,8 @@ what it did with each instance.
 ## Dashboard
 
 The Instances page has a **World files** card (permission `world_reload`): for each zone that runs, its instances
-(stale ones marked "old files", ones being replaced "being replaced"), the last reload, and its files with kind, size,
+(stale ones marked "old files", ones being replaced "being replaced", properties kept until empty "updates when
+empty"), the last reload, and its files with kind, size,
 hash and a **changed on disk** badge. Zone names come from the client's locale (`GameText`). Master sends the status
 (`WORLD_FILES_STATUS`) when something changes and when the dashboard connects; the page updates live on the
 `world_files` socket topic.

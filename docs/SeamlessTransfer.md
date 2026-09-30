@@ -213,10 +213,11 @@ appends there has to put one set after the other when merged.
 
 A live update ([LiveUpdate.md](LiveUpdate.md)) replaces every instance with these migrations
 (`MigrationCoordinator::Options::liveUpdate`). It also moves what the commands refuse: character selection (its users
-are sent to the new one), private instances (the replacement gets the same password), properties (saved and frozen
-first with `MIGRATE_PREPARE`, answered `PREPARED`) and activity zones (after their players had time to finish). The
-player's position is carried in `CarriedPlayerState` and applied when the target creates them, so properties and Moon
-Base keep it too.
+are sent to the new one), private instances (the replacement gets the same password) and activity zones (after their
+players had time to finish). Properties are not moved: building in progress there isn't saved, so they keep running on
+the old build until everyone left (see [LiveUpdate.md](LiveUpdate.md), Properties). `MIGRATE_PREPARE` (save and freeze
+a property first) remains in the protocol but live updates and world reloads no longer send it. The player's position
+is carried in `CarriedPlayerState` and applied when the target creates them, so Moon Base keeps it too.
 
 ### Controls
 

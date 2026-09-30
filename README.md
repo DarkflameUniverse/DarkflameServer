@@ -89,7 +89,8 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
 ### Live updates and moving players
 * **Live updates:** move every server onto a new build without a restart. Worlds are replaced one by one and their
   players moved with the game's own "Mythran dimensional shift"; auth, chat, UGC and the dashboard restart or hand
-  over. See [docs/LiveUpdate.md](docs/LiveUpdate.md).
+  over. Properties are never moved (unsaved building): they keep the old build until everyone left, their players are
+  reminded every 10 minutes, and instances on the old build take nobody new. See [docs/LiveUpdate.md](docs/LiveUpdate.md).
 * **Instance replace and merge:** move an instance's players to another instance of the same zone (GM commands and
   master coordination). See [docs/SeamlessTransfer.md](docs/SeamlessTransfer.md).
 * Master's failed server starts no longer leave a second master running.
@@ -131,7 +132,7 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   every server when it changes or on `/reloadcdclient` ([docs/CDClientFdb.md](docs/CDClientFdb.md)).
 * **World hot reload:** worlds report the zone files they loaded (`.luz`, `.lvl`, triggers, terrain, navmesh); when one
   changes on disk, or on `/reloadworld` or the dashboard's Reload, master replaces those instances with new ones and
-  moves their players over ([docs/WorldHotReload.md](docs/WorldHotReload.md)).
+  moves their players over; properties are kept until empty instead ([docs/WorldHotReload.md](docs/WorldHotReload.md)).
 * The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
 
 ## License
