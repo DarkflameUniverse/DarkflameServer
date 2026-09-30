@@ -510,6 +510,11 @@ void Mission::YieldRewards() {
 		}
 	}
 
+	// Live sent the mission's ID and the player's LOT with each reward item (225 of 225 live mission and achievement rewards)
+	LootMetrics rewardMetrics{};
+	rewardMetrics.sourceLot = entity->GetLOT();
+	rewardMetrics.missionId = static_cast<int32_t>(info.id);
+
 	if (m_Completions > 0) {
 		std::vector<std::pair<LOT, uint32_t>> items;
 
@@ -528,7 +533,7 @@ void Mission::YieldRewards() {
 			// If a mission rewards zero of an item, make it reward 1.
 			auto count = pair.second > 0 ? pair.second : 1;
 			LOG("Player %llu is receiving %i of item %i from repeatable mission %i", entity->GetObjectID(), count, pair.first, info.id);
-			inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT);
+			inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 0, false, -1, rewardMetrics);
 		}
 
 		if (info.reward_currency_repeatable > 0 || coinsToSend > 0) {
@@ -556,7 +561,7 @@ void Mission::YieldRewards() {
 		// If a mission rewards zero of an item, make it reward 1.
 		auto count = pair.second > 0 ? pair.second : 1;
 		LOG("Player %llu is receiving %i of item %i from mission %i", entity->GetObjectID(), count, pair.first, info.id);
-		inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT);
+		inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 0, false, -1, rewardMetrics);
 	}
 
 	if (info.reward_currency > 0 || coinsToSend > 0) {

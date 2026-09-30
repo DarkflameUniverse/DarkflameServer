@@ -523,14 +523,22 @@ Loot::Return Loot::RollLootMatrix(Entity* player, uint32_t matrixIndex) {
 }
 
 void Loot::GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceType lootSourceType) {
+	GiveLoot(player, matrixIndex, lootSourceType, LootMetrics{});
+}
+
+void Loot::GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType lootSourceType) {
+	GiveLoot(player, result, lootSourceType, LootMetrics{});
+}
+
+void Loot::GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceType lootSourceType, const LootMetrics& metrics) {
 	player = player->GetOwner(); // If the owner is overwritten, we collect that here
 
 	const auto result = RollLootMatrix(player, matrixIndex);
 
-	GiveLoot(player, result, lootSourceType);
+	GiveLoot(player, result, lootSourceType, metrics);
 }
 
-void Loot::GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType lootSourceType) {
+void Loot::GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType lootSourceType, const LootMetrics& metrics) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
@@ -539,7 +547,7 @@ void Loot::GiveLoot(Entity* player, const Loot::Return& result, eLootSourceType 
 		return;
 
 	for (const auto& pair : result) {
-		inventoryComponent->AddItem(pair.first, pair.second, lootSourceType);
+		inventoryComponent->AddItem(pair.first, pair.second, lootSourceType, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 0, false, -1, metrics);
 	}
 }
 
@@ -577,7 +585,11 @@ void Loot::GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t acti
 
 	const auto [minCoins, maxCoins] = GetActivityCoinRange(*selectedReward);
 
-	GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::ACTIVITY);
+	// Live sent the activity's ID and the activity object's LOT with each reward item
+	LootMetrics metrics{};
+	metrics.activityId = static_cast<int32_t>(activityID);
+	if (const auto* const sourceEntity = Game::entityManager->GetEntity(source)) metrics.sourceLot = sourceEntity->GetLOT();
+	GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::ACTIVITY, metrics);
 
 	uint32_t coins = static_cast<uint32_t>(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
 

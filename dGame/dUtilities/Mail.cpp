@@ -239,7 +239,10 @@ namespace Mail {
 
 				LwoNameValue config;
 				config.InsertLines(playerMail->itemConfig);
-				const auto claimed = inv->ReceiveItem(playerMail->itemID, playerMail->itemLOT, playerMail->itemCount, eLootSourceType::MAIL, config, playerMail->itemSubkey);
+				// Live sent the mail's ID with the attachment
+				ReceiveItemOptions options{};
+				options.metrics.mailId = static_cast<uint64_t>(mailID);
+				const auto claimed = inv->ReceiveItem(playerMail->itemID, playerMail->itemLOT, playerMail->itemCount, eLootSourceType::MAIL, config, playerMail->itemSubkey, false, options);
 				Database::Get()->ClaimMailItem(mailID);
 				DashboardNotify::Changed("mail", playerMail->receiverId);
 
