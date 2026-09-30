@@ -8,22 +8,25 @@
 #include <string>
 #include <vector>
 
-#include "dChatFilter.h"
+#include "ChatFilterCore.h"
 
 // Words for the chat filter page, compared the way the chat filter compares them (see ModerationTools.h)
 namespace ModerationTools {
 	constexpr size_t MAX_FILTER_WORD = 64;
 
-	// A word staff typed for the chat filter, as the filter compares it (lower case, no ! ? ; . ,); nullopt if it isn't
-	// one word of 1-64 characters. Pure; unit tested.
+	// A word or phrase staff typed for the chat filter, as the filter compares it (lower case, no ! ? ; . ,, words joined by
+	// one space); nullopt if it isn't 1-64 characters or has no word. Pure; unit tested.
 	inline std::optional<std::string> FilterWord(std::string text) {
 		text.erase(0, text.find_first_not_of(" \t\r\n"));
 		text.erase(text.find_last_not_of(" \t\r\n") + 1);
-		if (text.empty() || text.size() > MAX_FILTER_WORD || text.find_first_of(" \t\r\n") != std::string::npos) return std::nullopt;
-		auto word = dChatFilter::NormalizeWord(text);
-		if (word.empty()) return std::nullopt;
-		return word;
+		if (text.empty() || text.size() > MAX_FILTER_WORD) return std::nullopt;
+		auto entry = ChatFilterWords::NormalizeEntry(text);
+		if (entry.empty()) return std::nullopt;
+		return entry;
 	}
+
+	// Whether an entry is a phrase (more than one word). Phrases can only be blocked: whitelist chat checks one word at a time.
+	inline bool IsPhrase(const std::string& entry) { return ChatFilterWords::WordCount(entry) > 1; }
 
 	// The words of a plain word list (chatplus_en_us.txt) as the filter reads them: one per line, lower case; sorted, each once
 	inline std::vector<std::string> FileWords(const std::string& text) {
@@ -33,7 +36,7 @@ namespace ModerationTools {
 			const auto end = std::min(text.find('\n', start), text.size());
 			auto line = text.substr(start, end - start);
 			std::erase(line, '\r');
-			std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+			line = ChatFilterWords::AsciiLower(std::move(line));
 			if (!line.empty()) words.push_back(std::move(line));
 			start = end + 1;
 		}
@@ -42,28 +45,12 @@ namespace ModerationTools {
 		return words;
 	}
 
-	// The hashes of a .dcf word list (blocklist.dcf), as dChatFilter::ReadWordlistDCF reads them; nullopt if it isn't one
-	inline std::optional<std::vector<size_t>> DcfHashes(const std::string& bytes) {
-		dChatFilterDCF::fileHeader header{};
-		size_t count = 0;
-		if (bytes.size() < sizeof(header) + sizeof(count)) return std::nullopt;
-		std::memcpy(&header, bytes.data(), sizeof(header));
-		if (header.header != dChatFilterDCF::header || header.formatVersion != dChatFilterDCF::formatVersion) return std::nullopt;
-		std::memcpy(&count, bytes.data() + sizeof(header), sizeof(count));
-		const size_t offset = sizeof(header) + sizeof(count);
-		if (count > (bytes.size() - offset) / sizeof(size_t)) return std::nullopt;
-		std::vector<size_t> hashes(count);
-		if (count) std::memcpy(hashes.data(), bytes.data() + offset, count * sizeof(size_t));
-		return hashes;
-	}
-
-	// A word's hash as the filter stores it (dChatFilter::CalculateHash)
-	inline size_t WordHash(const std::string& word) { return std::hash<std::string>{}(word); }
-
-	// Whether a message contains `word` as one of the words the chat filter checks
-	inline bool HasFilterWord(const std::string& message, const std::string& word) {
-		const auto words = dChatFilter::Words(message);
-		return std::find(words.begin(), words.end(), word) != words.end();
+	// Whether a message contains a word or phrase (FilterWord) as the chat filter reads it: whole words, in a row, skipping
+	// pieces that are only punctuation
+	inline bool HasFilterWord(const std::string& message, const std::string& entry) {
+		const auto tokens = ChatFilterWords::Tokenize(message);
+		const auto words = ChatFilterWords::WordCount(entry);
+		return !ChatFilterWords::FindBlocked(tokens, words, [&entry](const std::string& run) { return run == entry; }).empty();
 	}
 
 	// What the filter decides about one word of a message, and why
@@ -72,6 +59,7 @@ namespace ModerationTools {
 		std::string word;   // as the filter compares it
 		bool stopped{};
 		std::string reason; // blocked_here, allowed_here, allow_file, character_name, not_allowed, block_file, not_in_block_file, no_block_file
+		std::string phrase; // the blocked phrase this word is part of (blocked_here or block_file), when it was a phrase
 	};
 
 	// Where the filter finds its words (callbacks keep this pure; the route reads the files and the database)
@@ -81,33 +69,49 @@ namespace ModerationTools {
 		std::function<bool(const std::string&)> characterName;            // approved character names count as allowed words
 		std::function<bool(const std::string&)> blockFile;                // blocklist.dcf (by hash)
 		bool blockFileLoaded{};
+		uint32_t maxWords{ 1 };                                           // the longest blocked phrase, in words (here or in the file)
 	};
 
 	/**
 	 * Each word of a message with what dChatFilter::IsSentenceOkay decides about it for a player below GM level 2 (higher
-	 * levels skip the filter). Normal chat (allowList) needs every word allowed; best friends' free chat (!allowList) stops
-	 * only blocked words, or every word when there is no blocked words file. Words are split at spaces as the filter
-	 * splits them. Pure; unit tested.
+	 * levels skip the filter). Blocked words and phrases (here always, the block file's in free chat) are stopped; a phrase
+	 * stops each of its words. Normal chat (allowList) needs every other word allowed, one at a time; best friends' free
+	 * chat stops only blocked ones, or every word when there is no blocked words file. Words are split at spaces as the
+	 * filter splits them (ChatFilterWords::CheckMessage). Pure; unit tested.
 	 */
 	inline std::vector<WordVerdict> ExplainMessage(const std::string& message, bool allowList, const WordSources& sources) {
+		const auto tokens = ChatFilterWords::Tokenize(message);
 		std::vector<WordVerdict> verdicts;
-		std::stringstream stream(message);
-		std::string segment;
-		while (std::getline(stream, segment, ' ')) {
-			WordVerdict verdict{ segment, dChatFilter::NormalizeWord(segment) };
-			const auto here = sources.dashboard(verdict.word);
-			if (!allowList && !sources.blockFileLoaded) {
+		for (const auto& token : tokens) verdicts.push_back({ message.substr(token.position, token.length), token.word });
+		if (!allowList && !sources.blockFileLoaded) {
+			for (auto& verdict : verdicts) {
 				verdict.stopped = true;
 				verdict.reason = "no_block_file";
-			} else if (here && !*here) {
-				verdict.stopped = true;
-				verdict.reason = "blocked_here";
-			} else if (!allowList) {
-				verdict.stopped = sources.blockFile(verdict.word);
-				verdict.reason = verdict.stopped ? "block_file" : "not_in_block_file";
+			}
+			return verdicts;
+		}
+
+		const auto blockedHere = [&sources](const std::string& entry) { const auto here = sources.dashboard(entry); return here && !*here; };
+		const auto matches = ChatFilterWords::FindBlocked(tokens, std::max(sources.maxWords, 1u), [&](const std::string& entry) {
+			return blockedHere(entry) || (!allowList && sources.blockFile(entry));
+		});
+		for (const auto& match : matches) {
+			const auto reason = blockedHere(match.entry) ? "blocked_here" : "block_file";
+			for (size_t i = match.first; i <= match.last; i++) {
+				verdicts[i].stopped = true;
+				verdicts[i].reason = reason;
+				if (ChatFilterWords::WordCount(match.entry) > 1) verdicts[i].phrase = match.entry;
+			}
+		}
+
+		for (auto& verdict : verdicts) {
+			if (verdict.stopped) continue;
+			const auto here = sources.dashboard(verdict.word);
+			if (!allowList) {
+				verdict.reason = "not_in_block_file";
 			} else if (sources.allowFile(verdict.word)) {
 				verdict.reason = "allow_file";
-			} else if (here) {
+			} else if (here && *here) {
 				verdict.reason = "allowed_here";
 			} else if (sources.characterName(verdict.word)) {
 				verdict.reason = "character_name";
@@ -115,7 +119,6 @@ namespace ModerationTools {
 				verdict.stopped = true;
 				verdict.reason = "not_allowed";
 			}
-			verdicts.push_back(std::move(verdict));
 		}
 		return verdicts;
 	}
