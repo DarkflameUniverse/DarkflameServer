@@ -3,13 +3,19 @@
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
-#include <fcntl.h>
 #include <fstream>
 #include <map>
 #include <sstream>
-#include <sys/wait.h>
 #include <thread>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include "BinaryPathFinder.h"
 #include "CaptureBundle.h"
@@ -28,6 +34,46 @@ namespace fs = std::filesystem;
 using json = nlohmann::json;
 
 namespace {
+	// Settings can come from the environment too (dConfig): never in a sandbox. Cleared in the tool itself, so every
+	// server it starts goes without them.
+	void ClearOverrides() {
+		for (const auto* key : { "REPLAY_SANDBOX", "DATABASE_TYPE", "SQLITE_DATABASE_PATH", "MASTER_SERVER_PORT", "WORLD_PORT_START", "AUTH_SERVER_PORT",
+			"CHAT_SERVER_PORT", "MASTER_IP", "EXTERNAL_IP", "CLIENT_LOCATION", "MYSQL_HOST", "MYSQL_DATABASE", "DLU_CONFIG_DIR" }) {
+#ifdef _WIN32
+			_putenv_s(key, "");
+#else
+			unsetenv(key);
+#endif
+		}
+	}
+
+	// A program's file name on this platform
+	fs::path Program(const char* name) {
+#ifdef _WIN32
+		return std::string(name) + ".exe";
+#else
+		return name;
+#endif
+	}
+
+	uint64_t ProcessId() {
+#ifdef _WIN32
+		return GetCurrentProcessId();
+#else
+		return static_cast<uint64_t>(getpid());
+#endif
+	}
+
+#ifdef _WIN32
+	// The running stack: a job object, so master and every server it starts stop together (also when the tool dies)
+	HANDLE g_Job = nullptr;
+
+	void StopOnSignal(int signal) {
+		if (g_Job) TerminateJobObject(g_Job, 1);
+		std::signal(signal, SIG_DFL);
+		std::raise(signal);
+	}
+#else
 	// The running stack's process group: stopped too if the tool is interrupted or crashes
 	volatile sig_atomic_t g_Running = 0;
 
@@ -36,6 +82,7 @@ namespace {
 		std::signal(signal, SIG_DFL);
 		std::raise(signal);
 	}
+#endif
 
 	/**
 	 * Settings every sandbox gets over the server's own files. The first value of a key counts, so each key's line
@@ -67,14 +114,48 @@ namespace {
 		std::ofstream(file, std::ios::trunc) << out;
 	}
 
-	pid_t Launch(const fs::path& dir, const fs::path& program, const fs::path& output, const std::vector<std::string>& args = {}) {
+	/**
+	 * Starts `program` in `dir` with its output appended to `output`. With `group`, it leads a group of its own (the
+	 * stack: master and what it starts), which Stack::Stop ends as one. Returns 0 when it couldn't start.
+	 */
+	Sandbox::ProcessHandle Launch(const fs::path& dir, const fs::path& program, const fs::path& output, const std::vector<std::string>& args, bool group) {
+#ifdef _WIN32
+		std::string command = "\"" + program.string() + "\"";
+		for (const auto& arg : args) {
+			command += " \"";
+			for (const char c : arg) if (c != '"') command += c;
+			command += "\"";
+		}
+		SECURITY_ATTRIBUTES inherit{ sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE };
+		HANDLE log = CreateFileW(output.wstring().c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, &inherit, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+		STARTUPINFOA startup{};
+		startup.cb = sizeof(startup);
+		startup.dwFlags = STARTF_USESTDHANDLES;
+		startup.hStdInput = nullptr;
+		startup.hStdOutput = startup.hStdError = log;
+		PROCESS_INFORMATION info{};
+		const auto dirText = dir.string();
+		const BOOL started = CreateProcessA(nullptr, command.data(), nullptr, nullptr, TRUE, CREATE_SUSPENDED | CREATE_NO_WINDOW, nullptr, dirText.c_str(), &startup, &info);
+		if (log != INVALID_HANDLE_VALUE) CloseHandle(log);
+		if (!started) return 0;
+		if (group) {
+			if (!g_Job) {
+				g_Job = CreateJobObjectA(nullptr, nullptr);
+				JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+				limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+				SetInformationJobObject(g_Job, JobObjectExtendedLimitInformation, &limits, sizeof(limits));
+			}
+			AssignProcessToJobObject(g_Job, info.hProcess);
+		}
+		ResumeThread(info.hThread);
+		CloseHandle(info.hThread);
+		return reinterpret_cast<Sandbox::ProcessHandle>(info.hProcess);
+#else
 		const pid_t pid = fork();
+		if (pid < 0) return 0;
 		if (pid != 0) return pid;
-		// The child: its own process group, so the whole stack (master and what it starts) stops together
-		setpgid(0, 0);
-		// Settings can come from the environment too (dConfig): not in a sandbox
-		for (const auto* key : { "REPLAY_SANDBOX", "DATABASE_TYPE", "SQLITE_DATABASE_PATH", "MASTER_SERVER_PORT", "WORLD_PORT_START", "AUTH_SERVER_PORT",
-			"CHAT_SERVER_PORT", "MASTER_IP", "EXTERNAL_IP", "CLIENT_LOCATION", "MYSQL_HOST", "MYSQL_DATABASE", "DLU_CONFIG_DIR" }) unsetenv(key);
+		// The child: with `group`, its own process group, so the whole stack (master and what it starts) stops together
+		if (group) setpgid(0, 0);
 		if (chdir(dir.c_str()) != 0) _exit(127);
 		const int fd = open(output.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
 		if (fd >= 0) {
@@ -87,6 +168,33 @@ namespace {
 		argv.push_back(nullptr);
 		execv(program.c_str(), argv.data());
 		_exit(127);
+#endif
+	}
+
+	// Whether it ended; its exit code in `code` (-1: killed)
+	bool Ended(Sandbox::ProcessHandle process, bool wait, int& code) {
+#ifdef _WIN32
+		const auto handle = reinterpret_cast<HANDLE>(process);
+		if (WaitForSingleObject(handle, wait ? INFINITE : 0) != WAIT_OBJECT_0) return false;
+		DWORD exit = 0;
+		GetExitCodeProcess(handle, &exit);
+		code = static_cast<int>(exit);
+		CloseHandle(handle);
+		return true;
+#else
+		int status = 0;
+		if (waitpid(static_cast<pid_t>(process), &status, wait ? 0 : WNOHANG) != static_cast<pid_t>(process)) return false;
+		code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+		return true;
+#endif
+	}
+
+	// A link to something shared with the built servers; a copy where links can't be made (Windows without the right)
+	void Share(const fs::path& from, const fs::path& to) {
+		std::error_code ec;
+		if (fs::is_directory(from)) fs::create_directory_symlink(from, to, ec);
+		else fs::create_symlink(from, to, ec);
+		if (ec) fs::copy(from, to, fs::copy_options::recursive, ec);
 	}
 }
 
@@ -96,7 +204,8 @@ namespace Sandbox {
 		stack->m_Options = options;
 		stack->m_Keep = options.keep;
 		std::error_code ec;
-		const auto stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count() / 1000000) + "-" + std::to_string(getpid());
+		const auto stamp = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()) + "-" +
+			std::to_string(ProcessId());
 		stack->m_Dir = fs::absolute(options.root / ("sandbox-" + stamp));
 		const auto& dir = stack->m_Dir;
 		if (!fs::create_directories(dir / "resServer", ec) || !fs::create_directories(dir / "logs", ec)) {
@@ -105,15 +214,15 @@ namespace Sandbox {
 		}
 		// Binaries are copied: they find their settings and database next to themselves
 		for (const auto* name : { "MasterServer", "AuthServer", "ChatServer", "WorldServer" }) {
-			fs::copy_file(options.serverDir / name, dir / name, ec);
+			fs::copy_file(options.serverDir / Program(name), dir / Program(name), ec);
 			if (ec) {
-				error = "Can't copy " + (options.serverDir / name).string() + ": " + ec.message();
+				error = "Can't copy " + (options.serverDir / Program(name)).string() + ": " + ec.message();
 				return nullptr;
 			}
 		}
-		fs::copy_file(BinaryPathFinder::GetBinaryDir() / "CaptureTool", dir / "CaptureTool", ec);
-		for (const auto* name : { "migrations", "navmeshes", "vanity", "blocklist.dcf", "libmariadbcpp.so" }) {
-			if (fs::exists(options.serverDir / name)) fs::create_symlink(fs::absolute(options.serverDir / name), dir / name, ec);
+		fs::copy_file(BinaryPathFinder::GetBinaryDir() / Program("CaptureTool"), dir / Program("CaptureTool"), ec);
+		for (const auto* name : { "migrations", "navmeshes", "vanity", "blocklist.dcf", "libmariadbcpp.so", "libmariadbcpp.dylib", "mariadbcpp.dll", "plugin" }) {
+			if (fs::exists(options.serverDir / name)) Share(fs::absolute(options.serverDir / name), dir / name);
 		}
 		for (const auto* name : { "sharedconfig.ini", "masterconfig.ini", "authconfig.ini", "chatconfig.ini", "worldconfig.ini" }) {
 			fs::copy_file(options.serverDir / name, dir / name, ec);
@@ -172,11 +281,11 @@ namespace Sandbox {
 
 	bool Stack::Setup(const fs::path& bundle, const std::string& username, const std::string& password, bool characters, json& ids, std::string& error) {
 		const auto out = m_Dir / "setup.json";
-		const pid_t pid = Launch(m_Dir, m_Dir / "CaptureTool", m_Dir / "logs" / "setup.out",
-			{ "sandbox-setup", fs::absolute(bundle).string(), username, password, characters ? "1" : "0", out.string() });
-		int status = 0;
-		waitpid(pid, &status, 0);
-		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+		ClearOverrides();
+		const auto process = Launch(m_Dir, m_Dir / Program("CaptureTool"), m_Dir / "logs" / "setup.out",
+			{ "sandbox-setup", fs::absolute(bundle).string(), username, password, characters ? "1" : "0", out.string() }, false);
+		int code = -1;
+		if (!process || !Ended(process, true, code) || code != 0) {
 			error = "Setting up the sandbox failed (see " + (m_Dir / "logs" / "setup.out").string() + ")";
 			return false;
 		}
@@ -191,13 +300,20 @@ namespace Sandbox {
 
 	bool Stack::Start(std::string& error) {
 		for (const int signal : { SIGINT, SIGTERM, SIGSEGV, SIGABRT }) std::signal(signal, StopOnSignal);
-		m_Master = Launch(m_Dir, m_Dir / "MasterServer", m_Dir / "logs" / "master.out");
-		g_Running = m_Master;
+		ClearOverrides();
+		m_Master = Launch(m_Dir, m_Dir / Program("MasterServer"), m_Dir / "logs" / "master.out", {}, true);
+		if (!m_Master) {
+			error = "Couldn't start the sandbox's master server";
+			return false;
+		}
+#ifndef _WIN32
+		g_Running = static_cast<pid_t>(m_Master);
+#endif
 		// Auth answering is the sign the stack is up (master starts it after chat and the character select world)
 		const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(120);
 		while (std::chrono::steady_clock::now() < until) {
-			int status = 0;
-			if (waitpid(m_Master, &status, WNOHANG) == m_Master) {
+			int code = 0;
+			if (Ended(m_Master, false, code)) {
 				m_Master = 0;
 				error = "The sandbox's master server stopped (see " + (m_Dir / "logs").string() + ")";
 				return false;
@@ -216,15 +332,28 @@ namespace Sandbox {
 	}
 
 	void Stack::Stop() {
-		if (m_Master <= 0) return;
-		kill(-m_Master, SIGTERM);
+		if (!m_Master) return;
+#ifdef _WIN32
+		// Servers have no console to be asked to stop through: end the job (master and every server it started)
+		if (g_Job) {
+			TerminateJobObject(g_Job, 0);
+			CloseHandle(g_Job);
+			g_Job = nullptr;
+		}
+		int code = 0;
+		Ended(m_Master, true, code);
+#else
+		const auto group = static_cast<pid_t>(m_Master);
+		kill(-group, SIGTERM);
 		const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(15);
-		int status = 0;
-		while (waitpid(m_Master, &status, WNOHANG) == 0 && std::chrono::steady_clock::now() < until) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		kill(-m_Master, SIGKILL);
-		waitpid(m_Master, &status, 0);
-		m_Master = 0;
+		int code = 0;
+		bool ended = false;
+		while (!(ended = Ended(m_Master, false, code)) && std::chrono::steady_clock::now() < until) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		kill(-group, SIGKILL);
+		if (!ended) Ended(m_Master, true, code);
 		g_Running = 0;
+#endif
+		m_Master = 0;
 	}
 
 	int SetupCommand(const fs::path& bundlePath, const std::string& username, const std::string& password, bool characters, const fs::path& out) {

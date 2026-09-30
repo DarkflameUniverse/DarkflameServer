@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <sys/types.h>
 
 #include "json.hpp"
 
@@ -16,6 +15,9 @@
  * read-only; CDServer.sqlite is copied. The folder is deleted afterwards unless it is kept.
  */
 namespace Sandbox {
+	// A started process: its pid, or its process handle on Windows (0: none)
+	using ProcessHandle = intptr_t;
+
 	struct Options {
 		std::filesystem::path serverDir;      // built servers (MasterServer, AuthServer, ChatServer, WorldServer, migrations, ...)
 		std::filesystem::path root;           // sandboxes are made in here
@@ -47,7 +49,7 @@ namespace Sandbox {
 	private:
 		Options m_Options;
 		std::filesystem::path m_Dir;
-		pid_t m_Master{};
+		ProcessHandle m_Master{};
 		bool m_Keep{};
 	};
 
