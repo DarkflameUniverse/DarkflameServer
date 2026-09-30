@@ -12,13 +12,14 @@
  * (single connections, or instances) and `shown` (the ids of those matching the group's filter). Each shown member is
  * a link end of its own, and the open box itself has none; `graph.members` finds a member by id.
  *
- * layout(graph, width, moved, scroll) places the nodes in five columns in a fixed order, grows open boxes by their rows
+ * layout(graph, width, moved, scroll) places the nodes in six columns in a fixed order, grows open boxes by their rows
  * and gives each link its path; rows in view of an open box's list are anchors (`anchors`).
  */
 (function (root) {
 	'use strict';
 
-	var COLUMNS = [0, 1, 2, 3, 4]; // game clients | auth, chat, worlds, others | master | dashboard, UGC | web clients
+	var COLUMNS = [0, 1, 2, 3, 4, 5]; // game clients | auth, worlds, others | chat | master | dashboard, UGC | web clients
+	// Chat has a column of its own between the worlds and master: every world has a link to it
 	// An open group's box: its header, the filter, the rows (at most MAX_ROWS in view, the rest scroll) and a margin
 	var GROUP = { head: 58, filter: 30, row: 30, maxRows: 8, foot: 6 }; // head: a name on up to two lines and one line under it
 
@@ -30,10 +31,10 @@
 	function nodeOf(server) {
 		switch (server.type) {
 			case 'AUTH': return { id: 'auth', kind: 'auth', label: 'Auth', column: 1, order: 0 };
-			case 'CHAT': return { id: 'chat', kind: 'chat', label: 'Chat', column: 1, order: 1 };
-			case 'MASTER': return { id: 'master', kind: 'master', label: 'Master', column: 2, order: 0 };
-			case 'DASHBOARD': return { id: 'dashboard', kind: 'dashboard', label: 'Dashboard', column: 3, order: 0 };
-			case 'UGC': return { id: 'ugc', kind: 'ugc', label: 'UGC server', column: 3, order: 1 };
+			case 'CHAT': return { id: 'chat', kind: 'chat', label: 'Chat', column: 2, order: 0 };
+			case 'MASTER': return { id: 'master', kind: 'master', label: 'Master', column: 3, order: 0 };
+			case 'DASHBOARD': return { id: 'dashboard', kind: 'dashboard', label: 'Dashboard', column: 4, order: 0 };
+			case 'UGC': return { id: 'ugc', kind: 'ugc', label: 'UGC server', column: 4, order: 1 };
 			case 'WORLD': {
 				var zone = num(server.zone);
 				// "World 1200 Nimbus Station #3" -> "World 1200 Nimbus Station"
@@ -105,7 +106,7 @@
 		function endOf(server) { return server.type === 'WORLD' && expanded[num(server.zone)] ? server.key : nodeOf(server).id; }
 
 		var clients = node({ id: 'clients', kind: 'clients', label: 'Game clients', column: 0, order: 0 });
-		var web = node({ id: 'web', kind: 'web', label: 'Web clients', column: 4, order: 0 });
+		var web = node({ id: 'web', kind: 'web', label: 'Web clients', column: 5, order: 0 });
 		var hasChat = keys.some(function (k) { return servers[k].type === 'CHAT'; });
 
 		keys.forEach(function (key) {
@@ -266,13 +267,14 @@
 	 * when closed), h its whole height; an open box's list starts at lists[id].top and anchors are the rows in view.
 	 */
 	function layout(graph, totalWidth, moved, scroll) {
-		var nodeWidth = Math.max(140, Math.min(240, Math.floor(totalWidth / 5.4))), nodeHeight = 68, rowHeight = 88, pad = 16;
+		// Boxes take at most 60% of the space between column centres, so there is always room for the links between them
+		var nodeWidth = Math.max(120, Math.min(230, Math.floor((totalWidth - 32) / 9))), nodeHeight = 68, rowHeight = 88, pad = 16;
 		var byColumn = COLUMNS.map(function () { return []; });
 		graph.nodes.forEach(function (n) { byColumn[n.column].push(n); });
 		var rows = Math.max.apply(null, byColumn.map(function (c) { return c.length; }).concat([1]));
 		var height = rows * rowHeight + pad * 2;
 		var usable = totalWidth - nodeWidth - pad * 2;
-		var xs = [0, 0.28, 0.54, 0.78, 1].map(function (f) { return Math.round(pad + nodeWidth / 2 + f * usable); });
+		var xs = [0, 0.2, 0.4, 0.6, 0.8, 1].map(function (f) { return Math.round(pad + nodeWidth / 2 + f * usable); });
 		var heightOf = function (n) { return n.open ? groupHeight(n.shown.length) : nodeHeight; };
 		var at = {};
 		// Rows at a fixed pitch from the top, each column centred on the tallest; an open box pushes the boxes under it
@@ -311,11 +313,35 @@
 			});
 		});
 
+		// Links leaving a box's side spread down that side, ordered by where their other end is, instead of all meeting
+		// at one point (an open box's rows keep their own row)
+		var ends = {}; // "id|side" -> [{edge, end, otherY}]
+		var endOf = function (id) { return at[id] || anchors[id]; };
+		graph.edges.forEach(function (e) {
+			var a = endOf(e.from), b = endOf(e.to);
+			if (!a || !b || Math.abs(b.x - a.x) < nodeWidth * 0.75) return;
+			var dir = b.x > a.x ? 1 : -1;
+			if (!a.row) (ends[e.from + '|' + dir] = ends[e.from + '|' + dir] || []).push({ edge: e.id, end: 'a', other: b.y });
+			if (!b.row) (ends[e.to + '|' + (-dir)] = ends[e.to + '|' + (-dir)] || []).push({ edge: e.id, end: 'b', other: a.y });
+		});
+		var ports = {}; // edgeId -> {a: y, b: y}
+		Object.keys(ends).forEach(function (key) {
+			var list = ends[key], box = at[key.split('|')[0]];
+			if (!box) return;
+			list.sort(function (p, q) { return p.other - q.other; });
+			var top = box.y - nodeHeight / 2 + 12, span = Math.min(box.h, nodeHeight) - 24;
+			list.forEach(function (p, i) {
+				var y = list.length === 1 ? box.y : top + span * i / (list.length - 1);
+				(ports[p.edge] = ports[p.edge] || {})[p.end] = Math.round(y);
+			});
+		});
+		var withPort = function (p, y) { return y === undefined ? p : { x: p.x, y: y, h: p.h, column: p.column, row: p.row, port: true }; };
 		var paths = {};
 		graph.edges.forEach(function (e) {
-			var a = at[e.from] || anchors[e.from], b = at[e.to] || anchors[e.to];
+			var a = endOf(e.from), b = endOf(e.to);
 			if (!a || !b) return;
-			paths[e.id] = { fwd: curve(a, b, nodeWidth, 3.5, nodeHeight), back: curve(b, a, nodeWidth, 3.5, nodeHeight) };
+			var pa = withPort(a, ports[e.id] && ports[e.id].a), pb = withPort(b, ports[e.id] && ports[e.id].b);
+			paths[e.id] = { fwd: curve(pa, pb, nodeWidth, 3.5, nodeHeight), back: curve(pb, pa, nodeWidth, 3.5, nodeHeight) };
 		});
 		return { width: totalWidth, height: height, nodeWidth: nodeWidth, nodeHeight: nodeHeight, nodes: at, lists: lists, anchors: anchors, paths: paths };
 	}

@@ -39,7 +39,7 @@ const summary = {
 
 const graph = G.build(summary, {});
 const ids = graph.nodes.map((n) => n.id);
-same(ids, ['clients', 'auth', 'chat', 'zone:1200', 'service:99:0:0', 'master', 'dashboard', 'ugc', 'web'], 'nodes in column order, one per zone');
+same(ids, ['clients', 'auth', 'zone:1200', 'service:99:0:0', 'chat', 'master', 'dashboard', 'ugc', 'web'], 'nodes in column order, one per zone, chat in its own column');
 const edge = (id) => graph.edges.find((e) => e.id === id);
 
 same(edge('clients>zone:1200').fwd, { packets: 27, bytes: 2700 }, 'players to the zone: both instances');
@@ -114,7 +114,7 @@ same(G.speed(1e6) < G.speed(1), true, 'busier moves faster');
 
 // Layout: columns left to right, every link a path each way (the lane offset moves an end by up to 3.5 px)
 const L = G.layout(graph, 1000);
-same(L.nodes.clients.x < L.nodes.auth.x && L.nodes.auth.x < L.nodes.master.x && L.nodes.master.x < L.nodes.dashboard.x && L.nodes.dashboard.x < L.nodes.web.x, true, 'columns, web clients right of the dashboard');
+same(L.nodes.clients.x < L.nodes.auth.x && L.nodes.auth.x < L.nodes.chat.x && L.nodes.chat.x < L.nodes.master.x && L.nodes.master.x < L.nodes.dashboard.x && L.nodes.dashboard.x < L.nodes.web.x, true, 'columns, web clients right of the dashboard');
 
 // A dragged box goes where it was put, its links follow, and the box grows the canvas if needed
 {
@@ -169,3 +169,12 @@ if (failures) {
 	process.exit(1);
 }
 console.log('network-graph: all passed');
+
+// Boxes never overlap the next column, and links leaving one side of a box spread down it
+{
+	const W = G.layout(graph, 1650);
+	const xs = [...new Set(Object.values(W.nodes).map(n => n.x))].sort((a, b) => a - b);
+	for (let i = 1; i < xs.length; i++) same(xs[i] - xs[i - 1] >= W.nodeWidth + 40, true, 'room between columns ' + i);
+	const starts = Object.keys(W.paths).filter(id => id.includes('master')).map(id => W.paths[id].fwd);
+	same(new Set(starts.map(d => d.split(' ')[0])).size > 1 || starts.length < 2, true, 'links at master do not all meet at one point');
+}
