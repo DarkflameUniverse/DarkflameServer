@@ -1,3 +1,4 @@
+#include "Profiler.h"
 #include "master/PlayerAction.h"
 #include "master/DashboardMessages.h"
 #include <chrono>
@@ -55,6 +56,7 @@
 #include "master/InstanceMigration.h"
 #include "master/LiveUpdate.h"
 #include "master/ServerTraffic.h"
+#include "master/Profiling.h"
 #include "master/UgcModelsMade.h"
 #include "BuildInfo.h"
 
@@ -475,6 +477,10 @@ int main(int argc, char** argv) {
 	Game::server->SetTrafficSink([](ServerTraffic& report) {
 		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, report);
 	});
+	// Its profiling results too
+	Game::server->SetProfileSink([](ProfileResult& result) {
+		if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, result);
+	});
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
@@ -555,11 +561,13 @@ int main(int argc, char** argv) {
 
 	Game::logger->Flush();
 	while (!Game::ShouldShutdown()) {
+		Profiler::BeginFrame();
 		//In world we'd update our other systems here.
 
 		//Check for packets here:
 		packet = Game::server->Receive();
 		if (packet) {
+			Profiler::PacketScope scope(packet->data, packet->length);
 			HandlePacket(packet);
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
@@ -584,6 +592,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 15s:
 		if (framesSinceLastFlush >= logFlushTime) {
+			Profiler::Scope scope("Log flush", Profiler::Phase::LOG_FLUSH);
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else
@@ -656,6 +665,7 @@ int main(int argc, char** argv) {
 		waitpid(static_cast<pid_t>(-1), &status, WNOHANG);
 #endif
 
+		Profiler::EndFrame();
 		t += std::chrono::milliseconds(masterFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
@@ -1005,6 +1015,47 @@ namespace {
 		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, report);
 	}
 
+	// Profiling sessions (Profiling.h): the dashboard's request goes to the server it names; master profiles itself
+	void OnProfileRequest(const ProfileRequest& request, const SystemAddress& sysAddr) {
+		if (sysAddr != dashboardServerMasterPeerSysAddr) {
+			LOG("Ignoring a profiling request from a server that is not the dashboard");
+			return;
+		}
+		SystemAddress target = UNASSIGNED_SYSTEM_ADDRESS;
+		switch (request.serverType) {
+		case ServiceType::MASTER:
+			Game::server->HandleProfileRequest(request);
+			return;
+		case ServiceType::AUTH: target = authServerMasterPeerSysAddr; break;
+		case ServiceType::CHAT: target = chatServerMasterPeerSysAddr; break;
+		case ServiceType::UGC: target = ugcServerMasterPeerSysAddr; break;
+		case ServiceType::WORLD: {
+			const auto& instance = Game::im->FindInstanceWithPrivate(static_cast<LWOMAPID>(request.zoneId), static_cast<LWOINSTANCEID>(request.instanceId));
+			if (instance) target = instance->GetSysAddr();
+			break;
+		}
+		default: break;
+		}
+		if (target != UNASSIGNED_SYSTEM_ADDRESS) {
+			MasterPackets::SendTo(target, request);
+			return;
+		}
+		if (request.stop) return;
+		ProfileResult failed;
+		failed.sessionId = request.sessionId;
+		failed.serverType = request.serverType;
+		failed.zoneId = request.zoneId;
+		failed.instanceId = request.instanceId;
+		failed.status = eProfileStatus::FAILED;
+		failed.error = "That server isn't running";
+		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, failed);
+	}
+
+	void OnProfileResult(const ProfileResult& result, const SystemAddress& sysAddr) {
+		if (dashboardServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS || sysAddr == dashboardServerMasterPeerSysAddr) return;
+		MasterPackets::SendTo(dashboardServerMasterPeerSysAddr, result);
+	}
+
 	void OnAnnounce(const Announcement& announcement, const SystemAddress& sysAddr) {
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
 			LOG("Ignoring announcement from a server that is not the dashboard");
@@ -1120,6 +1171,8 @@ namespace {
 			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, ForwardWorldToDashboard<MessageCaptureData>);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, OnServerTraffic);
+			handlers.On<ProfileRequest>(Master::PROFILE_REQUEST, OnProfileRequest);
+			handlers.On<ProfileResult>(Master::PROFILE_RESULT, OnProfileResult);
 			handlers.On<UgcModelsMade>(Master::UGC_MODELS_MADE, OnUgcModelsMade);
 			handlers.On<LiveUpdateRequest>(Master::LIVE_UPDATE_REQUEST, OnLiveUpdateRequest);
 			handlers.On<ChatHandoff>(Master::CHAT_HANDOFF, OnChatHandoff);

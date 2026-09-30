@@ -12,6 +12,8 @@
 class Logger;
 class dConfig;
 struct ServerTraffic;
+struct ProfileRequest;
+struct ProfileResult;
 enum class eServerDisconnectIdentifiers : uint32_t;
 enum class ServiceType : uint16_t;
 
@@ -59,6 +61,13 @@ public:
 	using TrafficSink = std::function<void(ServerTraffic& report)>;
 	void SetTrafficSink(TrafficSink sink) { mTrafficSink = std::move(sink); }
 
+	// Where this server's profiling results go (see Profiling.h). By default they are sent to master; master sends its
+	// own to the dashboard, the dashboard keeps its own.
+	using ProfileSink = std::function<void(ProfileResult& result)>;
+	void SetProfileSink(ProfileSink sink) { mProfileSink = std::move(sink); }
+	// Starts or stops a profiling session of this server's main loop (master forwards the dashboard's request)
+	void HandleProfileRequest(const ProfileRequest& request);
+
 	// Names who is on a connection in the traffic report (a world fills in the player's account and character)
 	using ConnectionIdentity = std::function<void(const SystemAddress& sysAddr, TrafficStats::Connection& connection)>;
 	void SetConnectionIdentity(ConnectionIdentity identity) { mConnectionIdentity = std::move(identity); }
@@ -102,6 +111,9 @@ private:
 	// Who mPeer's connections are: other servers on master and chat (the worlds connect to chat), players elsewhere
 	TrafficStats::Peer PeerOfConnections() const;
 	void ReportTraffic();
+	void SendProfileResult(ProfileResult& result);
+	// Main thread, frame timing: the slow frame threshold (slow_frame_ms) and the log line of a slow frame
+	void ConfigureProfiler();
 	// Adds the peer's connections to the report's link statistics (changes since the last report)
 	void AddLinkStats(RakPeerInterface* peer, uint64_t peerIndex, ServerTraffic& report, uint64_t& pingSum, std::map<uint64_t, LinkCounters>& seen);
 	void Shutdown();
@@ -143,6 +155,7 @@ protected:
 	SendObserver mSendObserver;
 
 	TrafficSink mTrafficSink;
+	ProfileSink mProfileSink;
 	ConnectionIdentity mConnectionIdentity;
 	// RakNet's per-connection statistics are totals since the connection opened; the last ones seen, for deltas
 	std::map<uint64_t, LinkCounters> mLinkCounters;

@@ -158,6 +158,7 @@ namespace {
 		c.AddSection("Logging and crashes");
 		c.Add(Bool(SHARED, "log_to_console", "Log to the console", "Also print log lines to the terminal.", true, true));
 		c.Add(Bool(SHARED, "log_debug_statements", "Debug logging", "Extra log lines for developers.", false, true));
+		c.Add(Unit(Int(SHARED, "slow_frame_ms", "Slow frame", "A server's main loop frame that takes this long is logged with what took the time, and shown on the Performance page. 0 turns it off.", "250", 0, 600000), "ms"));
 		c.Add(Format(Text(SHARED, "dump_folder", "Crash dump folder", "Where crash logs go. Empty turns them off.", "", true), eFormat::PATH));
 		c.Add(Bool(WORLD, "generate_dump", "Crash dumps from world servers", "Write a dump when a world server crashes (needs the crash dump folder).", false, true));
 		c.Add(Bool(WORLD, "save_lxfmls", "Save model files", "Save players' models (LXFML) to disk before they are split, for debugging.", false));

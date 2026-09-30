@@ -20,6 +20,11 @@
 #include "TrafficStats.h"
 #include "RakNetStatistics.h"
 #include "master/ServerTraffic.h"
+#include "master/Profiling.h"
+#include "Profiler.h"
+
+#include <algorithm>
+#include <array>
 
 //! Replica Constructor class
 class ReplicaConstructor : public ReceiveConstructionInterface {
@@ -77,6 +82,9 @@ dServer::dServer(
 	mConfig = config;
 	mMasterPassword = masterPassword;
 	mShouldShutdown = lastSignal;
+	// Frame timing (Profiler.h) counts the scopes of the thread that runs the server: this one
+	Profiler::SetMainThread();
+	ConfigureProfiler();
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -183,7 +191,15 @@ Packet* dServer::ReceiveFromMaster() {
 				case MessageType::Master::CONFIG_RELOAD:
 					LOG("Reloading settings (changed on the dashboard)");
 					if (mConfig) mConfig->ReloadConfig();
+					ConfigureProfiler();
 					break;
+
+				case MessageType::Master::PROFILE_REQUEST: {
+					ProfileRequest request;
+					if (request.Deserialize(inStream)) HandleProfileRequest(request);
+					else LOG("Dropped a profiling request from master that failed to read");
+					break;
+				}
 
 				// When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
@@ -394,6 +410,8 @@ void dServer::ReportTraffic() {
 	report.zoneId = mZoneID;
 	report.instanceId = static_cast<uint32_t>(mInstanceID);
 	report.report = TrafficStats::Local().Take(TrafficStats::Now());
+	report.frames = Profiler::Local().Take(TrafficStats::Now());
+	Profiler::Local().CheckSession(Profiler::NowNs());
 
 	uint64_t pingSum = 0;
 	std::map<uint64_t, LinkCounters> seen;
@@ -405,4 +423,65 @@ void dServer::ReportTraffic() {
 
 	if (mTrafficSink) mTrafficSink(report);
 	else if (mMasterPeer && mMasterConnectionActive) MasterPackets::SendToMaster(report, this);
+}
+
+void dServer::ConfigureProfiler() {
+	auto& recorder = Profiler::Local();
+	const auto threshold = mConfig ? GeneralUtils::TryParse<uint32_t>(mConfig->GetValue("slow_frame_ms")).value_or(250) : 250;
+	recorder.SetSlowThreshold(threshold);
+	recorder.SetSlowSink([](const Profiler::Frame& frame) {
+		// The two phases that took longest
+		std::array<size_t, Profiler::PHASES> order{};
+		for (size_t i = 0; i < order.size(); i++) order[i] = i;
+		std::sort(order.begin(), order.end(), [&frame](size_t a, size_t b) { return frame.phaseUs[a] > frame.phaseUs[b]; });
+		std::string phases;
+		for (size_t i = 0; i < 2; i++) {
+			if (frame.phaseUs[order[i]] < 1000) break;
+			phases += std::string(phases.empty() ? "" : ", ") + Profiler::PhaseName(order[i]) + " " + std::to_string(frame.phaseUs[order[i]] / 1000) + " ms";
+		}
+		LOG("Slow %s: %u ms (%s): %s", frame.implicit ? "work outside the main loop" : "frame", frame.durationUs / 1000, phases.c_str(), frame.Path().c_str());
+	});
+}
+
+void dServer::SendProfileResult(ProfileResult& result) {
+	if (mProfileSink) mProfileSink(result);
+	else if (mMasterPeer && mMasterConnectionActive) MasterPackets::SendToMaster(result, this);
+}
+
+void dServer::HandleProfileRequest(const ProfileRequest& request) {
+	auto& recorder = Profiler::Local();
+	const auto now = Profiler::NowNs();
+	if (request.stop) {
+		recorder.StopSession(request.sessionId, now);
+		return;
+	}
+	ProfileResult reply;
+	reply.sessionId = request.sessionId;
+	reply.serverType = mServerType;
+	reply.zoneId = mZoneID;
+	reply.instanceId = static_cast<uint32_t>(mInstanceID);
+	if (!Profiler::IsMainThread()) {
+		reply.status = eProfileStatus::FAILED;
+		reply.error = "Not on the server's main thread";
+	} else if (recorder.SessionActive()) {
+		reply.status = eProfileStatus::FAILED;
+		reply.error = "Another profiling session is running on this server";
+	} else {
+		const auto serverType = mServerType;
+		const auto zoneId = mZoneID;
+		const auto instanceId = static_cast<uint32_t>(mInstanceID);
+		recorder.StartSession(request.sessionId, request.durationMs, now, [this, serverType, zoneId, instanceId](Profiler::Profile&& profile) {
+			ProfileResult done;
+			done.sessionId = profile.id;
+			done.serverType = serverType;
+			done.zoneId = zoneId;
+			done.instanceId = instanceId;
+			done.status = eProfileStatus::DONE;
+			done.profile = std::move(profile);
+			SendProfileResult(done);
+		});
+		LOG("Profiling the main loop for %u ms (session %u, from the dashboard)", std::min(request.durationMs, Profiler::Recorder::MAX_SESSION_MS), request.sessionId);
+		reply.status = eProfileStatus::STARTED;
+	}
+	SendProfileResult(reply);
 }
