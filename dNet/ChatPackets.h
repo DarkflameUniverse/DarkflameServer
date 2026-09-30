@@ -474,6 +474,55 @@ namespace ChatPackets {
 	};
 
 	/**
+	 * Activity matchmaking (docs/Matchmaking.md). The chat server keeps the lobbies of every world, so players on
+	 * different instances of a zone are matched into the same activity instance.
+	 */
+	enum class eMatchRequestType : int32_t {
+		JOIN = 0,  // the client's MatchRequest type 0
+		READY = 1, // the client's MatchRequest type 1 (value: ready or not)
+		LEAVE = 2, // DLU: the player left the lobby (LobbyExit) or can't stay in it
+	};
+
+	// World -> chat: a player joins, readies in or leaves an activity lobby. On a join the world sends what it read
+	// from the activity (CDClient Activities, with its own overrides such as solo racing), so chat needs no CDClient.
+	struct MatchRequest : public LUBitStream {
+		LWOOBJID playerID{};
+		eMatchRequestType type{};
+		int32_t value{}; // READY: 1 ready, 0 not ready
+		int32_t activityID{};
+		std::string playerName;    // u32 length, then 1 byte per character
+		std::string playerChoices; // the client's name-value text (like "droppedItem=13:<id>"), u32 length then bytes
+		uint32_t instanceMapID{};
+		int32_t minTeams{};
+		int32_t maxTeams{};
+		int32_t minTeamSize{};
+		int32_t maxTeamSize{};
+		int32_t waitTime{};   // milliseconds
+		int32_t startDelay{}; // milliseconds
+
+		MatchRequest() : LUBitStream(ServiceType::CHAT, MessageType::Chat::MATCH_REQUEST) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Chat -> world (DLU): a lobby's match has its instance; send these players (the ones in this world) there
+	struct MatchTransfer : public LUBitStream {
+		// More players than this in one packet is a bad packet
+		static constexpr uint32_t MAX_PLAYERS = 64;
+
+		int32_t activityID{};
+		LWOZONEID zoneID{};   // map, instance and clone of the activity instance
+		std::string serverIP; // u32 length, then 1 byte per character
+		uint16_t serverPort{};
+		bool mythranShift{};
+		std::vector<LWOOBJID> players; // u32 count
+
+		MatchTransfer() : LUBitStream(ServiceType::CHAT, MessageType::Chat::MATCH_TRANSFER) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	/**
 	 * Chat-service packets the client receives, from the chat server (routed through the player's world) or from its world.
 	 */
 	namespace Client {

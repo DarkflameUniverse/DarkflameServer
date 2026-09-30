@@ -22,7 +22,7 @@ static_assert(static_cast<int64_t>(MessageType::Auth::LEGOINTERFACE_AUTH_RESPONS
 static_assert(static_cast<int64_t>(MessageType::Auth::SESSIONKEY_RECEIVED_CONFIRM) == 4);
 static_assert(static_cast<int64_t>(MessageType::Auth::RUNTIME_CONFIG) == 5);
 
-// MessageType::Chat: 69 enumerators
+// MessageType::Chat: 72 enumerators
 static_assert(static_cast<int64_t>(MessageType::Chat::LOGIN_SESSION_NOTIFY) == 0);
 static_assert(static_cast<int64_t>(MessageType::Chat::GENERAL_CHAT_MESSAGE) == 1);
 static_assert(static_cast<int64_t>(MessageType::Chat::PRIVATE_CHAT_MESSAGE) == 2);
@@ -92,6 +92,9 @@ static_assert(static_cast<int64_t>(MessageType::Chat::PRG_CSR_COMMAND) == 65);
 static_assert(static_cast<int64_t>(MessageType::Chat::HEARTBEAT_REQUEST_FROM_WORLD) == 66);
 static_assert(static_cast<int64_t>(MessageType::Chat::UPDATE_FREE_TRIAL_STATUS) == 67);
 static_assert(static_cast<int64_t>(MessageType::Chat::CREATE_TEAM) == 68);
+static_assert(static_cast<int64_t>(MessageType::Chat::GUILD_SET_RANK) == 69);
+static_assert(static_cast<int64_t>(MessageType::Chat::GUILD_DISBAND) == 70);
+static_assert(static_cast<int64_t>(MessageType::Chat::MATCH_TRANSFER) == 71);
 
 // MessageType::Client: 67 enumerators
 static_assert(static_cast<int64_t>(MessageType::Client::LOGIN_RESPONSE) == 0);

@@ -912,6 +912,21 @@ namespace ClientPackets {
 		VALIDATE_READ(ReadZone(bitStream, zoneID));
 		return true;
 	}
+
+	void MatchUpdate::Serialize(RakNet::BitStream& bitStream) const {
+		TeamGameMsg::Serialize(bitStream);
+		BitStreamUtils::WriteNameValueText(bitStream, std::u16string(data.begin(), data.end()));
+		bitStream.Write(type);
+	}
+
+	bool MatchUpdate::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(TeamGameMsg::Deserialize(bitStream));
+		std::u16string wide;
+		VALIDATE_READ(BitStreamUtils::ReadNameValueText(bitStream, wide));
+		data.assign(wide.begin(), wide.end());
+		VALIDATE_READ(bitStream.Read(type));
+		return true;
+	}
 }
 
 namespace ClientPackets {

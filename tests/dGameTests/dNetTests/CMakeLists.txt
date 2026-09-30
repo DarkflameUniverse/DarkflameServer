@@ -3,6 +3,7 @@ SET(DNET_TESTS
 	"GuildPacketsTests.cpp"
 	"CommonAuthPacketsTests.cpp"
 	"MasterPacketsTests.cpp"
+	"MatchmakingPacketsTests.cpp"
 	"PacketCaptureTests.cpp"
 	"ServerTrafficTests.cpp"
 	"WorldPacketsTests.cpp")

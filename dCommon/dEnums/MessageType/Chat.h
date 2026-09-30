@@ -76,5 +76,6 @@ namespace MessageType {
 		CREATE_TEAM,
 		GUILD_SET_RANK, // world -> chat: /gpromote, /gdemote, /gleader
 		GUILD_DISBAND,  // world -> chat: /gdisband
+		MATCH_TRANSFER, // chat -> world: a lobby's match has an instance; send these players there
 	};
 }

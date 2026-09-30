@@ -22,6 +22,7 @@
 #include "eGuildCreateResponse.h"
 #include "eGuildInviteResponse.h"
 #include "eGuildRank.h"
+#include "eMatchUpdate.h"
 #include "eUgcResourceType.h"
 #include "MessageType/Client.h"
 #include "MessageType/Game.h"
@@ -549,6 +550,17 @@ namespace ClientPackets {
 		LWOZONEID zoneID{}; // clone 0 when it's the receiver's clone
 
 		TeamSetOffWorldFlag() : TeamGameMsg(MessageType::Game::TEAM_SET_OFF_WORLD_FLAG) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// The activity lobby's MatchUpdate, written by the chat server's matchmaking (docs/Matchmaking.md). Byte for byte
+	// GameMessages::MatchUpdate: name-value text (widened to UTF-16), then the eMatchUpdate type.
+	struct MatchUpdate : public TeamGameMsg {
+		std::string data; // name-value text, one byte per character here
+		eMatchUpdate type{};
+
+		MatchUpdate() : TeamGameMsg(MessageType::Game::MATCH_UPDATE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};

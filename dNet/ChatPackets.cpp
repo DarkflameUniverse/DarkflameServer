@@ -648,3 +648,63 @@ bool ChatPackets::GuildStatus::Deserialize(RakNet::BitStream& bitStream) {
 	VALIDATE_READ(bitStream.Read(guildName));
 	return true;
 }
+
+void ChatPackets::MatchRequest::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(playerID);
+	bitStream.Write(type);
+	bitStream.Write(value);
+	bitStream.Write(activityID);
+	BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, playerName);
+	BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, playerChoices);
+	bitStream.Write(instanceMapID);
+	bitStream.Write(minTeams);
+	bitStream.Write(maxTeams);
+	bitStream.Write(minTeamSize);
+	bitStream.Write(maxTeamSize);
+	bitStream.Write(waitTime);
+	bitStream.Write(startDelay);
+}
+
+bool ChatPackets::MatchRequest::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(playerID));
+	VALIDATE_READ(bitStream.Read(type));
+	if (type != eMatchRequestType::JOIN && type != eMatchRequestType::READY && type != eMatchRequestType::LEAVE) return false;
+	VALIDATE_READ(bitStream.Read(value));
+	VALIDATE_READ(bitStream.Read(activityID));
+	VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, playerName, LoginSessionNotify::MAX_NAME_LENGTH));
+	VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, playerChoices, 4096));
+	VALIDATE_READ(bitStream.Read(instanceMapID));
+	VALIDATE_READ(bitStream.Read(minTeams));
+	VALIDATE_READ(bitStream.Read(maxTeams));
+	VALIDATE_READ(bitStream.Read(minTeamSize));
+	VALIDATE_READ(bitStream.Read(maxTeamSize));
+	VALIDATE_READ(bitStream.Read(waitTime));
+	VALIDATE_READ(bitStream.Read(startDelay));
+	return true;
+}
+
+void ChatPackets::MatchTransfer::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(activityID);
+	WriteZone(bitStream, zoneID);
+	BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, serverIP);
+	bitStream.Write(serverPort);
+	bitStream.Write<uint8_t>(mythranShift);
+	bitStream.Write<uint32_t>(players.size());
+	for (const auto player : players) bitStream.Write(player);
+}
+
+bool ChatPackets::MatchTransfer::Deserialize(RakNet::BitStream& bitStream) {
+	VALIDATE_READ(bitStream.Read(activityID));
+	VALIDATE_READ(ReadZone(bitStream, zoneID));
+	VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(bitStream, serverIP, 255));
+	VALIDATE_READ(bitStream.Read(serverPort));
+	uint8_t shift{};
+	VALIDATE_READ(bitStream.Read(shift));
+	mythranShift = shift != 0;
+	uint32_t count{};
+	VALIDATE_READ(bitStream.Read(count));
+	if (count > MAX_PLAYERS) return false;
+	players.resize(count);
+	for (auto& player : players) VALIDATE_READ(bitStream.Read(player));
+	return true;
+}
