@@ -11,6 +11,18 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { parseModel, mergeMeshes, linearColors, metalOf, addGlitter, glitterSettings, SHADER_LOOK } from '/js/scenery-core.js';
 
+/**
+ * The game's metal (Metallic.fx) is not a mirror: it is the vertex color lit (0.3 ambient plus 0.7 N.L^4), plus the
+ * metal cube's reflection tinted by the vertex color (up to twice it, facing the sun), plus a sun highlight. So the
+ * brick's color stays visible and metal is about as bright as its plastic; a metalness of 1 in a dim room is nearly
+ * black. Part metal, a little glossier than plastic, with the room's reflection a little stronger.
+ */
+const METAL = {
+	none: { roughness: 0.6, metalness: 0 },
+	polished: { roughness: 0.25, metalness: 0.5, envMapIntensity: 1.6 },
+	brushed: { roughness: 0.45, metalness: 0.4, envMapIntensity: 1.4 },
+};
+
 export function createNifViewer(container) {
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -22,9 +34,11 @@ export function createNifViewer(container) {
 	scene.background = new THREE.Color(0x1e2126);
 	const pmrem = new THREE.PMREMGenerator(renderer);
 	scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-	scene.environmentIntensity = 0.5;
+	scene.environmentIntensity = 0.8;
 	const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-	scene.add(sun, sun.target);
+	// A sky over ground fill, so no side of a model (a baseplate's underside, the side away from the sun) is black
+	const sky = new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.6);
+	scene.add(sun, sun.target, sky);
 
 	const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 20000);
 	const controls = new OrbitControls(camera, renderer.domElement);
@@ -130,8 +144,7 @@ export function createNifViewer(container) {
 				const material = sparkles ? new THREE.MeshLambertMaterial({ color: baseColor.clone(), vertexColors: hasColors })
 					: look & SHADER_LOOK.EMISSIVE
 					? new THREE.MeshBasicMaterial({ color: baseColor.clone(), vertexColors: hasColors })
-					: new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough,
-						roughness: metal === 'polished' ? 0.18 : metal === 'brushed' ? 0.45 : 0.6, metalness: metal ? 1 : 0 });
+					: new THREE.MeshStandardMaterial({ color: baseColor.clone(), vertexColors: hasColors, transparent: seeThrough, ...METAL[metal || 'none'] });
 				// Glitter: the fleck texture's UVs, one tile of it each; the sparkle shapes' UVs, one sparkle tile each
 				let glitter = null;
 				const settings = glitterSettings();

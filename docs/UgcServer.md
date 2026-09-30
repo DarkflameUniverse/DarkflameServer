@@ -479,7 +479,9 @@ client's 88, 89 and 46) and draws glow at its plain color (by `glow_emissive`, u
 light, a sky over dark ground reflection tinted by its color and a sun highlight (sharp for polished, broad for
 brushed). This is an approximation of the game's environment maps. `NifFile::ShaderLookFor` gives 98 `REFLECTIVE`,
 99 `REFLECTIVE | BRUSHED` and 53 `EMISSIVE`; the UGC page's 3D view gets each mesh's look (`/api/ugc/mesh`, "look")
-and draws metal as reflective (metalness 1, the view's environment) and glow unlit, and the zone views draw
+and draws metal as the game does, its color kept (part metal: metalness 0.5 polished, 0.4 brushed, with a stronger
+reflection of the view's environment; a metalness of 1 in the view's dim room was nearly black) and glow unlit, under
+a sun and a sky over ground fill so no side of a model is black, and the zone views draw
 LEGO-Emissive objects going to their vertex color by its alpha (metal there stays lit like the rest).
 
 #### Glitter
