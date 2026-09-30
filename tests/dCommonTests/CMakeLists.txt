@@ -34,6 +34,7 @@ set(DCOMMONTEST_SOURCES
 	"BindAddressTests.cpp"
 	"TrafficStatsTests.cpp"
 	"Sd0Tests.cpp"
+	"FdbReaderTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)
