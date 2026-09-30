@@ -9,6 +9,9 @@
 #include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 
+#include <algorithm>
+#include <cmath>
+#include <functional>
 #include <set>
 #include <vector>
 
@@ -89,10 +92,10 @@ bool TacArcBehavior::ReadTargets(RakNet::BitStream& bitStream, const uint32_t ma
 	return true;
 }
 
-std::set<LWOOBJID> TacArcBehavior::WriteTargets(RakNet::BitStream& bitStream, const std::vector<LWOOBJID>& closestFirst, const uint32_t maxTargets) {
-	// TacArcBehavior::DoHit (0x00fb10c0): the closest maxTargets targets, written and acted on in ascending id order
+std::set<LWOOBJID> TacArcBehavior::WriteTargets(RakNet::BitStream& bitStream, const std::vector<LWOOBJID>& ordered, const uint32_t maxTargets) {
+	// TacArcBehavior::DoHit (0x00fb10c0): the first maxTargets targets, written and acted on in ascending id order
 	std::set<LWOOBJID> targets;
-	for (const auto target : closestFirst) {
+	for (const auto target : ordered) {
 		if (targets.size() >= maxTargets) break;
 		if (target != LWOOBJID_EMPTY) targets.insert(target);
 	}
@@ -100,6 +103,34 @@ std::set<LWOOBJID> TacArcBehavior::WriteTargets(RakNet::BitStream& bitStream, co
 	bitStream.Write<uint32_t>(targets.size());
 	for (const auto target : targets) bitStream.Write(target);
 	return targets;
+}
+
+std::vector<LWOOBJID> TacArcBehavior::OrderTargets(std::vector<Candidate> candidates, const float distanceWeight, const float angleWeight, const float maxRange, const bool useAttackPriority) {
+	// GetObjectsInsideTacArc hands the targets over in a set, so they start in ascending id order
+	std::ranges::sort(candidates, std::less{}, &Candidate::id);
+
+	// TacArcBehavior::Cast (0x00fb2d10) sorts by distance unless a weight is set
+	if (distanceWeight == 0.0f && angleWeight == 0.0f) {
+		std::ranges::stable_sort(candidates, std::less{}, &Candidate::distance);
+	} else {
+		// TacArcBehavior::sortWithWeights (0x00f58cd0): nearer and more straight ahead weighs more, heaviest first
+		const auto weight = [=](const Candidate& candidate) {
+			const auto distanceScore = maxRange > 0.0f ? (maxRange - candidate.distance) / maxRange : 0.0f;
+			const auto angleScore = std::abs(candidate.angle - 180.0f) / 180.0f;
+			return distanceWeight * distanceScore + angleWeight * angleScore;
+		};
+		std::ranges::stable_sort(candidates, std::greater{}, weight);
+	}
+
+	// TacArcBehavior::SortByAttackPriority (0x00f72900): buckets by GetAttackPriority, lowest first, each bucket in
+	// the order above. Nothing else ranks targets: enemies come before smashables because the enemies'
+	// attack_priority (1) is lower than most smashables' (10).
+	if (useAttackPriority) std::ranges::stable_sort(candidates, std::less{}, &Candidate::attackPriority);
+
+	std::vector<LWOOBJID> ordered;
+	ordered.reserve(candidates.size());
+	for (const auto& candidate : candidates) ordered.push_back(candidate.id);
+	return ordered;
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
@@ -130,6 +161,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 	auto reference = self->GetPosition() + m_offset;
 
 	targets.clear();
+	std::vector<Candidate> candidates;
 
 	std::vector<Entity*> validTargets = Game::entityManager->GetEntitiesByProximity(reference, this->m_maxRange);
 
@@ -165,32 +197,21 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 		const float degreeAngle = std::abs(Vector3::Angle(forward, normalized) * (180 / 3.14) - 180);
 		if (distance >= this->m_minRange && this->m_maxRange >= distance && degreeAngle <= 2 * this->m_angle) {
 			targets.push_back(validTarget);
+			const auto* destroyable = validTarget->GetComponent<DestroyableComponent>();
+			candidates.push_back({
+				.id = validTarget->GetObjectID(),
+				.distance = distance,
+				.angle = degreeAngle,
+				// An object that does not answer GetAttackPriority keeps the message's default of 1
+				.attackPriority = destroyable ? destroyable->GetAttackPriority() : 1,
+			});
 		}
 	}
 
-	std::sort(targets.begin(), targets.end(), [this, reference, combatAi](Entity* a, Entity* b) {
-		const auto aDistance = Vector3::DistanceSquared(reference, a->GetPosition());
-		const auto bDistance = Vector3::DistanceSquared(reference, b->GetPosition());
-
-		return aDistance < bDistance;
-		});
-
-
-	if (m_useAttackPriority) {
-		// this should be using the attack priority column on the destroyable component
-		// We want targets with no threat level to remain the same order as above
-		// std::stable_sort(targets.begin(), targets.end(), [combatAi](Entity* a, Entity* b) {
-		// 	const auto aThreat = combatAi->GetThreat(a->GetObjectID());
-		// 	const auto bThreat = combatAi->GetThreat(b->GetObjectID());
-
-		// 	If enabled for this behavior, prioritize threat over distance
-		// 	return aThreat > bThreat;
-		// 	});
-	}
-
-	// After we've sorted and found our closest targets, size the vector down in case there are too many
-	if (m_maxTargets > 0 && targets.size() > m_maxTargets) targets.resize(m_maxTargets);
-	const auto hit = !targets.empty();
+	// The client keeps the first max targets of this order
+	auto ordered = OrderTargets(std::move(candidates), m_distanceWeight, m_angleWeight, m_maxRange, m_useAttackPriority);
+	if (m_maxTargets > 0 && ordered.size() > m_maxTargets) ordered.resize(m_maxTargets);
+	const auto hit = !ordered.empty();
 	bitStream.Write(hit);
 
 	if (this->m_checkEnv) {
@@ -199,13 +220,12 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 	}
 
 	if (hit) {
-		if (combatAi) combatAi->LookAt(targets[0]->GetPosition());
+		const auto* first = Game::entityManager->GetEntity(ordered.front());
+		if (combatAi && first) combatAi->LookAt(first->GetPosition());
 
 		context->foundTarget = true; // We want to continue with this behavior
 
-		std::vector<LWOOBJID> closestFirst;
-		for (const auto* target : targets) closestFirst.push_back(target->GetObjectID());
-		for (const auto target : WriteTargets(bitStream, closestFirst, this->m_maxTargets)) {
+		for (const auto target : WriteTargets(bitStream, ordered, this->m_maxTargets)) {
 			branch.target = target;
 			this->m_action->Calculate(context, bitStream, branch);
 		}
@@ -236,6 +256,7 @@ void TacArcBehavior::Load() {
 	this->m_usePickedTarget = GetBoolean("use_picked_target", false);
 	this->m_useTargetPostion = GetBoolean("use_target_position", false);
 	this->m_checkEnv = GetBoolean("check_env", false);
+	// TacArcBehavior::Initialize (0x00f9b980): off unless the behavior sets it
 	this->m_useAttackPriority = GetBoolean("use_attack_priority", false);
 
 	this->m_action = GetAction("action");

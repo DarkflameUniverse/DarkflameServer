@@ -13,13 +13,29 @@ public:
 	void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 	void Load() override;
 
+	// use_attack_priority, off when the behavior does not set it
+	bool UsesAttackPriority() const { return m_useAttackPriority; }
+
 	// Reads the target count and ids the way the client writes them: at most maxTargets, returned ascending and
 	// without empty ids. False when the data is cut short or lists too many targets.
 	static bool ReadTargets(RakNet::BitStream& bitStream, uint32_t maxTargets, std::set<LWOOBJID>& targets);
 
-	// Writes the closest maxTargets of closestFirst as the client does and returns them in the order their action
-	// data follows (ascending id)
-	static std::set<LWOOBJID> WriteTargets(RakNet::BitStream& bitStream, const std::vector<LWOOBJID>& closestFirst, uint32_t maxTargets);
+	// Writes the first maxTargets of ordered (see OrderTargets) as the client does and returns them in the order
+	// their action data follows (ascending id)
+	static std::set<LWOOBJID> WriteTargets(RakNet::BitStream& bitStream, const std::vector<LWOOBJID>& ordered, uint32_t maxTargets);
+
+	// A target in the arc and what the client orders it by
+	struct Candidate {
+		LWOOBJID id = LWOOBJID_EMPTY;
+		float distance = 0.0f;
+		float angle = 0.0f; // degrees from the caster's forward, 0 straight ahead
+		int32_t attackPriority = 1;
+	};
+
+	// Orders candidates the way the client does before it keeps the first max targets: nearest first, or highest
+	// weight first when distance_weight or angle_weight is set; then, with use_attack_priority, lower attack priority
+	// first, keeping that order within each priority. Equal candidates stay in ascending id order.
+	static std::vector<LWOOBJID> OrderTargets(std::vector<Candidate> candidates, float distanceWeight, float angleWeight, float maxRange, bool useAttackPriority);
 private:
 	float m_maxRange;
 	float m_height;
