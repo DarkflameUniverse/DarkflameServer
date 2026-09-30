@@ -96,7 +96,10 @@
 							<option value="0.25">0.25&times;</option><option value="0.5">0.5&times;</option><option value="1" selected>1&times;</option>
 							<option value="2">2&times;</option><option value="4">4&times;</option><option value="16">16&times;</option><option value="64">64&times;</option>
 						</select>
-						<input type="range" class="form-range flex-grow-1 w-auto" id="scrub" min="0" max="1" step="1" value="0" aria-label="Time in the capture">
+						<div class="timeline-track flex-grow-1">
+							<div class="timeline-markers" id="worldMarkers" aria-label="World changes"></div>
+							<input type="range" class="form-range" id="scrub" min="0" max="1" step="1" value="0" aria-label="Time in the capture">
+						</div>
 						<span class="font-monospace text-nowrap" id="timeText"></span>
 						<button type="button" class="btn btn-sm btn-outline-secondary" id="endBtn" title="Show everything">End</button>
 					</div>

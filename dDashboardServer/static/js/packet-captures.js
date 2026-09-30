@@ -1,7 +1,8 @@
 /**
  * Packet Captures (docs/CaptureReplay.md): arm a capture for an account, a character or everything; the running and
  * saved ones; and a viewer that plays a capture back on one timeline (play, pause, seek, speed), with each packet's
- * decoded fields and bytes. While it plays, the time is sent to World 3D pages showing the same capture.
+ * decoded fields and bytes. While it plays, the time is sent to World 3D pages showing the same capture. The timeline
+ * marks each time a captured character moved to another world server, with the zone's name.
  */
 (function () {
 	'use strict';
@@ -20,7 +21,8 @@
 		playhead: 0,    // ms from its start
 		playing: false,
 		selected: -1,
-		loading: false
+		loading: false,
+		worlds: []      // the characters' moves between world servers (the worlds route)
 	};
 
 	function bytesText(n) {
@@ -139,6 +141,8 @@
 		stop();
 		state.capture = state.live.concat(state.saved).filter(function (c) { return c.id === id; })[0] || { id: id, received: 0, bytes: 0 };
 		state.records = [];
+		state.worlds = [];
+		byId('worldMarkers').innerHTML = '';
 		state.selected = -1;
 		history.replaceState(null, '', '#capture=' + id);
 		byId('viewer').classList.remove('d-none');
@@ -177,7 +181,21 @@
 			if (fresh) setPlayhead(state.duration);
 			else render();
 			renderHeader();
+			loadWorlds(c.id);
 		}, function () { state.loading = false; });
+	}
+
+	// The timeline's world change markers (world3d-core.js draws them, as World 3D's replay does)
+	function loadWorlds(id) {
+		Promise.all([api.get(url(id) + '/worlds'), import('/js/world3d-core.js')]).then(function (results) {
+			var d = results[0], core = results[1];
+			if (!state.capture || state.capture.id !== id || !d.worlds) return;
+			state.worlds = d.worlds;
+			var characters = {};
+			d.worlds.forEach(function (w) { characters[w.character] = true; });
+			var markers = core.worldMarkers(d.worlds, state.duration / 1000);
+			byId('worldMarkers').innerHTML = core.markersHtml(markers, esc, Object.keys(characters).length > 1);
+		}).catch(function () {});
 	}
 
 	function filtered() {
@@ -240,6 +258,12 @@
 	byId('playBtn').addEventListener('click', function () { if (state.playing) stop(); else play(); });
 	byId('endBtn').addEventListener('click', function () { stop(); setPlayhead(state.duration); });
 	byId('scrub').addEventListener('input', function () { stop(); setPlayhead(Number(byId('scrub').value)); });
+	byId('worldMarkers').addEventListener('click', function (e) {
+		var marker = e.target.closest('[data-t]');
+		if (!marker) return;
+		stop();
+		setPlayhead(Number(marker.dataset.t) * 1000);
+	});
 	byId('nameFilter').addEventListener('input', render);
 	byId('sourceFilter').addEventListener('change', render);
 	document.addEventListener('keydown', function (e) {
