@@ -6,8 +6,9 @@
 <style>
 	/* Load of a link against the busiest link right now */
 	.nf { --nf-idle: var(--bs-secondary-color); --nf-low: var(--bs-info); --nf-mid: var(--bs-warning); --nf-high: var(--bs-danger); }
-	.nf-box { position: relative; }
-	.nf-svg { display: block; width: 100%; }
+	/* Narrow screens (phones): the diagram keeps a readable width and the box scrolls sideways */
+	.nf-box { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+	.nf-svg { display: block; max-width: none; }
 	.nf-svg .lane { fill: none; stroke-linecap: round; opacity: .55; }
 	.nf-svg .flow { fill: none; stroke-linecap: round; stroke-dasharray: 2 10; animation: nf-dash linear infinite; }
 	.nf-svg .estimated .lane { stroke-dasharray: 6 5; }
@@ -221,7 +222,9 @@
 	// The diagram is laid out at the width it is drawn at, so the boxes and the HTML over them line up
 	function diagramWidth() {
 		var cs = getComputedStyle(box);
-		return Math.max(320, Math.floor(box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))) || 800;
+		// Six columns need about 1100 px; narrower than that the diagram keeps 1100 and scrolls sideways instead of
+		// squeezing the boxes over each other
+		return Math.max(1100, Math.floor(box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))) || 1100;
 	}
 
 	// Whether a group is open (asked for; a Game/Web clients box has its rows once the connection list is in)
@@ -407,7 +410,7 @@
 		var k = (svg.getBoundingClientRect().width / L.width) || 1;
 		// The layer sits at the top left of the box's padding box
 		var sr = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
-		var ox = sr.left - br.left - box.clientLeft, oy = sr.top - br.top - box.clientTop, fresh = {};
+		var ox = sr.left - br.left - box.clientLeft + box.scrollLeft, oy = sr.top - br.top - box.clientTop + box.scrollTop, fresh = {}; // the box scrolls sideways on narrow screens
 		graph.nodes.forEach(function (n) {
 			if (!n.open) return;
 			var at = L.nodes[n.id], list = L.lists[n.id];
@@ -633,8 +636,8 @@
 		var r = box.getBoundingClientRect();
 		var x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 10;
 		if (x + tip.offsetWidth > r.width) x = ev.clientX - r.left - tip.offsetWidth - 14;
-		tip.style.left = Math.max(0, x) + 'px';
-		tip.style.top = y + 'px';
+		tip.style.left = (Math.max(0, x) + box.scrollLeft) + 'px';
+		tip.style.top = (y + box.scrollTop) + 'px';
 	});
 	svg.addEventListener('mouseleave', function () { tip.classList.add('d-none'); });
 
