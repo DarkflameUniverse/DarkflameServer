@@ -147,3 +147,12 @@ TEST(ChatFilterCoreTest, DashboardPhrasesInWhitelistChat) {
 	lists.customAllowed.AddEntry("stranger");
 	EXPECT_TRUE(CheckMessage("hello stranger", true, lists).empty());
 }
+
+TEST(ChatFilterCoreTest, ShippedBlockListIsPortable) {
+	const auto parsed = dChatFilterDCF::ReadFile(std::string(DLU_SOURCE_DIR) + "/resources/blocklist.dcf");
+	ASSERT_EQ(parsed.status, dChatFilterDCF::eStatus::OK);
+	Lists lists;
+	lists.denied = parsed.list;
+	EXPECT_EQ(CheckMessage("what crap", false, lists), (Spans{ { 5, 4 } }));
+	EXPECT_TRUE(CheckMessage("hello there", false, lists).empty());
+}
