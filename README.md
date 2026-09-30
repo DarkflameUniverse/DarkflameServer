@@ -103,6 +103,9 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   every bone and rigid system moved together. See [docs/BuildWorkflow.md](docs/BuildWorkflow.md).
 * **Scene ghosting** (on by default, `ghosting_scenes`): players get the objects of the scenes the client streams;
   zones without a terrain scene map keep distance ghosting.
+* **Activity matchmaking across worlds:** activity lobbies (survival, racing and the rest) are kept by the chat server,
+  so players on different instances of a zone are matched into the same activity instance, as on live. See
+  [docs/Matchmaking.md](docs/Matchmaking.md).
 * **Guilds:** create, invite, ranks, kick, disband and guild chat (`/g`), enabled with a login event
   (`event_N=guilds`). See [docs/Guilds.md](docs/Guilds.md).
 * **Enemies:** de-aggro trigger walls get their real size, and enemies' paths stop at navmesh carvers and enemy-only
