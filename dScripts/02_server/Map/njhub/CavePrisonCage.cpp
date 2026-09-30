@@ -6,6 +6,7 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "RenderComponent.h"
+#include "MovingPlatformComponent.h"
 
 void CavePrisonCage::OnStartup(Entity* self) {
 	const auto& myNum = self->GetVar<std::u16string>(u"myNumber");
@@ -83,20 +84,15 @@ void CavePrisonCage::SpawnCounterweight(Entity* self, Spawner* spawner) {
 			});
 
 		quickBuildComponent->AddQuickBuildCompleteCallback([this, self](Entity* user) {
-			// The counterweight is a simple mover, which is not implemented, so we'll just set it's position
 			auto* counterweight = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Counterweight"));
 
 			if (counterweight == nullptr) {
 				return;
 			}
 
-			// Move the counterweight down 2 units
-			counterweight->SetPosition(counterweight->GetPosition() + NiPoint3(0, -2, 0));
-
-			// Serialize the counterweight
-			Game::entityManager->SerializeEntity(counterweight);
-
-			// notifyPlatformAtLastWaypoint
+			// The counterweight is a simple mover (MovingPlatforms row 41): send it down to its end
+			auto* const platform = counterweight->GetComponent<MovingPlatformComponent>();
+			if (platform) platform->GotoWaypoint(1);
 
 			// Save the userID as Builder
 			self->SetVar<LWOOBJID>(u"Builder", user->GetObjectID());
