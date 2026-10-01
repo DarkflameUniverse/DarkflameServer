@@ -82,7 +82,7 @@ private:
 	// Whether this strip is waiting on a MoveBackToStart to arrive
 	bool m_MovingToStart{ false };
 
-	// The model's move interrupt count when this strip's current move started
+	// The model's move interrupt count when this strip's current move or rotation started
 	uint32_t m_MoveInterruptCount{};
 
 	static constexpr float DEFAULT_SPEED = 3.0f;

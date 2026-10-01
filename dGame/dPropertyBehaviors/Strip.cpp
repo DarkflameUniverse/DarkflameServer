@@ -212,6 +212,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		// Y axis
 		const float direction = nextActionType == "SpinNegative" ? -1.0f : 1.0f;
 		if (number != 0.0 && modelComponent.TryStartRotation(1, direction, m_Speed)) {
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
 			m_InActionRotation.y = direction * number;
 			m_RotationProgress = 0.0f;
 		}
@@ -219,6 +220,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		// X axis
 		const float direction = nextActionType == "TiltNegative" ? -1.0f : 1.0f;
 		if (number != 0.0 && modelComponent.TryStartRotation(0, direction, m_Speed)) {
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
 			m_InActionRotation.x = direction * number;
 			m_RotationProgress = 0.0f;
 		}
@@ -226,6 +228,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		// Z axis
 		const float direction = nextActionType == "RollNegative" ? -1.0f : 1.0f;
 		if (number != 0.0 && modelComponent.TryStartRotation(2, direction, m_Speed)) {
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
 			m_InActionRotation.z = direction * number;
 			m_RotationProgress = 0.0f;
 		}
@@ -372,6 +375,14 @@ bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
 }
 
 bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
+	if (m_MoveInterruptCount != modelComponent.GetMoveInterruptCount()) {
+		for (int axis = 0; axis < 3; axis++) {
+			if (m_InActionRotation[axis] != 0.0f) modelComponent.StopRotation(axis);
+		}
+		m_InActionRotation = NiPoint3Constant::ZERO;
+		m_RotationProgress = 0.0f;
+	}
+
 	for (int axis = 0; axis < 3; axis++) {
 		const float target = m_InActionRotation[axis];
 		if (target == 0.0f) continue;

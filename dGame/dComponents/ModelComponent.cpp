@@ -47,7 +47,10 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& 
 	if (reset.bResetPos) m_Parent->SetPosition(m_OriginalPosition);
 	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
+	// Save and increment the interrupt count so other behaviors on this model move to their next action instead of getting stuck
+	const auto moveInterruptCount = m_Move.interruptCount + 1;
 	m_Move = MoveState{};
+	m_Move.interruptCount = moveInterruptCount;
 	SyncLinearVelocity();
 	ResetRotationState(m_Parent->GetRotation());
 
