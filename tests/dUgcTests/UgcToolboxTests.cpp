@@ -197,6 +197,10 @@ TEST(UgcToolboxProtocol, FramesOneMessagePerLine) {
 	const auto request = UgcToolboxProtocol::MakeRequest(7, "/w/7.lxfml", "/w/7.nif", { 0, 2 });
 	EXPECT_EQ(request["cmd"], "make");
 	EXPECT_EQ(request["lods"], nlohmann::json::array({ 0, 2 }));
+	EXPECT_EQ(request["colorVariation"]["mode"], "toolbox");
+	const auto live = UgcToolboxProtocol::MakeRequest(8, "/w/8.lxfml", "/w/8.nif", { 0 }, { "live", 5.0f, 1234 });
+	EXPECT_EQ(live["colorVariation"]["mode"], "live");
+	EXPECT_EQ(live["colorVariation"]["seed"], 1234u);
 
 	// Lines arrive in pieces and several at once
 	UgcToolboxProtocol::LineReader reader;

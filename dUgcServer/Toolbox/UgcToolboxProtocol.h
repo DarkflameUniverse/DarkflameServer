@@ -21,9 +21,18 @@ namespace UgcToolboxProtocol {
 	// A message as its line: compact JSON with "dlutb" set, and a newline
 	std::string Frame(nlohmann::json message);
 
+	// The color variation a make uses (the color_variation* settings): "toolbox" (LU Toolbox's Apply Color Variation at
+	// `percent`; 0: off) or "live" (live accurate: -6 to 6 added to each 0-255 channel of opaque bricks, from `seed`)
+	struct ColorVariation {
+		std::string mode{ "toolbox" };
+		float percent{ 5.0f };
+		uint64_t seed{};
+	};
+
 	// The request to make one model: `input` the LXFML file, `output` the .nif to write, `lods` the brickprimitives
-	// levels to import (LU Toolbox's importLOD0..3)
-	nlohmann::json MakeRequest(uint64_t id, const std::string& input, const std::string& output, const std::vector<uint32_t>& lods);
+	// levels to import (LU Toolbox's importLOD0..3), and its color variation
+	nlohmann::json MakeRequest(uint64_t id, const std::string& input, const std::string& output, const std::vector<uint32_t>& lods,
+		const ColorVariation& variation = {});
 
 	/**
 	 * Splits what is read from the worker into lines, however it arrives (parts of lines, many at once). A line longer

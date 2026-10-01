@@ -85,7 +85,7 @@ namespace UgcToolbox {
 		 */
 		using Pause = std::function<void(bool)>;
 		Result Make(uint64_t id, const std::string& lxfml, const std::vector<uint32_t>& lods,
-			const std::function<void(double cpuSeconds, const Pause& pause)>& pace = {});
+			const std::function<void(double cpuSeconds, const Pause& pause)>& pace = {}, const UgcToolboxProtocol::ColorVariation& variation = {});
 
 		// Stops Blender (asks it to quit, then kills it); the next Make starts it again
 		void Stop();

@@ -7,8 +7,10 @@ namespace UgcToolboxProtocol {
 		return message.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace) + "\n";
 	}
 
-	nlohmann::json MakeRequest(uint64_t id, const std::string& input, const std::string& output, const std::vector<uint32_t>& lods) {
-		return { { "cmd", "make" }, { "id", id }, { "input", input }, { "output", output }, { "lods", lods } };
+	nlohmann::json MakeRequest(uint64_t id, const std::string& input, const std::string& output, const std::vector<uint32_t>& lods,
+		const ColorVariation& variation) {
+		return { { "cmd", "make" }, { "id", id }, { "input", input }, { "output", output }, { "lods", lods },
+			{ "colorVariation", { { "mode", variation.mode }, { "percent", variation.percent }, { "seed", variation.seed } } } };
 	}
 
 	void LineReader::Feed(std::string_view data) {

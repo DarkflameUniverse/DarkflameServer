@@ -136,6 +136,10 @@ and the notices (see Threads). Cars and rockets are made once per combination of
    0.025) either way, times the color's own amount (black 0.4, orange 1.5, ...), clamped and taken back; hue and
    saturation stay. The random number comes from the model's id, the brick's index and the material, so making a
    model again gives the same colors, and every LOD the same (LU Toolbox restarts its random sequence per LOD).
+   With `color_variation_mode=live` ("Live accurate") instead: a whole number from -6 to 6 (each equally likely, from
+   the same random number) is added to each of the color's 0-255 sRGB channels, clamped; transparent bricks keep their
+   color, and `color_variation` isn't used. Both kinds apply to either processor: with `toolbox-blender` the worker
+   sets LU Toolbox's own variation to `color_variation`, or puts the live accurate one in its place for that make.
 4. Faces nobody can see are removed from the opaque bricks (they're rendered from 42 directions and triangles that
    never show are dropped; transparent bricks hide nothing and aren't touched; see "Hidden faces" below).
    `hsr_ground_plane=1` also drops what can only be seen from below.

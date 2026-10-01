@@ -89,7 +89,7 @@ namespace UgcToolbox {
 	Worker::~Worker() = default;
 	void Worker::Configure(const Config& config) { std::lock_guard lock(m_ConfigMutex); m_Config = config; }
 	Config Worker::GetConfig() const { std::lock_guard lock(m_ConfigMutex); return m_Config; }
-	Result Worker::Make(uint64_t, const std::string&, const std::vector<uint32_t>&, const std::function<void(double, const Pause&)>&) {
+	Result Worker::Make(uint64_t, const std::string&, const std::vector<uint32_t>&, const std::function<void(double, const Pause&)>&, const UgcToolboxProtocol::ColorVariation&) {
 		return { false, Problem(GetConfig()) };
 	}
 	void Worker::Stop() {}
@@ -386,7 +386,8 @@ namespace UgcToolbox {
 		return status;
 	}
 
-	Result Worker::Make(uint64_t id, const std::string& lxfml, const std::vector<uint32_t>& lods, const std::function<void(double, const Pause&)>& pace) {
+	Result Worker::Make(uint64_t id, const std::string& lxfml, const std::vector<uint32_t>& lods, const std::function<void(double, const Pause&)>& pace,
+		const UgcToolboxProtocol::ColorVariation& variation) {
 		Result result;
 		const auto asked = std::chrono::steady_clock::now();
 		std::unique_lock lock(m_JobMutex);
@@ -434,7 +435,7 @@ namespace UgcToolbox {
 		};
 
 		const auto requestId = m_NextId++;
-		if (!process.Send(UgcToolboxProtocol::MakeRequest(requestId, input, output, lods))) {
+		if (!process.Send(UgcToolboxProtocol::MakeRequest(requestId, input, output, lods, variation))) {
 			result.error = "Blender isn't taking work (" + process.ExitReason() + ")";
 			StopLocked(true);
 			cleanUp();

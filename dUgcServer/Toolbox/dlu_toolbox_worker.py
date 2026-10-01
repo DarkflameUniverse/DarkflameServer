@@ -6,11 +6,14 @@
 #
 # Each model goes through LU Toolbox itself, as LU-Toolbox-Standalone's lu_batch_driver.py runs it (its functions are
 # used, not copied): the LU Toolbox importer, Process Model, Bake Lighting and the niftools .nif export for LEGO
-# Universe. Nothing of LU Toolbox is changed or re-implemented here; this file only keeps Blender up between models.
+# Universe. Nothing of LU Toolbox is changed or re-implemented here; this file only keeps Blender up between models,
+# and sets the make's color variation (set_color_variation: the percent, or the live accurate one in place of LU
+# Toolbox's for that make).
 #
 # The protocol: one JSON object per line. Requests come on stdin; replies go to the original stdout, which only this
 # script writes to (everything Blender and the add-ons print is moved to stderr). Every message has "dlutb": 1.
-#   -> {"dlutb":1,"cmd":"make","id":7,"input":"/x/7.lxfml","output":"/x/7.nif","lods":[0,2]}
+#   -> {"dlutb":1,"cmd":"make","id":7,"input":"/x/7.lxfml","output":"/x/7.nif","lods":[0,2],
+#       "colorVariation":{"mode":"toolbox"|"live","percent":5,"seed":..}}
 #   <- {"dlutb":1,"type":"done","id":7,"ok":true,"ms":{"reset":..,"import":..,"process":..,"bake":..,"export":..}}
 #   <- {"dlutb":1,"type":"done","id":7,"ok":false,"error":"..."}
 #   -> {"dlutb":1,"cmd":"ping","id":8}      <- {"dlutb":1,"type":"pong","id":8}
@@ -171,6 +174,7 @@ class Worker:
         lod_kwargs = {f"importLOD{n}": n in lods for n in range(4)} if lods else None
         self.driver.try_import_lxf(os.path.abspath(request["input"]), op_override=None, lod_kwargs=lod_kwargs)
         lap("import")
+        set_color_variation(request.get("colorVariation") or {})
         self.driver.call_op("lutb.process_model", "Process Model")
         lap("process")
         self.driver.ensure_vertex_colors_exist()
@@ -184,6 +188,52 @@ class Worker:
         if not os.path.isfile(output):
             raise RuntimeError("the .nif export wrote nothing")
         return ms
+
+
+def srgb_to_linear(c):
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def linear_to_srgb(c):
+    return c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+
+def set_color_variation(variation):
+    """The make's color variation (the UGC server's color_variation_mode and color_variation settings) on LU Toolbox's
+    Process Model. toolbox: its own Apply Color Variation at that percent. live (live accurate): instead of its
+    variation, a whole number from -6 to 6 is added to each 0-255 sRGB channel of each material of each opaque object,
+    transparent ones left alone; the numbers come from the model's id and repeat for every LOD, as LU Toolbox's do."""
+    import bpy
+    import random
+    from lu_toolbox import process_model
+    operator = process_model.LUTB_OT_process_model
+    if "_dlu_toolbox_variation" not in operator.__dict__:
+        operator._dlu_toolbox_variation = operator.apply_color_variation
+    scene = bpy.context.scene
+    if variation.get("mode") != "live":
+        operator.apply_color_variation = operator._dlu_toolbox_variation
+        percent = float(variation.get("percent", 5.0))
+        scene.lutb_use_color_variation = percent > 0
+        if percent > 0:
+            scene.lutb_color_variation = percent
+        return
+    seed = int(variation.get("seed", 0))
+
+    def live_variation(self, context, collections):
+        for collection in collections:
+            for lod_collection in collection.children:
+                rng = random.Random(seed)
+                for obj in list(lod_collection.objects):
+                    if obj.type != "MESH" or obj.get(process_model.IS_TRANSPARENT):
+                        continue
+                    for material in obj.data.materials:
+                        step = rng.randint(-6, 6)
+                        color = [srgb_to_linear(min(max(round(linear_to_srgb(c) * 255) + step, 0), 255) / 255)
+                                 for c in material.diffuse_color[:3]]
+                        material.diffuse_color = (*color, 1.0)
+
+    operator.apply_color_variation = live_variation
+    scene.lutb_use_color_variation = True
 
 
 def main():

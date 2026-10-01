@@ -80,10 +80,14 @@ namespace UgcJobs {
 		// LU Toolbox makes the .nif. Blender's CPU time is this thread's (the budget, the make's CPU time), and the
 		// budget is kept by pausing Blender.
 		step = std::chrono::steady_clock::now();
+		UgcToolboxProtocol::ColorVariation variation;
+		variation.mode = settings.build.variationMode == UgcModel::BuildOptions::eVariation::LIVE ? "live" : "toolbox";
+		variation.percent = settings.build.colorVariation;
+		variation.seed = id;
 		const auto made = toolbox.Make(id, lxfml, lods, [](double cpuSeconds, const UgcToolbox::Worker::Pause& pause) {
 			UgcThrottle::Charge(cpuSeconds);
 			UgcThrottle::Checkpoint(pause);
-		});
+		}, variation);
 		const double toolboxMs = Since(step);
 		if (!made.ok) {
 			outcome.error = made.error;
