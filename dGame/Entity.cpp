@@ -89,6 +89,7 @@
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
+#include "MinifigComponent.h"
 #include "GhostComponent.h"
 #include "AchievementVendorComponent.h"
 #include "VanityUtilities.h"
@@ -479,6 +480,11 @@ void Entity::Initialize() {
 				Loot::CacheMatrix(levelLootMatrix.value());
 			}
 		}
+			break;
+		}
+		case eReplicaComponentType::MINIFIG: {
+			const auto minifigID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINIFIG);
+			if (minifigID > 0) AddComponent<MinifigComponent>(minifigID);
 			break;
 		}
 		case eReplicaComponentType::CHARACTER: {
