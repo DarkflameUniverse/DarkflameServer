@@ -470,47 +470,14 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::PROXIMITY_MONITOR: {
 		const auto proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
-		if (proximityMonitorID > 0) {
-			auto* const proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
-			const auto proxCompData = proxCompTable->Query([proximityMonitorID](const CDProximityMonitorComponent& entry) { return (entry.id == proximityMonitorID); });
-			if (proxCompData.size() > 0) {
-				// "small,large"; one value (LOT 9833: "4") is both
-				const auto radii = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
-				const auto small = radii.empty() ? std::nullopt : GeneralUtils::TryParse<int32_t>(radii[0]);
-				const auto large = radii.size() > 1 ? GeneralUtils::TryParse<int32_t>(radii[1]) : small;
-				if (small && large) AddComponent<ProximityMonitorComponent>(proximityMonitorID, *small, *large);
-			}
-		}
+		if (proximityMonitorID > 0) AddComponent<ProximityMonitorComponent>(proximityMonitorID);
 			break;
 		}
 		case eReplicaComponentType::MOVEMENT_AI: {
 		const int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
 		if (movementAIID > 0) {
-			CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
-			std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
-
-			if (moveAIComp.size() > 0) {
-				MovementAIInfo moveInfo{
-					.movementType = moveAIComp[0].MovementType,
-					.wanderRadius = moveAIComp[0].WanderRadius,
-					.wanderSpeed = moveAIComp[0].WanderSpeed,
-					.wanderChance = moveAIComp[0].WanderChance,
-					.wanderDelayMin = moveAIComp[0].WanderDelayMin,
-					.wanderDelayMax = moveAIComp[0].WanderDelayMax,
-				};
-
-				const bool useWanderDB = GetVar<bool>(u"usewanderdb");
-
-				if (!useWanderDB) {
-					const auto wanderOverride = GetVarAs<float>(u"wanderRadius");
-
-					if (wanderOverride != 0.0f) {
-						moveInfo.wanderRadius = wanderOverride;
-					}
-				}
-
-				AddComponent<MovementAIComponent>(movementAIID, moveInfo);
-			}
+			// Its row and the level's wanderRadius load in the component
+			AddComponent<MovementAIComponent>(movementAIID, MovementAIInfo{});
 		} else if (petComponentID > 0 || combatAiID > 0 && BaseCombatAIComponent::TetherSpeedOf(combatAiID) > 0) {
 			MovementAIInfo moveInfo{
 				.movementType = "",

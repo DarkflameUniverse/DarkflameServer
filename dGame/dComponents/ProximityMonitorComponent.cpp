@@ -1,4 +1,6 @@
 #include "ProximityMonitorComponent.h"
+#include "CDClientManager.h"
+#include "CDProximityMonitorComponentTable.h"
 #include "GameMessages.h"
 #include "dZoneManager.h"
 #include "ControllablePhysicsComponent.h"
@@ -15,6 +17,22 @@ ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, const int32
 		SetProximityRadius(radiusLarge, "rocketLarge");
 	}
 	RegisterMsg(&ProximityMonitorComponent::OnGetObjectReportInfo);
+}
+
+// The ProximityMonitorComponent row's radii, "small,large" (one value, as LOT 9833's "4", is both): the rocket
+// launch radii
+void ProximityMonitorComponent::LoadDataFromTemplate() {
+	if (m_ComponentID <= 0) return;
+	const auto componentID = m_ComponentID;
+	const auto proxCompData = CDClientManager::GetTable<CDProximityMonitorComponentTable>()->Query([componentID](const CDProximityMonitorComponent& entry) { return (entry.id == componentID); });
+	if (proxCompData.empty()) return;
+
+	const auto radii = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
+	const auto small = radii.empty() ? std::nullopt : GeneralUtils::TryParse<int32_t>(radii[0]);
+	const auto large = radii.size() > 1 ? GeneralUtils::TryParse<int32_t>(radii[1]) : small;
+	if (!small || !large) return;
+	SetProximityRadius(*small, "rocketSmall");
+	SetProximityRadius(*large, "rocketLarge");
 }
 
 ProximityMonitorComponent::~ProximityMonitorComponent() {

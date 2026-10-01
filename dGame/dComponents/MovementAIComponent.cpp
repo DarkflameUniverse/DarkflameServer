@@ -1,4 +1,6 @@
 #include "MovementAIComponent.h"
+#include "CDClientManager.h"
+#include "CDMovementAIComponentTable.h"
 
 #include <utility>
 #include <cmath>
@@ -46,11 +48,6 @@ MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t component
 
 	m_BaseCombatAI = m_Parent->GetComponent<BaseCombatAIComponent>();
 
-	//Try and fix the insane values:
-	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius *= 0.5f;
-	if (m_Info.wanderRadius > 8.0f) m_Info.wanderRadius = 8.0f;
-	if (m_Info.wanderSpeed > 0.5f) m_Info.wanderSpeed *= 0.5f;
-
 	m_BaseSpeed = GetBaseSpeed(m_Parent->GetLOT());
 
 	m_NextWaypoint = m_Parent->GetPosition();
@@ -73,7 +70,33 @@ MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t component
 }
 
 // The level config: the attached path
+// The MovementAIComponent row (an object made without one gets its info from the constructor)
+void MovementAIComponent::LoadDataFromTemplate() {
+	if (m_ComponentID <= 0) return;
+	const auto componentID = m_ComponentID;
+	const auto moveAIComp = CDClientManager::GetTable<CDMovementAIComponentTable>()->Query([componentID](const CDMovementAIComponent& entry) { return (entry.id == componentID); });
+	if (moveAIComp.empty()) return;
+
+	m_Info.movementType = moveAIComp[0].MovementType;
+	m_Info.wanderRadius = moveAIComp[0].WanderRadius;
+	m_Info.wanderSpeed = moveAIComp[0].WanderSpeed;
+	m_Info.wanderChance = moveAIComp[0].WanderChance;
+	m_Info.wanderDelayMin = moveAIComp[0].WanderDelayMin;
+	m_Info.wanderDelayMax = moveAIComp[0].WanderDelayMax;
+}
+
 void MovementAIComponent::LoadConfigData() {
+	// The level's wanderRadius over the row's, unless usewanderdb
+	if (m_ComponentID > 0 && !m_Parent->GetVar<bool>(u"usewanderdb")) {
+		const auto wanderOverride = m_Parent->GetVarAs<float>(u"wanderRadius");
+		if (wanderOverride != 0.0f) m_Info.wanderRadius = wanderOverride;
+	}
+
+	//Try and fix the insane values:
+	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius *= 0.5f;
+	if (m_Info.wanderRadius > 8.0f) m_Info.wanderRadius = 8.0f;
+	if (m_Info.wanderSpeed > 0.5f) m_Info.wanderSpeed *= 0.5f;
+
 	SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
 

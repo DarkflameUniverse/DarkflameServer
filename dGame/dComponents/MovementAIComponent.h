@@ -66,6 +66,7 @@ public:
 
 	MovementAIComponent(Entity* parentEntity, const int32_t componentID, MovementAIInfo info);
 
+	void LoadDataFromTemplate() override;
 	void LoadConfigData() override;
 
 	void SetPath(const std::string pathName);

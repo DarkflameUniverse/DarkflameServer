@@ -25,6 +25,8 @@ public:
 
 	ProximityMonitorComponent(Entity* parentEntity, const int32_t componentID, int smallRadius = -1, int largeRadius = -1);
 	~ProximityMonitorComponent() override;
+
+	void LoadDataFromTemplate() override;
 	void Run(float deltaTime) override;
 
 	/**
