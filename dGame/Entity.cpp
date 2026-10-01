@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "ModelBuilderComponent.h"
 #include "ArcadeComponent.h"
 #include "ModuleComponent.h"
 #include "BlueprintComponent.h"
@@ -1013,6 +1014,12 @@ void Entity::Initialize() {
 			// LWOArcadeComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ARCADE, -1);
 			if (id > -1) AddComponent<ArcadeComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::MODEL_BUILDER: {
+			// LWOModelBuilderComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL_BUILDER, -1);
+			if (id > -1) AddComponent<ModelBuilderComponent>(id);
 			break;
 		}
 		default:
