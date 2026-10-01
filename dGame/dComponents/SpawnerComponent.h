@@ -12,7 +12,7 @@ class Spawner;
  * The spawner component (10) of a spawner object (LOT 176), made from the registry as the client makes it. It owns the
  * spawner (its nodes, what it spawned and its timers); the zone manager indexes spawners by the object's ID.
  */
-class SpawnerComponent final : public Component {
+class SpawnerComponent : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SPAWNER;
 

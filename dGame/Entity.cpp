@@ -99,6 +99,7 @@
 #include "PetCreatorComponent.h"
 #include "HFLightDirectionGadgetComponent.h"
 #include "SpawnerComponent.h"
+#include "ExhibitComponent.h"
 #include "PathfindingComponent.h"
 #include "PhysicsSystemComponent.h"
 #include "VehiclePhysicsComponent.h"
@@ -909,6 +910,13 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 			// From the registry, as the client makes it (a character got one with its character component)
 			const auto id = state.GetComponentID(eReplicaComponentType::PLAYER_FORCED_MOVEMENT, -1);
 			if (id > -1 && !HasComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT)) AddComponent<PlayerForcedMovementComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::EXHIBIT: {
+			// 1.10.64's loader has this case but makes nothing (dead code; showcases were cut); DLU makes the exhibit,
+			// which sends nothing in a construction, so unchanged clients are unaffected
+			const auto id = state.GetComponentID(eReplicaComponentType::EXHIBIT, -1);
+			if (id > -1) AddComponent<ExhibitComponent>(id);
 			break;
 		}
 		case eReplicaComponentType::ROCKET_LANDING: {
