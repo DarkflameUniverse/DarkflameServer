@@ -211,14 +211,14 @@ void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
 	}
 }
 
-void PropertyBehavior::OnChatMessageReceived(const std::string& sMessage) {
+void PropertyBehavior::OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) {
 	auto& activeState = GetActiveState();
-	activeState.OnChatMessageReceived(sMessage);
+	activeState.OnChatMessageReceived(sMessage, sender);
 }
 
-void PropertyBehavior::OnHit() {
+void PropertyBehavior::OnHit(const LWOOBJID attacker) {
 	auto& activeState = GetActiveState();
-	activeState.OnHit();
+	activeState.OnHit(attacker);
 }
 
 State& PropertyBehavior::GetActiveState() {

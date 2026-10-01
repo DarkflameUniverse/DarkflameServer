@@ -16,6 +16,8 @@
 #include "Amf3.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
+	RegisterMsg(&SimplePhysicsComponent::OnGetAngularVelocity);
+	RegisterMsg(&SimplePhysicsComponent::OnSetAngularVelocity);
 	RegisterMsg(&SimplePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Position = m_Parent->GetDefaultPosition();
@@ -38,6 +40,7 @@ SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
 void SimplePhysicsComponent::Update(const float deltaTime) {
+	// Rotation is driven by ModelComponent; angular velocity is only relayed to clients.
 	if (m_Velocity == NiPoint3Constant::ZERO) return;
 	m_Position += m_Velocity * deltaTime;
 	m_DirtyPosition = true;
@@ -52,8 +55,12 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 
 	outBitStream.Write(m_DirtyVelocity || bIsInitialUpdate);
 	if (m_DirtyVelocity || bIsInitialUpdate) {
-		outBitStream.Write(m_Velocity);
-		outBitStream.Write(m_AngularVelocity);
+		outBitStream.Write(m_Velocity.x);
+		outBitStream.Write(m_Velocity.y);
+		outBitStream.Write(m_Velocity.z);
+		outBitStream.Write(m_AngularVelocity.x);
+		outBitStream.Write(m_AngularVelocity.y);
+		outBitStream.Write(m_AngularVelocity.z);
 
 		m_DirtyVelocity = false;
 	}
@@ -83,5 +90,18 @@ bool SimplePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReport
 	info.PushDebug("Angular Velocity").PushDebug(m_AngularVelocity);
 	info.PushDebug<AMFIntValue>("Physics Motion State") = m_PhysicsMotionState;
 	info.PushDebug<AMFStringValue>("Climbable Type") = StringifiedEnum::ToString(m_ClimbableType).data();
+	return true;
+}
+
+bool SimplePhysicsComponent::OnSetAngularVelocity(GameMessages::SetAngularVelocity& setAngVel) {
+	m_DirtyVelocity |= setAngVel.bForceFlagDirty || (m_AngularVelocity != setAngVel.angVelocity);
+	m_AngularVelocity = setAngVel.angVelocity;
+	LOG_DEBUG("Angular velocity is now %f %f %f", m_AngularVelocity.x, m_AngularVelocity.y, m_AngularVelocity.z);
+	Game::entityManager->SerializeEntity(m_Parent);
+	return true;
+}
+
+bool SimplePhysicsComponent::OnGetAngularVelocity(GameMessages::GetAngularVelocity& getAngVel) {
+	getAngVel.angVelocity = m_AngularVelocity;
 	return true;
 }

@@ -588,7 +588,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	// Client does the same check, so we're doing it too
 	auto* const modelComponent = m_Parent->GetComponent<ModelComponent>();
 	if (modelComponent) {
-		modelComponent->OnHit();
+		modelComponent->OnHit(source);
 		// Don't actually deal the damage so the model doesn't die
 		return;
 	}

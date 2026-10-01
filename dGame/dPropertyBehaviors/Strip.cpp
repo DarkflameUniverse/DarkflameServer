@@ -9,6 +9,7 @@
 #include "PropertyManagementComponent.h"
 #include "PlayerManager.h"
 #include "SimplePhysicsComponent.h"
+#include "DestroyableComponent.h"
 
 #include "dChatFilter.h"
 
@@ -97,6 +98,7 @@ void Strip::HandleMsg(GameMessages::RequestUse& msg) {
 	if (nextAction.GetType() == "OnInteract") {
 		IncrementAction();
 		m_WaitingForAction = false;
+		m_StripInitiatorID = msg.target;
 	}
 }
 
@@ -105,27 +107,34 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_WaitingForAction = false;
 	m_PausedTime = 0.0f;
 	m_NextActionIndex = 0;
-	m_InActionMove = NiPoint3Constant::ZERO;
+	m_InActionTranslation = NiPoint3Constant::ZERO;
 	m_PreviousFramePosition = NiPoint3Constant::ZERO;
+	m_InActionRotation = NiPoint3Constant::ZERO;
+	m_RotationProgress = 0.0f;
+	m_Speed = DEFAULT_SPEED;
+	m_PausedFromOnTimer = false;
+	m_MovingToStart = false;
 }
 
-void Strip::OnChatMessageReceived(const std::string& sMessage) {
+void Strip::OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
 	if (nextAction.GetType() == "OnChat" && nextAction.GetValueParameterString() == sMessage) {
 		IncrementAction();
 		m_WaitingForAction = false;
+		m_StripInitiatorID = sender;
 	}
 }
 
-void Strip::OnHit() {
+void Strip::OnHit(const LWOOBJID attacker) {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
 	if (nextAction.GetType() == "OnAttack") {
 		IncrementAction();
 		m_WaitingForAction = false;
+		m_StripInitiatorID = attacker;
 	}
 }
 
@@ -172,39 +181,67 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 	// TODO replace with switch case and nextActionType with enum
 	/* BEGIN Move */
 	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
-		// X axis
-		bool isMoveLeft = nextActionType == "MoveLeft";
-		int negative = isMoveLeft ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_X * negative)) {
+		// Local right axis
+		const bool isMoveLeft = nextActionType == "MoveLeft";
+		if (modelComponent.TryStartMove(0, isMoveLeft ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.x = isMoveLeft ? -number : number;
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
+			m_InActionTranslation.x = isMoveLeft ? -number : number;
 		}
 	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
-		// Y axis
-		bool isFlyDown = nextActionType == "FlyDown";
-		int negative = isFlyDown ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Y * negative)) {
+		// Local up axis
+		const bool isFlyDown = nextActionType == "FlyDown";
+		if (modelComponent.TryStartMove(1, isFlyDown ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.y = isFlyDown ? -number : number;
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
+			m_InActionTranslation.y = isFlyDown ? -number : number;
 		}
-
 	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
-		// Z axis
-		bool isMoveBackward = nextActionType == "MoveBackward";
-		int negative = isMoveBackward ? -1 : 1;
-		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Z * negative)) {
+		// Local forward axis
+		const bool isMoveBackward = nextActionType == "MoveBackward";
+		if (modelComponent.TryStartMove(2, isMoveBackward ? -1.0f : 1.0f, m_Speed)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.z = isMoveBackward ? -number : number;
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
+			m_InActionTranslation.z = isMoveBackward ? -number : number;
 		}
 	}
 	/* END Move */
 
+	/* BEGIN Rotate */
+	else if (nextActionType == "Spin" || nextActionType == "SpinNegative") {
+		// Y axis
+		const float direction = nextActionType == "SpinNegative" ? -1.0f : 1.0f;
+		if (number != 0.0 && modelComponent.TryStartRotation(1, direction, m_Speed)) {
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
+			m_InActionRotation.y = direction * number;
+			m_RotationProgress = 0.0f;
+		}
+	} else if (nextActionType == "Tilt" || nextActionType == "TiltNegative") {
+		// X axis
+		const float direction = nextActionType == "TiltNegative" ? -1.0f : 1.0f;
+		if (number != 0.0 && modelComponent.TryStartRotation(0, direction, m_Speed)) {
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
+			m_InActionRotation.x = direction * number;
+			m_RotationProgress = 0.0f;
+		}
+	} else if (nextActionType == "Roll" || nextActionType == "RollNegative") {
+		// Z axis
+		const float direction = nextActionType == "RollNegative" ? -1.0f : 1.0f;
+		if (number != 0.0 && modelComponent.TryStartRotation(2, direction, m_Speed)) {
+			m_MoveInterruptCount = modelComponent.GetMoveInterruptCount();
+			m_InActionRotation.z = direction * number;
+			m_RotationProgress = 0.0f;
+		}
+	}
+	/* END Rotate */
+
 	/* BEGIN Navigation */
 	else if (nextActionType == "SetSpeed") {
-		modelComponent.SetSpeed(number);
+		// Floored so a move or rotation can never stall forever
+		m_Speed = std::max(static_cast<float>(number), MIN_SPEED);
+	} else if (nextActionType == "MoveBackToStart") {
+		modelComponent.StartMoveTo(modelComponent.GetOriginalPosition(), m_Speed);
+		m_MovingToStart = true;
 	}
 	/* END Navigation */
 
@@ -233,9 +270,9 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		// In case a word is removed from the whitelist after it was approved
 		const auto modelName = "%[Objects_" + std::to_string(entity.GetLOT()) + "_name]";
 		if (isOk) ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, 12, modelName, entity.GetObjectID(), false, GeneralUtils::ASCIIToUTF16(valueStr));
-		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
+		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data(), m_StripInitiatorID);
 	} else if (nextActionType == "PrivateMessage") {
-		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data());
+		PropertyManagementComponent::Instance()->OnChatMessageReceived(valueStr.data(), m_StripInitiatorID);
 	} else if (nextActionType == "PlaySound") {
 		GameMessages::PlayBehaviorSound sound;
 		sound.target = modelComponent.GetParent()->GetObjectID();
@@ -252,6 +289,8 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent, Up
 		Spawn(10497, entity); // Maelstrom Pirate property
 	} else if (nextActionType == "SpawnRonin") {
 		Spawn(10498, entity); // Dark Ronin property
+	} else if (nextActionType == "DoDamage") {
+		modelComponent.DoDamage(m_StripInitiatorID);
 	} else if (nextActionType == "DropImagination") {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity); // 1 Imagination powerup
 	} else if (nextActionType == "DropHealth") {
@@ -302,49 +341,66 @@ void Strip::RemoveStates(ModelComponent& modelComponent) const {
 }
 
 bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
+	if (m_MovingToStart) {
+		if (modelComponent.IsMovingToTarget()) return false;
+		m_MovingToStart = false;
+	}
+
+	// A MoveBackToStart cancelled our move, so skip to the next action
+	if (m_MoveInterruptCount != modelComponent.GetMoveInterruptCount()) m_InActionTranslation = NiPoint3Constant::ZERO;
+
 	auto& entity = *modelComponent.GetParent();
 	const auto& currentPos = entity.GetPosition();
 	const auto diff = currentPos - m_PreviousFramePosition;
-	const auto [moveX, moveY, moveZ] = m_InActionMove;
 	m_PreviousFramePosition = currentPos;
 
-	// Only want to subtract from the move if one is being performed.
-	// Starts at true because we may not be doing a move at all.
-	// If one is being done, then one of the move_ variables will be non-zero
-	bool moveFinished = true;
-	NiPoint3 finalPositionAdjustment = NiPoint3Constant::ZERO;
-	if (moveX != 0.0f) {
-		m_InActionMove.x -= diff.x;
-		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionMove.x) != std::signbit(moveX);
-		finalPositionAdjustment.x = m_InActionMove.x;
-	} else if (moveY != 0.0f) {
-		m_InActionMove.y -= diff.y;
-		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionMove.y) != std::signbit(moveY);
-		finalPositionAdjustment.y = m_InActionMove.y;
-	} else if (moveZ != 0.0f) {
-		m_InActionMove.z -= diff.z;
-		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionMove.z) != std::signbit(moveZ);
-		finalPositionAdjustment.z = m_InActionMove.z;
-	}
+	for (int axis = 0; axis < 3; axis++) {
+		const float target = m_InActionTranslation[axis];
+		if (target == 0.0f) continue;
 
-	// Once done, set the in action move & velocity to zero
-	if (moveFinished && m_InActionMove != NiPoint3Constant::ZERO) {
-		auto entityVelocity = entity.GetVelocity();
-		// Zero out only the velocity that was acted on
-		if (moveX != 0.0f) entityVelocity.x = 0.0f;
-		else if (moveY != 0.0f) entityVelocity.y = 0.0f;
-		else if (moveZ != 0.0f) entityVelocity.z = 0.0f;
-		modelComponent.SetVelocity(entityVelocity);
+		// The local axes are orthonormal so this isolates our axis from any other active moves
+		const auto& axisVector = modelComponent.GetMoveAxis(axis);
+		m_InActionTranslation[axis] -= diff.DotProduct(axisVector);
+
+		// If the sign bit is different between the two numbers, then we have finished our move.
+		if (std::signbit(m_InActionTranslation[axis]) == std::signbit(target)) return false;
 
 		// Do the final adjustment so we will have moved exactly the requested units
-		entity.SetPosition(entity.GetPosition() + finalPositionAdjustment);
-		m_InActionMove = NiPoint3Constant::ZERO;
+		entity.SetPosition(entity.GetPosition() + axisVector * m_InActionTranslation[axis]);
+		modelComponent.StopMove(axis);
+		m_InActionTranslation = NiPoint3Constant::ZERO;
 	}
 
-	return moveFinished;
+	return true;
+}
+
+bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
+	if (m_MoveInterruptCount != modelComponent.GetMoveInterruptCount()) {
+		for (int axis = 0; axis < 3; axis++) {
+			if (m_InActionRotation[axis] != 0.0f) modelComponent.StopRotation(axis);
+		}
+		m_InActionRotation = NiPoint3Constant::ZERO;
+		m_RotationProgress = 0.0f;
+	}
+
+	for (int axis = 0; axis < 3; axis++) {
+		const float target = m_InActionRotation[axis];
+		if (target == 0.0f) continue;
+
+		// Snapping to the target keeps the final angle exact regardless of speed or frame time
+		const float step = modelComponent.GetAngularSpeed(axis) * deltaTime;
+		if (std::abs(target - m_RotationProgress) <= step) m_RotationProgress = target;
+		else m_RotationProgress += std::copysign(step, target);
+
+		modelComponent.SetRotationProgress(axis, m_RotationProgress);
+		if (m_RotationProgress != target) return false;
+
+		modelComponent.StopRotation(axis);
+		m_InActionRotation = NiPoint3Constant::ZERO;
+		m_RotationProgress = 0.0f;
+	}
+
+	return true;
 }
 
 void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult& updateResult) {
@@ -352,8 +408,9 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 	// Strips are also designed to have 2 actions or more to run.
 	if (!HasMinimumActions()) return;
 
-	// Return if this strip has an active movement action
+	// Return if this strip has an active movement or rotation action
 	if (!CheckMovement(deltaTime, modelComponent)) return;
+	if (!CheckRotation(deltaTime, modelComponent)) return;
 
 	// Don't run this strip if we're paused.
 	m_PausedTime -= deltaTime;
@@ -371,16 +428,35 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 
 	// Check for trigger blocks and if not a trigger block proc this blocks action
 	if (m_NextActionIndex == 0) {
+		m_StripInitiatorID = LWOOBJID_EMPTY;
 		LOG("Behavior strip started %s", nextAction.GetType().data());
+		m_Speed = DEFAULT_SPEED;
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
+			m_WaitingForAction = true;
 		} else if (nextAction.GetType() == "OnChat") {
-			// logic here if needed
+			m_WaitingForAction = true;
 		} else if (nextAction.GetType() == "OnAttack") {
 			modelComponent.AddAttack();
+			m_WaitingForAction = true;
+		} else if (nextAction.GetType() == "OnStartup") {
+			IncrementAction();
+		} else if (nextAction.GetType() == "OnTimer") {
+			if (!m_PausedFromOnTimer) {
+				m_PausedTime = nextAction.GetValueParameterDouble();
+				m_PausedFromOnTimer = true;
+			} else {
+				IncrementAction();
+				m_PausedFromOnTimer = false;
+			}
+		} else {
+			// in case we run into an unimplemented action or one that isnt a start node
+			// mark as waiting for action so we dont waste time re-starting the same logic and serializing
+			// every frame
+			m_WaitingForAction = true;
 		}
+
 		Game::entityManager->SerializeEntity(entity);
-		m_WaitingForAction = true;
 	} else { // should be a normal block
 		ProcNormalAction(deltaTime, modelComponent, updateResult);
 	}

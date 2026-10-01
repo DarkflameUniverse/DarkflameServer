@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <map>
+#include <optional>
 
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
@@ -139,20 +141,41 @@ public:
 
 	void Resume();
 
-	// Attempts to set the velocity of an axis for movement.
-	// If the axis currently has a velocity of zero, returns true.
-	// If the axis is currently controlled by a behavior, returns false.
-	bool TrySetVelocity(const NiPoint3& velocity) const;
+	// Attempts to claim a local axis (0 = right, 1 = up, 2 = forward) for movement in direction (+1 or -1) at speed units per second.
+	// Returns false if the axis is already controlled by a behavior. Cancels any active StartMoveTo.
+	bool TryStartMove(const int axis, const float direction, const float speed);
 
-	// Force sets the velocity to a value.
-	void SetVelocity(const NiPoint3& velocity) const;
+	// Releases the local axis so another behavior can move along it.
+	void StopMove(const int axis);
 
-	void OnChatMessageReceived(const std::string& sMessage);
+	// World space direction of the local axis used for the most recently applied velocity.
+	const NiPoint3& GetMoveAxis(const int axis) const { return m_Move.basis[axis]; }
 
-	void OnHit();
+	// Interrupts all active moves and moves in a straight line to target at speed units per second.
+	void StartMoveTo(const NiPoint3& target, const float speed);
 
-	// Sets the speed of the model
-	void SetSpeed(const float newSpeed) { m_Speed = newSpeed; }
+	// Whether a StartMoveTo move has yet to arrive or be overridden.
+	bool IsMovingToTarget() const noexcept { return m_Move.target.has_value(); }
+
+	// Changes whenever active moves are interrupted, so strips can tell their move was cancelled.
+	uint32_t GetMoveInterruptCount() const noexcept { return m_Move.interruptCount; }
+
+	// Attempts to claim a world axis (0 = x, 1 = y, 2 = z) for rotation in direction (+1 or -1) at the given behavior speed.
+	// Returns false if the axis is already controlled by a behavior.
+	bool TryStartRotation(const int axis, const float direction, const float speed);
+
+	// Sets how many signed degrees the active rotation on axis has progressed and updates the entity.
+	void SetRotationProgress(const int axis, const float degrees);
+
+	// Releases the axis so another behavior can rotate it.
+	void StopRotation(const int axis);
+
+	// Degrees per second of the active rotation on axis.
+	float GetAngularSpeed(const int axis) const noexcept { return std::abs(m_Rotation.velocity[axis]); }
+
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender);
+
+	void OnHit(const LWOOBJID attacker);
 
 	// Whether or not to restart at the end of the frame
 	void RestartAtEndOfFrame() { m_RestartAtEndOfFrame = true; }
@@ -164,7 +187,56 @@ public:
 	// Decrements the number of strips listening for an attack.
 	// If this is the last strip removing an attack, it will reset the factions to the default of -1.
 	void RemoveAttack();
+	void DoDamage(const LWOOBJID target);
 private:
+	// Degrees per second per unit of behavior speed
+	static constexpr float BASE_ANGULAR_SPEED = 15.0f;
+
+	struct RotationState {
+		// The rotation that degrees is applied on top of
+		NiQuaternion base = QuatUtils::IDENTITY;
+
+		// Accumulated signed degrees per world axis since base was set
+		NiPoint3 degrees{};
+
+		// degrees at the moment the current rotation on each axis started
+		NiPoint3 actionStart{};
+
+		// Signed degrees per second per world axis. Non-zero means a behavior owns that axis.
+		NiPoint3 velocity{};
+	};
+
+	struct MoveState {
+		// Signed units per second along local right, up and forward. Non-zero means a behavior owns that axis.
+		NiPoint3 velocity{};
+
+		// Right, up and forward in world space as of the last velocity update
+		std::array<NiPoint3, 3> basis{ NiPoint3Constant::UNIT_X, NiPoint3Constant::UNIT_Y, NiPoint3Constant::UNIT_Z };
+
+		// Whether the last velocity update came from an active move
+		bool wasMoving{ false };
+
+		// World position of an active StartMoveTo move
+		std::optional<NiPoint3> target;
+
+		// Units per second of the move to target
+		float targetSpeed{};
+
+		// Direction to target as of the last velocity update, zero once there
+		NiPoint3 targetDirection{};
+
+		// Incremented each time StartMoveTo interrupts the active moves
+		uint32_t interruptCount{};
+	};
+
+	// Sends the client-side angular velocity for the currently active rotation axes.
+	void SyncAngularVelocity() const;
+
+	// Recomputes the linear velocity from the active move axes and the current rotation.
+	void SyncLinearVelocity();
+
+	// Clears all rotation state and makes rotation relative to newBase.
+	void ResetRotationState(const NiQuaternion& newBase);
 
 	// Loads a behavior from the database.
 	void LoadBehavior(const LWOOBJID behaviorID, const size_t index, const bool isIndexed);
@@ -208,9 +280,12 @@ private:
 	 */
 	LWOOBJID m_userModelID;
 
-	// The speed at which this model moves
-	float m_Speed{ 3.0f };
-
 	// Whether or not to restart at the end of the frame.
 	bool m_RestartAtEndOfFrame{ false };
+
+	RotationState m_Rotation;
+
+	MoveState m_Move;
+
+	float m_DamageCooldown { 0.0f };
 };

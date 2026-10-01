@@ -167,10 +167,10 @@ void State::Update(float deltaTime, ModelComponent& modelComponent, UpdateResult
 	for (auto& strip : m_Strips) strip.Update(deltaTime, modelComponent, updateResult);
 }
 
-void State::OnChatMessageReceived(const std::string& sMessage) {
-	for (auto& strip : m_Strips) strip.OnChatMessageReceived(sMessage);
+void State::OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) {
+	for (auto& strip : m_Strips) strip.OnChatMessageReceived(sMessage, sender);
 }
 
-void State::OnHit() {
-	for (auto& strip : m_Strips) strip.OnHit();
+void State::OnHit(const LWOOBJID attacker) {
+	for (auto& strip : m_Strips) strip.OnHit(attacker);
 }

@@ -165,7 +165,7 @@ public:
 	LWOOBJID GetId() const noexcept { return propertyId; }
 
 
-	void OnChatMessageReceived(const std::string& sMessage) const;
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) const;
 private:
 	/**
 	 * This

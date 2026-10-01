@@ -46,8 +46,8 @@ public:
 	void Deserialize(const tinyxml2::XMLElement& behavior);
 
 	void Update(float deltaTime, ModelComponent& modelComponent);
-	void OnChatMessageReceived(const std::string& sMessage);
-	void OnHit();
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender);
+	void OnHit(const LWOOBJID attacker);
 
 private:
 	State& GetActiveState();
