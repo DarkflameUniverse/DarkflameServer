@@ -842,10 +842,21 @@ need no change to have new models processed. Rows that failed are tried again up
 `max_attempts` (default 3) times. Reprocessing (dashboard) sets rows back to `is_optimized = 0, process_attempts = 0`.
 No master messages are needed for any of it.
 
+### Queue on property save (`queue_on_property_save`)
+
+Off by default. On, the UGC server only takes pending models with `ugc.queued = 1` (mysql 104 / sqlite 87), so a
+server that turns the UGC server on with years of never-made models doesn't queue them all at once. `queued` is set by
+`InsertNewUgcModel` and `UpdateUgcModelData` (a Brick By Brick save), by every reset (`ResetUgcModelProcessing`,
+`ResetPropertyUgcModelProcessing`: the dashboard's Make again, `/reprocessproperty`), and for every model placed on a
+property when the property is saved (`PropertyManagementComponent::Save` calls `QueuePropertyUgcModels`: finishing
+building, placing, moving or picking up a model, a hand-off). Rows from before the column are 0. The UGC page counts
+the waiting models that aren't queued apart. Turning it off makes every waiting model eligible again.
+
 ### Marking models for processing (for code that writes `ugc` rows)
 
-* A new row needs nothing: `is_optimized` defaults to 0 (`InsertNewUgcModel` writes 0, and its `process_after`).
-* When a model's LXFML changes, `UpdateUgcModelData` sets `is_optimized = 0, process_attempts = 0, process_error = ''`
+* A new row needs nothing: `is_optimized` defaults to 0 (`InsertNewUgcModel` writes 0, its `process_after`, and
+  `queued = 1`).
+* When a model's LXFML changes, `UpdateUgcModelData` sets `is_optimized = 0, process_attempts = 0, process_error = '', queued = 1`
   in the same statement. Anything that writes `ugc.lxfml` another way must do the same, or call
   `ResetUgcModelProcessing(id, false)`.
 * Deleting the row is enough when a model is deleted; its files are left until the storage cap removes them.

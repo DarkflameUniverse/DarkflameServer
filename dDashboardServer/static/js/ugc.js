@@ -76,7 +76,9 @@
 	function countCard(title, c) {
 		return '<div class="col-md-6"><div class="card"><div class="card-body py-2"><div class="small text-body-secondary">' + esc(title) + '</div>' +
 			fmt.badge(c.done + ' made', 'success') + ' ' + fmt.badge(c.pending + ' waiting', 'secondary') + ' ' + fmt.badge(c.failed + ' failed', c.failed ? 'danger' : 'secondary') +
-			(c.empty ? ' ' + fmt.badge(c.empty + ' empty', 'light') : '') + '</div></div></div>';
+			(c.empty ? ' ' + fmt.badge(c.empty + ' empty', 'light') : '') +
+			(c.notQueued ? '<div class="small text-body-secondary mt-1" title="queue_on_property_save is on: a model is made once it is saved, made again, or its property is saved">' +
+				esc(Number(c.notQueued).toLocaleString()) + ' of the waiting ones wait for their property to be saved</div>' : '') + '</div></div></div>';
 	}
 	// What making them all took, and what it saved (the rows' recorded stats; ones made before a stat existed don't count)
 	function totalsCard(title, t) {

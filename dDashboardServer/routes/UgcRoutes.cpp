@@ -264,6 +264,14 @@ namespace {
 		for (const auto& [state, count] : counts) out[StateName(state)] = count;
 		return out;
 	}
+
+	// The models' counts, with how many of the waiting ones wait for their property to be saved while
+	// queue_on_property_save is on (notQueued)
+	nlohmann::json ModelCounts() {
+		auto out = Counts(Database::Get()->GetUgcProcessCounts());
+		if (UgcSetting("queue_on_property_save").value_or("0") == "1") out["notQueued"] = Database::Get()->CountUnqueuedUgcModels();
+		return out;
+	}
 }
 
 namespace UgcRoutes {
@@ -385,7 +393,7 @@ namespace UgcRoutes {
 					}
 					if (searching) matches = { { "model", models(0, 1).second }, { "modular", total } };
 				}
-				JsonSuccess(reply, { { "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } },
+				JsonSuccess(reply, { { "counts", { { "model", ModelCounts() }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } },
 					{ "totals", { { "model", Totals(Database::Get()->GetUgcProcessTotals(false)) }, { "modular", Totals(Database::Get()->GetUgcProcessTotals(true)) } } },
 					{ "items", items }, { "total", total }, { "page", page }, { "size", size }, { "more", static_cast<uint64_t>(page + 1) * size < total }, { "kinds", kinds },
 					{ "matches", matches }, { "ugcPublicUrl", Game::config->GetValue("ugc_public_url") }, { "canManage", Can(context, "ugc_manage") } });
@@ -530,7 +538,7 @@ namespace UgcRoutes {
 				const auto base = InternalUrl();
 				// The database only on this thread; the worker only fetches
 				nlohmann::json body = { { "success", true }, { "enabled", enabled }, { "online", online },
-					{ "counts", { { "model", Counts(Database::Get()->GetUgcProcessCounts()) }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } } };
+					{ "counts", { { "model", ModelCounts() }, { "modular", Counts(Database::Get()->GetModularBuildProcessCounts()) } } } };
 				Workers::Reply(reply, context, false, [base, enabled, body = std::move(body)](HTTPReply& out) mutable {
 					if (enabled) {
 						const auto fetched = CachedGet(base + "/status", eCache::STATUS);

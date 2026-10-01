@@ -473,6 +473,7 @@ namespace {
 		c.Add(Int(UGC, "worker_nice", "Worker priority", "Linux nice value of the workers: 0 normal, 19 only when nothing else wants the CPU.", "0", 0, 19));
 		c.Add(Unit(Int(UGC, "max_memory_mb", "Most memory for jobs", "Jobs whose estimated memory would go past this together wait for running ones; a bigger one runs alone. 0: no limit.", "0", 0, 1000000), "MB"));
 		c.Add(Unit(Int(UGC, "max_model_bricks", "Biggest model", "Models with more bricks fail with that reason. 0: no limit.", "0", 0, 1000000), "bricks"));
+		c.Add(Bool(UGC, "queue_on_property_save", "Only make models once their property is saved", "On: models already waiting (say, a server turning the UGC server on) aren't all made at once; a model is made once it is saved from Brick By Brick, made again by staff, or its property is saved. Off: every waiting model is made.", false));
 		c.Add(Text(UGC, "pause_hours", "Pause hours", "Local hours in which no new jobs start, e.g. 18-23 or 22-6. Empty: never.", ""));
 		c.Add(Unit(Int(UGC, "poll_interval_ms", "Look for new models every", "", "2000", 100, 600000, true), "ms"));
 		c.Add(Int(UGC, "poll_batch", "Models taken at once", "", "32", 1, 1000, true));
