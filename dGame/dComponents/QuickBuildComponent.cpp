@@ -1,4 +1,6 @@
 #include "QuickBuildComponent.h"
+#include "CDClientManager.h"
+#include "CDRebuildComponentTable.h"
 #include "Entity.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
@@ -31,12 +33,30 @@
 #include "Amf3.h"
 #include "EconomyLedger.h"
 
-QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : Component{ entity, componentID } {
+QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : ActivityComponent{ entity, componentID } {
 	RegisterMsg(&QuickBuildComponent::OnRequestUse);
 	RegisterMsg(&QuickBuildComponent::OnGetObjectReportInfo);
 }
 
 // The level config: the precondition and the activator's position, then the activator
+// The RebuildComponent row, its activity among them (LWOQuickBuildComponent is an activity component in the client)
+void QuickBuildComponent::LoadDataFromTemplate() {
+	const auto componentID = m_ComponentID;
+	const std::vector<CDRebuildComponent> rebCompData = CDClientManager::GetTable<CDRebuildComponentTable>()->Query([componentID](CDRebuildComponent entry) { return (entry.id == static_cast<uint32_t>(componentID)); });
+	if (rebCompData.empty()) return;
+
+	SetResetTime(rebCompData[0].reset_time);
+	SetCompleteTime(rebCompData[0].complete_time);
+	SetTakeImagination(rebCompData[0].take_imagination);
+	SetInterruptible(rebCompData[0].interruptible);
+	SetSelfActivator(rebCompData[0].self_activator);
+	SetActivityId(rebCompData[0].activityID);
+	SetPostImaginationCost(rebCompData[0].post_imagination_cost);
+	SetTimeBeforeSmash(rebCompData[0].time_before_smash);
+	LoadActivityData(rebCompData[0].activityID);
+	m_HasRow = true;
+}
+
 void QuickBuildComponent::LoadConfigData() {
 	std::u16string checkPreconditions = m_Parent->GetVar<std::u16string>(u"CheckPrecondition");
 
@@ -55,7 +75,34 @@ void QuickBuildComponent::LoadConfigData() {
 		m_ActivatorPosition = m_Parent->GetPosition();
 	}
 
+	// The activator is spawned as it was before the row loaded in LoadDataFromTemplate: without looking at
+	// self_activator (unchanged behaviour; whether live made activators for self-activating quickbuilds is unchecked)
+	const bool selfActivator = m_SelfActivator;
+	m_SelfActivator = false;
 	SpawnActivator();
+	m_SelfActivator = selfActivator;
+
+	// The level's settings over the row's
+	if (!m_HasRow) return;
+
+	const auto rebuildResetTime = m_Parent->GetVar<float>(u"rebuild_reset_time");
+	if (rebuildResetTime != 0.0f) SetResetTime(rebuildResetTime);
+
+	// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
+	// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
+	// the AM Center draw bridge (LOT 12047: level activityID 12047 without actIDovrd, template activity 6,
+	// the quickbuild rewards) dropped no loot in 4 of 4 live completions.
+	const auto activityID = m_Parent->GetVar<int32_t>(u"activityID");
+	if (activityID > 0) {
+		SetActivityId(activityID);
+		Loot::CacheMatrix(activityID);
+	}
+
+	const auto timeBeforeSmash = m_Parent->GetVar<float>(u"tmeSmsh");
+	if (timeBeforeSmash > 0) SetTimeBeforeSmash(timeBeforeSmash);
+
+	const auto compTime = m_Parent->GetVar<float>(u"compTime");
+	if (compTime > 0) SetCompleteTime(compTime);
 }
 
 QuickBuildComponent::~QuickBuildComponent() {

@@ -6,6 +6,7 @@
 #include <string>
 #include "dCommonVars.h"
 #include "NiPoint3.h"
+#include "ActivityComponent.h"
 #include "ScriptedActivityComponent.h"
 #include "Preconditions.h"
 #include "Component.h"
@@ -20,12 +21,13 @@ enum class eQuickBuildFailReason : uint32_t;
  * consists of an activator that shows a popup and then the actual entity that the bricks are built into. Note
  * that quick builds are also scripted activities so this shared some logic with the ScriptedActivityComponent.
  */
-class QuickBuildComponent final : public Component {
+class QuickBuildComponent final : public ActivityComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
 	QuickBuildComponent(Entity* const entity, const int32_t componentID);
 
+	void LoadDataFromTemplate() override;
 	void LoadConfigData() override;
 	~QuickBuildComponent() override;
 
@@ -360,6 +362,9 @@ private:
 	 * The activity ID that players partake in when doing this quickbuild
 	 */
 	int32_t m_ActivityId = 0;
+
+	// Whether the RebuildComponent row was found (the level's settings only apply over a row)
+	bool m_HasRow = false;
 
 	/**
 	 * Currently unused

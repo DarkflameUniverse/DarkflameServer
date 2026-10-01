@@ -625,56 +625,12 @@ void Entity::Initialize() {
 		case eReplicaComponentType::QUICK_BUILD: {
 		const auto quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 		if (quickBuildComponentID > 0) {
-			auto* const quickBuildComponent = AddComponent<QuickBuildComponent>(quickBuildComponentID);
+			AddComponent<QuickBuildComponent>(quickBuildComponentID);
 
 			// A quick build without a destroyable gets one (componentID -1) and is smashable, as the client makes it
 			// (DoObjectComponentLoad); live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804)
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 				AddComponent<DestroyableComponent>(-1, true);
-			}
-
-			CDRebuildComponentTable* const rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
-			const std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([quickBuildComponentID](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
-
-			if (!rebCompData.empty()) {
-				quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
-				quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
-				quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
-				quickBuildComponent->SetInterruptible(rebCompData[0].interruptible);
-				quickBuildComponent->SetSelfActivator(rebCompData[0].self_activator);
-				quickBuildComponent->SetActivityId(rebCompData[0].activityID);
-				quickBuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-				quickBuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
-
-				const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
-
-				if (rebuildResetTime != 0.0f) {
-					quickBuildComponent->SetResetTime(rebuildResetTime);
-				}
-
-
-				// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
-				// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
-				// the AM Center draw bridge (LOT 12047: level activityID 12047 without actIDovrd, template activity 6,
-				// the quickbuild rewards) dropped no loot in 4 of 4 live completions.
-				const auto activityID = GetVar<int32_t>(u"activityID");
-
-				if (activityID > 0) {
-					quickBuildComponent->SetActivityId(activityID);
-					Loot::CacheMatrix(activityID);
-				}
-
-				const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
-
-				if (timeBeforeSmash > 0) {
-					quickBuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
-				}
-
-				const auto compTime = GetVar<float>(u"compTime");
-
-				if (compTime > 0) {
-					quickBuildComponent->SetCompleteTime(compTime);
-				}
 			}
 		}
 			break;
