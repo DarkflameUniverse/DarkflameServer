@@ -493,56 +493,13 @@ void Entity::Initialize() {
 			break;
 		}
 		case eReplicaComponentType::SCRIPT: {
-		/**
-		 * This is a bit of a mess
-		 * yep i aint touching this
-		 */
-
+		// LWOScriptComponent's allocator: a script component for a registry entry, a character, or a custom script in
+		// the level config; the component picks its script
 		CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 		const int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
-
-		std::string scriptName = "";
-		bool client = false;
-		if (scriptComponentID > 0 || m_Character) {
-			std::string clientScriptName;
-			if (!m_Character) {
-				CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-				scriptName = scriptCompData.script_name;
-				clientScriptName = scriptCompData.client_script_name;
-			} else {
-				scriptName = "";
-			}
-
-			if (scriptName != "" || (scriptName == "" && m_Character)) {
-
-			} else if (clientScriptName != "") {
-				client = true;
-			} else if (!m_Character) {
-				client = true;
-			}
-		}
-
-		std::string customScriptServer;
-		bool hasCustomServerScript = false;
-
-		const auto customScriptServerName = GetVarAsString(u"custom_script_server");
-		const auto customScriptClientName = GetVarAsString(u"custom_script_client");
-
-		if (!customScriptServerName.empty()) {
-			customScriptServer = customScriptServerName;
-			hasCustomServerScript = true;
-		}
-
-		if (!customScriptClientName.empty()) {
-			client = true;
-		}
-
-		if (hasCustomServerScript && scriptName.empty()) {
-			scriptName = customScriptServer;
-		}
-
-		if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
-			AddComponent<ScriptComponent>(scriptComponentID, scriptName, true, client && scriptName.empty());
+		const bool hasCustomScript = !GetVarAsString(u"custom_script_server").empty() || !GetVarAsString(u"custom_script_client").empty();
+		if (scriptComponentID >= 0 || m_Character || hasCustomScript) {
+			AddComponent<ScriptComponent>(scriptComponentID);
 			addProximityAndPathfinding();
 		}
 

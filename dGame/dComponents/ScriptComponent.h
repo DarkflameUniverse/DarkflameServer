@@ -26,6 +26,13 @@ public:
 
 	ScriptComponent(Entity* parent, const int32_t componentID, const std::string& scriptName, bool serialized, bool client = false);
 
+	// One the object's registry or level config gives (LWOScriptComponent's allocator): its script comes from the
+	// ScriptComponent row and custom_script_server / custom_script_client
+	ScriptComponent(Entity* parent, const int32_t componentID);
+
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
+
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
@@ -79,6 +86,11 @@ private:
 	bool m_Client;
 
 	std::string m_ScriptName;
+
+	// Made from the registry / level config: LoadDataFromTemplate and LoadConfigData pick the script
+	bool m_FromObject = false;
+	// The row's client script name (the client runs one when there is no server script)
+	std::string m_ClientScriptName;
 };
 
 #endif // SCRIPTCOMPONENT_H
