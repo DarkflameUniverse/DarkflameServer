@@ -353,6 +353,9 @@ public:
 	 */
 	std::string GetVarAsString(const std::u16string& name) const;
 
+	// Whether the construction sends this level config key to the client (a model's settings, or syncLDF)
+	bool IsVarSentToClient(const std::u16string& name) const;
+
 	/*
 	 * Collision
 	 */

@@ -1133,6 +1133,12 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 }
 
+bool Entity::IsVarSentToClient(const std::u16string& name) const {
+	if (GetComponent<ModelComponent>() && !GetComponent<PetComponent>()) return m_Settings.values.contains(name);
+	const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
+	return std::ranges::find(syncLDF, name) != syncLDF.end();
+}
+
 void Entity::WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const {
 	RakNet::BitStream settingStream;
 	int32_t numberOfValidKeys = ldf.values.size();

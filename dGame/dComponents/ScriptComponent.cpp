@@ -51,6 +51,15 @@ void ScriptComponent::LoadConfigData() {
 
 	m_Client = client && m_ScriptName.empty();
 	SetScript(m_ScriptName);
+
+	// Sent only when the client makes a script component too: its registry script (not one with id 0), or a custom
+	// script in the config the client gets (ApplyScriptComponentIfHasScript 0x01031460, LOT 176 never; the
+	// allocator 0x0104d710). A character's and a server-only custom script stay on the server.
+	const auto clientCustomScript = [this](const std::u16string& key) {
+		return m_Parent->IsVarSentToClient(key) && !m_Parent->GetVarAsString(key).empty();
+	};
+	m_Serialized = (m_ComponentID > 0 && !isCharacter)
+		|| (m_Parent->GetLOT() != 176 && (clientCustomScript(u"custom_script_server") || clientCustomScript(u"custom_script_client")));
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
