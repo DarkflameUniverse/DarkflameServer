@@ -373,6 +373,9 @@ namespace GameMessages {
 	}
 
 	void UpdatePropertyOrModelForFilterCheck::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A model's name and description (the property editor's model info window,
+		// LWOPropertyEditorComponent::OnUpdateModelDescription 0x00cc42e0) aren't stored yet; they must not rename the property
+		if (!isProperty) return;
 		auto* property = PropertyManagementComponent::Instance();
 		// Only the owner names the property
 		const auto* sender = PlayerManager::GetPlayer(sysAddr);

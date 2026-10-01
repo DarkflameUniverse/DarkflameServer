@@ -186,7 +186,8 @@ namespace GameMessages {
 		int32_t renew{}; // optional
 	};
 
-	// Client -> server. A new name and description for the property.
+	// Client -> server. A new name and description for the property (isProperty) or for a placed model (worldId: its object,
+	// ugcId: its user model id).
 	struct UpdatePropertyOrModelForFilterCheck : public NetGameMsg {
 		UpdatePropertyOrModelForFilterCheck() : NetGameMsg(MessageType::Game::UPDATE_PROPERTY_OR_MODEL_FOR_FILTER_CHECK) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
