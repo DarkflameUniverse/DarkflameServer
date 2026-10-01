@@ -16,6 +16,11 @@ BouncerComponent::BouncerComponent(Entity* parent, const int32_t componentID) : 
 	m_PetEnabled = false;
 	m_PetBouncerEnabled = false;
 	m_PetSwitchLoaded = false;
+	RegisterMsg(&BouncerComponent::MsgGetObjectReportInfo);
+}
+
+// The level config: destination, speed, arc and targets (and the pet switch of LOT 7625)
+void BouncerComponent::LoadConfigData() {
 	m_Destination = GeneralUtils::TryParse<NiPoint3>(
 		GeneralUtils::SplitString(m_Parent->GetVarAsString(u"bouncer_destination"), '\x1f'))
 		.value_or(NiPoint3Constant::ZERO);
@@ -29,11 +34,9 @@ BouncerComponent::BouncerComponent(Entity* parent, const int32_t componentID) : 
 	m_MinNumTargets = GeneralUtils::TryParse<int32_t>(m_Parent->GetVarAsString(u"num_targets_to_activate")).value_or(1);
 	m_CinematicPath = m_Parent->GetVarAsString(u"attached_cinematic_path");
 
-	if (parent->GetLOT() == 7625) {
+	if (m_Parent->GetLOT() == 7625) {
 		LookupPetSwitch();
 	}
-
-	RegisterMsg(&BouncerComponent::MsgGetObjectReportInfo);
 }
 
 BouncerComponent::~BouncerComponent() {
