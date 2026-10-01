@@ -70,7 +70,10 @@ MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t component
 	m_IsBounced = false;
 
 	RegisterMsg(&MovementAIComponent::OnGetObjectReportInfo);
+}
 
+// The level config: the attached path
+void MovementAIComponent::LoadConfigData() {
 	SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
 
