@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "SoundAmbient3DComponent.h"
 #include "SoundAmbient2DComponent.h"
 #include "SoundRepeaterComponent.h"
 #include "GhostComponent.h"
@@ -943,6 +944,12 @@ void Entity::Initialize() {
 			// LWOSoundAmbient2DComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_AMBIENT_2D, -1);
 			if (id > -1) AddComponent<SoundAmbient2DComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SOUND_AMBIENT_3D: {
+			// LWOSoundAmbient3DComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_AMBIENT_3D, -1);
+			if (id > -1) AddComponent<SoundAmbient3DComponent>(id);
 			break;
 		}
 		default:
