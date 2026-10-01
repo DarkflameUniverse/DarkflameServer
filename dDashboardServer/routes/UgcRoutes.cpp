@@ -457,6 +457,21 @@ namespace UgcRoutes {
 				reply.message = sd0.GetAsStringUncompressed();
 			});
 
+		Route(eHTTPMethod::GET, "/api/ugc/:id/runs", Perm("properties_view"),
+			"A player model's makes, the newest first (at most 50): madeAt (unix seconds), options (what made it), ms, cpuMs, hsrMs, aoMs, iconMs, "
+			"bricks, trianglesBefore, triangles",
+			[](HTTPReply& reply, const HTTPContext& context) {
+				const auto id = PathId<LWOOBJID>(context.path, 2);
+				if (!id) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Invalid id");
+				nlohmann::json runs = nlohmann::json::array();
+				for (const auto& [madeAt, run] : Database::Get()->GetUgcModelRuns(*id, 50)) {
+					runs.push_back({ { "madeAt", madeAt }, { "options", run.options }, { "ms", run.milliseconds }, { "cpuMs", run.cpuMilliseconds },
+						{ "hsrMs", run.hsrMilliseconds }, { "aoMs", run.aoMilliseconds }, { "iconMs", run.iconMilliseconds }, { "bricks", run.bricks },
+						{ "trianglesBefore", run.trianglesBefore }, { "triangles", run.triangles } });
+				}
+				JsonSuccess(reply, { { "runs", runs } });
+			});
+
 		Route(eHTTPMethod::GET, "/api/ugc/options", Perm("properties_view"),
 			"The processing options (docs/UgcServer.md, \"Processing options\"): the choices ({rays, denoise, processor}: names), the settings' defaults "
 			"({rays, denoise, processor}) and every combination the made models used, with its makes (runs), models and averages per make "
