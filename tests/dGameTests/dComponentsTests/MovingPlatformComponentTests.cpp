@@ -77,6 +77,17 @@ TEST_F(MovingPlatformComponentTest, SubcomponentTypeFromLevelConfig) {
 	info.settings.values.clear();
 }
 
+// LWOMovingPlatformComponent::SetupPlatform: one subcomponent per setting that is true, mover, simple mover, rotater
+TEST_F(MovingPlatformComponentTest, OneSubcomponentPerSetting) {
+	info.settings.Insert<bool>(u"platformIsRotater", true);
+	info.settings.Insert<bool>(u"platformIsMover", true);
+	Entity both(288300744895900107, info);
+	const std::vector expected{ eMoverSubComponentType::mover, eMoverSubComponentType::rotater };
+	EXPECT_EQ(ChooseSubComponentTypes(-1, both), expected);
+	EXPECT_EQ(ChooseMoverSubComponentType(-1, both), eMoverSubComponentType::mover);
+	info.settings.values.clear();
+}
+
 // Live: 1 (subcomponents), 1 (dirty), 0 (no path), 1, type 5, the starting point (the object's position and
 // rotation, w first), state 9 (stopped at its desired waypoint), waypoint 0, not reversing, then the ending 0 bit
 TEST_F(MovingPlatformComponentTest, SimpleMoverConstructionMatchesLive) {

@@ -18,15 +18,7 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
-	mPosition = startPos;
-}
-
-MoverSubComponent::~MoverSubComponent() = default;
-
-// LWOPlatform::Deserialize 0x00c870e0: a dirty bit, the state, desired waypoint, whether to stop there, reverse, the
-// percent between the waypoints, where it is, the current and next waypoints, the time waited and the time travelled
-void MoverSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+void PlatformSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write<bool>(true);
 
 	outBitStream.Write<uint32_t>(mState);
@@ -68,7 +60,7 @@ void SimpleMoverSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 	outBitStream.Write(bIsInitialUpdate || mDirtyState);
 	if (bIsInitialUpdate || mDirtyState) {
 		outBitStream.Write<uint32_t>(mState);
-		outBitStream.Write<int32_t>(mCurrentWaypointIndex);
+		outBitStream.Write<int32_t>(static_cast<int32_t>(mCurrentWaypointIndex));
 		outBitStream.Write(mInReverse);
 		if (!bIsInitialUpdate) mDirtyState = false;
 	}
@@ -80,19 +72,25 @@ NiPoint3 SimpleMoverSubComponent::GetWaypointPosition(const int32_t index) const
 	return mStartPosition + NiPoint3(moved.x, moved.y, moved.z);
 }
 
-eMoverSubComponentType ChooseMoverSubComponentType(const int32_t componentID, const Entity& entity) {
+std::vector<eMoverSubComponentType> ChooseSubComponentTypes(const int32_t componentID, const Entity& entity) {
 	const bool setRotater = entity.HasVar(u"platformIsRotater");
 	const bool setMover = entity.HasVar(u"platformIsMover");
 	const bool setSimpleMover = entity.HasVar(u"platformIsSimpleMover");
 
 	if (!setRotater && !setMover && !setSimpleMover) {
-		return componentID < 1 ? eMoverSubComponentType::mover : eMoverSubComponentType::simpleMover;
+		return { componentID < 1 ? eMoverSubComponentType::mover : eMoverSubComponentType::simpleMover };
 	}
 
-	if (setMover && entity.GetVar<bool>(u"platformIsMover")) return eMoverSubComponentType::mover;
-	if (setSimpleMover && entity.GetVar<bool>(u"platformIsSimpleMover")) return eMoverSubComponentType::simpleMover;
-	if (setRotater && entity.GetVar<bool>(u"platformIsRotater")) return eMoverSubComponentType::rotater;
-	return eMoverSubComponentType::none;
+	std::vector<eMoverSubComponentType> types;
+	if (setMover && entity.GetVar<bool>(u"platformIsMover")) types.push_back(eMoverSubComponentType::mover);
+	if (setSimpleMover && entity.GetVar<bool>(u"platformIsSimpleMover")) types.push_back(eMoverSubComponentType::simpleMover);
+	if (setRotater && entity.GetVar<bool>(u"platformIsRotater")) types.push_back(eMoverSubComponentType::rotater);
+	return types;
+}
+
+eMoverSubComponentType ChooseMoverSubComponentType(const int32_t componentID, const Entity& entity) {
+	const auto types = ChooseSubComponentTypes(componentID, entity);
+	return types.empty() ? eMoverSubComponentType::none : types.front();
 }
 
 //------------- MovingPlatformComponent below --------------
@@ -102,39 +100,45 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t c
 	m_NoAutoStart = false;
 }
 
-// The mover type, and a simple mover's MovingPlatforms row
+// The subcomponents (LWOMovingPlatformComponent::SetupPlatform: one per type, in the client's order), and a simple
+// mover's MovingPlatforms row
 void MovingPlatformComponent::LoadDataFromTemplate() {
-	m_MoverSubComponentType = ChooseMoverSubComponentType(m_ComponentID, *m_Parent);
-	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
-		auto* const simpleMover = new SimpleMoverSubComponent();
-		m_MoverSubComponent = simpleMover;
-		simpleMover->mStartPosition = m_Parent->GetDefaultPosition();
-		simpleMover->mStartRotation = m_Parent->GetDefaultRotation();
+	for (const auto type : ChooseSubComponentTypes(m_ComponentID, *m_Parent)) {
+		if (type == eMoverSubComponentType::simpleMover) {
+			auto simpleMover = std::make_unique<SimpleMoverSubComponent>();
+			simpleMover->mStartPosition = m_Parent->GetDefaultPosition();
+			simpleMover->mStartRotation = m_Parent->GetDefaultRotation();
 
-		// LWOPlatformSimpleMover::LoadTemplateData: the MovingPlatforms row, unless the object sets dbonly false
-		const bool dbOnly = m_Parent->GetVar<bool>(u"dbonly");
-		if (m_ComponentID > 0 && (!m_Parent->HasVar(u"dbonly") || dbOnly)) {
-			auto query = CDClientDatabase::CreatePreppedStmt(
-				"SELECT platformMoveX, platformMoveY, platformMoveZ, platformMoveTime, platformStartAtEnd FROM MovingPlatforms WHERE id = ?;");
-			query.bind(1, m_ComponentID);
-			auto result = query.execQuery();
-			if (!result.eof()) {
-				simpleMover->mMove = NiPoint3(result.getFloatField(0), result.getFloatField(1), result.getFloatField(2));
-				simpleMover->mMoveTime = result.getFloatField(3);
-				simpleMover->mStartAtEnd = result.getIntField(4) != 0;
-			} else {
-				LOG("LOT %i couldn't find simple mover %i in MovingPlatforms", m_Parent->GetLOT(), m_ComponentID);
+			// LWOPlatformSimpleMover::LoadTemplateData: the MovingPlatforms row, unless the object sets dbonly false
+			const bool dbOnly = m_Parent->GetVar<bool>(u"dbonly");
+			if (m_ComponentID > 0 && (!m_Parent->HasVar(u"dbonly") || dbOnly)) {
+				auto query = CDClientDatabase::CreatePreppedStmt(
+					"SELECT platformMoveX, platformMoveY, platformMoveZ, platformMoveTime, platformStartAtEnd FROM MovingPlatforms WHERE id = ?;");
+				query.bind(1, m_ComponentID);
+				auto result = query.execQuery();
+				if (!result.eof()) {
+					simpleMover->mMove = NiPoint3(result.getFloatField(0), result.getFloatField(1), result.getFloatField(2));
+					simpleMover->mMoveTime = result.getFloatField(3);
+					simpleMover->mStartAtEnd = result.getIntField(4) != 0;
+				} else {
+					LOG("LOT %i couldn't find simple mover %i in MovingPlatforms", m_Parent->GetLOT(), m_ComponentID);
+				}
 			}
+			m_SubComponents.push_back(std::move(simpleMover));
+		} else if (type == eMoverSubComponentType::rotater) {
+			m_SubComponents.push_back(std::make_unique<RotatorSubComponent>(m_Parent->GetDefaultPosition()));
+		} else {
+			m_SubComponents.push_back(std::make_unique<MoverSubComponent>(m_Parent->GetDefaultPosition()));
 		}
-	} else {
-		m_MoverSubComponent = new MoverSubComponent(m_Parent->GetDefaultPosition());
 	}
+	m_MoverSubComponentType = m_SubComponents.empty() ? eMoverSubComponentType::none : m_SubComponents.front()->GetType();
 }
 
 // The level config: a simple mover's settings, the path and where and whether a mover starts
 void MovingPlatformComponent::LoadConfigData() {
-	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
-		auto* const simpleMover = GetSimpleMoverSubComponent();
+	for (const auto& subComponent : m_SubComponents) {
+		if (subComponent->GetType() != eMoverSubComponentType::simpleMover) continue;
+		auto* const simpleMover = static_cast<SimpleMoverSubComponent*>(subComponent.get());
 		const bool dbOnly = m_Parent->GetVar<bool>(u"dbonly");
 
 		// LWOPlatformSimpleMover::LoadConfigData: the object's settings over the table's, unless it is db only
@@ -178,15 +182,12 @@ void MovingPlatformComponent::LoadConfigData() {
 	if (simplePhysics && !m_Parent->HasVar(u"motionType")) simplePhysics->SetPhysicsMotionState(SimplePhysicsComponent::MOTION_TYPE_KEYFRAMED);
 }
 
-MovingPlatformComponent::~MovingPlatformComponent() {
-	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) delete static_cast<SimpleMoverSubComponent*>(m_MoverSubComponent);
-	else delete static_cast<MoverSubComponent*>(m_MoverSubComponent);
-}
+MovingPlatformComponent::~MovingPlatformComponent() = default;
 
 void MovingPlatformComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	// Live always constructed a simple mover with its starting point (the client builds its path from it), and
 	// serialized it only when its state changed: no path, then the one subcomponent and the 0 bit ending the list
-	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
+	if (m_SubComponents.size() == 1 && m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
 		auto* const simpleMover = GetSimpleMoverSubComponent();
 		const bool dirty = bIsInitialUpdate || simpleMover->mDirtyStartingPoint || simpleMover->mDirtyState;
 		outBitStream.Write(dirty);
@@ -220,19 +221,14 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 		}
 	}
 
-	// A platform the client made no subcomponent for must not get one: it could not read it
-	const auto hasPlatform = m_MoverSubComponentType != eMoverSubComponentType::none;
-	outBitStream.Write<bool>(hasPlatform);
-
-	if (hasPlatform) {
-		// A rotater's data is a mover's (both read by LWOPlatform::Deserialize)
-		auto* mover = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-		outBitStream.Write(m_MoverSubComponentType);
-		mover->Serialize(outBitStream, bIsInitialUpdate);
-
-		// The client reads subcomponents while a 1 bit comes before one: a 0 bit ends the list
-		outBitStream.Write0();
+	// The subcomponents, each after a 1 bit with its type (a rotater sends a mover's data, both LWOPlatform's); a 0 bit
+	// ends the list. A platform the client made none for gets none: it could not read one.
+	for (const auto& subComponent : m_SubComponents) {
+		outBitStream.Write1();
+		outBitStream.Write(subComponent->GetType());
+		subComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
+	outBitStream.Write0();
 }
 
 void MovingPlatformComponent::OnQuickBuildInitilized() {
@@ -549,14 +545,14 @@ size_t MovingPlatformComponent::GetLastWaypointIndex() const {
 	return m_Path->pathWaypoints.size() - 1;
 }
 
-MoverSubComponent* MovingPlatformComponent::GetMoverSubComponent() const {
-	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) return nullptr;
-	return static_cast<MoverSubComponent*>(m_MoverSubComponent);
+PlatformSubComponent* MovingPlatformComponent::GetMoverSubComponent() const {
+	if (m_SubComponents.empty() || m_MoverSubComponentType == eMoverSubComponentType::simpleMover) return nullptr;
+	return m_SubComponents.front().get();
 }
 
 SimpleMoverSubComponent* MovingPlatformComponent::GetSimpleMoverSubComponent() const {
-	if (m_MoverSubComponentType != eMoverSubComponentType::simpleMover) return nullptr;
-	return static_cast<SimpleMoverSubComponent*>(m_MoverSubComponent);
+	if (m_SubComponents.empty() || m_MoverSubComponentType != eMoverSubComponentType::simpleMover) return nullptr;
+	return static_cast<SimpleMoverSubComponent*>(m_SubComponents.front().get());
 }
 
 // The client runs the two point path at |platformMove| / platformMoveTime, so it takes platformMoveTime seconds from

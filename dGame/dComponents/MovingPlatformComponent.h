@@ -6,6 +6,9 @@
 #ifndef MOVINGPLATFORMCOMPONENT_H
 #define MOVINGPLATFORMCOMPONENT_H
 
+#include <memory>
+#include <vector>
+
 #include "RakNetTypes.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -54,60 +57,29 @@ namespace ePlatformStateFlag {
 };
 
 /**
- * How the client picks the subcomponent (LWOMovingPlatformComponent::LoadConfigData): the platformIsRotater,
- * platformIsMover and platformIsSimpleMover settings, and when none is set a mover for a platform with no registry
- * component (set up from its attached path) or a simple mover for one with a registry component.
- * The client makes one subcomponent per flag set (mover, simple mover, rotater, LWOMovingPlatformComponent::SetupPlatform);
- * DLU keeps one, the first in that order.
+ * How the client picks the subcomponents (LWOMovingPlatformComponent::LoadConfigData and SetupPlatform): one for each
+ * of the platformIsMover, platformIsSimpleMover and platformIsRotater settings that is true, in that order, and when
+ * none is set a mover for a platform with no registry component (set up from its attached path) or a simple mover for
+ * one with a registry component.
  */
+std::vector<eMoverSubComponentType> ChooseSubComponentTypes(int32_t componentID, const Entity& entity);
+
+// The first of ChooseSubComponentTypes (none when there are none): the one the server runs
 eMoverSubComponentType ChooseMoverSubComponentType(int32_t componentID, const Entity& entity);
 
 /**
- * A mover between a start point and that point moved by platformMove (in the start rotation), taking
- * platformMoveTime seconds, as LWOPlatformSimpleMover::GenerateSimpleMoverPath builds its two waypoint path.
+ * The base of the platform subcomponents, as the client's LWOPlatform (mover, simple mover and rotator are built on
+ * it): the platform's state between the waypoints of its path, which LWOPlatform::Deserialize 0x00c870e0 reads.
  */
-class SimpleMoverSubComponent {
+class PlatformSubComponent {
 public:
-	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate);
+	virtual ~PlatformSubComponent() = default;
 
-	NiPoint3 mStartPosition{};
-	NiQuaternion mStartRotation{};
-	NiPoint3 mMove{};
-	float mMoveTime = 0.0f;
-	bool mStartAtEnd = false;
+	virtual eMoverSubComponentType GetType() const = 0;
 
-	/**
-	 * ePlatformStateFlag bits. Live constructed simple movers stopped at their desired waypoint.
-	 */
-	uint32_t mState = ePlatformStateFlag::Stopped | ePlatformStateFlag::ReachedDesiredWaypoint;
-	int32_t mCurrentWaypointIndex = 0;
-	bool mInReverse = false;
-
-	bool mDirtyStartingPoint = false;
-	bool mDirtyState = false;
-
-	/**
-	 * The world position of a waypoint (0 the start, 1 the end)
-	 */
-	NiPoint3 GetWaypointPosition(int32_t index) const;
-};
-
-/**
- * Sub component for moving platforms that determine the actual current movement state
- */
-/**
- * A mover (or rotater) along its path, run by the server as live ran it: the client's LWOPlatform logic (ArrivedAtWaypoint
- * 0x00c86c30, ProcessStateChange 0x00cce380, GetNextWaypoint 0x00bd4490 / GetNextReversedWaypoint 0x00bd4420, the speeds
- * of GetWaypointSpeed 0x00be90d0), with live's states: it travels (2), and at a waypoint it is stopped (1) with
- * ReachedDesiredWaypoint (8), and ReachedFinalDestination (16) at either end, while it waits the waypoint's wait time;
- * each arrival and departure is serialized (NT movers in the live captures: 25 on arrival, 2 on departure).
- */
-class MoverSubComponent {
-public:
-	MoverSubComponent(const NiPoint3& startPos);
-	~MoverSubComponent();
-
-	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate);
+	// LWOPlatform::Deserialize 0x00c870e0: a dirty bit, the state, desired waypoint, whether to stop there, reverse, the
+	// percent between the waypoints, where it is, the current and next waypoints, the time waited and the time travelled
+	virtual void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate);
 
 	// ePlatformStateFlag bits
 	uint32_t mState = ePlatformStateFlag::Stopped | ePlatformStateFlag::ReachedDesiredWaypoint;
@@ -133,6 +105,58 @@ public:
 	// From the current waypoint to the next
 	float mSegmentLength = 0;
 	bool mTimeBased = false;
+};
+
+/**
+ * A mover along its path (4), as the client's LWOPlatformMover, run by the server as live ran it: the client's
+ * LWOPlatform logic (ArrivedAtWaypoint 0x00c86c30, ProcessStateChange 0x00cce380, GetNextWaypoint 0x00bd4490 /
+ * GetNextReversedWaypoint 0x00bd4420, the speeds of GetWaypointSpeed 0x00be90d0), with live's states: it travels (2),
+ * and at a waypoint it is stopped (1) with ReachedDesiredWaypoint (8), and ReachedFinalDestination (16) at either end,
+ * while it waits the waypoint's wait time; each arrival and departure is serialized (NT movers in the live captures:
+ * 25 on arrival, 2 on departure).
+ */
+class MoverSubComponent final : public PlatformSubComponent {
+public:
+	MoverSubComponent(const NiPoint3& startPos) { mPosition = startPos; }
+	eMoverSubComponentType GetType() const override { return eMoverSubComponentType::mover; }
+};
+
+/**
+ * A rotator (6), as the client's LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate) while travelling; it sends
+ * the LWOPlatform data a mover sends.
+ */
+class RotatorSubComponent final : public PlatformSubComponent {
+public:
+	RotatorSubComponent(const NiPoint3& startPos) { mPosition = startPos; }
+	eMoverSubComponentType GetType() const override { return eMoverSubComponentType::rotater; }
+};
+
+/**
+ * A simple mover (5), as the client's LWOPlatformSimpleMover: between a start point and that point moved by
+ * platformMove (in the start rotation), taking platformMoveTime seconds, as GenerateSimpleMoverPath builds its two
+ * waypoint path. Live constructed simple movers stopped at their desired waypoint.
+ */
+class SimpleMoverSubComponent final : public PlatformSubComponent {
+public:
+	eMoverSubComponentType GetType() const override { return eMoverSubComponentType::simpleMover; }
+
+	// LWOPlatformSimpleMover::Deserialize: a dirty bit, then whether there is a starting point with its position and
+	// rotation (w, x, y, z); a dirty bit, then the state, the current waypoint and whether it is reversing
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
+
+	NiPoint3 mStartPosition{};
+	NiQuaternion mStartRotation{};
+	NiPoint3 mMove{};
+	float mMoveTime = 0.0f;
+	bool mStartAtEnd = false;
+
+	bool mDirtyStartingPoint = false;
+	bool mDirtyState = false;
+
+	/**
+	 * The world position of a waypoint (0 the start, 1 the end)
+	 */
+	NiPoint3 GetWaypointPosition(int32_t index) const;
 };
 
 
@@ -219,10 +243,9 @@ public:
 	size_t GetLastWaypointIndex() const;
 
 	/**
-	 * Returns the sub component that actually defines how the platform moves around (speeds, etc).
-	 * @return the sub component that actually defines how the platform moves around
+	 * The mover or rotator the server runs (the first subcomponent), if it is one
 	 */
-	MoverSubComponent* GetMoverSubComponent() const;
+	PlatformSubComponent* GetMoverSubComponent() const;
 
 	/**
 	 * Returns the simple mover sub component, if this platform is a simple mover
@@ -258,14 +281,14 @@ private:
 	uint32_t m_StartWaypoint = 0;
 
 	/**
-	 * The type of the subcomponent
+	 * The type of the first subcomponent, the one the server runs (none without one)
 	 */
-	eMoverSubComponentType m_MoverSubComponentType;
+	eMoverSubComponentType m_MoverSubComponentType = eMoverSubComponentType::none;
 
 	/**
-	 * The mover sub component that belongs to this platform
+	 * The subcomponents, one per type the client makes (ChooseSubComponentTypes), in its order
 	 */
-	void* m_MoverSubComponent;
+	std::vector<std::unique_ptr<PlatformSubComponent>> m_SubComponents;
 
 	/**
 	 * Counts sends so an arrival timer from an older send does nothing
