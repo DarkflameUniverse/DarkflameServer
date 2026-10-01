@@ -26,32 +26,35 @@ void MixerProgram::Serialize(RakNet::BitStream& outBitStream){
 	outBitStream.Write(result);
 }
 SoundTriggerComponent::SoundTriggerComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+}
 
-	const auto musicCueName = parent->GetVar<std::string>(u"NDAudioMusicCue_Name");
+// The level config: music cues and parameters, ambient sounds and mixer programs
+void SoundTriggerComponent::LoadConfigData() {
+	const auto musicCueName = m_Parent->GetVar<std::string>(u"NDAudioMusicCue_Name");
 	if (!musicCueName.empty()) {
 		auto newCue = MusicCue(musicCueName);
-		const auto musicCueBoredomTime = parent->GetVar<float>(u"NDAudioMusicCue_BoredomTime");
+		const auto musicCueBoredomTime = m_Parent->GetVar<float>(u"NDAudioMusicCue_BoredomTime");
 		if (musicCueBoredomTime) newCue.boredomTime = musicCueBoredomTime;
 		this->m_MusicCues.push_back(newCue);
 	}
 
-	const auto musicParameterName = parent->GetVar<std::string>(u"NDAudioMusicParameter_Name");
+	const auto musicParameterName = m_Parent->GetVar<std::string>(u"NDAudioMusicParameter_Name");
 	if (!musicParameterName.empty()) {
 		auto newParams = MusicParameter(musicParameterName);
-		const auto musicParameterValue = parent->GetVar<float>(u"NDAudioMusicParameter_Value");
+		const auto musicParameterValue = m_Parent->GetVar<float>(u"NDAudioMusicParameter_Value");
 		if (musicParameterValue) newParams.value = musicParameterValue;
 		this->m_MusicParameters.push_back(newParams);
 	}
 
-	const auto guidString = parent->GetVar<std::string>(u"NDAudioEventGUID");
+	const auto guidString = m_Parent->GetVar<std::string>(u"NDAudioEventGUID");
 	if (!guidString.empty())
 		this->m_2DAmbientSounds.push_back(GUIDResults(guidString));
 
-	const auto guid2String = parent->GetVar<std::string>(u"NDAudioEventGUID2");
+	const auto guid2String = m_Parent->GetVar<std::string>(u"NDAudioEventGUID2");
 	if (!guid2String.empty())
 		this->m_3DAmbientSounds.push_back(GUIDResults(guid2String));
 
-	const auto mixerName = parent->GetVar<std::string>(u"NDAudioMixerProgram_Name");
+	const auto mixerName = m_Parent->GetVar<std::string>(u"NDAudioMixerProgram_Name");
 	if (!mixerName.empty()) this->m_MixerPrograms.push_back(MixerProgram(mixerName));
 }
 

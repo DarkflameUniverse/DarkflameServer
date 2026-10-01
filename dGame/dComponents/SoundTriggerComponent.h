@@ -61,6 +61,8 @@ class SoundTriggerComponent : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
 	explicit SoundTriggerComponent(Entity* parent, const int32_t componentID);
+
+	void LoadConfigData() override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void ActivateMusicCue(const std::string& name, float bordemTime = -1.0);
 	void DeactivateMusicCue(const std::string& name);
