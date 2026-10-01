@@ -95,6 +95,7 @@
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
+#include "PathfindingComponent.h"
 #include "PhysicsSystemComponent.h"
 #include "VehiclePhysicsComponent.h"
 #include "ProjectilePhysicsComponent.h"
@@ -455,6 +456,8 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::PET: {
 		if (petComponentID > 0) {
+			// LWOPetComponent::Factory (0x01031240): a pet that isn't in an inventory gets pathfinding control first
+			if (!GetVar<bool>(u"inInventory") && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
 			AddComponent<PetComponent>(petComponentID);
 		}
 			break;
