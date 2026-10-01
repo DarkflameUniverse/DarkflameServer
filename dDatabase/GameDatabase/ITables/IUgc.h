@@ -83,8 +83,16 @@ public:
 	};
 
 	// Up to `limit` pending models whose quiet period is over (process_after): the priority ones first, then the least
-	// tried and then the newest. `priorityOnly`: only the priority ones.
-	virtual std::vector<PendingModel> GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly = false) = 0;
+	// tried and then the newest. `priorityOnly`: only the priority ones. `queuedOnly`: only the queued ones (the UGC
+	// setting queue_on_property_save).
+	virtual std::vector<PendingModel> GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly = false, const bool queuedOnly = false) = 0;
+
+	// Queues every model placed on a property (its owner saved it): with queue_on_property_save only queued models are
+	// made. Returns how many were newly queued.
+	virtual uint64_t QueuePropertyUgcModels(const LWOOBJID propertyId) = 0;
+
+	// Pending models not queued: waiting for their property to be saved while queue_on_property_save is on
+	virtual uint64_t CountUnqueuedUgcModels() = 0;
 
 	// Ends the quiet period of a waiting model (a client asked for it), or of all a character's waiting models (they
 	// left the property)

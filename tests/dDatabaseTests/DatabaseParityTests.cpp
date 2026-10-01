@@ -760,6 +760,17 @@ TEST_F(ParitySeeded, UgcModel) {
 		db.DeleteUgcModelData(1152921510000500004LL);
 		return out;
 	});
+	Both("Queue on property save", [&](GameDatabase& db) {
+		// The seeded model is from before queued: only taken by queue_on_property_save once its property is saved
+		json out = json::array();
+		out.push_back(db.CountUnqueuedUgcModels());
+		out.push_back(db.GetUgcModelsToProcess(10, false, true).size());
+		out.push_back(db.QueuePropertyUgcModels(PROP1));
+		out.push_back(db.GetUgcModelsToProcess(10, false, true).size());
+		out.push_back(db.CountUnqueuedUgcModels());
+		out.push_back(db.QueuePropertyUgcModels(PROP1));
+		return out;
+	});
 	Both("SetUgcModelProcessed failed", [&](GameDatabase& db) {
 		db.SetUgcModelProcessed(1152921510000500001LL, IUgc::eProcessState::FAILED, 3, "no bricks", false);
 		return json{ infoJson(db.GetUgcProcessInfo(1152921510000500001LL)), countsJson(db.GetUgcProcessCounts()), db.GetUgcModelsToProcess(10).size() };

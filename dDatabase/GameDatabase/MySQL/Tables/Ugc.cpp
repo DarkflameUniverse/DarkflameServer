@@ -74,7 +74,7 @@ void MySQLDatabase::InsertNewUgcModel(
 	const int64_t processAfter) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
-		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`, `process_after`) VALUES (?,?,?,?,?,?,?,?)",
+		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`, `process_after`, `queued`) VALUES (?,?,?,?,?,?,?,?,1)",
 		blueprintId,
 		accountId,
 		characterId,
@@ -96,7 +96,7 @@ void MySQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml, const int64_t processAfter) {
 	const std::istream stream(lxfml.rdbuf());
 	// The UGC server makes the model's files again
-	ExecuteUpdate("UPDATE ugc SET lxfml = ?, is_optimized = 0, process_attempts = 0, process_error = '', process_after = ? WHERE id = ?;", &stream, processAfter, modelId);
+	ExecuteUpdate("UPDATE ugc SET lxfml = ?, is_optimized = 0, process_attempts = 0, process_error = '', process_after = ?, queued = 1 WHERE id = ?;", &stream, processAfter, modelId);
 }
 
 std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
@@ -111,9 +111,9 @@ std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
 	return toReturn;
 }
 
-std::vector<IUgc::PendingModel> MySQLDatabase::GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly) {
-	auto result = ExecuteSelect("SELECT id, lxfml, process_attempts, priority, process_options FROM ugc WHERE is_optimized = 0 AND process_after <= ? AND (? = 0 OR priority = 1) "
-		"ORDER BY priority DESC, process_attempts ASC, id DESC LIMIT ?;", UnixNow(), priorityOnly ? 1 : 0, limit);
+std::vector<IUgc::PendingModel> MySQLDatabase::GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly, const bool queuedOnly) {
+	auto result = ExecuteSelect("SELECT id, lxfml, process_attempts, priority, process_options FROM ugc WHERE is_optimized = 0 AND process_after <= ? AND (? = 0 OR priority = 1) AND (? = 0 OR queued = 1) "
+		"ORDER BY priority DESC, process_attempts ASC, id DESC LIMIT ?;", UnixNow(), priorityOnly ? 1 : 0, queuedOnly ? 1 : 0, limit);
 	std::vector<IUgc::PendingModel> models;
 	while (result->next()) {
 		auto& model = models.emplace_back();
@@ -144,9 +144,9 @@ std::optional<IUgc::ProcessInfo> MySQLDatabase::GetUgcProcessInfo(const LWOOBJID
 }
 
 uint64_t MySQLDatabase::ResetUgcModelProcessing(const std::optional<LWOOBJID> id, const bool failedOnly, const std::string_view options) {
-	if (id) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, process_options = ? WHERE id = ?;", options, *id);
-	if (failedOnly) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, process_options = ? WHERE is_optimized = 2;", options);
-	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, process_options = ?;", options);
+	if (id) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, queued = 1, process_options = ? WHERE id = ?;", options, *id);
+	if (failedOnly) return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, queued = 1, process_options = ? WHERE is_optimized = 2;", options);
+	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, queued = 1, process_options = ?;", options);
 }
 
 IUgc::ProcessTotals MySQLDatabase::GetUgcProcessTotals(const bool modular) {
@@ -168,7 +168,7 @@ IUgc::ProcessTotals MySQLDatabase::GetUgcProcessTotals(const bool modular) {
 }
 
 uint64_t MySQLDatabase::ResetPropertyUgcModelProcessing(const LWOOBJID propertyId, const std::string_view options) {
-	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, priority = 1, process_options = ? "
+	return ExecuteUpdate("UPDATE ugc SET is_optimized = 0, process_attempts = 0, process_error = '', process_after = 0, priority = 1, queued = 1, process_options = ? "
 		"WHERE id IN (SELECT ugc_id FROM properties_contents WHERE property_id = ? AND ugc_id IS NOT NULL);", options, propertyId);
 }
 
@@ -257,4 +257,13 @@ std::optional<IUgc::FileChecksum> MySQLDatabase::GetUgcFileChecksum(const LWOOBJ
 
 void MySQLDatabase::SetUgcModelProcessStats(const LWOOBJID id, const ProcessStats& stats) {
 	ExecuteUpdate("UPDATE ugc SET process_ms = ?, process_cpu_ms = ?, process_memory_kb = ? WHERE id = ?;", stats.milliseconds, stats.cpuMilliseconds, stats.memoryKb, id);
+}
+
+uint64_t MySQLDatabase::QueuePropertyUgcModels(const LWOOBJID propertyId) {
+	return ExecuteUpdate("UPDATE ugc SET queued = 1 WHERE queued = 0 AND id IN (SELECT ugc_id FROM properties_contents WHERE property_id = ? AND ugc_id IS NOT NULL);", propertyId);
+}
+
+uint64_t MySQLDatabase::CountUnqueuedUgcModels() {
+	auto result = ExecuteSelect("SELECT COUNT(*) AS count FROM ugc WHERE is_optimized = 0 AND queued = 0;");
+	return result->next() ? static_cast<uint64_t>(result->getUInt64("count")) : 0;
 }

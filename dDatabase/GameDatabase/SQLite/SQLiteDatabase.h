@@ -446,7 +446,9 @@ public:
 	nlohmann::json GetCharacterById(const LWOOBJID charId) override;
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override;
-	std::vector<IUgc::PendingModel> GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly) override;
+	std::vector<IUgc::PendingModel> GetUgcModelsToProcess(const uint32_t limit, const bool priorityOnly, const bool queuedOnly) override;
+	uint64_t QueuePropertyUgcModels(const LWOOBJID propertyId) override;
+	uint64_t CountUnqueuedUgcModels() override;
 	void ExpediteUgcModel(const LWOOBJID id) override;
 	void ExpediteUgcModels(const LWOOBJID characterId) override;
 	std::vector<std::pair<std::string, uint64_t>> GetModularBuildConfigCounts() override;
