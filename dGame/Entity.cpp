@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "PropertyPlaqueComponent.h"
 #include "RollerComponent.h"
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
@@ -1097,6 +1098,12 @@ void Entity::Initialize() {
 			// LWORollerComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROLLER, -1);
 			if (id > -1) AddComponent<RollerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_PLAQUE: {
+			// LoadPropertyPlaqueComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_PLAQUE, -1);
+			if (id > -1) AddComponent<PropertyPlaqueComponent>(id);
 			break;
 		}
 		default:
