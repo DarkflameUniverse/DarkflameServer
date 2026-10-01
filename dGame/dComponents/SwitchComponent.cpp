@@ -12,9 +12,13 @@ SwitchComponent::SwitchComponent(Entity* parent, const int32_t componentID) : Co
 	RegisterMsg(&SwitchComponent::OnRequestUse);
 	m_Active = false;
 
+	m_QuickBuild = m_Parent->GetComponent<QuickBuildComponent>();
+}
+
+// The level config: the reset time and the factions this responds to
+void SwitchComponent::LoadConfigData() {
 	m_ResetTime = m_Parent->GetVarAs<int32_t>(u"switch_reset_time");
 
-	m_QuickBuild = m_Parent->GetComponent<QuickBuildComponent>();
 
 	const auto factions = GeneralUtils::SplitString(m_Parent->GetVar<std::u16string>(u"respond_to_faction"), u':');
 	for (const auto& faction : factions) {

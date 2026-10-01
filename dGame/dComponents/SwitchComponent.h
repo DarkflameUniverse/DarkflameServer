@@ -19,6 +19,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
 	SwitchComponent(Entity* parent, const int32_t componentID);
+
+	void LoadConfigData() override;
 	~SwitchComponent() override;
 
 	void Run(float deltaTime) override;
