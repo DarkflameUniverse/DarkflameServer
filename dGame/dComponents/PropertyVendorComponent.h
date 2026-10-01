@@ -16,7 +16,7 @@ public:
 	 * Handles a use event from some entity, if the property is cleared this allows the entity to claim it
 	 * @param originator the entity that triggered this event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Handles a property data query after the property has been claimed, sending information about the property to the

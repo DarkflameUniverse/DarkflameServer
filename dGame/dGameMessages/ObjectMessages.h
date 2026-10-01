@@ -168,8 +168,19 @@ namespace GameMessages {
 		LWOOBJID object{};
 
 		bool secondary{ false };
+
+		// The mission choice of a multi-interact use: only the mission offer handles it.
+		bool IsMissionChoice() const { return bIsMultiInteractUse && multiInteractType == 0; }
 	};
-	using RequestUseEvent = NetGameMsgEvent<RequestUse>;
+
+	// A use of an object, delivered to its components' RequestUse handlers. user is who used it: the sender of the
+	// RequestUse, or whoever the server makes use it. Only dispatch RequestUse locally as this event.
+	struct RequestUseEvent : public NetGameMsgEvent<RequestUse> {
+		RequestUseEvent() = default;
+		RequestUseEvent(const RequestUse& message, Entity& user) : NetGameMsgEvent(message), user{ &user } {}
+
+		Entity* user{};
+	};
 
 	// Client -> server. Developer only.
 	struct RequestServerObjectInfo : public NetGameMsg {

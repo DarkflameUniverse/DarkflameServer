@@ -32,6 +32,7 @@
 #include "EconomyLedger.h"
 
 QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : Component{ entity, componentID } {
+	RegisterMsg(&QuickBuildComponent::OnRequestUse);
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
@@ -246,16 +247,19 @@ void QuickBuildComponent::Run(float deltaTime) {
 	}
 }
 
-void QuickBuildComponent::OnUse(Entity* originator) {
+bool QuickBuildComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	if (GetBuilder() != nullptr || m_State == eQuickBuildState::COMPLETED) {
-		return;
+		return true;
 	}
 
 	if (m_Precondition != nullptr && !m_Precondition->Check(originator)) {
-		return;
+		return true;
 	}
 
 	StartQuickBuild(originator);
+	return true;
 }
 
 void QuickBuildComponent::SpawnActivator() {

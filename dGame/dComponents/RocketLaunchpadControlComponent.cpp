@@ -24,6 +24,7 @@
 #include "MessageType/Master.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&RocketLaunchpadControlComponent::OnRequestUse);
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
 	query.bind(1, componentID);
@@ -92,27 +93,30 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 	Game::entityManager->SerializeEntity(originator);
 }
 
-void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
+bool RocketLaunchpadControlComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	// If we are have the property or the LUP component, we don't want to immediately launch
 	// instead we let their OnUse handlers do their things
 	// which components of an Object have their OnUse called when using them
 	// so we don't need to call it here
 	auto* propertyEntrance = m_Parent->GetComponent<PropertyEntranceComponent>();
 	if (propertyEntrance) {
-		return;
+		return true;
 	}
 
 	auto* rocketLaunchLUP = m_Parent->GetComponent<MultiZoneEntranceComponent>();
 	if (rocketLaunchLUP) {
-		return;
+		return true;
 	}
 
 	// No rocket no launch
 	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
 	if (!rocket) {
-		return;
+		return true;
 	}
 	Launch(originator);
+	return true;
 }
 
 void RocketLaunchpadControlComponent::OnProximityUpdate(Entity* entering, std::string name, std::string status) {

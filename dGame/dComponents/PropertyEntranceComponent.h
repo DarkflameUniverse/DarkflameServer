@@ -18,10 +18,10 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 
 	/**
-	 * Handles an OnUse request for some other entity, rendering the property browse menu
+	 * Handles a RequestUse for some other entity, rendering the property browse menu
 	 * @param entity the entity that triggered the event
 	 */
-	void OnUse(Entity* entity) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Handles the event triggered when the entity selects a property to visit and makes the entity to there

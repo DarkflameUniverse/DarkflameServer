@@ -22,7 +22,10 @@ public:
 	~SwitchComponent() override;
 
 	void Run(float deltaTime) override;
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
+
+	// Enters the switch if entity has one of the factions it responds to (a use, a touch or a pet on it)
+	void EnterIfResponding(Entity* entity);
 
 	Entity* GetParentEntity() const;
 

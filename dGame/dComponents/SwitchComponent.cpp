@@ -1,4 +1,5 @@
 #include "SwitchComponent.h"
+#include "ObjectMessages.h"
 #include "EntityManager.h"
 #include "eTriggerEventType.h"
 #include "RenderComponent.h"
@@ -8,6 +9,7 @@
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
 SwitchComponent::SwitchComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&SwitchComponent::OnRequestUse);
 	m_Active = false;
 
 	m_ResetTime = m_Parent->GetVarAs<int32_t>(u"switch_reset_time");
@@ -34,7 +36,7 @@ void SwitchComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitial
 	outBitStream.Write(m_Active);
 }
 
-void SwitchComponent::OnUse(Entity* originator) {
+void SwitchComponent::EnterIfResponding(Entity* originator) {
 	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent) return;
 	for (const auto faction : m_FactionsToRespondTo) {
@@ -43,6 +45,12 @@ void SwitchComponent::OnUse(Entity* originator) {
 			break;
 		}
 	}
+}
+
+bool SwitchComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	EnterIfResponding(event.user);
+	return true;
 }
 
 void SwitchComponent::SetActive(bool active) {

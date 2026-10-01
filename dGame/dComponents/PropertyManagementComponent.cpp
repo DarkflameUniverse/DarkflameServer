@@ -1,4 +1,5 @@
 #include "PropertyManagementComponent.h"
+#include "ObjectMessages.h"
 #include "PropertyRent.h"
 #include "ChatPackets.h"
 #include "DashboardNotify.h"
@@ -41,6 +42,7 @@
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
 PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&PropertyManagementComponent::OnRequestUse);
 	this->owner = LWOOBJID_EMPTY;
 	this->templateId = 0;
 	this->propertyId = LWOOBJID_EMPTY;
@@ -978,11 +980,14 @@ void PropertyManagementComponent::SendPropertyData(const Entity& player, const G
 	forPlayer.Send(player.GetSystemAddress());
 }
 
-void PropertyManagementComponent::OnUse(Entity* originator) {
+bool PropertyManagementComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	OnQueryPropertyData(originator, UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::OpenPropertyManagement msg;
 	msg.target = PropertyManagementComponent::Instance()->GetParent()->GetObjectID();
 	msg.Send(originator->GetSystemAddress());
+	return true;
 }
 
 void PropertyManagementComponent::SetOwnerId(const LWOOBJID value) {

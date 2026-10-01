@@ -43,10 +43,10 @@ public:
 	void Run(float deltaTime) override;
 
 	/**
-	 * Handles an OnUse event from another entity, initializing the pet taming minigame if this pet is untamed.
+	 * Handles a RequestUse from another entity, initializing the pet taming minigame if this pet is untamed.
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Attempts to complete the pet minigame by passing a list of bricks to build the minigame model.

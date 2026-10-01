@@ -250,22 +250,7 @@ namespace GameMessages {
 			entity.GetCharacter()->SetBuildMode(true);
 		}
 
-		if (bIsMultiInteractUse) {
-			if (multiInteractType == 0) {
-				auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(eReplicaComponentType::MISSION_OFFER));
-
-				if (missionOfferComponent != nullptr) {
-					missionOfferComponent->OfferMissions(&entity, multiInteractID);
-				}
-			} else {
-				interactedObject->OnUse(&entity);
-			}
-		} else {
-			interactedObject->OnUse(&entity);
-		}
-
-		RequestUseEvent event(*this);
-		interactedObject->HandleMsg(event);
+		interactedObject->RequestUse(*this, entity);
 
 		//Perform use task if possible:
 		auto missionComponent = entity.GetComponent<MissionComponent>();

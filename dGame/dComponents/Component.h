@@ -10,6 +10,7 @@ namespace RakNet {
 
 namespace GameMessages {
 	struct GameMsg;
+	struct RequestUseEvent;
 }
 
 class Entity;
@@ -61,7 +62,6 @@ public:
 	 * Event called when this component is being used, e.g. when some entity interacted with it
 	 * @param originator
 	 */
-	virtual void OnUse(Entity* originator) {}
 
 	// A character's save (its XML): read on load, written on save
 	virtual void LoadFromSaveData(const tinyxml2::XMLDocument& doc) {}

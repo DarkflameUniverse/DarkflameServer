@@ -1,4 +1,5 @@
 #include "PropertyEntranceComponent.h"
+#include "ObjectMessages.h"
 
 #include "CDPropertyEntranceComponentTable.h"
 
@@ -19,6 +20,7 @@
 #include "User.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&PropertyEntranceComponent::OnRequestUse);
 	this->propertyQueries = {};
 
 	auto table = CDClientManager::GetTable<CDPropertyEntranceComponentTable>();
@@ -28,12 +30,14 @@ PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, const int32
 	this->m_PropertyName = entry.propertyName;
 }
 
-void PropertyEntranceComponent::OnUse(Entity* entity) {
+bool PropertyEntranceComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const entity = event.user;
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
-	if (!characterComponent) return;
+	if (!characterComponent) return true;
 
 	auto* rocket = entity->GetComponent<CharacterComponent>()->RocketEquip(entity);
-	if (!rocket) return;
+	if (!rocket) return true;
 
 	GameMessages::PropertyEntranceBegin msg;
 	msg.target = m_Parent->GetObjectID();
@@ -48,6 +52,7 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 	uiMessage.strMessageName = "pushGameState";
 	uiMessage.args = std::move(args);
 	uiMessage.SendToClient(entity->GetSystemAddress());
+	return true;
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr) {

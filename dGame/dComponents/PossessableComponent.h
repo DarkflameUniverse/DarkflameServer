@@ -79,11 +79,11 @@ public:
 	LWOOBJID GetIsItemSpawned() const { return m_ItemSpawned; };
 
 	/**
-	 * Handles an OnUsed event by some other entity, if said entity has a Possessor it becomes the possessor
+	 * Handles a RequestUse by some other entity, if said entity has a Possessor it becomes the possessor
 	 * of this entity
 	 * @param originator the entity that caused the event to trigger
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 private:
 

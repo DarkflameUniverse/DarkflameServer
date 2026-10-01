@@ -29,7 +29,7 @@ public:
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 	virtual void RefreshInventory(bool isCreation = false);
 	void SetupConstants();
 	bool SellsItem(const LOT item) const;

@@ -45,10 +45,10 @@ public:
 	static GameMessages::FireEventClientSide MakeRocketEquipped(LWOOBJID launchpad, LWOOBJID rocket, LWOOBJID player, LWOCLONEID cloneId, int32_t worldIndex);
 
 	/**
-	 * Handles an OnUse event from some entity, preparing it for launch to some other world
+	 * Handles a RequestUse from some entity, preparing it for launch to some other world
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Currently unused

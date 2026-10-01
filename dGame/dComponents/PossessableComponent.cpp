@@ -1,10 +1,12 @@
 #include "PossessableComponent.h"
+#include "ObjectMessages.h"
 #include "PossessorComponent.h"
 #include "EntityManager.h"
 #include "Inventory.h"
 #include "Item.h"
 
 PossessableComponent::PossessableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&PossessableComponent::OnRequestUse);
 	m_Possessor = LWOOBJID_EMPTY;
 	CDItemComponent item = Inventory::FindItemComponent(m_Parent->GetLOT());
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
@@ -48,9 +50,12 @@ void PossessableComponent::Dismount() {
 	if (m_ItemSpawned) m_Parent->ScheduleKillAfterUpdate();
 }
 
-void PossessableComponent::OnUse(Entity* originator) {
+bool PossessableComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	auto* possessor = originator->GetComponent<PossessorComponent>();
 	if (possessor) {
 		possessor->Mount(m_Parent);
 	}
+	return true;
 }

@@ -5,6 +5,7 @@
 
 #include <sstream>
 #include "MissionOfferComponent.h"
+#include "ObjectMessages.h"
 #include "CDClientManager.h"
 #include "CDMissionsTable.h"
 #include "CDMissionNPCComponentTable.h"
@@ -41,6 +42,7 @@ bool OfferedMission::GetAcceptsMission() const {
 //------------------------ MissionOfferComponent below ------------------------
 
 MissionOfferComponent::MissionOfferComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&MissionOfferComponent::OnRequestUse);
 	if (componentID != -1) {
 		// Now lookup the missions in the MissionNPCComponent table
 		auto* missionNpcComponentTable = CDClientManager::GetTable<CDMissionNPCComponentTable>();
@@ -73,8 +75,10 @@ namespace {
 	}
 }
 
-void MissionOfferComponent::OnUse(Entity* originator) {
-	OfferMissions(originator);
+bool MissionOfferComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) OfferMissions(event.user, event.msg.multiInteractID);
+	else OfferMissions(event.user);
+	return true;
 }
 
 void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifiedMissionId) {

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "RailActivatorComponent.h"
+#include "ObjectMessages.h"
 #include "CDClientManager.h"
 #include "CDRailActivatorComponent.h"
 #include "Entity.h"
@@ -15,6 +16,7 @@
 #include "eStateChangeType.h"
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&RailActivatorComponent::OnRequestUse);
 	const auto tableData = CDClientManager::GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);
 
 	m_Path = parent->GetVar<std::u16string>(u"rail_path");
@@ -51,10 +53,12 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, const int32_t com
 
 RailActivatorComponent::~RailActivatorComponent() = default;
 
-void RailActivatorComponent::OnUse(Entity* originator) {
+bool RailActivatorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
 	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
-		return;
+		return true;
 
 	if (quickBuildComponent != nullptr) {
 		// Don't want it to be destroyed while a player is using it
@@ -101,6 +105,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 		startRail.railActivatorObjectID = m_Parent->GetObjectID();
 		startRail.Send(originator->GetSystemAddress());
 		});
+	return true;
 }
 
 void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {

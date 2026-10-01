@@ -1,4 +1,5 @@
 #include "BuildBorderComponent.h"
+#include "ObjectMessages.h"
 
 #include "EntityManager.h"
 #include "GameMessages.h"
@@ -11,12 +12,15 @@
 #include "PropertyManagementComponent.h"
 
 BuildBorderComponent::BuildBorderComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&BuildBorderComponent::OnRequestUse);
 }
 
 BuildBorderComponent::~BuildBorderComponent() {
 }
 
-void BuildBorderComponent::OnUse(Entity* originator) {
+bool BuildBorderComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	if (originator->GetCharacter()) {
 		const auto& entities = Game::entityManager->GetEntitiesInGroup("PropertyPlaque");
 
@@ -31,13 +35,13 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 		auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent == nullptr) {
-			return;
+			return true;
 		}
 
 		auto* thinkingHat = inventoryComponent->FindItemByLot(6086);
 
 		if (thinkingHat == nullptr) {
-			return;
+			return true;
 		}
 
 		inventoryComponent->PushEquippedItems();
@@ -69,7 +73,8 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 		}
 
 		InventoryComponent* inv = m_Parent->GetComponent<InventoryComponent>();
-		if (!inv) return;
+		if (!inv) return true;
 		inv->PushEquippedItems(); // technically this is supposed to happen automatically... but it doesnt? so just keep this here
 	}
+	return true;
 }

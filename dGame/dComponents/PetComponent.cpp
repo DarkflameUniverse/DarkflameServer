@@ -53,6 +53,7 @@ std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
  */
 
 PetComponent::PetComponent(Entity* parentEntity, const int32_t componentID) : Component{ parentEntity, componentID } {
+	RegisterMsg(&PetComponent::OnRequestUse);
 	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentID); // TODO: Make reference when safe
 
 	m_Interaction = LWOOBJID_EMPTY;
@@ -120,19 +121,21 @@ void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpd
 	}
 }
 
-void PetComponent::OnUse(Entity* originator) {
+bool PetComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	if (m_Owner != LWOOBJID_EMPTY) {
 		// The owner uses their pet with SHIFT or the pet menu's action button: the client sends RequestUse on the pet
 		// (LWOPetControlComponent::msgPetCommand, "contextAction")
 		if (originator->GetObjectID() == m_Owner) UseAbility();
-		return;
+		return true;
 	}
 
 	if (m_Tamer != LWOOBJID_EMPTY) {
 		auto* tamer = Game::entityManager->GetEntity(m_Tamer);
 
 		if (tamer != nullptr) {
-			return;
+			return true;
 		}
 
 		m_Tamer = LWOOBJID_EMPTY;
@@ -140,11 +143,11 @@ void PetComponent::OnUse(Entity* originator) {
 
 	auto* const inventoryComponent = originator->GetComponent<InventoryComponent>();
 	if (inventoryComponent == nullptr) {
-		return;
+		return true;
 	}
 
 	if (m_Preconditions.has_value()) {
-		if (!m_Preconditions->Check(originator)) return;
+		if (!m_Preconditions->Check(originator)) return true;
 		// Taming uses up the items its preconditions ask for
 		for (const auto& cost : m_Preconditions->GetItemCosts(originator)) {
 			inventoryComponent->RemoveItem(cost.lot, cost.count, eInventoryType::ALL);
@@ -161,17 +164,17 @@ void PetComponent::OnUse(Entity* originator) {
 	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
 	if (!entry) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to find the puzzle minigame for this pet.");
-		return;
+		return true;
 	}
 
 	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr) {
-		return;
+		return true;
 	}
 
 	const auto imagination = destroyableComponent->GetImagination();
 	if (imagination < entry->imaginationCost) {
-		return;
+		return true;
 	}
 
 	const auto& bricks = BrickDatabase::GetBricks(entry->validPieces);
@@ -179,7 +182,7 @@ void PetComponent::OnUse(Entity* originator) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to load the puzzle minigame for this pet.");
 		LOG("Couldn't find %s for minigame!", entry->validPieces.c_str());
 
-		return;
+		return true;
 	}
 
 	// Where live put the minigame (2014 captures, the same for every try at a pet): the pet goes back to where it
@@ -254,6 +257,7 @@ void PetComponent::OnUse(Entity* originator) {
 		characterComponent->SetCurrentActivity(eGameActivity::PET_TAMING);
 		Game::entityManager->SerializeEntity(originator);
 	}
+	return true;
 }
 
 void PetComponent::Run(float deltaTime) {
@@ -1251,7 +1255,7 @@ void PetComponent::UseAbility() {
 		SendHelp(eHelpType::PR_TOOLTIP_1ST_PET_JUMPED_ON_SWITCH);
 
 		auto* const switchComponent = object->GetComponent<SwitchComponent>();
-		if (switchComponent) switchComponent->OnUse(m_Parent);
+		if (switchComponent) switchComponent->EnterIfResponding(m_Parent);
 	}
 }
 

@@ -1,10 +1,12 @@
 #include "MultiZoneEntranceComponent.h"
+#include "ObjectMessages.h"
 #include "PropertyMessages.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "InventoryComponent.h"
 #include "CharacterComponent.h"
 
 MultiZoneEntranceComponent::MultiZoneEntranceComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&MultiZoneEntranceComponent::OnRequestUse);
 	m_Parent = parent;
 	std::string zoneString = GeneralUtils::UTF16ToWTF8(m_Parent->GetVar<std::u16string>(u"MultiZoneIDs"));
 	std::stringstream ss(zoneString);
@@ -17,17 +19,20 @@ MultiZoneEntranceComponent::MultiZoneEntranceComponent(Entity* parent, const int
 
 MultiZoneEntranceComponent::~MultiZoneEntranceComponent() {}
 
-void MultiZoneEntranceComponent::OnUse(Entity* originator) {
+bool MultiZoneEntranceComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	auto* const characterComponent = originator->GetComponent<CharacterComponent>();
-	if (!characterComponent) return;
+	if (!characterComponent) return true;
 
 	auto* rocket = characterComponent->RocketEquip(originator);
-	if (!rocket) return;
+	if (!rocket) return true;
 
 	// the LUP world menu is just the property menu, the client knows how to handle it
 	GameMessages::PropertyEntranceBegin msg;
 	msg.target = m_Parent->GetObjectID();
 	msg.Send(originator->GetSystemAddress());
+	return true;
 }
 
 void MultiZoneEntranceComponent::OnSelectWorld(Entity* originator, uint32_t index) {

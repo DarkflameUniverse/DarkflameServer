@@ -31,10 +31,10 @@ public:
 	void Run(float deltaTime) override;
 
 	/**
-	 * Handles a OnUse event from some entity, initiating the quick build
+	 * Handles a RequestUse from some entity, initiating the quick build
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Spawns the activator that can be used to initiate the quickbuild

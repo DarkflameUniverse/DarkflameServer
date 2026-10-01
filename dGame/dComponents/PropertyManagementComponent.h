@@ -49,10 +49,10 @@ public:
 	void OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author = LWOOBJID_EMPTY);
 
 	/**
-	 * Handles an OnUse event, telling the client who owns this property, etc.
+	 * Handles a RequestUse, telling the client who owns this property, etc.
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Sets the owner of this property

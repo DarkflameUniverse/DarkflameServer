@@ -12,6 +12,7 @@
 #include "InventoryMessages.h"
 #include "Item.h"
 #include "LootMetrics.h"
+#include "ObjectMessages.h"
 #include "QuickBuildComponent.h"
 #include "MissionComponent.h"
 #include "DestroyableComponent.h"
@@ -233,7 +234,7 @@ TEST_F(LootMetricsTests, QuickbuildTakesItsCostAsTheSource) {
 	quickBuild->SetCompleteTime(10.0f);
 	ClearSent();
 
-	quickBuild->OnUse(entity.get());
+	{ GameMessages::RequestUseEvent use(GameMessages::RequestUse{}, *entity); quickBuild->OnRequestUse(use); }
 	EXPECT_EQ(quickBuild->GetState(), eQuickBuildState::BUILDING);
 	const auto removed = Removed();
 	ASSERT_EQ(removed.size(), 1u);

@@ -1,4 +1,5 @@
 #include "VendorComponent.h"
+#include "ObjectMessages.h"
 #include "BitStream.h"
 #include "dServer.h"
 #include "dZoneManager.h"
@@ -21,6 +22,7 @@
 #include <ranges>
 
 VendorComponent::VendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&VendorComponent::OnRequestUse);
 	m_HasStandardCostItems = false;
 	m_HasMultiCostItems = false;
 	SetupConstants();
@@ -36,7 +38,9 @@ void VendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitial
 	}
 }
 
-void VendorComponent::OnUse(Entity* originator) {
+bool VendorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
 	GameMessages::VendorOpenWindow openWindow;
 	openWindow.target = m_Parent->GetObjectID();
 	openWindow.SendToClient(originator->GetSystemAddress());
@@ -44,6 +48,7 @@ void VendorComponent::OnUse(Entity* originator) {
 	// Only the entity's VENDOR component sends its stock (achievement and donation vendors never did).
 	auto* vendor = static_cast<VendorComponent*>(m_Parent->GetComponent(eReplicaComponentType::VENDOR));
 	if (vendor) vendor->SendStatusUpdate(originator->GetSystemAddress());
+	return true;
 }
 
 void VendorComponent::RefreshInventory(bool isCreation) {

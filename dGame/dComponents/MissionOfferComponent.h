@@ -66,11 +66,11 @@ public:
 	MissionOfferComponent(Entity* parent, const int32_t componentID);
 
 	/**
-	 * Handles the OnUse event triggered by some entity, determines which missions to show based on what they may
+	 * Handles a RequestUse triggered by some entity, determines which missions to show based on what they may
 	 * hand in now and what they may start based on their mission history.
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Offers all the missions an entity can accept to said entity

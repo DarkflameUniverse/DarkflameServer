@@ -18,10 +18,10 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
 
 	/**
-	 * Handles the OnUse event from some entity, initiates the rail movement
+	 * Handles a RequestUse from some entity, initiates the rail movement
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 
 	/**
 	 * Event handler that's called when some entity has played the start animation for rail movement and now wants to

@@ -1565,7 +1565,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 
 	SwitchComponent* const switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
-		switchComp->OnUse(other);
+		switchComp->EnterIfResponding(other);
 	}
 
 	TriggerEvent(eTriggerEventType::ENTER, other);
@@ -1635,16 +1635,21 @@ void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
 	GetScript()->OnEmoteReceived(this, emote, target);
 }
 
-void Entity::OnUse(Entity* originator) {
-	TriggerEvent(eTriggerEventType::INTERACT, originator);
-
-	GetScript()->OnUse(this, originator);
-
-	for (const auto& component : m_Components | std::views::values) {
-		if (!component) continue;
-
-		component->OnUse(originator);
+void Entity::RequestUse(const GameMessages::RequestUse& msg, Entity& user) {
+	if (!msg.IsMissionChoice()) {
+		TriggerEvent(eTriggerEventType::INTERACT, &user);
+		GetScript()->OnUse(this, &user);
 	}
+
+	GameMessages::RequestUseEvent event(msg, user);
+	HandleMsg(event);
+}
+
+void Entity::OnUse(Entity* originator) {
+	GameMessages::RequestUse msg;
+	msg.target = originator->GetObjectID();
+	msg.object = m_ObjectID;
+	RequestUse(msg, *originator);
 }
 
 void Entity::OnHitOrHealResult(Entity* attacker, int32_t damage) {

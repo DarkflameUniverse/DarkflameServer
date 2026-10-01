@@ -25,7 +25,7 @@ public:
 	 * Causes the originator to start build with this entity as a reference point
 	 * @param originator the entity (probably a player) that triggered the event
 	 */
-	void OnUse(Entity* originator) override;
+	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 private:
 };
 

@@ -1,4 +1,5 @@
 #include "PropertyVendorComponent.h"
+#include "ObjectMessages.h"
 
 #include "PropertyMessages.h"
 #include "GameMessages.h"
@@ -11,10 +12,13 @@
 #include "UserManager.h"
 
 PropertyVendorComponent::PropertyVendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&PropertyVendorComponent::OnRequestUse);
 }
 
-void PropertyVendorComponent::OnUse(Entity* originator) {
-	if (PropertyManagementComponent::Instance() == nullptr) return;
+bool PropertyVendorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+	if (event.msg.IsMissionChoice()) return false;
+	auto* const originator = event.user;
+	if (PropertyManagementComponent::Instance() == nullptr) return true;
 
 	OnQueryPropertyData(originator, originator->GetSystemAddress());
 
@@ -25,8 +29,9 @@ void PropertyVendorComponent::OnUse(Entity* originator) {
 		msg.target = m_Parent->GetObjectID();
 		msg.Send(originator->GetSystemAddress());
 
-		return;
+		return true;
 	}
+	return true;
 }
 
 void PropertyVendorComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr) {

@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "PlayerMessages.h"
 #include "dZoneManager.h"
+#include "ObjectMessages.h"
 #include "QuickBuildComponent.h"
 #include "QuickBuildMessages.h"
 #include "eQuickBuildState.h"
@@ -60,7 +61,7 @@ protected:
 
 	// Starts the build and runs updates until it completes (the first update only sets up the imagination drain).
 	std::vector<CapturedPacket> Build() {
-		quickBuild->OnUse(player.get());
+		{ GameMessages::RequestUseEvent use(GameMessages::RequestUse{}, *player); quickBuild->OnRequestUse(use); }
 		return Capture([&] {
 			for (int i = 0; i < 3 && quickBuild->GetState() != eQuickBuildState::COMPLETED; i++) quickBuild->Run(0.1f);
 			});

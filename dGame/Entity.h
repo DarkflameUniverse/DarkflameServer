@@ -28,6 +28,7 @@ namespace GameMessages {
 	struct GetFlag;
 	struct GetFactionTokenType;
 	struct PickupItem;
+	struct RequestUse;
 	struct ChildRemoved;
 };
 
@@ -247,6 +248,10 @@ public:
 	void NotifyObject(Entity* sender, const std::string& name, int32_t param1 = 0, int32_t param2 = 0);
 	void OnEmoteReceived(int32_t emote, Entity* target);
 
+	// The client's RequestUse of this object by user: the INTERACT trigger and the script's OnUse (not for the mission
+	// choice of a multi-interact use), then the components' RequestUse handlers.
+	void RequestUse(const GameMessages::RequestUse& msg, Entity& user);
+	// originator uses this object as if their client had sent RequestUse
 	void OnUse(Entity* originator);
 
 	void OnHitOrHealResult(Entity* attacker, int32_t damage);
