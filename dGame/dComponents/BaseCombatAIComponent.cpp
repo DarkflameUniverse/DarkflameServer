@@ -59,11 +59,14 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 	m_SkillEntries = {};
 	m_SoftTimer = 5.0f;
 	m_ForcedTetherTime = 0.0f;
+}
 
+// The BaseCombatAIComponent row and the object's skills
+void BaseCombatAIComponent::LoadDataFromTemplate() {
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius, minRoundLength, maxRoundLength, combatRoundLength FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, static_cast<int>(componentID));
+	componentQuery.bind(1, static_cast<int>(m_ComponentID));
 
 	auto componentResult = componentQuery.execQuery();
 
@@ -88,15 +91,10 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 		m_CombatRoundLength = componentResult.getFloatField("combatRoundLength");
 	}
 
-	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
-	// radii if it is greater than the one in the database.
-	m_AggroRadius = m_Parent->HasVar(u"aggroRadius") ? m_Parent->GetVar<float>(u"aggroRadius") : m_AggroRadius;
-	m_HardTetherRadius = m_Parent->HasVar(u"tetherRadius") ? m_Parent->GetVar<float>(u"tetherRadius") : m_HardTetherRadius;
-
 	/*
 	 * Find skills
 	 */
-	for (const auto objectSkill : CDClientManager::GetTable<CDObjectSkillsTable>()->Get(parent->GetLOT())) {
+	for (const auto objectSkill : CDClientManager::GetTable<CDObjectSkillsTable>()->Get(m_Parent->GetLOT())) {
 		const auto skillBehavior = CDClientManager::GetTable<CDSkillBehaviorTable>()->GetSkillByID(objectSkill.skillID);
 		if (skillBehavior.skillID == objectSkill.skillID) {
 			const auto skillId = skillBehavior.skillID;
@@ -114,6 +112,14 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 			m_SkillEntries.push_back(entry);
 		}
 	}
+}
+
+// The level config's radii, then the stun and the physics that use them
+void BaseCombatAIComponent::LoadConfigData() {
+	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
+	// radii if it is greater than the one in the database.
+	m_AggroRadius = m_Parent->HasVar(u"aggroRadius") ? m_Parent->GetVar<float>(u"aggroRadius") : m_AggroRadius;
+	m_HardTetherRadius = m_Parent->HasVar(u"tetherRadius") ? m_Parent->GetVar<float>(u"tetherRadius") : m_HardTetherRadius;
 
 	Stun(1.0f);
 
@@ -128,7 +134,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 	float bodyRadius = DEFAULT_BODY_RADIUS;
 
 	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-	const auto controllablePhysicsID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	const auto controllablePhysicsID = componentRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
 	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
@@ -152,7 +158,6 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 
 	dpWorld::AddEntity(m_dpEntity);
 	dpWorld::AddEntity(m_dpEntityEnemy);
-
 }
 
 BaseCombatAIComponent::~BaseCombatAIComponent() {

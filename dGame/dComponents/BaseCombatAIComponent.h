@@ -53,6 +53,9 @@ public:
 
 	BaseCombatAIComponent(Entity* parentEntity, int32_t componentID);
 
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
+
 	// The tether speed a BaseCombatAIComponent row gives (4 without one), before the component exists
 	static float TetherSpeedOf(int32_t componentID);
 	~BaseCombatAIComponent() override;
