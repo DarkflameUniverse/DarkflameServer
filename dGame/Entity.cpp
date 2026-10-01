@@ -95,6 +95,7 @@
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
+#include "HFLightDirectionGadgetComponent.h"
 #include "SpawnerComponent.h"
 #include "PathfindingComponent.h"
 #include "PhysicsSystemComponent.h"
@@ -985,6 +986,12 @@ void Entity::Initialize() {
 			// A spawner object's spawner component, from the registry as the client makes it
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SPAWNER, -1);
 			if (id > -1) AddComponent<SpawnerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET: {
+			// The client makes it from the registry (an editor object)
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET, -1);
+			if (id > -1) AddComponent<HFLightDirectionGadgetComponent>(id);
 			break;
 		}
 		case eReplicaComponentType::ROCKET_LANDING: {
