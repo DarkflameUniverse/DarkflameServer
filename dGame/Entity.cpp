@@ -99,6 +99,7 @@
 #include "PetCreatorComponent.h"
 #include "HFLightDirectionGadgetComponent.h"
 #include "SpawnerComponent.h"
+#include "BBBComponent.h"
 #include "ExhibitComponent.h"
 #include "PathfindingComponent.h"
 #include "PhysicsSystemComponent.h"
@@ -929,6 +930,12 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 			if (id > -1) AddComponent<ExhibitComponent>(id);
 			break;
 		}
+		case eReplicaComponentType::BBB: {
+			// DoObjectPreLoad gives a character (LOT 1) one with id 0; any other object the registry's
+			const auto id = m_TemplateID == 1 ? 0 : state.GetComponentID(eReplicaComponentType::BBB, -1);
+			if (id > -1) AddComponent<BBBComponent>(id);
+			break;
+		}
 		case eReplicaComponentType::ROCKET_LANDING: {
 			// LWORocketAnimationControlComponent: the client makes it from the registry
 			const auto id = state.GetComponentID(eReplicaComponentType::ROCKET_LANDING, -1);
@@ -1301,7 +1308,7 @@ namespace {
 			PHANTOM_PHYSICS, SOUND_TRIGGER, RACING_SOUND_TRIGGER, BUFF, DESTROYABLE, COLLECTIBLE, PET, PLAYER_FORCED_MOVEMENT, CHARACTER,
 			INVENTORY,
 			SCRIPT, SKILL, BASE_COMBAT_AI, ITEM, QUICK_BUILD, MOVING_PLATFORM, SWITCH, VENDOR, DONATION_VENDOR, ACHIEVEMENT_VENDOR,
-			BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, LUP_EXHIBIT, MODEL, RENDER, MINI_GAME_CONTROL,
+			BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, LUP_EXHIBIT, MODEL, RENDER, MINI_GAME_CONTROL, BBB,
 		};
 	}();
 
@@ -1343,11 +1350,6 @@ void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType
 		}
 		component->Serialize(outBitStream, bIsInitialUpdate);
 	}
-
-	// BBB Component, unused currently
-	// Need to to write0 so that is serialized correctly
-	// TODO: Implement BBB Component
-	outBitStream.Write0();
 }
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {

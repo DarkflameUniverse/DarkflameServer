@@ -283,10 +283,8 @@ namespace {
 			miniGameControlComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 
-		// BBB Component, unused currently
-		// Need to to write0 so that is serialized correctly
-		// TODO: Implement BBB Component
-		outBitStream.Write0();
+		// The BBB component (characters): no metadata source item
+		if (entity.GetLOT() == 1) outBitStream.Write0();
 	}
 
 
