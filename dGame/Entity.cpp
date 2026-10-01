@@ -86,7 +86,6 @@
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
 #include "MiniGameControlComponent.h"
-#include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
@@ -556,7 +555,7 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		}
 		case eReplicaComponentType::MISSION_OFFER: {
 		const auto missionOfferComponentID = state.GetComponentID(eReplicaComponentType::MISSION_OFFER, -1);
-		if (missionOfferComponentID > -1 || m_Character) {
+		if (missionOfferComponentID > -1) {
 			AddComponent<MissionOfferComponent>(missionOfferComponentID);
 		}
 			break;
@@ -979,13 +978,6 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		}
 	}
 
-	/**
-	 * Components DLU has that the client's load order doesn't make
-	 */
-	const auto racingStatsID = state.GetComponentID(eReplicaComponentType::RACING_STATS);
-	if (racingStatsID > 0) {
-		AddComponent<RacingStatsComponent>(racingStatsID);
-	}
 
 	/**
 	 * Added after the walk, as the client does (DoObjectComponentLoad): the ghost of a character (LWOGhostComponent's
