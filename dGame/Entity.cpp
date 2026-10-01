@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
 #include "GenericActivatorComponent.h"
@@ -1083,6 +1084,12 @@ void Entity::Initialize() {
 			// LWOFactionTriggerComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::FACTION_TRIGGER, -1);
 			if (id > -1) AddComponent<FactionTriggerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::GATE_RUSH_CONTROL: {
+			// LWOGateRushComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::GATE_RUSH_CONTROL, -1);
+			if (id > -1) AddComponent<GateRushComponent>(id);
 			break;
 		}
 		default:
