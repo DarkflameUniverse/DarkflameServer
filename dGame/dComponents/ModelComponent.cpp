@@ -25,10 +25,14 @@ ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Comp
 	m_IsPaused = false;
 	m_NumListeningInteract = 0;
 
-	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 	RegisterMsg(&ModelComponent::OnRequestUse);
 	RegisterMsg(&ModelComponent::OnResetModelToDefaults);
 	RegisterMsg(&ModelComponent::OnGetObjectReportInfo);
+}
+
+// The level config: the user model this is
+void ModelComponent::LoadConfigData() {
+	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 }
 
 bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& reset) {

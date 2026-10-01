@@ -31,6 +31,8 @@ public:
 
 	ModelComponent(Entity* parent, const int32_t componentID);
 
+	void LoadConfigData() override;
+
 	void LoadBehaviors();
 	void Run(float deltaTime) override;
 
