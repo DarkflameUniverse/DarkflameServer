@@ -3,6 +3,7 @@ add_subdirectory(Hatchlings)
 set(DSCRIPTS_SOURCES_02_SERVER_OBJECTS 
 	"AgSurvivalBuffStation.cpp"
 	"ImmovableTurret.cpp"
+	"NjSpinnerServer.cpp"
 	"StinkyFishTarget.cpp")
 
 foreach(file ${DSCRIPTS_SOURCES_02_SERVER_OBJECTS_HATCHLINGS})
