@@ -32,6 +32,9 @@ namespace CDClientDatabase {
 	 */
 	void Reconnect(const std::string& filename);
 
+	//! Closes the connection (tests: each test starts without one)
+	void Disconnect();
+
 	//! Queries the CDClient
 	/*!
 	  \param query The query

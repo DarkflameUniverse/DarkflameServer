@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "dServer.h"
+#include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
@@ -85,6 +86,8 @@ protected:
 		}
 		delete Game::config;
 		Game::config = nullptr;
+		// A CDClient a test opened (often an in-memory one with only the tables it needs) isn't the next test's
+		CDClientDatabase::Disconnect();
 	}
 
 	EntityInfo info{};

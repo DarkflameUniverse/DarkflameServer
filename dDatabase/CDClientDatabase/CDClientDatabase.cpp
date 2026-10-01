@@ -84,6 +84,12 @@ void CDClientDatabase::Reconnect(const std::string& filename) {
 	sqlite3_close_v2(old->handle());
 }
 
+void CDClientDatabase::Disconnect() {
+	g_Running.clear();
+	conn->close();
+	isConnected = false;
+}
+
 //! Queries the CDClient
 CppSQLite3Query CDClientDatabase::ExecuteQuery(const std::string& query) {
 	return conn->execQuery(query.c_str());
