@@ -35,7 +35,7 @@ public:
 	CppScripts::Script* const GetScript();
 
 	/**
-	 * Sets whether the entity should be serialized, unused
+	 * Sets whether the component is serialized (false: a server-only script the client has no component for)
 	 * @param var whether the entity should be serialized
 	 */
 	void SetSerialized(const bool var) { m_Serialized = var; }
@@ -69,7 +69,7 @@ private:
 	CppScripts::Script* m_Script;
 
 	/**
-	 * Whether or not the comp should be serialized, unused
+	 * Whether the component is serialized (false: a server-only script the client has no component for)
 	 */
 	bool m_Serialized;
 

@@ -20,6 +20,8 @@ ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, cons
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	// A server-only script (the zone control object's) sends nothing: the client made no script component for it
+	if (!m_Serialized) return;
 	if (bIsInitialUpdate) {
 		const auto& networkSettings = m_Parent->GetNetworkSettings();
 		auto hasNetworkSettings = !networkSettings.values.empty();

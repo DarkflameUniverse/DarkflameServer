@@ -585,7 +585,8 @@ void Entity::Initialize() {
 			if (zoneData != nullptr) {
 				const int32_t zoneScriptID = zoneData->scriptID;
 				CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
-				AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, true, false);
+				// A server script only: the client has no script component on the zone control object (live sent none)
+				AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, false, false);
 			}
 		}
 			break;
@@ -797,8 +798,9 @@ void Entity::Initialize() {
 			break;
 		}
 		case eReplicaComponentType::MINI_GAME_CONTROL: {
-		const auto minigameControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL);
-		if (minigameControlID > 0) {
+		// The client makes it from the registry (the zone control object's id is 0)
+		const auto minigameControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL, -1);
+		if (minigameControlID > -1) {
 			AddComponent<MiniGameControlComponent>(minigameControlID);
 		}
 			break;

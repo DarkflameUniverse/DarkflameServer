@@ -690,7 +690,8 @@ namespace {
 				}
 				j["effects"] = effects;
 			} },
-			{ MINI_GAME_CONTROL, [](Reader& r, json& j, bool, const auto&) { j["value"] = r.Get<uint32_t>(); } },
+			// An activity component (LWOMinigameComponent), as the scripted activity
+			{ MINI_GAME_CONTROL, [](Reader& r, json& j, bool, const auto&) { if (r.Bit()) j["players"] = ActivityPlayers(r); } },
 		};
 		return readers;
 	}
