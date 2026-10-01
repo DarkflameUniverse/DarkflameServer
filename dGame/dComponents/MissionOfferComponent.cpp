@@ -43,12 +43,16 @@ bool OfferedMission::GetAcceptsMission() const {
 
 MissionOfferComponent::MissionOfferComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&MissionOfferComponent::OnRequestUse);
-	if (componentID != -1) {
+}
+
+// The MissionNPCComponent rows: the missions this offers and accepts
+void MissionOfferComponent::LoadDataFromTemplate() {
+	if (m_ComponentID != -1) {
 		// Now lookup the missions in the MissionNPCComponent table
 		auto* missionNpcComponentTable = CDClientManager::GetTable<CDMissionNPCComponentTable>();
 
-		auto missions = missionNpcComponentTable->Query([componentID](const CDMissionNPCComponent& entry) {
-			return entry.id == static_cast<unsigned>(componentID);
+		auto missions = missionNpcComponentTable->Query([this](const CDMissionNPCComponent& entry) {
+			return entry.id == static_cast<unsigned>(m_ComponentID);
 			});
 
 		for (auto& mission : missions) {

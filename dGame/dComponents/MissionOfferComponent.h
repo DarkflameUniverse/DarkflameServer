@@ -65,6 +65,8 @@ public:
 
 	MissionOfferComponent(Entity* parent, const int32_t componentID);
 
+	void LoadDataFromTemplate() override;
+
 	/**
 	 * Handles a RequestUse triggered by some entity, determines which missions to show based on what they may
 	 * hand in now and what they may start based on their mission history.
