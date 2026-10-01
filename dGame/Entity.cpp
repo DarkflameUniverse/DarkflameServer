@@ -612,6 +612,7 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::BASE_COMBAT_AI: {
 		if (combatAiID > 0) {
+			addProximityAndPathfinding();
 			AddComponent<BaseCombatAIComponent>(combatAiID);
 		}
 			break;
