@@ -271,6 +271,8 @@ void Entity::Initialize() {
 		auto* destroyableComponent = AddComponent<DestroyableComponent>(-1);
 		destroyableComponent->SetHealth(1);
 		destroyableComponent->SetMaxHealth(1.0f);
+		// Live: armor 1 (max 0), as for every componentID -1 destroyable (LOT 14 and 8069 on a Raven Bluff property)
+		destroyableComponent->SetArmor(1);
 		destroyableComponent->SetFaction(-1, true);
 		destroyableComponent->SetIsSmashable(true);
 		// We have all our components.
@@ -827,6 +829,8 @@ void Entity::Initialize() {
 				auto* const destroyableComponent = AddComponent<DestroyableComponent>(-1);
 				destroyableComponent->SetHealth(1);
 				destroyableComponent->SetMaxHealth(1.0f);
+				// Live: armor 1 (max 0), as for every componentID -1 destroyable (LOT 8069 on a Raven Bluff property)
+				destroyableComponent->SetArmor(1);
 				destroyableComponent->SetFaction(-1, true);
 				destroyableComponent->SetIsSmashable(true);
 			}
