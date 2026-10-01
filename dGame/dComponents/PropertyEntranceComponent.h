@@ -17,6 +17,8 @@ public:
 	explicit PropertyEntranceComponent(Entity* parent, const int32_t componentID);
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 
+	void LoadDataFromTemplate() override;
+
 	/**
 	 * Handles a RequestUse for some other entity, rendering the property browse menu
 	 * @param entity the entity that triggered the event

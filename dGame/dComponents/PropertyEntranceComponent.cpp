@@ -22,9 +22,12 @@
 PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&PropertyEntranceComponent::OnRequestUse);
 	this->propertyQueries = {};
+}
 
+// The PropertyEntranceComponent row
+void PropertyEntranceComponent::LoadDataFromTemplate() {
 	auto table = CDClientManager::GetTable<CDPropertyEntranceComponentTable>();
-	const auto& entry = table->GetByID(componentID);
+	const auto& entry = table->GetByID(m_ComponentID);
 
 	this->m_MapID = entry.mapID;
 	this->m_PropertyName = entry.propertyName;
