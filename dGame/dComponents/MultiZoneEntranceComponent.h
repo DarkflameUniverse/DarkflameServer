@@ -19,6 +19,8 @@ public:
 	MultiZoneEntranceComponent(Entity* parent, const int32_t componentID);
 	~MultiZoneEntranceComponent() override;
 
+	void LoadConfigData() override;
+
 	/**
 	 * Handles a RequestUse from some entity, preparing it for launch to some other world
 	 * @param originator the entity that triggered the event

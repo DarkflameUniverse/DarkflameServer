@@ -8,6 +8,10 @@
 MultiZoneEntranceComponent::MultiZoneEntranceComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&MultiZoneEntranceComponent::OnRequestUse);
 	m_Parent = parent;
+}
+
+// The level config: the LUP worlds this launches to
+void MultiZoneEntranceComponent::LoadConfigData() {
 	std::string zoneString = GeneralUtils::UTF16ToWTF8(m_Parent->GetVar<std::u16string>(u"MultiZoneIDs"));
 	std::stringstream ss(zoneString);
 	for (int i; ss >> i;) {
