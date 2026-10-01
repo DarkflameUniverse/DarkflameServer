@@ -798,7 +798,7 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 	}
 }
 
-void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
+void InventoryComponent::WriteSaveData(tinyxml2::XMLDocument& document) {
 	UpdatePetXml(document);
 
 	auto* inventoryElement = document.FirstChildElement("obj")->FirstChildElement("inv");
@@ -964,7 +964,7 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 	if (bIsInitialUpdate) outBitStream.Write<uint32_t>(0);
 }
 
-void InventoryComponent::Update(float deltaTime) {
+void InventoryComponent::Run(float deltaTime) {
 	for (auto* set : m_Itemsets) {
 		set->Update(deltaTime);
 	}

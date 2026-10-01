@@ -100,7 +100,7 @@ bool ProximityMonitorComponent::OnGetObjectReportInfo(GameMessages::GetObjectRep
 	return true;
 }
 
-void ProximityMonitorComponent::Update(float deltaTime) {
+void ProximityMonitorComponent::Run(float deltaTime) {
 	for (const auto& prox : m_ProximitiesData) {
 		if (!prox.second) continue;
 

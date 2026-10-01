@@ -28,10 +28,10 @@ public:
 	ControllablePhysicsComponent(Entity* entity, const int32_t componentID);
 	~ControllablePhysicsComponent() override;
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
-	void UpdateXml(tinyxml2::XMLDocument& doc) override;
+	void LoadFromSaveData(const tinyxml2::XMLDocument& doc) override;
+	void WriteSaveData(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Sets the position of this entity, also ensures this update is serialized next tick.

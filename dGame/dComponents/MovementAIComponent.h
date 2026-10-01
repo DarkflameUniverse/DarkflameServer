@@ -68,7 +68,7 @@ public:
 
 	void SetPath(const std::string pathName);
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	/**
 	 * Returns the basic settings that this entity uses to move around

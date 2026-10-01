@@ -163,7 +163,7 @@ BaseCombatAIComponent::~BaseCombatAIComponent() {
 		dpWorld::RemoveEntity(m_dpEntityEnemy);
 }
 
-void BaseCombatAIComponent::Update(const float deltaTime) {
+void BaseCombatAIComponent::Run(const float deltaTime) {
 	//First, we need to process physics:
 	if (!m_dpEntity) return;
 

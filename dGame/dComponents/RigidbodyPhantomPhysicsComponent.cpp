@@ -37,7 +37,7 @@ void RigidbodyPhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream
 	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 }
 
-void RigidbodyPhantomPhysicsComponent::Update(const float deltaTime) {
+void RigidbodyPhantomPhysicsComponent::Run(const float deltaTime) {
 	if (!m_dpEntity) return;
 
 	//Process enter events

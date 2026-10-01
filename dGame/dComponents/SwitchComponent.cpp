@@ -94,7 +94,7 @@ void SwitchComponent::EntityLeave(Entity* entity) {
 
 }
 
-void SwitchComponent::Update(float deltaTime) {
+void SwitchComponent::Run(float deltaTime) {
 	if (m_Active) {
 		m_Timer -= deltaTime;
 

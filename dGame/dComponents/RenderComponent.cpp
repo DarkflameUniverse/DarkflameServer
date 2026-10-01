@@ -83,7 +83,7 @@ void RenderComponent::RemoveEffect(const std::string& name) {
 	m_Effects.pop_back();
 }
 
-void RenderComponent::Update(const float deltaTime) {	
+void RenderComponent::Run(const float deltaTime) {	
 	for (auto& effect : m_Effects) {
 		if (effect.time == 0) continue; // Skip persistent effects
 

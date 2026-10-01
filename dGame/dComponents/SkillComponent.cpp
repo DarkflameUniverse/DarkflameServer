@@ -63,7 +63,7 @@ void SkillComponent::StartCooldown(const uint32_t skillID) {
 	left = std::max(left, skill.cooldown);
 }
 
-void SkillComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void SkillComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	m_CooldownGroups.clear();
 	const auto* const obj = doc.FirstChildElement("obj");
 	const auto* const skil = obj ? obj->FirstChildElement("skil") : nullptr;
@@ -81,7 +81,7 @@ void SkillComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	}
 }
 
-void SkillComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void SkillComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	auto* const obj = doc.FirstChildElement("obj");
 	if (!obj) return;
 	auto* skil = obj->FirstChildElement("skil");
@@ -184,7 +184,7 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 	this->m_managedProjectiles.push_back(entry);
 }
 
-void SkillComponent::Update(const float deltaTime) {
+void SkillComponent::Run(const float deltaTime) {
 	for (auto it = m_CooldownGroups.begin(); it != m_CooldownGroups.end();) {
 		it->second -= deltaTime;
 		it = it->second <= 0.0f ? m_CooldownGroups.erase(it) : std::next(it);

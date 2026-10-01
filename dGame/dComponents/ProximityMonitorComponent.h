@@ -25,7 +25,7 @@ public:
 
 	ProximityMonitorComponent(Entity* parentEntity, const int32_t componentID, int smallRadius = -1, int largeRadius = -1);
 	~ProximityMonitorComponent() override;
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	/**
 	 * Creates an entry to check proximity for, given a name

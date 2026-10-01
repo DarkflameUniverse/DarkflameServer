@@ -15,7 +15,13 @@ namespace GameMessages {
 class Entity;
 
 /**
- * Component base class, provides methods for game loop updates, usage events and loading and saving to XML.
+ * Component base class, with the client's component lifecycle (LWOGameObjComponent's vtable,
+ * LWOGameObjComponentFunctions), which the entity calls in the client's order (ObjectLoader2::DoObjectComponentLoad):
+ * constructed, LoadDataFromTemplate (its CDClient row), PrepareConfigData and LoadConfigData (the object's level
+ * config), LoadFromSaveData (a character's save), then Startup once every component of the object exists; Run every
+ * frame; OnEnterScope / OnLeaveScope when a player starts or stops seeing the object; Preshutdown and Shutdown before it
+ * is deleted. Serialize is the server side of the client's Deserialize. Client-only slots (GetSizeInMemory,
+ * GraphicsDeviceReset, GetPickTypePriority) are left out.
  */
 class Component {
 public:
@@ -30,11 +36,26 @@ public:
 
 	[[nodiscard]] int32_t GetComponentID() const noexcept { return m_ComponentID; }
 
-	/**
-	 * Updates the component in the game loop
-	 * @param deltaTime time passed since last update
-	 */
-	virtual void Update(float deltaTime) {}
+	// The CDClient row (componentID) of the component's table
+	virtual void LoadDataFromTemplate() {}
+
+	// The object's level config (LDF): PrepareConfigData first, then LoadConfigData
+	virtual void PrepareConfigData() {}
+	virtual void LoadConfigData() {}
+
+	// After every component of the object exists
+	virtual void Startup() {}
+
+	// Every frame
+	virtual void Run(float deltaTime) {}
+
+	// A player starts or stops seeing the object (ghosting)
+	virtual void OnEnterScope(Entity& player) {}
+	virtual void OnLeaveScope(Entity& player) {}
+
+	// Before the object is deleted
+	virtual void Preshutdown() {}
+	virtual void Shutdown() {}
 
 	/**
 	 * Event called when this component is being used, e.g. when some entity interacted with it
@@ -42,17 +63,9 @@ public:
 	 */
 	virtual void OnUse(Entity* originator) {}
 
-	/**
-	 * Save data from this componennt to character XML
-	 * @param doc the document to write data to
-	 */
-	virtual void UpdateXml(tinyxml2::XMLDocument& doc) {}
-
-	/**
-	 * Load base data for this component from character XML
-	 * @param doc the document to read data from
-	 */
-	virtual void LoadFromXml(const tinyxml2::XMLDocument& doc) {}
+	// A character's save (its XML): read on load, written on save
+	virtual void LoadFromSaveData(const tinyxml2::XMLDocument& doc) {}
+	virtual void WriteSaveData(tinyxml2::XMLDocument& doc) {}
 
 	virtual void Serialize(RakNet::BitStream& outBitStream, bool isConstruction) {}
 protected:

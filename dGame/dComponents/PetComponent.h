@@ -40,7 +40,7 @@ public:
 	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	/**
 	 * Handles an OnUse event from another entity, initializing the pet taming minigame if this pet is untamed.

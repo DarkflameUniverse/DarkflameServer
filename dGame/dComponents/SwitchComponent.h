@@ -21,7 +21,7 @@ public:
 	SwitchComponent(Entity* parent, const int32_t componentID);
 	~SwitchComponent() override;
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 	void OnUse(Entity* originator) override;
 
 	Entity* GetParentEntity() const;

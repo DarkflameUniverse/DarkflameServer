@@ -29,7 +29,7 @@ public:
 
 	PhantomPhysicsComponent(Entity* parent, const int32_t componentID);
 	~PhantomPhysicsComponent() override;
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**

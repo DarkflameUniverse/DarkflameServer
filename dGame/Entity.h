@@ -229,6 +229,10 @@ public:
 	void UpdateXMLDoc(tinyxml2::XMLDocument& doc);
 	void Update(float deltaTime);
 
+	// A player starts or stops seeing this object: its components' OnEnterScope / OnLeaveScope
+	void OnEnterScope(Entity& player);
+	void OnLeaveScope(Entity& player);
+
 	// Events
 	void OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status);
 	void OnCollisionPhantom(LWOOBJID otherEntity);
@@ -421,6 +425,9 @@ private:
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, Component*> m_Components;
+
+	// Every component has had its Startup (the end of Initialize)
+	bool m_ComponentsStarted = false;
 	std::vector<EntityTimer> m_Timers;
 	std::vector<EntityTimer> m_PendingTimers;
 	std::vector<EntityCallbackTimer> m_CallbackTimers;
@@ -607,6 +614,13 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 		componentToReturn->~Component();
 		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
 	}
+
+	// The client's load steps for a new component (DoObjectComponentLoad: the allocator reads the CDClient row, then
+	// PrepareConfigData); one added after the object started up starts up at once
+	componentToReturn->LoadDataFromTemplate();
+	componentToReturn->PrepareConfigData();
+	componentToReturn->LoadConfigData();
+	if (m_ComponentsStarted) componentToReturn->Startup();
 
 	// Finally return the created or already existing component.
 	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function

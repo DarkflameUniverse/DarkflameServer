@@ -14,7 +14,7 @@ LevelProgressionComponent::LevelProgressionComponent(Entity* parent, const int32
 	m_CharacterVersion = eCharacterVersion::LIVE;
 }
 
-void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void LevelProgressionComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	tinyxml2::XMLElement* level = doc.FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
 		LOG("Failed to find lvl tag while updating XML!");
@@ -25,7 +25,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	level->SetAttribute("cv", static_cast<uint32_t>(m_CharacterVersion));
 }
 
-void LevelProgressionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void LevelProgressionComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	auto* level = doc.FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
 		LOG("Failed to find lvl tag while loading XML!");

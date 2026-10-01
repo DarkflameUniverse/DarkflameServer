@@ -450,6 +450,8 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 	for (auto* entity : m_Entities | std::views::values) {
 		if (entity && (entity->GetSpawnerID() != 0 || entity->GetLOT() == 1) && !entity->GetIsGhostingCandidate()) {
 			ConstructEntity(entity, sysAddr);
+			// Objects that are never ghosted enter a joining player's scope here
+			if (auto* const player = PlayerManager::GetPlayer(sysAddr)) entity->OnEnterScope(*player);
 		}
 	}
 
@@ -583,6 +585,7 @@ void EntityManager::UpdateGhosting(Entity* player) {
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
+			entity->OnLeaveScope(*player);
 		} else if (!observed && nearEnough) {
 			// Check collectables, don't construct if it has been collected
 			uint32_t collectionId = entity->GetCollectibleID();
@@ -600,6 +603,7 @@ void EntityManager::UpdateGhosting(Entity* player) {
 			entity->SetObservers(entity->GetObservers() + 1);
 
 			ConstructEntity(entity, player->GetSystemAddress());
+			entity->OnEnterScope(*player);
 		}
 	}
 }
@@ -632,10 +636,12 @@ void EntityManager::CheckGhosting(Entity* entity) {
 			ghostComponent->GhostEntity(id);
 			DestructEntity(entity, player->GetSystemAddress());
 			entity->SetObservers(entity->GetObservers() - 1);
+			entity->OnLeaveScope(*player);
 		} else if (!observed && nearEnough) {
 			ghostComponent->ObserveEntity(id);
 			ConstructEntity(entity, player->GetSystemAddress());
 			entity->SetObservers(entity->GetObservers() + 1);
+			entity->OnEnterScope(*player);
 		}
 	}
 }

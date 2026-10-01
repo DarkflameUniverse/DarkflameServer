@@ -282,7 +282,7 @@ private:
 	void MoverArrive();
 
 public:
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	// The mover's state as a PlatformResync gives it (RequestPlatformResync)
 	void FillResync(GameMessages::PlatformResync& resync) const;

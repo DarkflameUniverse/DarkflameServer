@@ -572,7 +572,7 @@ RacingPlayerInfo* RacingControlComponent::GetPlayerData(LWOOBJID playerID) {
 	return nullptr;
 }
 
-void RacingControlComponent::Update(float deltaTime) {
+void RacingControlComponent::Run(float deltaTime) {
 	// This method is a mess.
 
 	// Pre-load routine

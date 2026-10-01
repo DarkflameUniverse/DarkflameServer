@@ -71,18 +71,18 @@ public:
 	/**
 	 * Computes skill updates. Invokes CalculateUpdate.
 	 */
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	/**
 	 * Loads the cooldown groups still running at the last save: <skil sc="group:seconds;group:seconds;"/>
 	 */
-	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void LoadFromSaveData(const tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Saves the running cooldown groups the way live did and the client reads them (LWOSkillComponent::LoadFromSaveData
 	 * 0x00c2a9c0 splits sc on ';' and ':' into a cooldown group and the seconds left)
 	 */
-	void UpdateXml(tinyxml2::XMLDocument& doc) override;
+	void WriteSaveData(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Starts the cooldown of a skill's cooldown group (SkillBehavior.cooldowngroup, cooldown) when the player casts it

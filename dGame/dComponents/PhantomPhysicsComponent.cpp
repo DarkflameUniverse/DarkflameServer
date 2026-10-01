@@ -179,7 +179,7 @@ void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effec
 	// The other types are not handled by the server and are here to handle all cases of the enum.
 }
 
-void PhantomPhysicsComponent::Update(float deltaTime) {
+void PhantomPhysicsComponent::Run(float deltaTime) {
 	if (!m_dpEntity || !m_PhysicsActive) return;
 
 	//Process enter events

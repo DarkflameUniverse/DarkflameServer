@@ -1,7 +1,7 @@
 #include "LUPExhibitComponent.h"
 #include "EntityManager.h"
 
-void LUPExhibitComponent::Update(float deltaTime) {
+void LUPExhibitComponent::Run(float deltaTime) {
 	m_UpdateTimer += deltaTime;
 	if (m_UpdateTimer > 20.0f) {
 		NextLUPExhibit();

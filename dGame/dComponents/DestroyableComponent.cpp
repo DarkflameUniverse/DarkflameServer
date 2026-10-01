@@ -158,11 +158,11 @@ void DestroyableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIn
 	}
 }
 
-void DestroyableComponent::Update(float deltaTime) {
+void DestroyableComponent::Run(float deltaTime) {
 	m_DamageCooldownTimer -= deltaTime;
 }
 
-void DestroyableComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void DestroyableComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
@@ -172,7 +172,7 @@ void DestroyableComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
-		buffComponent->LoadFromXml(doc);
+		buffComponent->LoadFromSaveData(doc);
 	}
 
 	dest->QueryAttribute("hc", &m_iHealth);
@@ -184,7 +184,7 @@ void DestroyableComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	m_DirtyHealth = true;
 }
 
-void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void DestroyableComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	tinyxml2::XMLElement* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
@@ -194,7 +194,7 @@ void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
-		buffComponent->UpdateXml(doc);
+		buffComponent->WriteSaveData(doc);
 	}
 
 	dest->SetAttribute("hc", m_iHealth);

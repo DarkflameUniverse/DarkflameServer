@@ -446,7 +446,7 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 }
 
 
-void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void MissionComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	auto* mis = doc.FirstChildElement("obj")->FirstChildElement("mis");
 
 	if (mis == nullptr) return;
@@ -512,7 +512,7 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 }
 
 
-void MissionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void MissionComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	auto shouldInsertMis = false;
 
 	auto* obj = doc.FirstChildElement("obj");

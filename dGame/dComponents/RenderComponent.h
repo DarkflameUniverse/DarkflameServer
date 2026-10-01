@@ -66,7 +66,7 @@ public:
 	RenderComponent(Entity* const parentEntity, const int32_t componentID);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	/**
 	 * Adds an effect to this entity, if successful the effect is returned

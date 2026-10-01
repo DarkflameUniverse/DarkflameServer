@@ -101,10 +101,10 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	InventoryComponent(Entity* parent, const int32_t componentID);
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void LoadXml(const tinyxml2::XMLDocument& document);
-	void UpdateXml(tinyxml2::XMLDocument& document) override;
+	void WriteSaveData(tinyxml2::XMLDocument& document) override;
 
 	/**
 	 * Returns an inventory of the specified type, if it exists

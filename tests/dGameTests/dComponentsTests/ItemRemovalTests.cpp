@@ -60,7 +60,7 @@ TEST_F(ItemRemovalTests, ARemovedItemIsUsableUntilTheNextUpdate) {
 	EXPECT_EQ(item->GetId(), id);
 	EXPECT_EQ(item->GetCount(), 0u);
 
-	inventoryComponent->Update(0.0f);
+	inventoryComponent->Run(0.0f);
 	EXPECT_FALSE(items->HasRetiredItems());
 }
 
@@ -75,7 +75,7 @@ TEST_F(ItemRemovalTests, RemovingSeveralItemsInALoop) {
 	for (auto* const item : held | std::views::values) EXPECT_EQ(item->GetCount(), 0u);
 
 	EXPECT_TRUE(items->GetItems().empty());
-	inventoryComponent->Update(0.0f);
+	inventoryComponent->Run(0.0f);
 	EXPECT_FALSE(items->HasRetiredItems());
 }
 

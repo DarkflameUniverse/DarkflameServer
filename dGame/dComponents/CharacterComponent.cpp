@@ -292,7 +292,7 @@ void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_GMLevel = gmlevel;
 }
 
-void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void CharacterComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 
 	auto* character = doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
@@ -398,7 +398,7 @@ void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	}
 }
 
-void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	tinyxml2::XMLElement* minifig = doc.FirstChildElement("obj")->FirstChildElement("mf");
 	if (!minifig) {
 		LOG("Failed to find mf tag while updating XML!");

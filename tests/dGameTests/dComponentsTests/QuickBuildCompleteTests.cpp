@@ -62,7 +62,7 @@ protected:
 	std::vector<CapturedPacket> Build() {
 		quickBuild->OnUse(player.get());
 		return Capture([&] {
-			for (int i = 0; i < 3 && quickBuild->GetState() != eQuickBuildState::COMPLETED; i++) quickBuild->Update(0.1f);
+			for (int i = 0; i < 3 && quickBuild->GetState() != eQuickBuildState::COMPLETED; i++) quickBuild->Run(0.1f);
 			});
 	}
 

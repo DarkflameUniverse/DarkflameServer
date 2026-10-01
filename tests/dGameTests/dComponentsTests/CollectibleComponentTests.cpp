@@ -49,7 +49,7 @@ protected:
 		tinyxml2::XMLDocument doc;
 		const std::string xml = std::string(R"(<obj v="1"><mis><done/><cur><m id="2040" state=")") + state + R"("/></cur></mis></obj>)";
 		ASSERT_EQ(doc.Parse(xml.c_str()), tinyxml2::XML_SUCCESS);
-		missions.LoadFromXml(doc);
+		missions.LoadFromSaveData(doc);
 	}
 };
 

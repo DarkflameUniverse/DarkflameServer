@@ -73,7 +73,7 @@ bool ModelComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
 	return toReturn;
 }
 
-void ModelComponent::Update(float deltaTime) {
+void ModelComponent::Run(float deltaTime) {
 	if (m_IsPaused) return;
 
 	for (auto& behavior : m_Behaviors) {

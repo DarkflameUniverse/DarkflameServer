@@ -111,7 +111,7 @@ void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIni
 	}
 }
 
-void QuickBuildComponent::Update(float deltaTime) {
+void QuickBuildComponent::Run(float deltaTime) {
 	SetActivator(GetActivator());
 
 	switch (m_State) {

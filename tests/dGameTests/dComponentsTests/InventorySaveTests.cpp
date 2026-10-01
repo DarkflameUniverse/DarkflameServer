@@ -61,7 +61,7 @@ protected:
 
 	// The "eq" attribute the save wrote for an item
 	bool SavedEquipped(const LWOOBJID id) {
-		inventory->UpdateXml(doc);
+		inventory->WriteSaveData(doc);
 		for (auto* bag = doc.FirstChildElement("obj")->FirstChildElement("inv")->FirstChildElement("items")->FirstChildElement("in"); bag; bag = bag->NextSiblingElement("in")) {
 			for (auto* element = bag->FirstChildElement("i"); element; element = element->NextSiblingElement("i")) {
 				if (element->Int64Attribute("id") == id) return element->BoolAttribute("eq");

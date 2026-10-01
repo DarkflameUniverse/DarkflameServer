@@ -47,10 +47,10 @@ public:
 	DestroyableComponent(Entity* parentEntity, const int32_t componentID);
 	~DestroyableComponent() override;
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
-	void UpdateXml(tinyxml2::XMLDocument& doc) override;
+	void LoadFromSaveData(const tinyxml2::XMLDocument& doc) override;
+	void WriteSaveData(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Sets the health of this entity. Makes sure this is serialized on the next tick and if this is a character its

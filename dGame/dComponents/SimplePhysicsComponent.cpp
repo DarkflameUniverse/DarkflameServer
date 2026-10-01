@@ -41,7 +41,7 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t com
 SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
-void SimplePhysicsComponent::Update(const float deltaTime) {
+void SimplePhysicsComponent::Run(const float deltaTime) {
 	if (m_Velocity == NiPoint3Constant::ZERO) return;
 	m_Position += m_Velocity * deltaTime;
 	m_DirtyPosition = true;

@@ -57,13 +57,13 @@ public:
 
 	Entity* GetParent() const;
 
-	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void LoadFromSaveData(const tinyxml2::XMLDocument& doc) override;
 
-	void UpdateXml(tinyxml2::XMLDocument& doc) override;
+	void WriteSaveData(tinyxml2::XMLDocument& doc) override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	/**
 	 * Applies a buff to the parent entity

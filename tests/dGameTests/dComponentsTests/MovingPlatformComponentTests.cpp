@@ -182,14 +182,14 @@ TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
 	EXPECT_EQ(mover->mNextWaypointIndex, 1u);
 
-	platform->Update(1.9f);
+	platform->Run(1.9f);
 	EXPECT_EQ(mover->mState, 25u);
 	EXPECT_FLOAT_EQ(mover->mIdleTimeElapsed, 1.9f);
-	platform->Update(0.2f);
+	platform->Run(0.2f);
 	EXPECT_EQ(mover->mState, 2u);
 
 	// 5 units a second over 10
-	platform->Update(1.0f);
+	platform->Run(1.0f);
 	EXPECT_NEAR(mover->mPercentBetweenPoints, 0.5f, 0.001f);
 	EXPECT_NEAR(mover->mPosition.x, 5.0f, 0.01f);
 	GameMessages::PlatformResync resync;
@@ -199,7 +199,7 @@ TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	EXPECT_EQ(resync.iNextIndex, 1);
 	EXPECT_NEAR(resync.fPercentBetweenPoints, 0.5f, 0.001f);
 
-	platform->Update(1.1f);
+	platform->Run(1.1f);
 	EXPECT_EQ(mover->mState, 25u);
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
 	EXPECT_EQ(mover->mNextWaypointIndex, 0u);
@@ -210,23 +210,23 @@ TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	platform->GotoWaypoint(0, true);
 	EXPECT_EQ(mover->mState, 2u);
 	EXPECT_EQ(mover->mDesiredWaypointIndex, 0);
-	platform->Update(2.5f);
+	platform->Run(2.5f);
 	EXPECT_EQ(mover->mState, 25u);
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
 	EXPECT_EQ(mover->mDesiredWaypointIndex, -1);
-	platform->Update(10.0f);
+	platform->Run(10.0f);
 	EXPECT_EQ(mover->mState, 25u);
 
 	// Started at a waypoint it first waits there (issue 964), then stopped mid way and started again
 	platform->StartPathing();
 	EXPECT_EQ(mover->mState, 25u);
-	platform->Update(2.1f);
+	platform->Run(2.1f);
 	EXPECT_EQ(mover->mState, 2u);
-	platform->Update(1.0f);
+	platform->Run(1.0f);
 	platform->StopPathing();
 	EXPECT_EQ(mover->mState & 1u, 1u);
 	const auto percent = mover->mPercentBetweenPoints;
-	platform->Update(1.0f);
+	platform->Run(1.0f);
 	EXPECT_EQ(mover->mPercentBetweenPoints, percent);
 	platform->StartPathing();
 	EXPECT_EQ(mover->mState, 2u);

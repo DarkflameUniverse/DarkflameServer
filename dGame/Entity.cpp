@@ -217,6 +217,10 @@ Entity::~Entity() {
 	CancelAllTimers();
 	CancelCallbackTimers();
 
+	// The client's Preshutdown, then Shutdown, for every component before any is deleted
+	for (auto* const component : m_Components | std::views::values) if (component) component->Preshutdown();
+	for (auto* const component : m_Components | std::views::values) if (component) component->Shutdown();
+
 	for (auto& component : m_Components | std::views::values) {
 		if (component) {
 			delete component;
@@ -309,7 +313,7 @@ void Entity::Initialize() {
 	 * Player components (the client makes them with the character, not from the registry)
 	 */
 	if (m_Character && m_Character->GetParentUser()) {
-		AddComponent<MissionComponent>(-1)->LoadFromXml(m_Character->GetXMLDoc());
+		AddComponent<MissionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
 	}
 
 	/**
@@ -347,7 +351,7 @@ void Entity::Initialize() {
 			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
 
 			if (m_Character) {
-				controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
+				controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
 
 				const auto mapID = Game::server->GetZoneID();
 				const auto& targetSceneName = m_Character->GetTargetScene();
@@ -430,7 +434,7 @@ void Entity::Initialize() {
 			std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
 
 			if (m_Character) {
-				comp->LoadFromXml(m_Character->GetXMLDoc());
+				comp->LoadFromSaveData(m_Character->GetXMLDoc());
 			} else {
 				// extraInfo overrides. Client ORs the database smashable and the luz smashable.
 				comp->SetIsSmashable(comp->GetIsSmashable() || isSmashable);
@@ -519,14 +523,14 @@ void Entity::Initialize() {
 			AddComponent<PossessorComponent>(characterID);
 
 			// load in the xml for the level
-			AddComponent<LevelProgressionComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
+			AddComponent<LevelProgressionComponent>(characterID)->LoadFromSaveData(m_Character->GetXMLDoc());
 
 			AddComponent<PlayerForcedMovementComponent>(characterID);
 
 			auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
-			AddComponent<CharacterComponent>(characterID, m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
+			AddComponent<CharacterComponent>(characterID, m_Character, systemAddress)->LoadFromSaveData(m_Character->GetXMLDoc());
 
-			AddComponent<GhostComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
+			AddComponent<GhostComponent>(characterID)->LoadFromSaveData(m_Character->GetXMLDoc());
 		}
 			break;
 		}
@@ -670,7 +674,7 @@ void Entity::Initialize() {
 		const auto skillID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1);
 		if (skillID > -1 || m_Character) {
 			auto* const skillComponent = AddComponent<SkillComponent>(skillID);
-			if (m_Character) skillComponent->LoadFromXml(m_Character->GetXMLDoc());
+			if (m_Character) skillComponent->LoadFromSaveData(m_Character->GetXMLDoc());
 		}
 			break;
 		}
@@ -1125,6 +1129,10 @@ void Entity::Initialize() {
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
 	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
 
+	// Every component exists: the client's Startup step
+	for (auto* const component : m_Components | std::views::values) if (component) component->Startup();
+	m_ComponentsStarted = true;
+
 	// Hacky way to trigger these when the object has had a chance to get constructed
 	AddCallbackTimer(0, [this]() {
 		this->GetScript()->OnStartup(this);
@@ -1184,6 +1192,14 @@ no_ghosting:
 			controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);
 		}
 	}
+}
+
+void Entity::OnEnterScope(Entity& player) {
+	for (auto* const component : m_Components | std::views::values) if (component) component->OnEnterScope(player);
+}
+
+void Entity::OnLeaveScope(Entity& player) {
+	for (auto* const component : m_Components | std::views::values) if (component) component->OnLeaveScope(player);
 }
 
 bool Entity::operator==(const Entity& other) const {
@@ -1436,7 +1452,7 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {
 	for (const auto& component : m_Components | std::views::values) {
 		if (!component) continue;
 
-		component->UpdateXml(doc);
+		component->WriteSaveData(doc);
 	}
 }
 
@@ -1516,7 +1532,7 @@ void Entity::Update(const float deltaTime) {
 	for (const auto& component : m_Components | std::views::values) {
 		if (!component) continue;
 
-		component->Update(deltaTime);
+		component->Run(deltaTime);
 	}
 
 	if (m_ShouldDestroyAfterUpdate) {

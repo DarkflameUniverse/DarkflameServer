@@ -70,7 +70,7 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 	}
 }
 
-void ControllablePhysicsComponent::Update(float deltaTime) {
+void ControllablePhysicsComponent::Run(float deltaTime) {
 
 }
 
@@ -166,7 +166,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	}
 }
 
-void ControllablePhysicsComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void ControllablePhysicsComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	auto* character = doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		LOG("Failed to find char tag!");
@@ -186,7 +186,7 @@ void ControllablePhysicsComponent::LoadFromXml(const tinyxml2::XMLDocument& doc)
 	m_DirtyPosition = true;
 }
 
-void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void ControllablePhysicsComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	tinyxml2::XMLElement* character = doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		LOG("Failed to find char tag while updating XML!");

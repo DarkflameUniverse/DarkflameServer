@@ -33,8 +33,8 @@ public:
 	explicit MissionComponent(Entity* parent, const int32_t componentID);
 	~MissionComponent() override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
-	void UpdateXml(tinyxml2::XMLDocument& doc) override;
+	void LoadFromSaveData(const tinyxml2::XMLDocument& doc) override;
+	void WriteSaveData(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Returns all the missions for this entity, mapped by mission ID

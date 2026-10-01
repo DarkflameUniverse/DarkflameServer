@@ -50,7 +50,7 @@ TEST_F(CharacterSaveFieldsTests, MissionTypeStatesRoundTrip) {
 
 	Entity player(20, info);
 	auto* const missions = player.AddComponent<MissionComponent>(-1);
-	missions->LoadFromXml(doc);
+	missions->LoadFromSaveData(doc);
 	const auto& states = missions->GetMissionTypeStates();
 	ASSERT_EQ(states.size(), 2);
 	EXPECT_EQ(states.at("Build").at(""), eMissionLockState::NEW);
@@ -58,12 +58,12 @@ TEST_F(CharacterSaveFieldsTests, MissionTypeStatesRoundTrip) {
 	EXPECT_EQ(states.at("Location").at("Nimbus Station"), eMissionLockState::UNLOCKED);
 
 	missions->SetMissionTypeState("Battle", "General", eMissionLockState::NEW);
-	missions->UpdateXml(doc);
+	missions->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><mis><done/><cur/><ts><type v="Battle"><st sub="General" val="1"/></type><type v="Build"><st sub="" val="1"/></type><type v="Location"><st sub="Avant Gardens" val="1"/><st sub="Nimbus Station" val="2"/></type></ts></mis></obj>)");
 
 	Entity reloaded(21, info);
 	auto* const reloadedMissions = reloaded.AddComponent<MissionComponent>(-1);
-	reloadedMissions->LoadFromXml(doc);
+	reloadedMissions->LoadFromSaveData(doc);
 	EXPECT_EQ(reloadedMissions->GetMissionTypeStates(), states);
 }
 
@@ -74,9 +74,9 @@ TEST_F(CharacterSaveFieldsTests, MissionTypeStatesMissingInOldSave) {
 
 	Entity player(22, info);
 	auto* const missions = player.AddComponent<MissionComponent>(-1);
-	missions->LoadFromXml(doc);
+	missions->LoadFromSaveData(doc);
 	EXPECT_TRUE(missions->GetMissionTypeStates().empty());
-	missions->UpdateXml(doc);
+	missions->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><mis><done/><cur/><ts/></mis></obj>)");
 }
 
@@ -88,16 +88,16 @@ TEST_F(CharacterSaveFieldsTests, TooltipFlagsRoundTrip) {
 	Character character(1, nullptr);
 	Entity player(23, info);
 	auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
-	characterComponent->LoadFromXml(doc);
+	characterComponent->LoadFromSaveData(doc);
 	EXPECT_EQ(characterComponent->GetTooltipFlags(), 16777216u);
 
 	characterComponent->SetTooltipFlag(2, true);
-	characterComponent->UpdateXml(doc);
+	characterComponent->WriteSaveData(doc);
 	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("ttip"), "16777220");
 
 	Entity reloaded(24, info);
 	auto* const reloadedComponent = reloaded.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
-	reloadedComponent->LoadFromXml(doc);
+	reloadedComponent->LoadFromSaveData(doc);
 	EXPECT_EQ(reloadedComponent->GetTooltipFlags(), 16777220u);
 }
 
@@ -109,9 +109,9 @@ TEST_F(CharacterSaveFieldsTests, TooltipFlagsMissingInOldSave) {
 	Character character(1, nullptr);
 	Entity player(25, info);
 	auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
-	characterComponent->LoadFromXml(doc);
+	characterComponent->LoadFromSaveData(doc);
 	EXPECT_EQ(characterComponent->GetTooltipFlags(), 0u);
-	characterComponent->UpdateXml(doc);
+	characterComponent->WriteSaveData(doc);
 	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("ttip"), "0");
 }
 
@@ -134,19 +134,19 @@ TEST_F(CharacterSaveFieldsTests, SkillCooldownsRoundTrip) {
 
 	Entity player(26, info);
 	auto* const skills = player.AddComponent<SkillComponent>(-1);
-	skills->LoadFromXml(doc);
+	skills->LoadFromSaveData(doc);
 	ASSERT_EQ(skills->GetCooldownGroups().size(), 2u);
 	EXPECT_FLOAT_EQ(skills->GetCooldownGroups().at(8), 26.6559f);
 
-	skills->Update(26.7f); // group 8 runs out
+	skills->Run(26.7f); // group 8 runs out
 	skills->StartCooldown(394);
 	skills->StartCooldown(395); // no group: not saved
-	skills->UpdateXml(doc);
+	skills->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><skil sc="17:30;78:4.0363;"/></obj>)");
 
 	Entity reloaded(27, info);
 	auto* const reloadedSkills = reloaded.AddComponent<SkillComponent>(-1);
-	reloadedSkills->LoadFromXml(doc);
+	reloadedSkills->LoadFromSaveData(doc);
 	EXPECT_EQ(reloadedSkills->GetCooldownGroups().size(), 2u);
 	EXPECT_FLOAT_EQ(reloadedSkills->GetCooldownGroups().at(17), 30.0f);
 
@@ -160,9 +160,9 @@ TEST_F(CharacterSaveFieldsTests, SkillCooldownsMissingInOldSave) {
 
 	Entity player(28, info);
 	auto* const skills = player.AddComponent<SkillComponent>(-1);
-	skills->LoadFromXml(doc);
+	skills->LoadFromSaveData(doc);
 	EXPECT_TRUE(skills->GetCooldownGroups().empty());
-	skills->UpdateXml(doc);
+	skills->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><skil/></obj>)");
 }
 
@@ -177,6 +177,6 @@ TEST_F(CharacterSaveFieldsTests, PetsAsLiveWroteThem) {
 	auto* const inventory = player.AddComponent<InventoryComponent>(-1);
 	inventory->LoadXml(doc); // the pets load first; there is no <inv> here
 	EXPECT_EQ(inventory->GetDatabasePet(1152921510000000001LL).lot, 3254);
-	inventory->UpdateXml(doc);
+	inventory->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><pet a="0"><p id="1152921510000000001" l="3254" m="2" n="Fluffy" t="0"/></pet></obj>)");
 }

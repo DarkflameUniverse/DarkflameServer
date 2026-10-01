@@ -256,7 +256,7 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 }
 
-void PetComponent::Update(float deltaTime) {
+void PetComponent::Run(float deltaTime) {
 	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 		m_StartRotation = m_Parent->GetRotation();

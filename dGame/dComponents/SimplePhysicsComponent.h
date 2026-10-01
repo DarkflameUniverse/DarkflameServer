@@ -38,7 +38,7 @@ public:
 	SimplePhysicsComponent(Entity* parent, const int32_t componentID);
 	~SimplePhysicsComponent() override;
 
-	void Update(const float deltaTime) override;
+	void Run(const float deltaTime) override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 

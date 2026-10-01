@@ -70,7 +70,7 @@ void BuffComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUp
 	outBitStream.Write0(); // something to do with immunity buffs?
 }
 
-void BuffComponent::Update(float deltaTime) {
+void BuffComponent::Run(float deltaTime) {
 	/**
 	 * Loop through all buffs and apply deltaTime to ther time.
 	 * If they have expired, remove the buff and break.
@@ -353,7 +353,7 @@ Entity* BuffComponent::GetParent() const {
 	return m_Parent;
 }
 
-void BuffComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+void BuffComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	// Load buffs
 	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 
@@ -413,7 +413,7 @@ void BuffComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	}
 }
 
-void BuffComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+void BuffComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	// Save buffs
 	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 

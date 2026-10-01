@@ -449,7 +449,7 @@ void MovingPlatformComponent::MoverArrive() {
 	FireArrivalHooks(arrived, atDesired, atEnd);
 }
 
-void MovingPlatformComponent::Update(const float deltaTime) {
+void MovingPlatformComponent::Run(const float deltaTime) {
 	if (!IsMover()) return;
 	auto* const mover = GetMoverSubComponent();
 	if ((mover->mState & ePlatformStateFlag::Travelling) != 0) {

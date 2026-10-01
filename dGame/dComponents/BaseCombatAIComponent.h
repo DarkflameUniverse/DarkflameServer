@@ -57,7 +57,7 @@ public:
 	static float TetherSpeedOf(int32_t componentID);
 	~BaseCombatAIComponent() override;
 
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**

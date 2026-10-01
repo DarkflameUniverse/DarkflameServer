@@ -107,7 +107,7 @@ void MovementAIComponent::Resume() {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void MovementAIComponent::Update(const float deltaTime) {
+void MovementAIComponent::Run(const float deltaTime) {
 	if (IsKnockedBack()) {
 		UpdateKnockback(deltaTime);
 		return;

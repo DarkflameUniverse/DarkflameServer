@@ -32,7 +32,7 @@ public:
 	ModelComponent(Entity* parent, const int32_t componentID);
 
 	void LoadBehaviors();
-	void Update(float deltaTime) override;
+	void Run(float deltaTime) override;
 
 	bool OnRequestUse(GameMessages::RequestUseEvent& event);
 	bool OnResetModelToDefaults(GameMessages::ResetModelToDefaults& resetModelToDefaults);

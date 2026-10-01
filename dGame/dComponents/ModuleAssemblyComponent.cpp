@@ -64,7 +64,7 @@ void ModuleAssemblyComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 	}
 }
 
-void ModuleAssemblyComponent::Update(float deltaTime) {
+void ModuleAssemblyComponent::Run(float deltaTime) {
 
 }
 
