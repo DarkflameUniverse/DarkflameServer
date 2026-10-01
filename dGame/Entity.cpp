@@ -348,7 +348,10 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		}
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS: {
 		const auto controllablePhysicsComponentID = state.GetComponentID(eReplicaComponentType::CONTROLLABLE_PHYSICS);
-		if (controllablePhysicsComponentID > 0) {
+		if (state.hasModelBehaviors) {
+			// LWOControllablePhysComponent::Allocator (0x0104e070): left to the model case
+			if (controllablePhysicsComponentID > 0) state.modelPhysicsComponentID = controllablePhysicsComponentID;
+		} else if (controllablePhysicsComponentID > 0) {
 			// The component places it: where the level put an object, where a character's save and the zone put it
 			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
 			if (m_Character) controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
@@ -388,7 +391,10 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		}
 		case eReplicaComponentType::PHANTOM_PHYSICS: {
 		const auto phantomPhysicsComponentID = state.GetComponentID(eReplicaComponentType::PHANTOM_PHYSICS);
-		if (phantomPhysicsComponentID > 0 && !HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)) {
+		if (state.hasModelBehaviors) {
+			// LWOPhantomPhysicsComponent::Allocator (0x010383b0): left to the model case
+			if (phantomPhysicsComponentID > 0) state.modelPhysicsComponentID = phantomPhysicsComponentID;
+		} else if (phantomPhysicsComponentID > 0 && !HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)) {
 			AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
 		}
 			break;
