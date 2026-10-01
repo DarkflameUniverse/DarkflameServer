@@ -19,10 +19,14 @@ std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
 RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t componentID) : Component{ parentEntity, componentID } {
 	m_LastAnimationName = "";
-	if (componentID == -1) return;
+}
+
+// The RenderComponent row: its animation groups
+void RenderComponent::LoadDataFromTemplate() {
+	if (m_ComponentID == -1) return;
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM RenderComponent WHERE id = ?;");
-	query.bind(1, componentID);
+	query.bind(1, m_ComponentID);
 	auto result = query.execQuery();
 
 	if (!result.eof()) {

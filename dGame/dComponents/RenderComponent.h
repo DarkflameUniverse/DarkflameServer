@@ -65,6 +65,8 @@ public:
 
 	RenderComponent(Entity* const parentEntity, const int32_t componentID);
 
+	void LoadDataFromTemplate() override;
+
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void Run(float deltaTime) override;
 
