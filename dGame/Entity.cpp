@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "PlatformBoundaryComponent.h"
 #include "CullingPlaneComponent.h"
 #include "SoundAmbient3DComponent.h"
 #include "SoundAmbient2DComponent.h"
@@ -957,6 +958,12 @@ void Entity::Initialize() {
 			// LoadCullingPlaneComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CULLING_PLANE, -1);
 			if (id > -1) AddComponent<CullingPlaneComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PLATFORM_BOUNDARY: {
+			// LWOPlatformBoundaryComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PLATFORM_BOUNDARY, -1);
+			if (id > -1) AddComponent<PlatformBoundaryComponent>(id);
 			break;
 		}
 		default:
