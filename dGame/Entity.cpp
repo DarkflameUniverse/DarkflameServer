@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "GenericActivatorComponent.h"
 #include "ShowcaseModelHandlerComponent.h"
 #include "CustomBuildAssemblyComponent.h"
 #include "PackageComponent.h"
@@ -1062,6 +1063,12 @@ void Entity::Initialize() {
 			// LWOShowcaseModelHandlerComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOWCASE_MODEL_HANDLER, -1);
 			if (id > -1) AddComponent<ShowcaseModelHandlerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::GENERIC_ACTIVATOR: {
+			// LWOGenericActivatorComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::GENERIC_ACTIVATOR, -1);
+			if (id > -1) AddComponent<GenericActivatorComponent>(id);
 			break;
 		}
 		default:
