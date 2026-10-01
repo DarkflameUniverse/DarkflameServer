@@ -95,6 +95,8 @@
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
+#include "MountControlComponent.h"
+#include "PetCreatorComponent.h"
 #include "HFLightDirectionGadgetComponent.h"
 #include "SpawnerComponent.h"
 #include "PathfindingComponent.h"
@@ -437,18 +439,17 @@ void Entity::Initialize() {
 		case eReplicaComponentType::CHARACTER: {
 		const auto characterID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER);
 		if (characterID > 0 || m_Character) {
-			// Character Component always has a possessor, level, and forced movement components
-			AddComponent<PossessorComponent>(characterID);
-
-			// load in the xml for the level
-			AddComponent<LevelProgressionComponent>(characterID)->LoadFromSaveData(m_Character->GetXMLDoc());
-
-			AddComponent<PlayerForcedMovementComponent>(characterID);
+			// LWOCharacterComponent::Factory (0x0104db40): possession control, mount control, pet creator, level
+			// progression and forced movement, then the character, all componentID -1
+			AddComponent<PossessorComponent>(-1);
+			AddComponent<MountControlComponent>(-1);
+			AddComponent<PetCreatorComponent>(-1);
+			AddComponent<LevelProgressionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<PlayerForcedMovementComponent>(-1);
 
 			auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
-			AddComponent<CharacterComponent>(characterID, m_Character, systemAddress)->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<CharacterComponent>(-1, m_Character, systemAddress)->LoadFromSaveData(m_Character->GetXMLDoc());
 
-			AddComponent<GhostComponent>(characterID)->LoadFromSaveData(m_Character->GetXMLDoc());
 		}
 			break;
 		}
@@ -1044,8 +1045,13 @@ void Entity::Initialize() {
 	}
 
 	/**
-	 * Added after the walk, as the client does (DoObjectComponentLoad): the trigger from the level config
+	 * Added after the walk, as the client does (DoObjectComponentLoad): the ghost of a character (LWOGhostComponent's
+	 * allocator 0x0101c010 makes one for characters with physics; level and plain spawned objects get none), then the
+	 * trigger from the level config
 	 */
+	if (m_Character && HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS)) {
+		AddComponent<GhostComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+	}
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
 	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
 
