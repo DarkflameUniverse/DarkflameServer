@@ -396,6 +396,28 @@ public:
 	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
 
 private:
+	/**
+	 * The client's ObjectLoadState (ObjectLoader2): the object's components as its registry gives them, after the
+	 * pre-load rules and the component whitelist, and what the component walk has found so far
+	 */
+	struct ObjectLoadState {
+		LOT lot{};
+		// The config's componentWhitelist (ApplyComponentWhitelist): only these registry components, when set
+		const std::initializer_list<eReplicaComponentType>* whitelist = nullptr;
+		bool hasModelBehaviors = false;
+		bool markedAsPhantom = false;
+		// A model with behaviors' physics id, which the physics cases leave to the model case
+		int32_t modelPhysicsComponentID = -1;
+
+		// The registry's id for type, defaultValue when it has none or the whitelist drops it
+		int32_t GetComponentID(eReplicaComponentType type, int32_t defaultValue = 0) const;
+	};
+
+	// ObjectLoader2::DoObjectPreLoad: what the components will be, before any is made
+	ObjectLoadState DoObjectPreLoad();
+	// ObjectLoader2::DoObjectComponentLoad: the components in the client's order, then the ones it adds after
+	void DoObjectComponentLoad(ObjectLoadState& state);
+
 
 	/**
 	 * Get the LDF data.

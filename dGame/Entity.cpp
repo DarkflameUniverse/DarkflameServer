@@ -260,6 +260,717 @@ namespace {
 	}();
 }
 
+int32_t Entity::ObjectLoadState::GetComponentID(const eReplicaComponentType type, const int32_t defaultValue) const {
+	if (whitelist && std::ranges::find(*whitelist, type) == whitelist->end()) return defaultValue;
+	return CDClientManager::GetTable<CDComponentsRegistryTable>()->GetByIDAndType(lot, type, defaultValue);
+}
+
+// ObjectLoader2::DoObjectPreLoad (0x01054d30): what the object's components will be before any is made
+Entity::ObjectLoadState Entity::DoObjectPreLoad() {
+	ObjectLoadState state;
+	state.lot = m_TemplateID;
+
+	// The player's own components (HandleLocalPlayer makes them for the local player, not from the registry)
+	if (m_Character && m_Character->GetParentUser()) {
+		AddComponent<MissionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+	}
+
+	// markedAsPhantom doesn't count when the registry has phantom physics
+	state.markedAsPhantom = HasVar(u"markedAsPhantom") && state.GetComponentID(eReplicaComponentType::PHANTOM_PHYSICS, -1) == -1;
+
+	// A model with behaviors (0x01055667: not inInventory, and modelType and modelBehaviors in its config) gets its
+	// physics from the model case, which takes the registry's simple physics id
+	state.hasModelBehaviors = !GetVar<bool>(u"inInventory") && HasVar(u"modelType") && HasVar(u"modelBehaviors");
+
+	// ObjectLoader2::ApplyComponentWhitelist (0x0103e300): the config's componentWhitelist keeps only these registry
+	// components (the lists ObjectLoader2's constructor builds; property models use 1)
+	static constexpr std::array<std::initializer_list<eReplicaComponentType>, 5> COMPONENT_WHITELISTS{ {
+		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::RENDER },
+		{ eReplicaComponentType::RENDER, eReplicaComponentType::DESTROYABLE, eReplicaComponentType::ITEM, eReplicaComponentType::BLUEPRINT,
+		  eReplicaComponentType::MODEL, eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::SPAWNER },
+		{ eReplicaComponentType::RENDER, eReplicaComponentType::ITEM, eReplicaComponentType::BLUEPRINT },
+		{ eReplicaComponentType::PET, eReplicaComponentType::SKILL, eReplicaComponentType::DESTROYABLE, eReplicaComponentType::RENDER, eReplicaComponentType::CONTROLLABLE_PHYSICS },
+		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::RENDER },
+	} };
+	const auto whitelistIndex = HasVar(u"componentWhitelist") ? GetVarAs<int32_t>(u"componentWhitelist") : -1;
+	state.whitelist =
+		whitelistIndex >= 0 && whitelistIndex < static_cast<int32_t>(COMPONENT_WHITELISTS.size()) ? &COMPONENT_WHITELISTS[whitelistIndex] : nullptr;
+
+	return state;
+}
+
+// ObjectLoader2::DoObjectComponentLoad (0x0105ebb0): the components in the client's order, then the ones it adds after
+void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
+
+
+	/**
+	 * The components in the client's load order (ObjectLoader2::DoObjectComponentLoad 0x0105ebb0 walks
+	 * ComponentOrderVector::Initialize 0x0101f8e0's list): a component that looks at another one finds it made when the
+	 * client's does. Ids a component needs from a later one come from the registry.
+	 */
+	const auto petComponentID = state.GetComponentID(eReplicaComponentType::PET);
+	const auto collectibleComponentID = state.GetComponentID(eReplicaComponentType::COLLECTIBLE);
+	const auto combatAiID = state.GetComponentID(eReplicaComponentType::BASE_COMBAT_AI);
+	// LWOScriptComponent::Allocator (0x0104d710) and LWOBaseCombatAiComponent::Allocator (0x0104c7b0) add a proximity
+	// monitor when there is none, and pathfinding control when the object has movement physics (controllable,
+	// projectile, vehicle or havok vehicle) and none yet
+	const auto addProximityAndPathfinding = [this]() {
+		if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+		const bool hasMovementPhysics = HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS)
+			|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
+		if (hasMovementPhysics && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
+	};
+
+	for (const auto type : ClientComponentLoadOrder) {
+		if (state.whitelist && std::ranges::find(*state.whitelist, type) == state.whitelist->end()) continue;
+		switch (type) {
+		case eReplicaComponentType::POSSESSABLE: {
+		const auto possessableComponentID = state.GetComponentID(eReplicaComponentType::POSSESSABLE);
+		if (possessableComponentID > 0) {
+			AddComponent<PossessableComponent>(possessableComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MODULE_ASSEMBLY: {
+		const auto moduleAssemblyID = state.GetComponentID(eReplicaComponentType::MODULE_ASSEMBLY);
+		if (moduleAssemblyID > 0) {
+			AddComponent<ModuleAssemblyComponent>(moduleAssemblyID);
+		}
+			break;
+		}
+		case eReplicaComponentType::CONTROLLABLE_PHYSICS: {
+		const auto controllablePhysicsComponentID = state.GetComponentID(eReplicaComponentType::CONTROLLABLE_PHYSICS);
+		if (controllablePhysicsComponentID > 0) {
+			// The component places it: where the level put an object, where a character's save and the zone put it
+			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
+			if (m_Character) controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
+		}
+			break;
+		}
+		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
+		const auto havokVehiclePhysicsComponentID = state.GetComponentID(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
+		// The client makes simple physics instead for use_simple_physics, and none for objectWorldState 2
+		if (havokVehiclePhysicsComponentID > 0 && HasVar(u"use_simple_physics")) {
+			if (!HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)) AddComponent<SimplePhysicsComponent>(havokVehiclePhysicsComponentID);
+		} else if (havokVehiclePhysicsComponentID > 0 && !(HasVar(u"objectWorldState") && GetVarAs<int32_t>(u"objectWorldState") == 2)) {
+			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
+			havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+			havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+		}
+			break;
+		}
+		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS: {
+		const auto rigidBodyPhantomPhysicsComponentID = state.GetComponentID(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS);
+		if (rigidBodyPhantomPhysicsComponentID > 0) {
+			AddComponent<RigidbodyPhantomPhysicsComponent>(rigidBodyPhantomPhysicsComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SIMPLE_PHYSICS: {
+		const auto simplePhysicsComponentID = state.GetComponentID(eReplicaComponentType::SIMPLE_PHYSICS);
+		if (state.hasModelBehaviors) {
+			// LWOSimplePhysicsComponent::Allocator (0x0104ded0): left to the model case
+			if (simplePhysicsComponentID > 0) state.modelPhysicsComponentID = simplePhysicsComponentID;
+		} else if (simplePhysicsComponentID > 0) {
+			// state.markedAsPhantom makes its simple physics phantom physics (with the simple physics row)
+			if (state.markedAsPhantom) AddComponent<PhantomPhysicsComponent>(simplePhysicsComponentID)->SetPhysicsEffectActive(false);
+			else AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PHANTOM_PHYSICS: {
+		const auto phantomPhysicsComponentID = state.GetComponentID(eReplicaComponentType::PHANTOM_PHYSICS);
+		if (phantomPhysicsComponentID > 0 && !HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)) {
+			AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
+		}
+			break;
+		}
+		case eReplicaComponentType::DESTROYABLE: {
+		/**
+		 * The destroyable component. The client makes one (with a buff component in front of it) for a DESTROYABLE
+		 * registry entry, whose id is the DestructibleComponent row. Collectibles and smashable (is_smashable) objects
+		 * without that entry get one too, with no row.
+		 */
+		const auto destroyableComponentID = state.GetComponentID(eReplicaComponentType::DESTROYABLE);
+		if (destroyableComponentID > 0) {
+			AddComponent<BuffComponent>(destroyableComponentID);
+		}
+
+		bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
+		if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
+			const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
+			// The row, the level config and a character's save, in the client's order
+			DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
+			if (m_Character) comp->LoadFromSaveData(m_Character->GetXMLDoc());
+		}
+			break;
+		}
+		case eReplicaComponentType::MINIFIG: {
+			const auto minifigID = state.GetComponentID(eReplicaComponentType::MINIFIG);
+			if (minifigID > 0) AddComponent<MinifigComponent>(minifigID);
+			break;
+		}
+		case eReplicaComponentType::CHARACTER: {
+		const auto characterID = state.GetComponentID(eReplicaComponentType::CHARACTER);
+		if (characterID > 0 || m_Character) {
+			// LWOCharacterComponent::Factory (0x0104db40): possession control, mount control, pet creator, level
+			// progression and forced movement, then the character, all componentID -1
+			AddComponent<PossessorComponent>(-1);
+			AddComponent<MountControlComponent>(-1);
+			AddComponent<PetCreatorComponent>(-1);
+			AddComponent<LevelProgressionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<PlayerForcedMovementComponent>(-1);
+
+			auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+			AddComponent<CharacterComponent>(-1, m_Character, systemAddress)->LoadFromSaveData(m_Character->GetXMLDoc());
+
+		}
+			break;
+		}
+		case eReplicaComponentType::PET: {
+		// LWOPetComponent::Factory (0x01031240): no pet in an inventory; otherwise pathfinding control first
+		if (petComponentID > 0 && !GetVar<bool>(u"inInventory")) {
+			if (!HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
+			AddComponent<PetComponent>(petComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::INVENTORY: {
+		const auto inventoryID = state.GetComponentID(eReplicaComponentType::INVENTORY);
+		if (inventoryID > 0 || m_Character) {
+			AddComponent<InventoryComponent>(inventoryID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROXIMITY_MONITOR: {
+		const auto proximityMonitorID = state.GetComponentID(eReplicaComponentType::PROXIMITY_MONITOR);
+		if (proximityMonitorID > 0) AddComponent<ProximityMonitorComponent>(proximityMonitorID);
+			break;
+		}
+		case eReplicaComponentType::MOVEMENT_AI: {
+		const int movementAIID = state.GetComponentID(eReplicaComponentType::MOVEMENT_AI);
+		if (movementAIID > 0) {
+			// Its row and the level's wanderRadius load in the component
+			AddComponent<MovementAIComponent>(movementAIID, MovementAIInfo{});
+		} else if (petComponentID > 0 || combatAiID > 0 && BaseCombatAIComponent::TetherSpeedOf(combatAiID) > 0) {
+			MovementAIInfo moveInfo{
+				.movementType = "",
+				.wanderRadius = 16,
+				.wanderSpeed = 2.5f,
+				.wanderChance = 0,
+				.wanderDelayMin = 2,
+				.wanderDelayMax = 5,
+			};
+
+			AddComponent<MovementAIComponent>(-1, moveInfo);
+		}
+			break;
+		}
+		case eReplicaComponentType::SCRIPT: {
+		// LWOScriptComponent's allocator: a script component for a registry entry, a character, or a custom script in
+		// the level config; the component picks its script
+		CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
+		const int32_t scriptComponentID = state.GetComponentID(eReplicaComponentType::SCRIPT, -1);
+		const bool hasCustomScript = !GetVarAsString(u"custom_script_server").empty() || !GetVarAsString(u"custom_script_client").empty();
+		if (scriptComponentID >= 0 || m_Character || hasCustomScript) {
+			AddComponent<ScriptComponent>(scriptComponentID);
+			addProximityAndPathfinding();
+		}
+
+		// ZoneControl script
+		if (m_TemplateID == 2365) {
+			const auto& zoneID = Game::zoneManager->GetZoneID();
+			const CDZoneTable* const zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
+
+			if (zoneData != nullptr) {
+				const int32_t zoneScriptID = zoneData->scriptID;
+				CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
+				// A server script only: the client has no script component on the zone control object (live sent none)
+				AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, false, false);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::SKILL: {
+		const auto skillID = state.GetComponentID(eReplicaComponentType::SKILL, -1);
+		if (skillID > -1 || m_Character) {
+			auto* const skillComponent = AddComponent<SkillComponent>(skillID);
+			if (m_Character) skillComponent->LoadFromSaveData(m_Character->GetXMLDoc());
+		}
+			break;
+		}
+		case eReplicaComponentType::BASE_COMBAT_AI: {
+		if (combatAiID > 0) {
+			addProximityAndPathfinding();
+			AddComponent<BaseCombatAIComponent>(combatAiID);
+		}
+			break;
+		}
+		case eReplicaComponentType::ITEM: {
+		// A pet takes the item (and model) component away (LWOPetComponent::Factory); models keep theirs (live: an
+		// item block before the model's)
+		PetComponent* petComponent{};
+		const auto itemID = state.GetComponentID(eReplicaComponentType::ITEM);
+		if (itemID > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent)) {
+			AddComponent<ItemComponent>(itemID);
+		}
+			break;
+		}
+		case eReplicaComponentType::BUILD_BORDER: {
+		const auto buildBorderID = state.GetComponentID(eReplicaComponentType::BUILD_BORDER, -1);
+		if (buildBorderID > -1) {
+			AddComponent<BuildBorderComponent>(buildBorderID);
+		}
+			break;
+		}
+		case eReplicaComponentType::QUICK_BUILD: {
+		const auto quickBuildComponentID = state.GetComponentID(eReplicaComponentType::QUICK_BUILD);
+		if (quickBuildComponentID > 0) {
+			AddComponent<QuickBuildComponent>(quickBuildComponentID);
+
+			// A quick build without a destroyable gets one (componentID -1) and is smashable, as the client makes it
+			// (DoObjectComponentLoad); live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804)
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
+				AddComponent<DestroyableComponent>(-1, true);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::MISSION_OFFER: {
+		const auto missionOfferComponentID = state.GetComponentID(eReplicaComponentType::MISSION_OFFER, -1);
+		if (missionOfferComponentID > -1 || m_Character) {
+			AddComponent<MissionOfferComponent>(missionOfferComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::VENDOR: {
+		const auto vendorID = state.GetComponentID(eReplicaComponentType::VENDOR);
+		// The vendor allocators add a proximity monitor first when there is none
+		if (vendorID > 0) {
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+			AddComponent<VendorComponent>(vendorID);
+		}
+			break;
+		}
+		case eReplicaComponentType::DONATION_VENDOR: {
+		const auto donationVendorID = state.GetComponentID(eReplicaComponentType::DONATION_VENDOR, -1);
+		if (donationVendorID > -1) {
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+			AddComponent<DonationVendorComponent>(donationVendorID);
+		}
+			break;
+		}
+		case eReplicaComponentType::ACHIEVEMENT_VENDOR: {
+		const auto achievementVendorID = state.GetComponentID(eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
+		if (achievementVendorID > -1) {
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+			AddComponent<AchievementVendorComponent>(achievementVendorID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SHOOTING_GALLERY: {
+		// Shooting gallery component
+		const auto shootingGalleryComponentID = state.GetComponentID(eReplicaComponentType::SHOOTING_GALLERY);
+		if (shootingGalleryComponentID > 0) {
+			AddComponent<ShootingGalleryComponent>(shootingGalleryComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SCRIPTED_ACTIVITY: {
+		// Scripted activity component
+		const auto scriptedActivityID = state.GetComponentID(eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
+		if (scriptedActivityID > -1) {
+			AddComponent<ScriptedActivityComponent>(scriptedActivityID);
+		}
+			break;
+		}
+		case eReplicaComponentType::COLLECTIBLE: {
+
+		if (collectibleComponentID > 0) {
+			AddComponent<CollectibleComponent>(collectibleComponentID, GetVarAs<int32_t>(u"collectible_id"));
+		}
+			break;
+		}
+		case eReplicaComponentType::MOVING_PLATFORM: {
+		const std::string pathName = GetVarAsString(u"attached_path");
+		const Path* const path = Game::zoneManager->GetZone()->GetPath(pathName);
+
+		//Check to see if we have an attached path and add the appropiate component to handle it:
+		if (path) {
+			// if we have a moving platform path, then we need a moving platform component
+			if (path->pathType == PathType::MovingPlatform) {
+				// The registry component ID picks the subcomponent (a simple mover when it has one), path or not
+				AddComponent<MovingPlatformComponent>(state.GetComponentID(eReplicaComponentType::MOVING_PLATFORM, -1), pathName);
+			} else if (path->pathType == PathType::Movement) {
+				auto* const movementAIcomponent = GetComponent<MovementAIComponent>();
+				if (movementAIcomponent && combatAiID == 0) {
+					movementAIcomponent->SetPath(pathName);
+				} else {
+					MovementAIInfo moveInfo{
+						.movementType = "",
+						.wanderRadius = 16,
+						.wanderSpeed = 2.5f,
+						.wanderChance = 0,
+						.wanderDelayMin = 2,
+						.wanderDelayMax = 5,
+					};
+
+					AddComponent<MovementAIComponent>(-1, moveInfo);
+				}
+			}
+		} else {
+			// else we still need to setup moving platform if it has a moving platform comp but no path
+			const auto movingPlatformComponentID = state.GetComponentID(eReplicaComponentType::MOVING_PLATFORM, -1);
+			if (movingPlatformComponentID >= 0) {
+				AddComponent<MovingPlatformComponent>(movingPlatformComponentID, pathName);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::LUP_EXHIBIT: {
+		const auto lupExhibitID = state.GetComponentID(eReplicaComponentType::LUP_EXHIBIT, -1);
+		if (lupExhibitID >= 0) {
+			AddComponent<LUPExhibitComponent>(lupExhibitID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY: {
+		const auto propertyID = state.GetComponentID(eReplicaComponentType::PROPERTY, -1);
+		if (propertyID > -1) {
+			AddComponent<PropertyComponent>(propertyID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MODEL: {
+		const auto modelID = state.GetComponentID(eReplicaComponentType::MODEL, -1);
+		if (modelID > -1 && !GetComponent<PetComponent>()) {
+			// ObjectLoader2::LoadModelBehaviorsComponent (0x0104d1f0): a model without physics gets it here (BBB models,
+			// LOT 14, have none in the registry): simple physics 4247 without behaviors; with behaviors controllable
+			// (4246) for modelType 0, else simple (4247), unless the registry gave an id. modelType 0 also gets
+			// pathfinding control.
+			const bool hasPhysics = HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)
+				|| HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS) || HasComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS)
+				|| HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)
+				|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::PHYSICS_SYSTEM);
+			const int32_t modelType = HasVar(u"modelType") ? GetVarAs<int32_t>(u"modelType") : -1;
+			if (!hasPhysics) {
+				if (!state.hasModelBehaviors) AddComponent<SimplePhysicsComponent>(4247);
+				else if (modelType == 0) AddComponent<ControllablePhysicsComponent>(state.modelPhysicsComponentID == -1 ? 4246 : state.modelPhysicsComponentID);
+				else AddComponent<SimplePhysicsComponent>(state.modelPhysicsComponentID == -1 ? 4247 : state.modelPhysicsComponentID);
+			}
+			if (modelType == 0 && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
+			AddComponent<ModelComponent>(modelID)->LoadBehaviors();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
+				AddComponent<DestroyableComponent>(-1, true);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_ENTRANCE: {
+		const auto propertyEntranceComponentID = state.GetComponentID(eReplicaComponentType::PROPERTY_ENTRANCE);
+		if (propertyEntranceComponentID > 0) {
+			AddComponent<PropertyEntranceComponent>(propertyEntranceComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MULTI_ZONE_ENTRANCE: {
+		// if this component exists, then we initialize it. it's value is always 0
+		const auto multiZoneEntranceID = state.GetComponentID(eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1);
+		if (multiZoneEntranceID > -1) {
+			AddComponent<MultiZoneEntranceComponent>(multiZoneEntranceID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_MANAGEMENT: {
+		const auto propertyManagementID = state.GetComponentID(eReplicaComponentType::PROPERTY_MANAGEMENT, -1);
+		if (propertyManagementID > -1) {
+			AddComponent<PropertyManagementComponent>(propertyManagementID);
+		}
+			break;
+		}
+		case eReplicaComponentType::RAIL_ACTIVATOR: {
+		const auto railComponentID = state.GetComponentID(eReplicaComponentType::RAIL_ACTIVATOR);
+		if (railComponentID > 0) {
+			AddComponent<RailActivatorComponent>(railComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::BOUNCER: {
+		const auto bouncerID = state.GetComponentID(eReplicaComponentType::BOUNCER, -1);
+		if (bouncerID > -1) { // you have to determine it like this because all bouncers have a componentID of 0
+			AddComponent<BouncerComponent>(bouncerID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SWITCH: {
+		const auto switchID = state.GetComponentID(eReplicaComponentType::SWITCH, -1);
+		if (switchID > -1) {
+			AddComponent<SwitchComponent>(switchID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MINI_GAME_CONTROL: {
+		// The client makes it from the registry (the zone control object's id is 0)
+		const auto minigameControlID = state.GetComponentID(eReplicaComponentType::MINI_GAME_CONTROL, -1);
+		if (minigameControlID > -1) {
+			AddComponent<MiniGameControlComponent>(minigameControlID);
+		}
+			break;
+		}
+		case eReplicaComponentType::RENDER: {
+		const auto renderComponentID = state.GetComponentID(eReplicaComponentType::RENDER);
+		if ((renderComponentID > 0 && m_TemplateID != 2365) || m_Character) {
+			AddComponent<RenderComponent>(renderComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SOUND_TRIGGER: {
+		const auto soundTriggerID = state.GetComponentID(eReplicaComponentType::SOUND_TRIGGER, -1);
+		const auto racingSoundTriggerID = state.GetComponentID(eReplicaComponentType::RACING_SOUND_TRIGGER, -1);
+		if (soundTriggerID > -1) {
+			AddComponent<SoundTriggerComponent>(soundTriggerID);
+		} else if (racingSoundTriggerID > -1) {
+			AddComponent<RacingSoundTriggerComponent>(racingSoundTriggerID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_VENDOR: {
+		const auto propertyVendorID = state.GetComponentID(eReplicaComponentType::PROPERTY_VENDOR, -1);
+		if (propertyVendorID > -1) {
+			AddComponent<PropertyVendorComponent>(propertyVendorID);
+		}
+			break;
+		}
+		case eReplicaComponentType::ROCKET_LAUNCH: {
+		const auto rocketID = state.GetComponentID(eReplicaComponentType::ROCKET_LAUNCH);
+		if ((rocketID > 0)) {
+			AddComponent<RocketLaunchpadControlComponent>(rocketID);
+		}
+			break;
+		}
+		case eReplicaComponentType::RACING_CONTROL: {
+		const auto racingControlID = state.GetComponentID(eReplicaComponentType::RACING_CONTROL);
+		if (racingControlID > 0) {
+			AddComponent<RacingControlComponent>(racingControlID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SOUND_REPEATER: {
+			// LWOSoundRepeaterComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::SOUND_REPEATER, -1);
+			if (id > -1) AddComponent<SoundRepeaterComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SOUND_AMBIENT_2D: {
+			// LWOSoundAmbient2DComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::SOUND_AMBIENT_2D, -1);
+			if (id > -1) AddComponent<SoundAmbient2DComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SOUND_AMBIENT_3D: {
+			// LWOSoundAmbient3DComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::SOUND_AMBIENT_3D, -1);
+			if (id > -1) AddComponent<SoundAmbient3DComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CULLING_PLANE: {
+			// LoadCullingPlaneComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::CULLING_PLANE, -1);
+			if (id > -1) AddComponent<CullingPlaneComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PLATFORM_BOUNDARY: {
+			// LWOPlatformBoundaryComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::PLATFORM_BOUNDARY, -1);
+			if (id > -1) AddComponent<PlatformBoundaryComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::REBUILD: {
+			// LWOModularBuildComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::REBUILD, -1);
+			if (id > -1) AddComponent<ModularBuildComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::REBUILD_START: {
+			// LWOBuildControllerComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::REBUILD_START, -1);
+			if (id > -1) AddComponent<BuildControllerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::REBUILD_ACTIVATOR: {
+			// LWORebuildActivatorComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::REBUILD_ACTIVATOR, -1);
+			if (id > -1) AddComponent<RebuildActivatorComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CHEST: {
+			// LWOChestComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::CHEST, -1);
+			if (id > -1) AddComponent<ChestComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::BLUEPRINT: {
+			// LWOBlueprintComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::BLUEPRINT, -1);
+			if (id > -1) AddComponent<BlueprintComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::MODULE: {
+			// LWOModuleComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::MODULE, -1);
+			if (id > -1) AddComponent<ModuleComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::ARCADE: {
+			// LWOArcadeComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::ARCADE, -1);
+			if (id > -1) AddComponent<ArcadeComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::MODEL_BUILDER: {
+			// LWOModelBuilderComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::MODEL_BUILDER, -1);
+			if (id > -1) AddComponent<ModelBuilderComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SPRINGPAD: {
+			// LWOSpringpadComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::SPRINGPAD, -1);
+			if (id > -1) AddComponent<SpringpadComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CHANGLING: {
+			// LWOChangelingComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::CHANGLING, -1);
+			if (id > -1) AddComponent<ChangelingComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CHOICE_BUILD: {
+			// LWOChoiceBuildComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::CHOICE_BUILD, -1);
+			if (id > -1) AddComponent<ChoiceBuildComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PACKAGE: {
+			// LWOPackageComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::PACKAGE, -1);
+			if (id > -1) AddComponent<PackageComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY: {
+			// LWOCustomBuildAssemblyComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY, -1);
+			if (id > -1) AddComponent<CustomBuildAssemblyComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SHOWCASE_MODEL_HANDLER: {
+			// LWOShowcaseModelHandlerComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::SHOWCASE_MODEL_HANDLER, -1);
+			if (id > -1) AddComponent<ShowcaseModelHandlerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::GENERIC_ACTIVATOR: {
+			// LWOGenericActivatorComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::GENERIC_ACTIVATOR, -1);
+			if (id > -1) AddComponent<GenericActivatorComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PROJECTILE_PHYSICS: {
+			// LWOProjectilePhysicsComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::PROJECTILE_PHYSICS, -1);
+			if (id > -1) AddComponent<ProjectilePhysicsComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::VEHICLE_PHYSICS: {
+			// LWOVehiclePhysicsComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::VEHICLE_PHYSICS, -1);
+			if (id > -1) AddComponent<VehiclePhysicsComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PHYSICS_SYSTEM: {
+			// The client's physics system component: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::PHYSICS_SYSTEM, -1);
+			if (id > -1) AddComponent<PhysicsSystemComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SPAWNER: {
+			// A spawner object's spawner component, from the registry as the client makes it
+			const auto id = state.GetComponentID(eReplicaComponentType::SPAWNER, -1);
+			if (id > -1) AddComponent<SpawnerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET: {
+			// The client makes it from the registry (an editor object)
+			const auto id = state.GetComponentID(eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET, -1);
+			if (id > -1) AddComponent<HFLightDirectionGadgetComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT: {
+			// From the registry, as the client makes it (a character got one with its character component)
+			const auto id = state.GetComponentID(eReplicaComponentType::PLAYER_FORCED_MOVEMENT, -1);
+			if (id > -1 && !HasComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT)) AddComponent<PlayerForcedMovementComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::ROCKET_LANDING: {
+			// LWORocketAnimationControlComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::ROCKET_LANDING, -1);
+			if (id > -1) AddComponent<RocketLandingComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::FACTION_TRIGGER: {
+			// LWOFactionTriggerComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::FACTION_TRIGGER, -1);
+			if (id > -1) AddComponent<FactionTriggerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::GATE_RUSH_CONTROL: {
+			// LWOGateRushComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::GATE_RUSH_CONTROL, -1);
+			if (id > -1) AddComponent<GateRushComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::ROLLER: {
+			// LWORollerComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::ROLLER, -1);
+			if (id > -1) AddComponent<RollerComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_PLAQUE: {
+			// LoadPropertyPlaqueComponent: the client makes it from the registry
+			const auto id = state.GetComponentID(eReplicaComponentType::PROPERTY_PLAQUE, -1);
+			if (id > -1) AddComponent<PropertyPlaqueComponent>(id);
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	/**
+	 * Components DLU has that the client's load order doesn't make
+	 */
+	const auto racingStatsID = state.GetComponentID(eReplicaComponentType::RACING_STATS);
+	if (racingStatsID > 0) {
+		AddComponent<RacingStatsComponent>(racingStatsID);
+	}
+
+	/**
+	 * Added after the walk, as the client does (DoObjectComponentLoad): the ghost of a character (LWOGhostComponent's
+	 * allocator 0x0101c010 makes one for characters with physics; level and plain spawned objects get none), then the
+	 * trigger from the level config
+	 */
+	if (m_Character && HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS)) {
+		AddComponent<GhostComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+	}
+	// A mission offer's object gets a proximity monitor after the walk when it has none (the registry's mission offer;
+	// a character's is DLU's own)
+	if (!m_Character && HasComponent(eReplicaComponentType::MISSION_OFFER) && !HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) {
+		AddComponent<ProximityMonitorComponent>(-1);
+	}
+	const auto triggerInfo = GetVarAsString(u"trigger_id");
+	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
+}
+
 void Entity::Initialize() {
 	RegisterMsg(&Entity::MsgRequestServerObjectInfo);
 	RegisterMsg(&Entity::MsgDropClientLoot);
@@ -288,703 +999,8 @@ void Entity::Initialize() {
 		m_ParentEntity->AddChild(this);
 	}
 
-	// Get the registry table
-	CDComponentsRegistryTable* const compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-
-	/**
-	 * Player components (the client makes them with the character, not from the registry)
-	 */
-	if (m_Character && m_Character->GetParentUser()) {
-		AddComponent<MissionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
-	}
-
-	/**
-	 * The components in the client's load order (ObjectLoader2::DoObjectComponentLoad 0x0105ebb0 walks
-	 * ComponentOrderVector::Initialize 0x0101f8e0's list): a component that looks at another one finds it made when the
-	 * client's does. Ids a component needs from a later one come from the registry.
-	 */
-	const auto petComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
-	const auto collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
-	const auto combatAiID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
-	// LWOScriptComponent::Allocator (0x0104d710) and LWOBaseCombatAiComponent::Allocator (0x0104c7b0) add a proximity
-	// monitor when there is none, and pathfinding control when the object has movement physics (controllable,
-	// projectile, vehicle or havok vehicle) and none yet
-	const auto addProximityAndPathfinding = [this]() {
-		if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
-		const bool hasMovementPhysics = HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS)
-			|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
-		if (hasMovementPhysics && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
-	};
-	// A model with behaviors (DoObjectPreLoad 0x01055667: not inInventory, and modelType and modelBehaviors in its
-	// config) gets its physics from the model case, which takes the registry's simple physics id
-	const bool hasModelBehaviors = !GetVar<bool>(u"inInventory") && HasVar(u"modelType") && HasVar(u"modelBehaviors");
-	int32_t modelPhysicsComponentID = -1;
-	// If an entity is marked a phantom, simple physics is made into phantom phyics.
-	// DoObjectPreLoad: markedAsPhantom doesn't count when the registry has phantom physics
-	const bool markedAsPhantom = HasVar(u"markedAsPhantom") && compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS, -1) == -1;
-
-	// ObjectLoader2::ApplyComponentWhitelist (0x0103e300): the config's componentWhitelist keeps only these registry
-	// components (the lists ObjectLoader2's constructor builds; property models use 1)
-	static constexpr std::array<std::initializer_list<eReplicaComponentType>, 5> COMPONENT_WHITELISTS{ {
-		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::RENDER },
-		{ eReplicaComponentType::RENDER, eReplicaComponentType::DESTROYABLE, eReplicaComponentType::ITEM, eReplicaComponentType::BLUEPRINT,
-		  eReplicaComponentType::MODEL, eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::SPAWNER },
-		{ eReplicaComponentType::RENDER, eReplicaComponentType::ITEM, eReplicaComponentType::BLUEPRINT },
-		{ eReplicaComponentType::PET, eReplicaComponentType::SKILL, eReplicaComponentType::DESTROYABLE, eReplicaComponentType::RENDER, eReplicaComponentType::CONTROLLABLE_PHYSICS },
-		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::RENDER },
-	} };
-	const auto whitelistIndex = HasVar(u"componentWhitelist") ? GetVarAs<int32_t>(u"componentWhitelist") : -1;
-	const std::initializer_list<eReplicaComponentType>* const whitelist =
-		whitelistIndex >= 0 && whitelistIndex < static_cast<int32_t>(COMPONENT_WHITELISTS.size()) ? &COMPONENT_WHITELISTS[whitelistIndex] : nullptr;
-
-	for (const auto type : ClientComponentLoadOrder) {
-		if (whitelist && std::ranges::find(*whitelist, type) == whitelist->end()) continue;
-		switch (type) {
-		case eReplicaComponentType::POSSESSABLE: {
-		const auto possessableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
-		if (possessableComponentID > 0) {
-			AddComponent<PossessableComponent>(possessableComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::MODULE_ASSEMBLY: {
-		const auto moduleAssemblyID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE_ASSEMBLY);
-		if (moduleAssemblyID > 0) {
-			AddComponent<ModuleAssemblyComponent>(moduleAssemblyID);
-		}
-			break;
-		}
-		case eReplicaComponentType::CONTROLLABLE_PHYSICS: {
-		const auto controllablePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS);
-		if (controllablePhysicsComponentID > 0) {
-			// The component places it: where the level put an object, where a character's save and the zone put it
-			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
-			if (m_Character) controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
-		}
-			break;
-		}
-		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
-		const auto havokVehiclePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
-		// The client makes simple physics instead for use_simple_physics, and none for objectWorldState 2
-		if (havokVehiclePhysicsComponentID > 0 && HasVar(u"use_simple_physics")) {
-			if (!HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)) AddComponent<SimplePhysicsComponent>(havokVehiclePhysicsComponentID);
-		} else if (havokVehiclePhysicsComponentID > 0 && !(HasVar(u"objectWorldState") && GetVarAs<int32_t>(u"objectWorldState") == 2)) {
-			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
-			havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-			havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
-		}
-			break;
-		}
-		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS: {
-		const auto rigidBodyPhantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS);
-		if (rigidBodyPhantomPhysicsComponentID > 0) {
-			AddComponent<RigidbodyPhantomPhysicsComponent>(rigidBodyPhantomPhysicsComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::SIMPLE_PHYSICS: {
-		const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
-		if (hasModelBehaviors) {
-			// LWOSimplePhysicsComponent::Allocator (0x0104ded0): left to the model case
-			if (simplePhysicsComponentID > 0) modelPhysicsComponentID = simplePhysicsComponentID;
-		} else if (simplePhysicsComponentID > 0) {
-			// markedAsPhantom makes its simple physics phantom physics (with the simple physics row)
-			if (markedAsPhantom) AddComponent<PhantomPhysicsComponent>(simplePhysicsComponentID)->SetPhysicsEffectActive(false);
-			else AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::PHANTOM_PHYSICS: {
-		const auto phantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS);
-		if (phantomPhysicsComponentID > 0 && !HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)) {
-			AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
-		}
-			break;
-		}
-		case eReplicaComponentType::DESTROYABLE: {
-		/**
-		 * The destroyable component. The client makes one (with a buff component in front of it) for a DESTROYABLE
-		 * registry entry, whose id is the DestructibleComponent row. Collectibles and smashable (is_smashable) objects
-		 * without that entry get one too, with no row.
-		 */
-		const auto destroyableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DESTROYABLE);
-		if (destroyableComponentID > 0) {
-			AddComponent<BuffComponent>(destroyableComponentID);
-		}
-
-		bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
-		if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
-			const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
-			// The row, the level config and a character's save, in the client's order
-			DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
-			if (m_Character) comp->LoadFromSaveData(m_Character->GetXMLDoc());
-		}
-			break;
-		}
-		case eReplicaComponentType::MINIFIG: {
-			const auto minifigID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINIFIG);
-			if (minifigID > 0) AddComponent<MinifigComponent>(minifigID);
-			break;
-		}
-		case eReplicaComponentType::CHARACTER: {
-		const auto characterID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER);
-		if (characterID > 0 || m_Character) {
-			// LWOCharacterComponent::Factory (0x0104db40): possession control, mount control, pet creator, level
-			// progression and forced movement, then the character, all componentID -1
-			AddComponent<PossessorComponent>(-1);
-			AddComponent<MountControlComponent>(-1);
-			AddComponent<PetCreatorComponent>(-1);
-			AddComponent<LevelProgressionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
-			AddComponent<PlayerForcedMovementComponent>(-1);
-
-			auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
-			AddComponent<CharacterComponent>(-1, m_Character, systemAddress)->LoadFromSaveData(m_Character->GetXMLDoc());
-
-		}
-			break;
-		}
-		case eReplicaComponentType::PET: {
-		// LWOPetComponent::Factory (0x01031240): no pet in an inventory; otherwise pathfinding control first
-		if (petComponentID > 0 && !GetVar<bool>(u"inInventory")) {
-			if (!HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
-			AddComponent<PetComponent>(petComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::INVENTORY: {
-		const auto inventoryID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY);
-		if (inventoryID > 0 || m_Character) {
-			AddComponent<InventoryComponent>(inventoryID);
-		}
-			break;
-		}
-		case eReplicaComponentType::PROXIMITY_MONITOR: {
-		const auto proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
-		if (proximityMonitorID > 0) AddComponent<ProximityMonitorComponent>(proximityMonitorID);
-			break;
-		}
-		case eReplicaComponentType::MOVEMENT_AI: {
-		const int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
-		if (movementAIID > 0) {
-			// Its row and the level's wanderRadius load in the component
-			AddComponent<MovementAIComponent>(movementAIID, MovementAIInfo{});
-		} else if (petComponentID > 0 || combatAiID > 0 && BaseCombatAIComponent::TetherSpeedOf(combatAiID) > 0) {
-			MovementAIInfo moveInfo{
-				.movementType = "",
-				.wanderRadius = 16,
-				.wanderSpeed = 2.5f,
-				.wanderChance = 0,
-				.wanderDelayMin = 2,
-				.wanderDelayMax = 5,
-			};
-
-			AddComponent<MovementAIComponent>(-1, moveInfo);
-		}
-			break;
-		}
-		case eReplicaComponentType::SCRIPT: {
-		// LWOScriptComponent's allocator: a script component for a registry entry, a character, or a custom script in
-		// the level config; the component picks its script
-		CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
-		const int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
-		const bool hasCustomScript = !GetVarAsString(u"custom_script_server").empty() || !GetVarAsString(u"custom_script_client").empty();
-		if (scriptComponentID >= 0 || m_Character || hasCustomScript) {
-			AddComponent<ScriptComponent>(scriptComponentID);
-			addProximityAndPathfinding();
-		}
-
-		// ZoneControl script
-		if (m_TemplateID == 2365) {
-			const auto& zoneID = Game::zoneManager->GetZoneID();
-			const CDZoneTable* const zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
-
-			if (zoneData != nullptr) {
-				const int32_t zoneScriptID = zoneData->scriptID;
-				CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
-				// A server script only: the client has no script component on the zone control object (live sent none)
-				AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, false, false);
-			}
-		}
-			break;
-		}
-		case eReplicaComponentType::SKILL: {
-		const auto skillID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1);
-		if (skillID > -1 || m_Character) {
-			auto* const skillComponent = AddComponent<SkillComponent>(skillID);
-			if (m_Character) skillComponent->LoadFromSaveData(m_Character->GetXMLDoc());
-		}
-			break;
-		}
-		case eReplicaComponentType::BASE_COMBAT_AI: {
-		if (combatAiID > 0) {
-			addProximityAndPathfinding();
-			AddComponent<BaseCombatAIComponent>(combatAiID);
-		}
-			break;
-		}
-		case eReplicaComponentType::ITEM: {
-		// A pet takes the item (and model) component away (LWOPetComponent::Factory); models keep theirs (live: an
-		// item block before the model's)
-		PetComponent* petComponent{};
-		const auto itemID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM);
-		if (itemID > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent)) {
-			AddComponent<ItemComponent>(itemID);
-		}
-			break;
-		}
-		case eReplicaComponentType::BUILD_BORDER: {
-		const auto buildBorderID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUILD_BORDER, -1);
-		if (buildBorderID > -1) {
-			AddComponent<BuildBorderComponent>(buildBorderID);
-		}
-			break;
-		}
-		case eReplicaComponentType::QUICK_BUILD: {
-		const auto quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
-		if (quickBuildComponentID > 0) {
-			AddComponent<QuickBuildComponent>(quickBuildComponentID);
-
-			// A quick build without a destroyable gets one (componentID -1) and is smashable, as the client makes it
-			// (DoObjectComponentLoad); live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804)
-			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-				AddComponent<DestroyableComponent>(-1, true);
-			}
-		}
-			break;
-		}
-		case eReplicaComponentType::MISSION_OFFER: {
-		const auto missionOfferComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MISSION_OFFER, -1);
-		if (missionOfferComponentID > -1 || m_Character) {
-			AddComponent<MissionOfferComponent>(missionOfferComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::VENDOR: {
-		const auto vendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR);
-		// The vendor allocators add a proximity monitor first when there is none
-		if (vendorID > 0) {
-			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
-			AddComponent<VendorComponent>(vendorID);
-		}
-			break;
-		}
-		case eReplicaComponentType::DONATION_VENDOR: {
-		const auto donationVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1);
-		if (donationVendorID > -1) {
-			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
-			AddComponent<DonationVendorComponent>(donationVendorID);
-		}
-			break;
-		}
-		case eReplicaComponentType::ACHIEVEMENT_VENDOR: {
-		const auto achievementVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
-		if (achievementVendorID > -1) {
-			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
-			AddComponent<AchievementVendorComponent>(achievementVendorID);
-		}
-			break;
-		}
-		case eReplicaComponentType::SHOOTING_GALLERY: {
-		// Shooting gallery component
-		const auto shootingGalleryComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY);
-		if (shootingGalleryComponentID > 0) {
-			AddComponent<ShootingGalleryComponent>(shootingGalleryComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::SCRIPTED_ACTIVITY: {
-		// Scripted activity component
-		const auto scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
-		if (scriptedActivityID > -1) {
-			AddComponent<ScriptedActivityComponent>(scriptedActivityID);
-		}
-			break;
-		}
-		case eReplicaComponentType::COLLECTIBLE: {
-
-		if (collectibleComponentID > 0) {
-			AddComponent<CollectibleComponent>(collectibleComponentID, GetVarAs<int32_t>(u"collectible_id"));
-		}
-			break;
-		}
-		case eReplicaComponentType::MOVING_PLATFORM: {
-		const std::string pathName = GetVarAsString(u"attached_path");
-		const Path* const path = Game::zoneManager->GetZone()->GetPath(pathName);
-
-		//Check to see if we have an attached path and add the appropiate component to handle it:
-		if (path) {
-			// if we have a moving platform path, then we need a moving platform component
-			if (path->pathType == PathType::MovingPlatform) {
-				// The registry component ID picks the subcomponent (a simple mover when it has one), path or not
-				AddComponent<MovingPlatformComponent>(compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1), pathName);
-			} else if (path->pathType == PathType::Movement) {
-				auto* const movementAIcomponent = GetComponent<MovementAIComponent>();
-				if (movementAIcomponent && combatAiID == 0) {
-					movementAIcomponent->SetPath(pathName);
-				} else {
-					MovementAIInfo moveInfo{
-						.movementType = "",
-						.wanderRadius = 16,
-						.wanderSpeed = 2.5f,
-						.wanderChance = 0,
-						.wanderDelayMin = 2,
-						.wanderDelayMax = 5,
-					};
-
-					AddComponent<MovementAIComponent>(-1, moveInfo);
-				}
-			}
-		} else {
-			// else we still need to setup moving platform if it has a moving platform comp but no path
-			const auto movingPlatformComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
-			if (movingPlatformComponentID >= 0) {
-				AddComponent<MovingPlatformComponent>(movingPlatformComponentID, pathName);
-			}
-		}
-			break;
-		}
-		case eReplicaComponentType::LUP_EXHIBIT: {
-		const auto lupExhibitID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::LUP_EXHIBIT, -1);
-		if (lupExhibitID >= 0) {
-			AddComponent<LUPExhibitComponent>(lupExhibitID);
-		}
-			break;
-		}
-		case eReplicaComponentType::PROPERTY: {
-		const auto propertyID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY, -1);
-		if (propertyID > -1) {
-			AddComponent<PropertyComponent>(propertyID);
-		}
-			break;
-		}
-		case eReplicaComponentType::MODEL: {
-		const auto modelID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1);
-		if (modelID > -1 && !GetComponent<PetComponent>()) {
-			// ObjectLoader2::LoadModelBehaviorsComponent (0x0104d1f0): a model without physics gets it here (BBB models,
-			// LOT 14, have none in the registry): simple physics 4247 without behaviors; with behaviors controllable
-			// (4246) for modelType 0, else simple (4247), unless the registry gave an id. modelType 0 also gets
-			// pathfinding control.
-			const bool hasPhysics = HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)
-				|| HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS) || HasComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS)
-				|| HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)
-				|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::PHYSICS_SYSTEM);
-			const int32_t modelType = HasVar(u"modelType") ? GetVarAs<int32_t>(u"modelType") : -1;
-			if (!hasPhysics) {
-				if (!hasModelBehaviors) AddComponent<SimplePhysicsComponent>(4247);
-				else if (modelType == 0) AddComponent<ControllablePhysicsComponent>(modelPhysicsComponentID == -1 ? 4246 : modelPhysicsComponentID);
-				else AddComponent<SimplePhysicsComponent>(modelPhysicsComponentID == -1 ? 4247 : modelPhysicsComponentID);
-			}
-			if (modelType == 0 && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
-			AddComponent<ModelComponent>(modelID)->LoadBehaviors();
-			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-				AddComponent<DestroyableComponent>(-1, true);
-			}
-		}
-			break;
-		}
-		case eReplicaComponentType::PROPERTY_ENTRANCE: {
-		const auto propertyEntranceComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_ENTRANCE);
-		if (propertyEntranceComponentID > 0) {
-			AddComponent<PropertyEntranceComponent>(propertyEntranceComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::MULTI_ZONE_ENTRANCE: {
-		// if this component exists, then we initialize it. it's value is always 0
-		const auto multiZoneEntranceID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1);
-		if (multiZoneEntranceID > -1) {
-			AddComponent<MultiZoneEntranceComponent>(multiZoneEntranceID);
-		}
-			break;
-		}
-		case eReplicaComponentType::PROPERTY_MANAGEMENT: {
-		const auto propertyManagementID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_MANAGEMENT, -1);
-		if (propertyManagementID > -1) {
-			AddComponent<PropertyManagementComponent>(propertyManagementID);
-		}
-			break;
-		}
-		case eReplicaComponentType::RAIL_ACTIVATOR: {
-		const auto railComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RAIL_ACTIVATOR);
-		if (railComponentID > 0) {
-			AddComponent<RailActivatorComponent>(railComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::BOUNCER: {
-		const auto bouncerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BOUNCER, -1);
-		if (bouncerID > -1) { // you have to determine it like this because all bouncers have a componentID of 0
-			AddComponent<BouncerComponent>(bouncerID);
-		}
-			break;
-		}
-		case eReplicaComponentType::SWITCH: {
-		const auto switchID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1);
-		if (switchID > -1) {
-			AddComponent<SwitchComponent>(switchID);
-		}
-			break;
-		}
-		case eReplicaComponentType::MINI_GAME_CONTROL: {
-		// The client makes it from the registry (the zone control object's id is 0)
-		const auto minigameControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL, -1);
-		if (minigameControlID > -1) {
-			AddComponent<MiniGameControlComponent>(minigameControlID);
-		}
-			break;
-		}
-		case eReplicaComponentType::RENDER: {
-		const auto renderComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
-		if ((renderComponentID > 0 && m_TemplateID != 2365) || m_Character) {
-			AddComponent<RenderComponent>(renderComponentID);
-		}
-			break;
-		}
-		case eReplicaComponentType::SOUND_TRIGGER: {
-		const auto soundTriggerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1);
-		const auto racingSoundTriggerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_SOUND_TRIGGER, -1);
-		if (soundTriggerID > -1) {
-			AddComponent<SoundTriggerComponent>(soundTriggerID);
-		} else if (racingSoundTriggerID > -1) {
-			AddComponent<RacingSoundTriggerComponent>(racingSoundTriggerID);
-		}
-			break;
-		}
-		case eReplicaComponentType::PROPERTY_VENDOR: {
-		const auto propertyVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1);
-		if (propertyVendorID > -1) {
-			AddComponent<PropertyVendorComponent>(propertyVendorID);
-		}
-			break;
-		}
-		case eReplicaComponentType::ROCKET_LAUNCH: {
-		const auto rocketID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LAUNCH);
-		if ((rocketID > 0)) {
-			AddComponent<RocketLaunchpadControlComponent>(rocketID);
-		}
-			break;
-		}
-		case eReplicaComponentType::RACING_CONTROL: {
-		const auto racingControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL);
-		if (racingControlID > 0) {
-			AddComponent<RacingControlComponent>(racingControlID);
-		}
-			break;
-		}
-		case eReplicaComponentType::SOUND_REPEATER: {
-			// LWOSoundRepeaterComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_REPEATER, -1);
-			if (id > -1) AddComponent<SoundRepeaterComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::SOUND_AMBIENT_2D: {
-			// LWOSoundAmbient2DComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_AMBIENT_2D, -1);
-			if (id > -1) AddComponent<SoundAmbient2DComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::SOUND_AMBIENT_3D: {
-			// LWOSoundAmbient3DComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_AMBIENT_3D, -1);
-			if (id > -1) AddComponent<SoundAmbient3DComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::CULLING_PLANE: {
-			// LoadCullingPlaneComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CULLING_PLANE, -1);
-			if (id > -1) AddComponent<CullingPlaneComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::PLATFORM_BOUNDARY: {
-			// LWOPlatformBoundaryComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PLATFORM_BOUNDARY, -1);
-			if (id > -1) AddComponent<PlatformBoundaryComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::REBUILD: {
-			// LWOModularBuildComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::REBUILD, -1);
-			if (id > -1) AddComponent<ModularBuildComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::REBUILD_START: {
-			// LWOBuildControllerComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::REBUILD_START, -1);
-			if (id > -1) AddComponent<BuildControllerComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::REBUILD_ACTIVATOR: {
-			// LWORebuildActivatorComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::REBUILD_ACTIVATOR, -1);
-			if (id > -1) AddComponent<RebuildActivatorComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::CHEST: {
-			// LWOChestComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHEST, -1);
-			if (id > -1) AddComponent<ChestComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::BLUEPRINT: {
-			// LWOBlueprintComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BLUEPRINT, -1);
-			if (id > -1) AddComponent<BlueprintComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::MODULE: {
-			// LWOModuleComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE, -1);
-			if (id > -1) AddComponent<ModuleComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::ARCADE: {
-			// LWOArcadeComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ARCADE, -1);
-			if (id > -1) AddComponent<ArcadeComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::MODEL_BUILDER: {
-			// LWOModelBuilderComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL_BUILDER, -1);
-			if (id > -1) AddComponent<ModelBuilderComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::SPRINGPAD: {
-			// LWOSpringpadComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SPRINGPAD, -1);
-			if (id > -1) AddComponent<SpringpadComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::CHANGLING: {
-			// LWOChangelingComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHANGLING, -1);
-			if (id > -1) AddComponent<ChangelingComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::CHOICE_BUILD: {
-			// LWOChoiceBuildComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHOICE_BUILD, -1);
-			if (id > -1) AddComponent<ChoiceBuildComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::PACKAGE: {
-			// LWOPackageComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PACKAGE, -1);
-			if (id > -1) AddComponent<PackageComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY: {
-			// LWOCustomBuildAssemblyComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY, -1);
-			if (id > -1) AddComponent<CustomBuildAssemblyComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::SHOWCASE_MODEL_HANDLER: {
-			// LWOShowcaseModelHandlerComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOWCASE_MODEL_HANDLER, -1);
-			if (id > -1) AddComponent<ShowcaseModelHandlerComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::GENERIC_ACTIVATOR: {
-			// LWOGenericActivatorComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::GENERIC_ACTIVATOR, -1);
-			if (id > -1) AddComponent<GenericActivatorComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::PROJECTILE_PHYSICS: {
-			// LWOProjectilePhysicsComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROJECTILE_PHYSICS, -1);
-			if (id > -1) AddComponent<ProjectilePhysicsComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::VEHICLE_PHYSICS: {
-			// LWOVehiclePhysicsComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VEHICLE_PHYSICS, -1);
-			if (id > -1) AddComponent<VehiclePhysicsComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::PHYSICS_SYSTEM: {
-			// The client's physics system component: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHYSICS_SYSTEM, -1);
-			if (id > -1) AddComponent<PhysicsSystemComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::SPAWNER: {
-			// A spawner object's spawner component, from the registry as the client makes it
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SPAWNER, -1);
-			if (id > -1) AddComponent<SpawnerComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET: {
-			// The client makes it from the registry (an editor object)
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET, -1);
-			if (id > -1) AddComponent<HFLightDirectionGadgetComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT: {
-			// From the registry, as the client makes it (a character got one with its character component)
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PLAYER_FORCED_MOVEMENT, -1);
-			if (id > -1 && !HasComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT)) AddComponent<PlayerForcedMovementComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::ROCKET_LANDING: {
-			// LWORocketAnimationControlComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LANDING, -1);
-			if (id > -1) AddComponent<RocketLandingComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::FACTION_TRIGGER: {
-			// LWOFactionTriggerComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::FACTION_TRIGGER, -1);
-			if (id > -1) AddComponent<FactionTriggerComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::GATE_RUSH_CONTROL: {
-			// LWOGateRushComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::GATE_RUSH_CONTROL, -1);
-			if (id > -1) AddComponent<GateRushComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::ROLLER: {
-			// LWORollerComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROLLER, -1);
-			if (id > -1) AddComponent<RollerComponent>(id);
-			break;
-		}
-		case eReplicaComponentType::PROPERTY_PLAQUE: {
-			// LoadPropertyPlaqueComponent: the client makes it from the registry
-			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_PLAQUE, -1);
-			if (id > -1) AddComponent<PropertyPlaqueComponent>(id);
-			break;
-		}
-		default:
-			break;
-		}
-	}
-
-	/**
-	 * Components DLU has that the client's load order doesn't make
-	 */
-	const auto racingStatsID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_STATS);
-	if (racingStatsID > 0) {
-		AddComponent<RacingStatsComponent>(racingStatsID);
-	}
-
-	/**
-	 * Added after the walk, as the client does (DoObjectComponentLoad): the ghost of a character (LWOGhostComponent's
-	 * allocator 0x0101c010 makes one for characters with physics; level and plain spawned objects get none), then the
-	 * trigger from the level config
-	 */
-	if (m_Character && HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS)) {
-		AddComponent<GhostComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
-	}
-	// A mission offer's object gets a proximity monitor after the walk when it has none (the registry's mission offer;
-	// a character's is DLU's own)
-	if (!m_Character && HasComponent(eReplicaComponentType::MISSION_OFFER) && !HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) {
-		AddComponent<ProximityMonitorComponent>(-1);
-	}
-	const auto triggerInfo = GetVarAsString(u"trigger_id");
-	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
+	auto loadState = DoObjectPreLoad();
+	DoObjectComponentLoad(loadState);
 
 	// Every component exists: the client's Startup step
 	for (auto* const component : m_Components | std::views::values) if (component) component->Startup();
