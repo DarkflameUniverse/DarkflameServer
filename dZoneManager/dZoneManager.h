@@ -40,6 +40,8 @@ public:
 	LWOOBJID MakeSpawner(SpawnerInfo info);
 	Spawner* GetSpawner(LWOOBJID id);
 	void RemoveSpawner(LWOOBJID id);
+	// Called by a SpawnerComponent going away: stops indexing its spawner
+	void ForgetSpawner(LWOOBJID id, const Spawner* spawner);
 	std::vector<Spawner*> GetSpawnersByName(const std::string& spawnerName);
 	std::vector<Spawner*> GetSpawnersInGroup(const std::string& group);
 	// Every spawner in the zone (live events pick walkable places from their nodes)

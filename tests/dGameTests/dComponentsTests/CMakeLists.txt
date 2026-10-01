@@ -22,6 +22,7 @@ set(DCOMPONENTS_TESTS
 	"CapturePropertyTests.cpp"
 	"ItemRemovalTests.cpp"
 	"LootMetricsTests.cpp"
+	"SpawnerComponentTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

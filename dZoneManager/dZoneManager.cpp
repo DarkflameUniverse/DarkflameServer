@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "dCommonVars.h"
 #include "dZoneManager.h"
+#include "SpawnerComponent.h"
 #include "EntityManager.h"
 #include "Logger.h"
 #include "dConfig.h"
@@ -74,12 +75,8 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 dZoneManager::~dZoneManager() {
 	if (m_pZone) delete m_pZone;
 
-	for (auto* spawner : m_Spawners | std::views::values) {
-		if (spawner) {
-			delete spawner;
-			spawner = nullptr;
-		}
-	}
+	// Each spawner belongs to its object's SpawnerComponent
+	m_Spawners.clear();
 }
 
 Zone* dZoneManager::GetZoneMut() const {
@@ -118,7 +115,8 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 		info.spawnerID = objectId;
 	}
 
-	auto* spawner = new Spawner(info);
+	auto spawner = std::make_unique<Spawner>(info);
+	auto* const spawnerPtr = spawner.get();
 
 	EntityInfo entityInfo{};
 
@@ -127,9 +125,14 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 
 	auto* entity = Game::entityManager->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
 
+	// The spawner object's SpawnerComponent (from the registry) owns the spawner
+	auto* spawnerComponent = entity->GetComponent<SpawnerComponent>();
+	if (!spawnerComponent) spawnerComponent = entity->AddComponent<SpawnerComponent>(-1);
+	spawnerComponent->SetSpawner(std::move(spawner));
+
 	Game::entityManager->ConstructEntity(entity);
 
-	AddSpawner(objectId, spawner);
+	AddSpawner(objectId, spawnerPtr);
 
 	return objectId;
 }
@@ -163,9 +166,13 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 
 	LOG("Destroyed spawner (%llu)", id);
 
+	// The spawner goes with its object's SpawnerComponent
 	m_Spawners.erase(id);
+}
 
-	delete spawner;
+void dZoneManager::ForgetSpawner(const LWOOBJID id, const Spawner* spawner) {
+	const auto it = m_Spawners.find(id);
+	if (it != m_Spawners.end() && it->second == spawner) m_Spawners.erase(it);
 }
 
 

@@ -42,6 +42,7 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"SimplePhysicsComponent.cpp"
 	"SkillComponent.cpp"
 	"SoundTriggerComponent.cpp"
+	"SpawnerComponent.cpp"
 	"SwitchComponent.cpp"
 	"TriggerComponent.cpp"
 	"HavokVehiclePhysicsComponent.cpp"
