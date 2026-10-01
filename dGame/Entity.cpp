@@ -322,6 +322,15 @@ void Entity::Initialize() {
 	const auto petComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
 	const auto collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
 	const auto combatAiID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
+	// LWOScriptComponent::Allocator (0x0104d710) and LWOBaseCombatAiComponent::Allocator (0x0104c7b0) add a proximity
+	// monitor when there is none, and pathfinding control when the object has movement physics (controllable,
+	// projectile, vehicle or havok vehicle) and none yet
+	const auto addProximityAndPathfinding = [this]() {
+		if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+		const bool hasMovementPhysics = HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS)
+			|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
+		if (hasMovementPhysics && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
+	};
 	// If an entity is marked a phantom, simple physics is made into phantom phyics.
 	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
 
@@ -577,6 +586,7 @@ void Entity::Initialize() {
 
 		if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
 			AddComponent<ScriptComponent>(scriptComponentID, scriptName, true, client && scriptName.empty());
+			addProximityAndPathfinding();
 		}
 
 		// ZoneControl script
