@@ -130,7 +130,8 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	if (!spawnerComponent) spawnerComponent = entity->AddComponent<SpawnerComponent>(-1);
 	spawnerComponent->SetSpawner(std::move(spawner));
 
-	Game::entityManager->ConstructEntity(entity);
+	// A spawner object is never sent to clients: live constructed none (no LOT 176 among the 145,770 constructions in
+	// the captures, property building included)
 
 	AddSpawner(objectId, spawnerPtr);
 
