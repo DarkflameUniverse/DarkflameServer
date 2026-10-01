@@ -128,11 +128,47 @@
 	// When it was made and what that cost (the cost is only known for makes since it was recorded), and with what
 	function madeText(i) {
 		if (!i.processedAt) return '';
-		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '') + (i.madeOptions ? ' \u00b7 with ' + i.madeOptions : '');
+		return fmt.unix(i.processedAt) + (costText(i) ? ' \u00b7 ' + costText(i) : '') + (i.madeOptions ? ' \u00b7 with ' + optionsText(i.madeOptions) : '');
 	}
-	// The processing options picked for Make again (ray tracer, denoise, processor), as /api/ugc/reprocess takes them
-	function remakeOptions() {
-		return ['optRays', 'optDenoise', 'optProcessor'].map(function (x) { return $(x).value; }).filter(Boolean).join(' ');
+
+	// ---- processing options (docs/UgcServer.md, "Processing options"): the settings pick what every make uses; "Make again with…" another for one make ----
+
+	var OPTION_LABELS = { embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', 'embree-gpu': 'Embree (Intel GPU)', off: 'no denoise', oidn: 'Open Image Denoise',
+		native: 'UGC server', 'toolbox-blender': 'LU Toolbox (Blender)' };
+	var OPTION_GROUPS = [['rays', 'Ray tracer'], ['denoise', 'Denoise icons'], ['processor', 'Made by']];
+	var options = null; // /api/ugc/options: choices and the settings' defaults
+	// Stored options ("embree off", "hiprt oidn toolbox-blender") in words; no processor word: the UGC server's own
+	function optionsText(text) {
+		var words = String(text || '').split(/[ ,]+/).filter(function (w) { return w && w !== 'toolbox' && w !== 'fast'; });
+		if (!words.length) return '';
+		words = words.map(function (w) { return w === 'builtin' ? 'embree' : w; });
+		if (words.indexOf('toolbox-blender') < 0 && words.indexOf('native') < 0) words.push('native');
+		return words.map(function (w) { return OPTION_LABELS[w] || w; }).join(', ');
+	}
+	// A "Make again with…" dropdown: a form with each choice preset to the settings' default, for one make only
+	function withMenu(target, label) {
+		if (!options || !canManage) return '';
+		var selects = OPTION_GROUPS.filter(function (g) { return options.choices[g[0]]; }).map(function (g) {
+			return '<label class="d-block mb-1">' + esc(g[1]) + '<select class="form-select form-select-sm" data-option="' + g[0] + '">' + options.choices[g[0]].map(function (name) {
+				return '<option value="' + esc(name) + '"' + (name === options.defaults[g[0]] ? ' selected' : '') + '>' + esc(OPTION_LABELS[name] || name) +
+					(name === options.defaults[g[0]] ? ' (setting)' : '') + '</option>';
+			}).join('') + '</select></label>';
+		}).join('');
+		return '<div class="dropdown d-inline-block"><button type="button" class="btn btn-sm btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">' +
+			esc(label) + '</button><form class="dropdown-menu p-2 small" style="min-width:16rem" data-remake-with="' + esc(target) + '">' + selects +
+			'<div class="text-body-secondary my-1">For this make only; every other make uses the settings.</div><button type="submit" class="btn btn-sm btn-warning w-100">Make again</button></form></div>';
+	}
+	function withOptions(form) {
+		var chosen = [].map.call(form.querySelectorAll('[data-option]'), function (x) { return x.value; });
+		var defaults = OPTION_GROUPS.map(function (g) { return options.defaults[g[0]]; });
+		// The same as the settings: no options, so the make follows the settings
+		return chosen.join(' ') === defaults.join(' ') ? '' : chosen.join(' ');
+	}
+	function showOptions() {
+		var model = list.kind === 'model';
+		$('madeWith').innerHTML = options && model ? 'New makes: ' + esc(OPTION_GROUPS.map(function (g) { return OPTION_LABELS[options.defaults[g[0]]] || options.defaults[g[0]]; }).join(', ')) +
+			(window.DASH && DASH.can('settings') ? ' (<a href="#" data-goto-settings>change</a>)' : '') : '';
+		$('remakeAllWith').innerHTML = model ? withMenu('all', 'Make everything again with…') : '';
 	}
 	// A model's file as the player named it: its name with the upload's extension (".lxfml"), else the upload's name
 	function fileName(i) {
@@ -183,8 +219,8 @@
 			})
 		].concat(madeColumns(), [
 			column('Options', function (i) {
-				return '<span class="small">' + esc(i.madeOptions || '') + '</span>' +
-					(i.processOptions ? '<div class="small text-body-secondary" title="Picked for its next make">next: ' + esc(i.processOptions) + '</div>' : '');
+				return '<span class="small" title="' + esc(i.madeOptions || '') + '">' + esc(optionsText(i.madeOptions)) + '</span>' +
+					(i.processOptions ? '<div class="small text-body-secondary" title="Picked for its next make">next: ' + esc(optionsText(i.processOptions)) + '</div>' : '');
 			}),
 			column('Saved', function (i) {
 				if (!i.trianglesBefore) return '';
@@ -264,7 +300,7 @@
 			b.textContent = (b.dataset.kind === 'modular' ? 'Cars and rockets' : 'Models') + (count === null || count === undefined ? '' : ' (' + Number(count).toLocaleString() + ')');
 		});
 		$('manageButtons').classList.toggle('d-none', !canManage);
-		$('remakeOptions').classList.toggle('d-none', list.kind !== 'model');
+		showOptions();
 		$('cacheCard').classList.toggle('d-none', !canManage);
 		$('counts').innerHTML = countCard('Models', d.counts.model) + countCard('Cars and rockets (builds)', d.counts.modular) +
 			(d.totals ? totalsCard('Models', d.totals.model) + totalsCard('Cars and rockets', d.totals.modular) : '');
@@ -375,7 +411,6 @@
 	function remake(body, question) {
 		if (question && !confirm(question)) return;
 		body.kind = list.kind;
-		if (list.kind === 'model' && remakeOptions()) body.options = remakeOptions();
 		api.post('/api/ugc/reprocess', body).then(function (d) {
 			if (!d.success) { toast(d.error || 'Failed', 'danger'); return; }
 			toast(d.message, 'success');
@@ -384,6 +419,22 @@
 	}
 
 	// ---- the open item ----
+
+	// Every make of a model with what made it, to compare the options on one model
+	function loadRuns(id) {
+		api.get('/api/ugc/' + encodeURIComponent(id) + '/runs').then(function (d) {
+			var box = $('runsBox');
+			if (!box || !current || current.id !== id || !d.success) return;
+			var ms = function (v) { return v ? esc(duration(v)) : ''; };
+			box.innerHTML = '<div class="small fw-semibold mt-3 mb-1">Makes</div>' + (d.runs.length ? '<div class="table-responsive"><table class="table table-sm small align-middle mb-0">' +
+				'<thead><tr><th>Made</th><th>With</th><th>Took</th><th>CPU</th><th>Hidden faces</th><th>Occlusion</th><th>Icon</th><th>Triangles</th></tr></thead><tbody>' +
+				d.runs.map(function (r) {
+					return '<tr><td>' + esc(fmt.unix(r.madeAt)) + '</td><td title="' + esc(r.options) + '">' + esc(optionsText(r.options)) + '</td><td>' + ms(r.ms) + '</td><td>' + ms(r.cpuMs) +
+						'</td><td>' + ms(r.hsrMs) + '</td><td>' + ms(r.aoMs) + '</td><td>' + ms(r.iconMs) + '</td><td title="' + esc(r.trianglesBefore.toLocaleString()) + ' before">' +
+						esc(r.triangles.toLocaleString()) + '</td></tr>';
+				}).join('') + '</tbody></table></div>' : '<div class="small text-body-secondary">No make recorded (made before makes were recorded).</div>');
+		});
+	}
 
 	function statsTable(now, before) {
 		if (!now) return '<div class="small text-body-secondary">No stats for this model (made before the UGC server wrote them).</div>';
@@ -468,7 +519,7 @@
 		}
 		if (publicUrl && current.fileId) links += '<a href="' + esc(publicUrl + '/files/' + list.kind + '/' + current.fileId + '/icon.png') + '" target="_blank" rel="noopener">Open on the UGC server</a>';
 		if (canManage && current.fileId) {
-			links += '<div class="mt-2 d-flex flex-wrap gap-1"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(current.fileId) + '">Make again</button>' +
+			links += '<div class="mt-2 d-flex flex-wrap gap-1"><button type="button" class="btn btn-sm btn-outline-warning" data-remake-open="' + esc(current.fileId) + '">Make again</button>' + (modular ? '' : withMenu(current.fileId, 'Make again with…')) +
 				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="now">Delete files, make again</button>' +
 				'<button type="button" class="btn btn-sm btn-outline-danger" data-delete-open="gone">Delete files, leave deleted</button></div>';
 		}
@@ -491,7 +542,8 @@
 			if (!current || current.id !== id) return;
 			current.stats = s[0];
 			current.statsLoaded = true;
-			$('statsBox').innerHTML = statsTable(s[0], s[1]);
+			$('statsBox').innerHTML = statsTable(s[0], s[1]) + '<div id="runsBox"></div>';
+			loadRuns(id);
 			var lods = (s[0] && s[0].lods) || [{ lod: 0 }];
 			$('lodSelect').innerHTML = lods.map(function (l, n) { return '<option value="' + n + '">LOD ' + esc(l.lod) + (l.far ? ' (' + esc(l.near) + '-' + esc(l.far) + ')' : '') + '</option>'; }).join('');
 			$('versionSelect').querySelector('[value=previous]').disabled = !s[1];
@@ -629,6 +681,22 @@
 	$('listCard').addEventListener('click', onItemClick);
 	$('gallery').addEventListener('click', onItemClick);
 	$('gallery').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemClick(e); } });
+	document.addEventListener('submit', function (e) {
+		var form = e.target.closest('[data-remake-with]');
+		if (!form) return;
+		e.preventDefault();
+		var body = form.dataset.remakeWith === 'all' ? {} : { id: form.dataset.remakeWith }, picked = withOptions(form);
+		if (picked) body.options = picked;
+		var toggle = form.parentNode.querySelector('[data-bs-toggle]');
+		if (toggle && window.bootstrap) bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+		remake(body, form.dataset.remakeWith === 'all' ? 'Make every model again' + (picked ? ' with ' + optionsText(picked) : '') + '? This can take a long time.' : null);
+	});
+	$('madeWith').addEventListener('click', function (e) {
+		if (!e.target.closest('[data-goto-settings]')) return;
+		e.preventDefault();
+		var box = document.querySelector('[data-ugc-settings="UGC models"]');
+		if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	});
 	$('previewLinks').addEventListener('click', function (e) {
 		var button = e.target.closest('[data-remake-open]');
 		if (button) remake({ id: button.dataset.remakeOpen });
@@ -726,21 +794,14 @@
 
 	// ---- processing options: Make again's choices and the comparison of what made the models ----
 
-	var OPTION_LABELS = { embree: 'Embree (CPU)', hiprt: 'HIPRT (GPU)', 'embree-gpu': 'Embree (Intel GPU)', off: 'Off', oidn: 'Open Image Denoise',
-		native: 'UGC server', 'toolbox-blender': 'LU Toolbox (Blender)' };
 	function loadOptions() {
 		return api.get('/api/ugc/options').then(function (d) {
 			if (!d.success) throw new Error(d.error || 'Failed');
-			[['optRays', 'rays', 'Ray tracer'], ['optDenoise', 'denoise', 'Denoise'], ['optProcessor', 'processor', 'Made by']].forEach(function (x) {
-				if (!d.choices[x[1]]) return;
-				var select = $(x[0]), chosen = select.value;
-				select.innerHTML = '<option value="">' + esc(x[2]) + ': settings (' + esc(OPTION_LABELS[d.defaults[x[1]]] || d.defaults[x[1]]) + ')</option>' +
-					d.choices[x[1]].map(function (name) { return '<option value="' + esc(name) + '">' + esc(x[2]) + ': ' + esc(OPTION_LABELS[name] || name) + '</option>'; }).join('');
-				select.value = chosen;
-			});
+			options = { choices: d.choices, defaults: d.defaults };
+			showOptions();
 			var ms = function (v) { return v ? esc(duration(v)) : ''; };
 			$('optionsTable').querySelector('tbody').innerHTML = d.combinations.length ? d.combinations.map(function (c) {
-				return '<tr><td><code>' + esc(c.options) + '</code></td><td>' + esc(c.runs.toLocaleString()) + '</td><td>' + esc(c.models.toLocaleString()) + '</td><td>' + ms(c.ms) +
+				return '<tr><td title="' + esc(c.options) + '">' + esc(optionsText(c.options)) + '</td><td>' + esc(c.runs.toLocaleString()) + '</td><td>' + esc(c.models.toLocaleString()) + '</td><td>' + ms(c.ms) +
 					'</td><td>' + ms(c.cpuMs) + '</td><td>' + ms(c.hsrMs) + '</td><td>' + ms(c.aoMs) + '</td><td>' + ms(c.iconMs) + '</td><td>' + esc(c.bricks) + '</td><td title="' +
 					esc(c.trianglesBefore.toLocaleString()) + ' before, ' + esc(c.triangles.toLocaleString()) + ' after, on average">' + esc((c.removed * 100).toFixed(1)) + '%</td></tr>';
 			}).join('') : '<tr><td colspan="10" class="text-body-secondary">No model made since the options were recorded.</td></tr>';
@@ -752,6 +813,8 @@
 	$('optionsCard').addEventListener('toggle', function () { if (this.open) loadOptions(); });
 
 	if (window.Live) Live.on('ugc', load);
+	// A changed ray tracer, denoise or processor setting changes what new makes use
+	if (window.Live) Live.on('settings', loadOptions);
 
 	var linked = readUrl();
 	writeUrl(false, linked);

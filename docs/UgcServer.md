@@ -242,7 +242,7 @@ took 17 to 100 times as long (for example 45 s instead of 2.6 s for a 140-brick 
 ### Processing options
 
 Ways of making models to try and compare, none replacing another. The settings pick the defaults; staff can make
-models again with others (the UGC page's options next to **Make again**, `/api/ugc/reprocess` with `options`,
+models again with others for that make only (the UGC page's **Make again with…** on a model or on everything, `/api/ugc/reprocess` with `options`,
 `/reprocessproperty [embree|hiprt|embree-gpu] [off|oidn] [native|toolbox-blender]` in game, `UgcServer --make-model
 <file> <folder> [options]`). The choices are written as their names in any order (`UgcProcessOptions` in
 `dCommon/UgcKeys.h`); one left out is the setting's. Options stored by earlier versions still read: `builtin` (the UGC
@@ -950,8 +950,9 @@ name; assemblies the same (most modules for most bricks, no triangles or saved) 
 search, filters, sort, page and view are kept in the address, so Back and Forward and shared links work. The search
 is `UgcLookupSql` (the same on MySQL and SQLite, `IUgcLookup::ListUgc`); assemblies are grouped
 from the builds (`UgcAssemblies`). Buttons make one item, the failed ones or everything again (these only reset the
-columns; the UGC server picks the rows up), for models with the processing options picked next to them (see
-"Processing options").
+columns; the UGC server picks the rows up); for models, **Make again with…** picks other processing options for that
+make only, and the toolbar says what new makes use (see "Processing options"). A model's window lists every make of it
+(`ugc_process_runs`, `/api/ugc/:id/runs`) with what made it and its times, to compare the options on one model.
 
 An assembly opens with its modules, the icon editor and **References**: the builds that use it (`GET
 /api/ugc/assembly/builds?modules=&q=&page=`), with owner character and account, state and where each is (placed on a

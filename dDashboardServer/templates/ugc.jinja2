@@ -37,9 +37,10 @@
 		<div class="card-body py-2 small">
 			<p class="text-body-secondary mb-2">The ways of making models to compare: the ray tracer of the occlusion (Embree on the CPU, HIPRT on AMD or
 				NVIDIA GPUs, Embree on Intel GPUs), denoising of icons, and what makes the models (the UGC server itself, or LU Toolbox in Blender:
-				<code>toolbox-blender</code>, where its hidden faces are Process Model's and its occlusion Bake Lighting's). The settings pick the defaults; <b>Make again</b> can use others for a make (the options next
-				to it, or <code>/reprocessproperty embree oidn</code> in game).
-				Every make is counted under what made it: the averages per make below, each model's in the List view's Options column.</p>
+				<code>toolbox-blender</code>, where its hidden faces are Process Model's and its occlusion Bake Lighting's). The settings (<b>How models are made</b> above) pick what every make uses; <b>Make again with…</b> uses others for that one make only
+				(or <code>/reprocessproperty embree oidn</code> in game).
+				Every make is recorded with what made it: the averages per make below, each model's in the List view's Options column, and every make of a
+				model in its window under <b>Makes</b>.</p>
 			<div class="table-responsive"><table class="table table-sm align-middle mb-0" id="optionsTable">
 				<thead><tr><th>Options</th><th>Makes</th><th>Models</th><th>Took</th><th>CPU</th><th>Hidden faces</th><th>Occlusion</th><th>Icon</th><th>Bricks</th><th>Triangles removed</th></tr></thead>
 				<tbody><tr><td colspan="10" class="text-body-secondary">Loading…</td></tr></tbody></table></div>
@@ -82,13 +83,10 @@
 			<button type="button" class="btn btn-outline-secondary" data-view="list">List</button>
 		</div>
 		<div class="ms-auto d-none d-flex flex-wrap gap-1 align-items-center" id="manageButtons">
-			<span class="d-flex gap-1" id="remakeOptions" title="How Make again makes models (the settings' way unless picked here)">
-				<select class="form-select form-select-sm w-auto" id="optRays" aria-label="Ray tracer for Make again"><option value="">Ray tracer: settings</option></select>
-				<select class="form-select form-select-sm w-auto" id="optDenoise" aria-label="Denoise for Make again"><option value="">Denoise: settings</option></select>
-				<select class="form-select form-select-sm w-auto" id="optProcessor" aria-label="What makes the models for Make again"><option value="">Made by: settings</option></select>
-			</span>
+			<span class="small text-body-secondary" id="madeWith"></span>
 			<button type="button" class="btn btn-sm btn-outline-warning" id="retryFailed">Try the failed ones again</button>
 			<button type="button" class="btn btn-sm btn-outline-danger" id="remakeAll">Make everything again</button>
+			<span id="remakeAllWith"></span>
 		</div>
 	</div>
 
