@@ -152,6 +152,11 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t c
 		MoverProcessStateChange(m_StartWaypoint);
 		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
 		MoverStopAtWaypoint(startOnLoad);
+	} else if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
+		// LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate, its own path never arrives anywhere: its
+		// HandleStoppedLogic 0x00bdc660 only keeps the angular velocity), while travelling
+		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
+		GetMoverSubComponent()->mState = startOnLoad ? ePlatformStateFlag::Travelling : ePlatformStateFlag::Stopped;
 	}
 
 	// Live constructed every moving platform with simple physics as keyframed
@@ -302,6 +307,12 @@ void MovingPlatformComponent::StartPathing() {
 		SimpleMoverGotoWaypoint(GetSimpleMoverSubComponent()->mCurrentWaypointIndex == 0 ? 1 : 0);
 		return;
 	}
+	if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
+		// LWOPlatformRotator::StartLinearMovement: spinning again
+		GetMoverSubComponent()->mState = ePlatformStateFlag::Travelling;
+		Game::entityManager->SerializeEntity(m_Parent);
+		return;
+	}
 	if (!IsMover()) return;
 	m_PathingStopped = false;
 	auto* const mover = GetMoverSubComponent();
@@ -319,6 +330,12 @@ void MovingPlatformComponent::StopPathing() {
 		Game::entityManager->SerializeEntity(m_Parent);
 		return;
 	}
+	if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
+		// LWOPlatformRotator::StopPlatform: no longer spinning
+		GetMoverSubComponent()->mState = ePlatformStateFlag::Stopped;
+		Game::entityManager->SerializeEntity(m_Parent);
+		return;
+	}
 	if (!IsMover()) return;
 	m_PathingStopped = true;
 	auto* const mover = GetMoverSubComponent();
@@ -331,8 +348,7 @@ void MovingPlatformComponent::StopPathing() {
 }
 
 bool MovingPlatformComponent::IsMover() const {
-	return (m_MoverSubComponentType == eMoverSubComponentType::mover || m_MoverSubComponentType == eMoverSubComponentType::rotater) &&
-		m_Path != nullptr && !m_Path->pathWaypoints.empty();
+	return m_MoverSubComponentType == eMoverSubComponentType::mover && m_Path != nullptr && !m_Path->pathWaypoints.empty();
 }
 
 // LWOPlatform::ProcessStateChange: the waypoint becomes the current one, the next follows from the path's behavior and

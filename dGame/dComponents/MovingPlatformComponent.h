@@ -287,7 +287,7 @@ public:
 	// The mover's state as a PlatformResync gives it (RequestPlatformResync)
 	void FillResync(GameMessages::PlatformResync& resync) const;
 
-	// A mover (or rotater) on a path, run by the server
+	// A mover on a path, run by the server (a rotater only spins: no waypoints)
 	bool IsMover() const;
 
 private:
