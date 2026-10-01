@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "CullingPlaneComponent.h"
 #include "SoundAmbient3DComponent.h"
 #include "SoundAmbient2DComponent.h"
 #include "SoundRepeaterComponent.h"
@@ -950,6 +951,12 @@ void Entity::Initialize() {
 			// LWOSoundAmbient3DComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_AMBIENT_3D, -1);
 			if (id > -1) AddComponent<SoundAmbient3DComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CULLING_PLANE: {
+			// LoadCullingPlaneComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CULLING_PLANE, -1);
+			if (id > -1) AddComponent<CullingPlaneComponent>(id);
 			break;
 		}
 		default:
