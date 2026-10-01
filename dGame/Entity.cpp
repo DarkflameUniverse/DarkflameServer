@@ -813,8 +813,11 @@ void Entity::Initialize() {
 		auto* const proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
 		const auto proxCompData = proxCompTable->Query([proximityMonitorID](const CDProximityMonitorComponent& entry) { return (entry.id == proximityMonitorID); });
 		if (proxCompData.size() > 0) {
-			std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
-			AddComponent<ProximityMonitorComponent>(proximityMonitorID, std::stoi(proximityStr[0]), std::stoi(proximityStr[1]));
+			// "small,large"; one value (LOT 9833: "4") is both
+			const auto radii = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
+			const auto small = radii.empty() ? std::nullopt : GeneralUtils::TryParse<int32_t>(radii[0]);
+			const auto large = radii.size() > 1 ? GeneralUtils::TryParse<int32_t>(radii[1]) : small;
+			if (small && large) AddComponent<ProximityMonitorComponent>(proximityMonitorID, *small, *large);
 		}
 	}
 
