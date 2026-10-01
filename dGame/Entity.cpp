@@ -669,6 +669,17 @@ void Entity::Initialize() {
 		if (quickBuildComponentID > 0) {
 			auto* const quickBuildComponent = AddComponent<QuickBuildComponent>(quickBuildComponentID);
 
+			// A quick build without a destroyable gets one (componentID -1) and is smashable, as the client makes it
+			// (DoObjectComponentLoad); live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804)
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
+				auto* const destroyable = AddComponent<DestroyableComponent>(-1);
+				destroyable->SetMaxHealth(1.0f);
+				destroyable->SetHealth(1);
+				destroyable->SetArmor(1);
+				destroyable->SetFaction(-1, true);
+				destroyable->SetIsSmashable(true);
+			}
+
 			CDRebuildComponentTable* const rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
 			const std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([quickBuildComponentID](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
