@@ -25,6 +25,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
 	QuickBuildComponent(Entity* const entity, const int32_t componentID);
+
+	void LoadConfigData() override;
 	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

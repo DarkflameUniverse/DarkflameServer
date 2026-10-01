@@ -33,7 +33,12 @@
 
 QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : Component{ entity, componentID } {
 	RegisterMsg(&QuickBuildComponent::OnRequestUse);
-	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
+	RegisterMsg(&QuickBuildComponent::OnGetObjectReportInfo);
+}
+
+// The level config: the precondition and the activator's position, then the activator
+void QuickBuildComponent::LoadConfigData() {
+	std::u16string checkPreconditions = m_Parent->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
@@ -51,7 +56,6 @@ QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t com
 	}
 
 	SpawnActivator();
-	RegisterMsg(&QuickBuildComponent::OnGetObjectReportInfo);
 }
 
 QuickBuildComponent::~QuickBuildComponent() {
