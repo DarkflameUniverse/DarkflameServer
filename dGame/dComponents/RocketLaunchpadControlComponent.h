@@ -27,6 +27,8 @@ public:
 	RocketLaunchpadControlComponent(Entity* parent, const int32_t componentID);
 	~RocketLaunchpadControlComponent() override;
 
+	void LoadDataFromTemplate() override;
+
 	/**
 	 * Launches some entity to another world
 	 * @param originator the entity to launch

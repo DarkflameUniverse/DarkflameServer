@@ -25,9 +25,13 @@
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&RocketLaunchpadControlComponent::OnRequestUse);
+}
+
+// The RocketLaunchpadControlComponent row
+void RocketLaunchpadControlComponent::LoadDataFromTemplate() {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
-	query.bind(1, componentID);
+	query.bind(1, m_ComponentID);
 
 	auto result = query.execQuery();
 
