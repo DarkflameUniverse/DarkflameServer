@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "SoundRepeaterComponent.h"
 #include "GhostComponent.h"
 #include "AchievementVendorComponent.h"
 #include "VanityUtilities.h"
@@ -929,6 +930,12 @@ void Entity::Initialize() {
 		if (racingControlID > 0) {
 			AddComponent<RacingControlComponent>(racingControlID);
 		}
+			break;
+		}
+		case eReplicaComponentType::SOUND_REPEATER: {
+			// LWOSoundRepeaterComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_REPEATER, -1);
+			if (id > -1) AddComponent<SoundRepeaterComponent>(id);
 			break;
 		}
 		default:
