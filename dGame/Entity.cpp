@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "CustomBuildAssemblyComponent.h"
 #include "PackageComponent.h"
 #include "ChoiceBuildComponent.h"
 #include "ChangelingComponent.h"
@@ -1048,6 +1049,12 @@ void Entity::Initialize() {
 			// LWOPackageComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PACKAGE, -1);
 			if (id > -1) AddComponent<PackageComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY: {
+			// LWOCustomBuildAssemblyComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY, -1);
+			if (id > -1) AddComponent<CustomBuildAssemblyComponent>(id);
 			break;
 		}
 		default:
