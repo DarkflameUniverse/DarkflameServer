@@ -466,6 +466,7 @@ public:
 	uint64_t ResetPropertyUgcModelProcessing(const LWOOBJID propertyId, const std::string_view options) override;
 	void RecordUgcModelRun(const ProcessRun& run) override;
 	std::vector<IUgc::RunSummary> GetUgcRunSummaries() override;
+	std::vector<IUgc::ModelRun> GetUgcModelRuns(const LWOOBJID id, const uint32_t limit) override;
 	IUgc::ProcessTotals GetUgcProcessTotals(const bool modular) override;
 	std::vector<IUgc::ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) override;
 	std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetUgcProcessCounts() override;

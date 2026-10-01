@@ -825,6 +825,11 @@ TEST_F(ParitySeeded, UgcModel) {
 		for (const auto& s : db.GetUgcRunSummaries()) {
 			out.push_back({ s.options, s.runs, s.models, s.milliseconds, s.cpuMilliseconds, s.hsrMilliseconds, s.aoMilliseconds, s.iconMilliseconds, s.bricks, s.trianglesBefore, s.triangles });
 		}
+		// One model's makes, the newest first, limited
+		for (const auto& [madeAt, r] : db.GetUgcModelRuns(1152921510000500001LL, 2)) {
+			out.push_back({ madeAt > 0, r.options, r.milliseconds, r.cpuMilliseconds, r.hsrMilliseconds, r.aoMilliseconds, r.iconMilliseconds, r.bricks, r.trianglesBefore, r.triangles });
+		}
+		out.push_back(db.GetUgcModelRuns(1152921510000500002LL, 10).size());
 		return out;
 	});
 	Both("Modular build processing", [&](GameDatabase& db) {

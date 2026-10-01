@@ -461,6 +461,7 @@ class TestSQLDatabase : public GameDatabase {
 	uint64_t ResetPropertyUgcModelProcessing(const LWOOBJID propertyId, const std::string_view options) override { return 0; }
 	void RecordUgcModelRun(const ProcessRun& run) override {}
 	std::vector<IUgc::RunSummary> GetUgcRunSummaries() override { return {}; }
+	std::vector<IUgc::ModelRun> GetUgcModelRuns(const LWOOBJID id, const uint32_t limit) override { return {}; }
 	IUgc::ProcessTotals GetUgcProcessTotals(const bool modular) override { return {}; }
 	std::vector<IUgc::ProcessInfo> GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) override { return {}; }
 	std::vector<std::pair<IUgc::eProcessState, uint64_t>> GetUgcProcessCounts() override { return {}; }

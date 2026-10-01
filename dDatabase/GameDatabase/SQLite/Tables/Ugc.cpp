@@ -194,6 +194,19 @@ std::vector<IUgc::RunSummary> SQLiteDatabase::GetUgcRunSummaries() {
 	return summaries;
 }
 
+std::vector<IUgc::ModelRun> SQLiteDatabase::GetUgcModelRuns(const LWOOBJID id, const uint32_t limit) {
+	auto [_, result] = ExecuteSelect("SELECT made_at, options, process_ms, process_cpu_ms, hsr_ms, ao_ms, icon_ms, bricks, triangles_before, triangles FROM ugc_process_runs "
+		"WHERE ugc_id = ? ORDER BY made_at DESC, id DESC LIMIT ?;", id, limit);
+	std::vector<ModelRun> runs;
+	while (!result.eof()) {
+		const auto field = [&](const char* name) { return static_cast<uint32_t>(result.getInt64Field(name, 0)); };
+		runs.push_back({ result.getInt64Field("made_at", 0), { id, result.getStringField("options", ""), field("process_ms"), field("process_cpu_ms"),
+			field("hsr_ms"), field("ao_ms"), field("icon_ms"), field("bricks"), field("triangles_before"), field("triangles") } });
+		result.nextRow();
+	}
+	return runs;
+}
+
 std::vector<IUgc::ProcessInfo> SQLiteDatabase::GetUgcProcessList(const std::optional<eProcessState> state, const std::string_view search, const uint32_t offset, const uint32_t limit) {
 	const std::string select =
 		"SELECT u.id, u.character_id, c.name AS character_name, u.is_optimized, u.process_attempts, u.processed_at, u.process_error, u.bake_ao, u.process_after "

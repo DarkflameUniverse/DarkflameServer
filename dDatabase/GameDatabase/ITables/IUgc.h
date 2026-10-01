@@ -142,6 +142,13 @@ public:
 	};
 	virtual std::vector<RunSummary> GetUgcRunSummaries() = 0;
 
+	// One model's makes (ugc_process_runs), the newest first, at most `limit`
+	struct ModelRun {
+		int64_t madeAt{};            // unix seconds
+		ProcessRun run;
+	};
+	virtual std::vector<ModelRun> GetUgcModelRuns(const LWOOBJID id, const uint32_t limit) = 0;
+
 	virtual std::optional<ProcessInfo> GetUgcProcessInfo(const LWOOBJID id) = 0;
 
 	// Sets models back to pending with no attempts: one (`id`), or all of them (`id` nullopt; only the failed ones
