@@ -1,4 +1,4 @@
-#include "VendorComponent.h"
+#include "BaseVendorComponent.h"
 #include "ObjectMessages.h"
 #include "BitStream.h"
 #include "dServer.h"
@@ -21,19 +21,19 @@
 #include <algorithm>
 #include <ranges>
 
-VendorComponent::VendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
-	RegisterMsg(&VendorComponent::OnRequestUse);
+BaseVendorComponent::BaseVendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	RegisterMsg(&BaseVendorComponent::OnRequestUse);
 	m_HasStandardCostItems = false;
 	m_HasMultiCostItems = false;
 }
 
 // The vendor's constants and its stock (the base's refresh: a derived vendor adds its own after)
-void VendorComponent::LoadDataFromTemplate() {
+void BaseVendorComponent::LoadDataFromTemplate() {
 	SetupConstants();
-	VendorComponent::RefreshInventory(true);
+	BaseVendorComponent::RefreshInventory(true);
 }
 
-void VendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+void BaseVendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write(bIsInitialUpdate || m_DirtyVendor);
 	if (bIsInitialUpdate || m_DirtyVendor) {
 		outBitStream.Write(m_HasStandardCostItems);
@@ -42,7 +42,7 @@ void VendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitial
 	}
 }
 
-bool VendorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
+bool BaseVendorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
 	if (event.msg.IsMissionChoice()) return false;
 	auto* const originator = event.user;
 	GameMessages::VendorOpenWindow openWindow;
@@ -50,12 +50,12 @@ bool VendorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) {
 	openWindow.SendToClient(originator->GetSystemAddress());
 
 	// Only the entity's VENDOR component sends its stock (achievement and donation vendors never did).
-	auto* vendor = static_cast<VendorComponent*>(m_Parent->GetComponent(eReplicaComponentType::VENDOR));
+	auto* vendor = static_cast<BaseVendorComponent*>(m_Parent->GetComponent(eReplicaComponentType::VENDOR));
 	if (vendor) vendor->SendStatusUpdate(originator->GetSystemAddress());
 	return true;
 }
 
-void VendorComponent::RefreshInventory(bool isCreation) {
+void BaseVendorComponent::RefreshInventory(bool isCreation) {
 	SetHasStandardCostItems(false);
 	SetHasMultiCostItems(false);
 	m_Inventory.clear();
@@ -111,11 +111,11 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
 	// Only the entity's VENDOR component sends its stock (achievement and donation vendors never did).
-	auto* vendor = static_cast<VendorComponent*>(m_Parent->GetComponent(eReplicaComponentType::VENDOR));
+	auto* vendor = static_cast<BaseVendorComponent*>(m_Parent->GetComponent(eReplicaComponentType::VENDOR));
 	if (vendor) vendor->SendStatusUpdate(UNASSIGNED_SYSTEM_ADDRESS);
 }
 
-void VendorComponent::SetupConstants() {
+void BaseVendorComponent::SetupConstants() {
 	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
 
@@ -130,13 +130,13 @@ void VendorComponent::SetupConstants() {
 	m_LootMatrixID = vendorData.LootMatrixIndex;
 }
 
-bool VendorComponent::SellsItem(const LOT item) const {
+bool BaseVendorComponent::SellsItem(const LOT item) const {
 	return std::count_if(m_Inventory.begin(), m_Inventory.end(), [item](const SoldItem& lhs) {
 		return lhs.lot == item;
 		}) > 0;
 }
 
-void VendorComponent::HandleMrReeCameras(){
+void BaseVendorComponent::HandleMrReeCameras(){
 	if (m_Parent->GetLOT() == 13569) {
 		SetHasStandardCostItems(true);
 		auto randomCamera = GeneralUtils::GenerateRandomNumber<int32_t>(0, 2);
@@ -159,7 +159,7 @@ void VendorComponent::HandleMrReeCameras(){
 }
 
 
-void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
+void BaseVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 
 	if (!SellsItem(lot)) {
 		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
@@ -225,7 +225,7 @@ void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
 }
 
-bool VendorComponent::SetupItem(LOT item) {
+bool BaseVendorComponent::SetupItem(LOT item) {
 
 	auto* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
@@ -246,7 +246,7 @@ bool VendorComponent::SetupItem(LOT item) {
 }
 
 
-void VendorComponent::SendStatusUpdate(const SystemAddress& sysAddr, bool bUpdateOnly) {
+void BaseVendorComponent::SendStatusUpdate(const SystemAddress& sysAddr, bool bUpdateOnly) {
 	GameMessages::VendorStatusUpdate statusUpdate;
 	statusUpdate.target = m_Parent->GetObjectID();
 	statusUpdate.bUpdateOnly = bUpdateOnly;
@@ -255,14 +255,14 @@ void VendorComponent::SendStatusUpdate(const SystemAddress& sysAddr, bool bUpdat
 	statusUpdate.Send(sysAddr);
 }
 
-void VendorComponent::SendTransactionResult(LWOOBJID target, const SystemAddress& sysAddr, eVendorTransactionResult result) {
+void BaseVendorComponent::SendTransactionResult(LWOOBJID target, const SystemAddress& sysAddr, eVendorTransactionResult result) {
 	GameMessages::VendorTransactionResult transactionResult;
 	transactionResult.target = target;
 	transactionResult.iResult = result;
 	transactionResult.SendToClient(sysAddr);
 }
 
-void VendorComponent::SellToVendor(Entity& player, const SystemAddress& sysAddr, LWOOBJID itemObjID, int32_t count) {
+void BaseVendorComponent::SellToVendor(Entity& player, const SystemAddress& sysAddr, LWOOBJID itemObjID, int32_t count) {
 	Character* character = player.GetCharacter();
 	if (!character) return;
 	InventoryComponent* inv = static_cast<InventoryComponent*>(player.GetComponent(eReplicaComponentType::INVENTORY));
@@ -295,7 +295,7 @@ void VendorComponent::SellToVendor(Entity& player, const SystemAddress& sysAddr,
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::SELL_SUCCESS);
 }
 
-void VendorComponent::BuybackFromVendor(Entity& player, const SystemAddress& sysAddr, LWOOBJID itemObjID, int32_t count) {
+void BaseVendorComponent::BuybackFromVendor(Entity& player, const SystemAddress& sysAddr, LWOOBJID itemObjID, int32_t count) {
 	Character* character = player.GetCharacter();
 	if (!character) return;
 	InventoryComponent* inv = static_cast<InventoryComponent*>(player.GetComponent(eReplicaComponentType::INVENTORY));
@@ -334,7 +334,7 @@ void VendorComponent::BuybackFromVendor(Entity& player, const SystemAddress& sys
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_SUCCESS);
 }
 
-void VendorComponent::MakeRoomInBuyback(InventoryComponent& inventory, const Item& sold, const uint32_t count) {
+void BaseVendorComponent::MakeRoomInBuyback(InventoryComponent& inventory, const Item& sold, const uint32_t count) {
 	auto* const buyback = inventory.GetInventory(eInventoryType::VENDOR_BUYBACK);
 	if (!buyback) return;
 

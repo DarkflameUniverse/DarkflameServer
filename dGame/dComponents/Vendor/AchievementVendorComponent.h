@@ -1,14 +1,14 @@
 #ifndef __ACHIEVEMENTVENDORCOMPONENT__H__
 #define __ACHIEVEMENTVENDORCOMPONENT__H__
 
-#include "VendorComponent.h"
+#include "BaseVendorComponent.h"
 #include "eReplicaComponentType.h"
 #include <set>
 #include <map>
 
 class Entity;
 
-class AchievementVendorComponent final : public VendorComponent {
+class AchievementVendorComponent final : public BaseVendorComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ACHIEVEMENT_VENDOR;
 	AchievementVendorComponent(Entity* parent, const int32_t componentID);

@@ -14,7 +14,7 @@
 #include "User.h"
 #include "UserManager.h"
 
-DonationVendorComponent::DonationVendorComponent(Entity* parent, const int32_t componentID) : VendorComponent(parent, componentID) {
+DonationVendorComponent::DonationVendorComponent(Entity* parent, const int32_t componentID) : BaseVendorComponent(parent, componentID) {
 }
 
 // The level config: the donation goal and activity, and the total donated so far
@@ -53,7 +53,7 @@ void DonationVendorComponent::SubmitDonation(uint32_t count) {
 }
 
 void DonationVendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
-	VendorComponent::Serialize(outBitStream, bIsInitialUpdate);
+	BaseVendorComponent::Serialize(outBitStream, bIsInitialUpdate);
 	outBitStream.Write(bIsInitialUpdate || m_DirtyDonationVendor);
 	if (bIsInitialUpdate || m_DirtyDonationVendor) {
 		outBitStream.Write(m_PercentComplete);

@@ -1,12 +1,12 @@
 #ifndef __DONATIONVENDORCOMPONENT__H__
 #define __DONATIONVENDORCOMPONENT__H__
 
-#include "VendorComponent.h"
+#include "BaseVendorComponent.h"
 #include "eReplicaComponentType.h"
 
 class Entity;
 
-class DonationVendorComponent final : public VendorComponent {
+class DonationVendorComponent final : public BaseVendorComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DONATION_VENDOR;
 	DonationVendorComponent(Entity* parent, const int32_t componentID);
