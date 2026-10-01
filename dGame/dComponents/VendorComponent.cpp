@@ -25,8 +25,12 @@ VendorComponent::VendorComponent(Entity* parent, const int32_t componentID) : Co
 	RegisterMsg(&VendorComponent::OnRequestUse);
 	m_HasStandardCostItems = false;
 	m_HasMultiCostItems = false;
+}
+
+// The vendor's constants and its stock (the base's refresh: a derived vendor adds its own after)
+void VendorComponent::LoadDataFromTemplate() {
 	SetupConstants();
-	RefreshInventory(true);
+	VendorComponent::RefreshInventory(true);
 }
 
 void VendorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {

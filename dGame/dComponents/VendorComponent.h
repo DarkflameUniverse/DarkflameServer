@@ -27,6 +27,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
 	VendorComponent(Entity* parent, const int32_t componentID);
 
+	void LoadDataFromTemplate() override;
+
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	bool OnRequestUse(GameMessages::RequestUseEvent& event);

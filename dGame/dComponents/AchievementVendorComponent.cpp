@@ -10,6 +10,11 @@
 #include "CDMissionsTable.h"
 
 AchievementVendorComponent::AchievementVendorComponent(Entity* parent, const int32_t componentID) : VendorComponent(parent, componentID) {
+}
+
+// The base vendor's template load, then the achievement vendor's stock
+void AchievementVendorComponent::LoadDataFromTemplate() {
+	VendorComponent::LoadDataFromTemplate();
 	RefreshInventory(true);
 };
 
