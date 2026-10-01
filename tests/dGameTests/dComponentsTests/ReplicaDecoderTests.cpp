@@ -14,6 +14,7 @@
 #include "InventoryComponent.h"
 #include "LevelProgressionComponent.h"
 #include "MessageIdentifiers.h"
+#include "ItemComponent.h"
 #include "ModelComponent.h"
 #include "PlayerForcedMovementComponent.h"
 #include "PossessorComponent.h"
@@ -141,14 +142,14 @@ TEST_F(ReplicaDecoderTest, PlayerConstructionReadsTheCharacterParts) {
 	EXPECT_EQ((*FieldsOf(*constructed, "CHARACTER"))["statistics"].size(), 27u);
 }
 
-// A model's destroyable is not in its registry rows: it is written after the other components. Its item component is
-// in the rows but not made (Entity::Initialize): the model component writes the item info
+// A model's destroyable is not in its registry rows: it is written after the other components. Its item component comes
+// from the rows, in front of the model's block, with no UGC id when there is no userModelID (live: reward model LOT 8069)
 TEST_F(ReplicaDecoderTest, ModelWithTheDestroyableTheRegistryDoesNotList) {
 	info.lot = 6000;
 	Entity model(288300744895900200, info);
 	auto* const physics = model.AddComponent<SimplePhysicsComponent>(-1);
 	physics->SetPosition(NiPoint3(-12.0f, 432.96f, -49.6f));
-	// The model component writes the item's user-generated-content block itself, where the client reads the item
+	model.AddComponent<ItemComponent>(-1);
 	model.AddComponent<ModelComponent>(-1)->LoadBehaviors();
 	auto* const destroyable = model.AddComponent<DestroyableComponent>(-1);
 	destroyable->SetIsSmashable(true);
@@ -161,7 +162,25 @@ TEST_F(ReplicaDecoderTest, ModelWithTheDestroyableTheRegistryDoesNotList) {
 	EXPECT_EQ(Names(*constructed), "SIMPLE_PHYSICS ITEM MODEL DESTROYABLE ");
 	EXPECT_EQ((*FieldsOf(*constructed, "DESTROYABLE"))["smashable"], true);
 	EXPECT_EQ((*FieldsOf(*constructed, "SIMPLE_PHYSICS"))["position"], json::array({ -12.0f, 432.96f, -49.6f }));
-	EXPECT_EQ((*FieldsOf(*constructed, "ITEM"))["ugID"], "288300744895900200");
+	EXPECT_EQ((*FieldsOf(*constructed, "ITEM"))["ugID"], "0");
+}
+
+// A brick built model's item block carries its userModelID (live: LOT 14 on a Raven Bluff property, ug_id
+// 1152921507179669081, item block between the simple physics and the model)
+TEST_F(ReplicaDecoderTest, BrickModelItemHasItsUserModelId) {
+	info.lot = 14;
+	info.settings.Insert<LWOOBJID>(u"userModelID", 1152921507179669081);
+	Entity model(288300744895900201, info);
+	info.settings.values.clear();
+	model.AddComponent<SimplePhysicsComponent>(-1);
+	model.AddComponent<ItemComponent>(-1);
+	model.AddComponent<ModelComponent>(-1)->LoadBehaviors();
+	const ReplicaDecoder::ComponentTable table{ { 14, { SIMPLE_PHYSICS, ITEM, MODEL } } };
+	ReplicaDecoder::Session session(table);
+	const auto constructed = session.Decode(Construction(model, 5), 1);
+	ASSERT_TRUE(constructed);
+	EXPECT_FALSE(constructed->contains("(layout did not match)")) << constructed->dump();
+	EXPECT_EQ((*FieldsOf(*constructed, "ITEM"))["ugID"], "1152921507179669081");
 }
 
 // When no layout reads the packet exactly, what read is shown with the rest as bits, never a guess
@@ -359,6 +378,7 @@ TEST_F(ReplicaDecoderTest, ModelBehaviorsOnlyOnPropertyModels) {
 		if (onProperty) info.settings.Insert<bool>(u"propertyObjectID", true);
 		Entity model(288300744895900210, info);
 		model.AddComponent<SimplePhysicsComponent>(-1);
+		model.AddComponent<ItemComponent>(-1);
 		model.AddComponent<ModelComponent>(-1)->LoadBehaviors();
 		ReplicaDecoder::Session session(table);
 		const auto constructed = session.Decode(Construction(model, 4), 1);

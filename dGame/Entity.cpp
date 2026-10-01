@@ -262,6 +262,8 @@ void Entity::Initialize() {
 
 		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 
+		AddComponent<ItemComponent>(compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM));
+
 		AddComponent<ModelComponent>(-1)->LoadBehaviors();
 
 		AddComponent<RenderComponent>(-1);
@@ -646,11 +648,11 @@ void Entity::Initialize() {
 			break;
 		}
 		case eReplicaComponentType::ITEM: {
+		// A pet takes the item (and model) component away (LWOPetComponent::Factory); models keep theirs (live: an
+		// item block before the model's)
 		PetComponent* petComponent{};
 		const auto itemID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM);
-		// The model (42) comes later in the client's order: a model without a pet has no item component
-		const bool hasModel = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) > -1 && petComponentID <= 0;
-		if (itemID > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent) && !hasModel) {
+		if (itemID > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent)) {
 			AddComponent<ItemComponent>(itemID);
 		}
 			break;
