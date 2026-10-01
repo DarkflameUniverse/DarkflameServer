@@ -95,6 +95,7 @@
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
+#include "SpawnerComponent.h"
 #include "PathfindingComponent.h"
 #include "PhysicsSystemComponent.h"
 #include "VehiclePhysicsComponent.h"
@@ -1018,6 +1019,12 @@ void Entity::Initialize() {
 			// The client's physics system component: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHYSICS_SYSTEM, -1);
 			if (id > -1) AddComponent<PhysicsSystemComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::SPAWNER: {
+			// A spawner object's spawner component, from the registry as the client makes it
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SPAWNER, -1);
+			if (id > -1) AddComponent<SpawnerComponent>(id);
 			break;
 		}
 		case eReplicaComponentType::ROCKET_LANDING: {
