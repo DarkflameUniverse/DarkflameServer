@@ -108,9 +108,14 @@ InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID
 		if (character) LoadXml(character->GetXMLDoc());
 
 		CheckProxyIntegrity();
-
-		return;
 	}
+}
+
+// An object's starting inventory from the InventoryComponent rows, with the equipped items (a character's comes from
+// its save instead)
+void InventoryComponent::LoadDataFromTemplate() {
+	const auto lot = m_Parent->GetLOT();
+	if (lot == 1) return;
 
 	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	const auto componentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::INVENTORY);
