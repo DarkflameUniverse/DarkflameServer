@@ -40,6 +40,13 @@ namespace {
 	constexpr float DEFAULT_BODY_RADIUS = 1.7f;
 }
 
+float BaseCombatAIComponent::TetherSpeedOf(const int32_t componentID) {
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT tetherSpeed FROM BaseCombatAIComponent WHERE id = ?;");
+	query.bind(1, static_cast<int>(componentID));
+	auto result = query.execQuery();
+	return !result.eof() && !result.fieldIsNull("tetherSpeed") ? result.getFloatField("tetherSpeed") : 4.0f;
+}
+
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&BaseCombatAIComponent::MsgGetObjectReportInfo);
 	m_Target = LWOOBJID_EMPTY;

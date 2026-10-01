@@ -52,6 +52,9 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
 	BaseCombatAIComponent(Entity* parentEntity, int32_t componentID);
+
+	// The tether speed a BaseCombatAIComponent row gives (4 without one), before the component exists
+	static float TetherSpeedOf(int32_t componentID);
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;

@@ -211,6 +211,17 @@ Entity::~Entity() {
 	}
 }
 
+namespace {
+	// The order the client makes an object's components in (ComponentOrderVector::Initialize 0x0101f8e0, walked by
+	// ObjectLoader2::DoObjectComponentLoad 0x0105ebb0; crafting 107 only for game versions above 999)
+	constexpr auto ClientComponentLoadOrder = [] {
+		constexpr std::array<uint32_t, 79> types{ 108, 24, 61, 1, 18, 47, 46, 30, 20, 3, 40, 7, 35, 4, 106, 110, 111, 26, 17, 78, 31, 5, 9, 60, 10, 11, 12, 114, 28, 13, 14, 48, 73, 16, 100, 102, 19, 105, 39, 23, 25, 51, 52, 53, 27, 66, 116, 32, 75, 36, 113, 42, 43, 97, 45, 104, 6, 41, 49, 50, 38, 54, 22, 62, 29, 2, 55, 56, 77, 79, 59, 64, 65, 67, 68, 72, 71, 103, 76 };
+		std::array<eReplicaComponentType, types.size()> order{};
+		for (size_t i = 0; i < types.size(); i++) order[i] = static_cast<eReplicaComponentType>(types[i]);
+		return order;
+	}();
+}
+
 void Entity::Initialize() {
 	RegisterMsg(&Entity::MsgRequestServerObjectInfo);
 	RegisterMsg(&Entity::MsgDropClientLoot);
@@ -218,14 +229,6 @@ void Entity::Initialize() {
 	RegisterMsg(&Entity::MsgPickupItem);
 	RegisterMsg(&Entity::MsgChildRemoved);
 	RegisterMsg(&Entity::MsgGetFlag);
-	/**
-	 * Setup trigger
-	 */
-
-	const auto triggerInfo = GetVarAsString(u"trigger_id");
-
-	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
-
 	/**
 	 * Setup groups
 	 */
@@ -273,553 +276,656 @@ void Entity::Initialize() {
 	}
 
 	/**
-	 * Go through all the components and check if this entity has them.
-	 *
-	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
+	 * Player components (the client makes them with the character, not from the registry)
 	 */
-
 	if (m_Character && m_Character->GetParentUser()) {
 		AddComponent<MissionComponent>(-1)->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
+	/**
+	 * The components in the client's load order (ObjectLoader2::DoObjectComponentLoad 0x0105ebb0 walks
+	 * ComponentOrderVector::Initialize 0x0101f8e0's list): a component that looks at another one finds it made when the
+	 * client's does. Ids a component needs from a later one come from the registry.
+	 */
 	const auto petComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
-	if (petComponentID > 0) {
-		AddComponent<PetComponent>(petComponentID);
+	const auto collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
+	const auto combatAiID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
+	// A race car's destroyable has 60 imagination
+	const bool isRacingCar = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_STATS) > 0;
+	// If an entity is marked a phantom, simple physics is made into phantom phyics.
+	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
+
+	for (const auto type : ClientComponentLoadOrder) {
+		switch (type) {
+		case eReplicaComponentType::POSSESSABLE: {
+		const auto possessableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
+		if (possessableComponentID > 0) {
+			AddComponent<PossessableComponent>(possessableComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MODULE_ASSEMBLY: {
+		const auto moduleAssemblyID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE_ASSEMBLY);
+		if (moduleAssemblyID > 0) {
+			AddComponent<ModuleAssemblyComponent>(moduleAssemblyID);
+		}
+			break;
+		}
+		case eReplicaComponentType::CONTROLLABLE_PHYSICS: {
+		const auto controllablePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS);
+		if (controllablePhysicsComponentID > 0) {
+			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
+
+			if (m_Character) {
+				controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
+
+				const auto mapID = Game::server->GetZoneID();
+				const auto& targetSceneName = m_Character->GetTargetScene();
+
+				//If we came from another zone, put us in the starting loc
+				// Exception for Moon Base as you tend to spawn on the roof.
+				// second exception if we have a specified targetScene since that would only be possible in a test map
+				if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603 || !targetSceneName.empty()) {
+					NiPoint3 pos;
+					NiQuaternion rot = QuatUtils::IDENTITY;
+
+					auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
+					if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
+						pos = m_Character->GetRespawnPoint(mapID);
+						rot = Game::zoneManager->GetZone()->GetSpawnRot();
+					} else if (targetScene != nullptr) {
+						pos = targetScene->GetPosition();
+						rot = targetScene->GetRotation();
+					} else {
+						pos = Game::zoneManager->GetZone()->GetSpawnPos();
+						rot = Game::zoneManager->GetZone()->GetSpawnRot();
+					}
+
+					controllablePhysics->SetPosition(pos);
+					controllablePhysics->SetRotation(rot);
+				}
+			} else {
+				controllablePhysics->SetPosition(m_DefaultPosition);
+				controllablePhysics->SetRotation(m_DefaultRotation);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
+		const auto havokVehiclePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
+		if (havokVehiclePhysicsComponentID > 0) {
+			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
+			havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+			havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+		}
+			break;
+		}
+		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS: {
+		const auto rigidBodyPhantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS);
+		if (rigidBodyPhantomPhysicsComponentID > 0) {
+			AddComponent<RigidbodyPhantomPhysicsComponent>(rigidBodyPhantomPhysicsComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SIMPLE_PHYSICS: {
+		const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
+		if (!markedAsPhantom && simplePhysicsComponentID > 0) {
+			AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PHANTOM_PHYSICS: {
+		const auto phantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS);
+		if (markedAsPhantom || phantomPhysicsComponentID > 0) {
+			AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
+		}
+			break;
+		}
+		case eReplicaComponentType::DESTROYABLE: {
+		/**
+		 * The destroyable component. The client makes one (with a buff component in front of it) for a DESTROYABLE
+		 * registry entry, whose id is the DestructibleComponent row. Collectibles and smashable (is_smashable) objects
+		 * without that entry get one too, with no row.
+		 */
+		const auto destroyableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DESTROYABLE);
+		if (destroyableComponentID > 0) {
+			AddComponent<BuffComponent>(destroyableComponentID);
+		}
+
+		bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
+		if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
+			const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
+			DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
+			auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
+			std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
+
+			if (m_Character) {
+				comp->LoadFromXml(m_Character->GetXMLDoc());
+			} else {
+				// extraInfo overrides. Client ORs the database smashable and the luz smashable.
+				comp->SetIsSmashable(comp->GetIsSmashable() || isSmashable);
+
+				if (componentID > 0) {
+					if (!destCompData.empty()) {
+						if (isRacingCar) {
+							destCompData[0].imagination = 60;
+						}
+
+						comp->SetHealth(destCompData[0].life);
+						comp->SetImagination(destCompData[0].imagination);
+						comp->SetArmor(destCompData[0].armor);
+
+						comp->SetMaxHealth(destCompData[0].life);
+						comp->SetMaxImagination(destCompData[0].imagination);
+						comp->SetMaxArmor(destCompData[0].armor);
+						comp->SetDeathBehavior(destCompData[0].death_behavior);
+
+						comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
+						comp->SetIsNPC(destCompData[0].isnpc);
+						comp->SetAttackPriority(destCompData[0].attack_priority);
+
+						comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
+						comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
+						Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
+
+						// Now get currency information
+						const uint32_t npcMinLevel = destCompData[0].level;
+						const uint32_t currencyIndex = destCompData[0].CurrencyIndex;
+
+						CDCurrencyTableTable* const currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
+						const std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([currencyIndex, npcMinLevel](const CDCurrencyTable& entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
+
+						if (!currencyValues.empty()) {
+							// Set the coins
+							comp->SetMinCoins(currencyValues[0].minvalue);
+							comp->SetMaxCoins(currencyValues[0].maxvalue);
+						}
+					}
+				} else if (isSmashable) {
+					// A smashable object without a DestructibleComponent row
+					comp->SetHealth(1);
+					comp->SetArmor(0);
+
+					comp->SetMaxHealth(1);
+					comp->SetMaxArmor(0);
+
+					comp->SetIsSmashable(true);
+					comp->AddFaction(-1);
+					comp->AddFaction(6); //Smashables
+
+					// A race car has 60 imagination, other entities defaults to 0.
+					comp->SetImagination(isRacingCar ? 60 : 0);
+					comp->SetMaxImagination(isRacingCar ? 60 : 0);
+				}
+			}
+
+			if (!destCompData.empty()) comp->AddTemplateFactions(destCompData[0].factionList);
+
+			// Level files can replace the factions with set_faction, unless override_faction is 0
+			const auto levelFactions = DestroyableComponent::GetLevelFactions(*this);
+			if (levelFactions && !levelFactions->empty()) {
+				comp->SetFaction(levelFactions->front(), true);
+				for (const auto faction : *levelFactions | std::views::drop(1)) comp->AddFaction(faction, true);
+			}
+
+			// Level files can give a smashable its own loot matrix in place of the template's
+			const auto levelLootMatrix = DestroyableComponent::GetLevelLootMatrix(*this);
+			if (!m_Character && levelLootMatrix) {
+				comp->SetLootMatrixID(levelLootMatrix.value());
+				Loot::CacheMatrix(levelLootMatrix.value());
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::CHARACTER: {
+		const auto characterID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER);
+		if (characterID > 0 || m_Character) {
+			// Character Component always has a possessor, level, and forced movement components
+			AddComponent<PossessorComponent>(characterID);
+
+			// load in the xml for the level
+			AddComponent<LevelProgressionComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
+
+			AddComponent<PlayerForcedMovementComponent>(characterID);
+
+			auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+			AddComponent<CharacterComponent>(characterID, m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
+
+			AddComponent<GhostComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
+		}
+			break;
+		}
+		case eReplicaComponentType::PET: {
+		if (petComponentID > 0) {
+			AddComponent<PetComponent>(petComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::INVENTORY: {
+		const auto inventoryID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY);
+		if (inventoryID > 0 || m_Character) {
+			AddComponent<InventoryComponent>(inventoryID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROXIMITY_MONITOR: {
+		const auto proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
+		if (proximityMonitorID > 0) {
+			auto* const proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
+			const auto proxCompData = proxCompTable->Query([proximityMonitorID](const CDProximityMonitorComponent& entry) { return (entry.id == proximityMonitorID); });
+			if (proxCompData.size() > 0) {
+				// "small,large"; one value (LOT 9833: "4") is both
+				const auto radii = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
+				const auto small = radii.empty() ? std::nullopt : GeneralUtils::TryParse<int32_t>(radii[0]);
+				const auto large = radii.size() > 1 ? GeneralUtils::TryParse<int32_t>(radii[1]) : small;
+				if (small && large) AddComponent<ProximityMonitorComponent>(proximityMonitorID, *small, *large);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::MOVEMENT_AI: {
+		const int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
+		if (movementAIID > 0) {
+			CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
+			std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
+
+			if (moveAIComp.size() > 0) {
+				MovementAIInfo moveInfo{
+					.movementType = moveAIComp[0].MovementType,
+					.wanderRadius = moveAIComp[0].WanderRadius,
+					.wanderSpeed = moveAIComp[0].WanderSpeed,
+					.wanderChance = moveAIComp[0].WanderChance,
+					.wanderDelayMin = moveAIComp[0].WanderDelayMin,
+					.wanderDelayMax = moveAIComp[0].WanderDelayMax,
+				};
+
+				const bool useWanderDB = GetVar<bool>(u"usewanderdb");
+
+				if (!useWanderDB) {
+					const auto wanderOverride = GetVarAs<float>(u"wanderRadius");
+
+					if (wanderOverride != 0.0f) {
+						moveInfo.wanderRadius = wanderOverride;
+					}
+				}
+
+				AddComponent<MovementAIComponent>(movementAIID, moveInfo);
+			}
+		} else if (petComponentID > 0 || combatAiID > 0 && BaseCombatAIComponent::TetherSpeedOf(combatAiID) > 0) {
+			MovementAIInfo moveInfo{
+				.movementType = "",
+				.wanderRadius = 16,
+				.wanderSpeed = 2.5f,
+				.wanderChance = 0,
+				.wanderDelayMin = 2,
+				.wanderDelayMax = 5,
+			};
+
+			AddComponent<MovementAIComponent>(-1, moveInfo);
+		}
+			break;
+		}
+		case eReplicaComponentType::SCRIPT: {
+		/**
+		 * This is a bit of a mess
+		 * yep i aint touching this
+		 */
+
+		CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
+		const int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
+
+		std::string scriptName = "";
+		bool client = false;
+		if (scriptComponentID > 0 || m_Character) {
+			std::string clientScriptName;
+			if (!m_Character) {
+				CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+				scriptName = scriptCompData.script_name;
+				clientScriptName = scriptCompData.client_script_name;
+			} else {
+				scriptName = "";
+			}
+
+			if (scriptName != "" || (scriptName == "" && m_Character)) {
+
+			} else if (clientScriptName != "") {
+				client = true;
+			} else if (!m_Character) {
+				client = true;
+			}
+		}
+
+		std::string customScriptServer;
+		bool hasCustomServerScript = false;
+
+		const auto customScriptServerName = GetVarAsString(u"custom_script_server");
+		const auto customScriptClientName = GetVarAsString(u"custom_script_client");
+
+		if (!customScriptServerName.empty()) {
+			customScriptServer = customScriptServerName;
+			hasCustomServerScript = true;
+		}
+
+		if (!customScriptClientName.empty()) {
+			client = true;
+		}
+
+		if (hasCustomServerScript && scriptName.empty()) {
+			scriptName = customScriptServer;
+		}
+
+		if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
+			AddComponent<ScriptComponent>(scriptComponentID, scriptName, true, client && scriptName.empty());
+		}
+
+		// ZoneControl script
+		if (m_TemplateID == 2365) {
+			const auto& zoneID = Game::zoneManager->GetZoneID();
+			const CDZoneTable* const zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
+
+			if (zoneData != nullptr) {
+				const int32_t zoneScriptID = zoneData->scriptID;
+				CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
+				AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, true, false);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::SKILL: {
+		const auto skillID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1);
+		if (skillID > -1 || m_Character) {
+			auto* const skillComponent = AddComponent<SkillComponent>(skillID);
+			if (m_Character) skillComponent->LoadFromXml(m_Character->GetXMLDoc());
+		}
+			break;
+		}
+		case eReplicaComponentType::BASE_COMBAT_AI: {
+		if (combatAiID > 0) {
+			AddComponent<BaseCombatAIComponent>(combatAiID);
+		}
+			break;
+		}
+		case eReplicaComponentType::ITEM: {
+		PetComponent* petComponent{};
+		const auto itemID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM);
+		// The model (42) comes later in the client's order: a model without a pet has no item component
+		const bool hasModel = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) > -1 && petComponentID <= 0;
+		if (itemID > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent) && !hasModel) {
+			AddComponent<ItemComponent>(itemID);
+		}
+			break;
+		}
+		case eReplicaComponentType::BUILD_BORDER: {
+		const auto buildBorderID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUILD_BORDER, -1);
+		if (buildBorderID > -1) {
+			AddComponent<BuildBorderComponent>(buildBorderID);
+		}
+			break;
+		}
+		case eReplicaComponentType::QUICK_BUILD: {
+		const auto quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
+		if (quickBuildComponentID > 0) {
+			auto* const quickBuildComponent = AddComponent<QuickBuildComponent>(quickBuildComponentID);
+
+			CDRebuildComponentTable* const rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
+			const std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([quickBuildComponentID](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
+
+			if (!rebCompData.empty()) {
+				quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
+				quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
+				quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
+				quickBuildComponent->SetInterruptible(rebCompData[0].interruptible);
+				quickBuildComponent->SetSelfActivator(rebCompData[0].self_activator);
+				quickBuildComponent->SetActivityId(rebCompData[0].activityID);
+				quickBuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
+				quickBuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
+
+				const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
+
+				if (rebuildResetTime != 0.0f) {
+					quickBuildComponent->SetResetTime(rebuildResetTime);
+				}
+
+
+				// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
+				// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
+				// the AM Center draw bridge (LOT 12047: level activityID 12047 without actIDovrd, template activity 6,
+				// the quickbuild rewards) dropped no loot in 4 of 4 live completions.
+				const auto activityID = GetVar<int32_t>(u"activityID");
+
+				if (activityID > 0) {
+					quickBuildComponent->SetActivityId(activityID);
+					Loot::CacheMatrix(activityID);
+				}
+
+				const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
+
+				if (timeBeforeSmash > 0) {
+					quickBuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
+				}
+
+				const auto compTime = GetVar<float>(u"compTime");
+
+				if (compTime > 0) {
+					quickBuildComponent->SetCompleteTime(compTime);
+				}
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::MISSION_OFFER: {
+		const auto missionOfferComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MISSION_OFFER, -1);
+		if (missionOfferComponentID > -1 || m_Character) {
+			AddComponent<MissionOfferComponent>(missionOfferComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::VENDOR: {
+		const auto vendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR);
+		const auto donationVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1);
+		const auto achievementVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
+		if (vendorID > 0) {
+			AddComponent<VendorComponent>(vendorID);
+		} else if (donationVendorID > -1) {
+			AddComponent<DonationVendorComponent>(donationVendorID);
+		} else if (achievementVendorID > -1) {
+			AddComponent<AchievementVendorComponent>(achievementVendorID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SHOOTING_GALLERY: {
+		// Shooting gallery component
+		const auto shootingGalleryComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY);
+		if (shootingGalleryComponentID > 0) {
+			AddComponent<ShootingGalleryComponent>(shootingGalleryComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SCRIPTED_ACTIVITY: {
+		// Scripted activity component
+		const auto scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
+		if (scriptedActivityID > -1) {
+			AddComponent<ScriptedActivityComponent>(scriptedActivityID);
+		}
+			break;
+		}
+		case eReplicaComponentType::COLLECTIBLE: {
+
+		if (collectibleComponentID > 0) {
+			AddComponent<CollectibleComponent>(collectibleComponentID, GetVarAs<int32_t>(u"collectible_id"));
+		}
+			break;
+		}
+		case eReplicaComponentType::MOVING_PLATFORM: {
+		const std::string pathName = GetVarAsString(u"attached_path");
+		const Path* const path = Game::zoneManager->GetZone()->GetPath(pathName);
+
+		//Check to see if we have an attached path and add the appropiate component to handle it:
+		if (path) {
+			// if we have a moving platform path, then we need a moving platform component
+			if (path->pathType == PathType::MovingPlatform) {
+				// The registry component ID picks the subcomponent (a simple mover when it has one), path or not
+				AddComponent<MovingPlatformComponent>(compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1), pathName);
+			} else if (path->pathType == PathType::Movement) {
+				auto* const movementAIcomponent = GetComponent<MovementAIComponent>();
+				if (movementAIcomponent && combatAiID == 0) {
+					movementAIcomponent->SetPath(pathName);
+				} else {
+					MovementAIInfo moveInfo{
+						.movementType = "",
+						.wanderRadius = 16,
+						.wanderSpeed = 2.5f,
+						.wanderChance = 0,
+						.wanderDelayMin = 2,
+						.wanderDelayMax = 5,
+					};
+
+					AddComponent<MovementAIComponent>(-1, moveInfo);
+				}
+			}
+		} else {
+			// else we still need to setup moving platform if it has a moving platform comp but no path
+			const auto movingPlatformComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
+			if (movingPlatformComponentID >= 0) {
+				AddComponent<MovingPlatformComponent>(movingPlatformComponentID, pathName);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::LUP_EXHIBIT: {
+		const auto lupExhibitID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::LUP_EXHIBIT, -1);
+		if (lupExhibitID >= 0) {
+			AddComponent<LUPExhibitComponent>(lupExhibitID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY: {
+		const auto propertyID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY, -1);
+		if (propertyID > -1) {
+			AddComponent<PropertyComponent>(propertyID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MODEL: {
+		const auto modelID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1);
+		if (modelID > -1 && !GetComponent<PetComponent>()) {
+			AddComponent<ModelComponent>(modelID)->LoadBehaviors();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
+				auto* const destroyableComponent = AddComponent<DestroyableComponent>(-1);
+				destroyableComponent->SetHealth(1);
+				destroyableComponent->SetMaxHealth(1.0f);
+				destroyableComponent->SetFaction(-1, true);
+				destroyableComponent->SetIsSmashable(true);
+			}
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_ENTRANCE: {
+		const auto propertyEntranceComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_ENTRANCE);
+		if (propertyEntranceComponentID > 0) {
+			AddComponent<PropertyEntranceComponent>(propertyEntranceComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MULTI_ZONE_ENTRANCE: {
+		// if this component exists, then we initialize it. it's value is always 0
+		const auto multiZoneEntranceID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1);
+		if (multiZoneEntranceID > -1) {
+			AddComponent<MultiZoneEntranceComponent>(multiZoneEntranceID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_MANAGEMENT: {
+		const auto propertyManagementID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_MANAGEMENT, -1);
+		if (propertyManagementID > -1) {
+			AddComponent<PropertyManagementComponent>(propertyManagementID);
+		}
+			break;
+		}
+		case eReplicaComponentType::RAIL_ACTIVATOR: {
+		const auto railComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RAIL_ACTIVATOR);
+		if (railComponentID > 0) {
+			AddComponent<RailActivatorComponent>(railComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::BOUNCER: {
+		const auto bouncerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BOUNCER, -1);
+		if (bouncerID > -1) { // you have to determine it like this because all bouncers have a componentID of 0
+			AddComponent<BouncerComponent>(bouncerID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SWITCH: {
+		const auto switchID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1);
+		if (switchID > -1) {
+			AddComponent<SwitchComponent>(switchID);
+		}
+			break;
+		}
+		case eReplicaComponentType::MINI_GAME_CONTROL: {
+		const auto minigameControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL);
+		if (minigameControlID > 0) {
+			AddComponent<MiniGameControlComponent>(minigameControlID);
+		}
+			break;
+		}
+		case eReplicaComponentType::RENDER: {
+		const auto renderComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
+		if ((renderComponentID > 0 && m_TemplateID != 2365) || m_Character) {
+			AddComponent<RenderComponent>(renderComponentID);
+		}
+			break;
+		}
+		case eReplicaComponentType::SOUND_TRIGGER: {
+		const auto soundTriggerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1);
+		const auto racingSoundTriggerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_SOUND_TRIGGER, -1);
+		if (soundTriggerID > -1) {
+			AddComponent<SoundTriggerComponent>(soundTriggerID);
+		} else if (racingSoundTriggerID > -1) {
+			AddComponent<RacingSoundTriggerComponent>(racingSoundTriggerID);
+		}
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_VENDOR: {
+		const auto propertyVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1);
+		if (propertyVendorID > -1) {
+			AddComponent<PropertyVendorComponent>(propertyVendorID);
+		}
+			break;
+		}
+		case eReplicaComponentType::ROCKET_LAUNCH: {
+		const auto rocketID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LAUNCH);
+		if ((rocketID > 0)) {
+			AddComponent<RocketLaunchpadControlComponent>(rocketID);
+		}
+			break;
+		}
+		case eReplicaComponentType::RACING_CONTROL: {
+		const auto racingControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL);
+		if (racingControlID > 0) {
+			AddComponent<RacingControlComponent>(racingControlID);
+		}
+			break;
+		}
+		default:
+			break;
+		}
 	}
 
-	const auto minigameControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL);
-	if (minigameControlID > 0) {
-		AddComponent<MiniGameControlComponent>(minigameControlID);
-	}
-
-	const auto possessableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
-	if (possessableComponentID > 0) {
-		AddComponent<PossessableComponent>(possessableComponentID);
-	}
-
-	const auto moduleAssemblyID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE_ASSEMBLY);
-	if (moduleAssemblyID > 0) {
-		AddComponent<ModuleAssemblyComponent>(moduleAssemblyID);
-	}
-
+	/**
+	 * Components DLU has that the client's load order doesn't make
+	 */
 	const auto racingStatsID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_STATS);
 	if (racingStatsID > 0) {
 		AddComponent<RacingStatsComponent>(racingStatsID);
 	}
 
-	const auto lupExhibitID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::LUP_EXHIBIT, -1);
-	if (lupExhibitID >= 0) {
-		AddComponent<LUPExhibitComponent>(lupExhibitID);
-	}
-
-	const auto racingControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL);
-	if (racingControlID > 0) {
-		AddComponent<RacingControlComponent>(racingControlID);
-	}
-
-	const auto propertyEntranceComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_ENTRANCE);
-	if (propertyEntranceComponentID > 0) {
-		AddComponent<PropertyEntranceComponent>(propertyEntranceComponentID);
-	}
-
-	const auto controllablePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS);
-	if (controllablePhysicsComponentID > 0) {
-		auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
-
-		if (m_Character) {
-			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
-
-			const auto mapID = Game::server->GetZoneID();
-			const auto& targetSceneName = m_Character->GetTargetScene();
-
-			//If we came from another zone, put us in the starting loc
-			// Exception for Moon Base as you tend to spawn on the roof.
-			// second exception if we have a specified targetScene since that would only be possible in a test map
-			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603 || !targetSceneName.empty()) {
-				NiPoint3 pos;
-				NiQuaternion rot = QuatUtils::IDENTITY;
-
-				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
-					pos = m_Character->GetRespawnPoint(mapID);
-					rot = Game::zoneManager->GetZone()->GetSpawnRot();
-				} else if (targetScene != nullptr) {
-					pos = targetScene->GetPosition();
-					rot = targetScene->GetRotation();
-				} else {
-					pos = Game::zoneManager->GetZone()->GetSpawnPos();
-					rot = Game::zoneManager->GetZone()->GetSpawnRot();
-				}
-
-				controllablePhysics->SetPosition(pos);
-				controllablePhysics->SetRotation(rot);
-			}
-		} else {
-			controllablePhysics->SetPosition(m_DefaultPosition);
-			controllablePhysics->SetRotation(m_DefaultRotation);
-		}
-	}
-
-	// If an entity is marked a phantom, simple physics is made into phantom phyics.
-	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
-
-	const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
-	if (!markedAsPhantom && simplePhysicsComponentID > 0) {
-		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
-	}
-
-	const auto rigidBodyPhantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS);
-	if (rigidBodyPhantomPhysicsComponentID > 0) {
-		AddComponent<RigidbodyPhantomPhysicsComponent>(rigidBodyPhantomPhysicsComponentID);
-	}
-
-	const auto phantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS);
-	if (markedAsPhantom || phantomPhysicsComponentID > 0) {
-		AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
-	}
-
-	const auto havokVehiclePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
-	if (havokVehiclePhysicsComponentID > 0) {
-		auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
-		havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-		havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
-	}
-
-	const auto soundTriggerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1);
-	const auto racingSoundTriggerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_SOUND_TRIGGER, -1);
-	if (soundTriggerID > -1) {
-		AddComponent<SoundTriggerComponent>(soundTriggerID);
-	} else if (racingSoundTriggerID > -1) {
-		AddComponent<RacingSoundTriggerComponent>(racingSoundTriggerID);
-	}
-
-	const auto collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
-
-	if (collectibleComponentID > 0) {
-		AddComponent<CollectibleComponent>(collectibleComponentID, GetVarAs<int32_t>(u"collectible_id"));
-	}
-
 	/**
-	 * The destroyable component. The client makes one (with a buff component in front of it) for a DESTROYABLE
-	 * registry entry, whose id is the DestructibleComponent row. Collectibles and smashable (is_smashable) objects
-	 * without that entry get one too, with no row.
+	 * Added after the walk, as the client does (DoObjectComponentLoad): the trigger from the level config
 	 */
-	const auto destroyableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DESTROYABLE);
-	if (destroyableComponentID > 0) {
-		AddComponent<BuffComponent>(destroyableComponentID);
-	}
-
-	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
-	if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
-		const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
-		DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
-		auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
-		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
-
-		if (m_Character) {
-			comp->LoadFromXml(m_Character->GetXMLDoc());
-		} else {
-			// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-			comp->SetIsSmashable(comp->GetIsSmashable() || isSmashable);
-
-			if (componentID > 0) {
-				if (!destCompData.empty()) {
-					if (HasComponent(eReplicaComponentType::RACING_STATS)) {
-						destCompData[0].imagination = 60;
-					}
-
-					comp->SetHealth(destCompData[0].life);
-					comp->SetImagination(destCompData[0].imagination);
-					comp->SetArmor(destCompData[0].armor);
-
-					comp->SetMaxHealth(destCompData[0].life);
-					comp->SetMaxImagination(destCompData[0].imagination);
-					comp->SetMaxArmor(destCompData[0].armor);
-					comp->SetDeathBehavior(destCompData[0].death_behavior);
-
-					comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
-					comp->SetIsNPC(destCompData[0].isnpc);
-					comp->SetAttackPriority(destCompData[0].attack_priority);
-
-					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
-					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
-					Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
-
-					// Now get currency information
-					const uint32_t npcMinLevel = destCompData[0].level;
-					const uint32_t currencyIndex = destCompData[0].CurrencyIndex;
-
-					CDCurrencyTableTable* const currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
-					const std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([currencyIndex, npcMinLevel](const CDCurrencyTable& entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
-
-					if (!currencyValues.empty()) {
-						// Set the coins
-						comp->SetMinCoins(currencyValues[0].minvalue);
-						comp->SetMaxCoins(currencyValues[0].maxvalue);
-					}
-				}
-			} else if (isSmashable) {
-				// A smashable object without a DestructibleComponent row
-				comp->SetHealth(1);
-				comp->SetArmor(0);
-
-				comp->SetMaxHealth(1);
-				comp->SetMaxArmor(0);
-
-				comp->SetIsSmashable(true);
-				comp->AddFaction(-1);
-				comp->AddFaction(6); //Smashables
-
-				// A race car has 60 imagination, other entities defaults to 0.
-				comp->SetImagination(HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
-				comp->SetMaxImagination(HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
-			}
-		}
-
-		if (!destCompData.empty()) comp->AddTemplateFactions(destCompData[0].factionList);
-
-		// Level files can replace the factions with set_faction, unless override_faction is 0
-		const auto levelFactions = DestroyableComponent::GetLevelFactions(*this);
-		if (levelFactions && !levelFactions->empty()) {
-			comp->SetFaction(levelFactions->front(), true);
-			for (const auto faction : *levelFactions | std::views::drop(1)) comp->AddFaction(faction, true);
-		}
-
-		// Level files can give a smashable its own loot matrix in place of the template's
-		const auto levelLootMatrix = DestroyableComponent::GetLevelLootMatrix(*this);
-		if (!m_Character && levelLootMatrix) {
-			comp->SetLootMatrixID(levelLootMatrix.value());
-			Loot::CacheMatrix(levelLootMatrix.value());
-		}
-	}
-
-	const auto characterID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER);
-	if (characterID > 0 || m_Character) {
-		// Character Component always has a possessor, level, and forced movement components
-		AddComponent<PossessorComponent>(characterID);
-
-		// load in the xml for the level
-		AddComponent<LevelProgressionComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
-
-		AddComponent<PlayerForcedMovementComponent>(characterID);
-
-		auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
-		AddComponent<CharacterComponent>(characterID, m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
-
-		AddComponent<GhostComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
-	}
-
-	const auto inventoryID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY);
-	if (inventoryID > 0 || m_Character) {
-		AddComponent<InventoryComponent>(inventoryID);
-	}
-	// if this component exists, then we initialize it. it's value is always 0
-	const auto multiZoneEntranceID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1);
-	if (multiZoneEntranceID > -1) {
-		AddComponent<MultiZoneEntranceComponent>(multiZoneEntranceID);
-	}
-
-	/**
-	 * This is a bit of a mess
-	 * yep i aint touching this
-	 */
-
-	CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
-	const int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
-
-	std::string scriptName = "";
-	bool client = false;
-	if (scriptComponentID > 0 || m_Character) {
-		std::string clientScriptName;
-		if (!m_Character) {
-			CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-			scriptName = scriptCompData.script_name;
-			clientScriptName = scriptCompData.client_script_name;
-		} else {
-			scriptName = "";
-		}
-
-		if (scriptName != "" || (scriptName == "" && m_Character)) {
-
-		} else if (clientScriptName != "") {
-			client = true;
-		} else if (!m_Character) {
-			client = true;
-		}
-	}
-
-	std::string customScriptServer;
-	bool hasCustomServerScript = false;
-
-	const auto customScriptServerName = GetVarAsString(u"custom_script_server");
-	const auto customScriptClientName = GetVarAsString(u"custom_script_client");
-
-	if (!customScriptServerName.empty()) {
-		customScriptServer = customScriptServerName;
-		hasCustomServerScript = true;
-	}
-
-	if (!customScriptClientName.empty()) {
-		client = true;
-	}
-
-	if (hasCustomServerScript && scriptName.empty()) {
-		scriptName = customScriptServer;
-	}
-
-	if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
-		AddComponent<ScriptComponent>(scriptComponentID, scriptName, true, client && scriptName.empty());
-	}
-
-	// ZoneControl script
-	if (m_TemplateID == 2365) {
-		const auto& zoneID = Game::zoneManager->GetZoneID();
-		const CDZoneTable* const zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
-
-		if (zoneData != nullptr) {
-			const int32_t zoneScriptID = zoneData->scriptID;
-			CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
-			AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, true, false);
-		}
-	}
-
-	const auto skillID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1);
-	if (skillID > -1 || m_Character) {
-		auto* const skillComponent = AddComponent<SkillComponent>(skillID);
-		if (m_Character) skillComponent->LoadFromXml(m_Character->GetXMLDoc());
-	}
-
-	const auto combatAiID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
-	if (combatAiID > 0) {
-		AddComponent<BaseCombatAIComponent>(combatAiID);
-	}
-
-	const auto quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
-	if (quickBuildComponentID > 0) {
-		auto* const quickBuildComponent = AddComponent<QuickBuildComponent>(quickBuildComponentID);
-
-		CDRebuildComponentTable* const rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
-		const std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([quickBuildComponentID](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
-
-		if (!rebCompData.empty()) {
-			quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
-			quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
-			quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
-			quickBuildComponent->SetInterruptible(rebCompData[0].interruptible);
-			quickBuildComponent->SetSelfActivator(rebCompData[0].self_activator);
-			quickBuildComponent->SetActivityId(rebCompData[0].activityID);
-			quickBuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-			quickBuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
-
-			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
-
-			if (rebuildResetTime != 0.0f) {
-				quickBuildComponent->SetResetTime(rebuildResetTime);
-			}
-
-
-			// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
-			// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
-			// the AM Center draw bridge (LOT 12047: level activityID 12047 without actIDovrd, template activity 6,
-			// the quickbuild rewards) dropped no loot in 4 of 4 live completions.
-			const auto activityID = GetVar<int32_t>(u"activityID");
-
-			if (activityID > 0) {
-				quickBuildComponent->SetActivityId(activityID);
-				Loot::CacheMatrix(activityID);
-			}
-
-			const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
-
-			if (timeBeforeSmash > 0) {
-				quickBuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
-			}
-
-			const auto compTime = GetVar<float>(u"compTime");
-
-			if (compTime > 0) {
-				quickBuildComponent->SetCompleteTime(compTime);
-			}
-		}
-	}
-
-	const auto switchID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1);
-	if (switchID > -1) {
-		AddComponent<SwitchComponent>(switchID);
-	}
-
-	const auto vendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR);
-	const auto donationVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1);
-	const auto achievementVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
-	if (vendorID > 0) {
-		AddComponent<VendorComponent>(vendorID);
-	} else if (donationVendorID > -1) {
-		AddComponent<DonationVendorComponent>(donationVendorID);
-	} else if (achievementVendorID > -1) {
-		AddComponent<AchievementVendorComponent>(achievementVendorID);
-	}
-
-	const auto propertyVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1);
-	if (propertyVendorID > -1) {
-		AddComponent<PropertyVendorComponent>(propertyVendorID);
-	}
-
-	const auto propertyManagementID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_MANAGEMENT, -1);
-	if (propertyManagementID > -1) {
-		AddComponent<PropertyManagementComponent>(propertyManagementID);
-	}
-
-	const auto bouncerID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BOUNCER, -1);
-	if (bouncerID > -1) { // you have to determine it like this because all bouncers have a componentID of 0
-		AddComponent<BouncerComponent>(bouncerID);
-	}
-
-	const auto renderComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
-	if ((renderComponentID > 0 && m_TemplateID != 2365) || m_Character) {
-		AddComponent<RenderComponent>(renderComponentID);
-	}
-
-	const auto missionOfferComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MISSION_OFFER, -1);
-	if (missionOfferComponentID > -1 || m_Character) {
-		AddComponent<MissionOfferComponent>(missionOfferComponentID);
-	}
-
-	const auto buildBorderID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUILD_BORDER, -1);
-	if (buildBorderID > -1) {
-		AddComponent<BuildBorderComponent>(buildBorderID);
-	}
-
-	// Scripted activity component
-	const auto scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
-	if (scriptedActivityID > -1) {
-		AddComponent<ScriptedActivityComponent>(scriptedActivityID);
-	}
-
-	const auto modelID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1);
-	if (modelID > -1 && !GetComponent<PetComponent>()) {
-		AddComponent<ModelComponent>(modelID)->LoadBehaviors();
-		if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-			auto* const destroyableComponent = AddComponent<DestroyableComponent>(-1);
-			destroyableComponent->SetHealth(1);
-			destroyableComponent->SetMaxHealth(1.0f);
-			destroyableComponent->SetFaction(-1, true);
-			destroyableComponent->SetIsSmashable(true);
-		}
-	}
-
-	PetComponent* petComponent{};
-	const auto itemID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM);
-	if (itemID > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent) && !HasComponent(eReplicaComponentType::MODEL)) {
-		AddComponent<ItemComponent>(itemID);
-	}
-
-	// Shooting gallery component
-	const auto shootingGalleryComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY);
-	if (shootingGalleryComponentID > 0) {
-		AddComponent<ShootingGalleryComponent>(shootingGalleryComponentID);
-	}
-
-	const auto propertyID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY, -1);
-	if (propertyID > -1) {
-		AddComponent<PropertyComponent>(propertyID);
-	}
-
-	const auto rocketID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LAUNCH);
-	if ((rocketID > 0)) {
-		AddComponent<RocketLaunchpadControlComponent>(rocketID);
-	}
-
-	const auto railComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RAIL_ACTIVATOR);
-	if (railComponentID > 0) {
-		AddComponent<RailActivatorComponent>(railComponentID);
-	}
-
-	const int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
-	if (movementAIID > 0) {
-		CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
-		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
-
-		if (moveAIComp.size() > 0) {
-			MovementAIInfo moveInfo{
-				.movementType = moveAIComp[0].MovementType,
-				.wanderRadius = moveAIComp[0].WanderRadius,
-				.wanderSpeed = moveAIComp[0].WanderSpeed,
-				.wanderChance = moveAIComp[0].WanderChance,
-				.wanderDelayMin = moveAIComp[0].WanderDelayMin,
-				.wanderDelayMax = moveAIComp[0].WanderDelayMax,
-			};
-
-			const bool useWanderDB = GetVar<bool>(u"usewanderdb");
-
-			if (!useWanderDB) {
-				const auto wanderOverride = GetVarAs<float>(u"wanderRadius");
-
-				if (wanderOverride != 0.0f) {
-					moveInfo.wanderRadius = wanderOverride;
-				}
-			}
-
-			AddComponent<MovementAIComponent>(movementAIID, moveInfo);
-		}
-	} else if (petComponentID > 0 || combatAiID > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0) {
-		MovementAIInfo moveInfo{
-			.movementType = "",
-			.wanderRadius = 16,
-			.wanderSpeed = 2.5f,
-			.wanderChance = 0,
-			.wanderDelayMin = 2,
-			.wanderDelayMax = 5,
-		};
-
-		AddComponent<MovementAIComponent>(-1, moveInfo);
-	}
-
-	const std::string pathName = GetVarAsString(u"attached_path");
-	const Path* const path = Game::zoneManager->GetZone()->GetPath(pathName);
-
-	//Check to see if we have an attached path and add the appropiate component to handle it:
-	if (path) {
-		// if we have a moving platform path, then we need a moving platform component
-		if (path->pathType == PathType::MovingPlatform) {
-			// The registry component ID picks the subcomponent (a simple mover when it has one), path or not
-			AddComponent<MovingPlatformComponent>(compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1), pathName);
-		} else if (path->pathType == PathType::Movement) {
-			auto* const movementAIcomponent = GetComponent<MovementAIComponent>();
-			if (movementAIcomponent && combatAiID == 0) {
-				movementAIcomponent->SetPath(pathName);
-			} else {
-				MovementAIInfo moveInfo{
-					.movementType = "",
-					.wanderRadius = 16,
-					.wanderSpeed = 2.5f,
-					.wanderChance = 0,
-					.wanderDelayMin = 2,
-					.wanderDelayMax = 5,
-				};
-
-				AddComponent<MovementAIComponent>(-1, moveInfo);
-			}
-		}
-	} else {
-		// else we still need to setup moving platform if it has a moving platform comp but no path
-		const auto movingPlatformComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
-		if (movingPlatformComponentID >= 0) {
-			AddComponent<MovingPlatformComponent>(movingPlatformComponentID, pathName);
-		}
-	}
-
-	const auto proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
-	if (proximityMonitorID > 0) {
-		auto* const proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
-		const auto proxCompData = proxCompTable->Query([proximityMonitorID](const CDProximityMonitorComponent& entry) { return (entry.id == proximityMonitorID); });
-		if (proxCompData.size() > 0) {
-			// "small,large"; one value (LOT 9833: "4") is both
-			const auto radii = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
-			const auto small = radii.empty() ? std::nullopt : GeneralUtils::TryParse<int32_t>(radii[0]);
-			const auto large = radii.size() > 1 ? GeneralUtils::TryParse<int32_t>(radii[1]) : small;
-			if (small && large) AddComponent<ProximityMonitorComponent>(proximityMonitorID, *small, *large);
-		}
-	}
+	const auto triggerInfo = GetVarAsString(u"trigger_id");
+	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
 
 	// Hacky way to trigger these when the object has had a chance to get constructed
 	AddCallbackTimer(0, [this]() {
