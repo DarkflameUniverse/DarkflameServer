@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "BuildControllerComponent.h"
 #include "ModularBuildComponent.h"
 #include "PlatformBoundaryComponent.h"
 #include "CullingPlaneComponent.h"
@@ -971,6 +972,12 @@ void Entity::Initialize() {
 			// LWOModularBuildComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::REBUILD, -1);
 			if (id > -1) AddComponent<ModularBuildComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::REBUILD_START: {
+			// LWOBuildControllerComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::REBUILD_START, -1);
+			if (id > -1) AddComponent<BuildControllerComponent>(id);
 			break;
 		}
 		default:
