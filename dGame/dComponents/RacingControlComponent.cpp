@@ -38,7 +38,7 @@
 #endif
 
 RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t componentID)
-	: ActivityComponent(parent, componentID) {
+	: BaseRacingControlComponent(parent, componentID) {
 	m_PathName = u"MainPath";
 	m_NumberOfLaps = 3;
 	m_RemainingLaps = m_NumberOfLaps;
@@ -63,7 +63,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t com
 
 // After the activity's own loading: the race's activity is the one of this world (42 when none)
 void RacingControlComponent::LoadConfigData() {
-	ActivityComponent::LoadConfigData();
+	BaseRacingControlComponent::LoadConfigData();
 
 	const auto worldID = Game::server->GetZoneID();
 	m_ActivityID = 42;

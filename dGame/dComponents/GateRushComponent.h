@@ -1,17 +1,18 @@
 #ifndef GATERUSHCOMPONENT_H
 #define GATERUSHCOMPONENT_H
 
-#include "Component.h"
+#include "BaseRacingControlComponent.h"
 #include "eReplicaComponentType.h"
 
 /**
- * Gate rush, as the client's LWOGateRushComponent makes it from the registry. Nothing of it is sent or done on the server yet.
+ * Gate rush control, as the client's LWOGateRushControlComponent makes it from the registry: a racing control
+ * (BaseRacingControlComponent). Nothing of it is sent or done on the server yet.
  */
-class GateRushComponent final : public Component {
+class GateRushComponent final : public BaseRacingControlComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::GATE_RUSH_CONTROL;
 
-	GateRushComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {}
+	GateRushComponent(Entity* parent, const int32_t componentID) : BaseRacingControlComponent(parent, componentID) {}
 };
 
 #endif // GATERUSHCOMPONENT_H

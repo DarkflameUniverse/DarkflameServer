@@ -6,7 +6,7 @@
 
 #include "BitStream.h"
 #include "Entity.h"
-#include "ActivityComponent.h"
+#include "BaseRacingControlComponent.h"
 #include "eReplicaComponentType.h"
 #include <chrono>
 
@@ -121,7 +121,7 @@ struct RacingPlayerInfo {
 struct Path;
 struct PathWaypoint;
 
-class RacingControlComponent final : public ActivityComponent {
+class RacingControlComponent final : public BaseRacingControlComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
