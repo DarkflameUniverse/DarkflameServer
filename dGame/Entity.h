@@ -7,6 +7,7 @@
 #include <typeinfo>
 #include <type_traits>
 #include <unordered_map>
+#include <algorithm>
 #include <vector>
 
 #include "NiPoint3.h"
@@ -460,6 +461,10 @@ private:
 
 	// Every component has had its Startup (the end of Initialize)
 	bool m_ComponentsStarted = false;
+	// Initialize is making the components (DoObjectComponentLoad); their config and save load after
+	bool m_LoadingComponents = false;
+	// The components in the order they were made (the client's componentList)
+	std::vector<Component*> m_ComponentList;
 	std::vector<EntityTimer> m_Timers;
 	std::vector<EntityTimer> m_PendingTimers;
 	std::vector<EntityCallbackTimer> m_CallbackTimers;
@@ -651,8 +656,14 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 	// PrepareConfigData); one added after the object started up starts up at once
 	componentToReturn->LoadDataFromTemplate();
 	componentToReturn->PrepareConfigData();
-	componentToReturn->LoadConfigData();
-	if (m_ComponentsStarted) componentToReturn->Startup();
+	if (m_LoadingComponents) {
+		// While the object loads, its config, save and startup come after every component exists
+		// (LWOGameObject::MakeReadyForSerialization), in the order the components were made
+		if (std::ranges::find(m_ComponentList, componentToReturn) == m_ComponentList.end()) m_ComponentList.push_back(componentToReturn);
+	} else {
+		componentToReturn->LoadConfigData();
+		if (m_ComponentsStarted) componentToReturn->Startup();
+	}
 
 	// Finally return the created or already existing component.
 	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function

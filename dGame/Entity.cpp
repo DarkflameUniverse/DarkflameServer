@@ -274,7 +274,7 @@ Entity::ObjectLoadState Entity::DoObjectPreLoad() {
 
 	// The player's own components (HandleLocalPlayer makes them for the local player, not from the registry)
 	if (m_Character && m_Character->GetParentUser()) {
-		AddComponent<MissionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+		AddComponent<MissionComponent>(-1);
 	}
 
 	// markedAsPhantom doesn't count when the registry has phantom physics
@@ -353,8 +353,7 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 			if (controllablePhysicsComponentID > 0) state.modelPhysicsComponentID = controllablePhysicsComponentID;
 		} else if (controllablePhysicsComponentID > 0) {
 			// The component places it: where the level put an object, where a character's save and the zone put it
-			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
-			if (m_Character) controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
 		}
 			break;
 		}
@@ -413,8 +412,7 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		// A collectible's (right after it) and a smashable object's (after the walk) come later, as the client makes them
 		if (destroyableComponentID > 0) {
 			// The row, the level config and a character's save, in the client's order
-			DestroyableComponent* comp = AddComponent<DestroyableComponent>(destroyableComponentID);
-			if (m_Character) comp->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<DestroyableComponent>(destroyableComponentID);
 		}
 			break;
 		}
@@ -431,11 +429,11 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 			AddComponent<PossessorComponent>(-1);
 			AddComponent<MountControlComponent>(-1);
 			AddComponent<PetCreatorComponent>(-1);
-			AddComponent<LevelProgressionComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<LevelProgressionComponent>(-1);
 			AddComponent<PlayerForcedMovementComponent>(-1);
 
 			auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
-			AddComponent<CharacterComponent>(-1, m_Character, systemAddress)->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<CharacterComponent>(-1, m_Character, systemAddress);
 
 		}
 			break;
@@ -510,8 +508,7 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		case eReplicaComponentType::SKILL: {
 		const auto skillID = state.GetComponentID(eReplicaComponentType::SKILL, -1);
 		if (skillID > -1 || m_Character) {
-			auto* const skillComponent = AddComponent<SkillComponent>(skillID);
-			if (m_Character) skillComponent->LoadFromSaveData(m_Character->GetXMLDoc());
+			AddComponent<SkillComponent>(skillID);
 		}
 			break;
 		}
@@ -677,7 +674,7 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 				else AddComponent<SimplePhysicsComponent>(state.modelPhysicsComponentID == -1 ? 4247 : state.modelPhysicsComponentID);
 			}
 			if (modelType == 0 && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
-			AddComponent<ModelComponent>(modelID)->LoadBehaviors();
+			AddComponent<ModelComponent>(modelID);
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 				AddComponent<DestroyableComponent>(-1, true);
 			}
@@ -995,7 +992,7 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		AddComponent<DestroyableComponent>(-1);
 	}
 	if (m_Character && HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS)) {
-		AddComponent<GhostComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+		AddComponent<GhostComponent>(-1);
 	}
 	// A mission offer's object gets a proximity monitor after the walk when it has none (the registry's mission offer;
 	// a character's is DLU's own)
@@ -1034,11 +1031,20 @@ void Entity::Initialize() {
 		m_ParentEntity->AddChild(this);
 	}
 
+	m_LoadingComponents = true;
 	auto loadState = DoObjectPreLoad();
 	DoObjectComponentLoad(loadState);
+	m_LoadingComponents = false;
+
+	// LWOGameObject::MakeReadyForSerialization (0x0101c230): every component exists; each loads the object's config,
+	// then a character's save, in the order they were made
+	for (auto* const component : m_ComponentList) {
+		component->LoadConfigData();
+		if (m_Character) component->LoadFromSaveData(m_Character->GetXMLDoc());
+	}
 
 	// Every component exists: the client's Startup step
-	for (auto* const component : m_Components | std::views::values) if (component) component->Startup();
+	for (auto* const component : m_ComponentList) component->Startup();
 	m_ComponentsStarted = true;
 
 	// Hacky way to trigger these when the object has had a chance to get constructed

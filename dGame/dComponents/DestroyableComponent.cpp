@@ -274,11 +274,6 @@ void DestroyableComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 		return;
 	}
 
-	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
-
-	if (buffComponent != nullptr) {
-		buffComponent->LoadFromSaveData(doc);
-	}
 
 	dest->QueryAttribute("hc", &m_iHealth);
 	dest->QueryAttribute("hm", &m_fMaxHealth);

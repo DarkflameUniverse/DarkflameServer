@@ -51,17 +51,18 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, const
 	m_ImmuneToStunMoveCount = 0;
 	m_ImmuneToStunTurnCount = 0;
 	m_ImmuneToStunUseItemCount = 0;
+
+	// An object that isn't a character starts where the level put it (from the object's spawn info, as the client's
+	// physics does; a character's place comes with its save)
+	if (!m_Parent->GetCharacter()) {
+		SetPosition(m_Parent->GetDefaultPosition());
+		SetRotation(m_Parent->GetDefaultRotation());
+	}
 }
 
 // After the physics config: a character's body, in the physics component's group
 void ControllablePhysicsComponent::LoadConfigData() {
 	PhysicsComponent::LoadConfigData();
-
-	// An object that isn't a character starts where the level put it (a character's place comes with its save)
-	if (!m_Parent->GetCharacter()) {
-		SetPosition(m_Parent->GetDefaultPosition());
-		SetRotation(m_Parent->GetDefaultRotation());
-	}
 
 	if (m_Parent->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;

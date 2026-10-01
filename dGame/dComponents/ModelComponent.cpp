@@ -33,6 +33,7 @@ ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Comp
 // The level config: the user model this is
 void ModelComponent::LoadConfigData() {
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
+	LoadBehaviors();
 }
 
 bool ModelComponent::OnResetModelToDefaults(GameMessages::ResetModelToDefaults& reset) {
