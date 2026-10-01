@@ -317,6 +317,13 @@ void MovingPlatformComponent::StartPathing() {
 	m_PathingStopped = false;
 	auto* const mover = GetMoverSubComponent();
 	if ((mover->mState & ePlatformStateFlag::Travelling) != 0) return;
+	// LWOPlatform::ResumeTravelling: stopped between two waypoints it carries on; at a waypoint it first waits there
+	// for the waypoint's wait (issue 964: the AG monument elevator waited about 2 s before rising)
+	if ((mover->mState & ePlatformStateFlag::ReachedDesiredWaypoint) != 0) {
+		MoverStopAtWaypoint(true);
+		Game::entityManager->SerializeEntity(m_Parent);
+		return;
+	}
 	MoverDepart();
 }
 

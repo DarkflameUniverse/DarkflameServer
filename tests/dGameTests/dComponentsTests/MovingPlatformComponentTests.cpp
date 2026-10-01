@@ -217,8 +217,11 @@ TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	platform->Update(10.0f);
 	EXPECT_EQ(mover->mState, 25u);
 
-	// Stopped mid way, then started again
+	// Started at a waypoint it first waits there (issue 964), then stopped mid way and started again
 	platform->StartPathing();
+	EXPECT_EQ(mover->mState, 25u);
+	platform->Update(2.1f);
+	EXPECT_EQ(mover->mState, 2u);
 	platform->Update(1.0f);
 	platform->StopPathing();
 	EXPECT_EQ(mover->mState & 1u, 1u);
