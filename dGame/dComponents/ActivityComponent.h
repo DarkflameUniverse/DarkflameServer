@@ -128,6 +128,9 @@ class ActivityComponent : public Component {
 public:
 	ActivityComponent(Entity* parent, int32_t activityID);
 
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
+
 	void LoadActivityData(const int32_t activityId);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

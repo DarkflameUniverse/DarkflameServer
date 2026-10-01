@@ -126,6 +126,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity, const int32_t componentID);
+
+	void LoadConfigData() override;
 	~RacingControlComponent();
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

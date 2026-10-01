@@ -38,16 +38,22 @@ namespace {
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&ActivityComponent::OnGetObjectReportInfo);
-	/*
-	* This is precisely what the client does functionally
-	* Use the component id as the default activity id and load its data from the database
-	* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
-	*/
+}
 
-	m_ActivityID = componentID;
-	LoadActivityData(componentID);
+/*
+* This is precisely what the client does functionally
+* Use the component id as the default activity id and load its data from the database
+* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
+*/
+void ActivityComponent::LoadDataFromTemplate() {
+	m_ActivityID = m_ComponentID;
+	LoadActivityData(m_ComponentID);
+}
+
+// The level config's activityID, when there, replaces it
+void ActivityComponent::LoadConfigData() {
 	if (m_Parent->HasVar(u"activityID")) {
-		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
+		m_ActivityID = m_Parent->GetVar<int32_t>(u"activityID");
 		LoadActivityData(m_ActivityID);
 	}
 }

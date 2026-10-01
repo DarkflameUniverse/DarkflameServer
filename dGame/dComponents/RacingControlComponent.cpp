@@ -58,11 +58,18 @@ RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t com
 	const auto worldID = Game::server->GetZoneID();
 	if (Game::zoneManager->CheckIfAccessibleZone((worldID / 10) * 10)) m_MainWorld = (worldID / 10) * 10;
 
+	RegisterMsg(&RacingControlComponent::MsgConfigureRacingControl);
+}
+
+// After the activity's own loading: the race's activity is the one of this world (42 when none)
+void RacingControlComponent::LoadConfigData() {
+	ActivityComponent::LoadConfigData();
+
+	const auto worldID = Game::server->GetZoneID();
 	m_ActivityID = 42;
 	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
 	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
-	RegisterMsg(&RacingControlComponent::MsgConfigureRacingControl);
 }
 
 RacingControlComponent::~RacingControlComponent() {}
