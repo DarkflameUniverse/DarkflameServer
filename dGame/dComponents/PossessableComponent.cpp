@@ -8,13 +8,17 @@
 PossessableComponent::PossessableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&PossessableComponent::OnRequestUse);
 	m_Possessor = LWOOBJID_EMPTY;
+}
+
+// The item's animation flag and the PossessableComponent row
+void PossessableComponent::LoadDataFromTemplate() {
 	CDItemComponent item = Inventory::FindItemComponent(m_Parent->GetLOT());
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
 
 	// Get the possession Type from the CDClient
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType, depossessOnHit, skillSet FROM PossessableComponent WHERE id = ?;");
 
-	query.bind(1, static_cast<int>(componentID));
+	query.bind(1, static_cast<int>(m_ComponentID));
 
 	auto result = query.execQuery();
 
