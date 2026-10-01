@@ -42,6 +42,7 @@
 #include "eStateChangeType.h"
 #include "ServiceType.h"
 #include "ePlayerFlag.h"
+#include "ModelComponent.h"
 
 #include <sstream>
 #include <future>
@@ -2627,6 +2628,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
 			Game::entityManager->ConstructEntity(newEntity);
+			auto* const modelComponent = newEntity->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Pause();
 
 			//Make sure the propMgmt doesn't delete our model after the server dies
 			//Trying to do this after the entity is constructed. Shouldn't really change anything but
