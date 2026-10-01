@@ -2,7 +2,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EffectsMessages.h"
-#include "MovementMessages.h"
+#include "MovingPlatformComponent.h"
 #include "ProximityMonitorComponent.h"
 
 void AgBusDoor::OnStartup(Entity* self) {
@@ -10,6 +10,8 @@ void AgBusDoor::OnStartup(Entity* self) {
 	m_OuterCounter = 0;
 	self->SetProximityRadius(75, "busDoor");
 	self->SetProximityRadius(85, "busDoorOuter");
+	// L_AG_BUS_DOOR: the door only moves when sent
+	if (auto* const platform = self->GetComponent<MovingPlatformComponent>()) platform->StopPathing();
 }
 
 void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
@@ -50,9 +52,9 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 
 void AgBusDoor::MoveDoor(Entity* self, bool bOpen) {
 	if (bOpen) {
-		GameMessages::PlatformResync(*self, true, 1, 0).Send(UNASSIGNED_SYSTEM_ADDRESS);
+		if (auto* const platform = self->GetComponent<MovingPlatformComponent>()) platform->GotoWaypoint(0);
 	} else {
-		GameMessages::PlatformResync(*self, true, 0, 1).Send(UNASSIGNED_SYSTEM_ADDRESS);
+		if (auto* const platform = self->GetComponent<MovingPlatformComponent>()) platform->GotoWaypoint(1);
 		self->AddTimer("dustTimer", 2.0f);
 	}
 

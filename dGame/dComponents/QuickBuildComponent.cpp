@@ -518,6 +518,13 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 		Loot::DropActivityLoot(builder, m_Parent->GetObjectID(), m_ActivityId, 1);
 	}
 
+	// A built platform sets off before the scripts hear of it, so a script that stops it (live's L_AG_QB_ELEVATOR and
+	// L_PROP_PLATFORM stop theirs) keeps it stopped
+	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
+	if (movingPlatform != nullptr) {
+		movingPlatform->OnCompleteQuickBuild();
+	}
+
 	// Notify scripts
 	auto* script = m_Parent->GetScript();
 	script->OnQuickBuildComplete(m_Parent, user);
@@ -530,11 +537,6 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 		callback(user);
 
 	m_Parent->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
-
-	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
-	if (movingPlatform != nullptr) {
-		movingPlatform->OnCompleteQuickBuild();
-	}
 
 	// Set flag
 	auto* character = user->GetCharacter();

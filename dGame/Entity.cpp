@@ -617,12 +617,6 @@ void Entity::Initialize() {
 				quickBuildComponent->SetResetTime(rebuildResetTime);
 			}
 
-			const auto objectID = GetObjectID();
-			// FV tree handler for when built so it sets the state to moving at the correct time
-			if (GetLOT() == 9483) quickBuildComponent->AddQuickBuildCompleteCallback([objectID](Entity* user) {
-				auto* const entity = Game::entityManager->GetEntity(objectID);
-				if (entity) GameMessages::PlatformResync(*entity, false, 0, 1, 1, eMovementPlatformState::Moving, true).Send(UNASSIGNED_SYSTEM_ADDRESS);
-				});
 
 			// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
 			// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
