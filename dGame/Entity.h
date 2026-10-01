@@ -406,6 +406,8 @@ private:
 		const std::initializer_list<eReplicaComponentType>* whitelist = nullptr;
 		bool hasModelBehaviors = false;
 		bool markedAsPhantom = false;
+		// ApplyMovementAiIfNeeded: movement AI for a scripted object or one with an attached path
+		bool addsMovementAI = false;
 		// A model with behaviors' physics id, which the physics cases leave to the model case
 		int32_t modelPhysicsComponentID = -1;
 

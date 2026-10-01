@@ -14,6 +14,7 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "dZoneManager.h"
+#include "Zone.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "QuickBuildComponent.h"
@@ -97,7 +98,15 @@ void MovementAIComponent::LoadConfigData() {
 	if (m_Info.wanderRadius > 8.0f) m_Info.wanderRadius = 8.0f;
 	if (m_Info.wanderSpeed > 0.5f) m_Info.wanderSpeed *= 0.5f;
 
-	SetPath(m_Parent->GetVarAsString(u"attached_path"));
+	// A movement AI the object has only because it is scripted or has a path (id 0) follows only a movement path: a
+	// moving platform's path belongs to its moving platform
+	const auto pathName = m_Parent->GetVarAsString(u"attached_path");
+	if (m_ComponentID == 0) {
+		if (pathName.empty()) return;
+		const auto* const path = Game::zoneManager->GetZone()->GetPath(pathName);
+		if (!path || path->pathType != PathType::Movement) return;
+	}
+	SetPath(pathName);
 }
 
 void MovementAIComponent::SetPath(const std::string pathName) {

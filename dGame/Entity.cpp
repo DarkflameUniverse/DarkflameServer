@@ -283,6 +283,12 @@ Entity::ObjectLoadState Entity::DoObjectPreLoad() {
 	// physics from the model case, which takes the registry's simple physics id
 	state.hasModelBehaviors = !GetVar<bool>(u"inInventory") && HasVar(u"modelType") && HasVar(u"modelBehaviors");
 
+	// ApplyMovementAiIfNeeded (0x01031350): an object with a script (its registry's, or a custom script in the config,
+	// ApplyScriptComponentIfHasScript) or an attached path gets movement AI. Not a spawner object: the client never
+	// loads one, the server keeps thousands
+	const bool hasScript = state.GetComponentID(eReplicaComponentType::SCRIPT, -1) > -1 || HasVar(u"custom_script_server") || HasVar(u"custom_script_client");
+	state.addsMovementAI = m_TemplateID != 176 && (hasScript || HasVar(u"attached_path"));
+
 	// ObjectLoader2::ApplyComponentWhitelist (0x0103e300): the config's componentWhitelist keeps only these registry
 	// components (the lists ObjectLoader2's constructor builds; property models use 1)
 	static constexpr std::array<std::initializer_list<eReplicaComponentType>, 5> COMPONENT_WHITELISTS{ {
@@ -464,6 +470,9 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 			};
 
 			AddComponent<MovementAIComponent>(-1, moveInfo);
+		} else if (state.addsMovementAI) {
+			// ApplyMovementAiIfNeeded: a scripted object or one with an attached path has one (id 0: no row)
+			AddComponent<MovementAIComponent>(0, MovementAIInfo{});
 		}
 			break;
 		}
