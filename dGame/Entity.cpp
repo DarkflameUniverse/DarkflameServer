@@ -95,6 +95,7 @@
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
+#include "PhysicsSystemComponent.h"
 #include "VehiclePhysicsComponent.h"
 #include "ProjectilePhysicsComponent.h"
 #include "GenericActivatorComponent.h"
@@ -997,6 +998,12 @@ void Entity::Initialize() {
 			// LWOVehiclePhysicsComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VEHICLE_PHYSICS, -1);
 			if (id > -1) AddComponent<VehiclePhysicsComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PHYSICS_SYSTEM: {
+			// The client's physics system component: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHYSICS_SYSTEM, -1);
+			if (id > -1) AddComponent<PhysicsSystemComponent>(id);
 			break;
 		}
 		case eReplicaComponentType::ROCKET_LANDING: {
