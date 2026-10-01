@@ -41,6 +41,8 @@ public:
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID) const;
 	const Path* GetPath(std::string name) const;
 	const std::vector<Path>& GetPaths() const { return m_Paths; }
+	// A path that isn't in the zone's files (tests); earlier GetPath pointers may move
+	void AddPath(Path path) { m_Paths.push_back(std::move(path)); }
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }

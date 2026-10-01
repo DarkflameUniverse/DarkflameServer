@@ -1,4 +1,5 @@
 #include "MovementMessages.h"
+#include "MovingPlatformComponent.h"
 
 #include "BitStreamUtils.h"
 #include "CppScripts.h"
@@ -120,6 +121,16 @@ namespace GameMessages {
 	}
 
 	void RequestPlatformResync::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A mover answers with where the server has it (live: travelling 2 with its percent and position, or 25 at a
+		// waypoint with the time waited)
+		auto* const platform = entity.GetComponent<MovingPlatformComponent>();
+		if (platform && platform->IsMover()) {
+			PlatformResync resync;
+			resync.target = entity.GetObjectID();
+			platform->FillResync(resync);
+			resync.Send(sysAddr);
+			return;
+		}
 		if (entity.GetLOT() == 6267 || entity.GetLOT() == 16141) return;
 		PlatformResync(entity).Send(sysAddr);
 	}

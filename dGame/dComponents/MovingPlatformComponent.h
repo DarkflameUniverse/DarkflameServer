@@ -18,6 +18,7 @@
 #include "eReplicaComponentType.h"
 
 class Path;
+namespace GameMessages { struct PlatformResync; }
 
  /**
   * Different types of available platforms
@@ -94,6 +95,13 @@ public:
 /**
  * Sub component for moving platforms that determine the actual current movement state
  */
+/**
+ * A mover (or rotater) along its path, run by the server as live ran it: the client's LWOPlatform logic (ArrivedAtWaypoint
+ * 0x00c86c30, ProcessStateChange 0x00cce380, GetNextWaypoint 0x00bd4490 / GetNextReversedWaypoint 0x00bd4420, the speeds
+ * of GetWaypointSpeed 0x00be90d0), with live's states: it travels (2), and at a waypoint it is stopped (1) with
+ * ReachedDesiredWaypoint (8), and ReachedFinalDestination (16) at either end, while it waits the waypoint's wait time;
+ * each arrival and departure is serialized (NT movers in the live captures: 25 on arrival, 2 on departure).
+ */
 class MoverSubComponent {
 public:
 	MoverSubComponent(const NiPoint3& startPos);
@@ -101,60 +109,30 @@ public:
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate);
 
-	/**
-	 * The state the platform is currently in
-	 */
-	eMovementPlatformState mState = eMovementPlatformState::Stationary;
-
-	/**
-	 * The waypoint this platform currently wants to traverse to
-	 */
-	int32_t mDesiredWaypointIndex = 0;
-
-	/**
-	 * Whether the platform is currently reversing away from the desired waypoint
-	 */
+	// ePlatformStateFlag bits
+	uint32_t mState = ePlatformStateFlag::Stopped | ePlatformStateFlag::ReachedDesiredWaypoint;
+	int32_t mDesiredWaypointIndex = -1;
 	bool mInReverse = false;
-
-	/**
-	 * Whether the platform should stop moving when reaching the desired waypoint
-	 */
 	bool mShouldStopAtDesiredWaypoint = false;
-
-	/**
-	 * The percentage of the way between the last point and the desired point
-	 */
+	// From the current waypoint (0) to the next (1)
 	float mPercentBetweenPoints = 0;
-
-	/**
-	 * The current position of the platofrm
-	 */
+	// Where it is now (current waypoint + percent towards the next)
 	NiPoint3 mPosition{};
-
-	/**
-	 * The waypoint the platform is (was) at
-	 */
-	uint32_t mCurrentWaypointIndex;
-
-	/**
-	 * The waypoint the platform is attempting to go to
-	 */
-	uint32_t mNextWaypointIndex;
-
-	/**
-	 * The timer that handles the time before stopping idling and continue platform movement
-	 */
+	uint32_t mCurrentWaypointIndex = 0;
+	uint32_t mNextWaypointIndex = 0;
+	// Time spent at the waypoint, and how long it waits there (the waypoint's wait, at least 0.1 s)
 	float mIdleTimeElapsed = 0;
-
-	/**
-	 * The speed the platform is currently moving at
-	 */
-	float mSpeed = 0;
-
-	/**
-	 * The time to wait before continuing movement
-	 */
-	float mWaitTime = 0;
+	float mTimeToWait = 0;
+	// Whether it leaves when the wait is over (false: stopped until told otherwise)
+	bool mDepartAfterWait = false;
+	// Time travelled since the current waypoint (time based paths only)
+	float mMoveTimeElapsed = 0;
+	// The current and next waypoints' speeds; time based paths: the seconds from one to the next in mCurrentSpeed
+	float mCurrentSpeed = 0;
+	float mNextSpeed = 0;
+	// From the current waypoint to the next
+	float mSegmentLength = 0;
+	bool mTimeBased = false;
 };
 
 
@@ -201,11 +179,6 @@ public:
 	 * Starts the pathing of this platform, setting appropriate waypoints and speeds
 	 */
 	void StartPathing();
-
-	/**
-	 * Continues the path of the platform, after it's been stopped
-	 */
-	void ContinuePathing();
 
 	/**
 	 * Stops the platform from moving, waiting for it to be activated again.
@@ -278,6 +251,9 @@ private:
 	 */
 	bool m_PathingStopped = false;
 
+	// The waypoint the path starts at (attached_path_start), written with the path
+	uint32_t m_StartWaypoint = 0;
+
 	/**
 	 * The type of the subcomponent
 	 */
@@ -295,7 +271,26 @@ private:
 
 	void SimpleMoverGotoWaypoint(int32_t index);
 
-	void FireArrivalHooks(uint32_t index, bool atDesiredWaypoint);
+	void FireArrivalHooks(uint32_t index, bool atDesiredWaypoint, bool atLastWaypoint);
+
+	// The mover: index becomes the current waypoint (the next from the path's behavior and direction), at it
+	void MoverProcessStateChange(uint32_t index);
+	// At its current waypoint, stopped; it leaves after the waypoint's wait when depart
+	void MoverStopAtWaypoint(bool depart);
+	// Leaves (or carries on) towards the next waypoint
+	void MoverDepart();
+	void MoverArrive();
+
+public:
+	void Update(float deltaTime) override;
+
+	// The mover's state as a PlatformResync gives it (RequestPlatformResync)
+	void FillResync(GameMessages::PlatformResync& resync) const;
+
+	// A mover (or rotater) on a path, run by the server
+	bool IsMover() const;
+
+private:
 
 	/**
 	 * Whether the platform shouldn't auto start

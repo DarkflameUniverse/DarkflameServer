@@ -9,8 +9,11 @@
 #include "CDClientDatabase.h"
 #include "Entity.h"
 #include "LDFFormat.h"
+#include "MovementMessages.h"
 #include "MovingPlatformComponent.h"
 #include "SimplePhysicsComponent.h"
+#include "Zone.h"
+#include "dZoneManager.h"
 
 namespace {
 	float Float(const uint32_t bits) { return std::bit_cast<float>(bits); }
@@ -148,7 +151,80 @@ TEST_F(MovingPlatformComponentTest, RotaterIsWrittenAsTypeSix) {
 	RakNet::BitStream stream;
 	platform->Serialize(stream, true);
 	const auto bits = Bits(stream);
-	// 1 (subcomponents), 0 (no path), 1 (one follows), type 6
-	EXPECT_EQ(bits.substr(0, 3 + 32), "101" "00000110000000000000000000000000");
+	// 1 (subcomponents), 1 (path written with the construction), 0 (no path), 1 (one follows), type 6
+	EXPECT_EQ(bits.substr(0, 4 + 32), "1101" "00000110000000000000000000000000");
 	EXPECT_EQ(bits.back(), '0');
+}
+
+// A mover runs on the server as live ran it (the NT movers in the live captures): stopped at its first waypoint with
+// the time waited (25), travelling after the waypoint's wait (2), arriving at the other end stopped there (25, turned
+// round on a bounce path), and a GoToWaypoint that stops keeps it there
+TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestMoverPath";
+	path.pathBehavior = PathBehavior::Bounce;
+	PathWaypoint first;
+	first.position = NiPoint3(0.0f, 0.0f, 0.0f);
+	first.speed = 5.0f;
+	first.movingPlatform.wait = 2.0f;
+	PathWaypoint second = first;
+	second.position = NiPoint3(10.0f, 0.0f, 0.0f);
+	second.movingPlatform.wait = 1.0f;
+	path.pathWaypoints = { first, second };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	Entity entity(288300744895900108, info);
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestMoverPath");
+	ASSERT_TRUE(platform->IsMover());
+	auto* const mover = platform->GetMoverSubComponent();
+	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
+	EXPECT_EQ(mover->mNextWaypointIndex, 1u);
+
+	platform->Update(1.9f);
+	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_FLOAT_EQ(mover->mIdleTimeElapsed, 1.9f);
+	platform->Update(0.2f);
+	EXPECT_EQ(mover->mState, 2u);
+
+	// 5 units a second over 10
+	platform->Update(1.0f);
+	EXPECT_NEAR(mover->mPercentBetweenPoints, 0.5f, 0.001f);
+	EXPECT_NEAR(mover->mPosition.x, 5.0f, 0.01f);
+	GameMessages::PlatformResync resync;
+	platform->FillResync(resync);
+	EXPECT_EQ(static_cast<uint32_t>(resync.eState), 2u);
+	EXPECT_EQ(resync.iIndex, 0);
+	EXPECT_EQ(resync.iNextIndex, 1);
+	EXPECT_NEAR(resync.fPercentBetweenPoints, 0.5f, 0.001f);
+
+	platform->Update(1.1f);
+	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+	EXPECT_EQ(mover->mNextWaypointIndex, 0u);
+	EXPECT_TRUE(mover->mInReverse);
+	EXPECT_EQ(mover->mPercentBetweenPoints, 0.0f);
+
+	// Sent back to the start to stop there: it leaves at once and stays
+	platform->GotoWaypoint(0, true);
+	EXPECT_EQ(mover->mState, 2u);
+	EXPECT_EQ(mover->mDesiredWaypointIndex, 0);
+	platform->Update(2.5f);
+	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
+	EXPECT_EQ(mover->mDesiredWaypointIndex, -1);
+	platform->Update(10.0f);
+	EXPECT_EQ(mover->mState, 25u);
+
+	// Stopped mid way, then started again
+	platform->StartPathing();
+	platform->Update(1.0f);
+	platform->StopPathing();
+	EXPECT_EQ(mover->mState & 1u, 1u);
+	const auto percent = mover->mPercentBetweenPoints;
+	platform->Update(1.0f);
+	EXPECT_EQ(mover->mPercentBetweenPoints, percent);
+	platform->StartPathing();
+	EXPECT_EQ(mover->mState, 2u);
 }
