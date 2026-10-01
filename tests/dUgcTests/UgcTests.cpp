@@ -4,6 +4,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <set>
 #include <sstream>
 #include <unistd.h>
 
@@ -2233,4 +2234,22 @@ TEST(UgcRays, OtherBackendsMakeTheSameOcclusion) {
 		EXPECT_EQ(made.files.at("model.nif.checksum"), embreeModel.files.at("model.nif.checksum")) << UgcRays::Name(backend);
 		EXPECT_EQ(made.files.at("icon.png"), embreeModel.files.at("icon.png")) << UgcRays::Name(backend);
 	}
+}
+
+TEST(UgcPalette, LiveVariationAddsMinusSixToSix) {
+	// Every step from -6 to 6 is reachable and nothing outside it
+	std::set<int32_t> steps;
+	for (int i = 0; i < 1000; i++) steps.insert(UgcPalette::LiveVariationStep(i / 1000.0f));
+	steps.insert(UgcPalette::LiveVariationStep(1.0f));
+	EXPECT_EQ(steps.size(), 13u);
+	EXPECT_EQ(*steps.begin(), -6);
+	EXPECT_EQ(*steps.rbegin(), 6);
+	// The step is added to each 0-255 sRGB channel and clamped
+	const auto color = UgcPalette::SrgbToLinear(glm::vec3(100.0f, 0.0f, 253.0f) / 255.0f);
+	const auto up = glm::round(UgcPalette::LinearToSrgb(UgcPalette::ApplyLiveVariation(color, 0.999f)) * 255.0f);
+	EXPECT_EQ(up, glm::vec3(106.0f, 6.0f, 255.0f));
+	const auto down = glm::round(UgcPalette::LinearToSrgb(UgcPalette::ApplyLiveVariation(color, 0.0f)) * 255.0f);
+	EXPECT_EQ(down, glm::vec3(94.0f, 0.0f, 247.0f));
+	const auto same = glm::round(UgcPalette::LinearToSrgb(UgcPalette::ApplyLiveVariation(color, 0.5f)) * 255.0f);
+	EXPECT_EQ(same, glm::vec3(100.0f, 0.0f, 253.0f));
 }

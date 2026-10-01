@@ -41,6 +41,12 @@ namespace UgcPalette {
 	 */
 	glm::vec3 ApplyVariation(const glm::vec3& color, float variationPercent, float random);
 
+	// The live accurate color variation of one color (linear): a whole number from -6 to 6 picked by `random` (0..1)
+	// added to each of its 0-255 sRGB channels, clamped to 0..255
+	glm::vec3 ApplyLiveVariation(const glm::vec3& linear, float random);
+	// That number: -6 to 6 inclusive, each equally likely
+	int32_t LiveVariationStep(float random);
+
 	/**
 	 * The random number (0..1) of one brick's material: the same for the same seed, brick and material every time,
 	 * so making a model again gives the same colors, and the same in every LOD (LU Toolbox restarts its random sequence

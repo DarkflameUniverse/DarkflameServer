@@ -479,7 +479,8 @@ namespace {
 		c.Add(Int(UGC, "max_attempts", "Attempts before giving up", "", "3", 1, 100, true));
 		c.AddSection("UGC models", "How a model's mesh is made from its bricks (LU Toolbox's steps).", eLayout::ROWS, Condition{ MASTER, "enable_ugc_server", { "1" } });
 		c.Add(Labels(Choice(UGC, "color_palette", "Colors", "LU Toolbox's LU palette (unknown colors black), or the client's Materials.xml.", "lu_toolbox", { "lu_toolbox", "brickdb" }), { "LU Toolbox", "Brick database" }));
-		c.Add(Unit(Float(UGC, "color_variation", "Color variation", "Each brick's brightness is shifted by up to this much (the same every time the model is made). 0: none.", "5", 0, 100), "%"));
+		c.Add(Labels(Choice(UGC, "color_variation_mode", "Color variation kind", "toolbox: LU Toolbox's, each brick's brightness shifted by up to Color variation. live: live accurate, a whole number from -6 to 6 added to each of a brick's red, green and blue (0-255), transparent bricks left as they are; Color variation is not used. The same every time a model is made.", "toolbox", { "toolbox", "live" }), { "LU Toolbox", "Live accurate" }));
+		c.Add(Unit(Float(UGC, "color_variation", "Color variation", "Each brick's brightness is shifted by up to this much (the same every time the model is made). 0: none. Only for the LU Toolbox kind.", "5", 0, 100), "%"));
 		c.Add(Unit(Float(UGC, "transparent_opacity", "Transparent opacity", "", "58.82", 0, 100), "%"));
 		c.Add(Unit(Float(UGC, "color_brightness", "Model color brightness", "The models' vertex colors (not the icons'). 100: as the palette has them; lower is darker. Models already made keep theirs until they are made again.", "100", 0, 200), "%"));
 		c.Add(Text(UGC, "transparent_colors", "Always transparent colors", "LEGO color ids drawn transparent whatever Materials.xml says, comma separated: by default 129, the transparent glitter violet, which Materials.xml has opaque (none: no colors). Their opacity is Transparent opacity.", "129"));

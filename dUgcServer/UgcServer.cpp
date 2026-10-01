@@ -94,6 +94,7 @@ namespace {
 		UgcJobs::Settings settings;
 		settings.build.palette = Game::config->GetValue("color_palette") == "brickdb" ? UgcModel::ePalette::BRICKDB : UgcModel::ePalette::LU_TOOLBOX;
 		settings.build.colorVariation = std::clamp(Setting<float>("color_variation", 5.0f), 0.0f, 100.0f);
+		settings.build.variationMode = Game::config->GetValue("color_variation_mode") == "live" ? UgcModel::BuildOptions::eVariation::LIVE : UgcModel::BuildOptions::eVariation::TOOLBOX;
 		settings.build.transparentOpacity = std::clamp(Setting<float>("transparent_opacity", 58.82f), 0.0f, 100.0f);
 		settings.build.brightness = std::clamp(Setting<float>("color_brightness", 100.0f), 0.0f, 200.0f);
 		{

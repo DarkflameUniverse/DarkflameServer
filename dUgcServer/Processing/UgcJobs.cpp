@@ -369,7 +369,8 @@ namespace UgcJobs {
 		stats["ms"] = { { "build", std::lround(buildMs) }, { "hiddenSurfaces", std::lround(hsrMs) }, { "ambientOcclusion", std::lround(aoMs) },
 			{ "icon", std::lround(iconMs) }, { "total", std::lround(Since(started)) } };
 		stats["settings"] = { { "palette", settings.build.palette == UgcModel::ePalette::LU_TOOLBOX ? "lu_toolbox" : "brickdb" },
-			{ "colorVariation", settings.build.colorVariation }, { "transparentOpacity", settings.build.transparentOpacity },
+			{ "colorVariation", settings.build.colorVariation },
+			{ "colorVariationMode", settings.build.variationMode == UgcModel::BuildOptions::eVariation::LIVE ? "live" : "toolbox" }, { "transparentOpacity", settings.build.transparentOpacity },
 			{ "removeHiddenFaces", settings.hsr.enabled }, { "groundPlane", settings.hsr.groundPlane }, { "hsrResolution", settings.hsr.resolution },
 			{ "ao", settings.ao.enabled }, { "aoDistance", settings.ao.distance }, { "aoSamples", settings.ao.samples }, { "aoStrength", settings.ao.strength } };
 		const auto madeWith = MadeWith(settings);

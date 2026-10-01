@@ -289,7 +289,9 @@ namespace UgcModel {
 					linear = UgcPalette::SrgbToLinear(glm::vec3(material.r, material.g, material.b) / 255.0f);
 					if (transparent) alpha = material.a < 255 ? material.a / 255.0f : std::clamp(options.transparentOpacity / 100.0f, 0.0f, 1.0f);
 				}
-				if (options.colorVariation > 0.0f) {
+				if (options.variationMode == BuildOptions::eVariation::LIVE) {
+					if (!transparent) linear = UgcPalette::ApplyLiveVariation(linear, UgcPalette::BrickRandom(options.seed, brick, colorId));
+				} else if (options.colorVariation > 0.0f) {
 					const float variation = options.colorVariation * (luToolbox ? UgcPalette::VariationScale(colorId) : 1.0f);
 					linear = UgcPalette::ApplyVariation(linear, variation, UgcPalette::BrickRandom(options.seed, brick, colorId));
 				}

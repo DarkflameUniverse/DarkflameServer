@@ -208,6 +208,16 @@ namespace UgcPalette {
 		return color * (newValue / value);
 	}
 
+	int32_t LiveVariationStep(float random) {
+		return std::clamp(static_cast<int32_t>(std::floor(random * 13.0f)), 0, 12) - 6;
+	}
+
+	glm::vec3 ApplyLiveVariation(const glm::vec3& linear, float random) {
+		const auto step = static_cast<float>(LiveVariationStep(random));
+		const auto srgb = glm::round(LinearToSrgb(linear) * 255.0f);
+		return SrgbToLinear(glm::clamp(srgb + step, 0.0f, 255.0f) / 255.0f);
+	}
+
 	float BrickRandom(uint64_t seed, uint32_t brick, uint32_t material) {
 		const auto bits = SplitMix(SplitMix(seed ^ (static_cast<uint64_t>(brick) << 32)) ^ material);
 		return static_cast<float>(bits >> 40) / static_cast<float>(1ull << 24);

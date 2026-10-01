@@ -99,6 +99,9 @@ namespace UgcModel {
 	struct BuildOptions {
 		ePalette palette{ ePalette::LU_TOOLBOX };
 		float colorVariation{ 5.0f };      // percent, 0: none (LU Toolbox: Apply Color Variation, 5%)
+		// LU Toolbox's (colorVariation percent of the brightness), or live accurate: -6 to 6 added to each 0-255
+		// channel, opaque bricks only (colorVariation unused)
+		enum class eVariation : uint8_t { TOOLBOX, LIVE } variationMode{ eVariation::TOOLBOX };
 		uint64_t seed{};                   // of the variation's random numbers
 		float transparentOpacity{ 58.82f }; // percent, transparent bricks' vertex alpha (LU Toolbox palette only)
 		float brightness{ 100.0f };        // percent, the models' vertex colors (not icons'); 100: as the palette has them
