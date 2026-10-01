@@ -403,11 +403,10 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 			AddComponent<BuffComponent>(destroyableComponentID);
 		}
 
-		bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
-		if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
-			const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
+		// A collectible's (right after it) and a smashable object's (after the walk) come later, as the client makes them
+		if (destroyableComponentID > 0) {
 			// The row, the level config and a character's save, in the client's order
-			DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
+			DestroyableComponent* comp = AddComponent<DestroyableComponent>(destroyableComponentID);
 			if (m_Character) comp->LoadFromSaveData(m_Character->GetXMLDoc());
 		}
 			break;
@@ -598,6 +597,8 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 
 		if (collectibleComponentID > 0) {
 			AddComponent<CollectibleComponent>(collectibleComponentID, GetVarAs<int32_t>(u"collectible_id"));
+			// The client makes a collectible's destroyable right after it when there is none
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>(-1);
 		}
 			break;
 		}
@@ -976,6 +977,10 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 	 * allocator 0x0101c010 makes one for characters with physics; level and plain spawned objects get none), then the
 	 * trigger from the level config
 	 */
+	// LWODestroyableComponent::Allocator (0x0104d070): a smashable object (is_smashable) without one gets a destroyable
+	if (!HasComponent(eReplicaComponentType::DESTROYABLE) && m_TemplateID != 176 && GetVarAs<int32_t>(u"is_smashable") != 0) {
+		AddComponent<DestroyableComponent>(-1);
+	}
 	if (m_Character && HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS)) {
 		AddComponent<GhostComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
 	}
