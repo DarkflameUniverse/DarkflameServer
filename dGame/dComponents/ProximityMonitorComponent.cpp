@@ -28,6 +28,8 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 }
 
 void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name, const uint32_t collisionGroup) {
+	// A proximity set again under its name replaces the old one
+	UnsetProximityRadius(name);
 	dpEntity* en = new dpEntity(m_Parent->GetObjectID(), proxRadius);
 	en->SetCollisionGroup(collisionGroup);
 	en->SetPosition(m_Parent->GetPosition());
@@ -37,9 +39,17 @@ void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::
 }
 
 void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::string& name) {
+	UnsetProximityRadius(name);
 	dpWorld::AddEntity(entity);
 	entity->SetPosition(m_Parent->GetPosition());
 	m_ProximitiesData.insert(std::make_pair(name, entity));
+}
+
+void ProximityMonitorComponent::UnsetProximityRadius(const std::string& name) {
+	const auto iter = m_ProximitiesData.find(name);
+	if (iter == m_ProximitiesData.end()) return;
+	if (iter->second) dpWorld::RemoveEntity(iter->second);
+	m_ProximitiesData.erase(iter);
 }
 
 const std::unordered_set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) const {

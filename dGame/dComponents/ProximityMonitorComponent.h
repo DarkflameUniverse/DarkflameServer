@@ -45,6 +45,9 @@ public:
 	 */
 	void SetProximityRadius(dpEntity* entity, const std::string& name);
 
+	// Removes the proximity of that name (Lua UnsetProximityRadius)
+	void UnsetProximityRadius(const std::string& name);
+
 	/**
 	 * Returns the last of entities that are used to check proximity, given a name
 	 * @param name the proximity name to retrieve physics objects for
