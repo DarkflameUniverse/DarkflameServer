@@ -994,6 +994,12 @@ void Entity::Initialize() {
 			if (id > -1) AddComponent<HFLightDirectionGadgetComponent>(id);
 			break;
 		}
+		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT: {
+			// From the registry, as the client makes it (a character got one with its character component)
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PLAYER_FORCED_MOVEMENT, -1);
+			if (id > -1 && !HasComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT)) AddComponent<PlayerForcedMovementComponent>(id);
+			break;
+		}
 		case eReplicaComponentType::ROCKET_LANDING: {
 			// LWORocketAnimationControlComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LANDING, -1);
@@ -1311,7 +1317,8 @@ namespace {
 		using enum eReplicaComponentType;
 		return std::array{
 			POSSESSABLE, MODULE_ASSEMBLY, CONTROLLABLE_PHYSICS, SIMPLE_PHYSICS, RIGID_BODY_PHANTOM_PHYSICS, HAVOK_VEHICLE_PHYSICS,
-			PHANTOM_PHYSICS, SOUND_TRIGGER, RACING_SOUND_TRIGGER, BUFF, DESTROYABLE, COLLECTIBLE, PET, CHARACTER, INVENTORY,
+			PHANTOM_PHYSICS, SOUND_TRIGGER, RACING_SOUND_TRIGGER, BUFF, DESTROYABLE, COLLECTIBLE, PET, PLAYER_FORCED_MOVEMENT, CHARACTER,
+			INVENTORY,
 			SCRIPT, SKILL, BASE_COMBAT_AI, ITEM, QUICK_BUILD, MOVING_PLATFORM, SWITCH, VENDOR, DONATION_VENDOR, ACHIEVEMENT_VENDOR,
 			BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, LUP_EXHIBIT, MODEL, RENDER, MINI_GAME_CONTROL,
 		};
@@ -1341,6 +1348,9 @@ void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType
 
 		auto* const component = GetComponent(type);
 		if (!component) continue;
+		// A character writes its forced movement with its other parts (below); an object without one (the registry
+		// gives it, LOT 16684) writes it on its own, where the client reads it
+		if (type == PLAYER_FORCED_MOVEMENT && HasComponent(CHARACTER)) continue;
 
 		if (type == CHARACTER) {
 			// Written with the character component; every character has them, a 0 bit stands in should one be missing
