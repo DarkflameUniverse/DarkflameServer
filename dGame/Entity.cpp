@@ -320,9 +320,25 @@ void Entity::Initialize() {
 	const bool hasModelBehaviors = !GetVar<bool>(u"inInventory") && HasVar(u"modelType") && HasVar(u"modelBehaviors");
 	int32_t modelPhysicsComponentID = -1;
 	// If an entity is marked a phantom, simple physics is made into phantom phyics.
-	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
+	// DoObjectPreLoad: markedAsPhantom doesn't count when the registry has phantom physics
+	const bool markedAsPhantom = HasVar(u"markedAsPhantom") && compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS, -1) == -1;
+
+	// ObjectLoader2::ApplyComponentWhitelist (0x0103e300): the config's componentWhitelist keeps only these registry
+	// components (the lists ObjectLoader2's constructor builds; property models use 1)
+	static constexpr std::array<std::initializer_list<eReplicaComponentType>, 5> COMPONENT_WHITELISTS{ {
+		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::RENDER },
+		{ eReplicaComponentType::RENDER, eReplicaComponentType::DESTROYABLE, eReplicaComponentType::ITEM, eReplicaComponentType::BLUEPRINT,
+		  eReplicaComponentType::MODEL, eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::SPAWNER },
+		{ eReplicaComponentType::RENDER, eReplicaComponentType::ITEM, eReplicaComponentType::BLUEPRINT },
+		{ eReplicaComponentType::PET, eReplicaComponentType::SKILL, eReplicaComponentType::DESTROYABLE, eReplicaComponentType::RENDER, eReplicaComponentType::CONTROLLABLE_PHYSICS },
+		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, eReplicaComponentType::SIMPLE_PHYSICS, eReplicaComponentType::RENDER },
+	} };
+	const auto whitelistIndex = HasVar(u"componentWhitelist") ? GetVarAs<int32_t>(u"componentWhitelist") : -1;
+	const std::initializer_list<eReplicaComponentType>* const whitelist =
+		whitelistIndex >= 0 && whitelistIndex < static_cast<int32_t>(COMPONENT_WHITELISTS.size()) ? &COMPONENT_WHITELISTS[whitelistIndex] : nullptr;
 
 	for (const auto type : ClientComponentLoadOrder) {
+		if (whitelist && std::ranges::find(*whitelist, type) == whitelist->end()) continue;
 		switch (type) {
 		case eReplicaComponentType::POSSESSABLE: {
 		const auto possessableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
@@ -349,7 +365,10 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
 		const auto havokVehiclePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
-		if (havokVehiclePhysicsComponentID > 0) {
+		// The client makes simple physics instead for use_simple_physics, and none for objectWorldState 2
+		if (havokVehiclePhysicsComponentID > 0 && HasVar(u"use_simple_physics")) {
+			if (!HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)) AddComponent<SimplePhysicsComponent>(havokVehiclePhysicsComponentID);
+		} else if (havokVehiclePhysicsComponentID > 0 && !(HasVar(u"objectWorldState") && GetVarAs<int32_t>(u"objectWorldState") == 2)) {
 			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
 			havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
 			havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
@@ -368,14 +387,16 @@ void Entity::Initialize() {
 		if (hasModelBehaviors) {
 			// LWOSimplePhysicsComponent::Allocator (0x0104ded0): left to the model case
 			if (simplePhysicsComponentID > 0) modelPhysicsComponentID = simplePhysicsComponentID;
-		} else if (!markedAsPhantom && simplePhysicsComponentID > 0) {
-			AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
+		} else if (simplePhysicsComponentID > 0) {
+			// markedAsPhantom makes its simple physics phantom physics (with the simple physics row)
+			if (markedAsPhantom) AddComponent<PhantomPhysicsComponent>(simplePhysicsComponentID)->SetPhysicsEffectActive(false);
+			else AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 		}
 			break;
 		}
 		case eReplicaComponentType::PHANTOM_PHYSICS: {
 		const auto phantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS);
-		if (markedAsPhantom || phantomPhysicsComponentID > 0) {
+		if (phantomPhysicsComponentID > 0 && !HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)) {
 			AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
 		}
 			break;
@@ -423,9 +444,9 @@ void Entity::Initialize() {
 			break;
 		}
 		case eReplicaComponentType::PET: {
-		if (petComponentID > 0) {
-			// LWOPetComponent::Factory (0x01031240): a pet that isn't in an inventory gets pathfinding control first
-			if (!GetVar<bool>(u"inInventory") && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
+		// LWOPetComponent::Factory (0x01031240): no pet in an inventory; otherwise pathfinding control first
+		if (petComponentID > 0 && !GetVar<bool>(u"inInventory")) {
+			if (!HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
 			AddComponent<PetComponent>(petComponentID);
 		}
 			break;
@@ -540,17 +561,27 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::VENDOR: {
 		const auto vendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR);
-		if (vendorID > 0) AddComponent<VendorComponent>(vendorID);
+		// The vendor allocators add a proximity monitor first when there is none
+		if (vendorID > 0) {
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+			AddComponent<VendorComponent>(vendorID);
+		}
 			break;
 		}
 		case eReplicaComponentType::DONATION_VENDOR: {
 		const auto donationVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1);
-		if (donationVendorID > -1) AddComponent<DonationVendorComponent>(donationVendorID);
+		if (donationVendorID > -1) {
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+			AddComponent<DonationVendorComponent>(donationVendorID);
+		}
 			break;
 		}
 		case eReplicaComponentType::ACHIEVEMENT_VENDOR: {
 		const auto achievementVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
-		if (achievementVendorID > -1) AddComponent<AchievementVendorComponent>(achievementVendorID);
+		if (achievementVendorID > -1) {
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) AddComponent<ProximityMonitorComponent>(-1);
+			AddComponent<AchievementVendorComponent>(achievementVendorID);
+		}
 			break;
 		}
 		case eReplicaComponentType::SHOOTING_GALLERY: {
@@ -946,6 +977,11 @@ void Entity::Initialize() {
 	 */
 	if (m_Character && HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS)) {
 		AddComponent<GhostComponent>(-1)->LoadFromSaveData(m_Character->GetXMLDoc());
+	}
+	// A mission offer's object gets a proximity monitor after the walk when it has none (the registry's mission offer;
+	// a character's is DLU's own)
+	if (!m_Character && HasComponent(eReplicaComponentType::MISSION_OFFER) && !HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) {
+		AddComponent<ProximityMonitorComponent>(-1);
 	}
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
 	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
