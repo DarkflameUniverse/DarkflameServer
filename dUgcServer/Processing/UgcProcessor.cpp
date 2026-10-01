@@ -420,8 +420,8 @@ void UgcProcessor::Poll() {
 	std::vector<Job> jobs;
 	std::vector<IUgc::PendingModel> models;
 	// Models staff asked to be made again come first too: polled even when the queue is full, to its front
-	if (limit > 0) models = Database::Get()->GetUgcModelsToProcess(limit);
-	else models = Database::Get()->GetUgcModelsToProcess(buildLimit, true);
+	if (limit > 0) models = Database::Get()->GetUgcModelsToProcess(limit, false, limits.queuedOnly);
+	else models = Database::Get()->GetUgcModelsToProcess(buildLimit, true, limits.queuedOnly);
 	for (auto& model : models) {
 		if (m_InFlight.contains({ Kind::MODEL, model.id })) continue;
 		Job job{ Kind::MODEL, model.id, model.attempts, UgcJobs::LxfmlFromBlob(model.lxfml) };

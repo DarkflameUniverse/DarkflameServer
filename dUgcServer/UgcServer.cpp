@@ -251,6 +251,7 @@ namespace {
 		limits.maxMemoryBytes = Setting<uint64_t>("max_memory_mb", 0) * 1024 * 1024;
 		limits.nice = std::clamp(Setting<int32_t>("worker_nice", 0), 0, 19);
 		UgcThrottle::ParseHours(Game::config->GetValue("pause_hours"), limits.pauseFromHour, limits.pauseToHour);
+		limits.queuedOnly = Game::config->GetValue("queue_on_property_save") == "1";
 		return limits;
 	}
 

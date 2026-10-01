@@ -50,6 +50,7 @@ public:
 		int nice{};                  // the workers' scheduling priority (Linux nice, 0 to 19)
 		int pauseFromHour{ -1 };     // local hours in which no new jobs start (from, to; -1: never)
 		int pauseToHour{ -1 };
+		bool queuedOnly{};           // queue_on_property_save: only models queued (saved, made again, property saved)
 	};
 
 	UgcProcessor(Config config, UgcStorage& storage, UgcBricks::BrickLibrary& library, UgcJobs::Settings settings);

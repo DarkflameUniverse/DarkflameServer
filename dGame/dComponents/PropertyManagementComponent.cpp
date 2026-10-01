@@ -838,6 +838,8 @@ void PropertyManagementComponent::Save() {
 	info.id = propertyId;
 	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	Database::Get()->UpdateLastSave(info);
+	// Its models may be made now (the UGC setting queue_on_property_save makes only queued ones)
+	Database::Get()->QueuePropertyUgcModels(propertyId);
 	DashboardNotify::Changed("properties", propertyId);
 }
 
