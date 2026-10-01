@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "ModuleComponent.h"
 #include "BlueprintComponent.h"
 #include "ChestComponent.h"
 #include "RebuildActivatorComponent.h"
@@ -999,6 +1000,12 @@ void Entity::Initialize() {
 			// LWOBlueprintComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BLUEPRINT, -1);
 			if (id > -1) AddComponent<BlueprintComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::MODULE: {
+			// LWOModuleComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE, -1);
+			if (id > -1) AddComponent<ModuleComponent>(id);
 			break;
 		}
 		default:
