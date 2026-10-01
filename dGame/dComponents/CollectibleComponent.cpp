@@ -11,7 +11,11 @@
 CollectibleComponent::CollectibleComponent(Entity* parentEntity, const int32_t componentID, const int32_t collectibleId) :
 	Component(parentEntity, componentID), m_CollectibleId(collectibleId) {
 	RegisterMsg(&CollectibleComponent::MsgGetObjectReportInfo);
-	const auto* const row = CDClientManager::GetTable<CDCollectibleComponentTable>()->GetByID(componentID);
+}
+
+// The CollectibleComponent row
+void CollectibleComponent::LoadDataFromTemplate() {
+	const auto* const row = CDClientManager::GetTable<CDCollectibleComponentTable>()->GetByID(m_ComponentID);
 	if (row) m_RequirementMission = row->requirementMission;
 }
 
