@@ -49,6 +49,11 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t c
 
 	m_IsDirectional = false;
 	m_Direction = NiPoint3(); // * m_DirectionalMultiplier
+}
+
+// After the physics config: the volume's blocker, respawn settings and its physics
+void PhantomPhysicsComponent::LoadConfigData() {
+	PhysicsComponent::LoadConfigData();
 
 	// A phantom volume enemies can't walk into when it carves the navmesh (e.g. the Sentinel camp walls)
 	RegisterMovementBlocker(ComponentType, false, m_Scale);

@@ -20,6 +20,11 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t com
 
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
+}
+
+// After the physics config: climbable type, motion type and the blocker
+void SimplePhysicsComponent::LoadConfigData() {
+	PhysicsComponent::LoadConfigData();
 
 	const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
 	if (climbable_type == u"wall") {

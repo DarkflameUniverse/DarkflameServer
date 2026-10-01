@@ -28,6 +28,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	PhantomPhysicsComponent(Entity* parent, const int32_t componentID);
+
+	void LoadConfigData() override;
 	~PhantomPhysicsComponent() override;
 	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

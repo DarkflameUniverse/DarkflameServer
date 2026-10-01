@@ -24,6 +24,9 @@ class dpEntity;
 class PhysicsComponent : public Component {
 public:
 	PhysicsComponent(Entity* parent, const int32_t componentID);
+
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
 	virtual ~PhysicsComponent();
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

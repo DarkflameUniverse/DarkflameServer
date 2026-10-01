@@ -49,11 +49,16 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, const
 	m_ImmuneToStunMoveCount = 0;
 	m_ImmuneToStunTurnCount = 0;
 	m_ImmuneToStunUseItemCount = 0;
+}
 
-	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
+// After the physics config: a character's body, in the physics component's group
+void ControllablePhysicsComponent::LoadConfigData() {
+	PhysicsComponent::LoadConfigData();
+
+	if (m_Parent->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
 
-	if (entity->GetLOT() == 1) {
+	if (m_Parent->GetLOT() == 1) {
 		LOG("Using patch to load minifig physics");
 
 		float radius = 1.5f;

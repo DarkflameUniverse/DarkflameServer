@@ -26,6 +26,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
 
 	ControllablePhysicsComponent(Entity* entity, const int32_t componentID);
+
+	void LoadConfigData() override;
 	~ControllablePhysicsComponent() override;
 
 	void Run(float deltaTime) override;

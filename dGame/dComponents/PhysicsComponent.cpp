@@ -52,18 +52,24 @@ PhysicsComponent::PhysicsComponent(Entity* parent, const int32_t componentID) : 
 	m_Rotation = QuatUtils::IDENTITY;
 	m_DirtyPosition = false;
 
+	RegisterMsg(&PhysicsComponent::OnGetPosition);
+}
+
+// The PhysicsComponent row's collision group
+void PhysicsComponent::LoadDataFromTemplate() {
 	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable) {
-		auto* info = physicsComponentTable->GetByID(componentID);
+		auto* info = physicsComponentTable->GetByID(m_ComponentID);
 		if (info) {
 			m_CollisionGroup = info->collisionGroup;
 		}
 	}
+}
 
+// The level config's CollisionGroupID, when there, replaces it
+void PhysicsComponent::LoadConfigData() {
 	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
-
-	RegisterMsg(&PhysicsComponent::OnGetPosition);
 }
 
 PhysicsComponent::~PhysicsComponent() {

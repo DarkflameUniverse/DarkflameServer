@@ -36,6 +36,8 @@ public:
 	static constexpr uint32_t MOTION_TYPE_FIXED = 5;
 
 	SimplePhysicsComponent(Entity* parent, const int32_t componentID);
+
+	void LoadConfigData() override;
 	~SimplePhysicsComponent() override;
 
 	void Run(const float deltaTime) override;

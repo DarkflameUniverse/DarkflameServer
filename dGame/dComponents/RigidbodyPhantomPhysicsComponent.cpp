@@ -19,6 +19,11 @@ RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* paren
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
+}
+
+// After the physics config: its physics
+void RigidbodyPhantomPhysicsComponent::LoadConfigData() {
+	PhysicsComponent::LoadConfigData();
 
 	if (m_Parent->GetVar<bool>(u"create_physics")) {
 		m_dpEntity = CreatePhysicsLnv(m_Scale, ComponentType);

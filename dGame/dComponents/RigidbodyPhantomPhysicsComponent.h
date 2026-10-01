@@ -23,6 +23,8 @@ public:
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent, const int32_t componentID);
 
+	void LoadConfigData() override;
+
 	void Run(const float deltaTime) override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
