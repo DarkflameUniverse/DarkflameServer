@@ -289,26 +289,6 @@ void Entity::Initialize() {
 	CDComponentsRegistryTable* const compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	/**
-	 * Special case for BBB models. They have components not corresponding to the registry.
-	 */
-
-	if (m_TemplateID == 14) {
-		const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
-
-		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
-
-		AddComponent<ItemComponent>(compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM));
-
-		AddComponent<ModelComponent>(-1)->LoadBehaviors();
-
-		AddComponent<RenderComponent>(-1);
-
-		AddComponent<DestroyableComponent>(-1, true);
-		// We have all our components.
-		return;
-	}
-
-	/**
 	 * Player components (the client makes them with the character, not from the registry)
 	 */
 	if (m_Character && m_Character->GetParentUser()) {
@@ -332,6 +312,10 @@ void Entity::Initialize() {
 			|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
 		if (hasMovementPhysics && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
 	};
+	// A model with behaviors (DoObjectPreLoad 0x01055667: not inInventory, and modelType and modelBehaviors in its
+	// config) gets its physics from the model case, which takes the registry's simple physics id
+	const bool hasModelBehaviors = !GetVar<bool>(u"inInventory") && HasVar(u"modelType") && HasVar(u"modelBehaviors");
+	int32_t modelPhysicsComponentID = -1;
 	// If an entity is marked a phantom, simple physics is made into phantom phyics.
 	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
 
@@ -409,7 +393,10 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::SIMPLE_PHYSICS: {
 		const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
-		if (!markedAsPhantom && simplePhysicsComponentID > 0) {
+		if (hasModelBehaviors) {
+			// LWOSimplePhysicsComponent::Allocator (0x0104ded0): left to the model case
+			if (simplePhysicsComponentID > 0) modelPhysicsComponentID = simplePhysicsComponentID;
+		} else if (!markedAsPhantom && simplePhysicsComponentID > 0) {
 			AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 		}
 			break;
@@ -788,6 +775,21 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MODEL: {
 		const auto modelID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1);
 		if (modelID > -1 && !GetComponent<PetComponent>()) {
+			// ObjectLoader2::LoadModelBehaviorsComponent (0x0104d1f0): a model without physics gets it here (BBB models,
+			// LOT 14, have none in the registry): simple physics 4247 without behaviors; with behaviors controllable
+			// (4246) for modelType 0, else simple (4247), unless the registry gave an id. modelType 0 also gets
+			// pathfinding control.
+			const bool hasPhysics = HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)
+				|| HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS) || HasComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS)
+				|| HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)
+				|| HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || HasComponent(eReplicaComponentType::PHYSICS_SYSTEM);
+			const int32_t modelType = HasVar(u"modelType") ? GetVarAs<int32_t>(u"modelType") : -1;
+			if (!hasPhysics) {
+				if (!hasModelBehaviors) AddComponent<SimplePhysicsComponent>(4247);
+				else if (modelType == 0) AddComponent<ControllablePhysicsComponent>(modelPhysicsComponentID == -1 ? 4246 : modelPhysicsComponentID);
+				else AddComponent<SimplePhysicsComponent>(modelPhysicsComponentID == -1 ? 4247 : modelPhysicsComponentID);
+			}
+			if (modelType == 0 && !HasComponent(eReplicaComponentType::PATHFINDING)) AddComponent<PathfindingComponent>(-1);
 			AddComponent<ModelComponent>(modelID)->LoadBehaviors();
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 				AddComponent<DestroyableComponent>(-1, true);
