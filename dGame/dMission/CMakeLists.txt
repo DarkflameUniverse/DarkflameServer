@@ -7,7 +7,7 @@ add_library(dMission OBJECT ${DGAME_DMISSION_SOURCES})
 target_link_libraries(dMission PUBLIC dDatabase)
 target_include_directories(dMission PUBLIC "."
 	PRIVATE
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents"
+	${DLU_COMPONENT_INCLUDE_DIRS}
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via CharacterComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # via CharacterComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # via LevelProgressionComponent.h

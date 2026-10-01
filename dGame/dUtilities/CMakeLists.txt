@@ -35,7 +35,7 @@ add_library(dUtilities OBJECT ${DGAME_DUTILITIES_SOURCES})
 target_precompile_headers(dUtilities REUSE_FROM dGameBase)
 target_include_directories(dUtilities PUBLIC "." "SlashCommands"
 	PRIVATE
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents"
+	${DLU_COMPONENT_INCLUDE_DIRS}
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # transitive via PossessableComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages"
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # transitive via InventoryComponent.h

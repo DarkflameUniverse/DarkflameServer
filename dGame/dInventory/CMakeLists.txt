@@ -20,7 +20,7 @@ target_include_directories(dInventory PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables" # via EconomyLedger.h
 
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # direct
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct InventoryComponent.h
+	${DLU_COMPONENT_INCLUDE_DIRS} # direct InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h

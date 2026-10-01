@@ -28,7 +28,7 @@ target_include_directories(dNet PRIVATE
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
 
 	"${PROJECT_SOURCE_DIR}/dGame" # UserManager.h
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents"
+	${DLU_COMPONENT_INCLUDE_DIRS}
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # GameMessages.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via PossessableComponent.h

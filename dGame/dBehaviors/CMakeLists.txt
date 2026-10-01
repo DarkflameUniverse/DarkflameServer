@@ -59,7 +59,7 @@ target_link_libraries(dBehaviors PUBLIC dDatabaseCDClient dPhysics)
 target_include_directories(dBehaviors PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # via BehaviorContext.h
 	PRIVATE
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct BuffComponent.h
+	${DLU_COMPONENT_INCLUDE_DIRS} # direct BuffComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # Preconditions.h via QuickBuildComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager.h, Spawner.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via CharacterComponent.h

@@ -240,6 +240,9 @@ endif()
 # Load all of our third party directories
 add_subdirectory(thirdparty SYSTEM)
 
+# The component folder and its family subfolders (as the client groups them), for every target that includes components
+set(DLU_COMPONENT_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/dGame/dComponents" "${PROJECT_SOURCE_DIR}/dGame/dComponents/Physics" "${PROJECT_SOURCE_DIR}/dGame/dComponents/Activity" "${PROJECT_SOURCE_DIR}/dGame/dComponents/Vendor" "${PROJECT_SOURCE_DIR}/dGame/dComponents/Character" "${PROJECT_SOURCE_DIR}/dGame/dComponents/Sound" "${PROJECT_SOURCE_DIR}/dGame/dComponents/Property")
+
 # Create our list of include directories
 include_directories(
 	"dPhysics"

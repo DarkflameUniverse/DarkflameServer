@@ -23,7 +23,7 @@ target_precompile_headers(dScriptsBase PRIVATE ${HEADERS_DGAME})
 include_directories(
 	"${PROJECT_SOURCE_DIR}/dScripts"
 	"${PROJECT_SOURCE_DIR}/dGame"
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # e.g. ScriptedActivityComponent.h
+	${DLU_COMPONENT_INCLUDE_DIRS} # e.g. ScriptedActivityComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # e.g. direct ActivityManager
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # e.g. direct ActivityManager
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager.h

@@ -27,7 +27,7 @@ target_link_libraries(dGameMessages
 )
 target_include_directories(dGameMessages PUBLIC "."
 	PRIVATE
-	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct MissionComponent.h
+	${DLU_COMPONENT_INCLUDE_DIRS} # direct MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # direct SlashCommandHandler.h
 	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors" # direct ControlBehaviors.h
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
