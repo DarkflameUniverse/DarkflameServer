@@ -95,6 +95,7 @@
 #include "GateRushComponent.h"
 #include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
+#include "ProjectilePhysicsComponent.h"
 #include "GenericActivatorComponent.h"
 #include "ShowcaseModelHandlerComponent.h"
 #include "CustomBuildAssemblyComponent.h"
@@ -983,6 +984,12 @@ void Entity::Initialize() {
 			// LWOGenericActivatorComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::GENERIC_ACTIVATOR, -1);
 			if (id > -1) AddComponent<GenericActivatorComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::PROJECTILE_PHYSICS: {
+			// LWOProjectilePhysicsComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROJECTILE_PHYSICS, -1);
+			if (id > -1) AddComponent<ProjectilePhysicsComponent>(id);
 			break;
 		}
 		case eReplicaComponentType::ROCKET_LANDING: {
