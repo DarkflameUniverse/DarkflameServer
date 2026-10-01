@@ -15,7 +15,10 @@
 #include "UserManager.h"
 
 DonationVendorComponent::DonationVendorComponent(Entity* parent, const int32_t componentID) : VendorComponent(parent, componentID) {
-	//LoadConfigData
+}
+
+// The level config: the donation goal and activity, and the total donated so far
+void DonationVendorComponent::LoadConfigData() {
 	m_PercentComplete = 0.0;
 	m_TotalDonated = 0;
 	m_TotalRemaining = 0;
