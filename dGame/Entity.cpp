@@ -614,15 +614,17 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::VENDOR: {
 		const auto vendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR);
-		const auto donationVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1);
-		const auto achievementVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
-		if (vendorID > 0) {
-			AddComponent<VendorComponent>(vendorID);
-		} else if (donationVendorID > -1) {
-			AddComponent<DonationVendorComponent>(donationVendorID);
-		} else if (achievementVendorID > -1) {
-			AddComponent<AchievementVendorComponent>(achievementVendorID);
+		if (vendorID > 0) AddComponent<VendorComponent>(vendorID);
+			break;
 		}
+		case eReplicaComponentType::DONATION_VENDOR: {
+		const auto donationVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1);
+		if (donationVendorID > -1) AddComponent<DonationVendorComponent>(donationVendorID);
+			break;
+		}
+		case eReplicaComponentType::ACHIEVEMENT_VENDOR: {
+		const auto achievementVendorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
+		if (achievementVendorID > -1) AddComponent<AchievementVendorComponent>(achievementVendorID);
 			break;
 		}
 		case eReplicaComponentType::SHOOTING_GALLERY: {
