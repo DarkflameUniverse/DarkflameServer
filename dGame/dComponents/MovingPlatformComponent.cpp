@@ -98,7 +98,13 @@ eMoverSubComponentType ChooseMoverSubComponentType(const int32_t componentID, co
 //------------- MovingPlatformComponent below --------------
 
 MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t componentID, const std::string& pathName) : Component(parent, componentID) {
-	m_MoverSubComponentType = ChooseMoverSubComponentType(componentID, *m_Parent);
+	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
+	m_NoAutoStart = false;
+}
+
+// The mover type, and a simple mover's MovingPlatforms row
+void MovingPlatformComponent::LoadDataFromTemplate() {
+	m_MoverSubComponentType = ChooseMoverSubComponentType(m_ComponentID, *m_Parent);
 	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
 		auto* const simpleMover = new SimpleMoverSubComponent();
 		m_MoverSubComponent = simpleMover;
@@ -107,19 +113,29 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t c
 
 		// LWOPlatformSimpleMover::LoadTemplateData: the MovingPlatforms row, unless the object sets dbonly false
 		const bool dbOnly = m_Parent->GetVar<bool>(u"dbonly");
-		if (componentID > 0 && (!m_Parent->HasVar(u"dbonly") || dbOnly)) {
+		if (m_ComponentID > 0 && (!m_Parent->HasVar(u"dbonly") || dbOnly)) {
 			auto query = CDClientDatabase::CreatePreppedStmt(
 				"SELECT platformMoveX, platformMoveY, platformMoveZ, platformMoveTime, platformStartAtEnd FROM MovingPlatforms WHERE id = ?;");
-			query.bind(1, componentID);
+			query.bind(1, m_ComponentID);
 			auto result = query.execQuery();
 			if (!result.eof()) {
 				simpleMover->mMove = NiPoint3(result.getFloatField(0), result.getFloatField(1), result.getFloatField(2));
 				simpleMover->mMoveTime = result.getFloatField(3);
 				simpleMover->mStartAtEnd = result.getIntField(4) != 0;
 			} else {
-				LOG("LOT %i couldn't find simple mover %i in MovingPlatforms", m_Parent->GetLOT(), componentID);
+				LOG("LOT %i couldn't find simple mover %i in MovingPlatforms", m_Parent->GetLOT(), m_ComponentID);
 			}
 		}
+	} else {
+		m_MoverSubComponent = new MoverSubComponent(m_Parent->GetDefaultPosition());
+	}
+}
+
+// The level config: a simple mover's settings, the path and where and whether a mover starts
+void MovingPlatformComponent::LoadConfigData() {
+	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
+		auto* const simpleMover = GetSimpleMoverSubComponent();
+		const bool dbOnly = m_Parent->GetVar<bool>(u"dbonly");
 
 		// LWOPlatformSimpleMover::LoadConfigData: the object's settings over the table's, unless it is db only
 		if (m_Parent->HasVar(u"attached_path_start")) simpleMover->mStartAtEnd = m_Parent->GetVar<int32_t>(u"attached_path_start") != 0;
@@ -131,12 +147,10 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t c
 			if (m_Parent->HasVar(u"platformMoveTime")) simpleMover->mMoveTime = m_Parent->GetVar<float>(u"platformMoveTime");
 		}
 		simpleMover->mCurrentWaypointIndex = simpleMover->mStartAtEnd ? 1 : 0;
-	} else {
-		m_MoverSubComponent = new MoverSubComponent(m_Parent->GetDefaultPosition());
 	}
-	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
+
+	const auto pathName = GeneralUtils::UTF16ToWTF8(m_PathName);
 	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
-	m_NoAutoStart = false;
 
 	if (m_Path == nullptr) {
 		LOG("Path not found: %s", pathName.c_str());

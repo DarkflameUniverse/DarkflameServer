@@ -148,6 +148,9 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const int32_t componentID, const std::string& pathName);
+
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
 	~MovingPlatformComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
