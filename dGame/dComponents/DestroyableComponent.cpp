@@ -18,6 +18,7 @@
 #include "User.h"
 #include "CDClientManager.h"
 #include "CDDestructibleComponentTable.h"
+#include "CDCurrencyTableTable.h"
 #include "EntityManager.h"
 #include "QuickBuildComponent.h"
 #include "CppScripts.h"
@@ -53,7 +54,7 @@
 Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
 Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
 
-DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t componentID, const bool smashableDefaults) : Component(parent, componentID), m_SmashableDefaults{ smashableDefaults } {
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
 	m_iImagination = 0;
@@ -94,6 +95,110 @@ DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t compone
 	RegisterMsg(&DestroyableComponent::OnGetObjectReportInfo);
 	RegisterMsg(&DestroyableComponent::OnSetFaction);
 	RegisterMsg(&DestroyableComponent::OnIsDead);
+}
+
+// The DestructibleComponent row (a character's stats come from its save after this): stats, loot and coins, then the
+// row's factionList. A destroyable the loader adds to a model or quickbuild has no row and live's defaults instead.
+void DestroyableComponent::LoadDataFromTemplate() {
+	if (m_SmashableDefaults) {
+		// Live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804, LOTs 14 and 8069 on a property)
+		SetMaxHealth(1.0f);
+		SetHealth(1);
+		SetArmor(1);
+		SetFaction(-1, true);
+		SetIsSmashable(true);
+		return;
+	}
+
+	if (m_ComponentID <= 0) return;
+
+	auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
+	const auto componentID = m_ComponentID;
+	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
+	if (destCompData.empty()) return;
+
+	if (!m_Parent->GetCharacter()) {
+		// A race car's destroyable has 60 imagination
+		const bool isRacingCar = CDClientManager::GetTable<CDComponentsRegistryTable>()->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::RACING_STATS) > 0;
+		if (isRacingCar) {
+			destCompData[0].imagination = 60;
+		}
+
+		SetHealth(destCompData[0].life);
+		SetImagination(destCompData[0].imagination);
+		SetArmor(destCompData[0].armor);
+
+		SetMaxHealth(destCompData[0].life);
+		SetMaxImagination(destCompData[0].imagination);
+		SetMaxArmor(destCompData[0].armor);
+		SetDeathBehavior(destCompData[0].death_behavior);
+
+		SetIsSmashable(GetIsSmashable() || destCompData[0].isSmashable);
+		SetIsNPC(destCompData[0].isnpc);
+		SetAttackPriority(destCompData[0].attack_priority);
+
+		SetLootMatrixID(destCompData[0].LootMatrixIndex);
+		SetCurrencyIndex(destCompData[0].CurrencyIndex);
+		Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
+
+		// Now get currency information
+		const uint32_t npcMinLevel = destCompData[0].level;
+		const uint32_t currencyIndex = destCompData[0].CurrencyIndex;
+
+		CDCurrencyTableTable* const currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
+		const std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([currencyIndex, npcMinLevel](const CDCurrencyTable& entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
+
+		if (!currencyValues.empty()) {
+			// Set the coins
+			SetMinCoins(currencyValues[0].minvalue);
+			SetMaxCoins(currencyValues[0].maxvalue);
+		}
+	}
+
+	AddTemplateFactions(destCompData[0].factionList);
+}
+
+// The level config (LWODestroyableComponent::LoadConfigData 0x00c44cb0 reads it for every destroyable): is_smashable,
+// set_faction / override_faction and the smashable loot matrix
+void DestroyableComponent::LoadConfigData() {
+	const bool isSmashable = m_Parent->GetVarAs<int32_t>(u"is_smashable") != 0;
+	const bool isCharacter = m_Parent->GetCharacter() != nullptr;
+	if (!isCharacter) {
+		// The client ORs the database smashable and the level's
+		SetIsSmashable(GetIsSmashable() || isSmashable);
+
+		if (!m_SmashableDefaults && m_ComponentID <= 0 && isSmashable) {
+			// A smashable object without a DestructibleComponent row
+			SetHealth(1);
+			SetArmor(0);
+
+			SetMaxHealth(1);
+			SetMaxArmor(0);
+
+			SetIsSmashable(true);
+			AddFaction(-1);
+			AddFaction(6); //Smashables
+
+			// A race car has 60 imagination, other entities defaults to 0.
+			const bool isRacingCar = CDClientManager::GetTable<CDComponentsRegistryTable>()->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::RACING_STATS) > 0;
+			SetImagination(isRacingCar ? 60 : 0);
+			SetMaxImagination(isRacingCar ? 60 : 0);
+		}
+	}
+
+	// Level files can replace the factions with set_faction, unless override_faction is 0
+	const auto levelFactions = GetLevelFactions(*m_Parent);
+	if (levelFactions && !levelFactions->empty()) {
+		SetFaction(levelFactions->front(), true);
+		for (const auto faction : *levelFactions | std::views::drop(1)) AddFaction(faction, true);
+	}
+
+	// Level files can give a smashable its own loot matrix in place of the template's
+	const auto levelLootMatrix = GetLevelLootMatrix(*m_Parent);
+	if (!isCharacter && levelLootMatrix) {
+		SetLootMatrixID(levelLootMatrix.value());
+		Loot::CacheMatrix(levelLootMatrix.value());
+	}
 }
 
 DestroyableComponent::~DestroyableComponent() {

@@ -44,8 +44,12 @@ class DestroyableComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
-	DestroyableComponent(Entity* parentEntity, const int32_t componentID);
+	// smashableDefaults: a destroyable the loader adds to a model or quickbuild, with live's defaults and no row
+	DestroyableComponent(Entity* parentEntity, const int32_t componentID, const bool smashableDefaults = false);
 	~DestroyableComponent() override;
+
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
 
 	void Run(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
@@ -700,6 +704,9 @@ private:
 	 * Damage immunity cooldown timer. Set to a value that then counts down to create a damage cooldown for players
 	 */
 	float 	m_DamageCooldownTimer;
+
+	// Made by the loader for a model or quickbuild: live's smashable defaults in place of a row
+	bool m_SmashableDefaults{ false };
 };
 
 #endif // DESTROYABLECOMPONENT_H

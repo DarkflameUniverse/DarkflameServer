@@ -298,13 +298,7 @@ void Entity::Initialize() {
 
 		AddComponent<RenderComponent>(-1);
 
-		auto* destroyableComponent = AddComponent<DestroyableComponent>(-1);
-		destroyableComponent->SetHealth(1);
-		destroyableComponent->SetMaxHealth(1.0f);
-		// Live: armor 1 (max 0), as for every componentID -1 destroyable (LOT 14 and 8069 on a Raven Bluff property)
-		destroyableComponent->SetArmor(1);
-		destroyableComponent->SetFaction(-1, true);
-		destroyableComponent->SetIsSmashable(true);
+		AddComponent<DestroyableComponent>(-1, true);
 		// We have all our components.
 		return;
 	}
@@ -324,8 +318,6 @@ void Entity::Initialize() {
 	const auto petComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
 	const auto collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
 	const auto combatAiID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
-	// A race car's destroyable has 60 imagination
-	const bool isRacingCar = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_STATS) > 0;
 	// If an entity is marked a phantom, simple physics is made into phantom phyics.
 	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
 
@@ -429,85 +421,9 @@ void Entity::Initialize() {
 		bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
 		if (destroyableComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
 			const int32_t componentID = destroyableComponentID > 0 ? destroyableComponentID : -1;
+			// The row, the level config and a character's save, in the client's order
 			DestroyableComponent* comp = AddComponent<DestroyableComponent>(componentID);
-			auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
-			std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
-
-			if (m_Character) {
-				comp->LoadFromSaveData(m_Character->GetXMLDoc());
-			} else {
-				// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-				comp->SetIsSmashable(comp->GetIsSmashable() || isSmashable);
-
-				if (componentID > 0) {
-					if (!destCompData.empty()) {
-						if (isRacingCar) {
-							destCompData[0].imagination = 60;
-						}
-
-						comp->SetHealth(destCompData[0].life);
-						comp->SetImagination(destCompData[0].imagination);
-						comp->SetArmor(destCompData[0].armor);
-
-						comp->SetMaxHealth(destCompData[0].life);
-						comp->SetMaxImagination(destCompData[0].imagination);
-						comp->SetMaxArmor(destCompData[0].armor);
-						comp->SetDeathBehavior(destCompData[0].death_behavior);
-
-						comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
-						comp->SetIsNPC(destCompData[0].isnpc);
-						comp->SetAttackPriority(destCompData[0].attack_priority);
-
-						comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
-						comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
-						Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
-
-						// Now get currency information
-						const uint32_t npcMinLevel = destCompData[0].level;
-						const uint32_t currencyIndex = destCompData[0].CurrencyIndex;
-
-						CDCurrencyTableTable* const currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
-						const std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([currencyIndex, npcMinLevel](const CDCurrencyTable& entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
-
-						if (!currencyValues.empty()) {
-							// Set the coins
-							comp->SetMinCoins(currencyValues[0].minvalue);
-							comp->SetMaxCoins(currencyValues[0].maxvalue);
-						}
-					}
-				} else if (isSmashable) {
-					// A smashable object without a DestructibleComponent row
-					comp->SetHealth(1);
-					comp->SetArmor(0);
-
-					comp->SetMaxHealth(1);
-					comp->SetMaxArmor(0);
-
-					comp->SetIsSmashable(true);
-					comp->AddFaction(-1);
-					comp->AddFaction(6); //Smashables
-
-					// A race car has 60 imagination, other entities defaults to 0.
-					comp->SetImagination(isRacingCar ? 60 : 0);
-					comp->SetMaxImagination(isRacingCar ? 60 : 0);
-				}
-			}
-
-			if (!destCompData.empty()) comp->AddTemplateFactions(destCompData[0].factionList);
-
-			// Level files can replace the factions with set_faction, unless override_faction is 0
-			const auto levelFactions = DestroyableComponent::GetLevelFactions(*this);
-			if (levelFactions && !levelFactions->empty()) {
-				comp->SetFaction(levelFactions->front(), true);
-				for (const auto faction : *levelFactions | std::views::drop(1)) comp->AddFaction(faction, true);
-			}
-
-			// Level files can give a smashable its own loot matrix in place of the template's
-			const auto levelLootMatrix = DestroyableComponent::GetLevelLootMatrix(*this);
-			if (!m_Character && levelLootMatrix) {
-				comp->SetLootMatrixID(levelLootMatrix.value());
-				Loot::CacheMatrix(levelLootMatrix.value());
-			}
+			if (m_Character) comp->LoadFromSaveData(m_Character->GetXMLDoc());
 		}
 			break;
 		}
@@ -709,12 +625,7 @@ void Entity::Initialize() {
 			// A quick build without a destroyable gets one (componentID -1) and is smashable, as the client makes it
 			// (DoObjectComponentLoad); live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804)
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-				auto* const destroyable = AddComponent<DestroyableComponent>(-1);
-				destroyable->SetMaxHealth(1.0f);
-				destroyable->SetHealth(1);
-				destroyable->SetArmor(1);
-				destroyable->SetFaction(-1, true);
-				destroyable->SetIsSmashable(true);
+				AddComponent<DestroyableComponent>(-1, true);
 			}
 
 			CDRebuildComponentTable* const rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
@@ -861,13 +772,7 @@ void Entity::Initialize() {
 		if (modelID > -1 && !GetComponent<PetComponent>()) {
 			AddComponent<ModelComponent>(modelID)->LoadBehaviors();
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-				auto* const destroyableComponent = AddComponent<DestroyableComponent>(-1);
-				destroyableComponent->SetHealth(1);
-				destroyableComponent->SetMaxHealth(1.0f);
-				// Live: armor 1 (max 0), as for every componentID -1 destroyable (LOT 8069 on a Raven Bluff property)
-				destroyableComponent->SetArmor(1);
-				destroyableComponent->SetFaction(-1, true);
-				destroyableComponent->SetIsSmashable(true);
+				AddComponent<DestroyableComponent>(-1, true);
 			}
 		}
 			break;
