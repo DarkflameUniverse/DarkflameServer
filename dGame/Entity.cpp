@@ -488,7 +488,12 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 		const bool hasCustomScript = !GetVarAsString(u"custom_script_server").empty() || !GetVarAsString(u"custom_script_client").empty();
 		if (scriptComponentID >= 0 || m_Character || hasCustomScript) {
 			AddComponent<ScriptComponent>(scriptComponentID);
-			addProximityAndPathfinding();
+			// The client's script allocator adds these only when it makes a script component: a registry script with a
+			// non-zero id or a custom script in the config it is sent (a character's script is the server's own)
+			const auto clientCustomScript = [this](const std::u16string& key) { return IsVarSentToClient(key) && !GetVarAsString(key).empty(); };
+			if (scriptComponentID > 0 || (m_TemplateID != 176 && (clientCustomScript(u"custom_script_server") || clientCustomScript(u"custom_script_client")))) {
+				addProximityAndPathfinding();
+			}
 		}
 
 		// ZoneControl script
