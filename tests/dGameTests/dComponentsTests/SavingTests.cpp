@@ -20,7 +20,8 @@ protected:
 		entity = std::make_unique<Entity>(1, GameDependenciesTest::info);
 		character = std::make_unique<Character>(1, nullptr);
 
-		doc.LoadFile("./test_xml_data.xml");
+		// Copied next to the test binary: run it from there (ctest does)
+		ASSERT_EQ(doc.LoadFile("./test_xml_data.xml"), tinyxml2::XML_SUCCESS);
 
 		entity->SetCharacter(character.get());
 		character->SetEntity(entity.get());
