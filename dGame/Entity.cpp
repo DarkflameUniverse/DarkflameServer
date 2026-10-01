@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "FactionTriggerComponent.h"
 #include "RocketLandingComponent.h"
 #include "GenericActivatorComponent.h"
 #include "ShowcaseModelHandlerComponent.h"
@@ -1076,6 +1077,12 @@ void Entity::Initialize() {
 			// LWORocketAnimationControlComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LANDING, -1);
 			if (id > -1) AddComponent<RocketLandingComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::FACTION_TRIGGER: {
+			// LWOFactionTriggerComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::FACTION_TRIGGER, -1);
+			if (id > -1) AddComponent<FactionTriggerComponent>(id);
 			break;
 		}
 		default:
