@@ -1,5 +1,6 @@
 set(DGAMETEST_SOURCES
 	"GameDependencies.cpp"
+	"LoaderSnapshotTests.cpp"
 	"GuildManagerTests.cpp"
 	"LUBitStreamTests.cpp"
 	"MailIdPinTests.cpp"
