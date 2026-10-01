@@ -17,11 +17,11 @@
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&RailActivatorComponent::OnRequestUse);
-	const auto tableData = CDClientManager::GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);
+}
 
-	m_Path = parent->GetVar<std::u16string>(u"rail_path");
-	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
-	m_PathStart = parent->GetVar<uint32_t>(u"rail_path_start");
+// The RailActivatorComponent row
+void RailActivatorComponent::LoadDataFromTemplate() {
+	const auto tableData = CDClientManager::GetTable<CDRailActivatorComponentTable>()->GetEntryByID(m_ComponentID);
 
 	m_StartSound = tableData.startSound;
 	m_loopSound = tableData.loopSound;
@@ -35,20 +35,31 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, const int32_t com
 	m_LoopEffect = tableData.loopEffectID;
 	m_StopEffect = tableData.stopEffectID;
 
-	// The RailActivatorComponent row gives these (the client reads DamageImmune, NoAggro and ShowNameBillboard in
-	// LWOPlayerForcedMovementComponent::LoadRailData 0x00c85dc0); a level key, when there, replaces the row's value
-	// as StartRailMovement's flags replace the row's in msgStartRailMovement (0x00ccd9c0) unless bUseDB is set.
-	const auto levelOr = [parent](const std::u16string& key, const bool tableValue) {
-		return parent->HasVar(key) ? parent->GetVar<bool>(key) : tableValue;
-	};
-	m_DamageImmune = levelOr(u"rail_activator_damage_immune", tableData.damageImmune);
-	m_NoAggro = levelOr(u"rail_no_aggro", tableData.noAggro);
-	m_NotifyArrived = parent->GetVar<bool>(u"rail_notify_activator_arrived");
-	m_ShowNameBillboard = levelOr(u"rail_show_name_billboard", tableData.showNameBillboard);
-	m_UseDB = parent->GetVar<bool>(u"rail_use_db");
-	m_Active = levelOr(u"rail_activator_active", true);
+	// The client reads DamageImmune, NoAggro and ShowNameBillboard from the row in
+	// LWOPlayerForcedMovementComponent::LoadRailData (0x00c85dc0)
+	m_DamageImmune = tableData.damageImmune;
+	m_NoAggro = tableData.noAggro;
+	m_ShowNameBillboard = tableData.showNameBillboard;
 	m_CameraLocked = tableData.cameraLocked;
 	m_CollisionEnabled = tableData.playerCollision;
+}
+
+// The level config: a key, when there, replaces the row's value, as StartRailMovement's flags replace the row's in
+// msgStartRailMovement (0x00ccd9c0) unless bUseDB is set
+void RailActivatorComponent::LoadConfigData() {
+	m_Path = m_Parent->GetVar<std::u16string>(u"rail_path");
+	m_PathDirection = m_Parent->GetVar<bool>(u"rail_path_direction");
+	m_PathStart = m_Parent->GetVar<uint32_t>(u"rail_path_start");
+
+	const auto levelOr = [this](const std::u16string& key, const bool tableValue) {
+		return m_Parent->HasVar(key) ? m_Parent->GetVar<bool>(key) : tableValue;
+	};
+	m_DamageImmune = levelOr(u"rail_activator_damage_immune", m_DamageImmune);
+	m_NoAggro = levelOr(u"rail_no_aggro", m_NoAggro);
+	m_NotifyArrived = m_Parent->GetVar<bool>(u"rail_notify_activator_arrived");
+	m_ShowNameBillboard = levelOr(u"rail_show_name_billboard", m_ShowNameBillboard);
+	m_UseDB = m_Parent->GetVar<bool>(u"rail_use_db");
+	m_Active = levelOr(u"rail_activator_active", true);
 }
 
 RailActivatorComponent::~RailActivatorComponent() = default;

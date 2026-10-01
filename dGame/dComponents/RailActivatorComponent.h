@@ -15,6 +15,9 @@ public:
 	explicit RailActivatorComponent(Entity* parent, const int32_t componentID);
 	~RailActivatorComponent() override;
 
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
+
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
 
 	/**
