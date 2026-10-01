@@ -54,8 +54,6 @@ std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
 
 PetComponent::PetComponent(Entity* parentEntity, const int32_t componentID) : Component{ parentEntity, componentID } {
 	RegisterMsg(&PetComponent::OnRequestUse);
-	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentID); // TODO: Make reference when safe
-
 	m_Interaction = LWOOBJID_EMPTY;
 	m_Owner = LWOOBJID_EMPTY;
 	m_ModerationStatus = 0;
@@ -69,8 +67,16 @@ PetComponent::PetComponent(Entity* parentEntity, const int32_t componentID) : Co
 	m_StartPosition = NiPoint3Constant::ZERO;
 	m_MovementAI = nullptr;
 	m_TreasureTime = 0;
+}
 
-	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
+// The PetComponent row
+void PetComponent::LoadDataFromTemplate() {
+	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(m_ComponentID); // TODO: Make reference when safe
+}
+
+// The level config: the taming preconditions
+void PetComponent::LoadConfigData() {
+	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(m_Parent->GetVar<std::u16string>(u"CheckPrecondition"));
 
 	if (!checkPreconditions.empty()) {
 		SetPreconditions(checkPreconditions);

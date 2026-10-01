@@ -37,6 +37,9 @@ public:
 	static constexpr uint32_t PET_STATE_GOING_TO_ABILITY_OBJECT = 1 << 10;
 
 	explicit PetComponent(Entity* parentEntity, const int32_t componentID);
+
+	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
 	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
