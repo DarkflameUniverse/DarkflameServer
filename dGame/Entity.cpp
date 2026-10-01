@@ -341,40 +341,9 @@ void Entity::Initialize() {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS: {
 		const auto controllablePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS);
 		if (controllablePhysicsComponentID > 0) {
+			// The component places it: where the level put an object, where a character's save and the zone put it
 			auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
-
-			if (m_Character) {
-				controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
-
-				const auto mapID = Game::server->GetZoneID();
-				const auto& targetSceneName = m_Character->GetTargetScene();
-
-				//If we came from another zone, put us in the starting loc
-				// Exception for Moon Base as you tend to spawn on the roof.
-				// second exception if we have a specified targetScene since that would only be possible in a test map
-				if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603 || !targetSceneName.empty()) {
-					NiPoint3 pos;
-					NiQuaternion rot = QuatUtils::IDENTITY;
-
-					auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-					if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
-						pos = m_Character->GetRespawnPoint(mapID);
-						rot = Game::zoneManager->GetZone()->GetSpawnRot();
-					} else if (targetScene != nullptr) {
-						pos = targetScene->GetPosition();
-						rot = targetScene->GetRotation();
-					} else {
-						pos = Game::zoneManager->GetZone()->GetSpawnPos();
-						rot = Game::zoneManager->GetZone()->GetSpawnRot();
-					}
-
-					controllablePhysics->SetPosition(pos);
-					controllablePhysics->SetRotation(rot);
-				}
-			} else {
-				controllablePhysics->SetPosition(m_DefaultPosition);
-				controllablePhysics->SetRotation(m_DefaultRotation);
-			}
+			if (m_Character) controllablePhysics->LoadFromSaveData(m_Character->GetXMLDoc());
 		}
 			break;
 		}

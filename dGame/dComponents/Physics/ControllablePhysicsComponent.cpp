@@ -13,6 +13,8 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "dZoneManager.h"
+#include "dServer.h"
+#include "Zone.h"
 #include "LevelProgressionComponent.h"
 #include "eStateChangeType.h"
 #include "StringifiedEnum.h"
@@ -54,6 +56,12 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, const
 // After the physics config: a character's body, in the physics component's group
 void ControllablePhysicsComponent::LoadConfigData() {
 	PhysicsComponent::LoadConfigData();
+
+	// An object that isn't a character starts where the level put it (a character's place comes with its save)
+	if (!m_Parent->GetCharacter()) {
+		SetPosition(m_Parent->GetDefaultPosition());
+		SetRotation(m_Parent->GetDefaultRotation());
+	}
 
 	if (m_Parent->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -171,7 +179,42 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	}
 }
 
+// A character's save, then where it comes into this world
 void ControllablePhysicsComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
+	ReadSaveData(doc);
+	PlaceCharacter();
+}
+
+// If it came from another zone it starts at its respawn point, the target scene or the zone's spawn (Moon Base always:
+// the saved place tends to be on the roof; a target scene too: only possible in a test map)
+void ControllablePhysicsComponent::PlaceCharacter() {
+	auto* const character = m_Parent->GetCharacter();
+	if (!character) return;
+
+	const auto mapID = Game::server->GetZoneID();
+	const auto& targetSceneName = character->GetTargetScene();
+	if (character->GetZoneID() == Game::server->GetZoneID() && mapID != 1603 && targetSceneName.empty()) return;
+
+	NiPoint3 pos;
+	NiQuaternion rot = QuatUtils::IDENTITY;
+
+	auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
+	if (character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
+		pos = character->GetRespawnPoint(mapID);
+		rot = Game::zoneManager->GetZone()->GetSpawnRot();
+	} else if (targetScene != nullptr) {
+		pos = targetScene->GetPosition();
+		rot = targetScene->GetRotation();
+	} else {
+		pos = Game::zoneManager->GetZone()->GetSpawnPos();
+		rot = Game::zoneManager->GetZone()->GetSpawnRot();
+	}
+
+	SetPosition(pos);
+	SetRotation(rot);
+}
+
+void ControllablePhysicsComponent::ReadSaveData(const tinyxml2::XMLDocument& doc) {
 	auto* character = doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		LOG("Failed to find char tag!");

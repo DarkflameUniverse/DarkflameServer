@@ -285,6 +285,10 @@ public:
 	const bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
 
 private:
+	// The save's physics state (LoadFromSaveData), then where the character comes into the world
+	void ReadSaveData(const tinyxml2::XMLDocument& doc);
+	void PlaceCharacter();
+
 
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 	/**
