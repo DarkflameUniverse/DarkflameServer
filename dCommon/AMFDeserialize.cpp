@@ -116,19 +116,25 @@ std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream& i
 
 	// Read size of dense array
 	const auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
-	// Then read associative portion
-	while (true) {
-		const auto key = ReadString(inStream);
-		// No more associative values when we encounter an empty string key
-		if (key.size() == 0) break;
-		arrayValue->Insert(key, Read(inStream));
-	}
-
 	constexpr int32_t maxArraySize = 10'000;
 	if (sizeOfDenseArray > maxArraySize) {
 		LOG("Someone sent 10,000 dense array entries, probably a bad packet.");
 		throw std::invalid_argument("Someone sent 10,000 dense array entries, probably a bad packet.");
 	}
+
+	// Then read associative portion
+	uint32_t associativeEntries = 0;
+	while (true) {
+		const auto key = ReadString(inStream);
+		// No more associative values when we encounter an empty string key
+		if (key.size() == 0) break;
+		if (++associativeEntries > maxArraySize) {
+			LOG("Someone sent over 10,000 associative array entries, probably a bad packet.");
+			throw std::invalid_argument("Someone sent over 10,000 associative array entries, probably a bad packet.");
+		}
+		arrayValue->Insert(key, Read(inStream));
+	}
+
 	// Finally read dense portion
 	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
 		arrayValue->Insert(i, Read(inStream));
