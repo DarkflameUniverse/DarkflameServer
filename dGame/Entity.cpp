@@ -90,6 +90,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "MinifigComponent.h"
+#include "ChangelingComponent.h"
 #include "SpringpadComponent.h"
 #include "ModelBuilderComponent.h"
 #include "ArcadeComponent.h"
@@ -1027,6 +1028,12 @@ void Entity::Initialize() {
 			// LWOSpringpadComponent: the client makes it from the registry
 			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SPRINGPAD, -1);
 			if (id > -1) AddComponent<SpringpadComponent>(id);
+			break;
+		}
+		case eReplicaComponentType::CHANGLING: {
+			// LWOChangelingComponent: the client makes it from the registry
+			const auto id = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHANGLING, -1);
+			if (id > -1) AddComponent<ChangelingComponent>(id);
 			break;
 		}
 		default:
