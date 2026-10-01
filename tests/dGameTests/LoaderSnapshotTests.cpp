@@ -1,4 +1,4 @@
-// Tool (task 51): writes every LOT's component list to $DLU_LOADER_SNAPSHOT, built from the real CDServer.sqlite in
+// Tool (task 51): writes every LOT's component list and a hash of its construction bytes to $DLU_LOADER_SNAPSHOT, built from the real CDServer.sqlite in
 // $DLU_LOADER_CDSERVER, so the loader rework can be compared with the old loader. Skipped without both.
 #include "GameDependencies.h"
 #include <gtest/gtest.h>
@@ -11,6 +11,8 @@
 #include "CDClientManager.h"
 #include "DestroyableComponent.h"
 #include "Entity.h"
+#include "BitStream.h"
+#include "eReplicaPacketType.h"
 
 class LoaderSnapshotTest : public GameDependenciesTest {
 protected:
@@ -47,6 +49,12 @@ TEST_F(LoaderSnapshotTest, EveryLot) {
 			file << " | hp " << destroyable->GetMaxHealth() << " im " << destroyable->GetMaxImagination() << " sm " << destroyable->GetIsSmashable() << " f";
 			for (const auto faction : destroyable->GetFactionIDs()) file << " " << faction;
 		}
+		// The construction's component bytes, as a 64-bit FNV-1a hash
+		RakNet::BitStream bytes;
+		entity.WriteComponents(bytes, eReplicaPacketType::CONSTRUCTION);
+		uint64_t hash = 14695981039346656037ull;
+		for (uint32_t i = 0; i < bytes.GetNumberOfBytesUsed(); i++) hash = (hash ^ bytes.GetData()[i]) * 1099511628211ull;
+		file << " | bits " << bytes.GetNumberOfBitsUsed() << " " << std::hex << hash << std::dec;
 		file << "\n";
 	}
 }
