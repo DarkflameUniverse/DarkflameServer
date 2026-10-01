@@ -272,6 +272,8 @@ TEST_F(ReplicaConstructionTest, MovingPlatformEndsItsSubcomponentList) {
 	ASSERT_TRUE(stream.Read(bit));
 	EXPECT_TRUE(bit); // has subcomponents
 	ASSERT_TRUE(stream.Read(bit));
+	EXPECT_TRUE(bit); // the path is written with the construction
+	ASSERT_TRUE(stream.Read(bit));
 	EXPECT_FALSE(bit); // no path
 	ASSERT_TRUE(stream.Read(bit));
 	EXPECT_TRUE(bit); // a subcomponent follows
