@@ -478,7 +478,8 @@ public:
 
 	/**
 	 * Whether the player may delete this item: its ItemComponent's DeletionRestrictions row, as the client checks it
-	 * (LWOInventoryComponent_Common::CanRemoveFromInventory @ 00ce0d20 in 1.10.64). Operators may delete anything.
+	 * (LWOInventoryComponent_Common::CanRemoveFromInventory @ 00ce0d20 in 1.10.64). The possessed object and the mount
+	 * item are never deleted; otherwise operators may delete anything.
 	 */
 	bool CanDelete(const Item& item) const;
 	void OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg);

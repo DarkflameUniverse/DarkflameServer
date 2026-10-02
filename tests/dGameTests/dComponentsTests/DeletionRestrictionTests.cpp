@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "InventoryComponent.h"
 #include "Item.h"
+#include "PossessorComponent.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
@@ -122,4 +123,19 @@ TEST_F(DeletionRestrictionTests, AnyAndAllOfOtherRows) {
 	Give(2001); // row 500 now allows it, row 502 never does
 	EXPECT_TRUE(inventory->CanDelete(*any));
 	EXPECT_FALSE(inventory->CanDelete(*all));
+}
+
+TEST_F(DeletionRestrictionTests, ThePossessedObjectAndTheMountItemAreNeverDeleted) {
+	auto* const ridden = Give(1000);
+	auto* const mount = Give(1000);
+	auto* const other = Give(1000);
+	auto* const possessor = entity->AddComponent<PossessorComponent>(-1);
+	possessor->SetPossessable(ridden->GetId());
+	possessor->SetMountItemID(mount->GetId());
+	entity->SetGMLevel(eGameMasterLevel::OPERATOR);
+
+	EXPECT_FALSE(inventory->CanDelete(*ridden));
+	EXPECT_FALSE(inventory->CanDelete(*mount));
+	EXPECT_TRUE(inventory->CanDelete(*other));
+	possessor->SetPossessable(LWOOBJID_EMPTY); // nothing to dismount when the entity goes
 }

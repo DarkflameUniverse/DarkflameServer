@@ -2405,6 +2405,10 @@ namespace {
 }
 
 bool InventoryComponent::CanDelete(const Item& item) const {
+	// The object being ridden and the mount item are never deleted, not even by operators
+	const auto* const possessor = m_Parent->GetComponent<PossessorComponent>();
+	if (possessor && (possessor->GetPossessable() == item.GetId() || possessor->GetMountItemID() == item.GetId())) return false;
+
 	if (m_Parent->GetGMLevel() == eGameMasterLevel::OPERATOR) return true;
 
 	const auto row = static_cast<int32_t>(item.GetInfo().delResIndex);
