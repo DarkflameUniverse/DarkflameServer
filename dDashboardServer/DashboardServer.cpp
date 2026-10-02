@@ -102,6 +102,7 @@
 #include "master/ServerTraffic.h"
 #include "master/Profiling.h"
 #include "Performance.h"
+#include "DatabaseUsage.h"
 #include "Background.h"
 #include "master/DashboardMessages.h"
 #include "master/DataChanged.h"
@@ -543,6 +544,7 @@ int main(int argc, char** argv) {
 	UpdateChecker::Initialize();
 	Background::Initialize();
 	RegisterEconomyTasks();
+	DatabaseUsage::RegisterTask();
 	RegisterMaintenanceTasks();
 	RegisterBackupTask();
 	RegisterReportViewTask();
@@ -607,6 +609,7 @@ int main(int argc, char** argv) {
 	PrometheusMetrics::RegisterRoutes();
 	Traffic::RegisterRoutes();
 	Performance::RegisterRoutes();
+	DatabaseUsage::RegisterRoutes();
 	RegisterPublicRoutes();
 	RegisterShowcaseRoutes();
 	FeaturedProperties::RegisterRoutes();

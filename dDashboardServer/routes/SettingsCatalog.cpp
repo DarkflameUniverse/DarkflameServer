@@ -405,6 +405,10 @@ namespace {
 		c.Add(Bool(WORLD, "contraband_ignore_staff", "Don't check staff", "Accounts with a GM level keep listed items and aren't flagged.", true));
 		c.Add(Bool(WORLD, "contraband_notify_players", "Tell players", "A mail (at login) or a chat message (when received) says which item was removed and why.", true));
 
+		c.AddSection("Database usage", "The Database usage page. How often the database is measured is the Database usage task's schedule (Tasks page, hourly by default); samples are kept for database_usage_days.");
+		c.Add(Unit(Float(DASHBOARD, "database_disk_warn_percent", "Warn when disk free is under", "An alert (webhooks subscribed to server events) and a warning on the page when the free space on the database's disk drops under this share of the disk. 0: never.", "10", 0, 100), "%"));
+		c.Add(Format(Text(DASHBOARD, "database_disk_path", "Disk to check", "A path on the database's disk, for the free space. Empty: the SQLite file, or a MySQL/MariaDB data directory when mysql_host is this machine; a database on another machine is not checked."), eFormat::PATH));
+
 		c.AddSection("Backups");
 		c.Add(Format(Text(DASHBOARD, "backup_folder", "Backup folder", "Relative to the server binaries unless absolute.", "backups"), eFormat::PATH));
 		c.Add(Unit(Int(DASHBOARD, "backup_keep", "Backups to keep", "Older backups are deleted after each new one. 0 keeps them all.", "7", 0, 1000), "backups"));
@@ -423,6 +427,7 @@ namespace {
 		c.Add(Days("log_login_address_days", "Login addresses", "Addresses an account hasn't logged in from for this long are forgotten.", "90"));
 		c.Add(Days("log_client_sysinfo_days", "Client system info", "System descriptions clients sent at login that haven't been seen for this long are forgotten.", "90"));
 		c.Add(Days("health_days", "Server health history", "Minute-by-minute player counts and uptime.", "30"));
+		c.Add(Days("database_usage_days", "Database usage history", "Samples of the database's size and its tables (Database usage page).", "365"));
 		c.Add(Days("traffic_days", "Server traffic history", "Minute-by-minute packets, bytes and HTTP requests of every server (Diagnostics). The last hour at one second is only kept in memory.", "30"));
 
 		c.AddSection("Log bundles", "Server log files downloaded together from the System Log page (Download logs).");

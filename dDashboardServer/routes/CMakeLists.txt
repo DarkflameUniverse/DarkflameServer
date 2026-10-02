@@ -23,6 +23,8 @@ set(DASHBOARDROUTES_SOURCES
 	"WorldReloadRoutes.cpp"
 	"SettingsRoutes.cpp"
 	"Background.cpp"
+	"DatabaseUsage.cpp"
+	"DatabaseUsageReport.cpp"
 	"Scheduler.cpp"
 	"SettingsCatalog.cpp"
 	"BackupRoutes.cpp"
