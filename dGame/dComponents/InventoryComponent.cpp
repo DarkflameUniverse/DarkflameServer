@@ -60,6 +60,7 @@
 #include "Amf3.h"
 
 #include <ranges>
+#include "ObjectLoadState.h"
 
 namespace {
 	// The equipped-item entry for a player's item. Live wrote its bound state and its inventory; DLU keeps proxies in
@@ -2458,5 +2459,12 @@ bool InventoryComponent::CheckDeletionRestriction(const LWOOBJID itemId, const i
 	}
 	default:
 		return true;
+	}
+}
+
+void InventoryComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto inventoryID = state.GetComponentID(eReplicaComponentType::INVENTORY);
+	if (inventoryID > 0 || entity.GetCharacter()) {
+		entity.AddComponent<InventoryComponent>(inventoryID);
 	}
 }

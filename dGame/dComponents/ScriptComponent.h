@@ -14,6 +14,8 @@
 #include <string>
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 class Entity;
 
 /**
@@ -23,6 +25,9 @@ class Entity;
 class ScriptComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	ScriptComponent(Entity* parent, const int32_t componentID, const std::string& scriptName, bool serialized, bool client = false);
 

@@ -13,6 +13,8 @@
 #include <vector>
 #include <map>
 
+struct ObjectLoadState;
+
 class MovementAIComponent;
 class Entity;
 
@@ -50,6 +52,9 @@ struct AiSkillEntry
 class BaseCombatAIComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	BaseCombatAIComponent(Entity* parentEntity, int32_t componentID);
 

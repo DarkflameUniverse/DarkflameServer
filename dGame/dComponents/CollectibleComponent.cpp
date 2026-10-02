@@ -7,6 +7,9 @@
 #include "CDCollectibleComponentTable.h"
 #include "CDMissionsTable.h"
 #include "eMissionState.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "DestroyableComponent.h"
 
 CollectibleComponent::CollectibleComponent(Entity* parentEntity, const int32_t componentID, const int32_t collectibleId) :
 	Component(parentEntity, componentID), m_CollectibleId(collectibleId) {
@@ -65,4 +68,12 @@ bool CollectibleComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportI
 
 	cmptType.PushDebug<AMFBoolValue>("Has been collected") = collected;
 	return true;
+}
+
+void CollectibleComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	if (state.GetComponentID(eReplicaComponentType::COLLECTIBLE) > 0) {
+		entity.AddComponent<CollectibleComponent>(state.GetComponentID(eReplicaComponentType::COLLECTIBLE), entity.GetVarAs<int32_t>(u"collectible_id"));
+		// The client makes a collectible's destroyable right after it when there is none
+		if (!entity.HasComponent(eReplicaComponentType::DESTROYABLE)) entity.AddComponent<DestroyableComponent>(-1);
+	}
 }

@@ -13,6 +13,8 @@
 #include "eReplicaComponentType.h"
 #include "eQuickBuildState.h"
 
+struct ObjectLoadState;
+
 class Entity;
 enum class eQuickBuildFailReason : uint32_t;
 
@@ -24,6 +26,9 @@ enum class eQuickBuildFailReason : uint32_t;
 class QuickBuildComponent final : public ActivityComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	QuickBuildComponent(Entity* const entity, const int32_t componentID);
 

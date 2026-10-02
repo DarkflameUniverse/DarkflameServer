@@ -43,6 +43,9 @@
 #include "dNavMesh.h"
 #include "eGameActivity.h"
 #include "eStateChangeType.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "PathfindingComponent.h"
 
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
@@ -1451,4 +1454,12 @@ void PetComponent::ApplyNameModeration(const bool approved) {
 		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void PetComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	// LWOPetComponent::Factory (0x01031240): no pet in an inventory; otherwise pathfinding control first
+	if (state.GetComponentID(eReplicaComponentType::PET) > 0 && !entity.GetVar<bool>(u"inInventory")) {
+		if (!entity.HasComponent(eReplicaComponentType::PATHFINDING)) entity.AddComponent<PathfindingComponent>(-1);
+		entity.AddComponent<PetComponent>(state.GetComponentID(eReplicaComponentType::PET));
+	}
 }

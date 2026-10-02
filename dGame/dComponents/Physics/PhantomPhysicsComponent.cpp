@@ -28,6 +28,7 @@
 #include "dpEntity.h"
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
+#include "ObjectLoadState.h"
 
 PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(&PhantomPhysicsComponent::OnGetObjectReportInfo);
@@ -292,4 +293,14 @@ bool PhantomPhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectRepor
 	}
 
 	return true;
+}
+
+void PhantomPhysicsComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto phantomPhysicsComponentID = state.GetComponentID(eReplicaComponentType::PHANTOM_PHYSICS);
+	if (state.hasModelBehaviors) {
+		// LWOPhantomPhysicsComponent::Allocator (0x010383b0): left to the model case
+		if (phantomPhysicsComponentID > 0) state.modelPhysicsComponentID = phantomPhysicsComponentID;
+	} else if (phantomPhysicsComponentID > 0 && !entity.HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)) {
+		entity.AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
+	}
 }

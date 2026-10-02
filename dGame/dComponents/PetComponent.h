@@ -10,6 +10,8 @@
 #include "CDPetComponentTable.h"
 #include "eHelpType.h"
 
+struct ObjectLoadState;
+
 /**
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
  * to dig for treasure and activate pet bouncers.
@@ -18,6 +20,9 @@ class PetComponent final : public Component
 {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PET;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	// Bits of the serialized pet status. State number N is bit 1 << (N - 1) (the client's StateNumToIndex,
 	// 0x00bd19b0); the meanings are what the live server sent (2014 packet captures) and what the client does with them.

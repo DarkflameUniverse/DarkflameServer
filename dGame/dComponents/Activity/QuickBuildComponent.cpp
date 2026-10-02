@@ -32,6 +32,7 @@
 #include "StringifiedEnum.h"
 #include "Amf3.h"
 #include "EconomyLedger.h"
+#include "ObjectLoadState.h"
 
 QuickBuildComponent::QuickBuildComponent(Entity* const entity, const int32_t componentID) : ActivityComponent{ entity, componentID } {
 	RegisterMsg(&QuickBuildComponent::OnRequestUse);
@@ -778,4 +779,17 @@ bool QuickBuildComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInf
 	quickbuild.PushDebug<AMFDoubleValue>("Soft Timer") = m_SoftTimer;
 	quickbuild.PushDebug<AMFStringValue>("Builder", "LWOOBJID") = std::to_string(m_Builder);
 	return true;
+}
+
+void QuickBuildComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto quickBuildComponentID = state.GetComponentID(eReplicaComponentType::QUICK_BUILD);
+	if (quickBuildComponentID > 0) {
+		entity.AddComponent<QuickBuildComponent>(quickBuildComponentID);
+
+		// A quick build without a destroyable gets one (componentID -1) and is smashable, as the client makes it
+		// (DoObjectComponentLoad); live: health 1 / 1.0, armor 1 / 0, faction -1, smashable (AG LOT 7804)
+		if (!entity.HasComponent(eReplicaComponentType::DESTROYABLE)) {
+			entity.AddComponent<DestroyableComponent>(-1, true);
+		}
+	}
 }

@@ -17,6 +17,8 @@
 #include <optional>
 #include <chrono>
 
+struct ObjectLoadState;
+
 enum class eGameActivity : uint32_t;
 
 class Item;
@@ -44,6 +46,9 @@ struct ZoneStatistics {
 class CharacterComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress);
 	~CharacterComponent() override;

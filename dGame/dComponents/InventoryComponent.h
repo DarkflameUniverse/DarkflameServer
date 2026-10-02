@@ -25,6 +25,8 @@
 #include "Loot.h"
 #include "LootMetrics.h"
 
+struct ObjectLoadState;
+
 class Entity;
 class ItemSet;
 
@@ -99,6 +101,9 @@ public:
 	static constexpr uint32_t MaximumGroupCount = 50;
 
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 	InventoryComponent(Entity* parent, const int32_t componentID);
 
 	void LoadDataFromTemplate() override;

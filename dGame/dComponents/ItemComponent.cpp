@@ -1,4 +1,7 @@
 #include "ItemComponent.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "PetComponent.h"
 
 void ItemComponent::Serialize(RakNet::BitStream& outBitStream, bool isConstruction) {
 	// Live wrote the user-generated-content info on every construction: the model's userModelID (a brick built model,
@@ -8,5 +11,15 @@ void ItemComponent::Serialize(RakNet::BitStream& outBitStream, bool isConstructi
 		outBitStream.Write<LWOOBJID>(m_Parent->GetVarAs<LWOOBJID>(u"userModelID")); // ug_id
 		outBitStream.Write<uint32_t>(0); // ug_moderation_status NoStatus
 		outBitStream.Write0(); // ug_description
+	}
+}
+
+void ItemComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	// A pet takes the item (and model) component away (LWOPetComponent::Factory); models keep theirs (live: an
+	// item block before the model's)
+	PetComponent* petComponent{};
+	const auto itemID = state.GetComponentID(eReplicaComponentType::ITEM);
+	if (itemID > 0 && !entity.TryGetComponent(eReplicaComponentType::PET, petComponent)) {
+		entity.AddComponent<ItemComponent>(itemID);
 	}
 }

@@ -10,6 +10,8 @@
 #include "dpCollisionChecks.h"
 #include "eBubbleType.h"
 
+struct ObjectLoadState;
+
 namespace tinyxml2 {
 	class XMLDocument;
 }
@@ -24,6 +26,9 @@ enum class eStateChangeType : uint32_t;
 class ControllablePhysicsComponent : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	ControllablePhysicsComponent(Entity* entity, const int32_t componentID);
 

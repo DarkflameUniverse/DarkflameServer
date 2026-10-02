@@ -15,6 +15,8 @@
 #include "Logger.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 struct ProjectileSyncEntry {
 	LWOOBJID id = LWOOBJID_EMPTY;
 
@@ -62,6 +64,9 @@ struct SkillExecutionResult {
 class SkillComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	explicit SkillComponent(Entity* parent, const int32_t componentID);
 	~SkillComponent() override;

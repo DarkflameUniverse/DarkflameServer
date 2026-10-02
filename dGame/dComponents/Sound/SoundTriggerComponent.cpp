@@ -1,6 +1,9 @@
 #include "SoundTriggerComponent.h"
 #include "Game.h"
 #include "Logger.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "RacingSoundTriggerComponent.h"
 
 void MusicCue::Serialize(RakNet::BitStream& outBitStream){
 	outBitStream.Write<uint8_t>(name.size());
@@ -113,5 +116,15 @@ void SoundTriggerComponent::DeactivateMusicCue(const std::string& name) {
 		this->m_MusicCues.erase(musicCue);
 		this->m_Dirty = true;
 		Game::entityManager->SerializeEntity(m_Parent);
+	}
+}
+
+void SoundTriggerComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto soundTriggerID = state.GetComponentID(eReplicaComponentType::SOUND_TRIGGER, -1);
+	const auto racingSoundTriggerID = state.GetComponentID(eReplicaComponentType::RACING_SOUND_TRIGGER, -1);
+	if (soundTriggerID > -1) {
+		entity.AddComponent<SoundTriggerComponent>(soundTriggerID);
+	} else if (racingSoundTriggerID > -1) {
+		entity.AddComponent<RacingSoundTriggerComponent>(racingSoundTriggerID);
 	}
 }

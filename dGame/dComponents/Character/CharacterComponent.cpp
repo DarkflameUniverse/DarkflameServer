@@ -38,6 +38,13 @@
 #include <ctime>
 #include <cmath>
 #include <ranges>
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "LevelProgressionComponent.h"
+#include "MountControlComponent.h"
+#include "PetCreatorComponent.h"
+#include "PlayerForcedMovementComponent.h"
+#include "PossessorComponent.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress) : Component(parent, componentID) {
 	m_Character = character;
@@ -1075,4 +1082,21 @@ void CharacterComponent::LoadVisitedLevelsXml(const tinyxml2::XMLElement& vl) {
 void CharacterComponent::SetUScore(int64_t uscore, uint32_t source) {
 	if (const auto* character = m_Parent->GetCharacter()) EconomyLedger::RecordUScore(character->GetID(), uscore - m_Uscore, source);
 	m_Uscore = uscore;
+}
+
+void CharacterComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto characterID = state.GetComponentID(eReplicaComponentType::CHARACTER);
+	if (characterID > 0 || entity.GetCharacter()) {
+		// LWOCharacterComponent::Factory (0x0104db40): possession control, mount control, pet creator, level
+		// progression and forced movement, then the character, all componentID -1
+		entity.AddComponent<PossessorComponent>(-1);
+		entity.AddComponent<MountControlComponent>(-1);
+		entity.AddComponent<PetCreatorComponent>(-1);
+		entity.AddComponent<LevelProgressionComponent>(-1);
+		entity.AddComponent<PlayerForcedMovementComponent>(-1);
+
+		auto& systemAddress = entity.GetCharacter()->GetParentUser() ? entity.GetCharacter()->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+		entity.AddComponent<CharacterComponent>(-1, entity.GetCharacter(), systemAddress);
+
+	}
 }

@@ -4,6 +4,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 /**
  * Component that handles player forced movement
   *
@@ -11,6 +13,9 @@
 class PlayerForcedMovementComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	/**
 	 * Constructor for this component

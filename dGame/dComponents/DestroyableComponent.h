@@ -10,6 +10,8 @@
 #include "eReplicaComponentType.h"
 #include "Implementation.h"
 
+struct ObjectLoadState;
+
 namespace GameMessages {
 	struct GetObjectReportInfo;
 	struct SetFaction;
@@ -43,6 +45,9 @@ struct DeathDirection {
 class DestroyableComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	// smashableDefaults: a destroyable the loader adds to a model or quickbuild, with live's defaults and no row
 	DestroyableComponent(Entity* parentEntity, const int32_t componentID, const bool smashableDefaults = false);

@@ -13,6 +13,9 @@
 #include "MissionComponent.h"
 #include "User.h"
 #include "UserManager.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "ProximityMonitorComponent.h"
 
 DonationVendorComponent::DonationVendorComponent(Entity* parent, const int32_t componentID) : BaseVendorComponent(parent, componentID) {
 }
@@ -107,4 +110,12 @@ void DonationVendorComponent::ConfirmDonation(Entity& player) {
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
 	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
+}
+
+void DonationVendorComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto donationVendorID = state.GetComponentID(eReplicaComponentType::DONATION_VENDOR, -1);
+	if (donationVendorID > -1) {
+		if (!entity.HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) entity.AddComponent<ProximityMonitorComponent>(-1);
+		entity.AddComponent<DonationVendorComponent>(donationVendorID);
+	}
 }

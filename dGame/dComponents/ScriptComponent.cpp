@@ -11,6 +11,9 @@
 #include "Amf3.h"
 
 #include <ranges>
+#include "ObjectLoadState.h"
+#include "dZoneManager.h"
+#include "CDZoneTableTable.h"
 
 ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, const std::string& scriptName, bool serialized, bool client) : Component(parent, componentID) {
 	m_Serialized = serialized;
@@ -108,4 +111,34 @@ bool ScriptComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& r
 	}
 
 	return true;
+}
+
+void ScriptComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	// LWOScriptComponent's allocator: a script component for a registry entry, a character, or a custom script in
+	// the level config; the component picks its script
+	CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
+	const int32_t scriptComponentID = state.GetComponentID(eReplicaComponentType::SCRIPT, -1);
+	const bool hasCustomScript = !entity.GetVarAsString(u"custom_script_server").empty() || !entity.GetVarAsString(u"custom_script_client").empty();
+	if (scriptComponentID >= 0 || entity.GetCharacter() || hasCustomScript) {
+		entity.AddComponent<ScriptComponent>(scriptComponentID);
+		// The client's script allocator adds these only when it makes a script component: a registry script with a
+		// non-zero id or a custom script in the config it is sent (a character's script is the server's own)
+		const auto clientCustomScript = [&entity](const std::u16string& key) { return entity.IsVarSentToClient(key) && !entity.GetVarAsString(key).empty(); };
+		if (scriptComponentID > 0 || (entity.GetLOT() != 176 && (clientCustomScript(u"custom_script_server") || clientCustomScript(u"custom_script_client")))) {
+			ObjectLoadState::AddProximityAndPathfinding(entity);
+		}
+	}
+
+	// ZoneControl script
+	if (entity.GetLOT() == 2365) {
+		const auto& zoneID = Game::zoneManager->GetZoneID();
+		const CDZoneTable* const zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
+
+		if (zoneData != nullptr) {
+			const int32_t zoneScriptID = zoneData->scriptID;
+			CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
+			// A server script only: the client has no script component on the zone control object (live sent none)
+			entity.AddComponent<ScriptComponent>(zoneScriptID, zoneScriptData.script_name, false, false);
+		}
+	}
 }

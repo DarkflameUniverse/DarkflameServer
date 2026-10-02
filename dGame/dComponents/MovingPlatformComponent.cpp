@@ -17,6 +17,9 @@
 #include "MovementMessages.h"
 
 #include <glm/gtc/quaternion.hpp>
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "MovementAIComponent.h"
 
 void PlatformSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write<bool>(true);
@@ -597,4 +600,40 @@ void MovingPlatformComponent::FireArrivalHooks(const uint32_t index, const bool 
 	script->OnWaypointReached(m_Parent, index);
 	if (atDesiredWaypoint) script->OnArrivedAtDesiredWaypoint(m_Parent, index);
 	if (atLastWaypoint) script->OnPlatformAtLastWaypoint(m_Parent);
+}
+
+void MovingPlatformComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const std::string pathName = entity.GetVarAsString(u"attached_path");
+	const Path* const path = Game::zoneManager->GetZone()->GetPath(pathName);
+
+	//Check to see if we have an attached path and add the appropiate component to handle it:
+	if (path) {
+		// if we have a moving platform path, then we need a moving platform component
+		if (path->pathType == PathType::MovingPlatform) {
+			// The registry component ID picks the subcomponent (a simple mover when it has one), path or not
+			entity.AddComponent<MovingPlatformComponent>(state.GetComponentID(eReplicaComponentType::MOVING_PLATFORM, -1), pathName);
+		} else if (path->pathType == PathType::Movement) {
+			auto* const movementAIcomponent = entity.GetComponent<MovementAIComponent>();
+			if (movementAIcomponent && state.GetComponentID(eReplicaComponentType::BASE_COMBAT_AI) == 0) {
+				movementAIcomponent->SetPath(pathName);
+			} else {
+				MovementAIInfo moveInfo{
+					.movementType = "",
+					.wanderRadius = 16,
+					.wanderSpeed = 2.5f,
+					.wanderChance = 0,
+					.wanderDelayMin = 2,
+					.wanderDelayMax = 5,
+				};
+
+				entity.AddComponent<MovementAIComponent>(-1, moveInfo);
+			}
+		}
+	} else {
+		// else we still need to setup moving platform if it has a moving platform comp but no path
+		const auto movingPlatformComponentID = state.GetComponentID(eReplicaComponentType::MOVING_PLATFORM, -1);
+		if (movingPlatformComponentID >= 0) {
+			entity.AddComponent<MovingPlatformComponent>(movingPlatformComponentID, pathName);
+		}
+	}
 }

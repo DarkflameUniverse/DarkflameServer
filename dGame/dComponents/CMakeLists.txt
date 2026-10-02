@@ -48,6 +48,8 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"TriggerComponent.cpp"
 	"Physics/HavokVehiclePhysicsComponent.cpp"
 	"Vendor/BaseVendorComponent.cpp"
+	"Vendor/VendorComponent.cpp"
+	"BBBComponent.cpp"
 	"ScriptComponent.cpp"
 )
 

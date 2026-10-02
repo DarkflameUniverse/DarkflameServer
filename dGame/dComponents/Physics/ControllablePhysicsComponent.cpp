@@ -19,6 +19,7 @@
 #include "eStateChangeType.h"
 #include "StringifiedEnum.h"
 #include "Amf3.h"
+#include "ObjectLoadState.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, const int32_t componentID) : PhysicsComponent(entity, componentID) {
 	RegisterMsg(&ControllablePhysicsComponent::OnGetObjectReportInfo);
@@ -459,4 +460,15 @@ bool ControllablePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObject
 	immunity.PushDebug<AMFBoolValue>("Immune to Stun Interact") = m_ImmuneToStunInteractCount != 0;
 	immunity.PushDebug<AMFBoolValue>("Immune to Stun Jump") = m_ImmuneToStunJumpCount != 0;
 	return true;
+}
+
+void ControllablePhysicsComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto controllablePhysicsComponentID = state.GetComponentID(eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	if (state.hasModelBehaviors) {
+		// LWOControllablePhysComponent::Allocator (0x0104e070): left to the model case
+		if (controllablePhysicsComponentID > 0) state.modelPhysicsComponentID = controllablePhysicsComponentID;
+	} else if (controllablePhysicsComponentID > 0) {
+		// The component places it: where the level put an object, where a character's save and the zone put it
+		entity.AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
+	}
 }

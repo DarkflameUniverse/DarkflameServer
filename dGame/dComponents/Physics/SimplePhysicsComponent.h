@@ -13,6 +13,8 @@
 #include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 class Entity;
 
 enum class eClimbableType : int32_t {
@@ -29,6 +31,9 @@ enum class eClimbableType : int32_t {
 class SimplePhysicsComponent : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	// Havok motion types the client reads as the physics motion state
 	static constexpr uint32_t MOTION_TYPE_DYNAMIC = 1;

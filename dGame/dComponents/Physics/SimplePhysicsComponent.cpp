@@ -14,6 +14,8 @@
 #include "Entity.h"
 #include "StringifiedEnum.h"
 #include "Amf3.h"
+#include "ObjectLoadState.h"
+#include "PhantomPhysicsComponent.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(&SimplePhysicsComponent::OnGetObjectReportInfo);
@@ -96,4 +98,16 @@ bool SimplePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReport
 	info.PushDebug<AMFIntValue>("Physics Motion State") = m_PhysicsMotionState;
 	info.PushDebug<AMFStringValue>("Climbable Type") = StringifiedEnum::ToString(m_ClimbableType).data();
 	return true;
+}
+
+void SimplePhysicsComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto simplePhysicsComponentID = state.GetComponentID(eReplicaComponentType::SIMPLE_PHYSICS);
+	if (state.hasModelBehaviors) {
+		// LWOSimplePhysicsComponent::Allocator (0x0104ded0): left to the model case
+		if (simplePhysicsComponentID > 0) state.modelPhysicsComponentID = simplePhysicsComponentID;
+	} else if (simplePhysicsComponentID > 0) {
+		// state.markedAsPhantom makes its simple physics phantom physics (with the simple physics row)
+		if (state.markedAsPhantom) entity.AddComponent<PhantomPhysicsComponent>(simplePhysicsComponentID)->SetPhysicsEffectActive(false);
+		else entity.AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
+	}
 }

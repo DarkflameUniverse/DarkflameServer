@@ -26,6 +26,8 @@
 #include "CDSkillBehaviorTable.h"
 #include "ServiceType.h"
 #include "MessageType/Client.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -564,4 +566,11 @@ void SkillComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 /// <returns>Unique skill ID</returns>
 uint32_t SkillComponent::GetUniqueSkillId() {
 	return ++this->m_skillUid;
+}
+
+void SkillComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto skillID = state.GetComponentID(eReplicaComponentType::SKILL, -1);
+	if (skillID > -1 || entity.GetCharacter()) {
+		entity.AddComponent<SkillComponent>(skillID);
+	}
 }

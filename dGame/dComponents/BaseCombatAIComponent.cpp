@@ -31,6 +31,7 @@
 #include "dNavMesh.h"
 #include "Amf3.h"
 #include "dpCollisionFilter.h"
+#include "ObjectLoadState.h"
 
 namespace {
 	// The collision groups of players and enemies in PhysicsComponent
@@ -983,4 +984,11 @@ bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReport
 	}
 
 	return true;
+}
+
+void BaseCombatAIComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	if (state.GetComponentID(eReplicaComponentType::BASE_COMBAT_AI) > 0) {
+		ObjectLoadState::AddProximityAndPathfinding(entity);
+		entity.AddComponent<BaseCombatAIComponent>(state.GetComponentID(eReplicaComponentType::BASE_COMBAT_AI));
+	}
 }

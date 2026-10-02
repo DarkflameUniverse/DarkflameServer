@@ -8,6 +8,9 @@
 #include "CheatDetection.h"
 #include "UserManager.h"
 #include "CDMissionsTable.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "ProximityMonitorComponent.h"
 
 AchievementVendorComponent::AchievementVendorComponent(Entity* parent, const int32_t componentID) : BaseVendorComponent(parent, componentID) {
 }
@@ -82,4 +85,12 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 void AchievementVendorComponent::RefreshInventory(bool isCreation) {
 	SetHasStandardCostItems(true);
 	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void AchievementVendorComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto achievementVendorID = state.GetComponentID(eReplicaComponentType::ACHIEVEMENT_VENDOR, -1);
+	if (achievementVendorID > -1) {
+		if (!entity.HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) entity.AddComponent<ProximityMonitorComponent>(-1);
+		entity.AddComponent<AchievementVendorComponent>(achievementVendorID);
+	}
 }

@@ -14,6 +14,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "CDAnimationsTable.h"
+#include "ObjectLoadState.h"
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
@@ -193,4 +194,11 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 	}
 	if (returnlength == 0.0f) LOG("WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
 	return returnlength;
+}
+
+void RenderComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto renderComponentID = state.GetComponentID(eReplicaComponentType::RENDER);
+	if ((renderComponentID > 0 && entity.GetLOT() != 2365) || entity.GetCharacter()) {
+		entity.AddComponent<RenderComponent>(renderComponentID);
+	}
 }

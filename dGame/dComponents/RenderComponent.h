@@ -10,6 +10,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 class Entity;
 
 /**
@@ -62,6 +64,9 @@ struct Effect {
 class RenderComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	RenderComponent(Entity* const parentEntity, const int32_t componentID);
 

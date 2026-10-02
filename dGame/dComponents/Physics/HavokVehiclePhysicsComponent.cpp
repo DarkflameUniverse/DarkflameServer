@@ -1,6 +1,9 @@
 #include "HavokVehiclePhysicsComponent.h"
 #include "EntityManager.h"
 #include "Amf3.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
+#include "SimplePhysicsComponent.h"
 
 HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(&HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
@@ -124,4 +127,16 @@ bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObject
 	remoteInputInfo.PushDebug<AMFBoolValue>("Is Powersliding") = m_RemoteInputInfo.m_IsPowersliding;
 	remoteInputInfo.PushDebug<AMFBoolValue>("Is Modified") = m_RemoteInputInfo.m_IsModified;
 	return true;
+}
+
+void HavokVehiclePhysicsComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto havokVehiclePhysicsComponentID = state.GetComponentID(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
+	// The client makes simple physics instead for use_simple_physics, and none for objectWorldState 2
+	if (havokVehiclePhysicsComponentID > 0 && entity.HasVar(u"use_simple_physics")) {
+		if (!entity.HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)) entity.AddComponent<SimplePhysicsComponent>(havokVehiclePhysicsComponentID);
+	} else if (havokVehiclePhysicsComponentID > 0 && !(entity.HasVar(u"objectWorldState") && entity.GetVarAs<int32_t>(u"objectWorldState") == 2)) {
+		auto* havokVehiclePhysicsComponent = entity.AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
+		havokVehiclePhysicsComponent->SetPosition(entity.GetDefaultPosition());
+		havokVehiclePhysicsComponent->SetRotation(entity.GetDefaultRotation());
+	}
 }

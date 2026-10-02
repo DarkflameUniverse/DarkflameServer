@@ -28,6 +28,8 @@
 #include "GeneralUtils.h"
 #include "RenderComponent.h"
 #include "InventoryComponent.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
 
 namespace {
 	/**
@@ -731,4 +733,26 @@ void MovementAIComponent::UpdateKnockback(const float deltaTime) {
 float MovementAIComponent::GetGroundHeight(const NiPoint3& point) const {
 	if (dpWorld::IsLoaded()) return dpWorld::GetNavMesh()->GetHeightAtPoint(point);
 	return m_KnockbackStartHeight;
+}
+
+void MovementAIComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const int movementAIID = state.GetComponentID(eReplicaComponentType::MOVEMENT_AI);
+	if (movementAIID > 0) {
+		// Its row and the level's wanderRadius load in the component
+		entity.AddComponent<MovementAIComponent>(movementAIID, MovementAIInfo{});
+	} else if (state.GetComponentID(eReplicaComponentType::PET) > 0 || state.GetComponentID(eReplicaComponentType::BASE_COMBAT_AI) > 0 && BaseCombatAIComponent::TetherSpeedOf(state.GetComponentID(eReplicaComponentType::BASE_COMBAT_AI)) > 0) {
+		MovementAIInfo moveInfo{
+			.movementType = "",
+			.wanderRadius = 16,
+			.wanderSpeed = 2.5f,
+			.wanderChance = 0,
+			.wanderDelayMin = 2,
+			.wanderDelayMax = 5,
+		};
+
+		entity.AddComponent<MovementAIComponent>(-1, moveInfo);
+	} else if (state.addsMovementAI) {
+		// ApplyMovementAiIfNeeded: a scripted object or one with an attached path has one (id 0: no row)
+		entity.AddComponent<MovementAIComponent>(0, MovementAIInfo{});
+	}
 }

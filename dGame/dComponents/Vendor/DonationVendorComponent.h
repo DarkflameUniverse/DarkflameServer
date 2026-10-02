@@ -4,11 +4,16 @@
 #include "BaseVendorComponent.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 class Entity;
 
 class DonationVendorComponent final : public BaseVendorComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DONATION_VENDOR;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 	DonationVendorComponent(Entity* parent, const int32_t componentID);
 
 	void LoadConfigData() override;

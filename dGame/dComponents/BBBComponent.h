@@ -6,6 +6,8 @@
 #include "dCommonVars.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 /**
  * The BBB component (76), as the client's LWOBBBComponent: DoObjectPreLoad gives every character one (and the registry
  * any object listing it). It sends whether there is a metadata source item, then the item's ID.
@@ -13,6 +15,9 @@
 class BBBComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BBB;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	BBBComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {}
 

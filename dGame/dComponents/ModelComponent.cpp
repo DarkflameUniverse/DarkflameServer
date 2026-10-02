@@ -18,6 +18,11 @@
 #include "Database.h"
 #include "DluAssert.h"
 #include "ObjectMessages.h"
+#include "ObjectLoadState.h"
+#include "PetComponent.h"
+#include "ControllablePhysicsComponent.h"
+#include "DestroyableComponent.h"
+#include "PathfindingComponent.h"
 
 ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
@@ -374,4 +379,29 @@ bool ModelComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& re
 	cmptInfo.PushDebug<AMFIntValue>("Behavior Count") = m_Behaviors.size();
 
 	return true;
+}
+
+void ModelComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	const auto modelID = state.GetComponentID(eReplicaComponentType::MODEL, -1);
+	if (modelID > -1 && !entity.GetComponent<PetComponent>()) {
+		// ObjectLoader2::LoadModelBehaviorsComponent (0x0104d1f0): a model without physics gets it here (BBB models,
+		// LOT 14, have none in the registry): simple physics 4247 without behaviors; with behaviors controllable
+		// (4246) for modelType 0, else simple (4247), unless the registry gave an id. modelType 0 also gets
+		// pathfinding control.
+		const bool hasPhysics = entity.HasComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS) || entity.HasComponent(eReplicaComponentType::SIMPLE_PHYSICS)
+			|| entity.HasComponent(eReplicaComponentType::PROJECTILE_PHYSICS) || entity.HasComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS)
+			|| entity.HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) || entity.HasComponent(eReplicaComponentType::PHANTOM_PHYSICS)
+			|| entity.HasComponent(eReplicaComponentType::VEHICLE_PHYSICS) || entity.HasComponent(eReplicaComponentType::PHYSICS_SYSTEM);
+		const int32_t modelType = entity.HasVar(u"modelType") ? entity.GetVarAs<int32_t>(u"modelType") : -1;
+		if (!hasPhysics) {
+			if (!state.hasModelBehaviors) entity.AddComponent<SimplePhysicsComponent>(4247);
+			else if (modelType == 0) entity.AddComponent<ControllablePhysicsComponent>(state.modelPhysicsComponentID == -1 ? 4246 : state.modelPhysicsComponentID);
+			else entity.AddComponent<SimplePhysicsComponent>(state.modelPhysicsComponentID == -1 ? 4247 : state.modelPhysicsComponentID);
+		}
+		if (modelType == 0 && !entity.HasComponent(eReplicaComponentType::PATHFINDING)) entity.AddComponent<PathfindingComponent>(-1);
+		entity.AddComponent<ModelComponent>(modelID);
+		if (!entity.HasComponent(eReplicaComponentType::DESTROYABLE)) {
+			entity.AddComponent<DestroyableComponent>(-1, true);
+		}
+	}
 }

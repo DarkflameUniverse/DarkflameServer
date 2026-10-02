@@ -50,6 +50,8 @@
 
 #include "CDComponentsRegistryTable.h"
 #include "InventoryMessages.h"
+#include "Entity.h"
+#include "ObjectLoadState.h"
 
 Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
 Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
@@ -1405,4 +1407,22 @@ void DestroyableComponent::Resurrect(Entity& entityRef) {
 	resurrect.target = entity->GetObjectID();
 	resurrect.bRezImmediately = false;
 	resurrect.Send(UNASSIGNED_SYSTEM_ADDRESS);
+}
+
+void DestroyableComponent::Allocator(Entity& entity, ObjectLoadState& state) {
+	/**
+	 * The destroyable component. The client makes one (with a buff component in front of it) for a DESTROYABLE
+	 * registry entry, whose id is the DestructibleComponent row. Collectibles and smashable (is_smashable) objects
+	 * without that entry get one too, with no row.
+	 */
+	const auto destroyableComponentID = state.GetComponentID(eReplicaComponentType::DESTROYABLE);
+	if (destroyableComponentID > 0) {
+		entity.AddComponent<BuffComponent>(destroyableComponentID);
+	}
+
+	// A collectible's (right after it) and a smashable object's (after the walk) come later, as the client makes them
+	if (destroyableComponentID > 0) {
+		// The row, the level config and a character's save, in the client's order
+		entity.AddComponent<DestroyableComponent>(destroyableComponentID);
+	}
 }

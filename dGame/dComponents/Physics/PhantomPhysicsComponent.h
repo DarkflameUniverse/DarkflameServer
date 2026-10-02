@@ -12,6 +12,8 @@
 #include "eReplicaComponentType.h"
 #include "PhysicsComponent.h"
 
+struct ObjectLoadState;
+
 class Entity;
 class dpEntity;
 enum class ePhysicsEffectType : uint32_t ;
@@ -26,6 +28,9 @@ enum class eReplicaComponentType : uint32_t;
 class PhantomPhysicsComponent final : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	PhantomPhysicsComponent(Entity* parent, const int32_t componentID);
 

@@ -6,11 +6,16 @@
 #include <set>
 #include <map>
 
+struct ObjectLoadState;
+
 class Entity;
 
 class AchievementVendorComponent final : public BaseVendorComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ACHIEVEMENT_VENDOR;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 	AchievementVendorComponent(Entity* parent, const int32_t componentID);
 
 	void LoadDataFromTemplate() override;

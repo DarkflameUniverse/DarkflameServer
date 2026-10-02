@@ -6,12 +6,17 @@
 #include "eReplicaComponentType.h"
 #include "PositionUpdate.h"
 
+struct ObjectLoadState;
+
 /**
  * Physics component for vehicles.
  */
 class HavokVehiclePhysicsComponent : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 
 	HavokVehiclePhysicsComponent(Entity* parentEntity, const int32_t componentID);
 

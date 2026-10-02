@@ -4,9 +4,14 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 class CollectibleComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::COLLECTIBLE;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 	CollectibleComponent(Entity* parentEntity, const int32_t componentID, const int32_t collectibleId);
 
 	void LoadDataFromTemplate() override;

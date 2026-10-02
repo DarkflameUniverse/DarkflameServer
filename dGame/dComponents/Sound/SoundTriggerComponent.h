@@ -6,6 +6,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+struct ObjectLoadState;
+
 struct MusicCue {
 	std::string name;
 	uint32_t result;
@@ -60,6 +62,9 @@ struct MixerProgram {
 class SoundTriggerComponent : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
+
+	// The client's allocator for this type (ObjectLoader2::DoObjectComponentLoad calls it in load order)
+	static void Allocator(Entity& entity, ObjectLoadState& state);
 	explicit SoundTriggerComponent(Entity* parent, const int32_t componentID);
 
 	void LoadConfigData() override;
