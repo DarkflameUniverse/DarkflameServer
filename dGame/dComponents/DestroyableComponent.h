@@ -175,6 +175,11 @@ public:
 	 */
 	void SetDamageReduction(int32_t value);
 
+	// The client's AddDamageReduction / RemoveDamageReduction: reductions from several buffs add up, and removing one
+	// takes off only its own amount (never below 0)
+	void AddDamageReduction(int32_t value);
+	void RemoveDamageReduction(int32_t value);
+
 	/**
 	 * Returns the current damage reduction value
 	 * @return the current damage reduction value

@@ -22,7 +22,8 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 		return;
 	}
 
-	destroyable->SetDamageReduction(m_ReductionAmount);
+	// DamageReductionBehavior::Cast (0x004fdbb0) sends AddDamageReduction: it adds to any other reduction
+	destroyable->AddDamageReduction(m_ReductionAmount);
 
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
@@ -46,7 +47,7 @@ void DamageReductionBehavior::Timer(BehaviorContext* context, BehaviorBranchCont
 		return;
 	}
 
-	destroyable->SetDamageReduction(0);
+	destroyable->RemoveDamageReduction(m_ReductionAmount);
 }
 
 void DamageReductionBehavior::Load() {

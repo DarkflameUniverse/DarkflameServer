@@ -444,6 +444,14 @@ void DestroyableComponent::SetDamageReduction(int32_t value) {
 	m_DamageReduction = value;
 }
 
+void DestroyableComponent::AddDamageReduction(const int32_t value) {
+	SetDamageReduction(std::max(m_DamageReduction + value, 0));
+}
+
+void DestroyableComponent::RemoveDamageReduction(const int32_t value) {
+	SetDamageReduction(std::max(m_DamageReduction - value, 0));
+}
+
 void DestroyableComponent::SetIsImmune(bool value) {
 	m_DirtyHealth = true;
 	m_ImmuneToBasicAttackCount = value ? 1 : 0;

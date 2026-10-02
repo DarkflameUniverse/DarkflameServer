@@ -706,3 +706,15 @@ TEST_F(DestroyableTest, DeadSmashableIsNotStunned) {
 	const auto sent = PacketTestUtils::Capture([&] { destroyableComponent->Smash(LWOOBJID_EMPTY); });
 	EXPECT_TRUE(GameMessageTestUtils::SentGameMessages<GameMessages::SetStunned>(sent).empty());
 }
+
+// The client's AddDamageReduction / RemoveDamageReduction: two buffs add up, ending one leaves the other's
+TEST_F(DestroyableTest, DamageReductionsAddUp) {
+	destroyableComponent->SetDamageReduction(0);
+	destroyableComponent->AddDamageReduction(2);
+	destroyableComponent->AddDamageReduction(3);
+	EXPECT_EQ(destroyableComponent->GetDamageReduction(), 5);
+	destroyableComponent->RemoveDamageReduction(2);
+	EXPECT_EQ(destroyableComponent->GetDamageReduction(), 3);
+	destroyableComponent->RemoveDamageReduction(10);
+	EXPECT_EQ(destroyableComponent->GetDamageReduction(), 0);
+}
