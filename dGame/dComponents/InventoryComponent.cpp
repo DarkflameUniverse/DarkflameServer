@@ -2032,6 +2032,10 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		groupItr->lots.erase(groupUpdate.lot);
 		break;
 	}
+	case GroupUpdateCommand::CLEAR_LOTS: {
+		groupItr->lots.clear();
+		break;
+	}
 	case GroupUpdateCommand::MODIFY: {
 		groupItr->groupName = groupUpdate.groupName;
 		break;
@@ -2420,6 +2424,7 @@ void InventoryComponent::OnUpdateInventoryGroupContents(const GameMessages::Upda
 
 	if (msg.action == "ADD") groupUpdate.command = GroupUpdateCommand::ADD_LOT;
 	else if (msg.action == "REMOVE") groupUpdate.command = GroupUpdateCommand::REMOVE_LOT;
+	else if (msg.action == "CLEAR") groupUpdate.command = GroupUpdateCommand::CLEAR_LOTS;
 	else {
 		LOG("Invalid action %s", msg.action.c_str());
 		return;

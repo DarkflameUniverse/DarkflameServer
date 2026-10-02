@@ -78,3 +78,13 @@ TEST_F(InventoryGroupTests, TheModelVaultUsesTheModelsGroups) {
 	EXPECT_EQ(Groups(eInventoryType::MODELS)[0].lots.size(), 1u);
 	EXPECT_FALSE(inventory->GetGroups().contains(eInventoryType::VAULT_MODELS));
 }
+
+TEST_F(InventoryGroupTests, ClearEmptiesAGroup) {
+	Group("ADD", "user_group1", u"bricks");
+	Contents("ADD", "user_group1", 3001);
+	Contents("ADD", "user_group1", 3002);
+	Contents("CLEAR", "user_group1", 0);
+
+	ASSERT_EQ(Groups().size(), 1u);
+	EXPECT_TRUE(Groups()[0].lots.empty());
+}

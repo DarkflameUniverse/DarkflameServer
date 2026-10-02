@@ -86,6 +86,7 @@ public:
 		MODIFY,
 		REMOVE,
 		REMOVE_LOT,
+		CLEAR_LOTS,
 	};
 
 	// Based on the command, certain fields will be used or not used.
