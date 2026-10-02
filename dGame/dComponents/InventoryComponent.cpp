@@ -860,6 +860,9 @@ void InventoryComponent::WriteSaveData(tinyxml2::XMLDocument& document) {
 	}
 
 	items->DeleteChildren();
+	// As live wrote it (225 of 226 captured charxmls): LWOInventoryComponent_Common::LoadFromSaveData (0x00d1ec40) then
+	// doesn't add the inventory component's template items to a loaded character
+	items->SetAttribute("nn", 1);
 
 	// Saved while the equipped items are pushed (build mode, possibly carrying a model): the character's equipment is
 	// the pushed state, which PopEquippedItems puts back, not the temporary items equipped since.

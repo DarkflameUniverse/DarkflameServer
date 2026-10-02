@@ -93,3 +93,9 @@ TEST_F(InventorySaveTests, ItemTakenOffInBuildModeIsStillSavedEquipped) {
 
 	EXPECT_TRUE(SavedEquipped(hat->GetId()));
 }
+
+// Live charxmls have <items nn="1">
+TEST_F(InventorySaveTests, ItemsAreSavedWithNn) {
+	inventory->WriteSaveData(doc);
+	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("inv")->FirstChildElement("items")->Attribute("nn"), "1");
+}
