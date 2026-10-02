@@ -193,7 +193,7 @@ namespace GameMessages {
 		auto* missionOfferComponent = static_cast<MissionOfferComponent*>(entity.GetComponent(eReplicaComponentType::MISSION_OFFER));
 
 		if (missionOfferComponent != nullptr) {
-			missionOfferComponent->OfferMissions(player, 0);
+			missionOfferComponent->OfferLinkedMission(player, missionID);
 		}
 	}
 
