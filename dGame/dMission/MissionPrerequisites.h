@@ -41,6 +41,14 @@ public:
 	 * @return whether or not the mission identified by the specified ID can be accepted
 	 */
 	static bool CanAccept(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
+
+	/**
+	 * Checks the prerequisites for a mission
+	 * @param missionId the mission ID to check prerequisites for
+	 * @param missions the mission inventory to check the prerequisites against
+	 * @return whether or not the prerequisites of the mission identified by the specified ID are met
+	 */
+	static bool CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
 private:
 
 	/**
@@ -48,11 +56,4 @@ private:
 	 */
 	static std::unordered_map<uint32_t, PrerequisiteExpression*> expressions;
 
-	/**
-	 * Checks the prerequisites for a mission
-	 * @param missionId the mission ID to check prerequisites for
-	 * @param missions the mission inventory to check the prerequisites against
-	 * @return whether or not the mission identified by the specified ID can be accepted
-	 */
-	static bool CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
 };

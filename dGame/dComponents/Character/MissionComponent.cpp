@@ -3,6 +3,8 @@
  * Copyright 2019
  */
 
+#include <ctime>
+#include <limits>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -72,6 +74,38 @@ eMissionState MissionComponent::GetMissionState(const uint32_t missionId) const 
 	return mission->GetMissionState();
 }
 
+
+int32_t MissionComponent::GetClientMissionState(const uint32_t missionId) const {
+	// A mission ID below 1 is no mission
+	if (missionId == 0 || missionId > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) return 0;
+
+	const auto* const mission = GetMission(missionId);
+	const bool done = mission && (mission->GetCompletions() > 0 || mission->IsComplete());
+	int32_t state = done ? static_cast<int32_t>(eMissionState::COMPLETE) : 0;
+
+	// In progress: its own state
+	if (mission && !mission->IsComplete()) return state | static_cast<int32_t>(mission->GetMissionState());
+
+	CDMissions info{};
+	if (!Mission::IsValidMission(missionId, info)) return 0;
+
+	if ((!done || info.repeatable) && MissionPrerequisites::CheckPrerequisites(missionId, m_Missions)) {
+		state |= static_cast<int32_t>(eMissionState::AVAILABLE);
+	}
+
+	return state;
+}
+
+bool MissionComponent::IsCooldownRunning(const int64_t completedAt, const int64_t cooldownMinutes, const int64_t now) {
+	return cooldownMinutes > 0 && (now - completedAt) / 60 < cooldownMinutes;
+}
+
+bool MissionComponent::IsCooldownRunning(const uint32_t missionId) const {
+	const auto* const mission = GetMission(missionId);
+	if (!mission || (mission->GetCompletions() == 0 && !mission->IsComplete())) return false;
+
+	return IsCooldownRunning(mission->GetTimestamp(), mission->GetClientInfo().cooldownTime, std::time(nullptr));
+}
 
 const std::unordered_map<uint32_t, Mission*>& MissionComponent::GetMissions() const {
 	return m_Missions;
@@ -720,8 +754,19 @@ bool MissionComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& 
 	return true;
 }
 
+// LWOMissionComponent::msgGetMissionState (0x00d176e0): the client's mission state bit mask; with cooldown info
+// requested (0x00cd7770), the cooldown is only checked for a repeat in progress (state 9 or 10) and otherwise finished
 bool MissionComponent::OnGetMissionState(GameMessages::GetMissionState& getMissionState) {
-	getMissionState.missionState = GetMissionState(getMissionState.missionID);
+	const auto missionID = static_cast<uint32_t>(getMissionState.missionID);
+	const auto state = getMissionState.missionID < 1 ? 0 : GetClientMissionState(missionID);
+	getMissionState.missionState = static_cast<eMissionState>(state);
+
+	if (getMissionState.cooldownInfoRequested) {
+		const auto* const mission = GetMission(missionID);
+		const bool inProgress = mission && !mission->IsComplete();
+		const bool repeat = state == static_cast<int32_t>(eMissionState::COMPLETE_AVAILABLE) || state == static_cast<int32_t>(eMissionState::COMPLETE_ACTIVE);
+		getMissionState.cooldownFinished = !(inProgress && repeat && IsCooldownRunning(missionID));
+	}
 
 	return true;
 }

@@ -57,6 +57,22 @@ public:
 	eMissionState GetMissionState(uint32_t missionId) const;
 
 	/**
+	 * The mission state as the client works it out (LWOMissionComponent::getMissionState 0x00cd7400): a bit mask,
+	 * COMPLETE (8) once the mission was ever completed, ORed with the state of the mission in progress; a mission not in
+	 * progress gets AVAILABLE (1) when it was never completed or is repeatable and its prerequisites are met. 0 for an
+	 * unknown mission.
+	 */
+	int32_t GetClientMissionState(uint32_t missionId) const;
+
+	/**
+	 * Whether the cooldown (Missions.cooldownTime, minutes) of a completed mission is still running, as the client
+	 * checks it: only for a mission completed before, a cooldown above 0, and while fewer whole minutes than the
+	 * cooldown have passed since the last completion.
+	 */
+	bool IsCooldownRunning(uint32_t missionId) const;
+	static bool IsCooldownRunning(int64_t completedAt, int64_t cooldownMinutes, int64_t now);
+
+	/**
 	 * Checks if the entity has all the requirements for accepting the mission specified by the ID.
 	 * @param missionId the mission ID to check for if the character may accept it
 	 * @return whether this entity can accept the mission represented by the given mission ID
