@@ -90,9 +90,11 @@ void QuickBuildComponent::LoadConfigData() {
 	if (rebuildResetTime != 0.0f) SetResetTime(rebuildResetTime);
 
 	// The level's activityID replaces the template's. The client (LWOQuickBuildComponent::LoadDataFromTemplate)
-	// reads RebuildComponent.activityID over it unless the level sets actIDovrd, but live used the level's:
-	// the AM Center draw bridge (LOT 12047: level activityID 12047 without actIDovrd, template activity 6,
-	// the quickbuild rewards) dropped no loot in 4 of 4 live completions.
+	// reads RebuildComponent.activityID over it only when actIDovrd is false, and actIDovrd left out means "the level
+	// has an activityID" (LWOActivityComponent::Startup), so the level's wins, as live: the AM Center draw bridge
+	// (LOT 12047: level activityID 12047 without actIDovrd, template activity 6, the quickbuild rewards) dropped no
+	// loot in 4 of 4 live completions. Every quickbuild the levels set actIDovrd=0 on has the template's activityID
+	// as its level activityID, so not reading actIDovrd changes nothing.
 	const auto activityID = m_Parent->GetVar<int32_t>(u"activityID");
 	if (activityID > 0) {
 		SetActivityId(activityID);
