@@ -41,7 +41,7 @@ struct MovementAIInfo {
 	float wanderSpeed{};
 
 	/**
-	 * This is only used for the emotes
+	 * The percent chance to move each time the wander timer runs out
 	 */
 	float wanderChance{};
 

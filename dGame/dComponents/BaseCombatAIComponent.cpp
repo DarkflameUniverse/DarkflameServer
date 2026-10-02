@@ -677,6 +677,10 @@ void BaseCombatAIComponent::Wander() {
 	const auto div = static_cast<int>(info.wanderDelayMax);
 	m_Timer = (div == 0 ? 0 : GeneralUtils::GenerateRandomNumber<int>(0, div)) + info.wanderDelayMin; //set a random timer to stay put.
 
+	// WanderChance is the percent chance to move each time the timer runs out (90 or 100 in the MovementAIComponent
+	// rows); an enemy with no row has 0 and only moves to fight and to return
+	if (info.wanderChance <= 0.0f || GeneralUtils::GenerateRandomNumber<float>(0, 100) > info.wanderChance) return;
+
 	const float radius = info.wanderRadius * sqrt(static_cast<double>(GeneralUtils::GenerateRandomNumber<float>(0, 1))); //our wander radius + a bit of random range
 	const float theta = ((static_cast<double>(GeneralUtils::GenerateRandomNumber<float>(0, 1)) * 2 * PI));
 
