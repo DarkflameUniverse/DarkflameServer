@@ -2,6 +2,9 @@
 #include "ChatServerLink.h"
 
 #include <algorithm>
+#include <array>
+#include <map>
+#include <vector>
 #include <cctype>
 #include <cstdlib>
 #include <ctime>
@@ -462,6 +465,56 @@ void Mission::Catchup() {
 			}
 		}
 	}
+}
+
+bool Mission::CanReceiveAllRewards(const LOT chosenReward) const {
+	if (IsComplete()) return false;
+
+	auto* const entity = GetAssociate();
+	auto* const inventoryComponent = entity ? entity->GetComponent<InventoryComponent>() : nullptr;
+	if (!inventoryComponent) return false;
+
+	// The repeat rewards once ever completed; a reward item counts at least 1 (LWOMission 0x00fa35d0)
+	const bool repeat = m_Completions > 0;
+	const std::array<std::pair<LOT, int32_t>, 4> rewards = repeat
+		? std::array<std::pair<LOT, int32_t>, 4>{ { { info.reward_item1_repeatable, info.reward_item1_repeat_count }, { info.reward_item2_repeatable, info.reward_item2_repeat_count },
+			{ info.reward_item3_repeatable, info.reward_item3_repeat_count }, { info.reward_item4_repeatable, info.reward_item4_repeat_count } } }
+		: std::array<std::pair<LOT, int32_t>, 4>{ { { info.reward_item1, info.reward_item1_count }, { info.reward_item2, info.reward_item2_count },
+			{ info.reward_item3, info.reward_item3_count }, { info.reward_item4, info.reward_item4_count } } };
+	std::vector<std::pair<LOT, uint32_t>> items;
+	for (const auto& [lot, count] : rewards) {
+		if (lot == LOT_NULL || (chosenReward != -1 && lot != chosenReward)) continue;
+		items.emplace_back(lot, static_cast<uint32_t>(std::max(count, 1)));
+	}
+
+	// The bag rewards come with the first completion only
+	std::map<eInventoryType, uint32_t> sizeIncrease;
+	if (!repeat) {
+		if (info.reward_maxinventory > 0) sizeIncrease[eInventoryType::ITEMS] += info.reward_maxinventory;
+		if (info.reward_maxmodel > 0) sizeIncrease[eInventoryType::MODELS] += info.reward_maxmodel;
+	}
+
+	// The items the tasks take (sub_00fa2f20): a gather task's target unless it keeps them (LWOGatherTask 0x00f919c0),
+	// one of a delivery task's target
+	const bool noGiver = (info.offer_objectID == -1 || info.offer_objectID == 0) && (info.target_objectID == -1 || info.target_objectID == 0);
+	std::vector<std::pair<LOT, uint32_t>> itemsToTurnIn;
+	for (const auto* const task : m_Tasks) {
+		const auto& taskInfo = task->GetClientInfo();
+		const auto target = static_cast<LOT>(taskInfo.target);
+		if (task->GetType() == eMissionTaskType::GATHER) {
+			const auto& parameters = task->GetParameters();
+			int32_t param = parameters.empty() ? 2 : static_cast<int32_t>(parameters[0]);
+			if (noGiver && (param & 2) != 0) param = 1; // an achievement never takes items
+			const bool keep = (param & 1) != 0 && (param & 2) == 0;
+			if (!keep && target != LOT_NULL) itemsToTurnIn.emplace_back(target, static_cast<uint32_t>(taskInfo.targetValue));
+		} else if (task->GetType() == eMissionTaskType::DELIVERY) {
+			if (target != LOT_NULL) itemsToTurnIn.emplace_back(target, 1);
+		}
+	}
+
+	// The client also refuses when the coin reward would pass its max currency (the save's cm, no limit without it);
+	// the server writes no cm, so there is no limit to check
+	return inventoryComponent->CanAddItems(items, itemsToTurnIn, sizeIncrease);
 }
 
 void Mission::YieldRewards() {

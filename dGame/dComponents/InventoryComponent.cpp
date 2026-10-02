@@ -5,6 +5,9 @@
 #include "EconomyLedger.h"
 
 #include <sstream>
+#include <algorithm>
+#include <limits>
+#include <optional>
 
 #include "Entity.h"
 #include "Item.h"
@@ -157,6 +160,17 @@ void InventoryComponent::LoadDataFromTemplate() {
 	}
 }
 
+uint32_t InventoryComponent::GetDefaultInventorySize(const eInventoryType type) {
+	switch (type) {
+	case eInventoryType::ITEMS: return 20u;
+	case eInventoryType::VAULT_MODELS:
+	case eInventoryType::VAULT_ITEMS: return 40u;
+	case eInventoryType::VENDOR_BUYBACK: return 27u;
+	case eInventoryType::DONATION: return 24u;
+	default: return 240u;
+	}
+}
+
 Inventory* InventoryComponent::GetInventory(const eInventoryType type) {
 	const auto index = m_Inventories.find(type);
 
@@ -165,25 +179,7 @@ Inventory* InventoryComponent::GetInventory(const eInventoryType type) {
 	}
 
 	// Create new empty inventory
-	uint32_t size = 240u;
-
-	switch (type) {
-	case eInventoryType::ITEMS:
-		size = 20u;
-		break;
-	case eInventoryType::VAULT_MODELS:
-	case eInventoryType::VAULT_ITEMS:
-		size = 40u;
-		break;
-	case eInventoryType::VENDOR_BUYBACK:
-		size = 27u;
-		break;
-	case eInventoryType::DONATION:
-		size = 24u;
-		break;
-	default:
-		break;
-	}
+	const auto size = GetDefaultInventorySize(type);
 
 	auto* inventory = new Inventory(type, size, {}, this);
 
@@ -641,6 +637,104 @@ bool InventoryComponent::HasSpaceForLoot(const Loot::Return& loot) {
 		notEnoughSpace.Send(m_Parent->GetSystemAddress());
 
 		return false;
+	}
+
+	return true;
+}
+
+bool InventoryComponent::CanAddItems(const std::vector<std::pair<LOT, uint32_t>>& items, const std::vector<std::pair<LOT, uint32_t>>& itemsToTurnIn,
+	const std::map<eInventoryType, uint32_t>& sizeIncrease) const {
+	// A copy of the inventories: per inventory its items in ID order (new ones last, as the client's new IDs)
+	struct SimItem {
+		LOT lot;
+		uint32_t count;
+		uint32_t slot;
+		LWOOBJID subKey;
+	};
+	std::map<eInventoryType, std::vector<SimItem>> inventories;
+	std::map<eInventoryType, uint32_t> sizes;
+	for (const auto& [type, inventory] : m_Inventories) {
+		if (!inventory) continue;
+		auto& simItems = inventories[type];
+		for (const auto& [id, item] : inventory->GetItems()) {
+			if (item) simItems.push_back({ item->GetLot(), item->GetCount(), item->GetSlot(), item->GetSubKey() });
+		}
+		sizes[type] = inventory->GetSize();
+	}
+	for (const auto& [type, increase] : sizeIncrease) sizes[type] += increase;
+
+	// Turned in items leave first; an item of 1 settles the whole count, as the client
+	for (auto [lot, count] : itemsToTurnIn) {
+		for (auto& [type, simItems] : inventories) {
+			for (auto it = simItems.begin(); count != 0 && it != simItems.end();) {
+				if (it->lot != lot) {
+					++it;
+					continue;
+				}
+				if (it->count < 2) {
+					it = simItems.erase(it);
+					count = 0;
+					continue;
+				}
+				const auto taken = std::min(count, it->count);
+				it->count -= taken;
+				count -= taken;
+				it = it->count == 0 ? simItems.erase(it) : it + 1;
+			}
+			if (count == 0) break;
+		}
+	}
+
+	// LWOInventoryComponent_Common::GetInvItemCount over every inventory
+	const auto heldCount = [this](const LOT lot, const std::optional<eInventoryType> only) {
+		uint32_t total = 0;
+		for (const auto& [type, inventory] : m_Inventories) {
+			if (!inventory || (only && type != *only)) continue;
+			for (const auto& [id, item] : inventory->GetItems()) {
+				if (item && item->GetLot() == lot) total += item->GetCount();
+			}
+		}
+		return total;
+	};
+
+	for (const auto& [lot, wanted] : items) {
+		const auto type = Inventory::FindInventoryTypeForLot(lot);
+		// An inventory the server has not made yet is empty (the client refuses one it does not have, but has every
+		// one the server sent)
+		if (!inventories.contains(type)) sizes[type] += GetDefaultInventorySize(type);
+		auto& simItems = inventories[type];
+
+		const auto& info = Inventory::FindItemComponent(lot);
+		// LookupItemInfo (0x00c1c190): a stack size of 0 is no limit
+		const uint32_t stack = info.stackSize == 0 ? std::numeric_limits<uint32_t>::max() : info.stackSize;
+		auto left = wanted;
+		if (info.isUnique) {
+			if (heldCount(lot, std::nullopt) != heldCount(lot, eInventoryType::VENDOR_BUYBACK)) return false; // UniqueItemStillExistsInAnInventory
+			left = 1;
+		}
+
+		for (auto& simItem : simItems) {
+			if (left == 0) break;
+			if (simItem.lot != lot || simItem.subKey != LWOOBJID_EMPTY || simItem.count >= stack) continue;
+			const auto added = std::min(left, stack - simItem.count);
+			simItem.count += added;
+			left -= added;
+		}
+
+		if (left == 0) continue;
+		std::set<uint32_t> takenSlots;
+		for (const auto& simItem : simItems) takenSlots.insert(simItem.slot);
+		const auto size = sizes[type];
+		while (left != 0) {
+			if (takenSlots.size() >= size) return false; // TargetInventoryOutOfRoom
+			uint32_t slot = 0;
+			while (slot < size && takenSlots.contains(slot)) slot++;
+			if (slot >= size) return false; // items sit beyond the size; the client would look for a slot forever
+			takenSlots.insert(slot);
+			const auto added = std::min(left, stack);
+			left -= added;
+			simItems.push_back({ lot, added, slot, LWOOBJID_EMPTY });
+		}
 	}
 
 	return true;

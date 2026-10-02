@@ -126,6 +126,9 @@ public:
 	 */
 	Inventory* GetInventory(eInventoryType type);
 
+	// The size an inventory starts with when the server makes it
+	static uint32_t GetDefaultInventorySize(eInventoryType type);
+
 	/**
 	 * Returns all the inventories this entity has, indexed by type
 	 * @return all the inventories this entity has, indexed by type
@@ -254,6 +257,18 @@ public:
 	 * @return whether the entity has enough space for all the items
 	 */
 	bool HasSpaceForLoot(const Loot::Return& loot);
+
+	/**
+	 * Whether all of these items would fit, as the client works it out before turning in a mission
+	 * (LWOInventoryComponent_Common::CheckCanAddItems 0x00d53de0): the items to turn in are taken out first, the bag
+	 * sizes grow by sizeIncrease, a unique item fails while one is held outside the buyback, then each item tops up
+	 * stacks of its LOT and takes free slots. Nothing changes.
+	 * @param items LOTs and counts to add
+	 * @param itemsToTurnIn LOTs and counts taken from any inventory first
+	 * @param sizeIncrease extra slots per inventory
+	 */
+	bool CanAddItems(const std::vector<std::pair<LOT, uint32_t>>& items, const std::vector<std::pair<LOT, uint32_t>>& itemsToTurnIn,
+		const std::map<eInventoryType, uint32_t>& sizeIncrease) const;
 
 	/**
 	 * Equips an item in the specified slot

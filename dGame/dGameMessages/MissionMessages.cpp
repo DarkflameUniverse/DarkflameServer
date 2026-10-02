@@ -160,6 +160,14 @@ namespace GameMessages {
 		if (iMissionState == eMissionState::AVAILABLE || iMissionState == eMissionState::COMPLETE_AVAILABLE) {
 			missionComponent->AcceptMission(missionID);
 		} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
+			// LWOMissionComponent::MissionWindowOK (0x00d501f0) only turns a mission in when every reward fits
+			// (CanReceiveAllRewards, with the reward the player picked)
+			const auto* const mission = missionComponent->GetMission(missionID);
+			const auto chosen = mission && mission->GetReward() > 0 ? mission->GetReward() : -1;
+			if (!mission || !mission->CanReceiveAllRewards(chosen)) {
+				LOG("Player %llu cannot receive all the rewards of mission %i, not turning it in", player->GetObjectID(), missionID);
+				return;
+			}
 			missionComponent->CompleteMission(missionID);
 		}
 

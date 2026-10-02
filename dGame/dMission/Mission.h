@@ -250,6 +250,14 @@ public:
 	 * Whether the player has looked at this mission in progress (LWOMissionComponent::msgSetMissionViewed 0x00bec7a0),
 	 * saved as v on the mission's <cur> entry
 	 */
+	/**
+	 * Whether the player can take every reward of this mission in progress, as the client checks before turning it in
+	 * (LWOMissionComponent::msgCanReceiveAllRewards 0x00d17e20, sub_00d17750): the reward items (all, or only the
+	 * chosen one) must fit in the inventory after the items the tasks take, with the bag rewards added.
+	 * @param chosenReward the reward the player picked, -1 for all
+	 */
+	bool CanReceiveAllRewards(LOT chosenReward = -1) const;
+
 	bool GetViewed() const { return m_Viewed; }
 	void SetViewed(const bool viewed) { m_Viewed = viewed; }
 
