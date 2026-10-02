@@ -747,7 +747,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		}
 		outBitStream.Write(!m_ChildEntities.empty());
 		if (!m_ChildEntities.empty()) {
-			outBitStream.Write<uint16_t>(m_ChildEntities.size());
+			outBitStream.Write<uint16_t>(std::ranges::count_if(m_ChildEntities, [](const Entity* child) { return child != nullptr; }));
 			for (const auto* const child : m_ChildEntities) {
 				if (child) outBitStream.Write<LWOOBJID>(child->GetObjectID());
 			}
@@ -1261,9 +1261,14 @@ void Entity::RegisterCoinDrop(uint64_t count) const {
 	characterComponent->SetDroppedCoins(characterComponent->GetDroppedCoins() + count);
 }
 
+// The client keeps an object's children as a set of ids (LWOGameObject::childObjects): once each, in id order
 void Entity::AddChild(Entity* child) {
+	if (!child) return;
+	const auto id = child->GetObjectID();
+	const auto it = std::ranges::lower_bound(m_ChildEntities, id, {}, [](const Entity* entity) { return entity ? entity->GetObjectID() : LWOOBJID_EMPTY; });
+	if (it != m_ChildEntities.end() && *it && (*it)->GetObjectID() == id) return;
 	m_IsParentChildDirty = true;
-	m_ChildEntities.push_back(child);
+	m_ChildEntities.insert(it, child);
 }
 
 void Entity::RemoveChild(Entity* child) {
