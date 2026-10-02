@@ -7,6 +7,7 @@
 #include "InventoryMessages.h"
 
 #include <gtest/gtest.h>
+#include <tinyxml2.h>
 
 // Inventory groups as LWOInventoryComponent_Common::msgUpdateInventoryGroup (0x00c955b0) and
 // msgUpdateInventoryGroupContents (0x00ce1f50) keep them.
@@ -95,4 +96,39 @@ TEST_F(InventoryGroupTests, AGroupHoldsAtMost1000Lots) {
 
 	EXPECT_EQ(Groups()[0].lots.size(), 1000u);
 	EXPECT_FALSE(Groups()[0].lots.contains(1001));
+}
+
+TEST_F(InventoryGroupTests, LockedGroupsHaveNoLimits) {
+	for (uint32_t i = 0; i < InventoryComponent::MaximumGroupCount; i++) Group("ADD", "user_group" + std::to_string(i), u"g");
+	Group("ADD", "over", u"g");
+	EXPECT_EQ(Groups().size(), InventoryComponent::MaximumGroupCount);
+
+	Group("ADD", "locked", u"g", eInventoryType::BRICKS, true);
+	ASSERT_EQ(Groups().size(), InventoryComponent::MaximumGroupCount + 1);
+	EXPECT_TRUE(Groups().back().locked);
+	for (LOT lot = 1; lot <= 1001; lot++) Contents("ADD", "locked", lot);
+	EXPECT_EQ(Groups().back().lots.size(), 1001u);
+}
+
+TEST_F(InventoryGroupTests, TheLockedFlagIsSavedAndLoaded) {
+	Group("ADD", "locked", u"a", eInventoryType::BRICKS, true);
+	Group("ADD", "unlocked", u"b");
+
+	tinyxml2::XMLDocument doc;
+	doc.Parse("<obj><inv><bag/><items/></inv></obj>");
+	inventory->WriteSaveData(doc);
+	auto* const grp = doc.FirstChildElement("obj")->FirstChildElement("inv")->FirstChildElement("grps")->FirstChildElement("grp");
+	ASSERT_NE(grp, nullptr);
+	EXPECT_STREQ(grp->Attribute("u"), "1");
+	EXPECT_STREQ(grp->NextSiblingElement("grp")->Attribute("u"), "0");
+
+	// Saves from before have u="0" or no u
+	grp->NextSiblingElement("grp")->DeleteAttribute("u");
+	auto loaded = std::make_unique<Entity>(2, info);
+	auto* const loadedInventory = loaded->AddComponent<InventoryComponent>(-1);
+	loadedInventory->LoadXml(doc);
+	const auto& groups = loadedInventory->GetGroups().at(eInventoryType::BRICKS);
+	ASSERT_EQ(groups.size(), 2u);
+	EXPECT_TRUE(groups[0].locked);
+	EXPECT_FALSE(groups[1].locked);
 }

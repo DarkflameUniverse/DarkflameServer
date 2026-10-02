@@ -78,6 +78,8 @@ public:
 		std::string groupName;
 		// All the lots the user has in the group.
 		std::set<LOT> lots;
+		// Locked groups don't count toward MaximumGroupCount and have no LOT cap (saved as u)
+		bool locked = false;
 	};
 
 	enum class GroupUpdateCommand {
@@ -97,6 +99,7 @@ public:
 		LOT lot;
 		eInventoryType inventory;
 		GroupUpdateCommand command;
+		bool locked = false;
 	};
 
 	static constexpr uint32_t MaximumGroupCount = 50;

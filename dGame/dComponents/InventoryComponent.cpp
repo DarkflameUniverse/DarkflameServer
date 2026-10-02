@@ -2008,7 +2008,8 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		return;
 	}
 
-	if (groupUpdate.command == GroupUpdateCommand::ADD && groups.size() >= MaximumGroupCount) {
+	const auto unlockedGroups = std::ranges::count_if(groups, [](const Group& group) { return !group.locked; });
+	if (groupUpdate.command == GroupUpdateCommand::ADD && !groupUpdate.locked && unlockedGroups >= MaximumGroupCount) {
 		LOG("Cannot add group to inventory %s. Maximum group count reached.", StringifiedEnum::ToString(groupUpdate.inventory).data());
 		return;
 	}
@@ -2018,11 +2019,12 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		auto& group = groups.emplace_back();
 		group.groupId = groupUpdate.groupId;
 		group.groupName = groupUpdate.groupName;
+		group.locked = groupUpdate.locked;
 		break;
 	}
 	case GroupUpdateCommand::ADD_LOT: {
-		// msgUpdateInventoryGroupContents (0x00ce1f50): a group holds at most 1000 LOTs
-		if (groupItr->lots.size() >= MaximumGroupLotCount) break;
+		// msgUpdateInventoryGroupContents (0x00ce1f50): an unlocked group holds at most 1000 LOTs
+		if (!groupItr->locked && groupItr->lots.size() >= MaximumGroupLotCount) break;
 		groupItr->lots.insert(groupUpdate.lot);
 		break;
 	}
@@ -2057,7 +2059,7 @@ void InventoryComponent::UpdateGroupXml(tinyxml2::XMLElement& groups) const {
 			groupElement->SetAttribute("id", group.groupId.c_str());
 			groupElement->SetAttribute("n", group.groupName.c_str());
 			groupElement->SetAttribute("t", static_cast<uint32_t>(inventory));
-			groupElement->SetAttribute("u", 0);
+			groupElement->SetAttribute("u", group.locked ? 1 : 0);
 			std::ostringstream lots;
 			bool first = true;
 			for (const auto lot : group.lots) {
@@ -2084,6 +2086,8 @@ void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
 		groupElement->QueryStringAttribute("n", &groupName);
 		groupElement->QueryStringAttribute("l", &lots);
 		groupElement->QueryAttribute("t", &inventory);
+		bool locked = false;
+		groupElement->QueryBoolAttribute("u", &locked);
 
 		if (!groupId || !groupName || !lots) {
 			LOG("Failed to load group from xml id %i name %i lots %i",
@@ -2092,6 +2096,7 @@ void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
 			auto& group = m_Groups[static_cast<eInventoryType>(inventory)].emplace_back();
 			group.groupId = groupId;
 			group.groupName = groupName;
+			group.locked = locked;
 
 			for (const auto& lotStr : GeneralUtils::SplitString(lots, ' ')) {
 				auto lot = GeneralUtils::TryParse<LOT>(lotStr);
@@ -2409,6 +2414,7 @@ void InventoryComponent::OnUpdateInventoryGroup(const GameMessages::UpdateInvent
 	groupUpdate.inventory = msg.inventoryType;
 	// msgUpdateInventoryGroup (0x00c955b0) cuts names to 64 characters
 	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(msg.groupName.substr(0, MaximumGroupNameLength));
+	groupUpdate.locked = msg.locked;
 
 	if (msg.action == "ADD") groupUpdate.command = GroupUpdateCommand::ADD;
 	else if (msg.action == "MODIFY") groupUpdate.command = GroupUpdateCommand::MODIFY;
