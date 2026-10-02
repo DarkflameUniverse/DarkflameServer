@@ -22,6 +22,7 @@ set(DCOMPONENTS_TESTS
 	"ReplicaDecoderTests.cpp"
 	"CapturePropertyTests.cpp"
 	"ItemRemovalTests.cpp"
+	"UseItemResultTests.cpp"
 	"LootMetricsTests.cpp"
 	"SpawnerComponentTests.cpp"
 )

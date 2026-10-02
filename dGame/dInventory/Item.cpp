@@ -384,7 +384,7 @@ void Item::UseNonEquip(Item* item) {
 			auto* packCompTable = CDClientManager::GetTable<CDPackageComponentTable>();
 			auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
-			auto success = !packages.empty();
+			success = !packages.empty();
 			if (success) {
 				if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetParent())) {
 					auto* entityParent = playerInventoryComponent->GetParent();
