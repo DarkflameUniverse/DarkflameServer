@@ -132,6 +132,8 @@ namespace GameMessages {
 	// Server -> client.
 	struct SetStunned : public NetGameMsg {
 		SetStunned() : NetGameMsg(MessageType::Game::SET_STUNNED) {}
+		// Also counts the stun on the target, as the client does (ControllablePhysicsComponent::ApplyStun), then sends it
+		void Send(const SystemAddress& sysAddr) const;
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 

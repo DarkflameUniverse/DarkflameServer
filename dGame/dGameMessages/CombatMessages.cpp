@@ -208,6 +208,13 @@ namespace GameMessages {
 		return true;
 	}
 
+	void SetStunned::Send(const SystemAddress& sysAddr) const {
+		auto* const entity = Game::entityManager->GetEntity(target);
+		auto* const physics = entity ? entity->GetComponent<ControllablePhysicsComponent>() : nullptr;
+		if (physics) physics->ApplyStun(*this);
+		NetGameMsg::Send(sysAddr);
+	}
+
 	void SetStunned::Serialize(RakNet::BitStream& bitStream) const {
 		BitStreamUtils::WriteOptional(bitStream, Originator, LWOOBJID_EMPTY);
 		bitStream.Write(StateChangeType);

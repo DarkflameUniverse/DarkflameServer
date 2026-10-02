@@ -370,6 +370,13 @@ void ControllablePhysicsComponent::DeactivateBubbleBuff() {
 	Game::entityManager->SerializeEntity(m_Parent);
 };
 
+void ControllablePhysicsComponent::ApplyStun(const GameMessages::SetStunned& stun) {
+	// Only characters are stunned from using items
+	if (!stun.bCantUseItem || !m_Parent->IsPlayer()) return;
+	if (!stun.bIgnoreImmunity && m_ImmuneToStunUseItemCount > 0) return;
+	m_StunnedUseItemCount = std::max(0, m_StunnedUseItemCount + (stun.StateChangeType == eStateChangeType::PUSH ? 1 : -1));
+}
+
 void ControllablePhysicsComponent::SetStunImmunity(
 	const eStateChangeType state,
 	const LWOOBJID originator,

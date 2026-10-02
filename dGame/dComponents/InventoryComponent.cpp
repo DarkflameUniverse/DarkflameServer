@@ -38,6 +38,7 @@
 #include "ModuleAssemblyComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "CharacterComponent.h"
+#include "ControllablePhysicsComponent.h"
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
 #include "DestroyableComponent.h"
@@ -2407,8 +2408,17 @@ void InventoryComponent::OnClientItemConsumed(const GameMessages::ClientItemCons
 
 void InventoryComponent::OnUseNonEquipmentItem(const GameMessages::UseNonEquipmentItem& msg) {
 	auto* item = FindItemById(msg.itemToUse);
+	if (!item) return;
 
-	if (item) item->UseNonEquip(item);
+	// As LWOInventoryComponent_Common::msgUseNonEquipmentItem (0x00cdeba0): nothing is used while GetStunned says
+	// canUseItem is false (LWOControllablePhysComponent::msgGetStunned 0x00be0df0: stunned from using items, or dead)
+	auto* const physics = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	GameMessages::IsDead isDead{};
+	isDead.target = m_Parent->GetObjectID();
+	const bool dead = m_Parent->HandleMsg(isDead) && isDead.bDead;
+	if (physics && (physics->GetStunnedFromUsingItems() || dead)) return;
+
+	item->UseNonEquip(item);
 }
 
 void InventoryComponent::OnUpdateInventoryGroup(const GameMessages::UpdateInventoryGroup& msg) {

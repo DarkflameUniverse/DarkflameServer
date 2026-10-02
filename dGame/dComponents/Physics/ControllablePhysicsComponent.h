@@ -19,6 +19,9 @@ namespace tinyxml2 {
 class Entity;
 class dpEntity;
 enum class eStateChangeType : uint32_t;
+namespace GameMessages {
+	struct SetStunned;
+}
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
@@ -289,6 +292,11 @@ public:
 	const bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
 	const bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
 
+	// A SetStunned sent for this entity, counted as LWOControllablePhysComponent::msgSetStunned (0x00bf1d10) counts it.
+	// Only the use-item stun is kept: the server checks it before using an item (msgGetStunned 0x00be0df0).
+	void ApplyStun(const GameMessages::SetStunned& stun);
+	bool GetStunnedFromUsingItems() const { return m_StunnedUseItemCount > 0; }
+
 private:
 	// The save's physics state (LoadFromSaveData), then where the character comes into the world
 	void ReadSaveData(const tinyxml2::XMLDocument& doc);
@@ -421,6 +429,9 @@ private:
 	int32_t m_ImmuneToStunMoveCount;
 	int32_t m_ImmuneToStunTurnCount;
 	int32_t m_ImmuneToStunUseItemCount;
+
+	// Stuns from using items (ApplyStun)
+	int32_t m_StunnedUseItemCount = 0;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

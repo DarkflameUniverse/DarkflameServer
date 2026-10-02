@@ -5,11 +5,17 @@
 #include "CDItemComponentTable.h"
 #include "CDLootMatrixTable.h"
 #include "CDPackageComponentTable.h"
+#include "Character.h"
+#include "CharacterComponent.h"
+#include "CombatMessages.h"
+#include "ControllablePhysicsComponent.h"
+#include "DestroyableComponent.h"
 #include "Entity.h"
 #include "InventoryComponent.h"
 #include "InventoryMessages.h"
 #include "Item.h"
 #include "eReplicaComponentType.h"
+#include "eStateChangeType.h"
 
 #include "dGameMessagesTests/GameMessageTestUtils.h"
 
@@ -64,4 +70,91 @@ TEST_F(UseItemResultTests, AnOpenedPackageReportsSuccess) {
 	EXPECT_EQ(results[0].itemTemplateID, PACKAGE);
 	EXPECT_TRUE(results[0].useItemResult);
 	EXPECT_EQ(package->GetCount(), 1u);
+}
+
+// LWOInventoryComponent_Common::msgUseNonEquipmentItem (0x00cdeba0) uses nothing while GetStunned says the player can't
+// use items (LWOControllablePhysComponent::msgGetStunned 0x00be0df0)
+class UseItemStunTests : public UseItemResultTests {
+protected:
+	std::unique_ptr<Character> character;
+	ControllablePhysicsComponent* physics{};
+	Item* package{};
+
+	void SetUp() override {
+		UseItemResultTests::SetUp();
+		// Again as a player
+		entity.reset();
+		info.lot = 1;
+		CDClientManager::GetEntriesMutable<CDComponentsRegistryTable>().insert_or_assign(static_cast<uint64_t>(info.lot), 0);
+		entity = std::make_unique<Entity>(1, info);
+		inventoryComponent = entity->AddComponent<InventoryComponent>(-1);
+		character = std::make_unique<Character>(1, nullptr);
+		entity->SetCharacter(character.get());
+		entity->AddComponent<CharacterComponent>(-1, character.get(), ClientAddress())->InitializeStatisticsFromString("");
+		physics = entity->AddComponent<ControllablePhysicsComponent>(-1);
+		auto* const items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
+		package = new Item(0x7000, PACKAGE, items, 0, 5, false, {}, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eLootSourceType::NONE);
+	}
+
+	void TearDown() override {
+		entity->SetCharacter(nullptr);
+		entity.reset();
+		character.reset();
+		UseItemResultTests::TearDown();
+	}
+
+	void Use() {
+		GameMessages::UseNonEquipmentItem msg;
+		msg.itemToUse = package->GetId();
+		inventoryComponent->OnUseNonEquipmentItem(msg);
+	}
+
+	void Stun(const eStateChangeType type, const bool cantUseItem = true) {
+		GameMessages::SetStunned stun;
+		stun.target = entity->GetObjectID();
+		stun.StateChangeType = type;
+		stun.bCantUseItem = cantUseItem;
+		physics->ApplyStun(stun);
+	}
+};
+
+TEST_F(UseItemStunTests, NothingIsUsedWhileStunnedFromUsingItems) {
+	ASSERT_TRUE(entity->IsPlayer());
+	Stun(eStateChangeType::PUSH);
+	Stun(eStateChangeType::PUSH);
+	Use();
+	EXPECT_EQ(package->GetCount(), 5u);
+
+	Stun(eStateChangeType::POP);
+	Use();
+	EXPECT_EQ(package->GetCount(), 5u);
+
+	Stun(eStateChangeType::POP);
+	Use();
+	EXPECT_EQ(package->GetCount(), 4u);
+
+	// Other stuns don't stop it, and a pop with nothing pushed stays at 0
+	Stun(eStateChangeType::PUSH, false);
+	Stun(eStateChangeType::POP);
+	Use();
+	EXPECT_EQ(package->GetCount(), 3u);
+}
+
+TEST_F(UseItemStunTests, ImmunityKeepsTheStunOff) {
+	physics->SetStunImmunity(eStateChangeType::PUSH, LWOOBJID_EMPTY, false, false, false, false, false, false, true);
+	GameMessages::SetStunned stun;
+	stun.StateChangeType = eStateChangeType::PUSH;
+	stun.bCantUseItem = true;
+	stun.bIgnoreImmunity = false;
+	physics->ApplyStun(stun);
+	EXPECT_FALSE(physics->GetStunnedFromUsingItems());
+	stun.bIgnoreImmunity = true;
+	physics->ApplyStun(stun);
+	EXPECT_TRUE(physics->GetStunnedFromUsingItems());
+}
+
+TEST_F(UseItemStunTests, NothingIsUsedWhileDead) {
+	entity->AddComponent<DestroyableComponent>(-1)->SetIsDead(true);
+	Use();
+	EXPECT_EQ(package->GetCount(), 5u);
 }
