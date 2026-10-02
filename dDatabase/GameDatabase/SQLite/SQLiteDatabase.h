@@ -204,6 +204,12 @@ public:
 	void InsertTrafficMinutes(const std::vector<TrafficMinute>& minutes) override;
 	std::vector<TrafficMinute> GetTrafficMinutes(int64_t from, int64_t to, int64_t bucketSeconds) override;
 	uint32_t PruneTrafficMinutes(int64_t beforeTime) override;
+	// IDatabaseUsage
+	Measurement MeasureDatabaseUsage() override;
+	void InsertDatabaseUsage(const UsageTotals& totals, const std::vector<TableUsage>& tables) override;
+	std::vector<UsageTotals> GetDatabaseUsageTotals(int64_t from, int64_t to) override;
+	std::vector<TableUsage> GetDatabaseUsageTables(int64_t time) override;
+	uint32_t PruneDatabaseUsage(int64_t beforeTime) override;
 
 	// IUgcLookup
 	std::vector<UgcEntry> SearchUgc(const UgcSearch& search, const uint32_t limit) override;

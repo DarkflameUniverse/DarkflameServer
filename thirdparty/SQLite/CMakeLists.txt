@@ -17,3 +17,6 @@ if(UNIX)
 		target_compile_options(sqlite3 PRIVATE "-Wno-return-stack-address" "-Wno-uninitialized" "-Wno-deprecated-declarations")
 	endif()
 endif()
+
+# The dashboard measures each table's bytes (Database usage) with the dbstat table
+target_compile_definitions(sqlite3 PRIVATE SQLITE_ENABLE_DBSTAT_VTAB)

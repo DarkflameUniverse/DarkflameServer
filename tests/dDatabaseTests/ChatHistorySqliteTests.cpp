@@ -426,3 +426,32 @@ TEST(ClientSysInfoSqlite, ListsAcrossAccounts) {
 	ASSERT_EQ(rows.size(), 1u);
 	EXPECT_EQ(rows[0].buildNumber, 2600u);
 }
+
+// The Database usage task's measurement and history (IDatabaseUsage) on SQLite
+TEST(DatabaseUsageSqlite, MeasuresTablesAndKeepsHistory) {
+	const auto measurement = g_Db->MeasureDatabaseUsage();
+	EXPECT_TRUE(measurement.sizesKnown); // built with the dbstat table
+	EXPECT_GT(measurement.totalBytes, 0u);
+	EXPECT_EQ(std::filesystem::weakly_canonical(measurement.location), std::filesystem::weakly_canonical(g_Path));
+	const auto it = std::ranges::find(measurement.tables, std::string("database_usage"), &IDatabaseUsage::TableUsage::name);
+	ASSERT_NE(it, measurement.tables.end());
+	EXPECT_GT(it->dataBytes, 0u);
+	EXPECT_EQ(std::ranges::count_if(measurement.tables, [](const auto& t) { return t.name.starts_with("sqlite_"); }), 0);
+
+	g_Db->InsertDatabaseUsage({ 1000, 500, 10, 300, 200, 7, 40, 100 }, { { "a", 100, 50, 3 }, { "b", 200, 150, 4 } });
+	g_Db->InsertDatabaseUsage({ 2000, 900, 0, 600, 300, 9, 30, 100 }, { { "a", 400, 100, 5 } });
+	const auto totals = g_Db->GetDatabaseUsageTotals(0, 5000);
+	ASSERT_EQ(totals.size(), 2u);
+	EXPECT_EQ(totals[0].time, 1000);
+	EXPECT_EQ(totals[1].totalBytes, 900u);
+	EXPECT_EQ(totals[1].diskFree, 30u);
+	const auto tables = g_Db->GetDatabaseUsageTables(1000);
+	ASSERT_EQ(tables.size(), 2u);
+	EXPECT_EQ(tables[1].name, "b");
+	EXPECT_EQ(tables[1].indexBytes, 150u);
+	EXPECT_EQ(tables[1].rows, 4u);
+
+	EXPECT_EQ(g_Db->PruneDatabaseUsage(1500), 1u);
+	EXPECT_TRUE(g_Db->GetDatabaseUsageTables(1000).empty());
+	EXPECT_EQ(g_Db->GetDatabaseUsageTotals(0, 5000).size(), 1u);
+}

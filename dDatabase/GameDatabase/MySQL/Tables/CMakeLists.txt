@@ -26,6 +26,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"PropertyReputation.cpp"
 	"BbbAutosave.cpp"
 	"ServerTraffic.cpp"
+	"DatabaseUsage.cpp"
 	"MessageCaptures.cpp"
 	"ChatLog.cpp"
 	"ChatFlags.cpp"

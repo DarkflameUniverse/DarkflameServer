@@ -258,6 +258,11 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertTrafficMinutes(const std::vector<TrafficMinute>& minutes) override {}
 	std::vector<TrafficMinute> GetTrafficMinutes(int64_t from, int64_t to, int64_t bucketSeconds) override { return {}; }
 	uint32_t PruneTrafficMinutes(int64_t beforeTime) override { return 0; }
+	Measurement MeasureDatabaseUsage() override { return {}; }
+	void InsertDatabaseUsage(const UsageTotals& totals, const std::vector<TableUsage>& tables) override {}
+	std::vector<UsageTotals> GetDatabaseUsageTotals(int64_t from, int64_t to) override { return {}; }
+	std::vector<TableUsage> GetDatabaseUsageTables(int64_t time) override { return {}; }
+	uint32_t PruneDatabaseUsage(int64_t beforeTime) override { return 0; }
 	void InsertInstanceSamples(const std::vector<InstanceSample>& samples) override {}
 	std::vector<InstanceSample> GetInstanceSamples(int64_t from, int64_t to, int64_t bucketSeconds, uint32_t zoneId) override { return {}; }
 	void InsertPositionSamples(const std::vector<PositionSample>& samples) override {}
