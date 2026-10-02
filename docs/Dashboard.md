@@ -911,6 +911,22 @@ The built-in view shows only instrumented scopes. For a native deep dive:
 - Or a sampling profiler on the server process: on Linux `perf record -g -p <pid>` then `perf script` into a flame graph
   tool; any native profiler on Windows and macOS. The dashboard doesn't run native profilers itself.
 
+### Database usage
+
+**Database Usage** (`/database_usage`, `health_view`) shows how much room the game database takes: its size, data and
+indexes, rows and the free space on its disk; a size chart over the last day, week or 30 days; the fastest-growing tables
+over that range; and every table's size, rows and growth (click a heading to sort).
+
+- The **Database usage** task (Tasks page, `0 * * * *` by default; **Measure now** on the page with `tasks_manage`) measures
+  on the background connection: MySQL/MariaDB from `information_schema.TABLES` (rows are the server's estimate; on MySQL 8
+  the session asks for fresh statistics), SQLite from its page counts and the `dbstat` table (rows counted).
+- Samples go to `database_usage` and `database_usage_tables`, kept for `database_usage_days` (365; pruned by Log pruning).
+- Disk free: of `database_disk_path` when set, else the SQLite file's disk, or the MySQL data directory (`@@datadir`) when
+  `mysql_host` is this machine; otherwise not shown. Under `database_disk_warn_percent` (10; 0 never) the page warns and
+  a "server" alert goes to subscribed webhooks once (again after it recovers and drops again).
+- Settings: Settings > Dashboard > Database usage, and Data retention.
+- `GET /api/database/usage?range=day|week|month`.
+
 ### Logs and crash dumps
 
 **System Log** (GM 8+, `logs_system`) shows the end of any server's log file (the newest by default; pick an older one

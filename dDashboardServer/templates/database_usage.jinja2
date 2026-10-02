@@ -1,0 +1,173 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Database Usage - DarkflameServer{% endblock %}
+
+{% block css %}
+<style>
+	/* The Diagnostics page's series colours */
+	:root, [data-bs-theme=light] { --tr-1: #0d6efd; --tr-2: #fd7e14; --tr-3: #20c997; }
+	[data-bs-theme=dark] { --tr-1: #3d8bfd; --tr-2: #ca6510; --tr-3: #1aa179; }
+	.pf-chart-box { position: relative; height: 240px; }
+	.pf-chart { width: 100%; height: 100%; display: block; position: absolute; inset: 0; }
+	.pf-chart .grid { stroke: var(--bs-border-color); stroke-width: 1; }
+	.pf-chart .axis { fill: var(--bs-secondary-color); font-size: 11px; }
+	.pf-chart .line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+	.pf-chart .area { stroke: var(--bs-body-bg); stroke-width: 1; }
+	.pf-chart .cross { stroke: var(--bs-secondary-color); stroke-width: 1; stroke-dasharray: 3 3; }
+	.pf-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
+		padding: .35rem .5rem; font-size: .75rem; white-space: nowrap; box-shadow: var(--bs-box-shadow-sm); }
+	.pf-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+	.pf-legend { font-size: .75rem; color: var(--bs-secondary-color); }
+	.du-table td, .du-table th { font-variant-numeric: tabular-nums; }
+	.du-table th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+	.du-stat { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+	<div>
+		<h2 class="mb-1">Database Usage</h2>
+		<p class="text-body-secondary mb-0 small">How much room the game database takes, measured by the <a href="/tasks">Database usage task</a> (hourly by default) and kept for
+			<code>database_usage_days</code>. Disk warning: <code>database_disk_warn_percent</code> (<a href="/settings">Settings</a>).</p>
+	</div>
+	<div class="d-flex flex-wrap gap-2 align-items-center">
+		{% if can.tasks_manage %}<button class="btn btn-sm btn-outline-primary" id="measureNow">Measure now</button>{% endif %}
+		<div class="btn-group btn-group-sm text-nowrap" role="group" aria-label="Range">
+			<input type="radio" class="btn-check" name="duRange" id="rangeDay" value="day" data-pref="database_usage.range"><label class="btn btn-outline-secondary" for="rangeDay">Day</label>
+			<input type="radio" class="btn-check" name="duRange" id="rangeWeek" value="week" checked data-pref="database_usage.range"><label class="btn btn-outline-secondary" for="rangeWeek">Week</label>
+			<input type="radio" class="btn-check" name="duRange" id="rangeMonth" value="month" data-pref="database_usage.range"><label class="btn btn-outline-secondary" for="rangeMonth">Month</label>
+		</div>
+	</div>
+</div>
+
+<div class="alert alert-warning d-none" id="diskWarning"></div>
+<div class="alert alert-info d-none" id="noSamples">No measurements yet. The Database usage task runs every hour{% if can.tasks_manage %}, or use Measure now{% endif %}.</div>
+
+<div class="row g-3 mb-3" id="stats">
+	<div class="col-6 col-lg"><div class="card h-100"><div class="card-body py-2"><div class="small text-body-secondary">Database</div><div class="du-stat" id="statTotal">-</div><div class="small text-body-secondary" id="statGrowth"></div></div></div></div>
+	<div class="col-6 col-lg"><div class="card h-100"><div class="card-body py-2"><div class="small text-body-secondary">Data / indexes</div><div class="du-stat" id="statData">-</div><div class="small text-body-secondary" id="statFree"></div></div></div></div>
+	<div class="col-6 col-lg"><div class="card h-100"><div class="card-body py-2"><div class="small text-body-secondary">Rows</div><div class="du-stat" id="statRows">-</div><div class="small text-body-secondary" id="statRowsNote"></div></div></div></div>
+	<div class="col-6 col-lg"><div class="card h-100"><div class="card-body py-2"><div class="small text-body-secondary">Disk free</div><div class="du-stat" id="statDisk">-</div><div class="small text-body-secondary text-truncate" id="statDiskNote"></div></div></div></div>
+</div>
+
+<div class="row g-3">
+	<div class="col-xl-8 d-flex flex-column gap-3">
+		<div class="card"><div class="card-header py-2 d-flex justify-content-between flex-wrap gap-1"><h5 class="mb-0 fs-6">Size</h5><span class="pf-legend" id="legend"></span></div>
+			<div class="card-body p-2 pf-chart-box"><svg class="pf-chart" id="chartSize" role="img" aria-label="Database size over time: data and indexes"></svg></div></div>
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Tables <span class="text-body-secondary fw-normal small" id="tablesCaption"></span></h5></div>
+			<div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover mb-0 du-table small">
+				<thead><tr><th data-sort="name">Table</th><th data-sort="total_bytes" class="text-end">Total</th><th data-sort="data_bytes" class="text-end">Data</th><th data-sort="index_bytes" class="text-end">Indexes</th>
+					<th data-sort="rows" class="text-end">Rows</th><th data-sort="growth_bytes" class="text-end">Growth</th><th data-sort="growth_rows" class="text-end">New rows</th></tr></thead>
+				<tbody id="tables"></tbody></table></div></div></div>
+	</div>
+	<div class="col-xl-4">
+		<div class="card"><div class="card-header py-2"><h5 class="mb-0 fs-6">Fastest-growing <span class="text-body-secondary fw-normal small" id="fastestCaption"></span></h5></div><div class="card-body p-0" id="fastest"></div></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/perf-charts.js"></script>
+<script>
+(function () {
+	var C = window.PerfCharts, nf = new Intl.NumberFormat();
+	var range = (document.querySelector('input[name="duRange"]:checked') || {}).value || 'week';
+	var data = null, sortKey = 'total_bytes', sortDesc = true;
+	var RANGE_NAMES = { day: 'the last day', week: 'the last week', month: 'the last 30 days' };
+
+	function signedBytes(n) { return (n < 0 ? '-' : n > 0 ? '+' : '') + fmt.bytes(Math.abs(n)); }
+	function signedNumber(n) { return (n > 0 ? '+' : '') + nf.format(n); }
+	function timeLabel(t, long) {
+		var d = new Date(t * 1000);
+		return long || range !== 'day' ? d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	}
+
+	function load() {
+		api.get('/api/database/usage?range=' + encodeURIComponent(range)).then(function (d) {
+			if (!d.success) return;
+			data = d;
+			draw();
+		}).catch(function () {});
+	}
+
+	function drawTables() {
+		var rows = (data.tables || []).slice().sort(function (a, b) {
+			var x = a[sortKey], y = b[sortKey];
+			var c = typeof x === 'string' ? x.localeCompare(y) : x - y;
+			return sortDesc ? -c : c;
+		});
+		document.getElementById('tables').innerHTML = rows.map(function (t) {
+			return '<tr><td><code>' + esc(t.name) + '</code></td><td class="text-end">' + fmt.bytes(t.total_bytes) + '</td><td class="text-end">' + fmt.bytes(t.data_bytes) +
+				'</td><td class="text-end">' + fmt.bytes(t.index_bytes) + '</td><td class="text-end">' + nf.format(t.rows) + '</td><td class="text-end">' + signedBytes(t.growth_bytes) +
+				'</td><td class="text-end">' + signedNumber(t.growth_rows) + '</td></tr>';
+		}).join('') || '<tr><td colspan="7" class="text-body-secondary">Nothing yet</td></tr>';
+		document.querySelectorAll('.du-table th[data-sort]').forEach(function (th) {
+			th.textContent = th.textContent.replace(/ [▲▼]$/, '') + (th.dataset.sort === sortKey ? (sortDesc ? ' ▼' : ' ▲') : '');
+		});
+	}
+
+	function draw() {
+		var latest = data.latest, first = data.first;
+		document.getElementById('noSamples').classList.toggle('d-none', !!latest);
+		var warning = document.getElementById('diskWarning');
+		warning.classList.toggle('d-none', !(latest && latest.disk.low));
+		if (latest && latest.disk.low) {
+			warning.textContent = 'Low disk space: ' + fmt.bytes(latest.disk.free) + ' (' + latest.disk.free_percent.toFixed(1) + '%) free on the database\'s disk, under the ' + data.warn_percent + '% warning (database_disk_warn_percent).';
+		}
+		document.getElementById('statTotal').textContent = latest ? fmt.bytes(latest.total_bytes) : '-';
+		document.getElementById('statGrowth').textContent = latest && first && latest.time !== first.time ? signedBytes(latest.total_bytes - first.total_bytes) + ' over ' + RANGE_NAMES[data.range] : '';
+		document.getElementById('statData').textContent = latest ? fmt.bytes(latest.data_bytes) + ' / ' + fmt.bytes(latest.index_bytes) : '-';
+		document.getElementById('statFree').textContent = latest && latest.free_bytes ? fmt.bytes(latest.free_bytes) + ' allocated but unused' : '';
+		document.getElementById('statRows').textContent = latest ? nf.format(latest.rows) : '-';
+		document.getElementById('statRowsNote').textContent = data.backend === 'mysql' ? 'the server\'s estimate' : '';
+		var disk = latest && latest.disk;
+		document.getElementById('statDisk').textContent = disk && disk.known ? fmt.bytes(disk.free) : '-';
+		document.getElementById('statDisk').classList.toggle('text-danger', !!(disk && disk.low));
+		document.getElementById('statDiskNote').textContent = disk && disk.known ? disk.free_percent.toFixed(1) + '% of ' + fmt.bytes(disk.total) + (data.disk_path ? ' (' + data.disk_path + ')' : '')
+			: 'not known: the database is on another machine (database_disk_path)';
+		document.getElementById('statDiskNote').title = data.disk_path || '';
+		if (!data.sizes_known) document.getElementById('statFree').textContent = 'SQLite has no dbstat table: table sizes are unknown';
+
+		var s = data.series;
+		var series = [
+			{ label: 'Data', color: 'var(--tr-1)', values: s.data },
+			{ label: 'Indexes', color: 'var(--tr-2)', values: s.index },
+			{ label: 'Unused', color: 'var(--tr-3)', values: s.free },
+		];
+		document.getElementById('legend').innerHTML = series.map(function (x) { return '<span class="me-2 text-nowrap"><span class="pf-key" style="background:' + x.color + '"></span>' + x.label + '</span>'; }).join('');
+		C.timeChart(document.getElementById('chartSize'), s.times, series, {
+			stacked: true, format: function (v) { return fmt.bytes(v); }, timeLabel: timeLabel,
+			extra: function (i) { return ['<div>Rows: ' + nf.format(s.rows[i]) + '</div>'].concat(s.disk_free[i] != null ? ['<div>Disk free: ' + fmt.bytes(s.disk_free[i]) + '</div>'] : []); },
+		});
+
+		document.getElementById('tablesCaption').textContent = latest ? '(at ' + timeLabel(latest.time, true) + '; growth over ' + RANGE_NAMES[data.range] + ', click a heading to sort)' : '';
+		drawTables();
+		document.getElementById('fastestCaption').textContent = '(' + RANGE_NAMES[data.range] + ')';
+		document.getElementById('fastest').innerHTML = '<div class="table-responsive"><table class="table table-sm mb-0 du-table small"><thead><tr><th>Table</th><th class="text-end">Growth</th><th class="text-end">Per day</th><th class="text-end">New rows</th></tr></thead><tbody>' +
+			(data.fastest.map(function (t) {
+				return '<tr><td><code>' + esc(t.name) + '</code></td><td class="text-end">' + signedBytes(t.growth_bytes) + '</td><td class="text-end">' + signedBytes(Math.round(t.growth_per_day)) +
+					'</td><td class="text-end">' + signedNumber(t.growth_rows) + '</td></tr>';
+			}).join('') || '<tr><td colspan="4" class="text-body-secondary">No table grew' + (latest && first && latest.time !== first.time ? '' : ' (needs two measurements in the range)') + '</td></tr>') + '</tbody></table></div>';
+	}
+
+	document.querySelectorAll('.du-table th[data-sort]').forEach(function (th) {
+		th.onclick = function () {
+			if (sortKey === th.dataset.sort) sortDesc = !sortDesc; else { sortKey = th.dataset.sort; sortDesc = sortKey !== 'name'; }
+			if (data) drawTables();
+		};
+	});
+	document.querySelectorAll('input[name="duRange"]').forEach(function (r) { r.onchange = function () { range = r.value; load(); }; });
+	var measure = document.getElementById('measureNow');
+	if (measure) measure.onclick = function () {
+		measure.disabled = true;
+		api.action('/api/tasks/database_usage/run', {}, 'Measuring; the page updates when it is done').then(function () {
+			setTimeout(function () { measure.disabled = false; load(); }, 5000);
+		}).catch(function () { measure.disabled = false; });
+	};
+	window.addEventListener('resize', function () { if (data) draw(); });
+	load();
+	setInterval(function () { if (!document.hidden) load(); }, 60000);
+})();
+</script>
+{% endblock %}

@@ -450,6 +450,7 @@ void RegisterDashboardRoutes() {
 	SimplePage("/diagnostics", Perm("health_view"), "diagnostics.jinja2", "diagnostics", "Packets, bytes and HTTP requests per second of every server");
 	SimplePage("/network", Perm("health_view"), "network.jinja2", "network", "Live diagram of the traffic between players, the servers and web clients, and the traffic of each connection");
 	SimplePage("/performance", Perm("health_view"), "performance.jinja2", "performance", "Main loop frame times and phases of every server, slow frames with their scopes, and profiling sessions with a flame graph");
+	SimplePage("/database_usage", Perm("health_view"), "database_usage.jinja2", "database_usage", "Database size over time, the fastest-growing tables, every table's size and rows, and free disk space");
 	SimplePage("/players", Perm("players_view"), "players.jinja2", "players", "Who is online, with kick, rescue and teleport");
 	SimplePage("/backups", Perm("backups"), "backups.jinja2", "backups", "Database backups");
 	// The GM level tabs need permissions_manage, the grants tab grants_manage

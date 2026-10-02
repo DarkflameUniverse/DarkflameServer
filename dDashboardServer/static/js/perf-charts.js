@@ -138,7 +138,8 @@
 
 	/**
 	 * A time chart: lines ([{label, color, values, dash}]) or a stack of areas (stacked: true), with a crosshair and
-	 * every series' value in the tooltip; `threshold` draws a dashed line (the slow frame threshold)
+	 * every series' value in the tooltip; `threshold` draws a dashed line (the slow frame threshold); `timeLabel(t, long)`
+	 * names a time (default: the time of day)
 	 */
 	function timeChart(svg, times, series, options) {
 		options = options || {};
@@ -170,7 +171,7 @@
 		[0, Math.floor((n - 1) / 2), n - 1].forEach(function (i) {
 			if (i < 0 || !times.length) return;
 			el('text', { x: X(i), y: height - 4, 'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle', class: 'axis' }, svg).textContent =
-				new Date(times[i] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: n <= 400 ? '2-digit' : undefined });
+				(options.timeLabel ? options.timeLabel(times[i]) : new Date(times[i] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: n <= 400 ? '2-digit' : undefined }));
 		});
 		if (options.stacked) {
 			var base = new Array(n).fill(0);
@@ -213,7 +214,7 @@
 				return '<div><span class="pf-key" style="background:' + s.color + '"></span>' + esc(s.label) + ': ' + (options.format ? options.format(s.values[i]) : esc(s.values[i])) + '</div>';
 			});
 			if (options.extra) rows = rows.concat(options.extra(i));
-			showTip(box, '<div class="fw-semibold">' + esc(new Date(times[i] * 1000).toLocaleTimeString()) + '</div>' + rows.join(''), e.clientX - box.getBoundingClientRect().left, e.clientY - box.getBoundingClientRect().top);
+			showTip(box, '<div class="fw-semibold">' + esc(options.timeLabel ? options.timeLabel(times[i], true) : new Date(times[i] * 1000).toLocaleTimeString()) + '</div>' + rows.join(''), e.clientX - box.getBoundingClientRect().left, e.clientY - box.getBoundingClientRect().top);
 		});
 		hit.addEventListener('mouseleave', function () { cross.setAttribute('visibility', 'hidden'); hideTip(box); });
 	}
