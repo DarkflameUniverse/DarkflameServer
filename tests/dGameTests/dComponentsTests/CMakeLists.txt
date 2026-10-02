@@ -21,6 +21,7 @@ set(DCOMPONENTS_TESTS
 	"ReplicaConstructionTests.cpp"
 	"ReplicaDecoderTests.cpp"
 	"CapturePropertyTests.cpp"
+	"InventoryGroupTests.cpp"
 	"InventoryMoveTests.cpp"
 	"ItemRemovalTests.cpp"
 	"UseItemResultTests.cpp"

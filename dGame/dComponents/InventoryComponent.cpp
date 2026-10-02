@@ -1998,6 +1998,9 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		return group.groupId == groupUpdate.groupId;
 		});
 
+	// As LWOInventoryComponent_Common::msgUpdateInventoryGroup (0x00c955b0): adding a group that exists does nothing
+	if (groupUpdate.command == GroupUpdateCommand::ADD && groupItr != groups.end()) return;
+
 	if (groupUpdate.command != GroupUpdateCommand::ADD && groupItr == groups.end()) {
 		LOG("Group %s not found in inventory %s. Cannot process command.", groupUpdate.groupId.c_str(), StringifiedEnum::ToString(groupUpdate.inventory).data());
 		return;
