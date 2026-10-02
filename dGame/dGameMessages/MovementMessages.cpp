@@ -131,6 +131,9 @@ namespace GameMessages {
 			resync.Send(sysAddr);
 			return;
 		}
+		// A platform without a path has no waypoints to resync to; the client's simple mover reads them anyway and
+		// crashes (LWOPlatformSimpleMover::Resync 0x00bf9ec0 -> Path::GetWaypointAtIndex on a null path)
+		if (platform && !platform->HasPath()) return;
 		if (entity.GetLOT() == 6267 || entity.GetLOT() == 16141) return;
 		PlatformResync(entity).Send(sysAddr);
 	}

@@ -321,6 +321,9 @@ public:
 	// A mover on a path, run by the server (a rotater only spins: no waypoints)
 	bool IsMover() const;
 
+	// Whether the platform follows a path (its attached_path); a simple mover without one has no waypoints
+	bool HasPath() const { return m_Path != nullptr; }
+
 private:
 
 	/**
