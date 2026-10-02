@@ -480,7 +480,9 @@ private:
 	// objectID of receiver and map of notification name to script
 	std::map<LWOOBJID, std::map<std::string, CppScripts::Script*>> m_Subscriptions;
 
-	std::unordered_multimap<MessageType::Game, std::function<bool(GameMessages::GameMsg&)>> m_MsgHandlers;
+	// Each message's handlers in the order they registered: the object's own, then its components' in load order
+	// (LWOGameObject::registeredGameMessages)
+	std::unordered_map<MessageType::Game, std::vector<std::function<bool(GameMessages::GameMsg&)>>> m_MsgHandlers;
 };
 
 /**

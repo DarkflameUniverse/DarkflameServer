@@ -1731,18 +1731,23 @@ int32_t Entity::GetCollisionGroup() const {
 	return 0;
 }
 
+// LWOGameObject::PassMessageToComponents (0x00f62500): every handler registered for the message, in registration
+// order; only the ones there when the call starts (the client copies the list first; GetPosition is too hot for a copy)
 bool Entity::HandleMsg(GameMessages::GameMsg& msg) const {
+	const auto it = m_MsgHandlers.find(msg.msgId);
+	if (it == m_MsgHandlers.end()) return false;
+
 	bool handled = false;
-	auto [beg, end] = m_MsgHandlers.equal_range(msg.msgId);
-	for (auto& it = beg; it != end; ++it) {
-		if (it->second) handled |= it->second(msg);
+	const auto& handlers = it->second;
+	for (size_t i = 0, count = handlers.size(); i < count; i++) {
+		if (handlers[i]) handled |= handlers[i](msg);
 	}
 
 	return handled;
 }
 
 void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler) {
-	m_MsgHandlers.emplace(msgId, handler);
+	m_MsgHandlers[msgId].push_back(std::move(handler));
 }
 
 bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfoEvent& event) {
