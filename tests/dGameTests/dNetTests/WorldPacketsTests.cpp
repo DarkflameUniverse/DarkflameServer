@@ -309,6 +309,7 @@ TEST_F(WorldPacketsTests, CreateCharacterMatchesLegacy) {
 					packet.chatMode = static_cast<int32_t>(gm);
 					packet.reputation = reputation;
 					packet.propertyCloneID = cloneID;
+					packet.txfring = false; // the legacy sender never wrote it
 					ExpectSameSend([&](const SystemAddress& a) { LegacyWorldPackets::SendCreateCharacter(a, reputation, objectID, xml, name, gm, cloneID); }, packet);
 
 					const auto copy = RoundTrip(packet);
@@ -327,6 +328,16 @@ TEST_F(WorldPacketsTests, CreateCharacterMatchesLegacy) {
 	ClientPackets::CreateCharacter packet;
 	packet.xmlData = "<obj/>";
 	ExpectTruncatedFails(packet);
+}
+
+// Live sent txfring=true in every character data packet (222 of the 222 that had the key, of 226)
+TEST_F(WorldPacketsTests, CreateCharacterSendsTxfring) {
+	ClientPackets::CreateCharacter packet;
+	EXPECT_TRUE(packet.txfring);
+	EXPECT_TRUE(RoundTrip(packet).txfring);
+
+	packet.txfring = false;
+	EXPECT_FALSE(RoundTrip(packet).txfring);
 }
 
 TEST_F(WorldPacketsTests, CharacterListMatchesLegacy) {

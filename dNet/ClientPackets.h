@@ -185,6 +185,10 @@ namespace ClientPackets {
 		int32_t chatMode{}; // DLU sends the GM level
 		int64_t reputation{};
 		int32_t propertyCloneID{};
+		// LWOInventoryComponent_Client::LoadConfigData (0x00cde200) reads it; live sent true in every character data
+		// packet, and with it false the client shows inventory-full tips on every world load. Not written when false
+		// (the client's default).
+		bool txfring = true;
 
 		CreateCharacter() : LUBitStream(ServiceType::CLIENT, MessageType::Client::CREATE_CHARACTER) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

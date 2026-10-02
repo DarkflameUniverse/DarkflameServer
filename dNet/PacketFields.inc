@@ -639,6 +639,7 @@ json ToJson(const ClientPackets::CreateCharacter& m) {
 	j["chatMode"] = ToJson(m.chatMode);
 	j["reputation"] = ToJson(m.reputation);
 	j["propertyCloneID"] = ToJson(m.propertyCloneID);
+	j["txfring"] = ToJson(m.txfring);
 	return j;
 }
 json ToJson(const ClientPackets::ChatModerationString& m) {

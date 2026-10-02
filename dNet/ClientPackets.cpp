@@ -250,6 +250,7 @@ namespace ClientPackets {
 		ldfData.Insert<int32_t>(u"chatmode", chatMode);
 		ldfData.Insert<int64_t>(u"reputation", reputation);
 		ldfData.Insert<int32_t>(u"propertycloneid", propertyCloneID);
+		if (txfring) ldfData.Insert<bool>(u"txfring", true);
 
 		data.Write<uint32_t>(ldfData.values.size());
 		for (const auto& toSerialize : ldfData | std::views::values) toSerialize->WriteToPacket(data);
@@ -307,6 +308,7 @@ namespace ClientPackets {
 		if (decompressedSize != static_cast<int32_t>(uncompressedSize)) return false;
 
 		RakNet::BitStream data(uncompressed.data(), uncompressed.size(), false);
+		txfring = false; // the client's value without the key
 		uint32_t count{};
 		VALIDATE_READ(data.Read(count));
 		for (uint32_t i = 0; i < count; i++) {
@@ -341,6 +343,12 @@ namespace ClientPackets {
 				std::string value;
 				VALIDATE_READ(BitStreamUtils::ReadLengthPrefixed<uint32_t>(data, value));
 				if (key == u"xmlData") xmlData = value;
+				break;
+			}
+			case LDF_TYPE_BOOLEAN: {
+				uint8_t value{};
+				VALIDATE_READ(data.Read(value));
+				if (key == u"txfring") txfring = value != 0;
 				break;
 			}
 			default:
