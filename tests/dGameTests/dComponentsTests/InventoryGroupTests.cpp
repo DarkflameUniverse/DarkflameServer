@@ -69,3 +69,12 @@ TEST_F(InventoryGroupTests, NamesAreCutTo64Characters) {
 	Group("MODIFY", "user_group1", std::u16string(65, u'b'));
 	EXPECT_EQ(Groups()[0].groupName, std::string(64, 'b'));
 }
+
+TEST_F(InventoryGroupTests, TheModelVaultUsesTheModelsGroups) {
+	Group("ADD", "user_group1", u"models", eInventoryType::VAULT_MODELS);
+	Contents("ADD", "user_group1", 3001, eInventoryType::VAULT_MODELS);
+
+	ASSERT_EQ(Groups(eInventoryType::MODELS).size(), 1u);
+	EXPECT_EQ(Groups(eInventoryType::MODELS)[0].lots.size(), 1u);
+	EXPECT_FALSE(inventory->GetGroups().contains(eInventoryType::VAULT_MODELS));
+}
