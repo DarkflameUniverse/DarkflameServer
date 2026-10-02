@@ -7,6 +7,7 @@
 #include "GeneralUtils.h"
 #include "tinyxml2.h"
 
+#include <algorithm>
 #include <sstream>
 #include <vector>
 
@@ -34,7 +35,18 @@ ProjectileSyncEntry::ProjectileSyncEntry() {
 
 std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
+bool SkillComponent::IsSkillPending(const uint32_t skillUid) const {
+	const auto [begin, end] = m_managedBehaviors.equal_range(skillUid);
+	return std::any_of(begin, end, [](const auto& pair) { return pair.second && !pair.second->syncEntries.empty(); });
+}
+
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream& bitStream, const LWOOBJID target, uint32_t skillID) {
+	// A skill handle still waiting on syncs is taken: the client logs and drops a second start with it
+	if (IsSkillPending(skillUid)) {
+		LOG("StartSkill with existing skill handle %u for %llu", skillUid, m_Parent->GetObjectID());
+		return false;
+	}
+
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
 
 	context->caster = m_Parent->GetObjectID();

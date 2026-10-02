@@ -127,6 +127,11 @@ public:
 	bool HasSkill(uint32_t skillUid) const { return m_managedBehaviors.contains(skillUid); }
 
 	/**
+	 * @return whether a skill with that handle still waits for the client to sync one of its behaviors
+	 */
+	bool IsSkillPending(uint32_t skillUid) const;
+
+	/**
 	 * Starts a player skill. Should only be called when the server receives a start skill message from the client.
 	 * @param behaviorId the root behavior ID of the skill
 	 * @param skillUid the unique ID of the skill given by the client

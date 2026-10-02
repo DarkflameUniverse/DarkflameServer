@@ -137,6 +137,10 @@ namespace GameMessages {
 		Entity* entity = &entityRef;
 		if (skillID == 1561 || skillID == 1562 || skillID == 1541) return;
 
+		// LWOSkillComponent::msgStartSkill (0x00d45cb0): a start with a skill handle still in progress is dropped
+		const auto* const castingSkills = entity->GetComponent<SkillComponent>();
+		if (castingSkills && castingSkills->IsSkillPending(uiSkillHandle)) return;
+
 		MissionComponent* comp = entity->GetComponent<MissionComponent>();
 		if (comp) {
 			comp->Progress(eMissionTaskType::USE_SKILL, skillID);
