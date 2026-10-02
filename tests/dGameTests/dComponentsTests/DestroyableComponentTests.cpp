@@ -718,3 +718,16 @@ TEST_F(DestroyableTest, DamageReductionsAddUp) {
 	destroyableComponent->RemoveDamageReduction(10);
 	EXPECT_EQ(destroyableComponent->GetDamageReduction(), 0);
 }
+
+// The client resurrects only a dead object that isn't already resurrecting; a RequestResurrect from a living player
+// does nothing
+TEST_F(DestroyableTest, RequestResurrectOnlyWhenDead) {
+	GameMessages::RequestResurrect request;
+	destroyableComponent->SetIsDead(false);
+	request.Handle(*baseEntity, UNASSIGNED_SYSTEM_ADDRESS);
+	EXPECT_FALSE(destroyableComponent->GetIsResurrecting());
+
+	destroyableComponent->SetIsDead(true);
+	request.Handle(*baseEntity, UNASSIGNED_SYSTEM_ADDRESS);
+	EXPECT_TRUE(destroyableComponent->GetIsResurrecting());
+}

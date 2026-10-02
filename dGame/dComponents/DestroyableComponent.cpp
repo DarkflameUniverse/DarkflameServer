@@ -1391,10 +1391,12 @@ void DestroyableComponent::Resurrect(Entity& entityRef) {
 	// Add a half second in case someone decides to cheat and move during the death animation
 	// and just make sure the client has time to be ready.
 	constexpr float respawnTime = 3.66700005531311f + 0.5f;
+	if (auto* const destroyable = entity->GetComponent<DestroyableComponent>()) destroyable->m_IsResurrecting = true;
 	entity->AddCallbackTimer(respawnTime, [=]() {
 		GameMessages::PlayerResurrectionFinished msg;
 		entity->NotifyPlayerResurrectionFinished(msg);
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->m_IsResurrecting = false;
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
 			destroyableComponent->SetIsDead(false);

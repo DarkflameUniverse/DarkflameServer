@@ -112,7 +112,11 @@ namespace GameMessages {
 		return true;
 	}
 
+	// LWODestroyableComponent::SendMessage (0x00d29e40): only an object that is dead and not already resurrecting is
+	// resurrected (live: all 17 requests in the captures came after the player's Die and before its Resurrect)
 	void RequestResurrect::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		const auto* const destroyable = entity.GetComponent<DestroyableComponent>();
+		if (!destroyable || !destroyable->GetIsDead() || destroyable->GetIsResurrecting()) return;
 		DestroyableComponent::Resurrect(entity);
 	}
 

@@ -471,6 +471,9 @@ public:
 	 */
 	static void Resurrect(Entity& entity);
 
+	// Whether a resurrection has started and not finished (the client's isResurrecting)
+	bool GetIsResurrecting() const { return m_IsResurrecting; }
+
 	/**
 	 * Push or Pop a layer of status immunity to this entity
 	 */
@@ -633,6 +636,9 @@ private:
 	 * Whether this entity is dead. Unused, here for serialization
 	 */
 	bool m_IsDead;
+
+	// A resurrection has started (Resurrect) and its respawn animation hasn't finished
+	bool m_IsResurrecting = false;
 
 	/**
 	 * Whether this entity is smashed. Unused, here for serialization
