@@ -175,14 +175,11 @@ bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::unorde
 		const auto& info = mission->GetClientInfo();
 
 		if (info.repeatable) {
-			const auto prerequisitesMet = CheckPrerequisites(missionId, missions);
+			// The client's cooldown (sub_00cd7770): whole minutes since the last completion, none when <= 0
+			const auto now = static_cast<int64_t>(std::time(nullptr));
+			if (MissionComponent::IsCooldownRunning(mission->GetTimestamp(), info.cooldownTime, now)) return false;
 
-			// Checked by client
-			const time_t time = std::time(nullptr);
-			const time_t lock = mission->GetTimestamp() + info.cooldownTime * 60;
-
-			// If there's no time limit, just check the prerequisites, otherwise make sure both conditions are met
-			return (info.cooldownTime == -1 ? prerequisitesMet : (lock - time < 0)) && prerequisitesMet;
+			return CheckPrerequisites(missionId, missions);
 		}
 
 		// Mission is already accepted and cannot be repeatedly accepted

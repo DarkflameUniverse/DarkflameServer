@@ -16,6 +16,7 @@
 #include "tinyxml2.h"
 
 #include <gtest/gtest.h>
+#include <ctime>
 #include <set>
 #include <string>
 #include <vector>
@@ -32,6 +33,8 @@ namespace {
 	constexpr uint32_t AFTER_ACTIVE = 992008; // needs NOT_VIEWED:2 (in progress)
 	constexpr uint32_t GROUPED = 992009;      // needs (FINISHED|VIEWED)&(992010|992011)
 	constexpr uint32_t ZERO = 992012;         // prerequisite "0"
+	constexpr uint32_t HOURLY = 992013;       // repeatable, 60 minute cooldown
+	constexpr uint32_t NEGATIVE = 992014;     // repeatable, cooldown -5
 
 	CDMissions Row(const uint32_t id, const bool repeatable = false, const std::string& prereq = "", const int64_t cooldown = -1) {
 		CDMissions row{};
@@ -59,6 +62,8 @@ protected:
 		missions.push_back(Row(AFTER_ACTIVE, false, std::to_string(NOT_VIEWED) + ":2"));
 		missions.push_back(Row(GROUPED, false, "(992003|992001)&(992010|992011)"));
 		missions.push_back(Row(ZERO, false, "0"));
+		missions.push_back(Row(HOURLY, true, "", 60));
+		missions.push_back(Row(NEGATIVE, true, "", -5));
 	}
 
 	void TearDown() override {
@@ -188,4 +193,24 @@ TEST_F(MissionClientRulesTests, PrerequisitesAsTheClient) {
 	EXPECT_FALSE(fresh->CanAccept(AFTER_DAILY));
 	EXPECT_FALSE(fresh->CanAccept(AFTER_ACTIVE));
 	EXPECT_EQ(fresh->GetClientMissionState(AFTER_DAILY), 0);
+}
+
+TEST_F(MissionClientRulesTests, CooldownInWholeMinutesWhenAccepting) {
+	const auto now = static_cast<int64_t>(std::time(nullptr));
+	const auto done = [](const uint32_t id, const int64_t at) {
+		return "<m id=\"" + std::to_string(id) + "\" state=\"8\" cct=\"1\" cts=\"" + std::to_string(at) + "\"/>";
+	};
+
+	Entity player(46, info);
+	auto* const missions = player.AddComponent<MissionComponent>(-1);
+	// Completed this second: a cooldown of 0 or below is none (DLU waited a second for 0 and blocked other negatives)
+	Load(*missions, done(DAILY, now) + done(NEGATIVE, now + 600) + done(HOURLY, now - 59 * 60), "");
+	EXPECT_TRUE(missions->CanAccept(DAILY));
+	EXPECT_TRUE(missions->CanAccept(NEGATIVE));
+	EXPECT_FALSE(missions->CanAccept(HOURLY));
+
+	Entity later(47, info);
+	auto* const again = later.AddComponent<MissionComponent>(-1);
+	Load(*again, done(HOURLY, now - 60 * 60), ""); // 60 whole minutes
+	EXPECT_TRUE(again->CanAccept(HOURLY));
 }
