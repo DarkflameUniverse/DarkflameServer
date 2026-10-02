@@ -22,6 +22,7 @@
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
+#include "DestroyableComponent.h"
 #include "SkillMessages.h"
 #include "CDClientManager.h"
 #include "CDSkillBehaviorTable.h"
@@ -114,6 +115,20 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 	if (index.first == this->m_managedBehaviors.end()) {
 		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
 
+		return;
+	}
+
+	// A dead caster's sync only ends that behavior: LWOSkillComponent::MsgSyncSkill (0x00d454b0) drops it unrun
+	const auto* const destroyable = m_Parent->GetComponent<DestroyableComponent>();
+	if (destroyable && destroyable->GetIsDead()) {
+		for (auto it = index.first; it != index.second; ++it) {
+			auto& entries = it->second->syncEntries;
+			const auto entry = std::find_if(entries.begin(), entries.end(), [syncId](const auto& sync) { return sync.handle == syncId; });
+			if (entry == entries.end()) continue;
+			entries.erase(entry);
+			return;
+		}
+		LOG("Failed to find sync id (%i) for skill with uid (%i)!", syncId, skillUid);
 		return;
 	}
 

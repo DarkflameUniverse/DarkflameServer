@@ -3,6 +3,7 @@
 #include "Behavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
+#include "DestroyableComponent.h"
 #include "Entity.h"
 #include "SkillComponent.h"
 
@@ -58,5 +59,24 @@ TEST_F(SkillComponentTests, StartWithAPendingSkillHandleIsDropped) {
 	EXPECT_EQ(behavior->syncs, 1); // the dropped start registered no second sync
 	EXPECT_FALSE(skills->IsSkillPending(5));
 	EXPECT_TRUE(skills->CastPlayerSkill(BEHAVIOR_ID, 5, empty, LWOOBJID_EMPTY));
+}
+
+// LWOSkillComponent::MsgSyncSkill (0x00d454b0): a sync for a dead caster ends that behavior without running it.
+TEST_F(SkillComponentTests, DeadCastersSyncIsDroppedUnrun) {
+	Entity caster(31, info);
+	auto* const destroyable = caster.AddComponent<DestroyableComponent>(-1);
+	auto* const skills = caster.AddComponent<SkillComponent>(-1);
+	RakNet::BitStream empty;
+
+	ASSERT_TRUE(skills->CastPlayerSkill(BEHAVIOR_ID, 1, empty, LWOOBJID_EMPTY));
+	destroyable->SetIsDead(true);
+	skills->SyncPlayerSkill(1, WaitsForSync::SYNC_HANDLE, empty);
+	EXPECT_EQ(behavior->syncs, 0);
+	EXPECT_FALSE(skills->IsSkillPending(1));
+
+	destroyable->SetIsDead(false);
+	ASSERT_TRUE(skills->CastPlayerSkill(BEHAVIOR_ID, 2, empty, LWOOBJID_EMPTY));
+	skills->SyncPlayerSkill(2, WaitsForSync::SYNC_HANDLE, empty);
+	EXPECT_EQ(behavior->syncs, 1);
 }
 
