@@ -618,6 +618,11 @@ void MissionComponent::SetMissionTypeState(const std::string& type, const std::s
 	m_MissionTypeStates[type][subtype] = static_cast<eMissionLockState>(static_cast<int8_t>(state));
 }
 
+void MissionComponent::SetMissionViewed(const uint32_t missionId, const bool viewed) {
+	auto* const mission = GetMission(missionId);
+	if (mission && !mission->IsComplete()) mission->SetViewed(viewed);
+}
+
 void MissionComponent::AddCollectible(int32_t collectibleID) {
 	// Check if this collectible is already in the list
 	if (HasCollectible(collectibleID)) {

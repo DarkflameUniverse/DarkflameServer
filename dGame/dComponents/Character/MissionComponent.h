@@ -195,6 +195,10 @@ public:
 	using MissionTypeStates = std::map<std::string, std::map<std::string, eMissionLockState>>;
 	void SetMissionTypeState(const std::string& type, const std::string& subtype, eMissionLockState state);
 	const MissionTypeStates& GetMissionTypeStates() const { return m_MissionTypeStates; }
+
+	// Marks a mission in progress as viewed or not (LWOMissionComponent::msgSetMissionViewed 0x00bec7a0); missions not
+	// in progress are left alone, as the client
+	void SetMissionViewed(uint32_t missionId, bool viewed);
 private:
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 	bool OnGetMissionState(GameMessages::GetMissionState& getMissionState);

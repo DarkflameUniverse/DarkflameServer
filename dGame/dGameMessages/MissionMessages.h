@@ -149,6 +149,18 @@ namespace GameMessages {
 		std::string type{};
 	};
 
+	// Client -> server. The player looked at a mission in progress (LWOMissionComponent::msgSetMissionViewed 0x00bec7a0);
+	// the server keeps it and saves it as v on the mission's <cur> entry, which the client reads on load.
+	struct SetMissionViewed : public NetGameMsg {
+		SetMissionViewed() : NetGameMsg(MessageType::Game::SET_MISSION_VIEWED) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		int32_t missionID{};
+		bool viewed{};
+	};
+
 	// Server -> client.
 	struct NotifyLevelRewards : public NetGameMsg {
 		NotifyLevelRewards() : NetGameMsg(MessageType::Game::NOTIFY_LEVEL_REWARDS) {}

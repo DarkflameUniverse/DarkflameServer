@@ -273,6 +273,22 @@ namespace GameMessages {
 		if (missionComponent) missionComponent->SetMissionTypeState(type, subtype, state);
 	}
 
+	void SetMissionViewed::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(missionID);
+		bitStream.Write(viewed);
+	}
+
+	bool SetMissionViewed::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(missionID));
+		VALIDATE_READ(bitStream.Read(viewed));
+		return true;
+	}
+
+	void SetMissionViewed::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* const missionComponent = entity.GetComponent<MissionComponent>();
+		if (missionComponent) missionComponent->SetMissionViewed(missionID, viewed);
+	}
+
 	void NotifyLevelRewards::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(level);
 		bitStream.Write(sendingRewards);

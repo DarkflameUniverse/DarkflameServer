@@ -15,6 +15,7 @@ set(DCOMPONENTS_TESTS
 	"CharacterSaveFieldsTests.cpp"
 	"CollectibleComponentTests.cpp"
 	"MissionOfferTests.cpp"
+	"MissionClientRulesTests.cpp"
 	"ReplicaComponentOrderTests.cpp"
 	"QuickBuildCompleteTests.cpp"
 	"RocketLaunchTests.cpp"

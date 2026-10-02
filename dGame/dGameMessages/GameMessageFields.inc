@@ -130,6 +130,7 @@ json ToJson(const GameMessages::SetFlag& m);
 json ToJson(const GameMessages::NotifyClientFlagChange& m);
 json ToJson(const GameMessages::HasBeenCollected& m);
 json ToJson(const GameMessages::SetMissionTypeState& m);
+json ToJson(const GameMessages::SetMissionViewed& m);
 json ToJson(const GameMessages::NotifyLevelRewards& m);
 json ToJson(const GameMessages::Teleport& m);
 json ToJson(const GameMessages::StartPathing& m);
@@ -1317,6 +1318,12 @@ json ToJson(const GameMessages::SetMissionTypeState& m) {
 	j["state"] = ToJson(m.state);
 	j["subtype"] = ToJson(m.subtype);
 	j["type"] = ToJson(m.type);
+	return j;
+}
+json ToJson(const GameMessages::SetMissionViewed& m) {
+	json j = json::object();
+	j["missionID"] = ToJson(m.missionID);
+	j["viewed"] = ToJson(m.viewed);
 	return j;
 }
 json ToJson(const GameMessages::NotifyLevelRewards& m) {
@@ -2643,6 +2650,7 @@ const std::vector<Entry>& Entries() {
 		{ MessageType::Game::NOTIFY_CLIENT_FLAG_CHANGE, eDirection::TO_CLIENT, "NotifyClientFlagChange", &ReadWith<GameMessages::NotifyClientFlagChange> },
 		{ MessageType::Game::HAS_BEEN_COLLECTED, eDirection::TO_SERVER, "HasBeenCollected", &ReadWith<GameMessages::HasBeenCollected> },
 		{ MessageType::Game::SET_MISSION_TYPE_STATE, eDirection::TO_SERVER, "SetMissionTypeState", &ReadWith<GameMessages::SetMissionTypeState> },
+		{ MessageType::Game::SET_MISSION_VIEWED, eDirection::TO_SERVER, "SetMissionViewed", &ReadWith<GameMessages::SetMissionViewed> },
 		{ MessageType::Game::NOTIFY_LEVEL_REWARDS, eDirection::TO_CLIENT, "NotifyLevelRewards", &ReadWith<GameMessages::NotifyLevelRewards> },
 		{ MessageType::Game::TELEPORT, eDirection::TO_CLIENT, "Teleport", &ReadWith<GameMessages::Teleport> },
 		{ MessageType::Game::START_PATHING, eDirection::TO_CLIENT, "StartPathing", &ReadWith<GameMessages::StartPathing> },

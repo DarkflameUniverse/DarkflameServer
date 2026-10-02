@@ -246,6 +246,13 @@ public:
 
 	bool IsFailed() const;
 
+	/**
+	 * Whether the player has looked at this mission in progress (LWOMissionComponent::msgSetMissionViewed 0x00bec7a0),
+	 * saved as v on the mission's <cur> entry
+	 */
+	bool GetViewed() const { return m_Viewed; }
+	void SetViewed(const bool viewed) { m_Viewed = viewed; }
+
 private:
 	/**
 	 * Progresses all the newly accepted tasks for this mission after it has been accepted to reflect the state of the
@@ -292,6 +299,11 @@ private:
 	 * The unique ID what order this mission was accepted in.
 	 */
 	uint32_t m_UniqueMissionID;
+
+	/**
+	 * Whether the player has looked at this mission in progress
+	 */
+	bool m_Viewed{ false };
 };
 
 #endif

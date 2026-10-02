@@ -1,6 +1,9 @@
 #include "Mission.h"
 #include "ChatServerLink.h"
 
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <ctime>
 
 #include "CDClientManager.h"
@@ -37,6 +40,17 @@
 
 namespace {
 	std::set<uint32_t> g_TestedMissions = { 773, 774, 775, 776, 777 }; // TODO Figure out why these missions are broken sometimes
+
+	// The client's save data bool: a non-zero number or "true" in any case
+	bool ReadSaveBool(const tinyxml2::XMLElement& element, const char* const name) {
+		const char* const value = element.Attribute(name);
+		if (!value) return false;
+		if (std::strtol(value, nullptr, 10) != 0) return true;
+
+		std::string text = value;
+		std::ranges::transform(text, text.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return text == "true";
+	}
 }
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
@@ -93,6 +107,9 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 		m_State = static_cast<eMissionState>(element.IntAttribute("state", -1));
 	}
 	// End custom XML
+
+	// LWOMissionComponent::LoadFromSaveData (0x00d171c0): v is the viewed flag, false when missing
+	m_Viewed = ReadSaveBool(element, "v");
 
 	auto* task = element.FirstChildElement();
 
@@ -163,6 +180,8 @@ void Mission::UpdateXmlCur(tinyxml2::XMLElement& element) {
 	element.SetAttribute("id", static_cast<unsigned int>(info.id));
 
 	if (IsComplete()) return;
+
+	if (m_Viewed) element.SetAttribute("v", 1);
 
 	for (const auto* const task : m_Tasks) {
 		auto* const child = element.InsertNewChildElement("sv");
