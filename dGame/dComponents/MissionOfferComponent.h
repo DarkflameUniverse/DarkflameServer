@@ -8,11 +8,26 @@
 
 #include "dCommonVars.h"
 #include "Component.h"
+#include <optional>
+#include <string>
 #include <vector>
 #include <stdint.h>
 #include "eReplicaComponentType.h"
 
 class Entity;
+class MissionComponent;
+
+// One mission of a mission giver for a player, as the client lists them (LWOMissionOfferComponent 0x00c605f0): the
+// lowest priority comes first. 0 a mission to turn in here, 5 one in progress, 10 a new one, 15 a repeat, 20 a
+// completed one.
+struct MissionOfferEntry {
+	uint8_t priority{};
+	uint32_t missionID{};
+	int32_t state{};
+	bool isTurnIn{};
+
+	bool operator==(const MissionOfferEntry&) const = default;
+};
 
 /**
  * Light wrapper around missions that may be offered by an entity
@@ -81,7 +96,26 @@ public:
 	 */
 	void OfferMissions(Entity* entity, uint32_t specifiedMissionId = 0);
 
+	// RequestLinkedMission after a mission window: offers the next mission of this giver, if there is a new one
+	void OfferLinkedMission(Entity* entity, uint32_t missionID);
+
+	// The client's entry for one mission (0x00bebf30), from its state bit mask (MissionComponent::GetClientMissionState)
+	static std::optional<MissionOfferEntry> GetOfferEntry(uint32_t missionID, int32_t state, bool cooldownRunning, bool offers, bool accepts, bool alsoCompleted);
+
+	// Inserts after the entries of the same priority, as the client's multimap does
+	static void InsertByPriority(std::vector<MissionOfferEntry>& entries, const MissionOfferEntry& entry);
+
+	// The missions of this giver for a player, in the client's order (0x00c605f0)
+	std::vector<MissionOfferEntry> GetMissionsForPlayer(const MissionComponent& missionComponent, bool alsoCompleted) const;
+
+	// The mission a RequestLinkedMission offers: the head of the list without the mission the window was for, when new
+	static std::optional<uint32_t> GetLinkedMission(std::vector<MissionOfferEntry> entries, uint32_t missionID);
+
+	static std::vector<uint32_t> ParseRandomPool(const std::string& randomPool);
+
 private:
+	const OfferedMission* GetOfferedMission(uint32_t missionID) const;
+	static std::optional<MissionOfferEntry> GetEntryFor(const MissionComponent& missionComponent, const OfferedMission& offered, bool alsoCompleted);
 
 	/**
 	 * The missions this entity has to offer
