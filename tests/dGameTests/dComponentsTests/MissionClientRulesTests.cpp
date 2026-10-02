@@ -10,17 +10,28 @@
 #include "Mission.h"
 #include "MissionComponent.h"
 #include "MissionMessages.h"
+#include "MissionPrerequisites.h"
 #include "eMissionState.h"
 
 #include "tinyxml2.h"
 
 #include <gtest/gtest.h>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace {
 	// Mission IDs only these tests use (the prerequisite cache is static)
 	constexpr uint32_t VIEWED = 992001;
 	constexpr uint32_t NOT_VIEWED = 992002;
 	constexpr uint32_t FINISHED = 992003;
+	constexpr uint32_t REPEAT = 992004;       // repeatable, completed once, repeated now
+	constexpr uint32_t AFTER_REPEAT = 992005; // needs REPEAT
+	constexpr uint32_t DAILY = 992006;        // repeatable, completed, no cooldown
+	constexpr uint32_t AFTER_DAILY = 992007;  // needs DAILY:9 (completed and available again)
+	constexpr uint32_t AFTER_ACTIVE = 992008; // needs NOT_VIEWED:2 (in progress)
+	constexpr uint32_t GROUPED = 992009;      // needs (FINISHED|VIEWED)&(992010|992011)
+	constexpr uint32_t ZERO = 992012;         // prerequisite "0"
 
 	CDMissions Row(const uint32_t id, const bool repeatable = false, const std::string& prereq = "", const int64_t cooldown = -1) {
 		CDMissions row{};
@@ -40,7 +51,14 @@ protected:
 		CDClientDatabase::Connect(":memory:"); // MissionComponent counts the achievements
 		CDClientDatabase::ExecuteDML("CREATE TABLE Missions (id INTEGER, isMission INTEGER);");
 		auto& missions = CDClientManager::GetEntriesMutable<CDMissionsTable>();
-		for (const auto id : { VIEWED, NOT_VIEWED, FINISHED }) missions.push_back(Row(id));
+		for (const auto id : { VIEWED, NOT_VIEWED, FINISHED, 992010u, 992011u }) missions.push_back(Row(id));
+		missions.push_back(Row(REPEAT, true));
+		missions.push_back(Row(AFTER_REPEAT, false, std::to_string(REPEAT)));
+		missions.push_back(Row(DAILY, true, "", 0));
+		missions.push_back(Row(AFTER_DAILY, false, std::to_string(DAILY) + ":9"));
+		missions.push_back(Row(AFTER_ACTIVE, false, std::to_string(NOT_VIEWED) + ":2"));
+		missions.push_back(Row(GROUPED, false, "(992003|992001)&(992010|992011)"));
+		missions.push_back(Row(ZERO, false, "0"));
 	}
 
 	void TearDown() override {
@@ -109,4 +127,65 @@ TEST_F(MissionClientRulesTests, SetMissionViewedWire) {
 	EXPECT_EQ(in.missionID, 1234);
 	EXPECT_TRUE(in.viewed);
 	EXPECT_EQ(stream.GetNumberOfBitsUsed(), 33);
+}
+
+namespace {
+	bool Eval(const std::string& expression, const std::set<std::string>& met, std::vector<std::string>* asked = nullptr) {
+		return MissionPrerequisites::EvaluateExpression(expression, [&](const std::string_view operand) {
+			if (asked) asked->emplace_back(operand);
+			return met.contains(std::string(operand));
+		});
+	}
+}
+
+TEST_F(MissionClientRulesTests, ExpressionsReadLeftToRightAsTheClient) {
+	// Groups are their own value (DLU read "(509|229)&(812|...)" as 509 | (229 & (812|...)))
+	EXPECT_FALSE(Eval("(509|229)&(812|813|814|815)", { "509" }));
+	EXPECT_TRUE(Eval("(509|229)&(812|813|814|815)", { "229", "814" }));
+	EXPECT_TRUE(Eval("1203, (1685|1321|1448|1292)", { "1203", "1448" }));
+	EXPECT_FALSE(Eval("1203, (1685|1321|1448|1292)", { "1448" }));
+	// No precedence: a | b & c is (a | b) & c
+	EXPECT_FALSE(Eval("1|2&3", { "1" }));
+	EXPECT_TRUE(Eval("1|2&3", { "1", "3" }));
+	EXPECT_TRUE(Eval("1;2", { "1", "2" }));
+	EXPECT_TRUE(Eval("1^2", { "2" }));
+	EXPECT_FALSE(Eval("1^2", { "1", "2" }));
+	EXPECT_TRUE(Eval("!1", {}));
+	EXPECT_TRUE(Eval("~1 & 2", { "2" }));
+	EXPECT_TRUE(Eval("!(1|2)", {}));
+	EXPECT_TRUE(Eval(" 1882:10 | 1882:2", { "1882:2" }));
+	// An operand with no operator before it is ignored
+	EXPECT_TRUE(Eval("1 2", { "1" }));
+	EXPECT_FALSE(Eval("", { "1" }));
+	// And/or stop once the result is known
+	std::vector<std::string> asked;
+	EXPECT_TRUE(Eval("1|2|3", { "1" }, &asked));
+	EXPECT_EQ(asked, (std::vector<std::string>{ "1" }));
+	asked.clear();
+	EXPECT_FALSE(Eval("1&(2|3)", {}, &asked));
+	EXPECT_EQ(asked, (std::vector<std::string>{ "1" }));
+}
+
+TEST_F(MissionClientRulesTests, PrerequisitesAsTheClient) {
+	Entity player(44, info);
+	auto* const missions = player.AddComponent<MissionComponent>(-1);
+	Load(*missions,
+		R"(<m id="992003" state="8" cct="1" cts="1000"/><m id="992004" state="10" cct="1" cts="1000"/><m id="992006" state="8" cct="1" cts="1000"/>)",
+		R"(<m id="992004" state="10"/><m id="992002" state="2"/>)");
+
+	// A plain ID is met once the mission was ever completed, also while it is being repeated (DLU wanted state 8)
+	EXPECT_TRUE(missions->CanAccept(AFTER_REPEAT));
+	// id:state is the client's state mask: 9 = completed and available again (DLU compared the mission's own state)
+	EXPECT_EQ(missions->GetClientMissionState(DAILY), 9);
+	EXPECT_TRUE(missions->CanAccept(AFTER_DAILY));
+	EXPECT_TRUE(missions->CanAccept(AFTER_ACTIVE));
+	EXPECT_FALSE(missions->CanAccept(GROUPED)); // FINISHED done, but neither of the second group
+	EXPECT_TRUE(missions->CanAccept(ZERO));
+
+	Entity other(45, info);
+	auto* const fresh = other.AddComponent<MissionComponent>(-1);
+	EXPECT_FALSE(fresh->CanAccept(AFTER_REPEAT));
+	EXPECT_FALSE(fresh->CanAccept(AFTER_DAILY));
+	EXPECT_FALSE(fresh->CanAccept(AFTER_ACTIVE));
+	EXPECT_EQ(fresh->GetClientMissionState(AFTER_DAILY), 0);
 }

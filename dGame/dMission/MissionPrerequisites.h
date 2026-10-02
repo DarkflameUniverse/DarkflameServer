@@ -1,31 +1,11 @@
 #pragma once
-#include <vector>
+#include <cstdint>
+#include <functional>
 #include <string>
-#include <map>
+#include <string_view>
+#include <unordered_map>
 
 #include "Mission.h"
-
-/**
- * An expression that checks if a mission may be accepted or not
- */
-class PrerequisiteExpression final
-{
-	bool m_or;
-	uint32_t a;
-	uint32_t sub;
-	PrerequisiteExpression* b;
-
-public:
-	/**
-	 * Executes the prerequisite, checking its contents and returning whether or not the mission may be accepted
-	 * @param missions the list of missions to check the prerequisites against (f.e. whether they're completed)
-	 * @return whether or not all the prerequisites are met
-	 */
-	bool Execute(const std::unordered_map<uint32_t, Mission*>& missions) const;
-
-	explicit PrerequisiteExpression(const std::string& str);
-	~PrerequisiteExpression();
-};
 
 /**
  * Utility class for checking whether or not a mission can be accepted using its prerequisites
@@ -43,17 +23,38 @@ public:
 	static bool CanAccept(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
 
 	/**
-	 * Checks the prerequisites for a mission
+	 * Checks the prerequisites (Missions.prereqMissionID) of a mission, as the client
+	 * (LWOMissionComponent::getMissionState 0x00cd7400): an expression is evaluated by EvaluateExpression with
+	 * IsOperandMet for each operand; text without any of !&^;,|(): is one mission ID, met when 0 or once ever completed.
 	 * @param missionId the mission ID to check prerequisites for
 	 * @param missions the mission inventory to check the prerequisites against
 	 * @return whether or not the prerequisites of the mission identified by the specified ID are met
 	 */
 	static bool CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
-private:
 
 	/**
-	 * Cache of all the executed prerequisites
+	 * The client's state bit mask for a mission (LWOMissionComponent::getMissionState 0x00cd7400): 8 once ever
+	 * completed; in progress, its state (with 8 if completed before); else 1 when never completed (or repeatable) and
+	 * the prerequisites are met; 0 for no mission.
 	 */
-	static std::unordered_map<uint32_t, PrerequisiteExpression*> expressions;
+	static int32_t GetClientMissionState(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
 
+	/**
+	 * One operand of a prerequisite expression (sub_00c90a80): "id" is met once the mission was ever completed;
+	 * "id:state" when the client's state mask of that mission is state (a mission naming itself counts as state 0).
+	 */
+	static bool IsOperandMet(std::string_view operand, uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
+
+	/**
+	 * The client's boolean expression evaluator (sub_00a32980): read left to right, no precedence; & , ; and, | or,
+	 * ^ xor, ! ~ negate the next operand, ( ) group. And/or skip their right side once the result is known; an operand
+	 * or group with no operator before it (other than the first) is ignored.
+	 */
+	static bool EvaluateExpression(std::string_view expression, const std::function<bool(std::string_view)>& isMet);
+
+private:
+	/**
+	 * Cache of the prerequisite text of each mission
+	 */
+	static std::unordered_map<uint32_t, std::string> expressions;
 };

@@ -76,24 +76,7 @@ eMissionState MissionComponent::GetMissionState(const uint32_t missionId) const 
 
 
 int32_t MissionComponent::GetClientMissionState(const uint32_t missionId) const {
-	// A mission ID below 1 is no mission
-	if (missionId == 0 || missionId > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) return 0;
-
-	const auto* const mission = GetMission(missionId);
-	const bool done = mission && (mission->GetCompletions() > 0 || mission->IsComplete());
-	int32_t state = done ? static_cast<int32_t>(eMissionState::COMPLETE) : 0;
-
-	// In progress: its own state
-	if (mission && !mission->IsComplete()) return state | static_cast<int32_t>(mission->GetMissionState());
-
-	CDMissions info{};
-	if (!Mission::IsValidMission(missionId, info)) return 0;
-
-	if ((!done || info.repeatable) && MissionPrerequisites::CheckPrerequisites(missionId, m_Missions)) {
-		state |= static_cast<int32_t>(eMissionState::AVAILABLE);
-	}
-
-	return state;
+	return MissionPrerequisites::GetClientMissionState(missionId, m_Missions);
 }
 
 bool MissionComponent::IsCooldownRunning(const int64_t completedAt, const int64_t cooldownMinutes, const int64_t now) {
