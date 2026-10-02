@@ -137,8 +137,9 @@ public:
 	 * @param skillUid the unique ID of the skill given by the client
 	 * @param bitStream the bitSteam given by the client to determine the behavior path
 	 * @param target the explicit target of the skill
+	 * @param castType the StartSkill cast type
 	 */
-	bool CastPlayerSkill(uint32_t behaviorId, uint32_t skillUid, RakNet::BitStream& bitStream, LWOOBJID target, uint32_t skillID = 0);
+	bool CastPlayerSkill(uint32_t behaviorId, uint32_t skillUid, RakNet::BitStream& bitStream, LWOOBJID target, uint32_t skillID = 0, int32_t castType = 0);
 
 	/**
 	 * Continues a player skill. Should only be called when the server receives a sync message from the client.

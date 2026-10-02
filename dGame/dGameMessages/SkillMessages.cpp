@@ -156,7 +156,7 @@ namespace GameMessages {
 
 			auto* const skillComponent = entity->GetComponent<SkillComponent>();
 
-			if (skillComponent) success = skillComponent->CastPlayerSkill(behaviorId, uiSkillHandle, bs, optionalTargetID, skillID);
+			if (skillComponent) success = skillComponent->CastPlayerSkill(behaviorId, uiSkillHandle, bs, optionalTargetID, skillID, iCastType);
 
 			if (success && entity->GetCharacter()) {
 				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();

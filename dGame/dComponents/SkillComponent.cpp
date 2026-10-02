@@ -41,7 +41,7 @@ bool SkillComponent::IsSkillPending(const uint32_t skillUid) const {
 	return std::any_of(begin, end, [](const auto& pair) { return pair.second && !pair.second->syncEntries.empty(); });
 }
 
-bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream& bitStream, const LWOOBJID target, uint32_t skillID) {
+bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream& bitStream, const LWOOBJID target, uint32_t skillID, const int32_t castType) {
 	// A skill handle still waiting on syncs is taken: the client logs and drops a second start with it
 	if (IsSkillPending(skillUid)) {
 		LOG("StartSkill with existing skill handle %u for %llu", skillUid, m_Parent->GetObjectID());
@@ -64,7 +64,8 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 
 	context->ExecuteUpdates();
 
-	if (!context->failed && m_Parent->IsPlayer()) StartCooldown(skillID);
+	// Cast types 1 (equip cast) and 2 start no cooldown (LWOSkillComponent::msgStartSkill 0x00d45cb0)
+	if (!context->failed && m_Parent->IsPlayer() && castType != 1 && castType != 2) StartCooldown(skillID);
 
 	return !context->failed;
 }
@@ -74,8 +75,8 @@ void SkillComponent::StartCooldown(const uint32_t skillID) {
 	// The client keys cooldown groups 0 and up (a null group is -1); skills without a cooldown have none running
 	const auto group = static_cast<int32_t>(skill.cooldowngroup);
 	if (group < 0 || skill.cooldown <= 0.0f) return;
-	auto& left = m_CooldownGroups[group];
-	left = std::max(left, skill.cooldown);
+	// One already running keeps its time left (LWOSkillComponent::msgStartSkill 0x00d45cb0 inserts, never overwrites)
+	m_CooldownGroups.try_emplace(group, skill.cooldown);
 }
 
 void SkillComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {

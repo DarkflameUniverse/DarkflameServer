@@ -3,6 +3,10 @@
 #include "Behavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
+#include "CDClientManager.h"
+#include "CDSkillBehaviorTable.h"
+#include "Character.h"
+#include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "Entity.h"
 #include "SkillComponent.h"
@@ -80,3 +84,40 @@ TEST_F(SkillComponentTests, DeadCastersSyncIsDroppedUnrun) {
 	EXPECT_EQ(behavior->syncs, 1);
 }
 
+// LWOSkillComponent::msgStartSkill (0x00d45cb0): cast types 1 and 2 start no cooldown, and a cooldown group already
+// running keeps its time left.
+TEST_F(SkillComponentTests, CooldownsFollowTheClient) {
+	CDSkillBehavior shortSkill{};
+	shortSkill.skillID = 394;
+	shortSkill.cooldowngroup = 17;
+	shortSkill.cooldown = 5.0f;
+	CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>()[394] = shortSkill;
+	CDSkillBehavior longSkill = shortSkill;
+	longSkill.skillID = 395;
+	longSkill.cooldown = 30.0f;
+	CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>()[395] = longSkill;
+
+	auto playerInfo = info;
+	playerInfo.lot = 1;
+	Entity player(32, playerInfo);
+	Character character(1, nullptr);
+	SystemAddress address;
+	address.binaryAddress = 0x0100007f;
+	address.port = 2003;
+	player.AddComponent<CharacterComponent>(-1, &character, address);
+	ASSERT_TRUE(player.IsPlayer());
+	auto* const skills = player.AddComponent<SkillComponent>(-1);
+	RakNet::BitStream empty;
+
+	ASSERT_TRUE(skills->CastPlayerSkill(0, 1, empty, LWOOBJID_EMPTY, 394, 1));
+	ASSERT_TRUE(skills->CastPlayerSkill(0, 2, empty, LWOOBJID_EMPTY, 394, 2));
+	EXPECT_TRUE(skills->GetCooldownGroups().empty());
+
+	ASSERT_TRUE(skills->CastPlayerSkill(0, 3, empty, LWOOBJID_EMPTY, 394, 0));
+	skills->Run(1.0f);
+	ASSERT_TRUE(skills->CastPlayerSkill(0, 4, empty, LWOOBJID_EMPTY, 395, 4));
+	ASSERT_EQ(skills->GetCooldownGroups().size(), 1u);
+	EXPECT_FLOAT_EQ(skills->GetCooldownGroups().at(17), 4.0f);
+
+	CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>().clear();
+}
