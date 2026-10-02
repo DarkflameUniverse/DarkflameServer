@@ -728,7 +728,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		outBitStream.Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
 			outBitStream.Write(m_ParentEntity->GetObjectID());
-			outBitStream.Write0(); // Updates position with parent, usually false in live. Haven't seen a case where its supposed to be true
+			outBitStream.Write(m_UpdatesWithParentPosition);
 		}
 		outBitStream.Write(!m_ChildEntities.empty());
 		if (!m_ChildEntities.empty()) {

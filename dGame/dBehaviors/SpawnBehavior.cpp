@@ -51,6 +51,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 	}
 
 	entity->SetOwnerOverride(context->originator);
+	entity->SetUpdatesWithParentPosition(m_UpdatePositionWithParent);
 
 	// Unset the flag to reposition the player, this makes it harder to glitch out of the map
 	auto* quickBuildComponent = entity->GetComponent<QuickBuildComponent>();
@@ -106,4 +107,5 @@ void SpawnBehavior::End(BehaviorContext* context, const BehaviorBranchContext br
 void SpawnBehavior::Load() {
 	this->m_lot = GetInt("LOT_ID");
 	this->m_Distance = GetFloat("distance");
+	this->m_UpdatePositionWithParent = GetBoolean("updatePositionWithParent");
 }

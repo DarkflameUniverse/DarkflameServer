@@ -6,6 +6,8 @@ class SpawnBehavior final : public Behavior
 public:
 	LOT m_lot;
 	float m_Distance;
+	// The spawned object moves with the one that spawned it (its parent)
+	bool m_UpdatePositionWithParent;
 
 	/*
 	 * Inherited
