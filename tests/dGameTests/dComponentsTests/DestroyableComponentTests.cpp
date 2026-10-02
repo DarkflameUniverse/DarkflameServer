@@ -731,3 +731,23 @@ TEST_F(DestroyableTest, RequestResurrectOnlyWhenDead) {
 	request.Handle(*baseEntity, UNASSIGNED_SYSTEM_ADDRESS);
 	EXPECT_TRUE(destroyableComponent->GetIsResurrecting());
 }
+
+// LWODestroyableComponent::msgIsEnemy: a target with enemy preconditions is an enemy of whoever doesn't meet them,
+// whatever its factions
+TEST_F(DestroyableTest, EnemyPreconditionDecidesEnemies) {
+	if (!CDClientDatabase::isConnected) CDClientDatabase::Connect(":memory:");
+	CDClientDatabase::ExecuteDML("CREATE TABLE IF NOT EXISTS Preconditions (id INTEGER, type INTEGER, targetLOT TEXT, targetCount INTEGER);");
+	CDClientDatabase::ExecuteDML("INSERT INTO Preconditions VALUES (90201, 2, '6194', 1);"); // has an item the asker lacks
+	CDClientDatabase::ExecuteDML("INSERT INTO Preconditions VALUES (90202, 2, '', 1);"); // always met
+
+	Entity target(0x0102030405060709LL, info);
+	auto* targetDestroyable = target.AddComponent<DestroyableComponent>(-1);
+
+	target.SetVar<std::string>(u"EnemyPrecondition", "90201");
+	targetDestroyable->LoadConfigData();
+	EXPECT_TRUE(destroyableComponent->IsEnemy(&target));
+
+	target.SetVar<std::string>(u"EnemyPrecondition", "90202");
+	targetDestroyable->LoadConfigData();
+	EXPECT_FALSE(destroyableComponent->IsEnemy(&target));
+}

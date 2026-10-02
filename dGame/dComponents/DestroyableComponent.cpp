@@ -28,6 +28,7 @@
 #include "BaseCombatAIComponent.h"
 #include "TeamManager.h"
 #include "BuffComponent.h"
+#include "Preconditions.h"
 #include "SkillComponent.h"
 #include "Item.h"
 #include "Amf3.h"
@@ -163,6 +164,9 @@ void DestroyableComponent::LoadDataFromTemplate() {
 // The level config (LWODestroyableComponent::LoadConfigData 0x00c44cb0 reads it for every destroyable): is_smashable,
 // set_faction / override_faction and the smashable loot matrix
 void DestroyableComponent::LoadConfigData() {
+	const auto enemyPrecondition = m_Parent->GetVarAsString(u"EnemyPrecondition");
+	if (!enemyPrecondition.empty()) m_EnemyPrecondition = std::make_unique<PreconditionExpression>(enemyPrecondition);
+
 	const bool isSmashable = m_Parent->GetVarAs<int32_t>(u"is_smashable") != 0;
 	const bool isCharacter = m_Parent->GetCharacter() != nullptr;
 	if (!isCharacter) {
@@ -536,6 +540,10 @@ bool DestroyableComponent::IsEnemy(const Entity* other) const {
 		return false;
 	}
 	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
+	// An object with enemy preconditions is an enemy unless this one meets them; factions don't count then
+	if (otherDestroyableComponent && otherDestroyableComponent->GetEnemyPrecondition()) {
+		return !otherDestroyableComponent->GetEnemyPrecondition()->Check(m_Parent);
+	}
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
 			for (const auto otherFaction : otherDestroyableComponent->GetFactionIDs()) {

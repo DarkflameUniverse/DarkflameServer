@@ -2,6 +2,7 @@
 #define DESTROYABLECOMPONENT_H
 
 #include "RakNetTypes.h"
+#include <memory>
 #include <optional>
 #include <vector>
 #include "tinyxml2.h"
@@ -9,6 +10,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include "Implementation.h"
+
+class PreconditionExpression;
 
 struct ObjectLoadState;
 
@@ -471,6 +474,10 @@ public:
 	 */
 	static void Resurrect(Entity& entity);
 
+	// The level's EnemyPrecondition: an object asking whether this one is its enemy must meet it, or it is one
+	// (LWODestroyableComponent::msgIsEnemy 0x00c9e930); its factions don't count then
+	const PreconditionExpression* GetEnemyPrecondition() const { return m_EnemyPrecondition.get(); }
+
 	// Whether a resurrection has started and not finished (the client's isResurrecting)
 	bool GetIsResurrecting() const { return m_IsResurrecting; }
 
@@ -639,6 +646,9 @@ private:
 
 	// A resurrection has started (Resurrect) and its respawn animation hasn't finished
 	bool m_IsResurrecting = false;
+
+	// The level config's EnemyPrecondition, when it has one
+	std::unique_ptr<PreconditionExpression> m_EnemyPrecondition;
 
 	/**
 	 * Whether this entity is smashed. Unused, here for serialization
