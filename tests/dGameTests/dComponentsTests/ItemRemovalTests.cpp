@@ -114,3 +114,21 @@ TEST_F(ItemRemovalTests, DeletingMoreThanTheStackHoldsDoesNothing) {
 	inventoryComponent->OnRemoveItemFromInventory(Delete(*other, 0));
 	EXPECT_EQ(other->GetCount(), 0u);
 }
+
+// LWOInventoryComponent_Common::DoRemoveItemFromInventory (0x00d1fb50) skips equipped items when deleting
+TEST_F(ItemRemovalTests, AnEquippedItemIsNotDeleted) {
+	auto* const item = Give(1);
+	inventoryComponent->UpdateSlot("hair", { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
+	ASSERT_TRUE(item->IsEquipped());
+
+	inventoryComponent->OnRemoveItemFromInventory(Delete(*item, 1));
+	EXPECT_EQ(item->GetCount(), 1u);
+
+	// Removed for any other reason it goes (one of a stack, so it stays equipped)
+	auto* const stack = Give(2);
+	inventoryComponent->UpdateSlot("hat", { stack->GetId(), stack->GetLot(), stack->GetCount(), stack->GetSlot() });
+	auto msg = Delete(*stack, 1);
+	msg.eLootTypeSource = GeneralUtils::ToUnderlying(eLootSourceType::NONE);
+	inventoryComponent->OnRemoveItemFromInventory(msg);
+	EXPECT_EQ(stack->GetCount(), 1u);
+}

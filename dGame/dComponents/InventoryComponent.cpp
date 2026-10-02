@@ -2236,6 +2236,9 @@ void InventoryComponent::OnRemoveItemFromInventory(const GameMessages::RemoveIte
 	const auto iStackCount = msg.iStackCount == 0 ? item->GetCount() : msg.iStackCount;
 	if (item->GetCount() < iStackCount) return;
 
+	// DoRemoveItemFromInventory (0x00d1fb50) skips equipped items when deleting
+	if (msg.eLootTypeSource == GeneralUtils::ToUnderlying(eLootSourceType::DELETION) && item->IsEquipped()) return;
+
 	if (msg.bConfirmed && !CanDelete(*item)) {
 		LOG("%llu tried to delete %llu (LOT %i), which its deletion restriction does not allow", m_Parent->GetObjectID(), item->GetId(), item->GetLot());
 		return;
