@@ -5,6 +5,7 @@
 #include "CDItemComponentTable.h"
 #include "Entity.h"
 #include "InventoryComponent.h"
+#include "InventoryMessages.h"
 #include "Item.h"
 #include "eReplicaComponentType.h"
 
@@ -84,4 +85,32 @@ TEST_F(ItemRemovalTests, RetiredItemsAreFreedWithTheInventory) {
 	EXPECT_TRUE(items->HasRetiredItems());
 	// Freed by the inventory's destructor (checked by sanitizer builds)
 	entity.reset();
+}
+
+namespace {
+	GameMessages::RemoveItemFromInventory Delete(const Item& item, const uint32_t count) {
+		GameMessages::RemoveItemFromInventory msg;
+		msg.bConfirmed = true;
+		msg.eInvType = eInventoryType::ITEMS;
+		msg.eLootTypeSource = GeneralUtils::ToUnderlying(eLootSourceType::DELETION);
+		msg.iObjID = item.GetId();
+		msg.iObjTemplate = item.GetLot();
+		msg.iStackCount = count;
+		return msg;
+	}
+}
+
+// LWOInventoryComponent_Common::msgRemoveItemFromInventory (0x00d203b0): a stack holding fewer than asked is left
+// alone, and no count means the whole stack
+TEST_F(ItemRemovalTests, DeletingMoreThanTheStackHoldsDoesNothing) {
+	auto* const item = Give(3);
+	inventoryComponent->OnRemoveItemFromInventory(Delete(*item, 4));
+	EXPECT_EQ(item->GetCount(), 3u);
+
+	inventoryComponent->OnRemoveItemFromInventory(Delete(*item, 2));
+	EXPECT_EQ(item->GetCount(), 1u);
+
+	auto* const other = Give(5);
+	inventoryComponent->OnRemoveItemFromInventory(Delete(*other, 0));
+	EXPECT_EQ(other->GetCount(), 0u);
 }

@@ -2231,7 +2231,10 @@ void InventoryComponent::OnRemoveItemFromInventory(const GameMessages::RemoveIte
 		return;
 	}
 
-	const auto iStackCount = std::min<uint32_t>(item->GetCount(), msg.iStackCount);
+	// As LWOInventoryComponent_Common::msgRemoveItemFromInventory (0x00d203b0): no count means the whole stack, and a
+	// stack holding fewer than asked is left alone
+	const auto iStackCount = msg.iStackCount == 0 ? item->GetCount() : msg.iStackCount;
+	if (item->GetCount() < iStackCount) return;
 
 	if (msg.bConfirmed && !CanDelete(*item)) {
 		LOG("%llu tried to delete %llu (LOT %i), which its deletion restriction does not allow", m_Parent->GetObjectID(), item->GetId(), item->GetLot());
