@@ -99,6 +99,7 @@ public:
 	};
 
 	static constexpr uint32_t MaximumGroupCount = 50;
+	static constexpr size_t MaximumGroupNameLength = 64; // UTF-16 characters
 
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 

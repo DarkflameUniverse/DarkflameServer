@@ -2399,7 +2399,8 @@ void InventoryComponent::OnUpdateInventoryGroup(const GameMessages::UpdateInvent
 	GroupUpdate groupUpdate;
 	groupUpdate.groupId = msg.groupID;
 	groupUpdate.inventory = msg.inventoryType;
-	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(msg.groupName);
+	// msgUpdateInventoryGroup (0x00c955b0) cuts names to 64 characters
+	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(msg.groupName.substr(0, MaximumGroupNameLength));
 
 	if (msg.action == "ADD") groupUpdate.command = GroupUpdateCommand::ADD;
 	else if (msg.action == "MODIFY") groupUpdate.command = GroupUpdateCommand::MODIFY;

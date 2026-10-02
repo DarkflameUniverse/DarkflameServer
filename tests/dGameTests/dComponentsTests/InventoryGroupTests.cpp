@@ -60,3 +60,12 @@ TEST_F(InventoryGroupTests, AddingAGroupThatExistsDoesNothing) {
 	EXPECT_EQ(Groups()[0].groupName, "first");
 	EXPECT_EQ(Groups()[0].lots.size(), 1u);
 }
+
+TEST_F(InventoryGroupTests, NamesAreCutTo64Characters) {
+	const std::u16string longName(70, u'a');
+	Group("ADD", "user_group1", longName);
+	EXPECT_EQ(Groups()[0].groupName, std::string(64, 'a'));
+
+	Group("MODIFY", "user_group1", std::u16string(65, u'b'));
+	EXPECT_EQ(Groups()[0].groupName, std::string(64, 'b'));
+}
