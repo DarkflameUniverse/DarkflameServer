@@ -88,3 +88,11 @@ TEST_F(InventoryGroupTests, ClearEmptiesAGroup) {
 	ASSERT_EQ(Groups().size(), 1u);
 	EXPECT_TRUE(Groups()[0].lots.empty());
 }
+
+TEST_F(InventoryGroupTests, AGroupHoldsAtMost1000Lots) {
+	Group("ADD", "user_group1", u"bricks");
+	for (LOT lot = 1; lot <= 1001; lot++) Contents("ADD", "user_group1", lot);
+
+	EXPECT_EQ(Groups()[0].lots.size(), 1000u);
+	EXPECT_FALSE(Groups()[0].lots.contains(1001));
+}

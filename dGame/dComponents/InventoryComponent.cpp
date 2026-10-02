@@ -2021,6 +2021,8 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		break;
 	}
 	case GroupUpdateCommand::ADD_LOT: {
+		// msgUpdateInventoryGroupContents (0x00ce1f50): a group holds at most 1000 LOTs
+		if (groupItr->lots.size() >= MaximumGroupLotCount) break;
 		groupItr->lots.insert(groupUpdate.lot);
 		break;
 	}
