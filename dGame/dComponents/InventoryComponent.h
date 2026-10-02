@@ -218,14 +218,6 @@ public:
 	void MoveItemToInventory(Item* item, eInventoryType inventory, uint32_t count, bool showFlyingLot = true, bool isModMoveAndEquip = false, bool ignoreEquipped = false, int32_t preferredSlot = -1);
 
 	/**
-	 * Moves a stack of items to an inventory
-	 * @param item the item to move
-	 * @param inventory the inventory to move the item to
-	 * @param slot the slot in the inventory to move the item to
-	 */
-	void MoveStack(Item* item, eInventoryType inventory, uint32_t slot = 0);
-
-	/**
 	 * Returns an item in the inventory by object ID
 	 * @param id the id of the item to find
 	 * @return item in the inventory by object ID
@@ -483,6 +475,13 @@ public:
 	 */
 	bool CanDelete(const Item& item) const;
 	void OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg);
+
+	/**
+	 * The inventory an item of this LOT may be moved to within inventory (its own inventory, or for a vault the
+	 * vault type), as the client finds it (GetInventoryTypeForLOT 0x00c3c4f0 / GetValueTypeForLOT 0x00c3c4a0).
+	 * INVALID when the LOT has no vault.
+	 */
+	static eInventoryType GetInventoryTypeForMove(LOT lot, eInventoryType inventory);
 	void OnMoveItemBetweenInventoryTypes(const GameMessages::MoveItemBetweenInventoryTypes& msg);
 	// Answers the client at sysAddr with ResponseMoveItemBetweenInventoryTypes.
 	void OnRequestMoveItemBetweenInventoryTypes(const GameMessages::RequestMoveItemBetweenInventoryTypes& msg, const SystemAddress& sysAddr);

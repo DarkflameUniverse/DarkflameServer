@@ -551,16 +551,6 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 	}
 }
 
-void InventoryComponent::MoveStack(Item* item, const eInventoryType inventory, const uint32_t slot) {
-	if (inventory != INVALID && item->GetInventory()->GetType() != inventory) {
-		auto* newInventory = GetInventory(inventory);
-
-		item->SetInventory(newInventory);
-	}
-
-	item->SetSlot(slot);
-}
-
 Item* InventoryComponent::FindItemById(const LWOOBJID id) const {
 	for (const auto& inventory : m_Inventories) {
 		auto* item = inventory.second->FindItemById(id);
@@ -2263,14 +2253,55 @@ void InventoryComponent::OnRemoveItemFromInventory(const GameMessages::RemoveIte
 	}
 }
 
-void InventoryComponent::OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg) {
-	auto* item = FindItemById(msg.iObjID);
+eInventoryType InventoryComponent::GetInventoryTypeForMove(const LOT lot, const eInventoryType inventory) {
+	// LWOInventoryComponent_Common::GetInventoryTypeForLOT (0x00c3c4f0) and, for the vaults (sub_00bd2410: VAULT_ITEMS
+	// and VAULT_MODELS), GetValueTypeForLOT (0x00c3c4a0): tables by item type; types out of range are ITEMS / VAULT_ITEMS
+	const auto itemType = static_cast<eItemType>(Inventory::FindItemComponent(lot).itemType);
+	const bool vault = inventory == VAULT_ITEMS || inventory == VAULT_MODELS;
+	switch (itemType) {
+	case eItemType::BRICK: return vault ? INVALID : BRICKS;
+	case eItemType::BEHAVIOR: return vault ? INVALID : BEHAVIORS;
+	case eItemType::PROPERTY: return vault ? INVALID : PROPERTY_DEEDS;
+	case eItemType::QUEST_OBJECT: return vault ? INVALID : QUEST;
+	case eItemType::MODEL:
+	case eItemType::PET_INVENTORY_ITEM:
+	case eItemType::LOOT_MODEL:
+	case eItemType::VEHICLE:
+	case eItemType::MOUNT:
+		return vault ? VAULT_MODELS : MODELS;
+	default: return vault ? VAULT_ITEMS : ITEMS;
+	}
+}
 
-	if (!item) {
-		return;
+void InventoryComponent::OnMoveItemInInventory(const GameMessages::MoveItemInInventory& msg) {
+	// As LWOInventoryComponent_Common::msgMoveItemInInventory (0x00d20590): the item is looked up in its inventory, and
+	// moves only to the inventory its LOT belongs in (or that inventory's vault)
+	const auto sourceType = static_cast<eInventoryType>(msg.inventoryType);
+	const auto source = m_Inventories.find(sourceType);
+	if (source == m_Inventories.end()) return;
+
+	auto* const item = source->second->FindItemById(msg.iObjID);
+	if (!item) return;
+
+	const auto destinationType = msg.destInvType != INVALID ? static_cast<eInventoryType>(msg.destInvType) : sourceType;
+	if (GetInventoryTypeForMove(item->GetLot(), destinationType) != destinationType) return;
+	const auto destination = m_Inventories.find(destinationType);
+	if (destination == m_Inventories.end()) return;
+
+	// The item in the slot moved to swaps places with it: back to the moved item's slot and inventory, so it must
+	// belong there
+	const auto slot = static_cast<uint32_t>(msg.slot);
+	auto* const swapped = destination->second->FindItemBySlot(slot);
+	if (swapped && swapped != item && GetInventoryTypeForMove(swapped->GetLot(), sourceType) != sourceType) return;
+
+	if (destinationType != sourceType) {
+		item->SetInventory(destination->second);
+		item->SetSlot(slot); // the swapped item takes the moved item's old slot
+		if (swapped && swapped != item) swapped->SetInventory(source->second);
+	} else {
+		item->SetSlot(slot);
 	}
 
-	MoveStack(item, static_cast<eInventoryType>(msg.destInvType), msg.slot);
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
