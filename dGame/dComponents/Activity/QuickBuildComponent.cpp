@@ -59,7 +59,7 @@ void QuickBuildComponent::LoadDataFromTemplate() {
 }
 
 void QuickBuildComponent::LoadConfigData() {
-	std::u16string checkPreconditions = m_Parent->GetVar<std::u16string>(u"CheckPrecondition");
+	const auto& checkPreconditions = m_Parent->GetCheckPrecondition();
 
 	if (!checkPreconditions.empty()) {
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));

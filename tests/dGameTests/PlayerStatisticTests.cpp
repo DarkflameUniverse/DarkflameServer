@@ -133,6 +133,7 @@ TEST_F(PlayerStatisticTest, SmashingCountsEnemiesAndSmashables) {
 	// Smash finds the killer through the entity manager, which looks the new entity up in the CDClient
 	CDClientDatabase::Connect(":memory:");
 	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	CDClientDatabase::ExecuteDML("CREATE TABLE Objects (id INTEGER, name TEXT, type TEXT, interactionDistance REAL);");
 	ASSERT_NE(Game::entityManager->CreateEntity(info, nullptr, nullptr, true, 0x3FFFFFFFFFFELL), nullptr); // the zone control object loot asks
 	auto* killer = Game::entityManager->CreateEntity(info, nullptr, nullptr, false, PLAYER + 1);
 	ASSERT_NE(killer, nullptr);

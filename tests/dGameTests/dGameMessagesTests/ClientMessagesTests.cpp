@@ -105,6 +105,7 @@ TEST_F(ClientMessagesTests, CasterDeadMatchesLiveCapture) {
 TEST_F(ClientMessagesTests, CasterDeadEndsTheDeadCastersSkill) {
 	CDClientDatabase::Connect(":memory:"); // the entity manager looks the new entity up
 	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	CDClientDatabase::ExecuteDML("CREATE TABLE Objects (id INTEGER, name TEXT, type TEXT, interactionDistance REAL);");
 	auto* const caster = Game::entityManager->CreateEntity(info, nullptr, nullptr, false, 0x40040000000bdb5LL);
 	ASSERT_NE(caster, nullptr);
 	auto* const destroyable = caster->AddComponent<DestroyableComponent>(-1);
@@ -130,6 +131,7 @@ TEST_F(ClientMessagesTests, ResyncEquipmentResendsTheEquipment) {
 	auto msg = FromLiveClientCapture<GameMessages::ResyncEquipment>(std::string(PLAYER_HEADER) + "d604");
 	CDClientDatabase::Connect(":memory:"); // the inventory looks its component up
 	CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	CDClientDatabase::ExecuteDML("CREATE TABLE Objects (id INTEGER, name TEXT, type TEXT, interactionDistance REAL);");
 	auto* const inventory = player->AddComponent<InventoryComponent>(-1);
 	RakNet::BitStream first;
 	inventory->Serialize(first, false); // clears the dirty flag it starts with

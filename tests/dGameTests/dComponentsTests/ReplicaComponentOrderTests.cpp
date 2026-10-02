@@ -294,6 +294,7 @@ namespace {
 		CDClientDatabase::Connect(":memory:");
 		for (const auto* table : {
 			"ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER)",
+			"Objects (id INTEGER, name TEXT, type TEXT, interactionDistance REAL)",
 			"BaseCombatAIComponent (id INTEGER, aggroRadius REAL, tetherSpeed REAL, pursuitSpeed REAL, softTetherRadius REAL, hardTetherRadius REAL, minRoundLength REAL, maxRoundLength REAL, combatRoundLength REAL)",
 			"ItemSets (setID INTEGER, itemIDs TEXT)",
 			"ObjectSkills (objectTemplate INTEGER, skillID INTEGER, castOnType INTEGER, AICombatWeight INTEGER)",

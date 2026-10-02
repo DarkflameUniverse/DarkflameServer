@@ -40,7 +40,7 @@ protected:
 		SetUpDependencies();
 		CDClientDatabase::Connect(":memory:");
 		CDClientDatabase::ExecuteDML("CREATE TABLE ItemSets (setID INTEGER, itemIDs TEXT);");
-		CDClientDatabase::ExecuteDML("CREATE TABLE Objects (id INTEGER, name TEXT, type TEXT);");
+		CDClientDatabase::ExecuteDML("CREATE TABLE Objects (id INTEGER, name TEXT, type TEXT, interactionDistance REAL);");
 		CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
 		CDClientDatabase::ExecuteDML("CREATE TABLE ObjectSkills (objectTemplate INTEGER, skillID INTEGER, castOnType INTEGER, AICombatWeight INTEGER);");
 		CDClientDatabase::ExecuteDML("CREATE TABLE SkillBehavior (skillID INTEGER, behaviorID INTEGER);");
@@ -228,7 +228,7 @@ TEST_F(LootMetricsTests, QuickbuildTakesItsCostAsTheSource) {
 	auto pedestalInfo = info;
 	pedestalInfo.lot = 8551;
 	auto pedestal = std::make_unique<Entity>(0x0102030405060708LL, pedestalInfo);
-	pedestal->SetVar<std::u16string>(u"CheckPrecondition", GeneralUtils::ASCIIToUTF16(std::to_string(PRECONDITION)));
+	pedestal->SetCheckPrecondition(GeneralUtils::ASCIIToUTF16(std::to_string(PRECONDITION)));
 	auto* const quickBuild = pedestal->AddComponent<QuickBuildComponent>(-1);
 	quickBuild->SetResetTime(20.0f);
 	quickBuild->SetCompleteTime(10.0f);

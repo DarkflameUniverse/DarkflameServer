@@ -370,6 +370,18 @@ public:
 	// Scale will only be communicated to the client when the construction packet is sent
 	void SetScale(const float scale) { m_Scale = scale; };
 
+	// How close a player must be to use the object (LWOGameObject::interactionDistance): the Objects row's, else 16,
+	// over which the level's interaction_distance goes
+	float GetInteractionDistance() const { return m_InteractionDistance; }
+
+	// The precondition expression for using the object (LWOGameObject::CheckPrecondition), from the level config
+	const std::u16string& GetCheckPrecondition() const { return m_CheckPrecondition; }
+	// The client's SetPreconditions message
+	void SetCheckPrecondition(const std::u16string& precondition) { m_CheckPrecondition = precondition; }
+
+	// The object's world state (LWOGameObject::objectWorldState), from the level config's objectWorldState
+	int32_t GetObjectWorldState() const { return m_ObjectWorldState; }
+
 	// The client moves the object with its parent (LWOGameObject::updatesWithParentPosition), sent with the parent;
 	// the spawn behavior's updatePositionWithParent sets it (live: the Engineer Personal Fortress, LOT 9479)
 	void SetUpdatesWithParentPosition(const bool value) { m_UpdatesWithParentPosition = value; m_IsParentChildDirty = true; }
@@ -402,6 +414,11 @@ public:
 	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
 
 private:
+
+	// LWOGameObject::LoadTemplateData (0x00f997c0) and LoadConfigData (0x00f86f60): the object's own data from its
+	// Objects row and its level config
+	void LoadTemplateData();
+	void LoadConfigData();
 
 	// ObjectLoader2::DoObjectPreLoad: what the components will be, before any is made
 	ObjectLoadState DoObjectPreLoad();
@@ -471,6 +488,9 @@ private:
 
 	bool m_IsParentChildDirty = true;
 	bool m_UpdatesWithParentPosition = false;
+	float m_InteractionDistance = 16.0f;
+	std::u16string m_CheckPrecondition;
+	int32_t m_ObjectWorldState = 0;
 
 	// When this object was created on this server. Construction sends its age from this, as live did.
 	std::chrono::steady_clock::time_point m_CreationTime = std::chrono::steady_clock::now();

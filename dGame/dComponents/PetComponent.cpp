@@ -79,7 +79,7 @@ void PetComponent::LoadDataFromTemplate() {
 
 // The level config: the taming preconditions
 void PetComponent::LoadConfigData() {
-	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(m_Parent->GetVar<std::u16string>(u"CheckPrecondition"));
+	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(m_Parent->GetCheckPrecondition());
 
 	if (!checkPreconditions.empty()) {
 		SetPreconditions(checkPreconditions);

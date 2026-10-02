@@ -436,6 +436,18 @@ void Entity::DoObjectComponentLoad(ObjectLoadState& state) {
 	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(-1, triggerInfo);
 }
 
+void Entity::LoadTemplateData() {
+	const auto& object = CDClientManager::GetTable<CDObjectsTable>()->GetByID(m_TemplateID);
+	if (object.id == m_TemplateID && object.interactionDistance >= 0.0f) m_InteractionDistance = object.interactionDistance;
+}
+
+// The client erases interaction_distance from the config once read; server scripts still read it, so it stays
+void Entity::LoadConfigData() {
+	if (HasVar(u"interaction_distance")) m_InteractionDistance = GetVarAs<float>(u"interaction_distance");
+	if (HasVar(u"objectWorldState")) m_ObjectWorldState = GetVarAs<int32_t>(u"objectWorldState");
+	if (HasVar(u"CheckPrecondition")) m_CheckPrecondition = GetVar<std::u16string>(u"CheckPrecondition");
+}
+
 void Entity::Initialize() {
 	RegisterMsg(&Entity::MsgRequestServerObjectInfo);
 	RegisterMsg(&Entity::MsgDropClientLoot);
@@ -464,13 +476,16 @@ void Entity::Initialize() {
 		m_ParentEntity->AddChild(this);
 	}
 
+	LoadTemplateData();
+
 	m_LoadingComponents = true;
 	auto loadState = DoObjectPreLoad();
 	DoObjectComponentLoad(loadState);
 	m_LoadingComponents = false;
 
-	// LWOGameObject::MakeReadyForSerialization (0x0101c230): every component exists; each loads the object's config,
-	// then a character's save, in the order they were made
+	// LWOGameObject::MakeReadyForSerialization (0x0101c230): every component exists; the object loads its config, then
+	// each component the config and a character's save, in the order they were made
+	LoadConfigData();
 	for (auto* const component : m_ComponentList) {
 		component->LoadConfigData();
 		if (m_Character) component->LoadFromSaveData(m_Character->GetXMLDoc());
