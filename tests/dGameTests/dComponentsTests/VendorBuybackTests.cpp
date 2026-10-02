@@ -8,6 +8,7 @@
 #include "Item.h"
 #include "VendorComponent.h"
 #include "eReplicaComponentType.h"
+#include "InventoryMessages.h"
 
 #include <gtest/gtest.h>
 
@@ -76,4 +77,51 @@ TEST_F(VendorBuybackTests, RoomLeftOnAStackKeepsEverything) {
 	EXPECT_EQ(buyback->GetItems().size(), VendorComponent::BUYBACK_SIZE);
 	VendorComponent::MakeRoomInBuyback(*inventory, *sold, 6);
 	EXPECT_EQ(buyback->GetItems().size(), VendorComponent::BUYBACK_SIZE - 1);
+}
+
+TEST_F(VendorBuybackTests, DroppingTheOldestMovesTheRestUp) {
+	const auto oldest = nextId;
+	for (size_t i = 0; i < VendorComponent::BUYBACK_SIZE; i++) Give(buyback, 3001);
+	auto* const sold = Give(inventory->GetInventory(eInventoryType::ITEMS), 3001);
+	auto* const server = static_cast<dServerMock*>(Game::server);
+	server->ClearSentPackets();
+
+	VendorComponent::MakeRoomInBuyback(*inventory, *sold, 1);
+
+	// The 26 left in slots 0 to 25 in their order, the sold item's slot free after them
+	for (LWOOBJID id = oldest + 1; id < oldest + static_cast<LWOOBJID>(VendorComponent::BUYBACK_SIZE); id++) {
+		EXPECT_EQ(buyback->FindItemById(id)->GetSlot(), static_cast<uint32_t>(id - oldest - 1));
+	}
+	EXPECT_EQ(buyback->FindEmptySlot(), static_cast<int32_t>(VendorComponent::BUYBACK_SIZE - 1));
+
+	// A MoveItemInInventory for each, in the buyback inventory, as live sent them
+	std::vector<std::pair<LWOOBJID, int32_t>> moves;
+	for (const auto& packet : server->GetSentPackets()) {
+		RakNet::BitStream bitStream(const_cast<uint8_t*>(packet.bytes.data()), packet.bytes.size(), false);
+		LWOOBJID target{};
+		MessageType::Game id{};
+		if (!GameMessages::NetGameMsg::ReadPacketHeader(bitStream, target, id) || id != MessageType::Game::MOVE_ITEM_IN_INVENTORY) continue;
+		GameMessages::MoveItemInInventory move;
+		ASSERT_TRUE(move.Deserialize(bitStream));
+		EXPECT_EQ(target, entity->GetObjectID());
+		EXPECT_EQ(move.inventoryType, eInventoryType::VENDOR_BUYBACK);
+		EXPECT_EQ(move.destInvType, eInventoryType::INVALID);
+		EXPECT_EQ(move.responseCode, 0);
+		moves.emplace_back(move.iObjID, move.slot);
+	}
+	ASSERT_EQ(moves.size(), VendorComponent::BUYBACK_SIZE - 1);
+	for (size_t i = 0; i < moves.size(); i++) {
+		EXPECT_EQ(moves[i].first, oldest + 1 + static_cast<LWOOBJID>(i));
+		EXPECT_EQ(moves[i].second, static_cast<int32_t>(i));
+	}
+}
+
+TEST_F(VendorBuybackTests, NothingMovesWhenNothingIsDropped) {
+	Give(buyback, 3001);
+	auto* const sold = Give(inventory->GetInventory(eInventoryType::ITEMS), 3001);
+	auto* const server = static_cast<dServerMock*>(Game::server);
+	server->ClearSentPackets();
+
+	VendorComponent::MakeRoomInBuyback(*inventory, *sold, 1);
+	EXPECT_TRUE(server->GetSentPackets().empty());
 }

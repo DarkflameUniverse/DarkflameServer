@@ -15,6 +15,7 @@
 #include "UserManager.h"
 #include "CheatDetection.h"
 #include "VendorMessages.h"
+#include "InventoryMessages.h"
 #include "Item.h"
 #include "EconomyLedger.h"
 
@@ -355,10 +356,36 @@ void BaseVendorComponent::MakeRoomInBuyback(InventoryComponent& inventory, const
 	// added. Each item gets a new, higher object ID when it is sold, so the oldest is the one with the lowest ID.
 	// The ledger counted these items as gone when they were sold
 	EconomyLedger::ScopedItemTransfer alreadyCounted;
+	bool dropped = false;
 	while (buyback->GetItems().size() >= BUYBACK_SIZE) {
 		const auto items = buyback->GetItems().size();
 		const auto oldest = std::ranges::min_element(buyback->GetItems(), {}, [](const auto& entry) { return entry.first; });
 		oldest->second->SetCount(0, false, false, false, eLootSourceType::VENDOR);
 		if (buyback->GetItems().size() >= items) break; // not removed (an empty stack)
+		dropped = true;
+	}
+	if (dropped) CompactBuyback(inventory);
+}
+
+void BaseVendorComponent::CompactBuyback(InventoryComponent& inventory) {
+	auto* const buyback = inventory.GetInventory(eInventoryType::VENDOR_BUYBACK);
+	if (!buyback) return;
+
+	// Live moved what was left up, in order, before the sold item went in after it: the 2014 capture of a 28th sale
+	// has MoveItemInInventory (inventory 11) for each of the 26 items left, to slots 0 to 25, then the sold item added
+	const auto& player = *inventory.GetParent();
+	const auto slots = buyback->GetSlots();
+	uint32_t slot = 0;
+	for (auto* const item : slots | std::views::values) {
+		if (item->GetSlot() != slot) {
+			item->SetSlot(slot);
+			GameMessages::MoveItemInInventory move;
+			move.target = player.GetObjectID();
+			move.iObjID = item->GetId();
+			move.inventoryType = eInventoryType::VENDOR_BUYBACK;
+			move.slot = static_cast<int32_t>(slot);
+			move.SendToClient(player.GetSystemAddress());
+		}
+		slot++;
 	}
 }

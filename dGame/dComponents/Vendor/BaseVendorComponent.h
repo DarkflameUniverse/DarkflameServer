@@ -75,6 +75,9 @@ public:
 	// a slot of their own.
 	static void MakeRoomInBuyback(InventoryComponent& inventory, const Item& sold, uint32_t count);
 
+	// Moves the buyback items up to slots 0, 1, ... in their order, telling the player of each one that moved
+	static void CompactBuyback(InventoryComponent& inventory);
+
 private:
 	void HandleMrReeCameras();
 	bool SetupItem(LOT item);
