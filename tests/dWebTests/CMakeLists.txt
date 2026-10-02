@@ -56,6 +56,8 @@ set(DWEBTESTS_SOURCES
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/BackupFiles.cpp"
 	"MetricsFormatTests.cpp"
 	"TrafficHistoryTests.cpp"
+	"DatabaseUsageReportTests.cpp"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/DatabaseUsageReport.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/TrafficHistory.cpp"
 	"NetworkViewTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/NetworkView.cpp"
