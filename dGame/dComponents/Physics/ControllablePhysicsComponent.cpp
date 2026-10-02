@@ -187,8 +187,9 @@ void ControllablePhysicsComponent::LoadFromSaveData(const tinyxml2::XMLDocument&
 	PlaceCharacter();
 }
 
-// If it came from another zone it starts at its respawn point, the target scene or the zone's spawn (Moon Base always:
-// the saved place tends to be on the roof; a target scene too: only possible in a test map)
+// If it came from another zone it starts at the target scene or the zone's spawn (Moon Base always: the saved place
+// tends to be on the roof; a target scene too: only possible in a test map). A world's saved respawn point is where a
+// death there respawns, not where arriving starts.
 void ControllablePhysicsComponent::PlaceCharacter() {
 	auto* const character = m_Parent->GetCharacter();
 	if (!character) return;
@@ -201,10 +202,7 @@ void ControllablePhysicsComponent::PlaceCharacter() {
 	NiQuaternion rot = QuatUtils::IDENTITY;
 
 	auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-	if (character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
-		pos = character->GetRespawnPoint(mapID);
-		rot = Game::zoneManager->GetZone()->GetSpawnRot();
-	} else if (targetScene != nullptr) {
+	if (targetScene != nullptr) {
 		pos = targetScene->GetPosition();
 		rot = targetScene->GetRotation();
 	} else {
