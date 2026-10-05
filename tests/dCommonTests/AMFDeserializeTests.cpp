@@ -377,6 +377,85 @@ TEST(dCommonTests, AMFBadConversionTest) {
 }
 
 /**
+ * @brief Test that deserializing an associative array with more than maxArraySize (10,000) entries throws std::invalid_argument (HashDoS protection).
+ */
+TEST(dCommonTests, AMFDeserializeAssociativeArrayDosLimitTest) {
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x09); // eAmf::Array
+	bitStream.Write<uint8_t>(0x01); // dense count = 0 (0 << 1 | 1 = 1)
+
+	// Write 10,001 associative key/value pairs
+	// Each key is a non-empty string, e.g. "k" (U29 length = (1 << 1) | 1 = 3, followed by 'k')
+	// Value is eAmf::True (0x03)
+	for (int i = 0; i < 10'001; ++i) {
+		bitStream.Write<uint8_t>(0x03); // U29 string length 1 with value bit set
+		bitStream.Write<char>('k');
+		bitStream.Write<uint8_t>(0x03); // eAmf::True
+	}
+	// End with empty key (U29 string length 0 with value bit set = 0x01)
+	bitStream.Write<uint8_t>(0x01);
+
+	bool caughtException = false;
+	try {
+		ReadFromBitStream(bitStream);
+	} catch (const std::invalid_argument& e) {
+		caughtException = true;
+	}
+	ASSERT_TRUE(caughtException);
+}
+
+/**
+ * @brief Test that deserializing a dense array with declared size exceeding maxArraySize (10,000) throws std::invalid_argument.
+ */
+TEST(dCommonTests, AMFDeserializeDenseArrayLimitTest) {
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x09); // eAmf::Array
+	// Dense count = 10,001 (encoded as U29: (10001 << 1) | 1 = 20003)
+	// 20003 in U29 (3 bytes): 0x81, 0x9C, 0x23
+	bitStream.Write<uint8_t>(0x81);
+	bitStream.Write<uint8_t>(0x9C);
+	bitStream.Write<uint8_t>(0x23);
+
+	bool caughtException = false;
+	try {
+		ReadFromBitStream(bitStream);
+	} catch (const std::invalid_argument& e) {
+		caughtException = true;
+	}
+	ASSERT_TRUE(caughtException);
+}
+
+/**
+ * @brief Test that deserializing normal associative array with valid entries succeeds.
+ */
+TEST(dCommonTests, AMFDeserializeAssociativeArrayValidBoundaryTest) {
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x09); // eAmf::Array
+	bitStream.Write<uint8_t>(0x01); // dense count = 0
+
+	// Write 5 valid associative pairs
+	for (int i = 0; i < 5; ++i) {
+		std::string key = "prop_" + std::to_string(i);
+		uint8_t strLenEncoded = static_cast<uint8_t>((key.length() << 1) | 1);
+		bitStream.Write<uint8_t>(strLenEncoded);
+		for (char c : key) bitStream.Write<char>(c);
+		bitStream.Write<uint8_t>(0x04); // eAmf::Integer
+		bitStream.Write<uint8_t>(static_cast<uint8_t>(i));
+	}
+	// End with empty key
+	bitStream.Write<uint8_t>(0x01);
+
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
+	ASSERT_EQ(res->GetValueType(), eAmf::Array);
+	auto* arr = static_cast<AMFArrayValue*>(res.get());
+	ASSERT_EQ(arr->GetAssociative().size(), 5);
+	ASSERT_EQ(arr->GetDense().size(), 0);
+	ASSERT_EQ(arr->Get<int32_t>("prop_0")->GetValue(), 0);
+	ASSERT_EQ(arr->Get<int32_t>("prop_4")->GetValue(), 4);
+}
+
+
+/**
  * Below is the AMF that is in the AMFBitStreamTest.bin file that we are reading in
  * from a bitstream to test.
 args: amf3!
