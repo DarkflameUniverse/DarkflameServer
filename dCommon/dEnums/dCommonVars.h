@@ -60,7 +60,7 @@ constexpr LWOMAPID LWOMAPID_INVALID = -1;       	//!< Invalid LWOMAPID
 constexpr uint64_t LWOZONEID_INVALID = 0;       	//!< Invalid LWOZONEID
 constexpr uint32_t MAX_MESSAGE_LENGTH = 0x500000;   //!< Prevent exceptionally large msgs from being processed. Should always be used to check user provided inputs.
 
-constexpr float PI = 3.14159f;
+constexpr float PI = 3.14159265358979323846264338327950288f;
 
 //============ STRUCTS ==============
 

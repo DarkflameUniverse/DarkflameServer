@@ -14,10 +14,12 @@ target_include_directories(dGameMessages PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # direct SlashCommandHandler.h
 	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors" # direct ControlBehaviors.h
+	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors/ControlBehaviorMessages" # direct ControlBehaviors.h
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # via GameMessages.cpp, GameMessageHandler.cpp
+	"${PROJECT_SOURCE_DIR}/dGame/d"
 )
 target_precompile_headers(dGameMessages REUSE_FROM dGameBase)

@@ -86,7 +86,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 				return;
 			}
 		}
-
+		msg->target = objectID;
 		msg->Deserialize(inStream);
 		msg->Handle(*entity, sysAddr);
 		return;
