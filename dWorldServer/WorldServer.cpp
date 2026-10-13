@@ -60,6 +60,7 @@
 #include "ZoneInstanceManager.h"
 #include "dChatFilter.h"
 #include "ClientPackets.h"
+#include "GhostComponent.h"
 #include "CharacterComponent.h"
 
 #include "EntityManager.h"
@@ -219,6 +220,7 @@ void HandleMasterPacket(Packet* packet);
 void HandlePacket(Packet* packet);
 void CleanupDisconnectedUser(const SystemAddress& sysAddr);
 void LoadPlayer(const SystemAddress& sysAddr);
+void ReloadPlayerInPlace(const SystemAddress& sysAddr, Entity& player, Character& character);
 
 int main(int argc, char** argv) {
 	const auto curTimeStr = std::to_string(time(nullptr));
@@ -1018,13 +1020,45 @@ void HandleMasterPacket(Packet* packet) {
 
 // Creates the player's entity and sends the client everything in the world: after the client loaded the zone
 // (LEVEL_LOAD_COMPLETE), or at once when it kept its scene (an experimental seamless migration)
+// A player already in the world whose client reloaded the zone: its character again (from its current save), every
+// object again and the done-loading sequence, as on a first load. Nothing is created or restarted on the server.
+void ReloadPlayerInPlace(const SystemAddress& sysAddr, Entity& player, Character& character) {
+	LOG("Reloading %s (%llu) in place: its client loaded the zone again", character.GetName().c_str(), player.GetObjectID());
+	auto* const characterComponent = player.GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	character.SaveXMLToDatabase();
+	ClientPackets::CreateCharacter createCharacter;
+	createCharacter.objectID = player.GetObjectID();
+	createCharacter.xmlData = character.GetXMLData();
+	createCharacter.name = GeneralUtils::ASCIIToUTF16(character.GetName());
+	createCharacter.gmLevel = character.GetGMLevel();
+	createCharacter.chatMode = static_cast<int32_t>(character.GetGMLevel());
+	createCharacter.reputation = characterComponent->GetReputation();
+	createCharacter.propertyCloneID = character.GetPropertyCloneID();
+	createCharacter.Send(sysAddr);
+	ClientPackets::ServerStates serverStates;
+	serverStates.Send(sysAddr);
+
+	if (auto* const ghostComponent = player.GetComponent<GhostComponent>()) ghostComponent->ForgetObservedEntities();
+	Game::entityManager->ConstructAllEntities(sysAddr);
+
+	const auto respawnPoint = character.GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
+	GameMessages::SendDoneLoading(player.GetObjectID(), respawnPoint, player.GetPosition(), player.GetRotation(), sysAddr);
+}
+
 void LoadPlayer(const SystemAddress& sysAddr) {
 	Profiler::Scope scope("LoadPlayer");
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (user) {
 		Character* c = user->GetLastUsedChar();
 		if (c != nullptr) {
-			if (Game::entityManager->GetEntity(c->GetObjectID())) return;
+			// The client loaded the zone again while its player is here (the Happy Flower editor reloads the zone in
+			// place): it dropped every object, so send its character and the world again
+			if (auto* const existing = Game::entityManager->GetEntity(c->GetObjectID())) {
+				ReloadPlayerInPlace(sysAddr, *existing, *c);
+				return;
+			}
 			std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
 			Game::server->GetReplicaManager()->AddParticipant(sysAddr);
 

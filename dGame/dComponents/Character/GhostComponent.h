@@ -44,6 +44,9 @@ public:
 
 	void GhostEntity(const LWOOBJID id);
 
+	// The client dropped every object it had (it reloaded the zone in place): nothing counts as sent to it any more
+	void ForgetObservedEntities() { m_ObservedEntities.clear(); m_LimboConstructions.clear(); }
+
 	bool OnToggleGMInvis(GameMessages::ToggleGMInvisEvent& event);
 
 	bool OnGetGMInvis(GameMessages::GetGMInvis& msg);

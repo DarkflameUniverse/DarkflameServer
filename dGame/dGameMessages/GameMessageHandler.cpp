@@ -268,7 +268,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		return;
 	}
 
-	LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
+	// The Happy Flower editor's messages, logged always until the server handles them (what a client sends while editing)
+	const bool isHappyFlower = messageID == MessageType::Game::GET_EDITOR_LEVEL
+		|| (messageID >= MessageType::Game::HF_ATTRIBUTES_PUSH && messageID <= MessageType::Game::HF_GETS_WANT_PATH);
+	if (isHappyFlower) LOG("Received unhandled Happy Flower GM: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
+	else LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 }
 
 std::unique_ptr<GameMessages::NetGameMsg> GameMessageHandler::CreateReceived(MessageType::Game messageID) {
