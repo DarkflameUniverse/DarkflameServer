@@ -817,6 +817,42 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ExecuteCommand);
 
+	Command GetSceneCommand{
+		.help = "Get the current scene ID and name at your position",
+		.info = "Displays the scene ID and name at the player's current position. Scenes do not care about height.",
+		.aliases = { "getscene", "scene" },
+		.handle = DEVGMCommands::GetScene,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetSceneCommand);
+
+	Command GetAdjacentScenesCommand{
+		.help = "Get all scenes adjacent to your current scene",
+		.info = "Displays all scenes that are directly connected to the player's current scene via scene transitions.",
+		.aliases = { "getadjacentscenes", "adjacentscenes" },
+		.handle = DEVGMCommands::GetAdjacentScenes,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetAdjacentScenesCommand);
+
+	Command SpawnScenePointsCommand{
+		.help = "Spawn bricks at points across your current scene",
+		.info = "Spawns bricks across the player's current scene using terrain scene map data, one every <step> heightmap points (default 8). Usage: /spawnscenepoints (step)",
+		.aliases = { "spawnscenepoints" },
+		.handle = DEVGMCommands::SpawnScenePoints,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnScenePointsCommand);
+
+	Command SpawnAllScenePointsCommand{
+		.help = "Spawn bricks across all scenes in the zone",
+		.info = "Spawns bricks across every scene in the zone, one every <step> heightmap points (default 8; 1 = every point, a massive number of entities). Usage: /spawnallscenepoints (step)",
+		.aliases = { "spawnallscenepoints", "spawnallscenes" },
+		.handle = DEVGMCommands::SpawnAllScenePoints,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnAllScenePointsCommand);
+
 	// Register Greater Than Zero Commands
 
 	Command KickCommand{
