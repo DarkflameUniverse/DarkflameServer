@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <limits>
+#include <cmath>
 
 namespace {
 constexpr uint32_t kMaxResolution = 4096;
@@ -19,24 +20,38 @@ bool Chunk::IsValidForSceneLookup() const {
 		&& scaleFactor > 0.0f && width > 1 && height > 1;
 }
 
-uint8_t Chunk::GetSceneIDAtGrid(uint32_t i, uint32_t j) const {
-	const float sceneMapI = (static_cast<float>(i) / static_cast<float>(width - 1)) * static_cast<float>(colorMapResolution - 1);
-	const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(height - 1)) * static_cast<float>(colorMapResolution - 1);
-	const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), colorMapResolution - 1);
-	const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), colorMapResolution - 1);
-	const uint32_t sceneIndex = sceneI * colorMapResolution + sceneJ;
+uint8_t Chunk::GetSceneIDAtLocal(float localX, float localZ) const {
+	// The nearest scene map cell
+	const auto toCell = [this](float cell) {
+		return static_cast<uint32_t>(std::clamp(static_cast<int32_t>(std::floor(cell + 0.5f)), 0, static_cast<int32_t>(colorMapResolution) - 1));
+	};
+	const uint32_t sceneIndex = toCell(sceneCellsPerUnitX * localX) * colorMapResolution + toCell(sceneCellsPerUnitZ * localZ);
 	if (sceneIndex >= sceneMap.size()) return 0;
 	return sceneMap[sceneIndex];
 }
 
-NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
-	const float y = (i * width + j < heightMap.size()) ? heightMap[i * width + j] : 0.0f;
-	return NiPoint3(
-		(static_cast<float>(i) + (offsetX / scaleFactor)) * scaleFactor,
-		y,
-		(static_cast<float>(j) + (offsetZ / scaleFactor)) * scaleFactor
-	);
+uint8_t Chunk::GetSceneIDAtGrid(uint32_t i, uint32_t j) const {
+	return GetSceneIDAtLocal(static_cast<float>(i) * scaleFactor, static_cast<float>(j) * scaleFactor);
 }
+
+NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
+	const uint32_t heightIndex = i * height + j;
+	const float y = heightIndex < heightMap.size() ? heightMap[heightIndex] : 0.0f;
+	return NiPoint3(offsetX + static_cast<float>(i) * scaleFactor, y, offsetZ + static_cast<float>(j) * scaleFactor);
+}
+
+	/**
+	 * @brief Skip bytes, such as the byte version 30 and older files have in place of a scene map
+	 */
+	static bool Skip(std::istream& stream, size_t bytes) {
+		if (bytes > kMaxBlobBytes) {
+			LOG("Raw block of %zu bytes exceeds maximum %zu bytes", bytes, kMaxBlobBytes);
+			return false;
+		}
+		// ignore, not seekg: the asset streams don't stop a seek at the end of the data
+		stream.ignore(static_cast<std::streamsize>(bytes));
+		return static_cast<size_t>(stream.gcount()) == bytes && !stream.fail();
+	}
 
 	/**
 	 * @brief Read flair attributes from stream
@@ -80,7 +95,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 	/**
 	 * @brief Read a chunk from stream
 	 */
-	static bool ReadChunk(std::istream& stream, Chunk& chunk, uint16_t version) {
+	static bool ReadChunkData(std::istream& stream, Chunk& chunk, uint16_t version) {
 		try {
 			// Read basic chunk info
 			BinaryIO::BinaryRead(stream, chunk.id);
@@ -294,8 +309,8 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 						chunk.sceneMap[row * chunk.colorMapResolution + col] = rawSceneMap[row * (chunk.colorMapResolution + 1) + col];
 					}
 				}
-			} else {
-				stream.seekg(1, std::ios::cur);
+			} else if (!Skip(stream, 1)) {
+				return false;
 			}
 
 			if (stream.fail()) {
@@ -353,6 +368,59 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 		}
 	}
 
+	/**
+	 * @brief Read a chunk and work out its scene map cell sizes
+	 */
+	static bool ReadChunk(std::istream& stream, Chunk& chunk, uint16_t version) {
+		if (!ReadChunkData(stream, chunk, version)) return false;
+
+		if (chunk.IsValidForSceneLookup()) {
+			chunk.sceneCellSizeX = static_cast<float>(chunk.width - 1) * chunk.scaleFactor / static_cast<float>(chunk.colorMapResolution);
+			chunk.sceneCellSizeZ = static_cast<float>(chunk.height - 1) * chunk.scaleFactor / static_cast<float>(chunk.colorMapResolution);
+			chunk.sceneCellsPerUnitX = 1.0f / chunk.sceneCellSizeX;
+			chunk.sceneCellsPerUnitZ = 1.0f / chunk.sceneCellSizeZ;
+		}
+		return true;
+	}
+
+	/**
+	 * @brief Index the chunks by grid cell when they form a regular grid of equal chunks
+	 */
+	static void BuildChunkGrid(Raw& raw) {
+		raw.chunkGrid.clear();
+		const auto& first = raw.chunks.front();
+		const float spanX = first.GetMaxX() - first.offsetX;
+		const float spanZ = first.GetMaxZ() - first.offsetZ;
+		if (spanX <= 0.0f || spanZ <= 0.0f) return;
+
+		const auto countX = static_cast<uint32_t>(std::lround((raw.maxBoundsX - raw.minBoundsX) / spanX));
+		const auto countZ = static_cast<uint32_t>(std::lround((raw.maxBoundsZ - raw.minBoundsZ) / spanZ));
+		if (countX == 0 || countZ == 0 || static_cast<size_t>(countX) * countZ > kMaxChunks) return;
+
+		std::vector<int32_t> grid(static_cast<size_t>(countX) * countZ, -1);
+		for (size_t i = 0; i < raw.chunks.size(); ++i) {
+			const auto& chunk = raw.chunks[i];
+			const float cellX = (chunk.offsetX - raw.minBoundsX) / spanX;
+			const float cellZ = (chunk.offsetZ - raw.minBoundsZ) / spanZ;
+			const long x = std::lround(cellX);
+			const long z = std::lround(cellZ);
+			const bool sameSize = chunk.width == first.width && chunk.height == first.height && chunk.scaleFactor == first.scaleFactor;
+			if (!sameSize || std::abs(cellX - x) > 0.01f || std::abs(cellZ - z) > 0.01f || x < 0 || z < 0
+				|| x >= static_cast<long>(countX) || z >= static_cast<long>(countZ)) {
+				LOG("Raw chunks are not a regular grid (chunk %u); scene lookups check every chunk", chunk.id);
+				return;
+			}
+			auto& cell = grid[static_cast<size_t>(x) * countZ + z];
+			if (cell == -1) cell = static_cast<int32_t>(i); // the client takes the first chunk that matches
+		}
+
+		raw.chunkGrid = std::move(grid);
+		raw.chunkGridCountX = countX;
+		raw.chunkGridCountZ = countZ;
+		raw.chunkSpanX = spanX;
+		raw.chunkSpanZ = spanZ;
+	}
+
 	bool ReadRaw(std::istream& stream, Raw& outRaw) {
 		// Get stream size
 		stream.seekg(0, std::ios::end);
@@ -404,24 +472,68 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 					outRaw.maxBoundsZ = std::numeric_limits<float>::lowest();
 
 					for (const auto& chunk : outRaw.chunks) {
-						const float chunkMinX = chunk.offsetX;
-						const float chunkMinZ = chunk.offsetZ;
-						const float chunkMaxX = chunkMinX + (chunk.width * chunk.scaleFactor);
-						const float chunkMaxZ = chunkMinZ + (chunk.height * chunk.scaleFactor);
-
-						outRaw.minBoundsX = std::min(outRaw.minBoundsX, chunkMinX);
-						outRaw.minBoundsZ = std::min(outRaw.minBoundsZ, chunkMinZ);
-						outRaw.maxBoundsX = std::max(outRaw.maxBoundsX, chunkMaxX);
-						outRaw.maxBoundsZ = std::max(outRaw.maxBoundsZ, chunkMaxZ);
+						outRaw.minBoundsX = std::min(outRaw.minBoundsX, chunk.offsetX);
+						outRaw.minBoundsZ = std::min(outRaw.minBoundsZ, chunk.offsetZ);
+						outRaw.maxBoundsX = std::max(outRaw.maxBoundsX, chunk.GetMaxX());
+						outRaw.maxBoundsZ = std::max(outRaw.maxBoundsZ, chunk.GetMaxZ());
 					}
-					LOG("Raw terrain bounds: X[%.2f, %.2f], Z[%.2f, %.2f]",
+					LOG_DEBUG("Raw terrain bounds: X[%.2f, %.2f], Z[%.2f, %.2f]",
 						outRaw.minBoundsX, outRaw.maxBoundsX, outRaw.minBoundsZ, outRaw.maxBoundsZ);
+					BuildChunkGrid(outRaw);
 				}
 			}
 			return true;
 		} catch (const std::exception&) {
 			return false;
 		}
+	}
+
+	// The client's TerrainManager::GetSceneAtPos: clamp to the terrain bounds, keep one scene cell inside the far edge,
+	// find the chunk containing the position (edges moved in by 0.001) and take its nearest scene map cell
+	std::optional<uint8_t> Raw::GetSceneIDAt(float x, float z) const {
+		if (chunks.empty()) return std::nullopt;
+
+		constexpr float kEdgeEpsilon = 0.001f;
+		const float posX = std::clamp(x, minBoundsX, maxBoundsX);
+		const float posZ = std::clamp(z, minBoundsZ, maxBoundsZ);
+
+		const auto sceneInChunk = [&](const Chunk& chunk) -> std::optional<uint8_t> {
+			if (!chunk.IsValidForSceneLookup()) return std::nullopt;
+			const float chunkX = std::min(posX, maxBoundsX - chunk.sceneCellSizeX);
+			const float chunkZ = std::min(posZ, maxBoundsZ - chunk.sceneCellSizeZ);
+			if (chunk.offsetX - kEdgeEpsilon <= chunkX && chunkX < chunk.GetMaxX() - kEdgeEpsilon &&
+				chunk.offsetZ - kEdgeEpsilon <= chunkZ && chunkZ < chunk.GetMaxZ() - kEdgeEpsilon) {
+				return chunk.GetSceneIDAtLocal(chunkX - chunk.offsetX, chunkZ - chunk.offsetZ);
+			}
+			return std::nullopt;
+		};
+
+		if (chunkGrid.empty()) {
+			for (const auto& chunk : chunks) {
+				if (const auto sceneID = sceneInChunk(chunk)) return sceneID;
+			}
+			return std::nullopt;
+		}
+
+		// The grid cell the position falls in, checked with the client's test; for a position on a float edge the
+		// neighbouring cells are checked too
+		const auto toCell = [](float pos, float min, float span, uint32_t count) {
+			const auto cell = static_cast<int32_t>(std::floor((pos + kEdgeEpsilon - min) / span));
+			return std::clamp(cell, 0, static_cast<int32_t>(count) - 1);
+		};
+		const int32_t cellX = toCell(posX, minBoundsX, chunkSpanX, chunkGridCountX);
+		const int32_t cellZ = toCell(posZ, minBoundsZ, chunkSpanZ, chunkGridCountZ);
+		for (const int32_t offsetX : { 0, -1, 1 }) {
+			for (const int32_t offsetZ : { 0, -1, 1 }) {
+				const int32_t x = cellX + offsetX;
+				const int32_t z = cellZ + offsetZ;
+				if (x < 0 || z < 0 || x >= static_cast<int32_t>(chunkGridCountX) || z >= static_cast<int32_t>(chunkGridCountZ)) continue;
+				const int32_t index = chunkGrid[static_cast<size_t>(x) * chunkGridCountZ + z];
+				if (index < 0) continue;
+				if (const auto sceneID = sceneInChunk(chunks[index])) return sceneID;
+			}
+		}
+		return std::nullopt;
 	}
 
 	void GenerateTerrainMesh(const Raw& raw, TerrainMesh& outMesh) {
@@ -432,24 +544,22 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			return; // No scene data available
 		}
 
-		LOG("GenerateTerrainMesh: Processing %zu chunks", raw.chunks.size());
+		LOG_DEBUG("GenerateTerrainMesh: Processing %zu chunks", raw.chunks.size());
 
 		uint32_t vertexOffset = 0;
 
 		for (const auto& chunk : raw.chunks) {
 			if (!chunk.IsValidForSceneLookup()) continue;
 
+			// One vertex per heightmap point, in [i * height + j] order
 			for (uint32_t i = 0; i < chunk.width; ++i) {
 				for (uint32_t j = 0; j < chunk.height; ++j) {
-					const uint32_t heightIndex = chunk.width * i + j;
-					if (heightIndex >= chunk.heightMap.size()) continue;
-
 					outMesh.vertices.emplace_back(chunk.GridToWorldPos(i, j), chunk.GetSceneIDAtGrid(i, j));
 					if (i > 0 && j > 0) {
-						const uint32_t currentVert = vertexOffset + chunk.width * i + j;
+						const uint32_t currentVert = vertexOffset + chunk.height * i + j;
 						const uint32_t leftVert = currentVert - 1;
-						const uint32_t bottomLeftVert = vertexOffset + chunk.width * (i - 1) + j - 1;
-						const uint32_t bottomVert = vertexOffset + chunk.width * (i - 1) + j;
+						const uint32_t bottomLeftVert = vertexOffset + chunk.height * (i - 1) + j - 1;
+						const uint32_t bottomVert = vertexOffset + chunk.height * (i - 1) + j;
 
 						// First triangle
 						outMesh.triangles.push_back(currentVert);

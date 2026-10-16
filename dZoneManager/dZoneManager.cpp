@@ -12,7 +12,6 @@
 #include "CDZoneTableTable.h"
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <set>
 #include "eObjectBits.h"
 #include "AssetManager.h"
@@ -307,36 +306,8 @@ void dZoneManager::LoadWorldConfig() {
 LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const {
 	if (!m_pZone) return LWOSCENEID_INVALID;
 
-	const auto& raw = m_pZone->GetZoneRaw();
-	
-	// If no chunks, no scene data available
-	if (raw.chunks.empty()) {
-		return LWOSCENEID_INVALID;
-	}
-
-	// Convert 3D position to 2D (XZ plane) and clamp to terrain bounds
-	float posX = std::clamp(position.x, raw.minBoundsX, raw.maxBoundsX);
-	float posZ = std::clamp(position.z, raw.minBoundsZ, raw.maxBoundsZ);
-
-	// Find the chunk containing this position
-	// Reverse the world position calculation from GenerateTerrainMesh
-	for (const auto& chunk : raw.chunks) {
-		if (!chunk.IsValidForSceneLookup()) continue;
-
-		const float heightI = posX / chunk.scaleFactor - (chunk.offsetX / chunk.scaleFactor);
-		const float heightJ = posZ / chunk.scaleFactor - (chunk.offsetZ / chunk.scaleFactor);
-
-		if (heightI >= 0.0f && heightI < static_cast<float>(chunk.width) &&
-			heightJ >= 0.0f && heightJ < static_cast<float>(chunk.height)) {
-
-			const uint32_t gridI = std::min(static_cast<uint32_t>(heightI), chunk.width - 1);
-			const uint32_t gridJ = std::min(static_cast<uint32_t>(heightJ), chunk.height - 1);
-			return LWOSCENEID(chunk.GetSceneIDAtGrid(gridI, gridJ), 0);
-		}
-	}
-
-	// Position not found in any chunk
-	return LWOSCENEID_INVALID;
+	const auto sceneID = m_pZone->GetZoneRaw().GetSceneIDAt(position.x, position.z);
+	return sceneID ? LWOSCENEID(*sceneID, 0) : LWOSCENEID_INVALID;
 }
 
 void dZoneManager::BuildSceneGraph() {

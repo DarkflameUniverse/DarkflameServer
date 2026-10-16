@@ -77,6 +77,11 @@ public:
 	 */
 	std::vector<LWOSCENEID> GetAdjacentScenes(LWOSCENEID sceneID) const;
 
+	/**
+	 * @brief (Re)builds the scene graph adjacency list from the loaded zone's scene transitions.
+	 */
+	void BuildSceneGraph();
+
 	// The world config should not be modified by a caller.
 	const WorldConfig& GetWorldConfig() {
 		if (!m_WorldConfig) LoadWorldConfig();
@@ -84,10 +89,6 @@ public:
 	};
 
 private:
-	/**
-	 * Builds the scene graph adjacency list from scene transitions
-	 */
-	void BuildSceneGraph();
 	/**
 	 * The starting unique mission ID.
 	 */

@@ -4,6 +4,7 @@
 #define __RAW_H__
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 #include <string>
 #include <istream>
@@ -61,7 +62,7 @@ struct TerrainMesh {
 
 /**
  * @brief Terrain chunk structure
- * Represents a single chunk of terrain with heightmap, textures, and meshes
+ * Represents a single chunk of terrain with heightmap, textures, flair, scene map and meshes
  */
 struct Chunk {
 	uint32_t id;
@@ -69,40 +70,50 @@ struct Chunk {
 	uint32_t height;
 	float offsetX;
 	float offsetZ;
-	uint32_t shaderId;
-	
+	uint32_t shaderId = 0; // version < 32 only
+
 	// Texture IDs (4 textures per chunk)
 	std::vector<uint32_t> textureIds;
-	
-	// Terrain scale factor
+
+	// Terrain scale factor (world units between two heightmap points)
 	float scaleFactor;
-	
+
 	// Heightmap data (width * height floats)
 	std::vector<float> heightMap;
-	
-	// Version 32+ fields
+
+	// Color map: colorMapResolution^2 RGBA pixels (version < 32: width^2 pixels, resolution width - 1)
 	uint32_t colorMapResolution = 0;
-	std::vector<uint8_t> colorMap; // RGBA pixels (colorMap * colorMap * 4)
-	std::vector<uint8_t> lightMap;
-	
+	std::vector<uint8_t> colorMap;
+	std::vector<uint8_t> lightMap; // DDS, version 32+
+
 	uint32_t textureMapResolution = 0;
-	std::vector<uint8_t> textureMap; // (textureMapResolution * textureMapResolution * 4)
-	uint8_t textureSettings = 0;
-	std::vector<uint8_t> blendMap;
-	
+	std::vector<uint8_t> textureMap; // textureMapResolution^2 RGBA pixels
+	uint8_t textureSettings = 0; // version 32+
+	std::vector<uint8_t> blendMap; // DDS, version 32+
+
 	// Flair data
 	std::vector<FlairAttributes> flairs;
-	
-	// Scene map (version 32+)
+
+	// The scene map is colorMapResolution * colorMapResolution scene IDs, indexed [x cell * resolution + z cell]
 	std::vector<uint8_t> sceneMap;
-	
-	// Mesh data
+
+	// Mesh data (version 32+)
 	uint32_t vertSize = 0;
 	std::vector<uint16_t> meshVertUsage;
 	std::vector<uint16_t> meshVertSize;
 	std::vector<MeshTri> meshTri;
 
+	// Scene map cells per world unit, and the size of one cell, along X and Z (set once the chunk is read)
+	float sceneCellsPerUnitX = 0.0f;
+	float sceneCellsPerUnitZ = 0.0f;
+	float sceneCellSizeX = 0.0f;
+	float sceneCellSizeZ = 0.0f;
+
 	bool IsValidForSceneLookup() const;
+	float GetMaxX() const { return offsetX + static_cast<float>(width - 1) * scaleFactor; }
+	float GetMaxZ() const { return offsetZ + static_cast<float>(height - 1) * scaleFactor; }
+	// The scene ID at a position relative to the chunk's offset, as the client looks it up
+	uint8_t GetSceneIDAtLocal(float localX, float localZ) const;
 	uint8_t GetSceneIDAtGrid(uint32_t i, uint32_t j) const;
 	NiPoint3 GridToWorldPos(uint32_t i, uint32_t j) const;
 };
@@ -112,8 +123,8 @@ struct Chunk {
  * Complete representation of a .raw terrain file
  */
 struct Raw {
-	uint16_t version;
-	uint8_t dev;
+	uint16_t version = 0;
+	uint8_t dev = 0;
 	uint32_t numChunks = 0;
 	uint32_t numChunksWidth = 0;
 	uint32_t numChunksHeight = 0;
@@ -124,6 +135,23 @@ struct Raw {
 	float minBoundsZ = 0.0f;
 	float maxBoundsX = 0.0f;
 	float maxBoundsZ = 0.0f;
+
+	// Chunk lookup by position: the chunks of every client terrain form a regular grid, written X-major
+	// ([x * chunks along Z + z]). chunkGrid holds the index into chunks per grid cell (-1 for none); it is empty when
+	// the chunks don't form a grid, and lookups then check every chunk.
+	std::vector<int32_t> chunkGrid;
+	uint32_t chunkGridCountX = 0;
+	uint32_t chunkGridCountZ = 0;
+	float chunkSpanX = 0.0f;
+	float chunkSpanZ = 0.0f;
+
+	/**
+	 * @brief The scene ID at a world position, looked up as the client's TerrainManager::GetSceneAtPos does
+	 * (height is ignored). Constant time on a chunk grid.
+	 *
+	 * @return The scene ID, or nullopt when there is no terrain with a scene map there
+	 */
+	std::optional<uint8_t> GetSceneIDAt(float x, float z) const;
 };
 
 /**
