@@ -234,7 +234,6 @@ public:
 	void SetSpawnRot(const NiQuaternion& rot) { m_SpawnpointRotation = rot; }
 
 	const Raw::Raw& GetZoneRaw() const { return m_Raw; }
-	const Raw::TerrainMesh& GetTerrainMesh() const { return m_TerrainMesh; }
 	const SceneRef* GetScene(LWOSCENEID sceneID) const;
 	const std::vector<SceneTransition>& GetSceneTransitions() const { return m_SceneTransitions; }
 	const std::map<LWOSCENEID, SceneRef>& GetScenes() const { return m_Scenes; }
@@ -256,7 +255,6 @@ private:
 	std::string m_ZoneDesc; //Description of the zone by a level designer
 	std::string m_ZoneRawPath; //Path to the .raw file of this zone.
 	Raw::Raw m_Raw; // The Raw data for this zone
-	Raw::TerrainMesh m_TerrainMesh; // Pre-generated terrain mesh for fast scene lookups
 
 	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;

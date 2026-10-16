@@ -94,39 +94,36 @@ void Zone::LoadZoneIntoMemory() {
 		}
 
 		BinaryIO::ReadString<uint8_t>(file, m_ZoneRawPath, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneName, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneDesc, BinaryIO::ReadType::String);
-
-		auto zoneFolderPath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
-		if (!Game::assetManager->HasFile(zoneFolderPath + m_ZoneRawPath)) {
-			LOG("Failed to find %s", (zoneFolderPath + m_ZoneRawPath).c_str());
-			throw std::runtime_error("Aborting Zone loading due to no Zone Raw File.");
+		if (m_FileFormatVersion > Zone::FileFormatVersion::PrePreAlpha) {
+			BinaryIO::ReadString<uint8_t>(file, m_ZoneName, BinaryIO::ReadType::String);
+			BinaryIO::ReadString<uint8_t>(file, m_ZoneDesc, BinaryIO::ReadType::String);
 		}
 
-		auto rawFile = Game::assetManager->GetFile(zoneFolderPath + m_ZoneRawPath);
+		// The terrain gives the scene at a position. Like the client, a missing or unreadable .raw is logged
+		// and the zone loads without it.
+		const auto rawPath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1) + m_ZoneRawPath;
 		if (m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
-			LOG("Zone %s uses legacy raw terrain format (version %u) which is not supported", m_ZoneFilePath.c_str(), static_cast<uint32_t>(m_FileFormatVersion));
-			throw std::runtime_error("Aborting Zone loading due to unsupported Raw File version.");
+			LOG("Zone %s uses the legacy raw terrain format (version %u), which is not supported; no scene lookups", m_ZoneFilePath.c_str(), static_cast<uint32_t>(m_FileFormatVersion));
+		} else if (!Game::assetManager->HasFile(rawPath)) {
+			LOG("Failed to find %s; no scene lookups", rawPath.c_str());
 		} else {
+			auto rawFile = Game::assetManager->GetFile(rawPath);
 			if (Raw::ReadRaw(rawFile, m_Raw)) {
-				LOG("Successfully parsed %s", (zoneFolderPath + m_ZoneRawPath).c_str());			
+				LOG_DEBUG("Successfully parsed %s", rawPath.c_str());
 			} else {
-				LOG("Failed to parse %s", (zoneFolderPath + m_ZoneRawPath).c_str());
-				throw std::runtime_error("Aborting Zone loading due to invalid Raw File.");
+				LOG("Failed to parse %s; no scene lookups", rawPath.c_str());
+				m_Raw = Raw::Raw{};
 			}
 		}
 
-
 		// Optionally export terrain mesh to OBJ for debugging/visualization
 		if (Game::config->GetValue("export_terrain_to_obj") == "1") {
+			Raw::TerrainMesh terrainMesh;
+			Raw::GenerateTerrainMesh(m_Raw, terrainMesh);
+			LOG("Generated terrain mesh with %zu vertices and %zu triangles", terrainMesh.vertices.size(), terrainMesh.triangles.size() / 3);
 
-			// Generate terrain mesh
-			Raw::GenerateTerrainMesh(m_Raw, m_TerrainMesh);
-			LOG("Generated terrain mesh with %zu vertices and %zu triangles", m_TerrainMesh.vertices.size(), m_TerrainMesh.triangles.size() / 3);
-
-			// Write to OBJ
-			std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
-			if (Raw::WriteTerrainMeshToOBJ(m_TerrainMesh, objFileName)) {
+			const std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
+			if (Raw::WriteTerrainMeshToOBJ(terrainMesh, objFileName)) {
 				LOG("Exported terrain mesh to %s", objFileName.c_str());
 			}
 		}
