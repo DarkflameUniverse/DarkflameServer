@@ -837,7 +837,7 @@ void SlashCommandHandler::Startup() {
 
 	Command SpawnScenePointsCommand{
 		.help = "Spawn bricks at points across your current scene",
-		.info = "Spawns bricks at sampled points across the player's current scene using terrain scene map data.",
+		.info = "Spawns bricks across the player's current scene using terrain scene map data, one every <step> heightmap points (default 8). Usage: /spawnscenepoints (step)",
 		.aliases = { "spawnscenepoints" },
 		.handle = DEVGMCommands::SpawnScenePoints,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -845,8 +845,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SpawnScenePointsCommand);
 
 	Command SpawnAllScenePointsCommand{
-		.help = "Spawn bricks at ALL vertices in ALL scenes (high density, many entities)",
-		.info = "Spawns bricks at every vertex in the terrain mesh for all scenes in the zone. WARNING: Creates a massive number of entities for maximum accuracy visualization.",
+		.help = "Spawn bricks across all scenes in the zone",
+		.info = "Spawns bricks across every scene in the zone, one every <step> heightmap points (default 8; 1 = every point, a massive number of entities). Usage: /spawnallscenepoints (step)",
 		.aliases = { "spawnallscenepoints", "spawnallscenes" },
 		.handle = DEVGMCommands::SpawnAllScenePoints,
 		.requiredLevel = eGameMasterLevel::DEVELOPER

@@ -1,5 +1,6 @@
 #include "DEVGMCommands.h"
 
+#include <algorithm>
 #include <ranges>
 
 // Classes
@@ -24,6 +25,8 @@
 
 // Database
 #include "Database.h"
+#include "CDClientManager.h"
+#include "CDBrickIDTableTable.h"
 #include "CDObjectsTable.h"
 #include "CDRewardCodesTable.h"
 #include "CDLootMatrixTable.h"
@@ -1891,6 +1894,19 @@ namespace DEVGMCommands {
 		}
 	}
 
+	// A different LEGO brick per scene so the scenes can be told apart, from the BrickIDTable (every brick's LOT)
+	static LOT GetScenePointLot(uint8_t sceneID) {
+		static const std::vector<LOT> brickLots = [] {
+			std::vector<LOT> lots;
+			for (const auto& brick : CDClientManager::GetTable<CDBrickIDTableTable>()->Query([](const CDBrickIDTable&) { return true; })) {
+				lots.push_back(brick.NDObjectID);
+			}
+			std::ranges::sort(lots);
+			return lots;
+		}();
+		return brickLots.empty() ? LOT_NULL : brickLots[sceneID % brickLots.size()];
+	}
+
 	void GetScene(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto position = entity->GetPosition();
 		
@@ -1982,8 +1998,9 @@ namespace DEVGMCommands {
 	}
 
 	void SpawnScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		// Hardcoded to use LOT 33
-		const uint32_t lot = 33;
+		// Spawn one brick every <step> heightmap points (default 8)
+		const auto parsedStep = GeneralUtils::TryParse<uint32_t>(args);
+		const uint32_t step = parsedStep && *parsedStep > 0 ? *parsedStep : 8;
 
 		// Get player's current position and scene
 		const auto position = entity->GetPosition();
@@ -2012,15 +2029,13 @@ namespace DEVGMCommands {
 		for (const auto& chunk : raw.chunks) {
 			if (!chunk.IsValidForSceneLookup()) continue;
 
-			for (uint32_t i = 0; i < chunk.width; ++i) {
-				for (uint32_t j = 0; j < chunk.height; ++j) {
-					if (i * chunk.width + j >= chunk.heightMap.size()) continue;
-
+			for (uint32_t i = 0; i < chunk.width; i += step) {
+				for (uint32_t j = 0; j < chunk.height; j += step) {
 					const uint8_t sceneID = chunk.GetSceneIDAtGrid(i, j);
 					if (sceneID != currentSceneID.GetSceneID()) continue;
 
 					EntityInfo info;
-					info.lot = lot + sceneID;
+					info.lot = GetScenePointLot(sceneID);
 					info.pos = chunk.GridToWorldPos(i, j);
 					info.rot = QuatUtils::IDENTITY;
 					info.spawner = nullptr;
@@ -2048,14 +2063,15 @@ namespace DEVGMCommands {
 		const auto* sceneRef = zone->GetScene(currentSceneID);
 		const std::string sceneName = sceneRef ? sceneRef->name : "Unknown";
 		std::ostringstream feedback;
-		feedback << "Spawned " << spawnedCount << " points (LOT " << lot + currentSceneID.GetSceneID() << ") in scene "
+		feedback << "Spawned " << spawnedCount << " points (LOT " << GetScenePointLot(currentSceneID.GetSceneID()) << ") in scene "
 				 << currentSceneID.GetSceneID() << " (" << sceneName << ").";
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
 	}
 
 	void SpawnAllScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		// Hardcoded to use LOT 33
-		const uint32_t lot = 33;
+		// Spawn one brick every <step> heightmap points (default 8)
+		const auto parsedStep = GeneralUtils::TryParse<uint32_t>(args);
+		const uint32_t step = parsedStep && *parsedStep > 0 ? *parsedStep : 8;
 
 		// Get the zone
 		const auto* zone = Game::zoneManager->GetZone();
@@ -2077,15 +2093,13 @@ namespace DEVGMCommands {
 		for (const auto& chunk : raw.chunks) {
 			if (!chunk.IsValidForSceneLookup()) continue;
 
-			for (uint32_t i = 0; i < chunk.width; ++i) {
-				for (uint32_t j = 0; j < chunk.height; ++j) {
-					if (i * chunk.width + j >= chunk.heightMap.size()) continue;
-
+			for (uint32_t i = 0; i < chunk.width; i += step) {
+				for (uint32_t j = 0; j < chunk.height; j += step) {
 					const uint8_t sceneID = chunk.GetSceneIDAtGrid(i, j);
 					if (sceneID == 0) continue;
 
 					EntityInfo info;
-					info.lot = lot + sceneID;
+					info.lot = GetScenePointLot(sceneID);
 					info.pos = chunk.GridToWorldPos(i, j);
 					info.rot = QuatUtils::IDENTITY;
 					info.spawner = nullptr;
@@ -2105,13 +2119,13 @@ namespace DEVGMCommands {
 
 		// Send detailed feedback
 		std::ostringstream feedback;
-		feedback << "Spawned " << spawnedCount << " total points (base LOT " << lot << ") across "
+		feedback << "Spawned " << spawnedCount << " total points across "
 				 << sceneSpawnCounts.size() << " scenes:\n";
 		
 		for (const auto& [sceneID, count] : sceneSpawnCounts) {
 			const auto* sceneRef = zone->GetScene(LWOSCENEID(sceneID));
 			const std::string sceneName = sceneRef ? sceneRef->name : "Unknown";
-			feedback << "  Scene " << static_cast<int>(sceneID) << ", LOT: " << (lot + sceneID) << " (" << sceneName << "): " << count << " points\n";
+			feedback << "  Scene " << static_cast<int>(sceneID) << ", LOT: " << GetScenePointLot(sceneID) << " (" << sceneName << "): " << count << " points\n";
 		}
 		
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
