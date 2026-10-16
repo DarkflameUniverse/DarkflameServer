@@ -344,9 +344,11 @@ TEST_F(RawTest, WritesTheTerrainMeshAsObj) {
 	const auto path = (std::filesystem::temp_directory_path() / "dlu_raw_test.obj").string();
 	ASSERT_TRUE(Raw::WriteTerrainMeshToOBJ(mesh, path));
 
-	std::ifstream file(path);
 	std::vector<std::string> lines;
-	for (std::string line; std::getline(file, line);) lines.push_back(line);
+	{
+		std::ifstream file(path);
+		for (std::string line; std::getline(file, line);) lines.push_back(line);
+	} // closed before removing it (Windows can't remove an open file)
 	std::filesystem::remove(path);
 
 	ASSERT_EQ(lines.size(), 4);
