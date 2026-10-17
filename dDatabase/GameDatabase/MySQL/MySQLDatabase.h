@@ -99,7 +99,9 @@ public:
 		std::stringstream& sd0Data,
 		const uint64_t blueprintId,
 		const uint32_t accountId,
-		const LWOOBJID characterId) override;
+		const LWOOBJID characterId,
+		const std::optional<LWOOBJID> unsplitId) override;
+	void InsertUnsplitUgcModel(std::stringstream& sd0Data, const LWOOBJID id, const uint32_t accountId, const LWOOBJID characterId) override;
 	std::vector<MailInfo> GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) override;
 	std::optional<MailInfo> GetMail(const uint64_t mailId) override;
 	uint32_t GetUnreadMailCount(const LWOOBJID characterId) override;
