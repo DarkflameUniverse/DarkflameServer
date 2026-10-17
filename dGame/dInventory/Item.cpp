@@ -34,6 +34,8 @@ namespace {
 	const std::map<std::string, std::string> ExtraSettingAbbreviations = {
 		{ "assemblyPartLOTs", "ma" },
 		{ "blueprintID", "b" },
+		// A brick built model item's blueprint, kept so the model can be placed again after a reload
+		{ "blueprintid", "bp" },
 		{ "userModelID", "ui" },
 		{ "userModelName", "un" },
 		{ "userModelDesc", "ud" },
