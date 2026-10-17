@@ -409,6 +409,8 @@ public:
 
 	void UpdateGroup(const GroupUpdate& groupUpdate);
 
+	const std::map<eInventoryType, std::vector<Group>>& GetGroups() const { return m_Groups; }
+
 	std::unordered_map<LWOOBJID, DatabasePet>& GetPetsMut() { return m_Pets; };
 
 	void FixInvisibleItems();
