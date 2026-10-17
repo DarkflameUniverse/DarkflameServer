@@ -2155,6 +2155,10 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 		name.push_back(character);
 	}
 
+	// A model's name and description (the property editor's model info window,
+	// LWOPropertyEditorComponent::OnUpdateModelDescription 0x00cc42e0) aren't stored yet; they must not rename the property
+	if (!isProperty) return;
+
 	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(name), GeneralUtils::UTF16ToWTF8(description));
 }
 
