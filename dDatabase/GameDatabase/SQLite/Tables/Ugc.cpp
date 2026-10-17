@@ -65,6 +65,8 @@ std::vector<IUgc::Model> SQLiteDatabase::GetAllUgcModels() {
 
 void SQLiteDatabase::RemoveUnreferencedUgcModels() {
 	ExecuteDelete("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents WHERE ugc_id IS NOT NULL);");
+	// An unsplit save is kept while any model split from it is
+	ExecuteDelete("DELETE FROM ugc_unsplit WHERE id NOT IN (SELECT unsplit_id FROM ugc WHERE unsplit_id IS NOT NULL);");
 }
 
 void SQLiteDatabase::InsertNewUgcModel(
@@ -72,10 +74,11 @@ void SQLiteDatabase::InsertNewUgcModel(
 	const uint64_t blueprintId,
 	const uint32_t accountId,
 	const LWOOBJID characterId,
-	const int64_t processAfter) {
+	const int64_t processAfter,
+	const std::optional<LWOOBJID> unsplitId) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
-		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`, `process_after`, `queued`) VALUES (?,?,?,?,?,?,?,?,1)",
+		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`, `process_after`, `queued`, `unsplit_id`) VALUES (?,?,?,?,?,?,?,?,1,?)",
 		blueprintId,
 		accountId,
 		characterId,
@@ -83,15 +86,22 @@ void SQLiteDatabase::InsertNewUgcModel(
 		&stream,
 		false,
 		"weedeater.lxfml",
-		processAfter
+		processAfter,
+		unsplitId
 	);
 	// The owner is still building: their other models waiting for their quiet period wait longer
 	if (processAfter > 0) ExecuteUpdate("UPDATE ugc SET process_after = ? WHERE character_id = ? AND is_optimized = 0 AND process_after > 0 AND process_after < ?;", processAfter, characterId, processAfter);
 }
 
+void SQLiteDatabase::InsertUnsplitUgcModel(std::stringstream& sd0Data, const LWOOBJID id, const uint32_t accountId, const LWOOBJID characterId) {
+	const std::istream stream(sd0Data.rdbuf());
+	ExecuteInsert("INSERT INTO `ugc_unsplit`(`id`, `account_id`, `character_id`, `lxfml`) VALUES (?,?,?,?)", id, accountId, characterId, &stream);
+}
+
 void SQLiteDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM ugc WHERE id = ?;", modelId);
 	ExecuteDelete("DELETE FROM properties_contents WHERE ugc_id = ?;", modelId);
+	ExecuteDelete("DELETE FROM ugc_unsplit WHERE id NOT IN (SELECT unsplit_id FROM ugc WHERE unsplit_id IS NOT NULL);");
 }
 
 void SQLiteDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml, const int64_t processAfter) {

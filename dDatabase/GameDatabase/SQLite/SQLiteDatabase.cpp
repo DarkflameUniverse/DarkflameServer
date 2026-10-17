@@ -71,6 +71,7 @@ void SQLiteDatabase::DeleteCharacter(const LWOOBJID characterId) {
 	ExecuteDelete("DELETE FROM properties_contents WHERE property_id IN (SELECT id FROM properties WHERE owner_id=?);", characterId);
 	ExecuteDelete("DELETE FROM properties WHERE owner_id=?;", characterId);
 	ExecuteDelete("DELETE FROM ugc WHERE character_id=?;", characterId);
+	ExecuteDelete("DELETE FROM ugc_unsplit WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM activity_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM mail WHERE receiver_id=?;", characterId);
 	ExecuteDelete("DELETE FROM ignore_list WHERE player_id=? OR ignored_player_id=?;", characterId, characterId);

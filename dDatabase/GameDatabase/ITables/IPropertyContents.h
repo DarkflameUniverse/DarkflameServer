@@ -1,6 +1,7 @@
 #ifndef __IPROPERTIESCONTENTS__H__
 #define __IPROPERTIESCONTENTS__H__
 
+#include <optional>
 #include <array>
 #include <cstdint>
 #include <string_view>
@@ -22,7 +23,7 @@ public:
 		LWOOBJID placedBy{};
 	};
 
-	// Inserts a new UGC model into the database.
+	// Inserts a new UGC model into the database. unsplitId is the save it was split from (InsertUnsplitUgcModel), if any.
 	virtual void InsertNewUgcModel(
 		std::stringstream& sd0Data,
 		const uint64_t blueprintId,
@@ -30,7 +31,11 @@ public:
 		const LWOOBJID characterId,
 		// Unix seconds before which the UGC server doesn't make it (0: right away). The owner's other models waiting
 		// to be made wait until then too (they may be edited again).
-		const int64_t processAfter) = 0;
+		const int64_t processAfter,
+		const std::optional<LWOOBJID> unsplitId = std::nullopt) = 0;
+
+	// Keeps a brick by brick save as the client sent it, before it is split into models.
+	virtual void InsertUnsplitUgcModel(std::stringstream& sd0Data, const LWOOBJID id, const uint32_t accountId, const LWOOBJID characterId) = 0;
 
 	// Get the property models for the given property id.
 	virtual std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) = 0;

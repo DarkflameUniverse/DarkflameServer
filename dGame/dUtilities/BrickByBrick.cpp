@@ -115,6 +115,12 @@ namespace {
 			outFile << lxfml;
 		}
 
+		// Keep the save as the client sent it before splitting it; every model made from it points back to it
+		const auto accountId = character->GetParentUser()->GetAccountID();
+		const LWOOBJID unsplitId = ObjectIDManager::GetPersistentID();
+		std::stringstream unsplitData(sd0Data);
+		Database::Get()->InsertUnsplitUgcModel(unsplitData, unsplitId, accountId, character->GetID());
+
 		// A quiet period before the UGC server makes the models (ugc_debounce_seconds, sharedconfig.ini): a model
 		// the owner keeps editing isn't made for every save (docs/UgcServer.md)
 		const auto debounce = Game::config ? GeneralUtils::TryParse<int64_t>(Game::config->GetValue("ugc_debounce_seconds")).value_or(120) : 120;
@@ -125,7 +131,7 @@ namespace {
 			Sd0 model = sd0;
 			model.FromData(reinterpret_cast<const uint8_t*>(part.lxfml.data()), part.lxfml.size());
 			auto stream = model.GetAsStream();
-			Database::Get()->InsertNewUgcModel(stream, blueprintId, character->GetParentUser()->GetAccountID(), character->GetID(), processAfter);
+			Database::Get()->InsertNewUgcModel(stream, blueprintId, accountId, character->GetID(), processAfter, unsplitId);
 
 			auto& entry = saved.emplace_back();
 			entry.modelId = modelId;
