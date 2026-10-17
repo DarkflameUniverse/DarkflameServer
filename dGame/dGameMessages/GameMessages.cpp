@@ -2033,9 +2033,13 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 		bitStream.Write(response);
 	}
 
+	// The client's PlaceModelResponse::Deserialize (0x00dc0170) reads the rotation as a w, x, y, z quaternion
 	bitStream.Write(rotation != QuatUtils::IDENTITY);
 	if (rotation != QuatUtils::IDENTITY) {
-		bitStream.Write(response);
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
 	}
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
