@@ -40,6 +40,11 @@
 #include "CDSkillBehaviorTable.h"
 #include "StringifiedEnum.h"
 #include "Amf3.h"
+#include "CDDeletionRestrictionsTable.h"
+#include "eDeletionRestrictionsCheckType.h"
+#include "eGameMasterLevel.h"
+#include "PossessorComponent.h"
+#include "dZoneManager.h"
 
 #include <ranges>
 
@@ -1892,4 +1897,61 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 	}
 
 	return true;
+}
+
+bool InventoryComponent::CanRemoveFromInventory(const LWOOBJID itemId, const LOT lot) const {
+	// Not what the player is driving or riding
+	const auto* possessor = m_Parent->GetComponent<PossessorComponent>();
+	if (possessor && itemId != LWOOBJID_EMPTY && (possessor->GetPossessable() == itemId || possessor->GetMountItemID() == itemId)) return false;
+
+	if (m_Parent->GetGMLevel() == eGameMasterLevel::OPERATOR) return true;
+
+	const auto restrictionId = Inventory::FindItemComponent(lot).delResIndex;
+	if (static_cast<int32_t>(restrictionId) < 0) return true;
+
+	std::set<uint32_t> checked;
+	return CheckDeletionRestriction(itemId, restrictionId, checked);
+}
+
+bool InventoryComponent::CheckDeletionRestriction(const LWOOBJID itemId, const uint32_t restrictionId, std::set<uint32_t>& checked) const {
+	const auto restriction = CDClientManager::GetTable<CDDeletionRestrictionsTable>()->GetByID(restrictionId);
+	bool allowed = true;
+	if (!restriction || !restriction->restricted || restriction->checkType >= eDeletionRestrictionsCheckType::MAX) {
+		// No row, not restricted or an unknown check type: the item can be removed
+	} else if (restriction->checkType == eDeletionRestrictionsCheckType::ALWAYS_RESTRICTED) {
+		allowed = false;
+	} else if (restriction->ids.empty()) {
+		LOG("No valid ids for row %u in DeletionRestrictions", restrictionId);
+	} else if (restriction->checkType == eDeletionRestrictionsCheckType::LOTS_INCLUDED || restriction->checkType == eDeletionRestrictionsCheckType::LOTS_EXCLUDED) {
+		allowed = HasOtherItemsOfLots(restriction->ids, itemId, restriction->checkType == eDeletionRestrictionsCheckType::LOTS_INCLUDED);
+	} else if (restriction->checkType == eDeletionRestrictionsCheckType::ZONE) {
+		allowed = std::ranges::find(restriction->ids, Game::zoneManager->GetZoneID().GetMapID()) != restriction->ids.end();
+	} else if (!checked.insert(restrictionId).second) {
+		LOG("Row %u in DeletionRestrictions refers back to itself", restrictionId);
+	} else {
+		// ANY_RESTRICTION: any of the rows allows it; ALL_RESTRICTIONS: every row does
+		const bool any = restriction->checkType == eDeletionRestrictionsCheckType::ANY_RESTRICTION;
+		allowed = !any;
+		for (const auto row : restriction->ids) {
+			const bool rowAllows = CheckDeletionRestriction(itemId, row, checked);
+			allowed = any ? (allowed || rowAllows) : (allowed && rowAllows);
+		}
+		checked.erase(restrictionId);
+	}
+
+	return allowed;
+}
+
+bool InventoryComponent::HasOtherItemsOfLots(const std::vector<uint32_t>& lots, const LWOOBJID excludedItemId, const bool any) const {
+	std::set<uint32_t> missing(lots.begin(), lots.end());
+	for (const auto* inventory : m_Inventories | std::views::values) {
+		if (!inventory) continue;
+		for (const auto& [id, item] : const_cast<Inventory*>(inventory)->GetItems()) {
+			if (id == excludedItemId || !item || !missing.contains(item->GetLot())) continue;
+			if (any) return true;
+			missing.erase(item->GetLot());
+			if (missing.empty()) return true;
+		}
+	}
+	return false;
 }

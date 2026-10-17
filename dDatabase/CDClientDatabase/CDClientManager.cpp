@@ -41,6 +41,7 @@
 #include "CDRailActivatorComponent.h"
 #include "CDRewardCodesTable.h"
 #include "CDPetComponentTable.h"
+#include "CDDeletionRestrictionsTable.h"
 
 #ifndef CDCLIENT_CACHE_ALL
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
@@ -102,6 +103,7 @@ DEFINE_TABLE_STORAGE(CDScriptComponentTable);
 DEFINE_TABLE_STORAGE(CDSkillBehaviorTable);
 DEFINE_TABLE_STORAGE(CDTamingBuildPuzzleTable);
 DEFINE_TABLE_STORAGE(CDVendorComponentTable);
+DEFINE_TABLE_STORAGE(CDDeletionRestrictionsTable);
 
 void CDClientManager::LoadValuesFromDatabase() {
 	if (!CDClientDatabase::isConnected) {
@@ -149,6 +151,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDTamingBuildPuzzleTable::Instance().LoadValuesFromDatabase();
 	CDVendorComponentTable::Instance().LoadValuesFromDatabase();
 	CDZoneTableTable::LoadValuesFromDatabase();
+	CDDeletionRestrictionsTable::Instance().LoadValuesFromDatabase();
 }
 
 void CDClientManager::LoadValuesFromDefaults() {
