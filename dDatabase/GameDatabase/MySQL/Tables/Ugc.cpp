@@ -40,29 +40,39 @@ std::vector<IUgc::Model> MySQLDatabase::GetAllUgcModels() {
 
 void MySQLDatabase::RemoveUnreferencedUgcModels() {
 	ExecuteDelete("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents WHERE ugc_id IS NOT NULL);");
+	// An unsplit save is kept while any model split from it is
+	ExecuteDelete("DELETE FROM ugc_unsplit WHERE id NOT IN (SELECT unsplit_id FROM ugc WHERE unsplit_id IS NOT NULL);");
 }
 
 void MySQLDatabase::InsertNewUgcModel(
 	std::stringstream& sd0Data, // cant be const sad
 	const uint64_t blueprintId,
 	const uint32_t accountId,
-	const LWOOBJID characterId) {
+	const LWOOBJID characterId,
+	const std::optional<LWOOBJID> unsplitId) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
-		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)",
+		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`, `unsplit_id`) VALUES (?,?,?,?,?,?,?,?)",
 		blueprintId,
 		accountId,
 		characterId,
 		0,
 		&stream,
 		false,
-		"weedeater.lxfml"
+		"weedeater.lxfml",
+		unsplitId
 	);
+}
+
+void MySQLDatabase::InsertUnsplitUgcModel(std::stringstream& sd0Data, const LWOOBJID id, const uint32_t accountId, const LWOOBJID characterId) {
+	const std::istream stream(sd0Data.rdbuf());
+	ExecuteInsert("INSERT INTO `ugc_unsplit`(`id`, `account_id`, `character_id`, `lxfml`) VALUES (?,?,?,?)", id, accountId, characterId, &stream);
 }
 
 void MySQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM ugc WHERE id = ?;", modelId);
 	ExecuteDelete("DELETE FROM properties_contents WHERE ugc_id = ?;", modelId);
+	ExecuteDelete("DELETE FROM ugc_unsplit WHERE id NOT IN (SELECT unsplit_id FROM ugc WHERE unsplit_id IS NOT NULL);");
 }
 
 void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {

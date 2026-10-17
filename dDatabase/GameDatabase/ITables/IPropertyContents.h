@@ -20,12 +20,16 @@ public:
 		std::array<LWOOBJID, 5> behaviors{};
 	};
 
-	// Inserts a new UGC model into the database.
+	// Inserts a new UGC model into the database. unsplitId is the save it was split from (InsertUnsplitUgcModel), if any.
 	virtual void InsertNewUgcModel(
 		std::stringstream& sd0Data,
 		const uint64_t blueprintId,
 		const uint32_t accountId,
-		const LWOOBJID characterId) = 0;
+		const LWOOBJID characterId,
+		const std::optional<LWOOBJID> unsplitId) = 0;
+
+	// Keeps a brick by brick save as the client sent it, before it is split into models.
+	virtual void InsertUnsplitUgcModel(std::stringstream& sd0Data, const LWOOBJID id, const uint32_t accountId, const LWOOBJID characterId) = 0;
 
 	// Get the property models for the given property id.
 	virtual std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) = 0;
