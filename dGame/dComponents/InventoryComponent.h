@@ -4,6 +4,7 @@
 #define INVENTORYCOMPONENT_H
 
 #include <map>
+#include <set>
 #include <stack>
 
 
@@ -181,6 +182,32 @@ public:
 	 * @return item in the inventory by object ID
 	 */
 	Item* FindItemById(LWOOBJID id) const;
+
+	/**
+	 * Whether the player may remove (delete) an item, as the client's LWOInventoryComponent_Common::CanRemoveFromInventory
+	 * (0x00ce0d20): not what they are driving or riding, always for an operator, otherwise as the item's
+	 * DeletionRestrictions row says (ItemComponent.delResIndex)
+	 * @param itemId the item's id
+	 * @param lot the item's LOT
+	 */
+	bool CanRemoveFromInventory(LWOOBJID itemId, LOT lot) const;
+
+	/**
+	 * Whether a DeletionRestrictions row allows removing an item (CheckDeletionRestrictionIndex 0x00c94c20)
+	 * @param itemId the item being removed
+	 * @param restrictionId the row
+	 * @param checked the rows being checked further up (ANY_RESTRICTION / ALL_RESTRICTIONS), so a row that names
+	 * itself again does not loop
+	 */
+	bool CheckDeletionRestriction(LWOOBJID itemId, uint32_t restrictionId, std::set<uint32_t>& checked) const;
+
+	/**
+	 * Whether the player has items of the given LOTs other than one item (HasOtherItemsOfLots 0x00c02db0)
+	 * @param lots the LOTs
+	 * @param excludedItemId the item not to count
+	 * @param any true: an item of any of the LOTs is enough; false: one of each LOT is needed
+	 */
+	bool HasOtherItemsOfLots(const std::vector<uint32_t>& lots, LWOOBJID excludedItemId, bool any) const;
 
 	/**
 	 * Returns an item in the inventory that matches the specified LOT

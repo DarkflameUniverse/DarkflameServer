@@ -5342,6 +5342,12 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 
 	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
 
+	// The client checks this before asking (and says why it can't); forceDeletion from a client isn't trusted
+	if (!inv->CanRemoveFromInventory(item->GetId(), item->GetLot())) {
+		LOG("Player %llu may not delete item %llu (LOT %i)", entity->GetObjectID(), item->GetId(), item->GetLot());
+		return;
+	}
+
 	if (bConfirmed) {
 		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
 		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {

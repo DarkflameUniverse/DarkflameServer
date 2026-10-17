@@ -1,4 +1,5 @@
 set(DCOMPONENTS_TESTS
+	"DeletionRestrictionTests.cpp"
 	"DestroyableComponentTests.cpp"
 	"PetComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
