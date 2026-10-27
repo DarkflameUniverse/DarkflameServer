@@ -199,6 +199,18 @@ namespace {
 		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
 		return GeneralUtils::UTF16ToWTF8(value);
 	}
+
+	// LwoNameValue::FromString (0x010fa220): entries are split at every comma and line break, empty ones and ones
+	// without a '=' are left out
+	void ParseConfig(LwoNameValue& config, const std::string& text) {
+		size_t start = 0;
+		while (start <= text.size()) {
+			const auto end = std::min(text.find_first_of(",\n", start), text.size());
+			const auto entry = text.substr(start, end - start);
+			if (entry.find('=') != std::string::npos) config.ParseInsert(entry);
+			start = end + 1;
+		}
+	}
 }
 
 void Level::ReadChunks(std::istream& file) {
@@ -418,10 +430,47 @@ void Level::ReadSceneObjectDataChunk(std::istream& file) {
 		}
 		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
 
-		for (const auto& token : GeneralUtils::SplitString(config, '\n')) obj.settings.ParseInsert(token);
+		ParseConfig(obj.settings, config);
+		ApplyClientConfigFixups(obj);
 
 		m_Objects.push_back(std::move(obj));
 	}
+}
+
+void Level::ApplyClientConfigFixups(SceneObject& obj) const {
+	// What ReadLvlObjectData changes in an object's config as it loads it
+	auto& settings = obj.settings;
+	const auto typeOf = [&settings](const std::u16string& key) {
+		const auto it = settings.find(key);
+		return it == settings.end() || !it->second ? LDF_TYPE_UNKNOWN : it->second->GetValueType();
+	};
+	const auto valueOf = [&settings]<typename T>(const std::u16string& key) {
+		return static_cast<const LDFData<T>*>(settings.find(key)->second.get())->GetValue();
+	};
+
+	// Before version 47 a respawn time was in milliseconds: a float over 100, or any u32, becomes seconds (a float)
+	if (m_Version < 47) {
+		if (typeOf(u"respawn") == LDF_TYPE_FLOAT) {
+			const auto respawn = valueOf.operator()<float>(u"respawn");
+			if (respawn > 100.0f) settings.Insert<float>(u"respawn", respawn * 0.001f);
+		} else if (typeOf(u"respawn") == LDF_TYPE_U32) {
+			settings.Insert<float>(u"respawn", static_cast<float>(valueOf.operator()<uint32_t>(u"respawn") * 0.001));
+		}
+	}
+
+	// A model spawner (LOT 176 spawning template 14): its blueprint is its subkey unless it has one, its behaviors are
+	// off unless it says otherwise, and it never wraps its render
+	if (obj.lot == 176 && typeOf(u"spawntemplate") == LDF_TYPE_S32 && valueOf.operator()<int32_t>(u"spawntemplate") == 14) {
+		if (typeOf(u"blueprintid") == LDF_TYPE_UNKNOWN) {
+			const LWOOBJID subkey = typeOf(u"subkey") == LDF_TYPE_OBJID ? valueOf.operator()<LWOOBJID>(u"subkey") : LWOOBJID_EMPTY;
+			settings.Insert<LWOOBJID>(u"blueprintid", subkey);
+		}
+		if (typeOf(u"DisableModelBehaviors") == LDF_TYPE_UNKNOWN) settings.Insert<bool>(u"DisableModelBehaviors", true);
+		settings.Insert<bool>(u"preventRenderWrapping", true);
+	}
+
+	// Before version 44 an object that overrides its scene goes to layer 0 of the scene it names
+	if (m_Version < 44 && typeOf(u"sceneIDOverrideEnabled") != LDF_TYPE_UNKNOWN) settings.Insert<uint32_t>(u"sceneLayerIDOverride", 0);
 }
 
 void Level::ReadSounds(std::istream& file) {
@@ -439,7 +488,7 @@ void Level::ReadSounds(std::istream& file) {
 			name.resize(std::min(name.find(u'\0'), name.size()));
 			sound.config.Insert<std::u16string>(u"soundName", name);
 		} else {
-			for (const auto& token : GeneralUtils::SplitString(ReadWideString32(file), '\n')) sound.config.ParseInsert(token);
+			ParseConfig(sound.config, ReadWideString32(file));
 		}
 		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
 		m_Sounds.push_back(std::move(sound));
