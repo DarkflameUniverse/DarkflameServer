@@ -17,6 +17,8 @@
 #include "ClientVersion.h"
 #include "dConfig.h"
 #include <ranges>
+#include <algorithm>
+#include <stdexcept>
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
@@ -28,7 +30,17 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 		return;
 	}
 	
-	ReadChunks(stream);
+	try {
+		ReadChunks(stream);
+	} catch (const std::runtime_error&) {
+		// The client reads past the end of such a file; what was read before it is kept
+		LOG("%s ends early; loading the %zu objects read before its end", filepath.c_str(), m_Objects.size());
+	}
+	LoadSceneObjects();
+}
+
+Level::Level(std::istream& file) {
+	ReadChunks(file);
 }
 
 void Level::MakeSpawner(const SceneObject& obj) {
@@ -100,123 +112,7 @@ void Level::MakeSpawner(const SceneObject& obj) {
 	Game::zoneManager->MakeSpawner(spawnInfo);
 }
 
-void Level::ReadChunks(std::istream& file) {
-	const uint32_t CHNK_HEADER = ('C' + ('H' << 8) + ('N' << 16) + ('K' << 24));
-
-	while (!file.eof()) {
-		uint32_t initPos = uint32_t(file.tellg());
-		uint32_t header = 0;
-		BinaryIO::BinaryRead(file, header);
-		if (header == CHNK_HEADER) { //Make sure we're reading a valid CHNK
-			Header header;
-			BinaryIO::BinaryRead(file, header.id);
-			BinaryIO::BinaryRead(file, header.chunkVersion);
-			BinaryIO::BinaryRead(file, header.chunkType);
-			BinaryIO::BinaryRead(file, header.size);
-			BinaryIO::BinaryRead(file, header.startPosition);
-
-			uint32_t target = initPos + header.size;
-			file.seekg(header.startPosition);
-
-			//We're currently not loading env or particle data
-			if (header.id == ChunkTypeID::FileInfo) {
-				ReadFileInfoChunk(file, header);
-			} else if (header.id == ChunkTypeID::SceneObjectData) {
-				ReadSceneObjectDataChunk(file, header);
-			}
-
-			m_ChunkHeaders.insert(std::make_pair(header.id, header));
-			file.seekg(target);
-		} else {
-			if (initPos == std::streamoff(0)) { //Really old chunk version
-				file.seekg(0);
-				Header header;
-				header.id = ChunkTypeID::FileInfo;
-				BinaryIO::BinaryRead(file, header.chunkVersion);
-				BinaryIO::BinaryRead(file, header.chunkType);
-				uint8_t important = 0;
-				BinaryIO::BinaryRead(file, important);
-				// file.ignore(1); //probably used
-				if (header.chunkVersion > 36) {
-					BinaryIO::BinaryRead(file, header.fileInfo.revision);
-				}
-				// HARDCODED 3
-				if (header.chunkVersion >= 45) file.ignore(4);
-				file.ignore(4 * (4 * 3));
-
-				if (header.chunkVersion >= 31) {
-					if (header.chunkVersion >= 39) {
-						file.ignore(12 * 4);
-
-						if (header.chunkVersion >= 40) {
-							uint32_t s = 0;
-							BinaryIO::BinaryRead(file, s);
-							for (uint32_t i = 0; i < s; ++i) {
-								file.ignore(4 * 3); //a uint and two floats
-							}
-						}
-					} else {
-						file.ignore(8);
-					}
-
-					file.ignore(3 * 4);
-				}
-
-				if (header.chunkVersion >= 36) {
-					file.ignore(3 * 4);
-				}
-
-				if (header.chunkVersion < 42) {
-					file.ignore(3 * 4);
-
-					if (header.chunkVersion >= 33) {
-						file.ignore(4 * 4);
-					}
-				}
-
-				// skydome info
-				uint32_t count = 0;
-				BinaryIO::BinaryRead(file, count);
-				file.ignore(count);
-
-				if (header.chunkVersion >= 33) {
-					for (uint32_t i = 0; i < 5; ++i) {
-						uint32_t count = 0;
-						BinaryIO::BinaryRead(file, count);
-						file.ignore(count);
-					}
-				}
-				// editor settings
-				if (!important && header.chunkVersion >= 37){
-					file.ignore(4);
-
-					uint32_t count = 0;
-					BinaryIO::BinaryRead(file, count);
-					file.ignore(count * 12);
-
-				}
-
-				header.id = ChunkTypeID::SceneObjectData;
-				header.fileInfo.version = header.chunkVersion;
-				ReadSceneObjectDataChunk(file, header);
-				m_ChunkHeaders.insert(std::make_pair(header.id, header));
-			} break;
-		}
-	}
-}
-
-void Level::ReadFileInfoChunk(std::istream& file, Header& header) {
-	BinaryIO::BinaryRead(file, header.fileInfo.version);
-	BinaryIO::BinaryRead(file, header.fileInfo.revision);
-	BinaryIO::BinaryRead(file, header.fileInfo.enviromentChunkStart);
-	BinaryIO::BinaryRead(file, header.fileInfo.objectChunkStart);
-	BinaryIO::BinaryRead(file, header.fileInfo.particleChunkStart);
-}
-
-void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
-	uint32_t objectsCount = 0;
-	BinaryIO::BinaryRead(file, objectsCount);
-
+void Level::LoadSceneObjects() {
 	CDFeatureGatingTable* featureGatingTable = CDClientManager::GetTable<CDFeatureGatingTable>();
 
 	CDFeatureGating gating;
@@ -229,39 +125,13 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 
 	const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	DluAssert(zoneControlObject != nullptr);
-	for (uint32_t i = 0; i < objectsCount; ++i) {
-		std::u16string ldfString;
-		SceneObject obj;
-		BinaryIO::BinaryRead(file, obj.id);
-		BinaryIO::BinaryRead(file, obj.lot);
-
-		if (header.fileInfo.version >= 38) {
-			int32_t tmp = 1;
-			BinaryIO::BinaryRead(file, tmp);
-			if (tmp > -1 && tmp < 11) obj.nodeType = tmp;
-		}
-
-		if (header.fileInfo.version >= 32) {
-			BinaryIO::BinaryRead(file, obj.glomId);
-		}
-
-		BinaryIO::BinaryRead(file, obj.position);
-		BinaryIO::BinaryRead(file, obj.rotation);
-		BinaryIO::BinaryRead(file, obj.scale);
-		BinaryIO::ReadString<uint32_t>(file, ldfString);
-		BinaryIO::BinaryRead(file, obj.value3);
-
+	for (const auto& obj : m_Objects) {
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
 			Game::zoneManager->GetZoneMut()->SetSpawnPos(obj.position);
 			Game::zoneManager->GetZoneMut()->SetSpawnRot(obj.rotation);
 		}
-
-		for (const auto& token : GeneralUtils::SplitString(GeneralUtils::UTF16ToWTF8(ldfString), '\n')) {
-			obj.settings.ParseInsert(token);
-		}
-
 
 		// We should never have more than 1 zone control object
 		bool skipLoadingObject = obj.lot == zoneControlObject->GetLOT();
@@ -307,5 +177,245 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			info.scale = obj.scale;
 			Game::entityManager->CreateEntity(info);
 		}
+	}
+}
+
+namespace {
+	constexpr uint32_t CHNK_HEADER = ('C' + ('H' << 8) + ('N' << 16) + ('K' << 24));
+
+	// A fixed size, zero padded name
+	std::string ReadName64(std::istream& file) {
+		std::string name(64, '\0');
+		file.read(name.data(), static_cast<std::streamsize>(name.size()));
+		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
+		name.resize(std::min(name.find('\0'), name.size()));
+		return name;
+	}
+
+	// A u32 count of wide characters
+	std::string ReadWideString32(std::istream& file) {
+		std::u16string value;
+		BinaryIO::ReadString<uint32_t>(file, value);
+		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
+		return GeneralUtils::UTF16ToWTF8(value);
+	}
+}
+
+void Level::ReadChunks(std::istream& file) {
+	uint32_t magic = 0;
+	BinaryIO::BinaryRead(file, magic);
+	if (magic == CHNK_HEADER) {
+		// SceneLoader::LoadLvlFile / LvlChunkFile::Read: the file info chunk starts the file and gives where the
+		// environment, object and particle chunks start (0 for none)
+		Header fileInfo = ReadChunkHeader(file, 0);
+		file.seekg(fileInfo.startPosition);
+		ReadFileInfoChunk(file, fileInfo);
+		m_ChunkHeaders.insert({ fileInfo.id, fileInfo });
+		m_Version = fileInfo.fileInfo.version;
+		m_Revision = fileInfo.fileInfo.revision;
+
+		if (fileInfo.fileInfo.enviromentChunkStart != 0) {
+			const auto header = ReadChunkHeader(file, fileInfo.fileInfo.enviromentChunkStart);
+			m_ChunkHeaders.insert({ header.id, header });
+			// EnvironmentChunk::ReadLvlChunk2000: where the lighting, skydome and editor settings start
+			file.seekg(header.startPosition);
+			BinaryIO::BinaryRead(file, m_Enviroment.lightingStart);
+			BinaryIO::BinaryRead(file, m_Enviroment.skydomeStart);
+			BinaryIO::BinaryRead(file, m_Enviroment.editorSettingsStart);
+			// The client reads all three only when there is lighting
+			if (m_Enviroment.lightingStart != 0) {
+				file.seekg(m_Enviroment.lightingStart);
+				ReadLightingInfo(file);
+				file.seekg(m_Enviroment.skydomeStart);
+				ReadSkydomeInfo(file);
+				file.seekg(m_Enviroment.editorSettingsStart);
+				ReadEditorSettings(file);
+			}
+		}
+
+		if (fileInfo.fileInfo.objectChunkStart != 0) {
+			const auto header = ReadChunkHeader(file, fileInfo.fileInfo.objectChunkStart);
+			m_ChunkHeaders.insert({ header.id, header });
+			file.seekg(header.startPosition);
+			ReadSceneObjectDataChunk(file);
+		}
+
+		if (fileInfo.fileInfo.particleChunkStart != 0) {
+			const auto header = ReadChunkHeader(file, fileInfo.fileInfo.particleChunkStart);
+			m_ChunkHeaders.insert({ header.id, header });
+		}
+		return;
+	}
+
+	// Scenes from before chunks: a header (SceneLoader::ReadLvlHeader), then each part in turn
+	file.seekg(0);
+	Header header;
+	header.id = ChunkTypeID::FileInfo;
+	BinaryIO::BinaryRead(file, header.chunkVersion);
+	BinaryIO::BinaryRead(file, header.chunkType);
+	m_Version = header.chunkVersion;
+	if (m_Version >= 32) BinaryIO::BinaryRead(file, m_NoEditorSettings);
+	if (m_Version > 36) BinaryIO::BinaryRead(file, m_Revision);
+	header.fileInfo.version = m_Version;
+	header.fileInfo.revision = m_Revision;
+	m_ChunkHeaders.insert({ header.id, header });
+
+	// A newer file is refused ("newer than the client understands")
+	if (m_Version > 48) {
+		LOG("Scene file version %u is newer than the client reads; nothing read from it", m_Version);
+		return;
+	}
+
+	ReadLightingInfo(file);
+	ReadSkydomeInfo(file);
+	ReadEditorSettings(file);
+	ReadSceneObjectDataChunk(file);
+}
+
+Level::Header Level::ReadChunkHeader(std::istream& file, uint32_t start) {
+	// No check of the magic, as in the client (0x01063a00)
+	file.seekg(start);
+	uint32_t magic = 0;
+	Header header;
+	BinaryIO::BinaryRead(file, magic);
+	BinaryIO::BinaryRead(file, header.id);
+	BinaryIO::BinaryRead(file, header.chunkVersion);
+	BinaryIO::BinaryRead(file, header.chunkType);
+	BinaryIO::BinaryRead(file, header.size);
+	BinaryIO::BinaryRead(file, header.startPosition);
+	return header;
+}
+
+void Level::ReadFileInfoChunk(std::istream& file, Header& header) {
+	BinaryIO::BinaryRead(file, header.fileInfo.version);
+	BinaryIO::BinaryRead(file, header.fileInfo.revision);
+	BinaryIO::BinaryRead(file, header.fileInfo.enviromentChunkStart);
+	BinaryIO::BinaryRead(file, header.fileInfo.objectChunkStart);
+	BinaryIO::BinaryRead(file, header.fileInfo.particleChunkStart);
+}
+
+void Level::ReadLightingInfo(std::istream& file) {
+	// SceneLoader::ReadLightingInfo (0x0102f8f0)
+	m_HasLighting = true;
+	if (m_Version >= 45) BinaryIO::BinaryRead(file, m_Lighting.blendTime);
+	BinaryIO::BinaryRead(file, m_Lighting.ambient);
+	BinaryIO::BinaryRead(file, m_Lighting.specular);
+	BinaryIO::BinaryRead(file, m_Lighting.upperHemi);
+	BinaryIO::BinaryRead(file, m_Lighting.position);
+
+	if (m_Version >= 31) {
+		if (m_Version < 39) {
+			BinaryIO::BinaryRead(file, m_Lighting.maxDrawDistances.fogNear);
+			BinaryIO::BinaryRead(file, m_Lighting.maxDrawDistances.fogFar);
+			m_Lighting.minDrawDistances.fogNear = m_Lighting.maxDrawDistances.fogNear;
+			m_Lighting.minDrawDistances.fogFar = m_Lighting.maxDrawDistances.fogFar;
+		} else {
+			for (auto* distances : { &m_Lighting.minDrawDistances, &m_Lighting.maxDrawDistances }) {
+				BinaryIO::BinaryRead(file, distances->fogNear);
+				BinaryIO::BinaryRead(file, distances->fogFar);
+				BinaryIO::BinaryRead(file, distances->postFogSolid);
+				BinaryIO::BinaryRead(file, distances->postFogFade);
+				BinaryIO::BinaryRead(file, distances->staticObjectDistance);
+				BinaryIO::BinaryRead(file, distances->dynamicObjectDistance);
+			}
+
+			if (m_Version >= 40) {
+				uint32_t count = 0;
+				BinaryIO::BinaryRead(file, count);
+				for (uint32_t i = 0; i < count; ++i) {
+					SceneCullSetting setting;
+					BinaryIO::BinaryRead(file, setting.group);
+					BinaryIO::BinaryRead(file, setting.minDistance);
+					BinaryIO::BinaryRead(file, setting.maxDistance);
+					m_Lighting.cullSettings.push_back(setting);
+				}
+			}
+		}
+		BinaryIO::BinaryRead(file, m_Lighting.fogColor);
+	}
+
+	if (m_Version >= 36) BinaryIO::BinaryRead(file, m_Lighting.directional);
+
+	if (m_Version < 42) {
+		m_Lighting.hasSpawnPoint = true;
+		BinaryIO::BinaryRead(file, m_Lighting.filePosition);
+		if (m_Version < 33) {
+			m_Lighting.spawnPosition = NiPoint3(347.0f, 284.0f, -325.0f);
+			m_Lighting.spawnRotation = NiQuaternion(0.97082251f, 0.0f, 0.23979919f, 0.0f);
+		} else {
+			m_Lighting.spawnPosition = m_Lighting.filePosition;
+			BinaryIO::BinaryRead(file, m_Lighting.spawnRotation);
+		}
+	}
+}
+
+void Level::ReadSkydomeInfo(std::istream& file) {
+	// SceneLoader::ReadSkydomeInfo (0x0102f550)
+	BinaryIO::ReadString<uint32_t>(file, m_Skydome.filename, BinaryIO::ReadType::String);
+	if (m_Version >= 34) {
+		for (auto& filename : m_Skydome.extraFilenames) BinaryIO::ReadString<uint32_t>(file, filename, BinaryIO::ReadType::String);
+	}
+}
+
+void Level::ReadEditorSettings(std::istream& file) {
+	// SceneLoader::ReadEditorSettings (0x0101b090): their size, then a count of colours; the client keeps the first 32
+	if (m_Version < 37 || m_NoEditorSettings != 0) return;
+	uint32_t size = 0;
+	BinaryIO::BinaryRead(file, size);
+	uint32_t count = 0;
+	BinaryIO::BinaryRead(file, count);
+	for (uint32_t i = 0; i < count; ++i) {
+		NiColor color;
+		BinaryIO::BinaryRead(file, color);
+		if (i < 32) m_EditorColors.push_back(color);
+	}
+}
+
+void Level::ReadSceneObjectDataChunk(std::istream& file) {
+	// SceneLoader::ReadLvlGameObjects: the client has no objects for a file older than version 3 ("Level file is
+	// unsupported"), and before chunks reads nothing after them either
+	if (m_Version < 3) return;
+
+	uint32_t objectsCount = 0;
+	BinaryIO::BinaryRead(file, objectsCount);
+
+	for (uint32_t i = 0; i < objectsCount; ++i) {
+		// SceneLoader::ReadLvlObjectData (0x0103ba20)
+		SceneObject obj;
+		BinaryIO::BinaryRead(file, obj.id);
+		BinaryIO::BinaryRead(file, obj.lot);
+
+		if (m_Version >= 38) {
+			int32_t nodeType = 1;
+			BinaryIO::BinaryRead(file, nodeType);
+			if (nodeType > -1 && nodeType < 11) obj.nodeType = nodeType;
+		}
+
+		if (m_Version >= 32) BinaryIO::BinaryRead(file, obj.glomId);
+
+		BinaryIO::BinaryRead(file, obj.position);
+		BinaryIO::BinaryRead(file, obj.rotation);
+		BinaryIO::BinaryRead(file, obj.scale);
+		const auto config = ReadWideString32(file);
+
+		if (m_Version >= 7) {
+			uint32_t techniqueCount = 0;
+			BinaryIO::BinaryRead(file, techniqueCount);
+			if (techniqueCount != 0) {
+				obj.renderTechniquesName = ReadName64(file);
+				obj.renderTechniques.resize(techniqueCount);
+				for (auto& technique : obj.renderTechniques) {
+					technique.name = ReadName64(file);
+					BinaryIO::BinaryRead(file, technique.valueCount);
+					BinaryIO::BinaryRead(file, technique.isColor);
+					for (auto& value : technique.values) BinaryIO::BinaryRead(file, value);
+				}
+			}
+		}
+		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
+
+		for (const auto& token : GeneralUtils::SplitString(config, '\n')) obj.settings.ParseInsert(token);
+
+		m_Objects.push_back(std::move(obj));
 	}
 }
