@@ -143,6 +143,8 @@ These commands are primarily for development and testing. The usage of many of t
 |freecam|`/freecam`|Toggles freecam mode|8|
 |freemoney|`/freemoney <coins>`|Give yourself coins. Aliases: `/givemoney`, `/money`, `/givecoins`, `/coins`.|8|
 |getnavmeshheight|`/getnavmeshheight`|Display the navmesh height at your current position|8|
+|getscene|`/getscene`|Display the scene ID and name at your current position (alias `/scene`)|8|
+|getadjacentscenes|`/getadjacentscenes`|List the scenes connected to your current scene by scene transitions (alias `/adjacentscenes`)|8|
 |giveuscore|`/giveuscore <uscore>`|Gives uscore|8|
 |gmadditem|`/gmadditem <id> (count)`|Adds the given item to your inventory by id. Aliases: `/give`.|8|
 |inspect|`/inspect <component or ldf variable or player name> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`|Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the IDs of all components the entity has. Use `localCharacter` or `zoneControl` to inspect your current character or the zone control object.|8|

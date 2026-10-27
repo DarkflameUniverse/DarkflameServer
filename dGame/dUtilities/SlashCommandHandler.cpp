@@ -817,6 +817,25 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ExecuteCommand);
 
+	Command GetSceneCommand{
+		.help = "Get the current scene ID and name at your position",
+		.info = "Displays the scene ID and name at the player's current position. Scenes do not care about height.",
+		.aliases = { "getscene", "scene" },
+		.handle = DEVGMCommands::GetScene,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetSceneCommand);
+
+	Command GetAdjacentScenesCommand{
+		.help = "Get all scenes adjacent to your current scene",
+		.info = "Displays all scenes that are directly connected to the player's current scene via scene transitions.",
+		.aliases = { "getadjacentscenes", "adjacentscenes" },
+		.handle = DEVGMCommands::GetAdjacentScenes,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetAdjacentScenesCommand);
+
+
 	// Register Greater Than Zero Commands
 
 	Command KickCommand{

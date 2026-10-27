@@ -1890,4 +1890,81 @@ namespace DEVGMCommands {
 			}
 		}
 	}
+
+	void GetScene(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto position = entity->GetPosition();
+		
+		// Get the scene ID from the zone manager
+		const auto sceneID = Game::zoneManager->GetSceneIDFromPosition(position);
+		
+		if (sceneID == LWOSCENEID_INVALID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No scene found at current position.");
+			return;
+		}
+		
+		// Get the scene reference from the zone to get the name
+		const auto* zone = Game::zoneManager->GetZone();
+		if (!zone) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
+			return;
+		}
+		
+		// Build the feedback message
+		std::ostringstream feedback;
+		feedback << "Scene ID: " << sceneID.GetSceneID();
+		feedback << " (Layer: " << sceneID.GetLayerID() << ")";
+		
+		// Get the scene name
+		const auto* sceneRef = zone->GetScene(sceneID);
+		if (sceneRef && !sceneRef->name.empty()) {
+			feedback << " - Name: " << sceneRef->name;
+		}
+		
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+	}
+
+	void GetAdjacentScenes(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto position = entity->GetPosition();
+		
+		// Get the scene ID from the zone manager
+		const auto sceneID = Game::zoneManager->GetSceneIDFromPosition(position);
+		
+		if (sceneID == LWOSCENEID_INVALID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No scene found at current position.");
+			return;
+		}
+		
+		// Get the zone reference
+		const auto* zone = Game::zoneManager->GetZone();
+		if (!zone) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
+			return;
+		}
+		
+		// Get current scene info
+		const auto* currentScene = zone->GetScene(sceneID);
+		std::string currentSceneName = currentScene && !currentScene->name.empty() ? currentScene->name : "Unknown";
+		
+		// Get adjacent scenes
+		const auto adjacentSceneIDs = Game::zoneManager->GetAdjacentScenes(sceneID);
+		
+		std::ostringstream feedback;
+		feedback << "Current Scene: " << sceneID.GetSceneID() << " (" << currentSceneName << ")";
+		if (adjacentSceneIDs.empty()) {
+			feedback << " - No adjacent scenes found.";
+		} else {
+			feedback << "\nAdjacent Scenes (" << adjacentSceneIDs.size() << "):";
+			for (const auto& adjSceneID : adjacentSceneIDs) {
+				feedback << "\n  - Scene ID: " << adjSceneID.GetSceneID() << " (Layer: " << adjSceneID.GetLayerID() << ")";
+
+				// Get the scene name if available
+				const auto* sceneRef = zone->GetScene(adjSceneID);
+				if (sceneRef && !sceneRef->name.empty()) {
+					feedback << " - " << sceneRef->name;
+				}
+			}
+		}
+
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+	}
 };

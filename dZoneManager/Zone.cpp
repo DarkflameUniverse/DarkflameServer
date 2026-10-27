@@ -8,6 +8,7 @@
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
 #include "LUTriggers.h"
+#include "dConfig.h"
 
 #include "AssetManager.h"
 #include "CDClientManager.h"
@@ -20,6 +21,7 @@
 #include "eTriggerEventType.h"
 #include "eWaypointCommandType.h"
 #include "dNavMesh.h"
+#include "Raw.h"
 
 Zone::Zone(const LWOZONEID zoneID) :
 	m_ZoneID(zoneID) {
@@ -68,7 +70,8 @@ void Zone::LoadZoneIntoMemory() {
 			BinaryIO::BinaryRead(file, m_SpawnpointRotation);
 		}
 
-		if (m_FileFormatVersion <= Zone::FileFormatVersion::LateAlpha) {
+		// A byte before version 37 (LateAlpha), a u32 from it
+		if (m_FileFormatVersion < Zone::FileFormatVersion::LateAlpha) {
 			uint8_t sceneCount;
 			BinaryIO::BinaryRead(file, sceneCount);
 			m_SceneCount = sceneCount;
@@ -78,11 +81,56 @@ void Zone::LoadZoneIntoMemory() {
 			LoadScene(file);
 		}
 
-		//Read generic zone info:
-		BinaryIO::ReadString<uint8_t>(file, m_ZonePath, BinaryIO::ReadType::String);
+		// Zone boundary lines: a count byte, then the lines
+		uint8_t numBoundaries = 0;
+		BinaryIO::BinaryRead(file, numBoundaries);
+		m_Boundaries.resize(numBoundaries);
+		for (auto& boundary : m_Boundaries) {
+			LWOMAPID destMapID = 0;
+			LWOINSTANCEID destInstanceID = 0;
+			BinaryIO::BinaryRead(file, boundary.normal);
+			BinaryIO::BinaryRead(file, boundary.point);
+			BinaryIO::BinaryRead(file, destMapID);
+			BinaryIO::BinaryRead(file, destInstanceID);
+			boundary.destinationZone = LWOZONEID(destMapID, destInstanceID, 0);
+			BinaryIO::BinaryRead(file, boundary.destinationSceneID);
+			BinaryIO::BinaryRead(file, boundary.spawnLocation);
+		}
+
 		BinaryIO::ReadString<uint8_t>(file, m_ZoneRawPath, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneName, BinaryIO::ReadType::String);
-		BinaryIO::ReadString<uint8_t>(file, m_ZoneDesc, BinaryIO::ReadType::String);
+		if (m_FileFormatVersion > Zone::FileFormatVersion::PrePreAlpha) {
+			BinaryIO::ReadString<uint8_t>(file, m_ZoneName, BinaryIO::ReadType::String);
+			BinaryIO::ReadString<uint8_t>(file, m_ZoneDesc, BinaryIO::ReadType::String);
+		}
+
+		// The terrain gives the scene at a position. Like the client, a missing or unreadable .raw is logged
+		// and the zone loads without it.
+		const auto rawPath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1) + m_ZoneRawPath;
+		if (m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+			LOG("Zone %s uses the legacy raw terrain format (version %u), which is not supported; no scene lookups", m_ZoneFilePath.c_str(), static_cast<uint32_t>(m_FileFormatVersion));
+		} else if (!Game::assetManager->HasFile(rawPath)) {
+			LOG("Failed to find %s; no scene lookups", rawPath.c_str());
+		} else {
+			auto rawFile = Game::assetManager->GetFile(rawPath);
+			if (Raw::ReadRaw(rawFile, m_Raw)) {
+				LOG_DEBUG("Successfully parsed %s", rawPath.c_str());
+			} else {
+				LOG("Failed to parse %s; no scene lookups", rawPath.c_str());
+				m_Raw = Raw::Raw{};
+			}
+		}
+
+		// Optionally export terrain mesh to OBJ for debugging/visualization
+		if (Game::config->GetValue("export_terrain_to_obj") == "1") {
+			Raw::TerrainMesh terrainMesh;
+			Raw::GenerateTerrainMesh(m_Raw, terrainMesh);
+			LOG("Generated terrain mesh with %zu vertices and %zu triangles", terrainMesh.vertices.size(), terrainMesh.triangles.size() / 3);
+
+			const std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
+			if (Raw::WriteTerrainMeshToOBJ(terrainMesh, objFileName)) {
+				LOG("Exported terrain mesh to %s", objFileName.c_str());
+			}
+		}
 
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
 			BinaryIO::BinaryRead(file, m_NumberOfSceneTransitionsLoaded);
@@ -236,7 +284,8 @@ void Zone::LoadScene(std::istream& file) {
 	}
 	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.sceneType);
-		lwoSceneID.SetLayerID(scene.sceneType);
+		lwoSceneID.SetLayerID(static_cast<uint32_t>(scene.sceneType));
+
 
 		BinaryIO::ReadString<uint8_t>(file, scene.name, BinaryIO::ReadType::String);
 	}
@@ -247,9 +296,11 @@ void Zone::LoadScene(std::istream& file) {
 	}
 
 	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.color_r);
-		BinaryIO::BinaryRead(file, scene.color_b);
-		BinaryIO::BinaryRead(file, scene.color_g);
+		uint8_t r, b, g;
+		BinaryIO::BinaryRead(file, r);
+		BinaryIO::BinaryRead(file, b);
+		BinaryIO::BinaryRead(file, g);
+		scene.color = NiColor(r / 255.0f, g / 255.0f, b / 255.0f);
 	}
 
 	m_Scenes[lwoSceneID] = std::move(scene);
@@ -350,7 +401,10 @@ void Zone::LoadSceneTransition(std::istream& file) {
 
 SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 	SceneTransitionInfo info;
-	BinaryIO::BinaryRead(file, info.sceneID);
+	uint32_t sceneID, layerID;
+	BinaryIO::BinaryRead(file, sceneID);
+	BinaryIO::BinaryRead(file, layerID);
+	info.sceneID = LWOSCENEID(sceneID, layerID);
 	BinaryIO::BinaryRead(file, info.position);
 	return info;
 }
@@ -422,7 +476,6 @@ void Zone::LoadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, waypoint.position.y);
 		BinaryIO::BinaryRead(file, waypoint.position.z);
 
-
 		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
 			BinaryIO::BinaryRead(file, waypoint.rotation.w);
 			BinaryIO::BinaryRead(file, waypoint.rotation.x);
@@ -483,7 +536,7 @@ void Zone::LoadPath(std::istream& file) {
 		}
 
 		// We verify the waypoint heights against the navmesh because in many movement paths,
-		// the waypoint is located near 0 height, 
+		// the waypoint is located near 0 height,
 		if (path.pathType == PathType::Movement) {
 			if (dpWorld::IsLoaded()) {
 				// 2000 should be large enough for every world.
@@ -493,4 +546,10 @@ void Zone::LoadPath(std::istream& file) {
 		path.pathWaypoints.push_back(waypoint);
 	}
 	m_Paths.push_back(path);
+}
+
+const SceneRef* Zone::GetScene(LWOSCENEID sceneID) const {
+	auto it = m_Scenes.find(sceneID);
+	if (it != m_Scenes.end()) return &it->second;
+	return nullptr;
 }
