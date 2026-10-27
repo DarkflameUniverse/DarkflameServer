@@ -25,8 +25,10 @@ struct FlairAttributes {
 	uint8_t colorR;
 	uint8_t colorG;
 	uint8_t colorB;
-	uint8_t colorA;
+	// Padding: never set when a flair is placed, so it holds leftover memory; nothing reads it
+	uint8_t padding;
 };
+static_assert(sizeof(FlairAttributes) == 36, "a flair record in the .raw is 36 bytes");
 
 /**
  * @brief Mesh triangle structure

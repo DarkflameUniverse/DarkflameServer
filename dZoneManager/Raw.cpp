@@ -69,7 +69,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			BinaryIO::BinaryRead(stream, flair.colorR);
 			BinaryIO::BinaryRead(stream, flair.colorG);
 			BinaryIO::BinaryRead(stream, flair.colorB);
-			BinaryIO::BinaryRead(stream, flair.colorA);
+			BinaryIO::BinaryRead(stream, flair.padding);
 			return true;
 		} catch (const std::exception&) {
 			return false;

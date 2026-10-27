@@ -104,7 +104,7 @@ TEST_F(RawTest, ReadsEveryPartOfVersion32) {
 	EXPECT_EQ(flair.colorR, 10);
 	EXPECT_EQ(flair.colorG, 20);
 	EXPECT_EQ(flair.colorB, 30);
-	EXPECT_EQ(flair.colorA, 40);
+	EXPECT_EQ(flair.padding, 40);
 	EXPECT_TRUE(raw.chunks[2].flairs.empty());
 
 	EXPECT_EQ(chunk.vertSize, 4);

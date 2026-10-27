@@ -76,7 +76,7 @@ namespace TerrainTestWriter {
 			WriteBytes(stream, chunk.blendMapSize);
 		}
 
-		// Flair: id, scale, position, rotation, RGBA (36 bytes)
+		// Flair: id, scale, position, rotation, RGB, padding byte (36 bytes)
 		Write(stream, chunk.flairCount);
 		for (uint32_t i = 0; i < chunk.flairCount; ++i) {
 			Write<uint32_t>(stream, 500 + i);
