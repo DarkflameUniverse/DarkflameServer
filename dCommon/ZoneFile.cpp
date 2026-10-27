@@ -225,7 +225,7 @@ bool ZoneFile::ReadLdfConfig(std::istream& file, PathType pathType, PathWaypoint
 		std::string value;
 		BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
 
-		if (pathType == PathType::Movement || pathType == PathType::Rail) {
+		if (pathType != PathType::Spawner) {
 			// cause NetDevil puts spaces in things that don't need spaces
 			parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
 			auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
