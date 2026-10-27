@@ -280,5 +280,6 @@ private:
 	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);
 	void LoadSceneTransition(std::istream& file);
 	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);
-	void LoadPath(std::istream& file);
+	bool LoadPaths(std::istream& file);
+	bool LoadPath(std::istream& file);
 };
