@@ -1,6 +1,5 @@
 #include "DEVGMCommands.h"
 
-#include <algorithm>
 #include <ranges>
 
 // Classes
@@ -25,8 +24,6 @@
 
 // Database
 #include "Database.h"
-#include "CDClientManager.h"
-#include "CDBrickIDTableTable.h"
 #include "CDObjectsTable.h"
 #include "CDRewardCodesTable.h"
 #include "CDLootMatrixTable.h"
@@ -1894,19 +1891,6 @@ namespace DEVGMCommands {
 		}
 	}
 
-	// A different LEGO brick per scene so the scenes can be told apart, from the BrickIDTable (every brick's LOT)
-	static LOT GetScenePointLot(uint8_t sceneID) {
-		static const std::vector<LOT> brickLots = [] {
-			std::vector<LOT> lots;
-			for (const auto& brick : CDClientManager::GetTable<CDBrickIDTableTable>()->Query([](const CDBrickIDTable&) { return true; })) {
-				lots.push_back(brick.NDObjectID);
-			}
-			std::ranges::sort(lots);
-			return lots;
-		}();
-		return brickLots.empty() ? LOT_NULL : brickLots[sceneID % brickLots.size()];
-	}
-
 	void GetScene(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto position = entity->GetPosition();
 		
@@ -1964,171 +1948,23 @@ namespace DEVGMCommands {
 		// Get adjacent scenes
 		const auto adjacentSceneIDs = Game::zoneManager->GetAdjacentScenes(sceneID);
 		
-		if (adjacentSceneIDs.empty()) {
-			std::ostringstream feedback;
-			feedback << "Current Scene: " << sceneID.GetSceneID() << " (" << currentSceneName << ")";
-			feedback << " - No adjacent scenes found.";
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
-			return;
-		}
-		
-		// Build the feedback message with current scene
 		std::ostringstream feedback;
 		feedback << "Current Scene: " << sceneID.GetSceneID() << " (" << currentSceneName << ")";
-		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
-		
-		// List all adjacent scenes
-		feedback.str("");
-		feedback << "Adjacent Scenes (" << adjacentSceneIDs.size() << "):";
-		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
-		
-		for (const auto& adjSceneID : adjacentSceneIDs) {
-			feedback.str("");
-			feedback << "  - Scene ID: " << adjSceneID.GetSceneID();
-			feedback << " (Layer: " << adjSceneID.GetLayerID() << ")";
-			
-			// Get the scene name if available
-			const auto* sceneRef = zone->GetScene(adjSceneID);
-			if (sceneRef && !sceneRef->name.empty()) {
-				feedback << " - " << sceneRef->name;
-			}
-			
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
-		}
-	}
+		if (adjacentSceneIDs.empty()) {
+			feedback << " - No adjacent scenes found.";
+		} else {
+			feedback << "\nAdjacent Scenes (" << adjacentSceneIDs.size() << "):";
+			for (const auto& adjSceneID : adjacentSceneIDs) {
+				feedback << "\n  - Scene ID: " << adjSceneID.GetSceneID() << " (Layer: " << adjSceneID.GetLayerID() << ")";
 
-	void SpawnScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		// Spawn one brick every <step> heightmap points (default 8)
-		const auto parsedStep = GeneralUtils::TryParse<uint32_t>(args);
-		const uint32_t step = parsedStep && *parsedStep > 0 ? *parsedStep : 8;
-
-		// Get player's current position and scene
-		const auto position = entity->GetPosition();
-		const auto currentSceneID = Game::zoneManager->GetSceneIDFromPosition(position);
-		if (currentSceneID == LWOSCENEID_INVALID) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No scene found at current position.");
-			return;
-		}
-
-		// Get the zone
-		const auto* zone = Game::zoneManager->GetZone();
-		if (!zone) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
-			return;
-		}
-
-		// Get the Raw terrain data
-		const auto& raw = zone->GetZoneRaw();
-		if (raw.chunks.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain data.");
-			return;
-		}
-
-		uint32_t spawnedCount = 0;
-
-		for (const auto& chunk : raw.chunks) {
-			if (!chunk.IsValidForSceneLookup()) continue;
-
-			for (uint32_t i = 0; i < chunk.width; i += step) {
-				for (uint32_t j = 0; j < chunk.height; j += step) {
-					const uint8_t sceneID = chunk.GetSceneIDAtGrid(i, j);
-					if (sceneID != currentSceneID.GetSceneID()) continue;
-
-					EntityInfo info;
-					info.lot = GetScenePointLot(sceneID);
-					info.pos = chunk.GridToWorldPos(i, j);
-					info.rot = QuatUtils::IDENTITY;
-					info.spawner = nullptr;
-					info.spawnerID = entity->GetObjectID();
-					info.spawnerNodeID = 0;
-					info.settings.Insert(u"SpawnedFromSlashCommand", true);
-
-					Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-					if (newEntity != nullptr) {
-						Game::entityManager->ConstructEntity(newEntity);
-						spawnedCount++;
-					}
+				// Get the scene name if available
+				const auto* sceneRef = zone->GetScene(adjSceneID);
+				if (sceneRef && !sceneRef->name.empty()) {
+					feedback << " - " << sceneRef->name;
 				}
 			}
 		}
 
-		if (spawnedCount == 0) {
-			std::ostringstream feedback;
-			feedback << "No spawn points found in current scene (ID: " << currentSceneID.GetSceneID() << ").";
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
-			return;
-		}
-
-		// Send feedback
-		const auto* sceneRef = zone->GetScene(currentSceneID);
-		const std::string sceneName = sceneRef ? sceneRef->name : "Unknown";
-		std::ostringstream feedback;
-		feedback << "Spawned " << spawnedCount << " points (LOT " << GetScenePointLot(currentSceneID.GetSceneID()) << ") in scene "
-				 << currentSceneID.GetSceneID() << " (" << sceneName << ").";
-		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
-	}
-
-	void SpawnAllScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		// Spawn one brick every <step> heightmap points (default 8)
-		const auto parsedStep = GeneralUtils::TryParse<uint32_t>(args);
-		const uint32_t step = parsedStep && *parsedStep > 0 ? *parsedStep : 8;
-
-		// Get the zone
-		const auto* zone = Game::zoneManager->GetZone();
-		if (!zone) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
-			return;
-		}
-
-		// Get the Raw terrain data
-		const auto& raw = zone->GetZoneRaw();
-		if (raw.chunks.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain data.");
-			return;
-		}
-
-		uint32_t spawnedCount = 0;
-		std::map<uint8_t, uint32_t> sceneSpawnCounts;
-
-		for (const auto& chunk : raw.chunks) {
-			if (!chunk.IsValidForSceneLookup()) continue;
-
-			for (uint32_t i = 0; i < chunk.width; i += step) {
-				for (uint32_t j = 0; j < chunk.height; j += step) {
-					const uint8_t sceneID = chunk.GetSceneIDAtGrid(i, j);
-					if (sceneID == 0) continue;
-
-					EntityInfo info;
-					info.lot = GetScenePointLot(sceneID);
-					info.pos = chunk.GridToWorldPos(i, j);
-					info.rot = QuatUtils::IDENTITY;
-					info.spawner = nullptr;
-					info.spawnerID = entity->GetObjectID();
-					info.spawnerNodeID = 0;
-					info.settings.Insert(u"SpawnedFromSlashCommand", true);
-
-					Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-					if (newEntity != nullptr) {
-						Game::entityManager->ConstructEntity(newEntity);
-						spawnedCount++;
-						sceneSpawnCounts[sceneID]++;
-					}
-				}
-			}
-		}
-
-		// Send detailed feedback
-		std::ostringstream feedback;
-		feedback << "Spawned " << spawnedCount << " total points across "
-				 << sceneSpawnCounts.size() << " scenes:\n";
-		
-		for (const auto& [sceneID, count] : sceneSpawnCounts) {
-			const auto* sceneRef = zone->GetScene(LWOSCENEID(sceneID));
-			const std::string sceneName = sceneRef ? sceneRef->name : "Unknown";
-			feedback << "  Scene " << static_cast<int>(sceneID) << ", LOT: " << GetScenePointLot(sceneID) << " (" << sceneName << "): " << count << " points\n";
-		}
-		
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
 	}
 };
-

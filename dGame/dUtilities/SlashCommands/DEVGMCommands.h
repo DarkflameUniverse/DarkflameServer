@@ -79,8 +79,6 @@ namespace DEVGMCommands {
 	void Execute(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void GetScene(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void GetAdjacentScenes(Entity* entity, const SystemAddress& sysAddr, const std::string args);
-	void SpawnScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args);
-	void SpawnAllScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 
 #endif  //!DEVGMCOMMANDS_H

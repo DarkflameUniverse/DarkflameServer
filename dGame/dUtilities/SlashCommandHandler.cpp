@@ -835,23 +835,6 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GetAdjacentScenesCommand);
 
-	Command SpawnScenePointsCommand{
-		.help = "Spawn bricks at points across your current scene",
-		.info = "Spawns bricks across the player's current scene using terrain scene map data, one every <step> heightmap points (default 8). Usage: /spawnscenepoints (step)",
-		.aliases = { "spawnscenepoints" },
-		.handle = DEVGMCommands::SpawnScenePoints,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
-	};
-	RegisterCommand(SpawnScenePointsCommand);
-
-	Command SpawnAllScenePointsCommand{
-		.help = "Spawn bricks across all scenes in the zone",
-		.info = "Spawns bricks across every scene in the zone, one every <step> heightmap points (default 8; 1 = every point, a massive number of entities). Usage: /spawnallscenepoints (step)",
-		.aliases = { "spawnallscenepoints", "spawnallscenes" },
-		.handle = DEVGMCommands::SpawnAllScenePoints,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
-	};
-	RegisterCommand(SpawnAllScenePointsCommand);
 
 	// Register Greater Than Zero Commands
 

@@ -5,8 +5,6 @@
 #include <fstream>
 
 #include "AssetManager.h"
-#include "CDBrickIDTableTable.h"
-#include "CDComponentsRegistryTable.h"
 #include "CDZoneTableTable.h"
 #include "DEVGMCommands.h"
 #include "Entity.h"
@@ -230,41 +228,16 @@ TEST_F(ZoneSceneTest, UnreadableRawStillLoadsTheZone) {
 	EXPECT_EQ(Game::zoneManager->GetSceneIDFromPosition(NiPoint3(0.5f, 0.0f, 0.5f)), LWOSCENEID_INVALID);
 }
 
-TEST_F(ZoneSceneTest, ScenePointCommandsSpawnBricks) {
+TEST_F(ZoneSceneTest, SceneCommandsReport) {
 	WriteZone();
 	WriteFile("test.raw", MakeRaw());
 	LoadZone();
-
-	auto& bricks = CDClientManager::GetEntriesMutable<CDBrickIDTableTable>();
-	bricks = { { 40, 3005 }, { 33, 3001 }, { 35, 3003 } };
-	// the bricks have no components, so creating them needs no client database
-	for (const LOT lot : { 33, 35, 40 }) CDClientManager::GetEntriesMutable<CDComponentsRegistryTable>()[lot] = 0;
 
 	EntityInfo playerInfo = info;
 	playerInfo.pos = NiPoint3(0.5f, 0.0f, 0.5f); // scene 1
 	auto player = std::make_unique<Entity>(1, playerInfo);
 
-	// Grid point (i, j) is at (2i, 2j); its scene cell is (min(i, 1), min(j, 1)), so of the 9 points scene 1 has 5,
-	// scene 2 has 2 ((0, 1), (0, 2)) and scene 3 has 2 ((1, 0), (2, 0))
-	DEVGMCommands::SpawnScenePoints(player.get(), UNASSIGNED_SYSTEM_ADDRESS, "1");
-	// bricks sorted by LOT: 33, 35, 40; scene 1 -> 35, scene 2 -> 40, scene 3 -> 33
-	const auto sceneOne = Game::entityManager->GetEntitiesByLOT(35);
-	EXPECT_EQ(sceneOne.size(), 5);
-	for (const auto* brick : sceneOne) EXPECT_EQ(Game::zoneManager->GetSceneIDFromPosition(brick->GetPosition()), LWOSCENEID(1, 0));
-	EXPECT_TRUE(Game::entityManager->GetEntitiesByLOT(40).empty());
-
-	// the default step of 8 only samples point (0, 0)
-	DEVGMCommands::SpawnAllScenePoints(player.get(), UNASSIGNED_SYSTEM_ADDRESS, "");
-	EXPECT_EQ(Game::entityManager->GetEntitiesByLOT(35).size(), 5 + 1);
-	EXPECT_TRUE(Game::entityManager->GetEntitiesByLOT(40).empty());
-
-	DEVGMCommands::SpawnAllScenePoints(player.get(), UNASSIGNED_SYSTEM_ADDRESS, "1");
-	EXPECT_EQ(Game::entityManager->GetEntitiesByLOT(35).size(), 6 + 5);
-	EXPECT_EQ(Game::entityManager->GetEntitiesByLOT(40).size(), 2);
-	EXPECT_EQ(Game::entityManager->GetEntitiesByLOT(33).size(), 2);
-
-	// the scene commands only report; they must not fail with or without scene data
+	// the scene commands only report; they must not fail
 	DEVGMCommands::GetScene(player.get(), UNASSIGNED_SYSTEM_ADDRESS, "");
 	DEVGMCommands::GetAdjacentScenes(player.get(), UNASSIGNED_SYSTEM_ADDRESS, "");
-	bricks.clear();
 }
