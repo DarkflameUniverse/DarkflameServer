@@ -262,6 +262,13 @@ TEST_F(LevelTests, ReadsEveryPartOfAChunkedFile) {
 	EXPECT_EQ(technique.renderTechniques[1].valueCount, 4);
 	EXPECT_EQ(technique.renderTechniques[1].isColor, 1);
 	EXPECT_FLOAT_EQ(technique.renderTechniques[1].values[15], 15.0f);
+
+	ASSERT_EQ(level.GetParticles().size(), 2); // the client stops at the one without an effect
+	EXPECT_EQ(level.GetParticles()[0].priority, -2);
+	EXPECT_EQ(level.GetParticles()[0].effectNames, "fx1.psb;fx2.psb");
+	EXPECT_EQ(level.GetParticles()[0].config, "fxconfig=0:1");
+	EXPECT_FLOAT_EQ(level.GetParticles()[1].position.y, 5.0f);
+	EXPECT_TRUE(level.GetSounds().empty());
 }
 
 TEST_F(LevelTests, ReadsAFileFromBeforeChunks) {
@@ -278,10 +285,17 @@ TEST_F(LevelTests, ReadsAFileFromBeforeChunks) {
 	EXPECT_EQ(level.GetEditorColors().size(), 2);
 
 	ASSERT_EQ(level.GetObjects().size(), 1);
+
+	ASSERT_EQ(level.GetSounds().size(), 2);
+	EXPECT_FLOAT_EQ(level.GetSounds()[1].position.z, 13.0f);
+	EXPECT_EQ(level.GetSounds()[0].config.find(u"soundName")->second->GetValueAsString(), "birds");
+	ASSERT_EQ(level.GetParticles().size(), 1);
+	EXPECT_EQ(level.GetParticles()[0].priority, 0); // only from version 43
+	EXPECT_EQ(level.GetParticles()[0].unknown, 9);
 }
 
 // Older lighting: fog distances only before 39, no directional colour before 36, and before 33 a fixed spawn point
-TEST_F(LevelTests, ReadsOlderLighting) {
+TEST_F(LevelTests, ReadsOlderLightingAndSounds) {
 	const auto v32 = Read(WriteFlat(32));
 	EXPECT_EQ(v32.GetRevision(), 0);
 	EXPECT_FLOAT_EQ(v32.GetLighting().minDrawDistances.fogFar, 60.0f);
@@ -292,16 +306,25 @@ TEST_F(LevelTests, ReadsOlderLighting) {
 	EXPECT_FLOAT_EQ(v32.GetLighting().spawnPosition.x, 347.0f);
 	EXPECT_TRUE(v32.GetSkydome().extraFilenames[0].empty());
 	EXPECT_TRUE(v32.GetEditorColors().empty());
+	ASSERT_EQ(v32.GetSounds().size(), 2);
+	EXPECT_EQ(v32.GetSounds()[0].config.find(u"soundName")->second->GetValueAsString(), "birds");
 	ASSERT_EQ(v32.GetObjects().size(), 1);
 
 	const auto v30 = Read(WriteFlat(30));
 	EXPECT_FLOAT_EQ(v30.GetLighting().fogColor.m_Red, 0.75f); // the client's default
 	EXPECT_FLOAT_EQ(v30.GetLighting().spawnRotation.y, 0.23979919f);
 	EXPECT_EQ(v30.GetObjects().size(), 1);
+	EXPECT_EQ(v30.GetParticles().size(), 1);
 }
 
-// A file older than 3 has no objects, a newer one than 48 isn't read
+// Before version 44 a file may end before its particles; a file older than 3 has no objects, a newer one than 48
+// isn't read
 TEST_F(LevelTests, ReadsWhatTheClientReadsOfOtherFiles) {
+	const auto noParticles = Read(WriteFlat(43, false));
+	EXPECT_EQ(noParticles.GetObjects().size(), 1);
+	EXPECT_EQ(noParticles.GetSounds().size(), 2);
+	EXPECT_TRUE(noParticles.GetParticles().empty());
+
 	const auto old = Read(WriteFlat(2));
 	EXPECT_TRUE(old.HasLighting());
 	EXPECT_TRUE(old.GetObjects().empty());
