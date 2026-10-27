@@ -85,6 +85,51 @@ TEST_F(GameMessageTests, SendBlueprintLoadItemResponse) {
 	ASSERT_EQ(bitStream->GetNumberOfUnreadBits(), 0);
 }
 
+/**
+ * @brief PlaceModelResponse is laid out as the client's PlaceModelResponse::Deserialize (0x00dc0170) reads it: every
+ * field optional, the rotation a w, x, y, z quaternion
+ */
+TEST_F(GameMessageTests, SendPlaceModelResponse) {
+	const NiQuaternion rotation = NiQuaternion(0.5f, 0.1f, 0.2f, 0.3f); // w, x, y, z
+	GameMessages::SendPlaceModelResponse(77, UNASSIGNED_SYSTEM_ADDRESS, NiPoint3(1.0f, 2.0f, 3.0f), LWOOBJID_EMPTY, 14, rotation);
+	auto* bitStream = static_cast<dServerMock*>(Game::server)->GetMostRecentBitStream();
+	ASSERT_NE(bitStream, nullptr);
+	bitStream->IgnoreBits(64); // packet header
+
+	LWOOBJID objectId{};
+	MessageType::Game messageId{};
+	bitStream->Read(objectId);
+	bitStream->Read(messageId);
+	EXPECT_EQ(objectId, 77);
+	EXPECT_EQ(messageId, MessageType::Game::PLACE_MODEL_RESPONSE);
+
+	bool hasPosition{}, hasPlaque{}, hasResponse{}, hasRotation{};
+	NiPoint3 position{};
+	int32_t response{};
+	float w{}, x{}, y{}, z{};
+	bitStream->Read(hasPosition);
+	bitStream->Read(position);
+	bitStream->Read(hasPlaque);
+	bitStream->Read(hasResponse);
+	bitStream->Read(response);
+	bitStream->Read(hasRotation);
+	bitStream->Read(w);
+	bitStream->Read(x);
+	bitStream->Read(y);
+	bitStream->Read(z);
+	EXPECT_TRUE(hasPosition);
+	EXPECT_EQ(position, NiPoint3(1.0f, 2.0f, 3.0f));
+	EXPECT_FALSE(hasPlaque);
+	EXPECT_TRUE(hasResponse);
+	EXPECT_EQ(response, 14);
+	EXPECT_TRUE(hasRotation);
+	EXPECT_FLOAT_EQ(w, rotation.w);
+	EXPECT_FLOAT_EQ(x, rotation.x);
+	EXPECT_FLOAT_EQ(y, rotation.y);
+	EXPECT_FLOAT_EQ(z, rotation.z);
+	EXPECT_EQ(bitStream->GetNumberOfUnreadBits(), 0);
+}
+
 TEST_F(GameMessageTests, ControlBehaviorAddStrip) {
 	auto data = ReadFromFile("addStrip");
 	RakNet::BitStream inStream(reinterpret_cast<unsigned char*>(&data[0]), data.length(), true);

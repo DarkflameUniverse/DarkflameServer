@@ -2033,9 +2033,13 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 		bitStream.Write(response);
 	}
 
+	// The client's PlaceModelResponse::Deserialize (0x00dc0170) reads the rotation as a w, x, y, z quaternion
 	bitStream.Write(rotation != QuatUtils::IDENTITY);
 	if (rotation != QuatUtils::IDENTITY) {
-		bitStream.Write(response);
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
 	}
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
@@ -2150,6 +2154,10 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 		inStream.Read(character);
 		name.push_back(character);
 	}
+
+	// A model's name and description (the property editor's model info window,
+	// LWOPropertyEditorComponent::OnUpdateModelDescription 0x00cc42e0) aren't stored yet; they must not rename the property
+	if (!isProperty) return;
 
 	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(name), GeneralUtils::UTF16ToWTF8(description));
 }

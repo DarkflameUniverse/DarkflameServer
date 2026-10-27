@@ -17,12 +17,16 @@ class dZoneManager;
 class AssetManager;
 
 class dServerMock : public dServer {
-	RakNet::BitStream* sentBitStream = nullptr;
+	// A copy: the bitstreams sent are usually on the sender's stack
+	std::unique_ptr<RakNet::BitStream> sentBitStream;
 public:
 	dServerMock() {};
 	~dServerMock() {};
-	RakNet::BitStream* GetMostRecentBitStream() { return sentBitStream; };
-	void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) override { sentBitStream = &bitStream; };
+	RakNet::BitStream* GetMostRecentBitStream() { return sentBitStream.get(); };
+	void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) override {
+		sentBitStream = std::make_unique<RakNet::BitStream>(bitStream.GetData(), bitStream.GetNumberOfBytesUsed(), true);
+		sentBitStream->SetWriteOffset(bitStream.GetNumberOfBitsUsed());
+	};
 	void SetZoneId(unsigned int zoneId) { mZoneID = zoneId; }
 };
 

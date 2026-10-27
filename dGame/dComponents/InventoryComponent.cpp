@@ -1688,12 +1688,14 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 	if (groupUpdate.groupId.empty()) return;
 
-	if (groupUpdate.inventory != eInventoryType::BRICKS && groupUpdate.inventory != eInventoryType::MODELS) {
+	// The model vault shares the models' groups (the client's m_VaultToPlayerInventory: VAULT_MODELS -> MODELS)
+	const auto inventory = groupUpdate.inventory == eInventoryType::VAULT_MODELS ? eInventoryType::MODELS : groupUpdate.inventory;
+	if (inventory != eInventoryType::BRICKS && inventory != eInventoryType::MODELS) {
 		LOG("Invalid inventory type for grouping %s", StringifiedEnum::ToString(groupUpdate.inventory).data());
 		return;
 	}
 
-	auto& groups = m_Groups[groupUpdate.inventory];
+	auto& groups = m_Groups[inventory];
 	auto groupItr = std::ranges::find_if(groups, [&groupUpdate](const Group& group) {
 		return group.groupId == groupUpdate.groupId;
 		});
