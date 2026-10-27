@@ -192,7 +192,11 @@ void TestSQLDatabase::InsertNewMail(const MailInfo& mail) {
 
 }
 
-void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint64_t blueprintId, const uint32_t accountId, const LWOOBJID characterId) {
+void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint64_t blueprintId, const uint32_t accountId, const LWOOBJID characterId, const std::optional<LWOOBJID> unsplitId) {
+
+}
+
+void TestSQLDatabase::InsertUnsplitUgcModel(std::stringstream& sd0Data, const LWOOBJID id, const uint32_t accountId, const LWOOBJID characterId) {
 
 }
 

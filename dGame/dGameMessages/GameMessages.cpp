@@ -2538,6 +2538,12 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		outFile.close();
 	}
 
+	// Keep the save as the client sent it before splitting it; every model made from it points back to it
+	const auto accountId = entity->GetCharacter()->GetParentUser()->GetAccountID();
+	const LWOOBJID unsplitId = ObjectIDManager::GetPersistentID();
+	std::stringstream unsplitData(str);
+	Database::Get()->InsertUnsplitUgcModel(unsplitData, unsplitId, accountId, entity->GetCharacter()->GetID());
+
 	auto splitLxfmls = Lxfml::Split(asStr);
 	LOG_DEBUG("Split into %zu models", splitLxfmls.size());
 
@@ -2575,7 +2581,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		// Save each model to the database
 		sd0.FromData(reinterpret_cast<const uint8_t*>(splitLxfmls[i].lxfml.data()), splitLxfmls[i].lxfml.size());
 		auto sd0AsStream = sd0.GetAsStream();
-		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintID, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
+		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintID, accountId, entity->GetCharacter()->GetID(), unsplitId);
 
 		// Insert the new property model
 		IPropertyContents::Model model;
