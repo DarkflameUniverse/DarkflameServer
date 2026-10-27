@@ -71,6 +71,8 @@ void LevelFile::Read(std::istream& file) {
 		if (fileInfo.fileInfo.particleChunkStart != 0) {
 			const auto header = ReadChunkHeader(file, fileInfo.fileInfo.particleChunkStart);
 			chunkHeaders.insert({ header.id, header });
+			file.seekg(header.startPosition);
+			ReadParticles(file);
 		}
 		return;
 	}
@@ -98,6 +100,8 @@ void LevelFile::Read(std::istream& file) {
 	ReadSkydomeInfo(file);
 	ReadEditorSettings(file);
 	ReadSceneObjectDataChunk(file);
+	ReadSounds(file);
+	ReadParticles(file);
 }
 
 LevelFile::ChunkHeader LevelFile::ReadChunkHeader(std::istream& file, uint32_t start) {
@@ -245,5 +249,54 @@ void LevelFile::ReadSceneObjectDataChunk(std::istream& file) {
 		for (const auto& token : GeneralUtils::SplitString(config, '\n')) obj.settings.ParseInsert(token);
 
 		objects.push_back(std::move(obj));
+	}
+}
+
+void LevelFile::ReadSounds(std::istream& file) {
+	// SceneLoader::LoadSounds (0x0103c110), only in files from before chunks
+	if (version < 5) return;
+	uint32_t count = 0;
+	BinaryIO::BinaryRead(file, count);
+	for (uint32_t i = 0; i < count; ++i) {
+		LevelSound sound;
+		BinaryIO::BinaryRead(file, sound.position);
+		if (version < 35) {
+			// A 260 character name, up to its first null
+			std::u16string name(260, u'\0');
+			file.read(reinterpret_cast<char*>(name.data()), static_cast<std::streamsize>(name.size() * sizeof(char16_t)));
+			name.resize(std::min(name.find(u'\0'), name.size()));
+			sound.config.Insert<std::u16string>(u"soundName", name);
+		} else {
+			for (const auto& token : GeneralUtils::SplitString(ReadWideString32(file), '\n')) sound.config.ParseInsert(token);
+		}
+		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
+		sounds.push_back(std::move(sound));
+	}
+}
+
+void LevelFile::ReadParticles(std::istream& file) {
+	// SceneLoader::LoadParticles (0x01048320); before version 44 a file may end before them
+	if (version < 5) return;
+	if (version < 44 && file.peek() == std::char_traits<char>::eof()) {
+		file.clear();
+		return;
+	}
+
+	uint32_t count = 0;
+	BinaryIO::BinaryRead(file, count);
+	std::string config;
+	for (uint32_t i = 0; i < count; ++i) {
+		LevelParticle particle;
+		if (version >= 43) BinaryIO::BinaryRead(file, particle.priority);
+		BinaryIO::BinaryRead(file, particle.position);
+		BinaryIO::BinaryRead(file, particle.rotation);
+		particle.effectNames = ReadWideString32(file);
+		if (version < 46) BinaryIO::BinaryRead(file, particle.unknown);
+		else config = ReadWideString32(file);
+		particle.config = config;
+		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
+		// The client stops at a particle with no effect
+		if (particle.effectNames.empty()) break;
+		particles.push_back(std::move(particle));
 	}
 }

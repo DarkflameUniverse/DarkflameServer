@@ -79,9 +79,26 @@ struct LevelSkydome {
 	std::array<std::string, 5> extraFilenames;
 };
 
+// A sound placed in the scene (SceneLoader::LoadSounds, version 5 on). Only the level editor makes anything of them
+struct LevelSound {
+	NiPoint3 position;
+	LwoNameValue config; // before version 35 only a 260 character soundName
+};
+
+// A particle effect placed in the scene (SceneLoader::LoadParticles, version 5 on)
+struct LevelParticle {
+	int16_t priority{}; // version 43 on
+	NiPoint3 position;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
+	std::string effectNames; // separated by ';'
+	uint16_t unknown{}; // before version 46
+	// Version 46 on. The client keeps the last one it read for a particle without one
+	std::string config;
+};
+
 /**
  * A scene file (.lvl), read as the client reads it (SceneLoader::LoadLvlFile): its chunk headers, environment, every
- * object in it with the object's settings parsed. Only reads; which objects the world
+ * object in it with the object's settings parsed, its sounds and its particles. Only reads; which objects the world
  * spawns (feature gating, client-only objects, spawners) stays in dZoneManager, so the dashboard reads scenes with the
  * same code.
  */
@@ -131,6 +148,8 @@ struct LevelFile {
 	// Version 37 on: the editor's saved colours (the client keeps at most 32)
 	std::vector<NiColor> editorColors;
 	std::vector<SceneObject> objects;
+	std::vector<LevelSound> sounds;
+	std::vector<LevelParticle> particles;
 
 	/**
 	 * Reads the whole file. Throws std::runtime_error (BinaryIO) if it ends early; what was read before that stays
@@ -145,4 +164,6 @@ private:
 	void ReadSkydomeInfo(std::istream& file);
 	void ReadEditorSettings(std::istream& file);
 	void ReadSceneObjectDataChunk(std::istream& file);
+	void ReadSounds(std::istream& file);
+	void ReadParticles(std::istream& file);
 };
