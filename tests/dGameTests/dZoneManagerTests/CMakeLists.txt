@@ -1,5 +1,6 @@
 SET(DZONEMANAGER_TESTS
 	"RawTests.cpp"
+	"ZonePathTests.cpp"
 	"ZoneSceneTests.cpp")
 
 # Get the folder name and prepend it to the files above
