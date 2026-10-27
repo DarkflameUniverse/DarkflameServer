@@ -266,6 +266,32 @@ TEST(LevelTests, ReadsEveryPartOfAChunkedFile) {
 	EXPECT_TRUE(level.sounds.empty());
 }
 
+// LwoNameValue::FromString splits at commas and line breaks and leaves out entries without a '='; ReadLvlObjectData
+// adjusts some values as it loads the object
+TEST(LevelTests, ObjectConfigIsReadAndAdjustedAsTheClientDoes) {
+	const auto level = Read(WriteChunked(43));
+	ASSERT_EQ(level.objects.size(), 3);
+
+	const auto& spawner = level.objects[0].settings;
+	ASSERT_NE(spawner.find(u"blueprintid"), spawner.end());
+	EXPECT_EQ(spawner.find(u"blueprintid")->second->GetValueAsString(), "55");
+	EXPECT_EQ(spawner.find(u"DisableModelBehaviors")->second->GetValueAsString(), "1");
+	EXPECT_EQ(spawner.find(u"preventRenderWrapping")->second->GetValueAsString(), "1");
+	// A float respawn over 100 was milliseconds
+	EXPECT_EQ(spawner.find(u"respawn")->second->GetValueType(), LDF_TYPE_FLOAT);
+	EXPECT_FLOAT_EQ(static_cast<const LDFData<float>*>(spawner.find(u"respawn")->second.get())->GetValue(), 250.0f * 0.001f);
+
+	const auto& overridden = level.objects[2].settings;
+	EXPECT_EQ(overridden.values.size(), 2); // the entry without a '=' is left out
+	ASSERT_NE(overridden.find(u"sceneLayerIDOverride"), overridden.end());
+	EXPECT_EQ(overridden.find(u"sceneLayerIDOverride")->second->GetValueAsString(), "0");
+
+	// From version 47 a respawn is in seconds already, and from 44 the scene override stays
+	const auto newer = Read(WriteChunked(47));
+	EXPECT_FLOAT_EQ(static_cast<const LDFData<float>*>(newer.objects[0].settings.find(u"respawn")->second.get())->GetValue(), 250.0f);
+	EXPECT_EQ(newer.objects[2].settings.find(u"sceneLayerIDOverride"), newer.objects[2].settings.end());
+}
+
 TEST(LevelTests, ReadsAFileFromBeforeChunks) {
 	const auto level = Read(WriteFlat(40));
 	EXPECT_EQ(level.version, 40);
@@ -280,6 +306,10 @@ TEST(LevelTests, ReadsAFileFromBeforeChunks) {
 	EXPECT_EQ(level.editorColors.size(), 2);
 
 	ASSERT_EQ(level.objects.size(), 1);
+	// Before version 47 a u32 respawn is milliseconds; it becomes seconds
+	const auto& respawn = level.objects[0].settings.find(u"respawn")->second;
+	EXPECT_EQ(respawn->GetValueType(), LDF_TYPE_FLOAT);
+	EXPECT_FLOAT_EQ(static_cast<const LDFData<float>*>(respawn.get())->GetValue(), 20.0f);
 
 	ASSERT_EQ(level.sounds.size(), 2);
 	EXPECT_FLOAT_EQ(level.sounds[1].position.z, 13.0f);
