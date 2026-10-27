@@ -98,6 +98,9 @@ struct Chunk {
 
 	// The scene map is colorMapResolution * colorMapResolution scene IDs, indexed [x cell * resolution + z cell]
 	std::vector<uint8_t> sceneMap;
+	// Version 31 and older: the file's (colorMapResolution + 1)^2 scene map. In version 31 sceneMap is its first
+	// colorMapResolution rows and columns; older versions don't use it and every cell is scene 0
+	std::vector<uint8_t> sceneMapLegacy;
 
 	// Mesh data (version 32+)
 	uint32_t vertSize = 0;

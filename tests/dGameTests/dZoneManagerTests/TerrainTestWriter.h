@@ -33,7 +33,7 @@ namespace TerrainTestWriter {
 		float scale = 1.0f;
 		// Version 32+: the color map resolution; older versions use width - 1
 		uint32_t colorMapResolution = 2;
-		// colorMapResolution^2 scene IDs ((resolution + 1)^2 for version 31); empty = all 0
+		// colorMapResolution^2 scene IDs ((resolution + 1)^2 for version 31 and older); empty = all 0
 		std::vector<uint8_t> sceneMap;
 		// width * height heights; empty = the point index
 		std::vector<float> heights;
@@ -86,12 +86,9 @@ namespace TerrainTestWriter {
 			for (const uint8_t channel : { 10, 20, 30, 40 }) Write(stream, channel);
 		}
 
-		if (version >= 31) {
-			const size_t cells = version >= 32 ? static_cast<size_t>(resolution) * resolution : static_cast<size_t>(resolution + 1) * (resolution + 1);
-			for (size_t i = 0; i < cells; ++i) Write<uint8_t>(stream, chunk.sceneMap.empty() ? 0 : chunk.sceneMap[i]);
-		} else {
-			Write<uint8_t>(stream, 0);
-		}
+		// version 31 and older: one more row and column
+		const size_t cells = version >= 32 ? static_cast<size_t>(resolution) * resolution : static_cast<size_t>(resolution + 1) * (resolution + 1);
+		for (size_t i = 0; i < cells; ++i) Write<uint8_t>(stream, chunk.sceneMap.empty() ? 0 : chunk.sceneMap[i]);
 
 		if (version < 32) return;
 		Write(stream, chunk.vertSize);

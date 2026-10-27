@@ -173,6 +173,7 @@ TEST_F(RawTest, ReadsVersion31SceneMapWithoutTheLastRowAndColumn) {
 	ASSERT_EQ(raw.chunks.size(), 1);
 	EXPECT_EQ(raw.chunks[0].colorMapResolution, 2);
 	EXPECT_EQ(raw.chunks[0].sceneMap, (std::vector<uint8_t>{ 1, 2, 3, 4 }));
+	EXPECT_EQ(raw.chunks[0].sceneMapLegacy, chunk.sceneMap);
 	EXPECT_EQ(raw.chunks[0].shaderId, 77);
 	EXPECT_EQ(raw.chunks[0].textureIds, (std::vector<uint32_t>{ 100, 101, 102, 103 }));
 	EXPECT_EQ(raw.chunks[0].colorMap.size(), 3 * 3 * 4); // width^2 pixels
@@ -182,8 +183,12 @@ TEST_F(RawTest, ReadsVersion31SceneMapWithoutTheLastRowAndColumn) {
 	EXPECT_TRUE(raw.chunks[0].meshTri.empty());
 }
 
-TEST_F(RawTest, ReadsVersion30WithoutASceneMap) {
+TEST_F(RawTest, Version30SceneMapIsReadButEveryCellIsSceneZero) {
 	TestChunk chunk;
+	chunk.width = 3;
+	chunk.height = 3;
+	// resolution is width - 1 = 2; the file has a 3x3 scene map the client doesn't use
+	chunk.sceneMap = { 7, 7, 7, 7, 7, 7, 7, 7, 7 };
 	const auto data = WriteRaw({ chunk, chunk }, 30, 1, 2);
 
 	std::istringstream stream(data);
@@ -191,9 +196,10 @@ TEST_F(RawTest, ReadsVersion30WithoutASceneMap) {
 	ASSERT_TRUE(Raw::ReadRaw(stream, raw));
 	EXPECT_EQ(stream.tellg(), static_cast<std::streamoff>(data.size()));
 	ASSERT_EQ(raw.chunks.size(), 2);
-	EXPECT_TRUE(raw.chunks[1].sceneMap.empty());
-	EXPECT_FALSE(raw.chunks[1].IsValidForSceneLookup());
-	EXPECT_EQ(raw.GetSceneIDAt(0.5f, 0.5f), std::nullopt);
+	EXPECT_EQ(raw.chunks[1].sceneMapLegacy, chunk.sceneMap);
+	EXPECT_EQ(raw.chunks[1].sceneMap, (std::vector<uint8_t>{ 0, 0, 0, 0 }));
+	EXPECT_TRUE(raw.chunks[1].IsValidForSceneLookup());
+	EXPECT_EQ(raw.GetSceneIDAt(0.5f, 0.5f), 0);
 }
 
 TEST_F(RawTest, DevFileHasNoChunks) {

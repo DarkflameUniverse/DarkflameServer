@@ -41,19 +41,6 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 }
 
 	/**
-	 * @brief Skip bytes, such as the byte version 30 and older files have in place of a scene map
-	 */
-	static bool Skip(std::istream& stream, size_t bytes) {
-		if (bytes > kMaxBlobBytes) {
-			LOG("Raw block of %zu bytes exceeds maximum %zu bytes", bytes, kMaxBlobBytes);
-			return false;
-		}
-		// ignore, not seekg: the asset streams don't stop a seek at the end of the data
-		stream.ignore(static_cast<std::streamsize>(bytes));
-		return static_cast<size_t>(stream.gcount()) == bytes && !stream.fail();
-	}
-
-	/**
 	 * @brief Read flair attributes from stream
 	 */
 	static bool ReadFlairAttributes(std::istream& stream, FlairAttributes& flair) {
@@ -295,22 +282,23 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				}
 				chunk.sceneMap.resize(sceneMapSize);
 				stream.read(reinterpret_cast<char*>(chunk.sceneMap.data()), static_cast<std::streamsize>(sceneMapSize));
-			} else if (version == 31) {
+			} else {
 				const size_t sceneMapCells = static_cast<size_t>(chunk.colorMapResolution + 1) * (chunk.colorMapResolution + 1);
 				if (sceneMapCells > kMaxBlobBytes) {
-					LOG("Chunk v31 sceneMap size %zu exceeds maximum %zu bytes", sceneMapCells, kMaxBlobBytes);
+					LOG("Chunk legacy sceneMap size %zu exceeds maximum %zu bytes", sceneMapCells, kMaxBlobBytes);
 					return false;
 				}
-				std::vector<uint8_t> rawSceneMap(sceneMapCells);
-				stream.read(reinterpret_cast<char*>(rawSceneMap.data()), static_cast<std::streamsize>(sceneMapCells));
-				chunk.sceneMap.resize(static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution);
-				for (uint32_t row = 0; row < chunk.colorMapResolution; ++row) {
-					for (uint32_t col = 0; col < chunk.colorMapResolution; ++col) {
-						chunk.sceneMap[row * chunk.colorMapResolution + col] = rawSceneMap[row * (chunk.colorMapResolution + 1) + col];
+				chunk.sceneMapLegacy.resize(sceneMapCells);
+				stream.read(reinterpret_cast<char*>(chunk.sceneMapLegacy.data()), static_cast<std::streamsize>(sceneMapCells));
+				// Like the client: version 31 uses the first colorMapResolution rows and columns, older versions are all scene 0
+				chunk.sceneMap.assign(static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution, 0);
+				if (version == 31) {
+					for (uint32_t row = 0; row < chunk.colorMapResolution; ++row) {
+						for (uint32_t col = 0; col < chunk.colorMapResolution; ++col) {
+							chunk.sceneMap[row * chunk.colorMapResolution + col] = chunk.sceneMapLegacy[row * (chunk.colorMapResolution + 1) + col];
+						}
 					}
 				}
-			} else if (!Skip(stream, 1)) {
-				return false;
 			}
 
 			if (stream.fail()) {
