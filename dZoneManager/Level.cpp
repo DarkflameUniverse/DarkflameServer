@@ -20,6 +20,7 @@
 #include "PhysicsComponent.h"
 #include "dConfig.h"
 #include <ranges>
+#include <stdexcept>
 
 Level::Level(Zone* parentZone, const std::string& filepath, int32_t sceneID) {
 	m_ParentZone = parentZone;
@@ -35,7 +36,12 @@ Level::Level(Zone* parentZone, const std::string& filepath, int32_t sceneID) {
 	
 	// The file itself is read by LevelFile (dCommon), which the dashboard uses too
 	LevelFile levelFile;
-	levelFile.Read(stream);
+	try {
+		levelFile.Read(stream);
+	} catch (const std::runtime_error&) {
+		// The client reads past the end of such a file; what was read before it is kept
+		LOG("%s ends early; loading the %zu objects read before its end", filepath.c_str(), levelFile.objects.size());
+	}
 	for (const auto& [id, chunkHeader] : levelFile.chunkHeaders) {
 		Header header;
 		static_cast<LevelFile::ChunkHeader&>(header) = chunkHeader;
