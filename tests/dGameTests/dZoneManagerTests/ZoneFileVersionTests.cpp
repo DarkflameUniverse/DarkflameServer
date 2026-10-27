@@ -5,12 +5,18 @@
 #include <sstream>
 
 #include "AssetManager.h"
+#include "CDSceneTableTable.h"
 #include "CDZoneTableTable.h"
 #include "Zone.h"
 #include "dZoneManager.h"
 
 // The zone table's storage (CDZoneTableTable.cpp), to add the test zone
 namespace CDZoneTableTable {
+	extern Table entries;
+}
+
+// The scene table's storage (CDSceneTableTable.cpp), to add the scenes of the oldest zone files
+namespace CDSceneTableTable {
 	extern Table entries;
 }
 
@@ -93,11 +99,10 @@ protected:
 		TearDownDependencies();
 	}
 
-	Zone* LoadZone(const std::string& data, Zone::SceneTableLookup lookup = nullptr) const {
+	Zone* LoadZone(const std::string& data) const {
 		std::ofstream(root / "res" / "maps" / "testzone" / "test.luz", std::ios::binary).write(data.data(), data.size());
 		Game::zoneManager->LoadZone(LWOZONEID(TEST_MAP, 0, 0));
 		Zone* zone = Game::zoneManager->GetZoneMut();
-		if (lookup) zone->SetSceneTableLookup(std::move(lookup));
 		zone->LoadZoneIntoMemory();
 		return zone;
 	}
@@ -144,11 +149,9 @@ TEST_F(ZoneFileVersionTest, OldestScenesComeFromTheSceneTable) {
 		Write<uint8_t>(stream, 0); // boundary lines
 		WriteString8(stream, "test.raw");
 		Write<uint16_t>(stream, 0); // trailing bytes: older readers read a name and description here
-		const Zone* zone = LoadZone(stream.str(), [](uint32_t sceneTableID) -> std::optional<std::string> {
-			if (sceneTableID == 3) return "three.lvl";
-			if (sceneTableID == 7) return "seven.lvl";
-			return std::nullopt;
-		});
+		CDSceneTableTable::entries = { { 3, { 3, "three.lvl" } }, { 7, { 7, "seven.lvl" } } };
+		const Zone* zone = LoadZone(stream.str());
+		CDSceneTableTable::entries.clear();
 
 		const std::vector<std::pair<LWOSCENEID, std::string>> expected = { { LWOSCENEID(0, 0), "three.lvl" }, { LWOSCENEID(1, 0), "seven.lvl" } };
 		EXPECT_EQ(Scenes(zone), expected) << version;

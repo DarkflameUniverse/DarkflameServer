@@ -7,8 +7,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <functional>
-#include <optional>
 #include "Raw.h"
 
 namespace LUTriggers {
@@ -235,10 +233,6 @@ public:
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID) const;
 	const Path* GetPath(std::string name) const;
 
-	// The CDClient SceneTable's sceneName for a scene of a file from before PrePreAlpha; the database's by default
-	using SceneTableLookup = std::function<std::optional<std::string>(uint32_t sceneTableID)>;
-	void SetSceneTableLookup(SceneTableLookup lookup) { m_SceneTableLookup = std::move(lookup); }
-
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
 	std::string GetZoneRawPath() const { return m_ZoneRawPath; }
@@ -284,7 +278,6 @@ private:
 
 	std::map<LWOSCENEID, uint32_t> m_MapRevisions; //rhs is the revision!
 	//private ("helper") functions:
-	SceneTableLookup m_SceneTableLookup;
 	void LoadScene(std::istream& file, uint32_t index);
 	void KeepLoadedScenes();
 	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);

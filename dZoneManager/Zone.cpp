@@ -11,8 +11,8 @@
 #include "dConfig.h"
 
 #include "AssetManager.h"
-#include "CDClientDatabase.h"
 #include "CDClientManager.h"
+#include "CDSceneTableTable.h"
 #include "CDZoneTableTable.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
@@ -31,13 +31,6 @@ Zone::Zone(const LWOZONEID zoneID) :
 	m_CheckSum = 0;
 	m_WorldID = 0;
 	m_SceneCount = 0;
-	m_SceneTableLookup = [](uint32_t sceneTableID) -> std::optional<std::string> {
-		auto query = CDClientDatabase::CreatePreppedStmt("SELECT sceneName FROM SceneTable WHERE sceneID = ?;");
-		query.bind(1, static_cast<int32_t>(sceneTableID));
-		auto result = query.execQuery();
-		if (result.eof() || result.fieldIsNull("sceneName")) return std::nullopt;
-		return std::string(result.getStringField("sceneName"));
-	};
 }
 
 Zone::~Zone() {
@@ -332,11 +325,11 @@ void Zone::KeepLoadedScenes() {
 		std::map<LWOSCENEID, SceneRef> resolved;
 		uint32_t index = 0;
 		for (auto& scene : m_Scenes | std::views::values) {
-			const auto sceneName = m_SceneTableLookup(scene.sceneTableID);
-			if (!sceneName) continue;
+			const auto* sceneTableEntry = CDSceneTableTable::Query(scene.sceneTableID);
+			if (!sceneTableEntry) continue;
 			scene.id = index < 256 ? index : UINT32_MAX;
-			scene.filename = *sceneName;
-			scene.name = *sceneName;
+			scene.filename = sceneTableEntry->sceneName;
+			scene.name = sceneTableEntry->sceneName;
 			const std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
 			if (Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) LoadLUTriggers(luTriggersPath, scene);
 			resolved[LWOSCENEID(scene.id, 0)] = std::move(scene);
