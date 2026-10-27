@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
+#include <optional>
 #include "Raw.h"
 
 namespace LUTriggers {
@@ -31,6 +33,7 @@ enum class eSceneType : uint32_t {
 struct SceneRef {
 	std::string filename;
 	uint32_t id{};
+	uint32_t sceneTableID{}; // before PrePreAlpha: the scene's row in the CDClient SceneTable
 	eSceneType sceneType{};
 	std::string name;
 	NiPoint3 unknown1;
@@ -204,6 +207,7 @@ struct Path {
 class Zone {
 public:
 	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		Oldest = 20, // the client reads anything older as this
 		PrePreAlpha = 30,
 		PreAlpha = 32,
 		LatePreAlpha = 33,
@@ -230,6 +234,10 @@ public:
 	const uint32_t GetChecksum() const { return m_CheckSum; }
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID) const;
 	const Path* GetPath(std::string name) const;
+
+	// The CDClient SceneTable's sceneName for a scene of a file from before PrePreAlpha; the database's by default
+	using SceneTableLookup = std::function<std::optional<std::string>(uint32_t sceneTableID)>;
+	void SetSceneTableLookup(SceneTableLookup lookup) { m_SceneTableLookup = std::move(lookup); }
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
@@ -276,7 +284,9 @@ private:
 
 	std::map<LWOSCENEID, uint32_t> m_MapRevisions; //rhs is the revision!
 	//private ("helper") functions:
-	void LoadScene(std::istream& file);
+	SceneTableLookup m_SceneTableLookup;
+	void LoadScene(std::istream& file, uint32_t index);
+	void KeepLoadedScenes();
 	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);
 	void LoadSceneTransition(std::istream& file);
 	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);

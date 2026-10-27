@@ -11,6 +11,7 @@
 #include "dConfig.h"
 
 #include "AssetManager.h"
+#include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
 #include "Spawner.h"
@@ -30,6 +31,13 @@ Zone::Zone(const LWOZONEID zoneID) :
 	m_CheckSum = 0;
 	m_WorldID = 0;
 	m_SceneCount = 0;
+	m_SceneTableLookup = [](uint32_t sceneTableID) -> std::optional<std::string> {
+		auto query = CDClientDatabase::CreatePreppedStmt("SELECT sceneName FROM SceneTable WHERE sceneID = ?;");
+		query.bind(1, static_cast<int32_t>(sceneTableID));
+		auto result = query.execQuery();
+		if (result.eof() || result.fieldIsNull("sceneName")) return std::nullopt;
+		return std::string(result.getStringField("sceneName"));
+	};
 }
 
 Zone::~Zone() {
@@ -56,6 +64,8 @@ void Zone::LoadZoneIntoMemory() {
 
 	if (file) {
 		BinaryIO::BinaryRead(file, m_FileFormatVersion);
+		// The client reads anything older than 20 as 20 (LuzFile::ReadLUZFile)
+		if (m_FileFormatVersion < Zone::FileFormatVersion::Oldest) m_FileFormatVersion = Zone::FileFormatVersion::Oldest;
 
 		uint32_t mapRevision = 0;
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
@@ -78,8 +88,9 @@ void Zone::LoadZoneIntoMemory() {
 		} else BinaryIO::BinaryRead(file, m_SceneCount);
 
 		for (uint32_t i = 0; i < m_SceneCount; ++i) {
-			LoadScene(file);
+			LoadScene(file, i);
 		}
+		KeepLoadedScenes();
 
 		// Zone boundary lines: a count byte, then the lines
 		uint8_t numBoundaries = 0;
@@ -268,21 +279,29 @@ void Zone::AddRevision(LWOSCENEID sceneID, uint32_t revision) {
 	}
 }
 
-void Zone::LoadScene(std::istream& file) {
+void Zone::LoadScene(std::istream& file, uint32_t index) {
 	SceneRef scene;
 	scene.level = nullptr;
-	LWOSCENEID lwoSceneID(LWOZONEID_INVALID, 0);
+
+	// Before PrePreAlpha a scene is only its SceneTable ID; KeepLoadedScenes finds its file (LuzReader::ReadScenes)
+	if (m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.sceneTableID);
+		scene.id = scene.sceneTableID;
+		m_Scenes[LWOSCENEID(scene.id, 0)] = std::move(scene);
+		return;
+	}
 
 	BinaryIO::ReadString<uint8_t>(file, scene.filename, BinaryIO::ReadType::String);
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
 	if (Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) LoadLUTriggers(luTriggersPath, scene);
 
-	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+	// Until LatePreAlpha the file has no scene IDs: a scene's ID is its index (-1 past 255) in the file
+	scene.id = index < 256 ? index : UINT32_MAX;
+	LWOSCENEID lwoSceneID(scene.id, 0);
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.id);
 		lwoSceneID.SetSceneID(scene.id);
-	}
-	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.sceneType);
 		lwoSceneID.SetLayerID(static_cast<uint32_t>(scene.sceneType));
 
@@ -304,6 +323,37 @@ void Zone::LoadScene(std::istream& file) {
 	}
 
 	m_Scenes[lwoSceneID] = std::move(scene);
+}
+
+void Zone::KeepLoadedScenes() {
+	if (m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+		// ZoneLoader::ReadZoneFile: the scenes go by their SceneTable ID; each one with a row there gets the next index
+		// (0, 1, ...; -1 past 255) as its ID and the row's sceneName as its file, the others are left out
+		std::map<LWOSCENEID, SceneRef> resolved;
+		uint32_t index = 0;
+		for (auto& scene : m_Scenes | std::views::values) {
+			const auto sceneName = m_SceneTableLookup(scene.sceneTableID);
+			if (!sceneName) continue;
+			scene.id = index < 256 ? index : UINT32_MAX;
+			scene.filename = *sceneName;
+			scene.name = *sceneName;
+			const std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
+			if (Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) LoadLUTriggers(luTriggersPath, scene);
+			resolved[LWOSCENEID(scene.id, 0)] = std::move(scene);
+			index++;
+		}
+		m_Scenes = std::move(resolved);
+		return;
+	}
+
+	// LuzReader::ReadScenes keeps the scenes by scene ID and layer, a later one replacing an earlier one (as m_Scenes
+	// does). ZoneLoader::ReadZoneFile then goes through them by scene ID: a scene ID with no layer 0 (General) scene is
+	// left out, and before Latest only the layer 0 scene is loaded
+	std::erase_if(m_Scenes, [this](const auto& entry) {
+		const auto& [sceneID, scene] = entry;
+		if (!m_Scenes.contains(LWOSCENEID(sceneID.GetSceneID(), 0))) return true;
+		return sceneID.GetLayerID() != 0 && m_FileFormatVersion < Zone::FileFormatVersion::Latest;
+	});
 }
 
 void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
