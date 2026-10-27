@@ -7,6 +7,8 @@
 #include "ZoneScenes.h"
 #include "tinyxml2.h"
 #include <string>
+#include <functional>
+#include <optional>
 #include <vector>
 #include <map>
 #include "Raw.h"
@@ -41,6 +43,10 @@ public:
 	const uint32_t GetChecksum() const { return m_CheckSum; }
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID) const;
 	const Path* GetPath(std::string name) const;
+
+	// The CDClient SceneTable's sceneName for a scene of a file from before PrePreAlpha; the database's by default
+	using SceneTableLookup = std::function<std::optional<std::string>(uint32_t sceneTableID)>;
+	void SetSceneTableLookup(SceneTableLookup lookup) { m_SceneTableLookup = std::move(lookup); }
 	const std::vector<Path>& GetPaths() const { return m_Paths; }
 	// A path that isn't in the zone's files (tests); earlier GetPath pointers may move
 	void AddPath(Path path) { m_Paths.push_back(std::move(path)); }
@@ -97,6 +103,7 @@ private:
 	std::vector<Path> m_Paths;
 
 	std::map<LWOSCENEID, uint32_t> m_MapRevisions; //rhs is the revision!
+	SceneTableLookup m_SceneTableLookup;
 	//private ("helper") functions:
 	void LoadScene(ZoneScene&& zoneScene);
 	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);

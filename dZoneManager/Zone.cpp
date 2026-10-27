@@ -32,6 +32,13 @@ Zone::Zone(const LWOZONEID zoneID) :
 	m_CheckSum = 0;
 	m_WorldID = 0;
 	m_SceneCount = 0;
+	m_SceneTableLookup = [](uint32_t sceneTableID) -> std::optional<std::string> {
+		auto query = CDClientDatabase::CreatePreppedStmt("SELECT sceneName FROM SceneTable WHERE sceneID = ?;");
+		query.bind(1, static_cast<int32_t>(sceneTableID));
+		auto result = query.execQuery();
+		if (result.eof() || result.fieldIsNull("sceneName")) return std::nullopt;
+		return std::string(result.getStringField("sceneName"));
+	};
 }
 
 Zone::~Zone() {
@@ -63,13 +70,7 @@ void Zone::LoadZoneIntoMemory() {
 		ZoneFile zoneFile;
 		zoneFile.Read(file);
 		// The oldest files name their scenes by SceneTable ID
-		zoneFile.ResolveSceneTable([](uint32_t sceneTableID) -> std::optional<std::string> {
-			auto query = CDClientDatabase::CreatePreppedStmt("SELECT sceneName FROM SceneTable WHERE sceneID = ?;");
-			query.bind(1, static_cast<int32_t>(sceneTableID));
-			auto result = query.execQuery();
-			if (result.eof() || result.fieldIsNull("sceneName")) return std::nullopt;
-			return std::string(result.getStringField("sceneName"));
-		});
+		zoneFile.ResolveSceneTable(m_SceneTableLookup);
 		m_FileFormatVersion = zoneFile.fileFormatVersion;
 		m_WorldID = zoneFile.worldID;
 		if (static_cast<LWOMAPID>(m_WorldID) != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());

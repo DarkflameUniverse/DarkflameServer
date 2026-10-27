@@ -1,5 +1,6 @@
 SET(DZONEMANAGER_TESTS
 	"RawTests.cpp"
+	"ZoneFileVersionTests.cpp"
 	"ZonePathTests.cpp"
 	"ZoneSceneTests.cpp")
 
