@@ -121,39 +121,13 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				return false;
 			}
 
-			// Read heightmap
-			const size_t width = static_cast<size_t>(chunk.width);
-			const size_t height = static_cast<size_t>(chunk.height);
-
-			if (width == 0 || height == 0) {
-				LOG("Chunk %u has invalid heightmap dimensions: width=%zu, height=%zu", chunk.id, width, height);
+			// Read heightmap: width * height floats, at most kMaxResolution^2 (64 MiB)
+			if (chunk.width == 0 || chunk.height == 0 || chunk.width > kMaxResolution || chunk.height > kMaxResolution) {
+				LOG("Chunk %u has invalid heightmap dimensions: width=%u, height=%u (max %u)", chunk.id, chunk.width, chunk.height, kMaxResolution);
 				return false;
 			}
 
-			if (width > kMaxResolution || height > kMaxResolution) {
-				LOG("Chunk %u heightmap dimensions exceed maximum resolution %u: width=%zu, height=%zu", chunk.id, kMaxResolution, width, height);
-				return false;
-			}
-
-			if (height != 0 && width > std::numeric_limits<size_t>::max() / height) {
-				LOG("Chunk %u heightmap size multiplication overflows: width=%zu, height=%zu", chunk.id, width, height);
-				return false;
-			}
-
-			const size_t heightMapSize = width * height;
-			const size_t elementSize = sizeof(chunk.heightMap[0]);
-
-			if (elementSize != 0 && heightMapSize > std::numeric_limits<size_t>::max() / elementSize) {
-				LOG("Chunk %u heightmap byte size overflows: elements=%zu, elementSize=%zu", chunk.id, heightMapSize, elementSize);
-				return false;
-			}
-
-			const size_t totalBytes = heightMapSize * elementSize;
-			if (totalBytes == 0 || totalBytes > kMaxBlobBytes) {
-				LOG("Chunk %u heightmap total size invalid: bytes=%zu (max %zu)", chunk.id, totalBytes, kMaxBlobBytes);
-				return false;
-			}
-
+			const size_t heightMapSize = static_cast<size_t>(chunk.width) * chunk.height;
 			chunk.heightMap.resize(heightMapSize);
 			for (size_t i = 0; i < heightMapSize; ++i) {
 				BinaryIO::BinaryRead(stream, chunk.heightMap[i]);
