@@ -45,6 +45,15 @@ struct SceneTransitionInfo {
 	NiPoint3 position;
 };
 
+// A zone boundary line from the .luz
+struct ZoneBoundary {
+	NiPoint3 normal;
+	NiPoint3 point;
+	LWOZONEID destinationZone; // the clone ID is always 0
+	uint32_t destinationSceneID{};
+	NiPoint3 spawnLocation;
+};
+
 struct SceneTransition {
 	std::string name;
 	std::vector<SceneTransitionInfo> points;
@@ -236,6 +245,7 @@ public:
 	const Raw::Raw& GetZoneRaw() const { return m_Raw; }
 	const SceneRef* GetScene(LWOSCENEID sceneID) const;
 	const std::vector<SceneTransition>& GetSceneTransitions() const { return m_SceneTransitions; }
+	const std::vector<ZoneBoundary>& GetBoundaries() const { return m_Boundaries; }
 	const std::map<LWOSCENEID, SceneRef>& GetScenes() const { return m_Scenes; }
 
 private:
@@ -258,6 +268,7 @@ private:
 
 	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
+	std::vector<ZoneBoundary> m_Boundaries;
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;

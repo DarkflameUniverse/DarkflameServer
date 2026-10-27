@@ -54,7 +54,7 @@ protected:
 	}
 
 	// Scenes 0 (global), 1, 2 and 3 (general) and 5 (audio, layer 1); transitions 1 <-> 2 and 2 <-> 3
-	void WriteZone(const std::string& rawName = "test.raw", uint8_t boundaryCount = 2) const {
+	void WriteZone(const std::string& rawName = "test.raw", uint8_t boundaryCount = 2, uint32_t version = 41) const {
 		const std::vector<TestScene> scenes = {
 			{ "global.lvl", 0, 0, "Global", 10, 20, 30 },
 			{ "one.lvl", 1, 0, "Scene One", 255, 0, 0 },
@@ -65,7 +65,7 @@ protected:
 		WriteFile("test.luz", WriteLuz(TEST_MAP, scenes, boundaryCount, rawName, {
 			{ { 1, 0, NiPoint3(1.0f, 0.0f, 0.0f) }, { 2, 0, NiPoint3(2.0f, 0.0f, 0.0f) } },
 			{ { 2, 0, NiPoint3(3.0f, 0.0f, 0.0f) }, { 3, 0, NiPoint3(4.0f, 0.0f, 0.0f) } },
-		}));
+		}, version));
 	}
 
 	// One 3x3 point chunk from (0, 0) to (4, 4) whose 2x2 scene map holds scenes 1 2 / 3 1
@@ -99,8 +99,19 @@ TEST_F(ZoneSceneTest, ReadsScenesBoundariesAndTransitions) {
 
 	EXPECT_EQ(zone->GetWorldID(), TEST_MAP);
 	EXPECT_EQ(zone->GetZoneRawPath(), "test.raw");
-	EXPECT_EQ(zone->GetZoneName(), "Test Zone"); // read after the skipped boundary lines
+	EXPECT_EQ(zone->GetZoneName(), "Test Zone"); // read after the boundary lines
 	EXPECT_EQ(zone->GetZonePath(), "maps/testzone/");
+
+	const auto& boundaries = zone->GetBoundaries();
+	ASSERT_EQ(boundaries.size(), 2);
+	EXPECT_FLOAT_EQ(boundaries[1].normal.z, 1.0f);
+	EXPECT_FLOAT_EQ(boundaries[1].point.x, 10.0f);
+	EXPECT_FLOAT_EQ(boundaries[1].point.z, 1.0f);
+	EXPECT_EQ(boundaries[1].destinationZone.GetMapID(), 1100);
+	EXPECT_EQ(boundaries[1].destinationZone.GetInstanceID(), 2);
+	EXPECT_EQ(boundaries[1].destinationZone.GetCloneID(), 0);
+	EXPECT_EQ(boundaries[1].destinationSceneID, 2);
+	EXPECT_FLOAT_EQ(boundaries[1].spawnLocation.y, 6.0f);
 
 	ASSERT_EQ(zone->GetScenes().size(), 5);
 	const SceneRef* one = zone->GetScene(LWOSCENEID(1, 0));
@@ -132,7 +143,30 @@ TEST_F(ZoneSceneTest, ZoneWithoutBoundaryLines) {
 	WriteFile("test.raw", MakeRaw());
 	const Zone* zone = LoadZone();
 	EXPECT_EQ(zone->GetZoneName(), "Test Zone");
+	EXPECT_TRUE(zone->GetBoundaries().empty());
 	EXPECT_EQ(zone->GetSceneTransitions().size(), 2);
+}
+
+// Version 37 has a u32 scene count (a byte before it) and no spawn point; 36 and 37 have named five point transitions
+TEST_F(ZoneSceneTest, ReadsOlderZoneVersions) {
+	for (const uint32_t version : { 36u, 37u, 38u, 39u, 40u }) {
+		WriteZone("test.raw", 2, version);
+		WriteFile("test.raw", MakeRaw());
+		const Zone* zone = LoadZone();
+		EXPECT_EQ(zone->GetScenes().size(), 5) << version;
+		EXPECT_EQ(zone->GetBoundaries().size(), 2) << version;
+		EXPECT_EQ(zone->GetZoneRawPath(), "test.raw") << version;
+		EXPECT_EQ(zone->GetZoneName(), "Test Zone") << version;
+		ASSERT_EQ(zone->GetSceneTransitions().size(), 2) << version;
+		const auto& transition = zone->GetSceneTransitions()[1];
+		EXPECT_EQ(transition.points.size(), version < 39 ? 5 : 2) << version;
+		EXPECT_EQ(transition.points[1].sceneID, LWOSCENEID(3, 0)) << version;
+		if (version < 40) {
+			EXPECT_EQ(transition.name, "transition") << version;
+			EXPECT_FLOAT_EQ(transition.width, 2.5f) << version;
+		}
+		EXPECT_FALSE(zone->GetZoneRaw().chunks.empty()) << version;
+	}
 }
 
 TEST_F(ZoneSceneTest, SceneAtPosition) {

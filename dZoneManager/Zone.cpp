@@ -70,7 +70,8 @@ void Zone::LoadZoneIntoMemory() {
 			BinaryIO::BinaryRead(file, m_SpawnpointRotation);
 		}
 
-		if (m_FileFormatVersion <= Zone::FileFormatVersion::LateAlpha) {
+		// A byte before version 37 (LateAlpha), a u32 from it
+		if (m_FileFormatVersion < Zone::FileFormatVersion::LateAlpha) {
 			uint8_t sceneCount;
 			BinaryIO::BinaryRead(file, sceneCount);
 			m_SceneCount = sceneCount;
@@ -80,17 +81,20 @@ void Zone::LoadZoneIntoMemory() {
 			LoadScene(file);
 		}
 
-		// Zone boundary lines — skip past them for correct file positioning
+		// Zone boundary lines: a count byte, then the lines
 		uint8_t numBoundaries = 0;
 		BinaryIO::BinaryRead(file, numBoundaries);
-		for (uint8_t i = 0; i < numBoundaries; ++i) {
-			NiPoint3 normal, point, spawnLocation;
-			uint32_t packed, destSceneID;
-			BinaryIO::BinaryRead(file, normal);
-			BinaryIO::BinaryRead(file, point);
-			BinaryIO::BinaryRead(file, packed);
-			BinaryIO::BinaryRead(file, destSceneID);
-			BinaryIO::BinaryRead(file, spawnLocation);
+		m_Boundaries.resize(numBoundaries);
+		for (auto& boundary : m_Boundaries) {
+			LWOMAPID destMapID = 0;
+			LWOINSTANCEID destInstanceID = 0;
+			BinaryIO::BinaryRead(file, boundary.normal);
+			BinaryIO::BinaryRead(file, boundary.point);
+			BinaryIO::BinaryRead(file, destMapID);
+			BinaryIO::BinaryRead(file, destInstanceID);
+			boundary.destinationZone = LWOZONEID(destMapID, destInstanceID, 0);
+			BinaryIO::BinaryRead(file, boundary.destinationSceneID);
+			BinaryIO::BinaryRead(file, boundary.spawnLocation);
 		}
 
 		BinaryIO::ReadString<uint8_t>(file, m_ZoneRawPath, BinaryIO::ReadType::String);

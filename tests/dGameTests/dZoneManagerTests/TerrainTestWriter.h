@@ -132,16 +132,20 @@ namespace TerrainTestWriter {
 		NiPoint3 position;
 	};
 
-	// A Latest (41) version .luz with no paths
+	// A .luz (version 36 to 41) with no paths
 	inline std::string WriteLuz(uint32_t worldID, const std::vector<TestScene>& scenes, uint8_t boundaryCount, const std::string& rawName,
-		const std::vector<std::pair<TestTransitionPoint, TestTransitionPoint>>& transitions) {
+		const std::vector<std::pair<TestTransitionPoint, TestTransitionPoint>>& transitions, uint32_t version = 41) {
 		std::ostringstream stream;
-		Write<uint32_t>(stream, 41); // version
+		Write(stream, version);
 		Write<uint32_t>(stream, 5); // revision
 		Write(stream, worldID);
-		Write(stream, NiPoint3(1.0f, 2.0f, 3.0f)); // spawn position
-		for (const float value : { 1.0f, 0.0f, 0.0f, 0.0f }) Write(stream, value); // spawn rotation
-		Write<uint32_t>(stream, static_cast<uint32_t>(scenes.size()));
+		if (version >= 38) {
+			Write(stream, NiPoint3(1.0f, 2.0f, 3.0f)); // spawn position
+			for (const float value : { 1.0f, 0.0f, 0.0f, 0.0f }) Write(stream, value); // spawn rotation
+		}
+		// the scene count is a byte before version 37
+		if (version >= 37) Write<uint32_t>(stream, static_cast<uint32_t>(scenes.size()));
+		else Write<uint8_t>(stream, static_cast<uint8_t>(scenes.size()));
 		for (const auto& scene : scenes) {
 			WriteString8(stream, scene.filename);
 			Write(stream, scene.id);
@@ -157,7 +161,8 @@ namespace TerrainTestWriter {
 		for (uint8_t i = 0; i < boundaryCount; ++i) {
 			Write(stream, NiPoint3(0.0f, 0.0f, 1.0f));
 			Write(stream, NiPoint3(10.0f, 0.0f, static_cast<float>(i)));
-			Write<uint32_t>(stream, 1100);
+			Write<uint16_t>(stream, 1100); // map
+			Write<uint16_t>(stream, i + 1); // instance
 			Write<uint32_t>(stream, 2);
 			Write(stream, NiPoint3(5.0f, 6.0f, 7.0f));
 		}
@@ -168,7 +173,15 @@ namespace TerrainTestWriter {
 
 		Write<uint32_t>(stream, static_cast<uint32_t>(transitions.size()));
 		for (const auto& [from, to] : transitions) {
-			for (const auto& point : { from, to }) {
+			// before version 40 a transition has a name and a width
+			if (version < 40) {
+				WriteString8(stream, "transition");
+				Write(stream, 2.5f);
+			}
+			// five points from version 34 to 38 (the last three repeat the second here), two otherwise
+			const size_t pointCount = version >= 34 && version < 39 ? 5 : 2;
+			for (size_t i = 0; i < pointCount; ++i) {
+				const auto& point = i == 0 ? from : to;
 				Write(stream, point.sceneID);
 				Write(stream, point.layerID);
 				Write(stream, point.position);
