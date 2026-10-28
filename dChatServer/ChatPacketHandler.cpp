@@ -399,13 +399,17 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::SHOW_ALL_RESPONSE);
 	bitStream.Write<uint8_t>(!request.displayZoneData && !request.displayIndividualPlayers);
+	// there is no terminator here, the client simply reads this written number of players, if there is a mismatch
+	// then garbage data is printed to the screen
 	bitStream.Write(Game::playerContainer.GetPlayerCount());
 	bitStream.Write(Game::playerContainer.GetSimCount());
 	bitStream.Write<uint8_t>(request.displayIndividualPlayers);
 	bitStream.Write<uint8_t>(request.displayZoneData);
 	if (request.displayZoneData || request.displayIndividualPlayers) {
+		uint32_t writtenEntries = 0;
 		for (auto& [playerID, playerData] : Game::playerContainer.GetAllPlayers()) {
 			if (!playerData) continue;
+			writtenEntries++;
 			bitStream.Write<uint8_t>(0); // structure packing
 			if (request.displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
 			if (request.displayZoneData) {
@@ -414,6 +418,11 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 				bitStream.Write(playerData.zoneID.GetCloneID());
 			}
 		}
+		
+		if (writtenEntries != Game::playerContainer.GetPlayerCount()) {
+			LOG("Written players does not match actual players %i != %i", writtenEntries, Game::playerContainer.GetPlayerCount());
+		}
+
 	}
 	SystemAddress sysAddr = sender.worldServerSysAddr;
 	SEND_PACKET;
