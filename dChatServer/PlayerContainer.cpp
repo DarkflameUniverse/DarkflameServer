@@ -57,7 +57,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	data.worldServerSysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
-	m_PlayerCount++;
+	if (isLogin) m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
 	ChatWeb::SendWSPlayerUpdate(data, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone);
