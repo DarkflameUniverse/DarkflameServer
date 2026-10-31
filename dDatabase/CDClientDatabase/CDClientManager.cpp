@@ -24,6 +24,7 @@
 #include "CDRebuildComponentTable.h"
 #include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
+#include "CDSceneTableTable.h"
 #include "CDZoneTableTable.h"
 #include "CDTamingBuildPuzzleTable.h"
 #include "CDVendorComponentTable.h"
@@ -144,6 +145,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDRebuildComponentTable::Instance().LoadValuesFromDatabase();
 	CDRewardCodesTable::Instance().LoadValuesFromDatabase();
 	CDRewardsTable::Instance().LoadValuesFromDatabase();
+	CDSceneTableTable::LoadValuesFromDatabase();
 	CDScriptComponentTable::Instance().LoadValuesFromDatabase();
 	CDSkillBehaviorTable::Instance().LoadValuesFromDatabase();
 	CDTamingBuildPuzzleTable::Instance().LoadValuesFromDatabase();

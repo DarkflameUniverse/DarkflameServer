@@ -31,6 +31,7 @@ enum class eSceneType : uint32_t {
 struct SceneRef {
 	std::string filename;
 	uint32_t id{};
+	uint32_t sceneTableID{}; // before PrePreAlpha: the scene's row in the CDClient SceneTable
 	eSceneType sceneType{};
 	std::string name;
 	NiPoint3 unknown1;
@@ -204,6 +205,7 @@ struct Path {
 class Zone {
 public:
 	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		Oldest = 20, // the client reads anything older as this
 		PrePreAlpha = 30,
 		PreAlpha = 32,
 		LatePreAlpha = 33,
@@ -276,7 +278,8 @@ private:
 
 	std::map<LWOSCENEID, uint32_t> m_MapRevisions; //rhs is the revision!
 	//private ("helper") functions:
-	void LoadScene(std::istream& file);
+	void LoadScene(std::istream& file, uint32_t index);
+	void KeepLoadedScenes();
 	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);
 	void LoadSceneTransition(std::istream& file);
 	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);

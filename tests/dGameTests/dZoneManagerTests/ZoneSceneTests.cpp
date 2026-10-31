@@ -51,14 +51,14 @@ protected:
 		file.write(data.data(), data.size());
 	}
 
-	// Scenes 0 (global), 1, 2 and 3 (general) and 5 (audio, layer 1); transitions 1 <-> 2 and 2 <-> 3
+	// Scenes 0 (global), 1, 2 and 3 (general) and 3 (audio, layer 1); transitions 1 <-> 2 and 2 <-> 3
 	void WriteZone(const std::string& rawName = "test.raw", uint8_t boundaryCount = 2, uint32_t version = 41) const {
 		const std::vector<TestScene> scenes = {
 			{ "global.lvl", 0, 0, "Global", 10, 20, 30 },
 			{ "one.lvl", 1, 0, "Scene One", 255, 0, 0 },
 			{ "two.lvl", 2, 0, "Scene Two", 0, 255, 0 },
 			{ "three.lvl", 3, 0, "Scene Three", 0, 0, 255 },
-			{ "audio.lvl", 5, 1, "Audio", 0, 0, 0 },
+			{ "audio.lvl", 3, 1, "Audio", 0, 0, 0 },
 		};
 		WriteFile("test.luz", WriteLuz(TEST_MAP, scenes, boundaryCount, rawName, {
 			{ { 1, 0, NiPoint3(1.0f, 0.0f, 0.0f) }, { 2, 0, NiPoint3(2.0f, 0.0f, 0.0f) } },
@@ -123,7 +123,7 @@ TEST_F(ZoneSceneTest, ReadsScenesBoundariesAndTransitions) {
 	EXPECT_FLOAT_EQ(global->color.m_Red, 10 / 255.0f);
 	EXPECT_FLOAT_EQ(global->color.m_Green, 20 / 255.0f);
 	EXPECT_FLOAT_EQ(global->color.m_Blue, 30 / 255.0f);
-	const SceneRef* audio = zone->GetScene(LWOSCENEID(5, 1));
+	const SceneRef* audio = zone->GetScene(LWOSCENEID(3, 1));
 	ASSERT_NE(audio, nullptr);
 	EXPECT_EQ(audio->sceneType, eSceneType::Audio);
 	EXPECT_EQ(zone->GetScene(LWOSCENEID(4, 0)), nullptr);
@@ -151,7 +151,7 @@ TEST_F(ZoneSceneTest, ReadsOlderZoneVersions) {
 		WriteZone("test.raw", 2, version);
 		WriteFile("test.raw", MakeRaw());
 		const Zone* zone = LoadZone();
-		EXPECT_EQ(zone->GetScenes().size(), 5) << version;
+		EXPECT_EQ(zone->GetScenes().size(), 4) << version; // before Latest only layer 0 scenes are loaded
 		EXPECT_EQ(zone->GetBoundaries().size(), 2) << version;
 		EXPECT_EQ(zone->GetZoneRawPath(), "test.raw") << version;
 		EXPECT_EQ(zone->GetZoneName(), "Test Zone") << version;
@@ -185,7 +185,7 @@ TEST_F(ZoneSceneTest, SceneGraphFromTransitions) {
 
 	const auto& graph = Game::zoneManager->GetSceneAdjacencyList();
 	EXPECT_EQ(graph.size(), 4); // the audio scene is left out
-	EXPECT_FALSE(graph.contains(LWOSCENEID(5, 1)));
+	EXPECT_FALSE(graph.contains(LWOSCENEID(3, 1)));
 
 	const auto one = Game::zoneManager->GetAdjacentScenes(LWOSCENEID(1, 0));
 	EXPECT_EQ(one.size(), 2);
