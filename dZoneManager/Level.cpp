@@ -263,8 +263,9 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		}
 
 
-		// We should never have more than 1 zone control object
-		bool skipLoadingObject = obj.lot == zoneControlObject->GetLOT();
+		// We should never have more than 1 zone control object, and the client never loads a scene object of LOT 1 (the
+		// player; ReadLvlObjectData)
+		bool skipLoadingObject = obj.lot == zoneControlObject->GetLOT() || obj.lot == 1;
 		for (const auto& data : obj.settings | std::views::values) {
 			if (!data) continue;
 			if (data->GetKey() == u"gatingOnFeature") {
