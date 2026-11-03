@@ -140,14 +140,17 @@ void Zone::LoadZoneIntoMemory() {
 		}
 
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::EarlyAlpha) {
+			// The paths are a chunk of their own (LuzFile::ReadLUZFile copies it, ReadLUZPaths reads it)
 			BinaryIO::BinaryRead(file, m_PathDataLength);
-			BinaryIO::BinaryRead(file, m_PathChunkVersion); // always should be 1
-
-			uint32_t pathCount;
-			BinaryIO::BinaryRead(file, pathCount);
-
-			m_Paths.reserve(pathCount);
-			for (uint32_t i = 0; i < pathCount; ++i) LoadPath(file);
+			std::string chunk(m_PathDataLength, '\0');
+			file.read(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+			if (!file) throw std::runtime_error("Failed to read from istream.");
+			std::istringstream pathChunk(chunk);
+			// Like the client, a path chunk it can't read gives the zone no paths
+			if (!LoadPaths(pathChunk)) {
+				LOG("Zone %s has a path chunk the client doesn't read; no paths loaded", m_ZoneFilePath.c_str());
+				m_Paths.clear();
+			}
 
 			for (const Path& path : m_Paths) {
 				if (path.pathType != PathType::Spawner) continue;
@@ -409,14 +412,43 @@ SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 	return info;
 }
 
-void Zone::LoadPath(std::istream& file) {
+bool Zone::LoadPaths(std::istream& file) {
+	// ReadLUZPaths: a chunk version from 2 on, 10000 paths or more, or any path LevelPath::FromBuffer refuses (it reads
+	// no further than the chunk's end here) leaves the zone with no paths
+	try {
+		BinaryIO::BinaryRead(file, m_PathChunkVersion);
+		if (m_PathChunkVersion >= 2) return false;
+
+		uint32_t pathCount;
+		BinaryIO::BinaryRead(file, pathCount);
+		if (pathCount >= 10000) return false;
+
+		m_Paths.reserve(pathCount);
+		for (uint32_t i = 0; i < pathCount; ++i) {
+			if (!LoadPath(file)) return false;
+		}
+	} catch (const std::runtime_error&) {
+		return false;
+	}
+	return true;
+}
+
+bool Zone::LoadPath(std::istream& file) {
 	Path path = Path();
 
 	BinaryIO::BinaryRead(file, path.pathVersion);
+	if (path.pathVersion >= 19) return false;
 
 	BinaryIO::ReadString<uint8_t>(file, path.pathName, BinaryIO::ReadType::WideString);
 
-	BinaryIO::BinaryRead(file, path.pathType);
+	// Before version 3 the type is a name: "platform" or a movement path
+	if (path.pathVersion < 3) {
+		std::string type;
+		BinaryIO::ReadString<uint8_t>(file, type, BinaryIO::ReadType::WideString);
+		path.pathType = type == "platform" ? PathType::MovingPlatform : PathType::Movement;
+	} else {
+		BinaryIO::BinaryRead(file, path.pathType);
+	}
 	BinaryIO::BinaryRead(file, path.flags);
 	BinaryIO::BinaryRead(file, path.pathBehavior);
 
@@ -426,7 +458,7 @@ void Zone::LoadPath(std::istream& file) {
 		} else if (path.pathVersion >= 13) {
 			BinaryIO::ReadString<uint8_t>(file, path.movingPlatform.platformTravelSound, BinaryIO::ReadType::WideString);
 		}
-	} else if (path.pathType == PathType::Property) {
+	} else if (path.pathType == PathType::Property && path.pathVersion >= 3) {
 		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
 		BinaryIO::BinaryRead(file, path.property.rentalTime);
@@ -442,6 +474,8 @@ void Zone::LoadPath(std::istream& file) {
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
 			BinaryIO::BinaryRead(file, path.property.repMultiplier);
+			// The client takes a multiplier outside 0-1000 as 0
+			if (path.property.repMultiplier < 0.0f || path.property.repMultiplier > 1000.0f) path.property.repMultiplier = 0.0f;
 			BinaryIO::BinaryRead(file, path.property.rentalPeriod);
 		}
 
@@ -450,25 +484,28 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, path.property.playerZoneCoords);
 			BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
 		}
-	} else if (path.pathType == PathType::Camera) {
+	} else if (path.pathType == PathType::Camera && path.pathVersion >= 4) {
 		BinaryIO::ReadString<uint8_t>(file, path.camera.nextPath, BinaryIO::ReadType::WideString);
 		if (path.pathVersion >= 14) {
 			BinaryIO::BinaryRead(file, path.camera.rotatePlayer);
 
 		}
-	} else if (path.pathType == PathType::Spawner) {
+	} else if (path.pathType == PathType::Spawner && path.pathVersion >= 4) {
 		BinaryIO::BinaryRead(file, path.spawner.spawnedLOT);
 		BinaryIO::BinaryRead(file, path.spawner.respawnTime);
 		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
 		BinaryIO::BinaryRead(file, path.spawner.amountMaintained);
 		BinaryIO::BinaryRead(file, path.spawner.spawnerObjID);
-		BinaryIO::BinaryRead(file, path.spawner.spawnerNetActive);
+		if (path.pathVersion >= 9) BinaryIO::BinaryRead(file, path.spawner.spawnerNetActive);
 	}
 
 	// Read waypoints
 
 	BinaryIO::BinaryRead(file, path.waypointCount);
+	if (path.waypointCount >= 10000) return false;
 	path.pathWaypoints.reserve(path.waypointCount);
+	// Before version 3 every waypoint has the moving platform values and a command list, whatever the type
+	const bool allWaypointValues = path.pathVersion < 3;
 	for (uint32_t i = 0; i < path.waypointCount; ++i) {
 		PathWaypoint waypoint = PathWaypoint();
 
@@ -476,14 +513,14 @@ void Zone::LoadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, waypoint.position.y);
 		BinaryIO::BinaryRead(file, waypoint.position.z);
 
-		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
+		if (allWaypointValues || path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
 			BinaryIO::BinaryRead(file, waypoint.rotation.w);
 			BinaryIO::BinaryRead(file, waypoint.rotation.x);
 			BinaryIO::BinaryRead(file, waypoint.rotation.y);
 			BinaryIO::BinaryRead(file, waypoint.rotation.z);
 		}
 
-		if (path.pathType == PathType::MovingPlatform) {
+		if (allWaypointValues || path.pathType == PathType::MovingPlatform) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
 			BinaryIO::BinaryRead(file, waypoint.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
@@ -494,6 +531,8 @@ void Zone::LoadPath(std::istream& file) {
 		} else if (path.pathType == PathType::Camera) {
 			BinaryIO::BinaryRead(file, waypoint.camera.time);
 			BinaryIO::BinaryRead(file, waypoint.camera.fov);
+			// Before version 11 the field of view is 1.25 times larger
+			if (path.pathVersion < 11) waypoint.camera.fov /= 1.25f;
 			BinaryIO::BinaryRead(file, waypoint.camera.tension);
 			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
 			BinaryIO::BinaryRead(file, waypoint.camera.bias);
@@ -508,9 +547,10 @@ void Zone::LoadPath(std::istream& file) {
 		}
 
 		// object LDF configs
-		if (path.pathType == PathType::Movement || path.pathType == PathType::Spawner || path.pathType == PathType::Rail) {
+		if (allWaypointValues || path.pathType == PathType::Movement || path.pathType == PathType::Spawner || path.pathType == PathType::Rail) {
 			uint32_t count;
 			BinaryIO::BinaryRead(file, count);
+			if (count > 99) return false;
 			for (uint32_t i = 0; i < count; ++i) {
 				std::string parameter;
 				BinaryIO::ReadString<uint8_t>(file, parameter, BinaryIO::ReadType::WideString);
@@ -518,7 +558,7 @@ void Zone::LoadPath(std::istream& file) {
 				std::string value;
 				BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
 
-				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
+				if (path.pathType != PathType::Spawner) {
 					// cause NetDevil puts spaces in things that don't need spaces
 					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
 					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
@@ -546,6 +586,7 @@ void Zone::LoadPath(std::istream& file) {
 		path.pathWaypoints.push_back(waypoint);
 	}
 	m_Paths.push_back(path);
+	return true;
 }
 
 const SceneRef* Zone::GetScene(LWOSCENEID sceneID) const {
