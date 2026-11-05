@@ -155,6 +155,7 @@ private:
 	void ReadSkydomeInfo(std::istream& file);
 	void ReadEditorSettings(std::istream& file);
 	void ReadSceneObjectDataChunk(std::istream& file);
+	void ApplyClientConfigFixups(SceneObject& obj) const;
 	void ReadSounds(std::istream& file);
 	void ReadParticles(std::istream& file);
 	void LoadSceneObjects();
