@@ -50,6 +50,23 @@ struct LevelSkydome {
 	std::array<std::string, 5> extraFilenames;
 };
 
+// A sound placed in the scene (SceneLoader::LoadSounds, version 5 on). Only the level editor makes anything of them
+struct LevelSound {
+	NiPoint3 position;
+	LwoNameValue config; // before version 35 only a 260 character soundName
+};
+
+// A particle effect placed in the scene (SceneLoader::LoadParticles, version 5 on)
+struct LevelParticle {
+	int16_t priority{}; // version 43 on
+	NiPoint3 position;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
+	std::string effectNames; // separated by ';'
+	uint16_t unknown{}; // before version 46
+	// Version 46 on. The client keeps the last one it read for a particle without one
+	std::string config;
+};
+
 // A scene file (.lvl), read as the client reads it (SceneLoader::LoadLvlFile)
 class Level {
 public:
@@ -108,6 +125,8 @@ public:
 	const LevelSkydome& GetSkydome() const { return m_Skydome; }
 	const std::vector<NiColor>& GetEditorColors() const { return m_EditorColors; }
 	const std::vector<SceneObject>& GetObjects() const { return m_Objects; }
+	const std::vector<LevelSound>& GetSounds() const { return m_Sounds; }
+	const std::vector<LevelParticle>& GetParticles() const { return m_Particles; }
 
 	std::map<uint32_t, Header> m_ChunkHeaders;
 private:
@@ -125,6 +144,8 @@ private:
 	// Version 37 on: the editor's saved colours (the client keeps at most 32)
 	std::vector<NiColor> m_EditorColors;
 	std::vector<SceneObject> m_Objects;
+	std::vector<LevelSound> m_Sounds;
+	std::vector<LevelParticle> m_Particles;
 
 	//private functions:
 	void ReadChunks(std::istream& file);
@@ -134,5 +155,7 @@ private:
 	void ReadSkydomeInfo(std::istream& file);
 	void ReadEditorSettings(std::istream& file);
 	void ReadSceneObjectDataChunk(std::istream& file);
+	void ReadSounds(std::istream& file);
+	void ReadParticles(std::istream& file);
 	void LoadSceneObjects();
 };
