@@ -21,6 +21,8 @@
 #include "Item.h"
 #include "Logger.h"
 #include "Lxfml.h"
+#include "BrickBounds.h"
+#include "AssetManager.h"
 #include "ObjectIDManager.h"
 #include "PropertyManagementComponent.h"
 #include "PropertyMessages.h"
@@ -117,7 +119,8 @@ namespace {
 		// the owner keeps editing isn't made for every save (docs/UgcServer.md)
 		const auto debounce = Game::config ? GeneralUtils::TryParse<int64_t>(Game::config->GetValue("ugc_debounce_seconds")).value_or(120) : 120;
 		const auto processAfter = UgcDebounce::ProcessAfter(std::time(nullptr), debounce);
-		for (const auto& part : Lxfml::Split(lxfml)) {
+		// Each model is placed by its bricks' boxes, from the client's brickdb (read on the first save, then kept)
+		for (const auto& part : Lxfml::Split(lxfml, NiPoint3Constant::ZERO, BrickBounds::Get(Game::assetManager))) {
 			const auto [modelId, blueprintId] = ObjectIDManager::GetNewModelIDs();
 			Sd0 model = sd0;
 			model.FromData(reinterpret_cast<const uint8_t*>(part.lxfml.data()), part.lxfml.size());

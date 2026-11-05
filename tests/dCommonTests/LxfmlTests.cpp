@@ -516,6 +516,106 @@ TEST(LxfmlTests, NormalizeAtAPositionKeepsTheBricksInPlace) {
 	EXPECT_EQ(Transformations(result.lxfml, "Rigid").at("0"), "1,0,0,0,1,0,0,0,1,0,0,0");
 }
 
+namespace {
+	// A 2x2 brick's box around its origin, as the brickdb has it
+	const BrickBounds::DesignBounds BOUNDS = { { 3003, { NiPoint3(-0.4f, 0.0f, -1.2f), NiPoint3(1.2f, 1.138f, 0.4f) } } };
+
+	std::string Brick(const std::string& ref, const std::string& design, const std::string& transformation) {
+		return R"(<Brick refID=")" + ref + R"(" designID=")" + design + R"("><Part refID=")" + ref + R"(" designID=")" + design +
+			R"(" materials="21"><Bone refID=")" + ref + R"(" transformation=")" + transformation + R"("/></Part></Brick>)";
+	}
+
+	std::string RigidSystem(const std::string& ref, const std::string& transformation, const std::string& boneRefs) {
+		return R"(<RigidSystem><Rigid refID=")" + ref + R"(" transformation=")" + transformation + R"(" boneRefs=")" + boneRefs + R"("/></RigidSystem>)";
+	}
+
+	std::string Model(const std::string& bricks, const std::string& rigidSystems) {
+		return PROBE_HEAD + bricks + "</Bricks><RigidSystems>" + rigidSystems + "</RigidSystems><GroupSystems><GroupSystem></GroupSystem></GroupSystems></LXFML>";
+	}
+
+	const std::string UNROTATED = "1,0,0,0,1,0,0,0,1,";
+}
+
+TEST(LxfmlTests, NormalizeOneBrickByItsBox) {
+	// The bottom middle of the 2x2's box is 0.4 along x and -0.4 along z from its origin
+	const auto lxfml = Model(Brick("0", "3003", UNROTATED + "10,3.2,-4.4"), RigidSystem("0", UNROTATED + "10,3.2,-4.4", "0"));
+	const auto result = Lxfml::NormalizePosition(lxfml, NiPoint3Constant::ZERO, BOUNDS);
+	EXPECT_EQ(result.center, NiPoint3(10.4f, 3.2f, -4.8f));
+	EXPECT_EQ(Transformations(result.lxfml, "Bone").at("0"), UNROTATED + "-0.4,0,0.4");
+}
+
+TEST(LxfmlTests, NormalizeAStackOfBricksByTheirBox) {
+	const auto lxfml = Model(
+		Brick("0", "3003", UNROTATED + "10,3.2,-4.4") + Brick("1", "3003", UNROTATED + "10,4.16,-4.4") + Brick("2", "3003", UNROTATED + "10,5.12,-4.4"),
+		RigidSystem("0", UNROTATED + "10,3.2,-4.4", "0,1,2"));
+	const auto result = Lxfml::NormalizePosition(lxfml, NiPoint3Constant::ZERO, BOUNDS);
+	EXPECT_EQ(result.center, NiPoint3(10.4f, 3.2f, -4.8f));
+	const auto bones = Transformations(result.lxfml, "Bone");
+	EXPECT_EQ(bones.at("0"), UNROTATED + "-0.4,0,0.4");
+	EXPECT_EQ(bones.at("1"), UNROTATED + "-0.4,0.96,0.4");
+	EXPECT_EQ(bones.at("2"), UNROTATED + "-0.4,1.92,0.4");
+}
+
+TEST(LxfmlTests, NormalizeARotatedBrickByItsRotatedBox) {
+	// A quarter turn about y: the brick's x runs along the world's -z and its z along the world's x
+	const std::string quarterTurn = "0,0,-1,0,1,0,1,0,0,";
+	auto result = Lxfml::NormalizePosition(Model(Brick("0", "3003", quarterTurn + "10,3.2,-4.4"), ""), NiPoint3Constant::ZERO, BOUNDS);
+	EXPECT_EQ(result.center, NiPoint3(9.6f, 3.2f, -4.8f));
+	EXPECT_EQ(Transformations(result.lxfml, "Bone").at("0"), quarterTurn + "0.4,0,0.4");
+
+	// Upside down: the box hangs below the origin, so the floor is 1.138 under it
+	const std::string upsideDown = "1,0,0,0,-1,0,0,0,-1,";
+	result = Lxfml::NormalizePosition(Model(Brick("0", "3003", upsideDown + "10,3.2,-4.4"), ""), NiPoint3Constant::ZERO, BOUNDS);
+	EXPECT_NEAR(result.center.x, 10.4f, 1e-4f);
+	EXPECT_NEAR(result.center.y, 2.062f, 1e-4f);
+	EXPECT_NEAR(result.center.z, -4.0f, 1e-4f);
+	EXPECT_EQ(Transformations(result.lxfml, "Bone").at("0"), upsideDown + "-0.4,1.138,-0.4");
+}
+
+TEST(LxfmlTests, NormalizeADesignWithoutABoxByItsOrigin) {
+	// 99999 has no box: its bone's origin counts as a point of the model's box
+	const auto lxfml = Model(Brick("0", "3003", UNROTATED + "10,3.2,-4.4") + Brick("1", "99999", UNROTATED + "12.8,2.24,-4.4"),
+		RigidSystem("0", UNROTATED + "10,3.2,-4.4", "0,1"));
+	const auto result = Lxfml::NormalizePosition(lxfml, NiPoint3Constant::ZERO, BOUNDS);
+	EXPECT_EQ(result.center, NiPoint3(11.2f, 2.24f, -4.8f));
+	const auto bones = Transformations(result.lxfml, "Bone");
+	EXPECT_EQ(bones.at("0"), UNROTATED + "-1.2,0.96,0.4");
+	EXPECT_EQ(bones.at("1"), UNROTATED + "1.6,0,0.4");
+}
+
+TEST(LxfmlTests, NormalizeLeavesTheRigidsAndEverythingElseAsSent) {
+	const auto lxfml = Model(Brick("0", "3003", UNROTATED + "10,3.2,-4.4"), RigidSystem("0", "0,0,-1,0,1,0,1,0,0,10,3.2,-4.4", "0"));
+	const auto result = Lxfml::NormalizePosition(lxfml, NiPoint3Constant::ZERO, BOUNDS);
+	EXPECT_EQ(Transformations(result.lxfml, "Rigid").at("0"), "0,0,-1,0,1,0,1,0,0,10,3.2,-4.4");
+	tinyxml2::XMLDocument doc;
+	ASSERT_EQ(doc.Parse(result.lxfml.c_str()), tinyxml2::XML_SUCCESS);
+	const auto* part = doc.FirstChildElement("LXFML")->FirstChildElement("Bricks")->FirstChildElement("Brick")->FirstChildElement("Part");
+	EXPECT_STREQ(part->Attribute("designID"), "3003");
+	EXPECT_STREQ(part->Attribute("materials"), "21");
+}
+
+TEST(LxfmlTests, SplitPlacesEachRigidSystemByItsOwnBox) {
+	const auto lxfml = Model(
+		Brick("0", "3003", UNROTATED + "10,3.2,-4.4") + Brick("1", "3003", UNROTATED + "10,4.16,-4.4") +
+		Brick("2", "3003", "0,0,-1,0,1,0,1,0,0,30,0.8,7.6"),
+		RigidSystem("0", UNROTATED + "10,3.2,-4.4", "0,1") + RigidSystem("1", "0,0,-1,0,1,0,1,0,0,30,0.8,7.6", "2"));
+	const auto results = Lxfml::Split(lxfml, NiPoint3Constant::ZERO, BOUNDS);
+	ASSERT_EQ(results.size(), 2);
+
+	EXPECT_EQ(results[0].center, NiPoint3(10.4f, 3.2f, -4.8f));
+	const auto first = Transformations(results[0].lxfml, "Bone");
+	EXPECT_EQ(first.size(), 2);
+	EXPECT_EQ(first.at("0"), UNROTATED + "-0.4,0,0.4");
+	EXPECT_EQ(first.at("1"), UNROTATED + "-0.4,0.96,0.4");
+	EXPECT_EQ(Transformations(results[0].lxfml, "Rigid").at("0"), UNROTATED + "10,3.2,-4.4");
+
+	EXPECT_EQ(results[1].center, NiPoint3(29.6f, 0.8f, 7.2f));
+	const auto second = Transformations(results[1].lxfml, "Bone");
+	EXPECT_EQ(second.size(), 1);
+	EXPECT_EQ(second.at("2"), "0,0,-1,0,1,0,1,0,0,0.4,0,0.4");
+	EXPECT_EQ(Transformations(results[1].lxfml, "Rigid").at("1"), "0,0,-1,0,1,0,1,0,0,30,0.8,7.6");
+}
+
 TEST(LxfmlTests, ReadContentsListsBricksAndTheirBox) {
 	const std::string lxfml = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <LXFML versionMajor="5" versionMinor="0">

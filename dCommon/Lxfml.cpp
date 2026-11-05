@@ -12,6 +12,7 @@
 #include <sstream>
 #include <charconv>
 #include <optional>
+#include <array>
 
 namespace {
 	// The base LXFML xml file to use when creating new models.
@@ -107,17 +108,56 @@ namespace {
 		return text + FormatNumber(transformation.x) + ',' + FormatNumber(transformation.y) + ',' + FormatNumber(transformation.z);
 	}
 
-	// Every element named `name` under `parent`'s children named `childName` (e.g. every Bone of every Part)
-	template<typename Visit>
-	void ForEachGrandchild(tinyxml2::XMLElement* parent, const char* childName, const char* name, Visit&& visit) {
-		if (!parent) return;
-		for (auto* child = parent->FirstChildElement(childName); child; child = child->NextSiblingElement(childName)) {
-			for (auto* element = child->FirstChildElement(name); element; element = element->NextSiblingElement(name)) visit(element);
+	// A box in world space, grown point by point
+	struct Box {
+		bool any = false;
+		double minX{}, minY{}, minZ{}, maxX{}, maxY{}, maxZ{};
+
+		void Add(const double x, const double y, const double z) {
+			minX = any ? std::min(minX, x) : x; maxX = any ? std::max(maxX, x) : x;
+			minY = any ? std::min(minY, y) : y; maxY = any ? std::max(maxY, y) : y;
+			minZ = any ? std::min(minZ, z) : z; maxZ = any ? std::max(maxZ, z) : z;
+			any = true;
 		}
+
+		// A brick's own box, placed in the world by its bone: all 8 corners, rotated then moved. A rotation that can't
+		// be read counts as the bone's origin.
+		void Add(const BrickBounds::Bounds& bounds, const Transformation& transformation) {
+			std::array<double, 9> rotation{};
+			for (size_t i = 0; i < rotation.size(); i++) {
+				const auto value = GeneralUtils::TryParse<double>(transformation.rotation[i]);
+				if (!value) {
+					Add(transformation.x, transformation.y, transformation.z);
+					return;
+				}
+				rotation[i] = *value;
+			}
+			for (uint32_t corner = 0; corner < 8; corner++) {
+				const double x = (corner & 1) ? bounds.max.x : bounds.min.x;
+				const double y = (corner & 2) ? bounds.max.y : bounds.min.y;
+				const double z = (corner & 4) ? bounds.max.z : bounds.min.z;
+				Add(x * rotation[0] + y * rotation[3] + z * rotation[6] + transformation.x,
+					x * rotation[1] + y * rotation[4] + z * rotation[7] + transformation.y,
+					x * rotation[2] + y * rotation[5] + z * rotation[8] + transformation.z);
+			}
+		}
+	};
+
+	// The box of a part's design: the part's designID, or its brick's
+	const BrickBounds::Bounds* FindBounds(const BrickBounds::DesignBounds& bounds, const tinyxml2::XMLElement* part, const tinyxml2::XMLElement* brick) {
+		if (bounds.empty()) return nullptr;
+		for (const auto* element : { part, brick }) {
+			const char* design = element->Attribute("designID");
+			const auto id = design ? GeneralUtils::TryParse<uint32_t>(design) : std::nullopt;
+			if (!id) continue;
+			const auto it = bounds.find(*id);
+			if (it != bounds.end()) return &it->second;
+		}
+		return nullptr;
 	}
 }
 
-Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoint3& curPosition) {
+Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoint3& curPosition, const BrickBounds::DesignBounds& bounds) {
 	Result toReturn;
 	if (data.empty()) return toReturn;
 
@@ -129,37 +169,43 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 
 	// Every bone of every part (flexible parts have several). Only bones move, as the live server did: the rigids keep
 	// the transformations the client sent.
+	// The box around the model: each part's own box placed by its first bone, as the brick is in the world; a part
+	// whose design has no box counts the origins of its bones instead.
 	std::vector<tinyxml2::XMLElement*> bones;
+	Box box;
 	if (auto* bricks = lxfml->FirstChildElement("Bricks")) {
 		for (auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
-			ForEachGrandchild(brick, "Part", "Bone", [&bones](tinyxml2::XMLElement* bone) { bones.push_back(bone); });
+			for (auto* part = brick->FirstChildElement("Part"); part; part = part->NextSiblingElement("Part")) {
+				const auto* design = FindBounds(bounds, part, brick);
+				bool placed = false;
+				for (auto* bone = part->FirstChildElement("Bone"); bone; bone = bone->NextSiblingElement("Bone")) {
+					bones.push_back(bone);
+					const auto transformation = ParseTransformation(bone->Attribute("transformation"));
+					if (!transformation || placed) continue;
+					if (design) {
+						box.Add(*design, *transformation);
+						placed = true;
+					} else {
+						box.Add(transformation->x, transformation->y, transformation->z);
+					}
+				}
+			}
 		}
 	}
 
-	// The new origin: the middle of the bricks' origins, on the floor of the lowest one. x and z are snapped to the
-	// LEGO grid (0.8) so the model's position stays on it; the bricks don't move in the world either way, only the
+	// The new origin: the middle of the box, on its floor, as the live server placed models. x and z are snapped to
+	// the LEGO grid (0.8) so the model's position stays on it; the bricks don't move in the world either way, only the
 	// model's pivot does.
 	double rootX = curPosition.x, rootY = curPosition.y, rootZ = curPosition.z;
 	if (curPosition == NiPoint3Constant::ZERO) {
-		bool any = false;
-		double minX{}, minY{}, minZ{}, maxX{}, maxY{}, maxZ{};
-		for (const auto* bone : bones) {
-			const auto transformation = ParseTransformation(bone->Attribute("transformation"));
-			if (!transformation) continue;
-			const auto& [rotation, x, y, z] = *transformation;
-			minX = any ? std::min(minX, x) : x; maxX = any ? std::max(maxX, x) : x;
-			minY = any ? std::min(minY, y) : y; maxY = any ? std::max(maxY, y) : y;
-			minZ = any ? std::min(minZ, z) : z; maxZ = any ? std::max(maxZ, z) : z;
-			any = true;
-		}
 		// Nothing to place it by: keep the model as it is, at the origin
-		if (!any) {
+		if (!box.any) {
 			toReturn.lxfml = std::string(data);
 			return toReturn;
 		}
-		rootX = (minX + maxX) / 2.0;
-		rootY = minY;
-		rootZ = (minZ + maxZ) / 2.0;
+		rootX = (box.minX + box.maxX) / 2.0;
+		rootY = box.minY;
+		rootZ = (box.minZ + box.maxZ) / 2.0;
 	}
 	rootX = GeneralUtils::RountToNearestEven(rootX, 0.8);
 	rootZ = GeneralUtils::RountToNearestEven(rootZ, 0.8);
@@ -210,7 +256,7 @@ static tinyxml2::XMLElement* CloneElementDeep(const tinyxml2::XMLElement* src, t
 	return dst;
 }
 
-std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoint3& curPosition) {
+std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoint3& curPosition, const BrickBounds::DesignBounds& bounds) {
 	std::vector<Result> results;
 	
 	// Handle empty or invalid input
@@ -330,7 +376,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		// Print to string, then normalize position and compute center (the input is at most 10 MB, so each part is too)
 		tinyxml2::XMLPrinter printer;
 		outDoc.Print(&printer);
-		return NormalizePosition(printer.CStr(), curPosition);
+		return NormalizePosition(printer.CStr(), curPosition, bounds);
 	};
 
 	// 1) Process groups (each top-level Group becomes one output; nested groups are included)
