@@ -1,4 +1,5 @@
 SET(DZONEMANAGER_TESTS
+	"LevelTests.cpp"
 	"RawTests.cpp"
 	"ZoneSceneTests.cpp")
 
