@@ -40,6 +40,7 @@ set(DCOMMONTEST_SOURCES
 	"FdbSnapshotTests.cpp"
 	"WorldFileWatchTests.cpp"
 	"ChatFilterCoreTests.cpp"
+	"BrickBoundsTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)

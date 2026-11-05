@@ -17,6 +17,7 @@ set(DCOMMON_SOURCES
 		"NiQuaternion.cpp"
 		"Demangler.cpp"
 		"ZCompression.cpp"
+		"Zip.cpp"
 		"BrickByBrickFix.cpp"
 		"BinaryPathFinder.cpp"
 		"FdbToSqlite.cpp"
