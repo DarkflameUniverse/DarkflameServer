@@ -103,7 +103,7 @@ namespace {
 		WriteFloats(stream, { 4.0f, 5.0f, 6.0f }); // position
 		WriteFloats(stream, { 1.0f, 0.0f, 0.0f, 0.0f }); // rotation, w first
 		WriteWString32(stream, names);
-		if (version < 46) Write<uint16_t>(stream, 9);
+		if (version < 46) Write<uint16_t>(stream, 0); // the names' wide null
 		else WriteWString32(stream, config);
 	}
 
@@ -286,7 +286,6 @@ TEST(LevelTests, ReadsAFileFromBeforeChunks) {
 	EXPECT_EQ(level.sounds[0].config.find(u"soundName")->second->GetValueAsString(), "birds");
 	ASSERT_EQ(level.particles.size(), 1);
 	EXPECT_EQ(level.particles[0].priority, 0); // only from version 43
-	EXPECT_EQ(level.particles[0].unknown, 9);
 }
 
 // Older lighting: fog distances only before 39, no directional colour before 36, and before 33 a fixed spawn point

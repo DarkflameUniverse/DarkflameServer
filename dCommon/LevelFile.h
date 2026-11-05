@@ -91,7 +91,6 @@ struct LevelParticle {
 	NiPoint3 position;
 	NiQuaternion rotation = QuatUtils::IDENTITY;
 	std::string effectNames; // separated by ';'
-	uint16_t unknown{}; // before version 46
 	// Version 46 on. The client keeps the last one it read for a particle without one
 	std::string config;
 };

@@ -291,8 +291,13 @@ void LevelFile::ReadParticles(std::istream& file) {
 		BinaryIO::BinaryRead(file, particle.position);
 		BinaryIO::BinaryRead(file, particle.rotation);
 		particle.effectNames = ReadWideString32(file);
-		if (version < 46) BinaryIO::BinaryRead(file, particle.unknown);
-		else config = ReadWideString32(file);
+		if (version < 46) {
+			// Before version 46 the effect names end with a wide null
+			uint16_t nameTerminator{};
+			BinaryIO::BinaryRead(file, nameTerminator);
+		} else {
+			config = ReadWideString32(file);
+		}
 		particle.config = config;
 		if (file.fail()) throw std::runtime_error("Failed to read from istream.");
 		// The client stops at a particle with no effect
