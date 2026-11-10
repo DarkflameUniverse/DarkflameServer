@@ -14,9 +14,14 @@ void ModelNormalizeMigration::Run() {
 	
 		Sd0 sd0(lxfmlData);
 		const auto asStr = sd0.GetAsStringUncompressed();
+		if (asStr.empty()) {
+			// Nothing to work from, so the model stays as it is stored
+			LOG("Could not read the data of model %llu, leaving it as it is.", modelID);
+			continue;
+		}
 		const auto [newLxfml, newCenter] = Lxfml::NormalizePositionOnlyFirstPart(asStr);
 		if (newCenter == NiPoint3Constant::ZERO) {
-			LOG("Failed to update model %llu due to failure reading xml.");
+			LOG("Failed to update model %llu due to failure reading xml.", modelID);
 			continue;
 		}
 
@@ -39,6 +44,11 @@ void ModelNormalizeMigration::RunAfterFirstPart() {
 	
 		Sd0 sd0(lxfmlData);
 		const auto asStr = sd0.GetAsStringUncompressed();
+		if (asStr.empty()) {
+			// Nothing to work from, so the model stays as it is stored
+			LOG("Could not read the data of model %llu, leaving it as it is.", modelID);
+			continue;
+		}
 		const auto [newLxfml, newCenter] = Lxfml::NormalizePositionAfterFirstPart(asStr, model->position);
 
 		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
@@ -59,6 +69,11 @@ void ModelNormalizeMigration::RunBrickBuildGrid() {
 	
 		Sd0 sd0(lxfmlData);
 		const auto asStr = sd0.GetAsStringUncompressed();
+		if (asStr.empty()) {
+			// Nothing to work from, so the model stays as it is stored
+			LOG("Could not read the data of model %llu, leaving it as it is.", modelID);
+			continue;
+		}
 		const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr, model->position);
 
 		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
