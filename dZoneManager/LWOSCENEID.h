@@ -11,6 +11,8 @@ public:
 	constexpr LWOSCENEID() noexcept { m_sceneID = -1; m_layerID = eSceneType::General; }
 	constexpr LWOSCENEID(int32_t sceneID) noexcept { m_sceneID = sceneID; m_layerID = eSceneType::General; }
 	constexpr LWOSCENEID(int32_t sceneID, eSceneType layerID) noexcept { m_sceneID = sceneID; m_layerID = layerID; }
+	// The layer as the zone file and the terrain number it (0 General, 1 Audio)
+	constexpr LWOSCENEID(int32_t sceneID, uint32_t layerID) noexcept { m_sceneID = sceneID; m_layerID = static_cast<eSceneType>(layerID); }
 
 	constexpr LWOSCENEID& operator=(const LWOSCENEID& rhs) noexcept { m_sceneID = rhs.m_sceneID; m_layerID = rhs.m_layerID; return *this; }
 	constexpr LWOSCENEID& operator=(const int32_t rhs) noexcept { m_sceneID = rhs; m_layerID = eSceneType::General; return *this; }

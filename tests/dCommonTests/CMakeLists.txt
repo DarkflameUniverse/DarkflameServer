@@ -60,6 +60,8 @@ endif()
 target_link_libraries(dCommonTests ${COMMON_LIBRARIES} MD5 GTest::gtest_main)
 # SpareBackoff.h (header only)
 target_include_directories(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dMasterServer")
+# The terrain reader (ClientZoneFilesTests reads every client .raw), without the rest of dZoneManager
+target_sources(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dZoneManager/Raw.cpp")
 # ChatFilterCore.h (header only)
 target_include_directories(dCommonTests PRIVATE "${PROJECT_SOURCE_DIR}/dChatFilter")
 

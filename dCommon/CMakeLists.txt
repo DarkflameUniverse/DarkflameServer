@@ -35,7 +35,6 @@ set(DCOMMON_SOURCES
 		"VanityEvents.cpp"
 		"ZoneFile.cpp"
 		"LevelFile.cpp"
-		"Raw.cpp"
 		"ZoneScenes.cpp"
 		"Process.cpp"
 		"Permissions.cpp"
@@ -58,6 +57,7 @@ endforeach()
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
 target_include_directories(dCommon
 	PUBLIC "." "dClient" "dEnums"
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # Raw.h (ZoneScenes.h); its reader is dZoneManager's
 	PRIVATE
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"

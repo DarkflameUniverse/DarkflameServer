@@ -2028,7 +2028,7 @@ namespace DEVGMCommands {
 		// Build the feedback message
 		std::ostringstream feedback;
 		feedback << "Scene ID: " << sceneID.GetSceneID();
-		feedback << " (Layer: " << sceneID.GetLayerID() << ")";
+		feedback << " (Layer: " << GeneralUtils::ToUnderlying(sceneID.GetLayerID()) << ")";
 		
 		// Get the scene name
 		const auto* sceneRef = zone->GetScene(sceneID);
@@ -2071,7 +2071,7 @@ namespace DEVGMCommands {
 		} else {
 			feedback << "\nAdjacent Scenes (" << adjacentSceneIDs.size() << "):";
 			for (const auto& adjSceneID : adjacentSceneIDs) {
-				feedback << "\n  - Scene ID: " << adjSceneID.GetSceneID() << " (Layer: " << adjSceneID.GetLayerID() << ")";
+				feedback << "\n  - Scene ID: " << adjSceneID.GetSceneID() << " (Layer: " << GeneralUtils::ToUnderlying(adjSceneID.GetLayerID()) << ")";
 
 				// Get the scene name if available
 				const auto* sceneRef = zone->GetScene(adjSceneID);
