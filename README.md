@@ -101,6 +101,12 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
 * Master's failed server starts no longer leave a second master running.
 
 ### Gameplay and world
+* **Zone, scene and model files as the client reads them (merged 2026-11-10, with `main` up to the model behaviors,
+  raw terrain scene lookups and property model fixes):** a zone's paths and scenes of every file version, the oldest
+  files' scenes through the CDClient `SceneTable`; a scene file's chunks, environment, objects (with their render
+  techniques and adjusted config), sounds and particles; scene objects of LOT 1 are not loaded. Brick by brick: splitting
+  and normalizing a save moves only the bones (rigids stay as sent), each model is placed by the bottom middle of its
+  bricks' boxes from the client's brickdb, and every save is kept as sent before it is split (`ugc_unsplit`).
 * **Properties:** optional rent; reputation from visitors that resists farming; best friends of the owner can build
   while the owner has build mode on (off by default); models remember who placed them; optionally log back in on a
   property.
