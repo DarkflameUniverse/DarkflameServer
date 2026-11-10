@@ -470,7 +470,7 @@ TEST(LevelFileTests, ReadsObjectsAsTheClient) {
 	LevelFile level;
 	level.Read(stream);
 	ASSERT_EQ(level.objects.size(), 2u);
-	EXPECT_EQ(level.objects[0].renderTechniqueCount, 2u);
+	EXPECT_EQ(level.objects[0].renderTechniques.size(), 2u);
 	EXPECT_EQ(level.objects[0].nodeType, 1u);
 	EXPECT_EQ(level.objects[0].glomId, 1u);
 	EXPECT_EQ(level.objects[1].lot, 2);
