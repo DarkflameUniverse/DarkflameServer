@@ -64,6 +64,7 @@ void ZoneFile::Read(std::istream& file) {
 	if (fileFormatVersion >= FileFormatVersion::EarlyAlpha) {
 		// The paths are a chunk of their own (LuzFile::ReadLUZFile copies it, ReadLUZPaths reads it)
 		BinaryIO::BinaryRead(file, pathDataLength);
+		BinaryIO::RequireRemaining(file, pathDataLength);
 		std::string chunk(pathDataLength, '\0');
 		file.read(chunk.data(), static_cast<std::streamsize>(chunk.size()));
 		if (!file) throw std::runtime_error("Failed to read from istream.");

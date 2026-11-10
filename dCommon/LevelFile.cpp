@@ -247,6 +247,8 @@ void LevelFile::ReadSceneObjectDataChunk(std::istream& file) {
 			BinaryIO::BinaryRead(file, techniqueCount);
 			if (techniqueCount != 0) {
 				obj.renderTechniquesName = ReadName64(file);
+				// A technique is its 64 byte name, a count, a flag and 16 values
+				BinaryIO::RequireRemaining(file, static_cast<uint64_t>(techniqueCount) * (64 + 4 + 1 + 16 * 4));
 				obj.renderTechniques.resize(techniqueCount);
 				for (auto& technique : obj.renderTechniques) {
 					technique.name = ReadName64(file);

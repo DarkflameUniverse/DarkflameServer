@@ -571,3 +571,46 @@ TEST(LevelFileTests, DamagedFilesKeepWhatWasRead) {
 	EXPECT_THROW(level.Read(stream), std::runtime_error);
 	EXPECT_EQ(level.objects.size(), 1u);
 }
+
+// A length or count larger than what is left of the file is refused before any memory is set aside for it
+TEST(ZoneFileTests, OversizedPathChunkLengthThrows) {
+	ZoneBytes w;
+	w.Put<uint32_t>(41).Put<uint32_t>(3).Put<uint32_t>(1150);
+	w.Point(1, 2, 3).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f);
+	w.Put<uint32_t>(0);
+	w.Put<uint8_t>(0).Text("zone.raw").Text("Name").Text("Description");
+	w.Put<uint32_t>(0);
+	w.Put<uint32_t>(0xFFFFFFF0); // the path chunk's length, with nothing after it
+	std::istringstream stream(w.data);
+	ZoneFile file;
+	EXPECT_THROW(file.Read(stream), std::runtime_error);
+}
+
+TEST(LevelFileTests, OversizedConfigLengthThrows) {
+	ZoneBytes w;
+	w.Put<uint16_t>(30).Put<uint16_t>(0);
+	w.data.append(48 + 12, '\0');
+	w.Put<uint32_t>(0).Put<uint32_t>(1);
+	w.Put<int64_t>(10).Put<int32_t>(1);
+	w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put(1.0f);
+	w.Put<uint32_t>(0x7FFFFFFF); // the config's length in characters
+	std::istringstream stream(w.data);
+	LevelFile level;
+	EXPECT_THROW(level.Read(stream), std::runtime_error);
+	EXPECT_TRUE(level.objects.empty());
+}
+
+TEST(LevelFileTests, OversizedRenderTechniqueCountThrows) {
+	ZoneBytes w;
+	w.Put<uint16_t>(30).Put<uint16_t>(0);
+	w.data.append(48 + 12, '\0');
+	w.Put<uint32_t>(0).Put<uint32_t>(1);
+	w.Put<int64_t>(10).Put<int32_t>(1);
+	w.Point(0, 0, 0).Put(1.0f).Put(0.0f).Put(0.0f).Put(0.0f).Put(1.0f);
+	w.Put<uint32_t>(0);          // no config
+	w.Put<uint32_t>(0x0FFFFFFF); // render techniques
+	w.data.append(64, '\0');     // their name
+	std::istringstream stream(w.data);
+	LevelFile level;
+	EXPECT_THROW(level.Read(stream), std::runtime_error);
+}

@@ -41,6 +41,8 @@ set(DCOMMON_SOURCES
 		"Permissions.cpp"
 		"PermissionGrants.cpp"
 		"NifFile.cpp"
+		# The terrain reader: every server that reads zone files uses it, not only the worlds
+		"${PROJECT_SOURCE_DIR}/dZoneManager/Raw.cpp"
 )
 
 # Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.
@@ -58,7 +60,7 @@ endforeach()
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
 target_include_directories(dCommon
 	PUBLIC "." "dClient" "dEnums"
-	"${PROJECT_SOURCE_DIR}/dZoneManager" # Raw.h (ZoneScenes.h); its reader is dZoneManager's
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # Raw.h and its reader
 	PRIVATE
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
