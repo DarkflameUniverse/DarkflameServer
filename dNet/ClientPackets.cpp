@@ -248,7 +248,9 @@ namespace ClientPackets {
 		ldfData.Insert<u16string>(u"name", name);
 		ldfData.Insert<int32_t>(u"gmlevel", static_cast<int32_t>(gmLevel));
 		ldfData.Insert<int32_t>(u"chatmode", chatMode);
-		ldfData.Insert<int64_t>(u"reputation", reputation);
+		// Live sent reputation as LDF type 8 (451 of 451 character data packets); the old packet has it as type 9
+		if (sendWorldKeys) ldfData.Insert<uint64_t>(u"reputation", static_cast<uint64_t>(reputation));
+		else ldfData.Insert<int64_t>(u"reputation", reputation);
 		ldfData.Insert<int32_t>(u"propertycloneid", propertyCloneID);
 		if (txfring) ldfData.Insert<bool>(u"txfring", true);
 		if (sendWorldKeys) {
@@ -373,6 +375,7 @@ namespace ClientPackets {
 				uint64_t value{};
 				VALIDATE_READ(data.Read(value));
 				if (key == u"levelid") { levelID = value; sendWorldKeys = true; }
+				else if (key == u"reputation") reputation = static_cast<int64_t>(value);
 				break;
 			}
 			case LDF_TYPE_FLOAT: {
