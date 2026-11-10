@@ -105,6 +105,12 @@ void CheatDetection::ReportCheat(User* user, const SystemAddress& sysAddr, const
 	va_end(args);
 }
 
+bool CheatDetection::IsSendersPlayer(const LWOOBJID& id, const SystemAddress& sysAddr) {
+	// The player themselves, or the player that possesses the object
+	const auto* const entity = GetPossessedEntity(id);
+	return entity && entity->IsPlayer() && entity->GetSystemAddress() == sysAddr;
+}
+
 bool CheatDetection::VerifyLwoobjidIsSender(const LWOOBJID& id, const SystemAddress& sysAddr, const CheckType checkType, const char* messageIfNotSender, ...) {
 	// Get variables we'll need for the whole function
 	bool invalidPacket = false;

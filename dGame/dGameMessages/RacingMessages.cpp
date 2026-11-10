@@ -1,5 +1,7 @@
 #include "RacingMessages.h"
 
+#include "CheatDetection.h"
+#include "PossessorComponent.h"
 #include "BitStreamUtils.h"
 #include "CharacterComponent.h"
 #include "Entity.h"
@@ -212,6 +214,21 @@ namespace GameMessages {
 		auto* pickup = Game::entityManager->GetEntity(pickupObjID);
 
 		if (pickup == nullptr) {
+			return;
+		}
+
+		// A player reports the pickups their own vehicle drove through
+		if (!CheatDetection::IsSendersPlayer(vehicle.GetObjectID(), sysAddr)) {
+			LOG("Object %llu (LOT %i) is not the vehicle of the player that reported a pickup for it", vehicle.GetObjectID(), vehicle.GetLOT());
+			return;
+		}
+
+		// Pickups are objects of a race track, and never a player, a vehicle or the zone's own object
+		const auto* const zoneControl = Game::zoneManager->GetZoneControlObject();
+		if (!zoneControl || !zoneControl->GetComponent<RacingControlComponent>()
+			|| pickup == zoneControl || pickup->IsPlayer()
+			|| pickup->GetComponent<PossessableComponent>() || pickup->GetComponent<PossessorComponent>()) {
+			LOG("Object %llu (LOT %i) is not a pickup of a race track", pickupObjID, pickup->GetLOT());
 			return;
 		}
 

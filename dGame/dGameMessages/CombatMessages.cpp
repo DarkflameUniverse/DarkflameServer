@@ -1,5 +1,6 @@
 #include "CombatMessages.h"
 
+#include "CheatDetection.h"
 #include "BitStreamUtils.h"
 #include "ControllablePhysicsComponent.h"
 #include "CppScripts.h"
@@ -69,6 +70,13 @@ namespace GameMessages {
 
 	void RequestDie::Handle(Entity& entityRef, const SystemAddress& sysAddr) {
 		Entity* entity = &entityRef;
+
+		// A player asks for their own death or that of the vehicle they drive
+		if (!CheatDetection::IsSendersPlayer(entity->GetObjectID(), sysAddr)) {
+			LOG("Object %llu (LOT %i) is not the player that asked for its death or their vehicle", entity->GetObjectID(), entity->GetLOT());
+			return;
+		}
+
 		auto* zoneController = Game::zoneManager->GetZoneControlObject();
 
 		auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
@@ -103,6 +111,11 @@ namespace GameMessages {
 	}
 
 	void RequestSmashPlayer::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A player asks for their own smash
+		if (!entity.IsPlayer() || entity.GetSystemAddress() != sysAddr) {
+			LOG("Object %llu (LOT %i) is not the player that asked for its smash", entity.GetObjectID(), entity.GetLOT());
+			return;
+		}
 		entity.Smash(entity.GetObjectID());
 	}
 

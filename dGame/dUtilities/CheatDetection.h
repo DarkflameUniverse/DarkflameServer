@@ -24,6 +24,15 @@ namespace CheatDetection {
 	 */
 	bool VerifyLwoobjidIsSender(const LWOOBJID& id, const SystemAddress& sysAddr, const CheckType checkType, const char* messageIfNotSender, ...);
 	void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIfNotSender, ...);
+
+	/**
+	 * @brief Whether an object is the player at a system address or the object that player possesses, such as their vehicle.
+	 * Unlike VerifyLwoobjidIsSender this is false for every other object, so it is for messages only a player sends about themselves.
+	 *
+	 * @param id The object ID a message was sent for
+	 * @param sysAddr The system address which sent the message
+	 */
+	bool IsSendersPlayer(const LWOOBJID& id, const SystemAddress& sysAddr);
 };
 
 #endif  //!__CHEATDETECTION__H__

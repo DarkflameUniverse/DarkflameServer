@@ -1,4 +1,5 @@
 #include "ZoneMessages.h"
+#include "Logger.h"
 #include "MovementMessages.h"
 #include "MissionMessages.h"
 
@@ -63,6 +64,11 @@ namespace GameMessages {
 
 	void PlayerLoaded::Handle(Entity& entityRef, const SystemAddress& sysAddr) {
 		auto* entity = &entityRef;
+		// A player reports that they themselves have loaded
+		if (!entity->IsPlayer() || entity->GetSystemAddress() != sysAddr) {
+			LOG("Object %llu (LOT %i) is not the player that reported it as loaded", entity->GetObjectID(), entity->GetLOT());
+			return;
+		}
 		const auto* const zoneControlEntity = Game::entityManager->GetZoneControlEntity();
 		SendPlayerReady(entity->GetObjectID(), zoneControlEntity ? zoneControlEntity->GetObjectID() : LWOOBJID_EMPTY, sysAddr);
 		entity->SetPlayerReadyForUpdates();

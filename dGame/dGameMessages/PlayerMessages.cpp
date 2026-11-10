@@ -1,5 +1,6 @@
 #include "PlayerMessages.h"
 
+#include "Logger.h"
 #include "BitStreamUtils.h"
 #include "Character.h"
 #include "CharacterComponent.h"
@@ -190,6 +191,11 @@ namespace GameMessages {
 	}
 
 	void ParseChatMessage::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A chat command runs for the player that typed it
+		if (!entity.IsPlayer() || entity.GetSystemAddress() != sysAddr) {
+			LOG("Object %llu (LOT %i) is not the player that sent a chat command for it", entity.GetObjectID(), entity.GetLOT());
+			return;
+		}
 		if (!wsString.empty() && wsString[0] == L'/') {
 			SlashCommandHandler::HandleChatCommand(wsString, &entity, sysAddr);
 		}
