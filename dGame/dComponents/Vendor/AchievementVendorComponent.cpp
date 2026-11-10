@@ -6,6 +6,9 @@
 #include "CDItemComponentTable.h"
 #include "eVendorTransactionResult.h"
 #include "CheatDetection.h"
+#include "Logger.h"
+#include "Game.h"
+#include "VendorPricing.h"
 #include "UserManager.h"
 #include "CDMissionsTable.h"
 #include "Entity.h"
@@ -41,6 +44,12 @@ bool AchievementVendorComponent::SellsItem(Entity* buyer, const LOT lot) {
 }
 
 void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
+	if (!VendorPricing::IsValidBuyCount(count)) {
+		LOG("Player %llu tried to buy %u of item %i from vendor %i", buyer->GetObjectID(), count, lot, m_Parent->GetLOT());
+		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		return;
+	}
+
 	// get the item Comp from the item LOT
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
@@ -71,8 +80,8 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 		if (missionComponent->GetMissionState(578) == eMissionState::COMPLETE) costLOT = 8320; // "Paradox Token"
 	}
 
-	const uint32_t altCurrencyCost = itemComp.commendationCost * count;
-	if (inventoryComponent->GetLotCount(costLOT) < altCurrencyCost || !inventoryComponent->RemoveItem(costLOT, altCurrencyCost, eInventoryType::ALL)) {
+	const uint64_t altCurrencyCost = static_cast<uint64_t>(itemComp.commendationCost) * count;
+	if (inventoryComponent->GetLotCount(costLOT) < altCurrencyCost || !inventoryComponent->RemoveItem(costLOT, static_cast<uint32_t>(altCurrencyCost), eInventoryType::ALL)) {
 		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}

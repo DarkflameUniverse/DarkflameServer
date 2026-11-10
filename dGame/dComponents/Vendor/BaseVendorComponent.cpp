@@ -162,6 +162,12 @@ void BaseVendorComponent::HandleMrReeCameras(){
 
 
 void BaseVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
+	// A count the client did not send as a positive number arrives here as a very large one
+	if (!VendorPricing::IsValidBuyCount(count)) {
+		LOG("Player %llu tried to buy %u of item %i from vendor %i", buyer->GetObjectID(), count, lot, m_Parent->GetLOT());
+		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		return;
+	}
 
 	if (!SellsItem(lot)) {
 		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
@@ -183,7 +189,7 @@ void BaseVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	// Extra currency that needs to be deducted in case of crafting
 	auto craftingCurrencies = CDItemComponentTable::ParseCraftingCurrencies(itemComp);
 	for (const auto& [crafintCurrencyLOT, crafintCurrencyCount]: craftingCurrencies) {
-		if (inventoryComponent->GetLotCount(crafintCurrencyLOT) < (crafintCurrencyCount * count)) {
+		if (inventoryComponent->GetLotCount(crafintCurrencyLOT) < (static_cast<uint64_t>(crafintCurrencyCount) * count)) {
 			SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
@@ -201,24 +207,24 @@ void BaseVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	}
 
 	float buyScalar = GetBuyScalar();
-	const auto coinCost = static_cast<uint32_t>(std::floor((itemComp.baseValue * buyScalar) * count));
+	const uint64_t coinCost = VendorPricing::GetPriceTotal(itemComp.baseValue, buyScalar, count);
 
 	Character* character = buyer->GetCharacter();
-	if (!character || character->GetCoins() < coinCost) {
+	if (!character || character->GetCoins() < 0 || static_cast<uint64_t>(character->GetCoins()) < coinCost) {
 		SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * buyScalar) * count;
+		const uint64_t altCurrencyCost = VendorPricing::GetPricePerItem(itemComp.altCurrencyCost, buyScalar, count);
 		if (inventoryComponent->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
 			SendTransactionResult(buyer->GetObjectID(), buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
-		inventoryComponent->RemoveItem(itemComp.currencyLOT, altCurrencyCost, eInventoryType::ALL);
+		inventoryComponent->RemoveItem(itemComp.currencyLOT, static_cast<uint32_t>(altCurrencyCost), eInventoryType::ALL);
 	}
 
-	character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
+	character->SetCoins(character->GetCoins() - static_cast<int64_t>(coinCost), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
 	// Live sent the vendor's LOT, and the coins paid when there were any, with the bought items
 	LootMetrics metrics{};
 	metrics.sourceLot = m_Parent->GetLOT();
