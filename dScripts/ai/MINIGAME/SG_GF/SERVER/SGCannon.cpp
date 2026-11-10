@@ -11,6 +11,7 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
+#include "MovingPlatformComponent.h"
 #include "MissionComponent.h"
 #include "Loot.h"
 #include "InventoryComponent.h"
@@ -295,7 +296,17 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
-		auto* movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
+		// sg_cannon.lua (onChildLoaded): a moving platform target gets SetPathingSpeed, which nothing on a moving platform
+		// reads, and SetCurrentPath{ pathName, startPoint = 0 }: its mover runs the path at the waypoints' speeds, as the
+		// client's does. Live constructed these targets with the path and the mover waiting at waypoint 0 (9), and
+		// serialized the mover at each waypoint. The other targets follow their waypoints.
+		auto* const movingPlatform = toSpawn.isMovingPlatform ? enemy->GetComponent<MovingPlatformComponent>() : nullptr;
+		MovementAIComponent* movementAI = nullptr;
+		if (movingPlatform) {
+			movingPlatform->SetCurrentPath(path->pathName, 0);
+		} else {
+			movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
+		}
 		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
 		if (simplePhysicsComponent) {
 			simplePhysicsComponent->SetPhysicsMotionState(4);
@@ -303,20 +314,21 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		Game::entityManager->ConstructEntity(enemy);
 
-		movementAI->SetMaxSpeed(toSpawn.initialSpeed);
-		movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
-		movementAI->SetHaltDistance(0.0f);
+		if (movementAI) {
+			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
+			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
+			movementAI->SetHaltDistance(0.0f);
 
-		movementAI->SetPath(path->pathWaypoints);
+			movementAI->SetPath(path->pathWaypoints);
+		}
 
 		enemy->AddDieCallback([this, self, enemy, name]() {
 			RegisterHit(self, enemy, name);
 			});
 
-		// Save the enemy and tell it to start pathing
+		// Save the enemy
 		if (enemy != nullptr) {
 			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-			GameMessages::PlatformResync(*enemy).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }
@@ -1104,21 +1116,13 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 			1.0, false, true
 		},
 
-		// Ness temp fix for dlu where speeds are set to 7 to match a speed closer to live while we work on movingplatform components.
+		// Ness
 		{
 			std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
 			2565, 10.0, 15.0, true, 10.0, 15.0,
-			7.0, 10000, false, 0.0, 7.0,
-			7.0, true, true
+			2.0, 10000, false, 0.0, 1.0,
+			1.0, true, true
 		},
-
-		// // Ness
-		// {
-		// 	std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
-		// 	2565, 10.0, 15.0, true, 10.0, 15.0,
-		// 	2.0, 10000, false, 0.0, 1.0,
-		// 	1.0, true, true
-		// },
 
 		// Friendly 1
 		{

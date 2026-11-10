@@ -49,11 +49,6 @@ namespace GameMessages {
 	// Server -> client, to one client (UNASSIGNED broadcasts).
 	struct PlatformResync : public NetGameMsg {
 		PlatformResync() : NetGameMsg(MessageType::Game::PLATFORM_RESYNC) {}
-		// What DLU sends for a platform entity: the arguments, overridden for a few LOTs whose paths only have a
-		// start and an end (special is for the FV tree platform).
-		PlatformResync(const Entity& entity, bool bStopAtDesiredWaypoint = false,
-			int32_t iIndex = 0, int32_t iDesiredWaypointIndex = 1, int32_t nextIndex = 1,
-			eMovementPlatformState movementState = eMovementPlatformState::Moving, bool special = false);
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 

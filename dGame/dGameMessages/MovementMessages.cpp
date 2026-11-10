@@ -50,26 +50,6 @@ namespace GameMessages {
 		return true;
 	}
 
-	PlatformResync::PlatformResync(const Entity& entity, bool bStopAtDesiredWaypoint, int32_t iIndex, int32_t iDesiredWaypointIndex,
-		int32_t nextIndex, eMovementPlatformState movementState, bool special) : PlatformResync() {
-		const auto lot = entity.GetLOT();
-
-		if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449 || lot == 11306 || lot == 11308 || lot == 9483) {
-			iDesiredWaypointIndex = (lot == 11306 || lot == 11308) ? 1 : 0;
-			iIndex = lot == 9483 ? 1 : 0;
-			nextIndex = lot == 9483 && !special ? 1 : 0;
-			bStopAtDesiredWaypoint = true;
-			movementState = lot == 9483 && !special ? eMovementPlatformState::Stopped : eMovementPlatformState::Stationary;
-		}
-
-		target = entity.GetObjectID();
-		this->bStopAtDesiredWaypoint = bStopAtDesiredWaypoint;
-		this->iIndex = iIndex;
-		this->iDesiredWaypointIndex = iDesiredWaypointIndex;
-		this->iNextIndex = nextIndex;
-		this->eState = movementState;
-	}
-
 	void PlatformResync::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(bReverse);
 		bitStream.Write(bStopAtDesiredWaypoint);
@@ -121,21 +101,18 @@ namespace GameMessages {
 	}
 
 	void RequestPlatformResync::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		// A mover answers with where the server has it (live: travelling 2 with its percent and position, or 25 at a
-		// waypoint with the time waited)
+		// A mover answers with where the server has it (live: travelling 2 with its percent and position, or waiting at
+		// a waypoint with the time waited)
 		auto* const platform = entity.GetComponent<MovingPlatformComponent>();
-		if (platform && platform->IsMover()) {
-			PlatformResync resync;
-			resync.target = entity.GetObjectID();
-			platform->FillResync(resync);
-			resync.Send(sysAddr);
+		if (!platform || !platform->IsMover()) {
+			// Nothing else has waypoints to resync to: the client's simple mover reads them from its own two point path
+			// (LWOPlatformSimpleMover::Resync 0x00bf9ec0, a crash without one) and would set off on a travelling state
 			return;
 		}
-		// A platform without a path has no waypoints to resync to; the client's simple mover reads them anyway and
-		// crashes (LWOPlatformSimpleMover::Resync 0x00bf9ec0 -> Path::GetWaypointAtIndex on a null path)
-		if (platform && !platform->HasPath()) return;
-		if (entity.GetLOT() == 6267 || entity.GetLOT() == 16141) return;
-		PlatformResync(entity).Send(sysAddr);
+		PlatformResync resync;
+		resync.target = entity.GetObjectID();
+		platform->FillResync(resync);
+		resync.Send(sysAddr);
 	}
 
 	void OrientToAngle::Serialize(RakNet::BitStream& bitStream) const {
