@@ -93,6 +93,8 @@ target_include_directories(dWebTests PRIVATE
 	"${PROJECT_SOURCE_DIR}/thirdparty/nlohmann"
 )
 
+# The terrain reader (RawTerrainTests, TerrainMap), without the rest of dZoneManager
+target_sources(dWebTests PRIVATE "${PROJECT_SOURCE_DIR}/dZoneManager/Raw.cpp")
 target_link_libraries(dWebTests ${COMMON_LIBRARIES} dWeb dUgc sqlite3 OpenSSL::Crypto CURL::libcurl GTest::gtest_main)
 
 gtest_discover_tests(dWebTests)
