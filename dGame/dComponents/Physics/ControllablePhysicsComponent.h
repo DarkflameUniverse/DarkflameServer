@@ -396,6 +396,11 @@ private:
 	bool m_IsTeleporting;
 
 	/**
+	 * Works the speed out of the active speed boosts: the lowest slow if there is one, otherwise the highest boost
+	 */
+	void UpdateSpeedBoost();
+
+	/**
 	 * The list of speed boosts for this entity
 	 */
 	std::vector<float> m_ActiveSpeedBoosts;

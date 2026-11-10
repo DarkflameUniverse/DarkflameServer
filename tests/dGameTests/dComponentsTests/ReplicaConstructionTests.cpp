@@ -432,6 +432,40 @@ TEST_F(ReplicaConstructionTest, CharacterGuildChangeIsWrittenOnce) {
 	player.SetCharacter(nullptr);
 }
 
+// Run speed modifiers stack as in LWOControllablePhysComponent::msgAddRunspeedModifier (0x00be0af0) and
+// msgRemoveRunSpeedModifier (0x00be0720): the lowest slow wins, otherwise the highest boost; 500 and anything over 1000
+// count for nothing
+TEST_F(ReplicaConstructionTest, RunSpeedModifiersStackAsTheClientDoes) {
+	Entity entity(15, info);
+	auto* const physics = entity.AddComponent<ControllablePhysicsComponent>(-1);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 1.0f);
+
+	physics->AddSpeedboost(750.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 1.5f);
+	physics->AddSpeedboost(550.0f); // a smaller boost applied later does not replace the bigger one
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 1.5f);
+	physics->AddSpeedboost(250.0f); // any slow beats every boost
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 0.5f);
+	physics->AddSpeedboost(133.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 133.0f / 500.0f);
+	physics->AddSpeedboost(350.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 133.0f / 500.0f);
+	physics->AddSpeedboost(1500.0f);
+	physics->AddSpeedboost(500.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 133.0f / 500.0f);
+
+	physics->RemoveSpeedboost(133.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 0.5f);
+	physics->RemoveSpeedboost(250.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 0.7f);
+	physics->RemoveSpeedboost(350.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 1.5f);
+	physics->RemoveSpeedboost(750.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 1.1f);
+	physics->RemoveSpeedboost(550.0f);
+	EXPECT_FLOAT_EQ(physics->GetSpeedMultiplier(), 1.0f); // 1500 and 500 are left and count for nothing
+}
+
 // Live wrote the cheat block (gravity scale, speed multiplier) on construction only when one of them was changed: 216
 // of 20,617 controllable-physics constructions had it (players at run speed 1.05, enemies with gravity 0), never 1/1.
 TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionWritesCheatsOnlyWhenChanged) {
