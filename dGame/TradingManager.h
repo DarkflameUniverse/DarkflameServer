@@ -66,6 +66,16 @@ public:
 	void SetItems(LWOOBJID participant, std::vector<TradeItem> items);
 	void SetAccepted(LWOOBJID participant, bool value);
 
+	/**
+	 * Whether a participant has given their final accept
+	 */
+	bool GetAccepted(LWOOBJID participant) const;
+
+	/**
+	 * Takes back both final accepts. A changed offer does this, as both clients do when one arrives.
+	 */
+	void ResetAccepted();
+
 	void Complete();
 	void Cancel(const LWOOBJID canceller);
 

@@ -2,6 +2,7 @@
 
 #include <map>
 
+#include "GameDependencies.h"
 #include "TradingManager.h"
 
 namespace {
@@ -10,6 +11,17 @@ namespace {
 		{ 200, { 3040, 1 } },
 		{ 300, { 1727, 2, true, false } },
 		{ 400, { 1727, 2, false, true } },
+	};
+
+	class TradeAcceptTest : public GameDependenciesTest {
+	protected:
+		void SetUp() override {
+			SetUpDependencies();
+		}
+
+		void TearDown() override {
+			TearDownDependencies();
+		}
 	};
 
 	std::optional<HeldTradeItem> FindHeld(const LWOOBJID itemId) {
@@ -79,4 +91,35 @@ TEST(TradeOfferTest, AnOfferFillsTheSlotsOfTheTradeWindowAtMost) {
 
 	offered.push_back({ Trade::MaxOfferedItems + 1, 1727, 1 });
 	EXPECT_FALSE(Trade::ResolveOffer(offered, findAny).has_value());
+}
+
+TEST_F(TradeAcceptTest, OnlyTheFinalAcceptCounts) {
+	Trade trade(1, 10, 20);
+	EXPECT_FALSE(trade.GetAccepted(10));
+
+	trade.SetAccepted(10, true);
+	EXPECT_FALSE(trade.GetAccepted(10));
+
+	trade.SetAccepted(10, false);
+	EXPECT_TRUE(trade.GetAccepted(10));
+	EXPECT_FALSE(trade.GetAccepted(20));
+	// Not a participant
+	EXPECT_FALSE(trade.GetAccepted(30));
+}
+
+TEST_F(TradeAcceptTest, AChangedOfferTakesBothAcceptsBack) {
+	Trade trade(1, 10, 20);
+	trade.SetAccepted(10, false);
+	ASSERT_TRUE(trade.GetAccepted(10));
+
+	// What the update handler does once the new offer is stored
+	trade.SetItems(20, { { 100, 1727, 1 } });
+	trade.ResetAccepted();
+	EXPECT_FALSE(trade.GetAccepted(10));
+	EXPECT_FALSE(trade.GetAccepted(20));
+
+	// The other player's accept alone does not complete the trade, both have to accept again
+	trade.SetAccepted(20, false);
+	EXPECT_TRUE(trade.GetAccepted(20));
+	EXPECT_FALSE(trade.GetAccepted(10));
 }

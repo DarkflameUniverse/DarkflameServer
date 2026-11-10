@@ -160,6 +160,17 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 	}
 }
 
+bool Trade::GetAccepted(const LWOOBJID participant) const {
+	if (participant == m_ParticipantA) return m_AcceptedA;
+	if (participant == m_ParticipantB) return m_AcceptedB;
+	return false;
+}
+
+void Trade::ResetAccepted() {
+	m_AcceptedA = false;
+	m_AcceptedB = false;
+}
+
 void Trade::Complete() {
 	auto* entityA = GetParticipantAEntity();
 	auto* entityB = GetParticipantBEntity();

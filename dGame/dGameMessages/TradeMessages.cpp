@@ -256,6 +256,8 @@ namespace GameMessages {
 
 		trade->SetCoins(entity.GetObjectID(), i64Currency);
 		trade->SetItems(entity.GetObjectID(), *resolvedItems);
+		// Both clients take their accept back when an offer changes, so an accept only ever stands for the offers as they are
+		trade->ResetAccepted();
 		trade->SendUpdateToOther(entity.GetObjectID());
 	}
 
