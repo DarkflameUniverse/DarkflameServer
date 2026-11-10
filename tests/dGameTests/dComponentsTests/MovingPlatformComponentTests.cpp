@@ -390,3 +390,43 @@ TEST_F(MovingPlatformComponentTest, SetCurrentPathPutsTheMoverOnThePath) {
 	EXPECT_EQ(mover->mState, 28u);
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 2u);
 }
+
+// The NJ counterweights in the live captures (LOT 16141, the Frakjaw battle): when the quick build completes the simple
+// mover is serialized waiting at waypoint 0 (9), then travelling from it (2); it stops at its end without a
+// serialization, where PlatformAtLastWaypoint tells the scripts
+TEST_F(MovingPlatformComponentTest, BuiltSimpleMoverSetsOffLikeLive) {
+	info.lot = 16141;
+	info.pos = NiPoint3(10.0f, 20.0f, 30.0f);
+	info.rot = QuatUtils::IDENTITY;
+	Entity counterweight(288300744895900112, info);
+	counterweight.AddComponent<SimplePhysicsComponent>(-1);
+	auto* const platform = counterweight.AddComponent<MovingPlatformComponent>(41, "");
+	auto* const mover = platform->GetSimpleMoverSubComponent();
+	uint32_t atLastWaypoint = 0;
+	platform->AddPlatformAtLastWaypointCallback([&atLastWaypoint] { atLastWaypoint++; });
+
+	platform->OnCompleteQuickBuild();
+	RakNet::BitStream built;
+	platform->Serialize(built, false);
+	EXPECT_EQ(Bits(built), "101" "00000101000000000000000000000000" "0" "1" "00001001000000000000000000000000" "00000000000000000000000000000000" "0" "0");
+
+	counterweight.Update(0.0f); // timers added now start on the next update
+	counterweight.Update(0.11f);
+	EXPECT_EQ(mover->mState, 2u);
+	RakNet::BitStream travelling;
+	platform->Serialize(travelling, false);
+	EXPECT_EQ(Bits(travelling), "101" "00000101000000000000000000000000" "0" "1" "00000010000000000000000000000000" "00000000000000000000000000000000" "0" "0");
+
+	counterweight.Update(0.0f);
+	counterweight.Update(0.5f);
+	EXPECT_EQ(mover->mState, 2u);
+	EXPECT_EQ(atLastWaypoint, 0u);
+	counterweight.Update(0.6f);
+	EXPECT_EQ(mover->mState, 28u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+	EXPECT_EQ(atLastWaypoint, 1u);
+	EXPECT_EQ(counterweight.GetPosition(), NiPoint3(10.0f, 17.5f, 30.0f));
+	RakNet::BitStream arrived;
+	platform->Serialize(arrived, false);
+	EXPECT_EQ(Bits(arrived), "00");
+}

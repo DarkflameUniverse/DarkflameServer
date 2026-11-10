@@ -1,5 +1,6 @@
 #include "NjMonastryBossInstance.h"
 #include "QuickBuildComponent.h"
+#include "MovingPlatformComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -237,44 +238,49 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 			case eQuickBuildState::RESETTING:
 				ActivityTimerStart(self, SpawnCounterWeightTimer, 0.0f, 0.0f);
 				return;
-			case eQuickBuildState::COMPLETED: {
-				// TODO: Move the platform?
-
-				// The counterweight is actually a moving platform and we should listen to the last waypoint event here
-				// 0.5f is a rough estimate of that path, though, and results in less needed logic
-				self->AddCallbackTimer(0.5f, [this, self, counterWeight]() {
-					if (counterWeight != nullptr) {
-						counterWeight->Kill();
-					}
-
-					auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
-					if (frakjaw == nullptr) {
-						GameMessages::NotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
-						return;
-					}
-
-					auto* skillComponent = frakjaw->GetComponent<SkillComponent>();
-					if (skillComponent != nullptr) {
-						skillComponent->CalculateBehavior(1635, 39097, frakjaw->GetObjectID(), true, false);
-					}
-
-					RenderComponent::PlayAnimation(frakjaw, StunnedAnimation);
-					GameMessages::PlayNDAudioEmitter(frakjaw->GetObjectID(), CounterSmashAudio).Send(UNASSIGNED_SYSTEM_ADDRESS);
-
-					// Before wave 4 we should lower frakjaw from the ledge
-					if (self->GetVar<uint32_t>(WaveNumberVariable) == 3) {
-						LowerFrakjaw(self, frakjaw);
-						return;
-					}
-
-					ActivityTimerStart(self, SpawnNextWaveTimer, 2.0f, 2.0f);
-					});
-			}
 			default:
 				return;
 			}
 			});
 	}
+
+	// L_MONASTERY_BOSS_INSTANCE_SERVER (notifyPlatformAtLastWaypoint): the built counterweight has gone down to the end
+	// of its path. It is a simple mover that sets off by itself when its quick build completes: live sent it
+	// travelling about 0.1 s after the build, and its trip takes the second of its MovingPlatforms row.
+	auto* const platform = counterWeight->GetComponent<MovingPlatformComponent>();
+	if (platform == nullptr) return;
+	const auto counterWeightID = counterWeight->GetObjectID();
+	platform->AddPlatformAtLastWaypointCallback([this, self, counterWeightID]() {
+		// Not from inside the counterweight's own arrival
+		self->AddCallbackTimer(0.0f, [this, self, counterWeightID]() {
+			auto* const counterWeight = Game::entityManager->GetEntity(counterWeightID);
+			if (counterWeight != nullptr) {
+				counterWeight->Kill();
+			}
+
+			auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+			if (frakjaw == nullptr) {
+				GameMessages::NotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0, 0, LWOOBJID_EMPTY, "").Send(UNASSIGNED_SYSTEM_ADDRESS);
+				return;
+			}
+
+			auto* skillComponent = frakjaw->GetComponent<SkillComponent>();
+			if (skillComponent != nullptr) {
+				skillComponent->CalculateBehavior(1635, 39097, frakjaw->GetObjectID(), true, false);
+			}
+
+			RenderComponent::PlayAnimation(frakjaw, StunnedAnimation);
+			GameMessages::PlayNDAudioEmitter(frakjaw->GetObjectID(), CounterSmashAudio).Send(UNASSIGNED_SYSTEM_ADDRESS);
+
+			// Before wave 4 we should lower frakjaw from the ledge
+			if (self->GetVar<uint32_t>(WaveNumberVariable) == 3) {
+				LowerFrakjaw(self, frakjaw);
+				return;
+			}
+
+			ActivityTimerStart(self, SpawnNextWaveTimer, 2.0f, 2.0f);
+			});
+		});
 }
 
 void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* lowerFrakjaw) {

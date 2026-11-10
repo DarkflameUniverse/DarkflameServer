@@ -6,6 +6,7 @@
 #ifndef MOVINGPLATFORMCOMPONENT_H
 #define MOVINGPLATFORMCOMPONENT_H
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -276,6 +277,12 @@ public:
 	eMoverSubComponentType GetMoverSubComponentType() const { return m_MoverSubComponentType; }
 
 	/**
+	 * Calls back whenever the platform is at the last waypoint of its path (the PlatformAtLastWaypoint game message,
+	 * which live's scripts ask to be notified of on the NJ counterweights)
+	 */
+	void AddPlatformAtLastWaypointCallback(const std::function<void()>& callback);
+
+	/**
 	 * Called when a simple mover gets to the waypoint it was sent to: the client's LWOPlatform::ArrivedAtWaypoint
 	 * and HandleWaypointArrived (Arrived, then ArrivedAtDesiredWaypoint and PlatformAtLastWaypoint)
 	 */
@@ -314,6 +321,8 @@ private:
 	 * The subcomponents, one per type the client makes (ChooseSubComponentTypes), in its order
 	 */
 	std::vector<std::unique_ptr<PlatformSubComponent>> m_SubComponents;
+
+	std::vector<std::function<void()>> m_AtLastWaypointCallbacks;
 
 	// The object's quick build, looked up when the platform first runs
 	class QuickBuildComponent* m_QuickBuild = nullptr;

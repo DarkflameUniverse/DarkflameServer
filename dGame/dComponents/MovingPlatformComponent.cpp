@@ -285,7 +285,21 @@ void MovingPlatformComponent::OnQuickBuildInitilized() {
 
 void MovingPlatformComponent::OnCompleteQuickBuild() {
 	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
-		GetSimpleMoverSubComponent()->mDirtyState = true;
+		// Live (the NJ counterweights, LOT 16141): the built simple mover is serialized waiting at its waypoint (9) and
+		// about 0.1 s later travelling (2) to its other end, where it stops without a serialization and
+		// PlatformAtLastWaypoint tells the scripts. It is the client's LWOPlatform at work: active once its quick build
+		// is complete (SendMessage 0x00bdc930), it waits the shortest wait (SetWaitingTime 0x00bdc860) and sets off
+		// (RunPlatform 0x00c86e10).
+		auto* const simpleMover = GetSimpleMoverSubComponent();
+		simpleMover->mDirtyState = true;
+		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
+		if (!startOnLoad || (simpleMover->mState & ePlatformStateFlag::Travelling) != 0) return;
+		const auto generation = ++m_MoveGeneration;
+		m_Parent->AddCallbackTimer(0.1f, [this, generation] {
+			if (generation != m_MoveGeneration) return;
+			auto* const simpleMover = GetSimpleMoverSubComponent();
+			if (simpleMover) SimpleMoverGotoWaypoint(simpleMover->mCurrentWaypointIndex == 0 ? 1 : 0);
+		});
 		return;
 	}
 
@@ -728,13 +742,19 @@ void MovingPlatformComponent::OnSimpleMoverArrived(const int32_t index) {
 	auto* const simpleMover = GetSimpleMoverSubComponent();
 	if (!simpleMover) return;
 
-	// LWOPlatform::ArrivedAtWaypoint: both ends are the path's ends, and a path run once stops there
+	// LWOPlatform::ArrivedAtWaypoint: both ends are the path's ends, and a path run once stops there (28) and turns
+	// round. Live did not serialize it (each client's simple mover arrives by itself), and the object is moved ignoring
+	// the dirty flags (ProcessStateChange 0x00cce380).
 	simpleMover->mCurrentWaypointIndex = index;
 	simpleMover->mState = ePlatformStateFlag::Stopped | ePlatformStateFlag::ReachedDesiredWaypoint | ePlatformStateFlag::ReachedFinalDestination;
 	simpleMover->mInReverse = index == 1;
-	simpleMover->mDirtyState = true;
-	m_Parent->SetPosition(simpleMover->GetWaypointPosition(index));
-	Game::entityManager->SerializeEntity(m_Parent);
+	const auto position = simpleMover->GetWaypointPosition(index);
+	if (auto* const simplePhysics = m_Parent->GetComponent<SimplePhysicsComponent>()) {
+		simplePhysics->SetPositionAndRotationIgnoringDirtyFlags(position, simpleMover->mStartRotation);
+	}
+	if (auto* const phantomPhysics = m_Parent->GetComponent<PhantomPhysicsComponent>()) {
+		phantomPhysics->SetPositionAndRotationIgnoringDirtyFlags(position, simpleMover->mStartRotation);
+	}
 
 	FireArrivalHooks(index, true, index == 1);
 }
@@ -745,7 +765,16 @@ void MovingPlatformComponent::FireArrivalHooks(const uint32_t index, const bool 
 	auto* const script = m_Parent->GetScript();
 	script->OnWaypointReached(m_Parent, index);
 	if (atDesiredWaypoint) script->OnArrivedAtDesiredWaypoint(m_Parent, index);
-	if (atLastWaypoint) script->OnPlatformAtLastWaypoint(m_Parent);
+	if (atLastWaypoint) {
+		script->OnPlatformAtLastWaypoint(m_Parent);
+		// A callback may add another
+		const auto callbacks = m_AtLastWaypointCallbacks;
+		for (const auto& callback : callbacks) callback();
+	}
+}
+
+void MovingPlatformComponent::AddPlatformAtLastWaypointCallback(const std::function<void()>& callback) {
+	m_AtLastWaypointCallbacks.push_back(callback);
 }
 
 void MovingPlatformComponent::Allocator(Entity& entity, ObjectLoadState& state) {

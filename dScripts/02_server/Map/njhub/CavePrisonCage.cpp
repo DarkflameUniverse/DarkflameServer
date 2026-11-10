@@ -84,19 +84,16 @@ void CavePrisonCage::SpawnCounterweight(Entity* self, Spawner* spawner) {
 			});
 
 		quickBuildComponent->AddQuickBuildCompleteCallback([this, self](Entity* user) {
-			auto* counterweight = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Counterweight"));
-
-			if (counterweight == nullptr) {
-				return;
-			}
-
-			// The counterweight is a simple mover (MovingPlatforms row 41): send it down to its end
-			auto* const platform = counterweight->GetComponent<MovingPlatformComponent>();
-			if (platform) platform->GotoWaypoint(1);
-
 			// Save the userID as Builder
 			self->SetVar<LWOOBJID>(u"Builder", user->GetObjectID());
+			});
+	}
 
+	// L_CAVE_PRISON_CAGE (notifyPlatformAtLastWaypoint): the built counterweight, a simple mover (MovingPlatforms row
+	// 41) that sets off by itself when its quick build completes, has gone down to the end of its path
+	auto* const platform = counterweight->GetComponent<MovingPlatformComponent>();
+	if (platform) {
+		platform->AddPlatformAtLastWaypointCallback([this, self]() {
 			// Get the button and make sure it still exists
 			auto* button = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Button"));
 
