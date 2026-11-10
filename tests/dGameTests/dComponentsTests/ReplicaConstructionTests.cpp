@@ -316,6 +316,28 @@ TEST_F(ReplicaConstructionTest, PhantomPhysicsVolumeEffectsAsLive) {
 	EXPECT_FALSE(effect.isDirectional);
 }
 
+// A construction (the volume coming into one player's range) doesn't use up an effect change the players already
+// watching it still have to get.
+TEST_F(ReplicaConstructionTest, PhantomPhysicsConstructionKeepsThePendingEffect) {
+	ConnectRegistry();
+	Entity volume(1007, info);
+	auto* const phantom = volume.AddComponent<PhantomPhysicsComponent>(-1);
+	RakNet::BitStream first;
+	phantom->Serialize(first, false);
+	const auto idle = first.GetNumberOfBitsUsed();
+
+	phantom->SetVolumeEffect({ "Friction", "0" });
+	RakNet::BitStream construction;
+	phantom->Serialize(construction, true);
+	RakNet::BitStream update;
+	phantom->Serialize(update, false);
+	EXPECT_EQ(update.GetNumberOfBitsUsed(), 2u + 1 + 32 + 32 + 1 + 1);
+	RakNet::BitStream again;
+	phantom->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 2u);
+	EXPECT_LE(again.GetNumberOfBitsUsed(), idle);
+}
+
 // A guild change (docs/Guilds.md) is written once: the client reads guild id, a u8 length and 16-bit characters, and
 // redraws the name billboard every time it reads a name.
 TEST_F(ReplicaConstructionTest, CharacterGuildChangeIsWrittenOnce) {

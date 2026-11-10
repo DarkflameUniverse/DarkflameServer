@@ -153,7 +153,8 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 			}
 		}
 
-		m_EffectInfoDirty = false;
+		// A construction goes to the one client the volume came into range of; the others still need the change
+		if (!bIsInitialUpdate) m_EffectInfoDirty = false;
 	}
 }
 
