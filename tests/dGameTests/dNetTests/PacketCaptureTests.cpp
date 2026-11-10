@@ -351,14 +351,14 @@ TEST(PacketDecoderTests, NamesEveryService) {
 
 TEST(PacketDecoderTests, SessionKeysBetweenServersAreBlanked) {
 	MasterPackets::SetSessionKey key;
-	key.sessionKey = 0xDEADBEEF;
+	const std::string secret = "0123456789abcdef0123456789abcdef";
+	key.sessionKey = LUString(secret);
 	key.username = LUString("alice");
 	RakNet::BitStream stream;
 	key.WritePacket(stream);
 	std::string bytes(reinterpret_cast<const char*>(stream.GetData()), stream.GetNumberOfBytesUsed());
 	ASSERT_TRUE(PacketDecoder::Redact(bytes));
-	const uint32_t secret = 0xDEADBEEF;
-	EXPECT_EQ(bytes.find(std::string(reinterpret_cast<const char*>(&secret), 4)), std::string::npos);
+	EXPECT_EQ(bytes.find(secret), std::string::npos);
 }
 
 namespace {

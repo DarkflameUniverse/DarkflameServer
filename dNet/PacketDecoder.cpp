@@ -245,9 +245,9 @@ namespace {
 			{ K(S::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE), { nullptr, Scrub<ChatPackets::GeneralChatMessage>(nullptr, [](auto& p) { X(p.senderName); X(p.message); }) } },
 			{ K(S::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE), { nullptr, Scrub<ChatPackets::PrivateChatMessage>(nullptr, [](auto& p) { X(p.senderName); X(p.receiverName); X(p.message); }) } },
 			{ K(S::MASTER, MessageType::Master::REQUEST_SESSION_KEY), { nullptr, Scrub<MasterPackets::RequestSessionKey>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::SESSION_KEY_RESPONSE), { Blank<MasterPackets::SessionKeyResponse>([](auto& p) { p.sessionKey = 0; }), Scrub<MasterPackets::SessionKeyResponse>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::SET_SESSION_KEY), { Blank<MasterPackets::SetSessionKey>([](auto& p) { p.sessionKey = 0; }), Scrub<MasterPackets::SetSessionKey>([](auto& p) { X(p.username); }) } },
-			{ K(S::MASTER, MessageType::Master::NEW_SESSION_ALERT), { Blank<MasterPackets::NewSessionAlert>([](auto& p) { p.sessionKey = 0; }), Scrub<MasterPackets::NewSessionAlert>([](auto& p) { X(p.username); }) } },
+			{ K(S::MASTER, MessageType::Master::SESSION_KEY_RESPONSE), { Blank<MasterPackets::SessionKeyResponse>([](auto& p) { p.sessionKey.string.clear(); }), Scrub<MasterPackets::SessionKeyResponse>([](auto& p) { X(p.username); }) } },
+			{ K(S::MASTER, MessageType::Master::SET_SESSION_KEY), { Blank<MasterPackets::SetSessionKey>([](auto& p) { p.sessionKey.string.clear(); }), Scrub<MasterPackets::SetSessionKey>([](auto& p) { X(p.username); }) } },
+			{ K(S::MASTER, MessageType::Master::NEW_SESSION_ALERT), { Blank<MasterPackets::NewSessionAlert>([](auto& p) { p.sessionKey.string.clear(); }), Scrub<MasterPackets::NewSessionAlert>([](auto& p) { X(p.username); }) } },
 		};
 		return registry;
 	}

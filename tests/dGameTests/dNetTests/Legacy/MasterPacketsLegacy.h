@@ -119,14 +119,14 @@ namespace LegacyMaster {
 	}
 
 	// dMasterServer/MasterServer.cpp SET_SESSION_KEY, and dNet/AuthPackets.cpp
-	inline void WriteSessionKey(RakNet::BitStream& bitStream, MessageType::Master type, uint32_t sessionKey, const LUString& username) {
+	inline void WriteSessionKey(RakNet::BitStream& bitStream, MessageType::Master type, const LUString& sessionKey, const LUString& username) {
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, type);
 		bitStream.Write(sessionKey);
 		bitStream.Write(username);
 	}
 
 	// dMasterServer/MasterServer.cpp REQUEST_SESSION_KEY
-	inline void WriteSessionKeyResponse(RakNet::BitStream& bitStream, uint32_t sessionKey, const LUWString& username) {
+	inline void WriteSessionKeyResponse(RakNet::BitStream& bitStream, const LUString& sessionKey, const LUWString& username) {
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
 		bitStream.Write(sessionKey);
 		bitStream.Write(username);

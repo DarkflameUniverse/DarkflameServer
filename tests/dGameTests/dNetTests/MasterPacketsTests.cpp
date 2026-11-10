@@ -167,7 +167,7 @@ TEST(MasterPacketsTests, ServerInfoMatchesLegacy) {
 }
 
 TEST(MasterPacketsTests, SessionKeysMatchLegacy) {
-	for (const uint32_t key : { 0u, 12345u, 0xFFFFFFFFu }) {
+	for (const auto& key : { LUString(""), LUString("0123456789abcdef0123456789abcdef"), LUString("ffffffffffffffffffffffffffffffff") }) {
 		for (const auto& name : g_Strings) {
 			if (name.size() > 33) continue;
 			MasterPackets::SetSessionKey set;

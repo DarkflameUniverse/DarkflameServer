@@ -92,7 +92,7 @@ namespace MasterPackets {
 
 	// Auth -> master: an account logged in with this session key
 	struct SetSessionKey : public LUBitStream {
-		uint32_t sessionKey{};
+		LUString sessionKey{}; // 32 hex characters
 		LUString username{};
 
 		SetSessionKey() : LUBitStream(ServiceType::MASTER, MessageType::Master::SET_SESSION_KEY) {}
@@ -102,7 +102,7 @@ namespace MasterPackets {
 
 	// Master -> world: answer to RequestSessionKey
 	struct SessionKeyResponse : public LUBitStream {
-		uint32_t sessionKey{};
+		LUString sessionKey{};
 		LUWString username{};
 
 		SessionKeyResponse() : LUBitStream(ServiceType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE) {}
@@ -112,7 +112,7 @@ namespace MasterPackets {
 
 	// Master -> every server: the account logged in again with a new session key
 	struct NewSessionAlert : public LUBitStream {
-		uint32_t sessionKey{};
+		LUString sessionKey{};
 		LUString username{};
 
 		NewSessionAlert() : LUBitStream(ServiceType::MASTER, MessageType::Master::NEW_SESSION_ALERT) {}
