@@ -122,6 +122,7 @@ namespace {
 		c.Add(Port(AUTH, "auth_server_port", "Auth port", "The retail client always connects to 1001.", "1001"));
 		c.Add(Port(SHARED, "chat_server_port", "Chat port", "Used by the chat and world servers.", "2005"));
 		c.Add(Port(MASTER, "world_port_start", "First world port", "World servers take ports counting up from here.", "3000"));
+		c.Add(Int(MASTER, "max_instances", "Maximum world instances", "The most world instances that run at once. A zone that needs one more is not started and the player is told the map change failed. The character select is always started. 0 means no limit.", "256", 0, std::nullopt, true));
 		c.Add(Secret(MASTER, "master_password", "Master password", "Shared by the servers to connect to master. Change it on public servers.", true));
 		c.Add(Int(SHARED, "max_clients", "Maximum connections", "How many clients each server accepts at once.", "999", 1, 10000, true));
 		c.Add(Unit(Int(SHARED, "maximum_mtu_size", "Packet size (MTU)", "Largest packet sent. Lower it if players get stuck at 55% loading.", "1228", 512, 1492, true), "bytes"));
