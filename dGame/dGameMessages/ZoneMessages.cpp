@@ -70,7 +70,11 @@ namespace GameMessages {
 			return;
 		}
 		const auto* const zoneControlEntity = Game::entityManager->GetZoneControlEntity();
-		SendPlayerReady(entity->GetObjectID(), zoneControlEntity ? zoneControlEntity->GetObjectID() : LWOOBJID_EMPTY, sysAddr);
+		// A client that kept its player across a seamless instance move is ready already; PlayerReady would only put
+		// its camera's pitch back to the default (LWOCharacterComponent::iSendMessage, 0x00d34330)
+		if (!WorldMigration::ArrivesSeamlessly(entity->GetObjectID())) {
+			SendPlayerReady(entity->GetObjectID(), zoneControlEntity ? zoneControlEntity->GetObjectID() : LWOOBJID_EMPTY, sysAddr);
+		}
 		entity->SetPlayerReadyForUpdates();
 
 		// Venture vision from equipped items was sent before the client's UI existed on a fresh login

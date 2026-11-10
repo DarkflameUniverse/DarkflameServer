@@ -143,8 +143,11 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 		if (!bIsInitialUpdate) m_DirtyBubble = false;
 	}
 
-	outBitStream.Write(m_DirtyPosition || bIsInitialUpdate);
-	if (m_DirtyPosition || bIsInitialUpdate) {
+	// A client that kept its player across a seamless instance move knows where it stands better than the save does:
+	// its construction leaves the frame out, and LWOBasePhysComponent::Deserialize (0x00bf5a10) then sets nothing
+	const bool writePosition = bIsInitialUpdate ? !m_KeepClientPosition : m_DirtyPosition;
+	outBitStream.Write(writePosition);
+	if (writePosition) {
 		outBitStream.Write(m_Position.x);
 		outBitStream.Write(m_Position.y);
 		outBitStream.Write(m_Position.z);

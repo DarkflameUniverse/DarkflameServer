@@ -499,8 +499,9 @@ void EntityManager::SerializeEntity(const Entity& entity) {
 	}
 }
 
-void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {
+void EntityManager::DestructAllEntities(const SystemAddress& sysAddr, const LWOOBJID except) {
 	for (auto* entity : m_Entities | std::views::values) {
+		if (entity && except != LWOOBJID_EMPTY && entity->GetObjectID() == except) continue;
 		DestructEntity(entity, sysAddr);
 	}
 }

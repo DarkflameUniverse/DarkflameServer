@@ -227,12 +227,20 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		outBitStream.Write(m_RacesFinished);
 		outBitStream.Write(m_FirstPlaceRaceFinishes);
 
-		outBitStream.Write0();
-		outBitStream.Write(m_IsLanding);
-		if (m_IsLanding) {
-			outBitStream.Write<uint16_t>(m_LastRocketConfig.size());
-			for (uint16_t character : m_LastRocketConfig) {
-				outBitStream.Write(character);
+		// The world transition state, two bits: 0 none, 1 arriving by rocket, 2 leaving. The client's
+		// LWOCharacterComponent::PostCharacterLoaded (0x00c71660) fades the screen in from white and pushes its
+		// gameplay state again when it reads 0. A client that kept its scene gets 3, which nothing acts on.
+		if (m_KeepClientScene) {
+			outBitStream.Write1();
+			outBitStream.Write1();
+		} else {
+			outBitStream.Write0();
+			outBitStream.Write(m_IsLanding);
+			if (m_IsLanding) {
+				outBitStream.Write<uint16_t>(m_LastRocketConfig.size());
+				for (uint16_t character : m_LastRocketConfig) {
+					outBitStream.Write(character);
+				}
 			}
 		}
 	}

@@ -56,7 +56,8 @@ public:
 	void SerializeEntity(const Entity& entity);
 
 	void ConstructAllEntities(const SystemAddress& sysAddr);
-	void DestructAllEntities(const SystemAddress& sysAddr);
+	// Takes every object away from one client, except `except` when given
+	void DestructAllEntities(const SystemAddress& sysAddr, LWOOBJID except = LWOOBJID_EMPTY);
 
 	void SetGhostDistanceMax(float value);
 	void SetGhostDistanceMin(float value);

@@ -51,7 +51,12 @@ namespace WorldMigration {
 	// not be sent LOAD_STATIC_ZONE (that tears the scene down); load it at once instead
 	bool ArrivesSeamlessly(LWOOBJID characterId);
 
-	// Its player entity was created and constructed: run what the client's PlayerLoaded would have
+	// While `keep` is set, constructions of a seamlessly arriving player leave out what would reset its client's own
+	// player: the position (the client stands where it is) and the world transition (no fade from white). Set only
+	// around the construction that goes to the player's own client; does nothing for other players.
+	void KeepClientPlayer(Entity* player, bool keep);
+
+	// Its player entity was created and constructed: the client sends PlayerLoaded itself; a fallback runs it if not
 	void OnSeamlessArrival(Entity* player);
 
 	// MIGRATE_STATUS from master: tell the GM who asked, if they are here

@@ -217,6 +217,13 @@ public:
 	bool GetIsTeleporting() const { return m_IsTeleporting; }
 
 	/**
+	 * Constructions written while this is set carry no position, rotation or velocity. For the one construction a
+	 * client gets of its own player after a seamless instance move (docs/SeamlessTransfer.md): the client applies a
+	 * construction's frame to its player at once, which would pull it back to where it was saved.
+	 */
+	void SetKeepClientPosition(const bool value) { m_KeepClientPosition = value; }
+
+	/**
 	 * Returns the Physics entity for the component
 	 * @return Physics entity for the component
 	 */
@@ -399,6 +406,11 @@ private:
 	 * Works the speed out of the active speed boosts: the lowest slow if there is one, otherwise the highest boost
 	 */
 	void UpdateSpeedBoost();
+
+	/**
+	 * Whether constructions leave the position out (SetKeepClientPosition)
+	 */
+	bool m_KeepClientPosition = false;
 
 	/**
 	 * The list of speed boosts for this entity

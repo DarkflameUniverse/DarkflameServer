@@ -18,10 +18,13 @@ lu_packets.
   server as a localized announcement. Live used this to evacuate instances.
 * Moving within the same zone keeps the player where they stood. Merging instances therefore works, but the player sees
   the warning, a short loading screen, and the "shift succeeded" notice.
-* **A transfer without a loading screen looks possible.** The client's replica code can **adopt** an object it already
-  has for a new server's construction, and it keeps its own player object when the old server takes its ghost away. So
-  a new server can take over if it skips `LOAD_STATIC_ZONE`. This is built as an opt-in experiment (see below) and has
-  **not been tried with the real client yet**.
+* **A transfer within the same zone works without a loading screen.** The client's replica code **adopts** an object
+  it already has for a new server's construction, and it never deletes its own player. So a new server can take over
+  if it skips `LOAD_STATIC_ZONE`. This is the opt-in seamless mode (see below). The player keeps its object, position
+  and camera; the other objects still fade out and come back.
+* **A transfer to another zone cannot skip the loading screen.** The client loads a zone only on `LOAD_STATIC_ZONE`
+  (or its own script command), and that handler always shows the loading screen and deletes every object first. No
+  server message loads or unloads single scenes.
 
 ## What the client does (1.10.64)
 
@@ -71,6 +74,28 @@ network state message.
   destroyed, other objects are deleted but **the local player is kept** (the code only clears `pGhost`).
 * When the world connection closes, nothing is deleted. `ReplicaManager::RemoveParticipant` @ `00a478d0` leaves the
   objects alone.
+
+### A second construction of the local player
+
+What the client does when a construction arrives for the player object it already has (the seamless mode's case):
+
+* `LWOGameObject::Unserialize` @ `00f99690` runs every component's construction read on the live object.
+* `LWOBasePhysComponent::Deserialize` @ `00bf5a10`: when the construction has a frame, it is applied at once
+  (position, rotation, both velocities), local player or not. Without the frame bit nothing is set.
+* `LWOInventoryComponent_Client::Deserialize` @ `00d52860` compares the equipped items with the ones it has and only
+  equips or unequips the difference.
+* `LWOCharacterComponent::Unserialize` @ `00ca3a40` reads the 2-bit world transition state (0 none, 1 arriving by
+  rocket, 2 leaving) and ends in `LWOCharacterComponent::PostCharacterLoaded` @ `00c71660`. With state 0 that pushes
+  the gameplay state again and posts a **full screen fade from white**. In every case it sends `PlayerLoaded` to the
+  server. State 3 is read but nothing acts on it.
+* `LWOGhostComponent::OnGhostReceiveDestruction` @ `00c99410`: when the local player's last ghost is destroyed the
+  object stays, but it leaves scope (`LWOBaseRenderComponent::OnLeaveScope` @ `00c49140` hides it). The next
+  construction brings it back through `LWOBaseRenderComponent::OnEnterScope` @ `00be2150`, which fades it in with the
+  `login` effect. A destruction for a ghost that a newer construction already replaced does nothing.
+* `PlayerReady` (`LWOCharacterComponent::iSendMessage` @ `00d34330`) puts the gameplay camera's pitch back to the
+  default; the rest of it refreshes UI.
+* `ConnectToWorldServer` posts `UILoginFeedback` state 4, which only calls `_root.setLoginFeedback` on the current
+  Flash scene (`NDUIScaleformScene::SendMessage` @ `00bc2d10`). Nothing shows in game.
 
 ### Connection loss vs. a transfer
 
@@ -169,21 +194,29 @@ the rest of the 33 bytes uninitialised, port 2005, flag 0). lcdr-utils' `found.z
 
 Built from the replica behaviour above:
 
-* **Source**: after saving and locking the player, it sends a destruction for every object it sent them
-  (`DestructAllEntities`) and then `TRANSFER_TO_WORLD` without `mythranShift`. Both go out on the same ordered channel,
-  so the destructions arrive first. The client deletes those objects but keeps its player, terrain and UI.
-* **Target**: the carried state is marked seamless. When that character's session is validated, the target skips
-  `LOAD_STATIC_ZONE` and runs the level-load step at once (`LoadPlayer`): it creates the player entity, sends
+* **Source**: after saving and locking the player, it sends a destruction for every object it sent them **except their
+  own player**, and then `TRANSFER_TO_WORLD` without `mythranShift`. Both go out on the same ordered channel, so the
+  destructions arrive first. The client deletes those objects and keeps its player (in scope, with its old ghost),
+  terrain and UI.
+* **Target**: the carried state is marked seamless. When that character's session is validated within 30 s, the target
+  skips `LOAD_STATIC_ZONE` and runs the level-load step at once (`LoadPlayer`): it creates the player entity, sends
   `CREATE_CHARACTER` (which the client ignores because the object exists), and constructs the player and everything
-  else. The client adopts its existing player object for the new ghost. One second later the server does what the
-  client's `PlayerLoaded` would have triggered, because the client never sends it again.
-* **Untested**:
-  * how the client reacts to `ServerDoneLoadingAllObjects` / `PlayerReady` without a load in progress
-  * the UI state `ConnectToWorldServer` posts
-  * the camera reset in `PlayerReady`
-  * whether objects visibly pop out and back in
-
-  If it goes wrong the worst case should be a stuck client that has to log in again. The character is already saved.
+  else. The client adopts its existing player object for the new ghost.
+* The construction of the player that goes to **its own client** differs from the one everyone else gets
+  (`WorldMigration::KeepClientPlayer`):
+  * no position frame, so the client stays where it stands instead of snapping back to where it was saved;
+  * world transition state 3, so there is no fade from white.
+* The client sends `PlayerLoaded` by itself after that construction. If it has not after 5 s the server runs it.
+  `PlayerReady` is not sent (the client is ready, and it would reset the camera pitch).
+* **First test (2026-09-30), before these changes**: no loading screen, but a white flash and the character came back
+  with the login effect. Cause: the source destroyed the player's own ghost too, and the construction said transition
+  state 0.
+* **Still visible**: the other objects fade out when the source takes them away and come back when the target
+  constructs them. Objects placed in the level have the same object ID on both instances and could be handed over
+  without that (construct on the target first, destroy the source's ghosts after); that needs network ID ranges that
+  don't overlap between instances and is not built.
+* **Untested with these changes**: everything. If it goes wrong the worst case should be a stuck client that has to
+  log in again. The character is already saved.
 
 ### What carries over
 
@@ -231,6 +264,8 @@ Both need DEVELOPER, act on the instance the GM is in, and report progress to th
 ### Limits
 
 * Normal mode always shows a loading screen, because the client has no way around it once `LOAD_STATIC_ZONE` is sent.
+* The seamless mode only works within one zone: another zone's terrain and scenes only load through
+  `LOAD_STATIC_ZONE`.
   Staying in the same zone keeps it short: the zone files are warm in the OS cache and the target is already running.
 * Only public, non-clone, non-activity instances can be moved.
 * The target world starts its own simulation. Enemies, smashables, quickbuilds and dropped loot are the target's, not
