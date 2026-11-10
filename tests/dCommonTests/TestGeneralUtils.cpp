@@ -33,3 +33,36 @@ TEST(GeneralUtilsTest, UnpredictableNumberFillsEveryByte) {
 
 	EXPECT_EQ(seenBits, 0xFFFFFFFFFFFFFFFFULL);
 }
+
+TEST(GeneralUtilsTest, StreamHoldsCountsTheBytesLeft) {
+	RakNet::BitStream stream;
+	stream.Write<uint32_t>(4);
+	for (uint16_t i = 0; i < 4; i++) stream.Write<uint16_t>(u'a' + i);
+
+	uint32_t length = 0;
+	stream.Read(length);
+	EXPECT_TRUE(GeneralUtils::StreamHolds(stream, 0));
+	EXPECT_TRUE(GeneralUtils::StreamHolds(stream, 8));
+	EXPECT_FALSE(GeneralUtils::StreamHolds(stream, 9));
+	EXPECT_TRUE(GeneralUtils::StreamHolds(stream, 4, sizeof(uint16_t)));
+	EXPECT_FALSE(GeneralUtils::StreamHolds(stream, 5, sizeof(uint16_t)));
+	EXPECT_FALSE(GeneralUtils::StreamHolds(stream, UINT32_MAX, sizeof(uint16_t)));
+	EXPECT_FALSE(GeneralUtils::StreamHolds(stream, UINT64_MAX, sizeof(uint16_t)));
+	// What a negative 32 bit length becomes
+	EXPECT_FALSE(GeneralUtils::StreamHolds(stream, static_cast<int32_t>(-1), sizeof(uint16_t)));
+}
+
+TEST(GeneralUtilsTest, ReadWStringReadsWhatTheStreamHolds) {
+	RakNet::BitStream stream;
+	stream.Write<uint32_t>(4);
+	for (uint16_t i = 0; i < 4; i++) stream.Write<uint16_t>(u'a' + i);
+	EXPECT_EQ(GeneralUtils::ReadWString(stream), u"abcd");
+
+	RakNet::BitStream tooLong;
+	tooLong.Write<uint32_t>(0xFFFFFFFF);
+	tooLong.Write<uint16_t>(u'a');
+	EXPECT_EQ(GeneralUtils::ReadWString(tooLong), u"");
+
+	RakNet::BitStream empty;
+	EXPECT_EQ(GeneralUtils::ReadWString(empty), u"");
+}

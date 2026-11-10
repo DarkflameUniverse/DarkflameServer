@@ -292,10 +292,12 @@ std::vector<std::string> GeneralUtils::SplitString(const std::string_view str, c
 }
 
 std::u16string GeneralUtils::ReadWString(RakNet::BitStream& inStream) {
-	uint32_t length;
+	uint32_t length = 0;
 	inStream.Read<uint32_t>(length);
 
 	std::u16string string;
+	if (!StreamHolds(inStream, length, sizeof(uint16_t))) return string;
+
 	for (uint32_t i = 0; i < length; ++i) {
 		uint16_t c;
 		inStream.Read(c);

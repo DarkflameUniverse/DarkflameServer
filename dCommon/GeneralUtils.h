@@ -143,6 +143,18 @@ namespace GeneralUtils {
 
 	bool ReplaceInString(std::string& str, const std::string_view from, const std::string_view to);
 
+	/**
+	 * Whether a stream still holds a number of values of a size. A length read from a stream is checked with this
+	 * before that many values are read, as the stream can not hold more values than it has bytes left.
+	 * @param inStream The stream the values are read from
+	 * @param count The number of values
+	 * @param valueSize The size of one value in bytes
+	 */
+	inline bool StreamHolds(const RakNet::BitStream& inStream, const uint64_t count, const uint64_t valueSize = 1) {
+		// Neither side can wrap: the count is at most 32 bits wide wherever it is read from a stream
+		return count <= UINT32_MAX && count * valueSize * 8 <= static_cast<uint64_t>(inStream.GetNumberOfUnreadBits());
+	}
+
 	std::u16string ReadWString(RakNet::BitStream& inStream);
 
 	std::vector<std::u16string> SplitString(const std::u16string_view str, const char16_t delimiter);
