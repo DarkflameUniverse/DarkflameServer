@@ -72,6 +72,13 @@ public:
 	bool GetIsLanding() const { return m_IsLanding; }
 
 	/**
+	 * Constructions written while this is set tell the client there is no world transition to show (state 3 instead
+	 * of 0 or the rocket landing). For the one construction a client gets of its own player after a seamless instance
+	 * move (docs/SeamlessTransfer.md).
+	 */
+	void SetKeepClientScene(const bool value) { m_KeepClientScene = value; }
+
+	/**
 	 * Find a player's rocket
 	 * @param player the entity that triggered the event
 	 * @return rocket
@@ -417,6 +424,11 @@ private:
 	 * Whether the character is landing by rocket
 	 */
 	bool m_IsLanding;
+
+	/**
+	 * Whether constructions say there is no world transition to show (SetKeepClientScene)
+	 */
+	bool m_KeepClientScene = false;
 
 	/**
 	 * The configuration of the last used rocket, essentially a string of LOTs separated by commas

@@ -199,6 +199,87 @@ TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionWritesCheatsOnlyW
 	EXPECT_FLOAT_EQ(cheats.second, 1.05f);
 }
 
+// A client that kept its player across a seamless instance move (docs/SeamlessTransfer.md): its own player's
+// construction carries no frame, because LWOBasePhysComponent::Deserialize (0x00bf5a10) applies a construction's
+// position, rotation and velocities to the object at once. Everyone else's construction still has it.
+TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionCanLeaveThePositionOut) {
+	Entity entity(15, info);
+	auto* const physics = entity.AddComponent<ControllablePhysicsComponent>(-1);
+	physics->SetPosition(NiPoint3(1.0f, 2.0f, 3.0f));
+
+	// no jetpack, stun immunities, no cheats, equipped item info (flag, pickup radius, in jetpack), bubble (flag, off)
+	constexpr uint32_t beforePosition = 1 + 1 + 7 * 32 + 1 + (1 + 32 + 1) + (1 + 1);
+	const auto positionBit = [physics, beforePosition](uint32_t& bitsAfter) {
+		RakNet::BitStream stream;
+		physics->Serialize(stream, true);
+		stream.IgnoreBits(beforePosition);
+		bool hasPosition{};
+		EXPECT_TRUE(stream.Read(hasPosition));
+		bitsAfter = stream.GetNumberOfUnreadBits();
+		return hasPosition;
+	};
+
+	uint32_t bitsAfter{};
+	EXPECT_TRUE(positionBit(bitsAfter));
+	EXPECT_GT(bitsAfter, 7u * 32u);
+
+	physics->SetKeepClientPosition(true);
+	EXPECT_FALSE(positionBit(bitsAfter));
+	EXPECT_EQ(bitsAfter, 0u);
+
+	// Serializations are untouched: a moved player is still sent
+	RakNet::BitStream flushed;
+	physics->Serialize(flushed, false);
+	RakNet::BitStream serialization;
+	physics->SetPosition(NiPoint3(4.0f, 5.0f, 6.0f));
+	physics->Serialize(serialization, false);
+	serialization.IgnoreBits(3); // no cheats, equipped item info or bubble change
+	bool hasPosition{};
+	EXPECT_TRUE(serialization.Read(hasPosition));
+	EXPECT_TRUE(hasPosition);
+
+	physics->SetKeepClientPosition(false);
+	EXPECT_TRUE(positionBit(bitsAfter));
+}
+
+// The same client's character construction: world transition state 3. With 0 the client's
+// LWOCharacterComponent::PostCharacterLoaded (0x00c71660) fades the whole screen in from white and pushes its gameplay
+// state a second time; 1 is the rocket landing and 2 hides the character. The blocks after it stay where they were.
+TEST_F(ReplicaConstructionTest, CharacterConstructionCanSkipTheWorldTransition) {
+	User user(UNASSIGNED_SYSTEM_ADDRESS, "tester", "key");
+	Character character(1, &user);
+	info.lot = 1;
+	Entity player(1152921506064087003, info);
+	player.SetCharacter(&character);
+	character.SetEntity(&player);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+
+	// 4 absent claim codes, 10 u32 appearance fields, 4 u64s, the free-trial bit and 27 u64 statistics
+	constexpr uint32_t beforeTransition = 4 + 10 * 32 + 4 * 64 + 1 + 27 * 64;
+	const auto transition = [component, beforeTransition](uint32_t& bitsAfter) {
+		RakNet::BitStream construction;
+		component->Serialize(construction, true);
+		construction.IgnoreBits(beforeTransition);
+		uint8_t state{};
+		EXPECT_TRUE(construction.ReadBits(&state, 2));
+		bitsAfter = construction.GetNumberOfUnreadBits();
+		return state;
+	};
+
+	uint32_t normalBits{};
+	EXPECT_EQ(transition(normalBits), 0);
+
+	component->SetKeepClientScene(true);
+	uint32_t keptBits{};
+	EXPECT_EQ(transition(keptBits), 3);
+	EXPECT_EQ(keptBits, normalBits);
+
+	component->SetKeepClientScene(false);
+	EXPECT_EQ(transition(keptBits), 0);
+
+	player.SetCharacter(nullptr);
+}
+
 // Simple physics: live sent motion type Fixed for objects without a motionType (never the invalid 0 DLU sent when the
 // level gave none) and no velocity for fixed objects (38,970 Fixed constructions, all without velocity); moving
 // platforms were Keyframed with a velocity (1,059 of 1,059).
