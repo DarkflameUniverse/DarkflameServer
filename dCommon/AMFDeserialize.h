@@ -79,7 +79,9 @@ private:
 	 */
 	std::vector<std::string> accessedElements;
 
-	// How deeply nested the array being read is.
+	/**
+	 * How many arrays are being read at the moment, each one inside the one before it.
+	 */
 	uint32_t m_Depth = 0;
 
 	// How many values have been read so far.

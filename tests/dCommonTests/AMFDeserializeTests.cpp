@@ -583,3 +583,59 @@ TEST_F(AMFDeserializeLimitsTest, DuplicateKeyTest) {
 	ASSERT_EQ(array->GetAssociative().size(), 1);
 	ASSERT_TRUE(array->Get<bool>("key")->GetValue());
 }
+
+/**
+ * @brief Writes arrays inside one another, each as the only dense value of the one before it
+ */
+static void WriteNestedArrays(RakNet::BitStream& bitStream, const uint32_t depth) {
+	for (uint32_t i = 0; i < depth - 1; i++) {
+		bitStream.Write<uint8_t>(0x09); // Array
+		bitStream.Write<uint8_t>(0x03); // One dense value
+		bitStream.Write<uint8_t>(0x01); // No associative values
+	}
+	bitStream.Write<uint8_t>(0x09); // Array
+	bitStream.Write<uint8_t>(0x01); // No dense values
+	bitStream.Write<uint8_t>(0x01); // No associative values
+}
+
+TEST_F(AMFDeserializeLimitsTest, NestedArraysTest) {
+	RakNet::BitStream bitStream;
+	WriteNestedArrays(bitStream, AMFDeserialize::MaxDepth);
+	AMFDeserialize deserializer;
+	std::unique_ptr<AMFBaseValue> res{ deserializer.Read(bitStream) };
+	ASSERT_EQ(res->GetValueType(), eAmf::Array);
+
+	// The same reader reads another value afterwards
+	RakNet::BitStream second;
+	WriteNestedArrays(second, AMFDeserialize::MaxDepth);
+	ASSERT_EQ(deserializer.Read(second)->GetValueType(), eAmf::Array);
+}
+
+TEST_F(AMFDeserializeLimitsTest, ArraysNestedTooDeepTest) {
+	RakNet::BitStream bitStream;
+	WriteNestedArrays(bitStream, AMFDeserialize::MaxDepth + 1);
+	AMFDeserialize deserializer;
+	EXPECT_THROW(deserializer.Read(bitStream), std::invalid_argument);
+
+	// The count of open arrays is back at none after the failed read
+	RakNet::BitStream second;
+	WriteNestedArrays(second, AMFDeserialize::MaxDepth);
+	ASSERT_EQ(deserializer.Read(second)->GetValueType(), eAmf::Array);
+
+	RakNet::BitStream deep;
+	WriteNestedArrays(deep, 100000);
+	EXPECT_THROW(ReadFromBitStream(deep), std::invalid_argument);
+}
+
+TEST_F(AMFDeserializeLimitsTest, DataEndsEarlyTest) {
+	// A string key that is never followed by its value
+	RakNet::BitStream bitStream;
+	bitStream.Write<uint8_t>(0x09); // Array
+	bitStream.Write<uint8_t>(0x01); // No dense values
+	bitStream.Write<uint8_t>(0x03); // A key of one character
+	bitStream.Write<uint8_t>('a');
+	EXPECT_THROW(ReadFromBitStream(bitStream), std::invalid_argument);
+
+	RakNet::BitStream empty;
+	EXPECT_THROW(ReadFromBitStream(empty), std::invalid_argument);
+}

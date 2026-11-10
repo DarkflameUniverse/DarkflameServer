@@ -20,7 +20,9 @@ std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream& inStream) 
 
 	// Read in the value type from the bitStream
 	eAmf marker;
-	inStream.Read(marker);
+	if (!inStream.Read(marker)) {
+		throw std::invalid_argument("The AMF3 data ended before its value did");
+	}
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
 	case eAmf::Undefined:
@@ -119,12 +121,18 @@ std::unique_ptr<AMFDoubleValue> AMFDeserialize::ReadAmfDouble(RakNet::BitStream&
 }
 
 std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream& inStream) {
-	// Arrays are the only values that nest, so bound the recursion here.
+	// An array inside an array inside an array and so on only goes so deep
 	if (m_Depth >= MaxDepth) {
-		LOG("AMF arrays nested deeper than %u, possible spoof, aborting deserialize.", MaxDepth);
-		throw std::invalid_argument("AMF arrays nested too deeply");
+		LOG("AMF arrays nested deeper than %u, aborting deserialize.", MaxDepth);
+		throw std::invalid_argument("AMF3 arrays nested too deep");
 	}
-	++m_Depth;
+
+	// Counts this array for as long as it is being read, also when a value in it throws
+	struct DepthGuard {
+		uint32_t& depth;
+		explicit DepthGuard(uint32_t& depth) : depth(depth) { ++depth; }
+		~DepthGuard() { --depth; }
+	} depthGuard(m_Depth);
 
 	auto arrayValue = std::make_unique<AMFArrayValue>();
 
@@ -153,7 +161,6 @@ std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream& i
 		arrayValue->Insert(i, Read(inStream));
 	}
 
-	--m_Depth;
 	return arrayValue;
 }
 
