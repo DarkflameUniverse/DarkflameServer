@@ -157,23 +157,14 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				}
 				chunk.colorMap.resize(colorMapPixelCount);
 				stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(colorMapPixelCount));
-			} else if (chunk.width > 0) {
-				// width x width BGRA pixels, of which the client keeps the (width - 1) x (width - 1) before the last row and
-				// column, as RGBA (RAWReadColorandLightMaps)
+			} else {
 				const size_t legacyColorBytes = static_cast<size_t>(chunk.width) * chunk.width * 4;
 				if (legacyColorBytes > kMaxBlobBytes) {
 					LOG("Chunk legacy colorMap size %zu exceeds maximum %zu bytes", legacyColorBytes, kMaxBlobBytes);
 					return false;
 				}
-				std::vector<uint8_t> pixels(legacyColorBytes);
-				stream.read(reinterpret_cast<char*>(pixels.data()), static_cast<std::streamsize>(legacyColorBytes));
-				chunk.colorMap.reserve(static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution * 4);
-				for (uint32_t y = 0; y < chunk.colorMapResolution; ++y) {
-					for (uint32_t x = 0; x < chunk.colorMapResolution; ++x) {
-						const auto* bgra = &pixels[(static_cast<size_t>(y) * chunk.width + x) * 4];
-						chunk.colorMap.insert(chunk.colorMap.end(), { bgra[2], bgra[1], bgra[0], bgra[3] });
-					}
-				}
+				chunk.colorMap.resize(legacyColorBytes);
+				stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(legacyColorBytes));
 			}
 
 			if (stream.fail()) {
@@ -211,10 +202,6 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			}
 			chunk.textureMap.resize(textureMapPixelCount);
 			stream.read(reinterpret_cast<char*>(chunk.textureMap.data()), static_cast<std::streamsize>(textureMapPixelCount));
-			// Before version 32 the pixels are BGRA; the client keeps them as RGBA (0x0103aaf0)
-			if (version < 32) {
-				for (size_t i = 0; i + 3 < chunk.textureMap.size(); i += 4) std::swap(chunk.textureMap[i], chunk.textureMap[i + 2]);
-			}
 
 			if (stream.fail()) {
 				return false;

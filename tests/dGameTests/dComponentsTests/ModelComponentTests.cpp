@@ -29,8 +29,8 @@ protected:
 	}
 };
 
-// Item block (1 + 64 + 32 + 1), model block (1 + 1 + 32 + 96 + 128)
-constexpr uint32_t ModelBlockBits = 98 + 258;
+// Model block (1 + 1 + 32 + 96 + 128); the item block in front of it is the ItemComponent's
+constexpr uint32_t ModelBlockBits = 258;
 // Behavior info: flag, count, paused, and on the initial update the editing info flag
 constexpr uint32_t BehaviorBits = 1 + 32 + 1 + 1;
 

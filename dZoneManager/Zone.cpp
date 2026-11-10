@@ -93,6 +93,10 @@ void Zone::LoadZoneIntoMemory() {
 
 		m_Boundaries = std::move(zoneFile.zoneBoundaries);
 
+		m_PathDataLength = zoneFile.pathDataLength;
+		m_PathChunkVersion = zoneFile.pathChunkVersion;
+		m_Paths = std::move(zoneFile.paths);
+
 		// The terrain gives the scene at a position. Like the client, a missing or unreadable .raw is logged
 		// and the zone loads without it.
 		const auto rawPath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1) + m_ZoneRawPath;

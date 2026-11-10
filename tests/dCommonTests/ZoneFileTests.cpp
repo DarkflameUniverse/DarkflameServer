@@ -451,10 +451,11 @@ TEST(LevelFileTests, ReadsFilesWithoutChunks) {
 	ASSERT_EQ(level.objects.size(), 1u);
 	EXPECT_EQ(level.objects[0].position.x, 3.0f);
 	EXPECT_EQ(level.objects[0].settings.find(u"respawnname")->second->GetValueAsString(), "NS_GF");
-	EXPECT_EQ(level.chunkHeaders.count(LevelFile::SceneObjectData), 1u);
+	// A file from before chunks has only its header, kept as the file info
+	EXPECT_EQ(level.chunkHeaders.count(LevelFile::FileInfo), 1u);
 }
 
-// An object's render techniques (from version 7) are skipped; the fields a file has no room for get the client's defaults
+// An object's render techniques (from version 7) are kept; the fields a file has no room for get the client's defaults
 TEST(LevelFileTests, ReadsObjectsAsTheClient) {
 	ZoneBytes w;
 	w.Put<uint16_t>(30).Put<uint16_t>(0);
@@ -477,15 +478,15 @@ TEST(LevelFileTests, ReadsObjectsAsTheClient) {
 	EXPECT_EQ(level.objects[1].position.x, 5.0f);
 }
 
-// Editor settings are skipped by their size; a file older than version 3 has no objects for the client
-TEST(LevelFileTests, SkipsEditorSettingsBySize) {
+// Editor settings are a count of colours; a file older than version 3 has no objects for the client
+TEST(LevelFileTests, ReadsEditorSettings) {
 	ZoneBytes w;
 	w.Put<uint16_t>(37).Put<uint16_t>(0).Put<uint8_t>(0).Put<uint32_t>(4); // version, type, important, revision
 	w.data.append(48 + 8 + 12 + 12 + 12 + 16, '\0');                     // lighting
 	w.Put<uint32_t>(0);                                                   // skydome
 	for (int i = 0; i < 5; i++) w.Put<uint32_t>(0);
-	w.Put<uint32_t>(7);
-	w.data.append(7, '\x55');                                            // editor settings
+	w.Put<uint32_t>(4 + 12).Put<uint32_t>(1);                            // editor settings: their size, one colour
+	w.Put(0.25f).Put(0.5f).Put(0.75f);
 	w.Put<uint32_t>(1);
 	w.Object(37, 4945, 3, "a=0:b");
 

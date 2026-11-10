@@ -165,6 +165,7 @@ namespace {
 		c.Add(Format(Text(SHARED, "dump_folder", "Crash dump folder", "Where crash logs go. Empty turns them off.", "", true), eFormat::PATH));
 		c.Add(Bool(WORLD, "generate_dump", "Crash dumps from world servers", "Write a dump when a world server crashes (needs the crash dump folder).", false, true));
 		c.Add(Bool(WORLD, "save_lxfmls", "Save model files", "Save players' models (LXFML) to disk before they are split, for debugging.", false));
+		c.Add(Bool(WORLD, "export_terrain_to_obj", "Export terrain meshes", "Save each zone's terrain as terrain_<zone>.obj in the server folder when the zone loads, for debugging.", false));
 		c.Add(Bool(WORLD, "ghosting_scenes", "Scene ghosting", "Players get the objects of the scenes their game keeps loaded (the scene under them, the scenes connected to it and the global scene), as the client streams scenes, instead of the ones within 100 to 150 units. Needs the zone's terrain scene map; zones without one keep distance ghosting.", true, true));
 		c.Add(Bool(WORLD, "save_property_location", "Log back in on properties", "Logging out on a property and back in returns to that property. Off (as live): to the last world before it.", false));
 		c.Add(Bool(WORLD, "bbb_consume_bricks", "Brick building uses bricks", "Saving a brick by brick model uses up the bricks in it, as live did. Off: the bricks go back to the backpack.", false));

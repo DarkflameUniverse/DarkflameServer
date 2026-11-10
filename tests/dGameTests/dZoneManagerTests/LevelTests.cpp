@@ -5,6 +5,8 @@
 #include <cstring>
 #include <sstream>
 
+#include "GameDependencies.h"
+
 namespace {
 	template<typename T>
 	void Write(std::ostream& stream, const T& value) {
@@ -220,7 +222,13 @@ namespace {
 	}
 }
 
-TEST(LevelTests, ReadsEveryPartOfAChunkedFile) {
+class LevelTests : public GameDependenciesTest {
+protected:
+	void SetUp() override { SetUpDependencies(); }
+	void TearDown() override { TearDownDependencies(); }
+};
+
+TEST_F(LevelTests, ReadsEveryPartOfAChunkedFile) {
 	const auto level = Read(WriteChunked(46));
 	EXPECT_EQ(level.version, 46);
 	EXPECT_EQ(level.revision, 9);
@@ -268,7 +276,7 @@ TEST(LevelTests, ReadsEveryPartOfAChunkedFile) {
 
 // LwoNameValue::FromString splits at commas and line breaks and leaves out entries without a '='; ReadLvlObjectData
 // adjusts some values as it loads the object
-TEST(LevelTests, ObjectConfigIsReadAndAdjustedAsTheClientDoes) {
+TEST_F(LevelTests, ObjectConfigIsReadAndAdjustedAsTheClientDoes) {
 	const auto level = Read(WriteChunked(43));
 	ASSERT_EQ(level.objects.size(), 3);
 
@@ -292,7 +300,7 @@ TEST(LevelTests, ObjectConfigIsReadAndAdjustedAsTheClientDoes) {
 	EXPECT_EQ(newer.objects[2].settings.find(u"sceneLayerIDOverride"), newer.objects[2].settings.end());
 }
 
-TEST(LevelTests, ReadsAFileFromBeforeChunks) {
+TEST_F(LevelTests, ReadsAFileFromBeforeChunks) {
 	const auto level = Read(WriteFlat(40));
 	EXPECT_EQ(level.version, 40);
 	EXPECT_EQ(level.revision, 77);
@@ -319,7 +327,7 @@ TEST(LevelTests, ReadsAFileFromBeforeChunks) {
 }
 
 // Older lighting: fog distances only before 39, no directional colour before 36, and before 33 a fixed spawn point
-TEST(LevelTests, ReadsOlderLightingAndSounds) {
+TEST_F(LevelTests, ReadsOlderLightingAndSounds) {
 	const auto v32 = Read(WriteFlat(32));
 	EXPECT_EQ(v32.revision, 0);
 	EXPECT_FLOAT_EQ(v32.lighting.minDrawDistances.fogFar, 60.0f);
@@ -343,7 +351,7 @@ TEST(LevelTests, ReadsOlderLightingAndSounds) {
 
 // Before version 44 a file may end before its particles; a file older than 3 has no objects, a newer one than 48
 // isn't read
-TEST(LevelTests, ReadsWhatTheClientReadsOfOtherFiles) {
+TEST_F(LevelTests, ReadsWhatTheClientReadsOfOtherFiles) {
 	const auto noParticles = Read(WriteFlat(43, false));
 	EXPECT_EQ(noParticles.objects.size(), 1);
 	EXPECT_EQ(noParticles.sounds.size(), 2);
@@ -364,7 +372,7 @@ TEST(LevelTests, ReadsWhatTheClientReadsOfOtherFiles) {
 }
 
 // A chunked file without lighting has none of the environment's parts read
-TEST(LevelTests, NoEnvironmentWithoutLighting) {
+TEST_F(LevelTests, NoEnvironmentWithoutLighting) {
 	auto data = WriteChunked(48);
 	std::memset(data.data() + 96, 0, 4); // lighting offset
 	const auto level = Read(data);
