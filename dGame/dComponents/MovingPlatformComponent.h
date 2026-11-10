@@ -6,6 +6,7 @@
 #ifndef MOVINGPLATFORMCOMPONENT_H
 #define MOVINGPLATFORMCOMPONENT_H
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -48,14 +49,18 @@ enum class eMoverSubComponentType : uint32_t {
 };
 
 /**
- * The client's platform state flags (LWOPlatform)
+ * The client's platform state flags (LWOPlatform), as live sent them: a platform that was never started is stopped at
+ * its waypoint (12), one waiting out a waypoint's wait is 9 (25 at either end of its path), one on its way is 2 and
+ * one that stopped at an end of a path run once is 28.
  */
 namespace ePlatformStateFlag {
-	constexpr uint32_t Stopped = 1;
+	constexpr uint32_t Waiting = 1;
 	constexpr uint32_t Travelling = 2;
-	constexpr uint32_t Waiting = 4;
+	constexpr uint32_t Stopped = 4;
 	constexpr uint32_t ReachedDesiredWaypoint = 8;
 	constexpr uint32_t ReachedFinalDestination = 16;
+	// What LWOPlatform::UpdateVelocities 0x00bd4330 keeps when the platform sets off (it drops the two "reached" bits)
+	constexpr uint32_t MovementMask = Waiting | Travelling | Stopped;
 };
 
 /**
@@ -90,15 +95,24 @@ public:
 	bool mShouldStopAtDesiredWaypoint = false;
 	// From the current waypoint (0) to the next (1)
 	float mPercentBetweenPoints = 0;
-	// Where it is now (current waypoint + percent towards the next)
+	// Where it is now: its object's position, which its linear velocity moves
 	NiPoint3 mPosition{};
+	// The linear velocity LWOPlatform::SetLinearVelocity 0x00be9200 gave its object when it last set off (or last looked,
+	// between waypoints of different speeds). It is only taken away where the platform stops and at either end of the
+	// path (SetWaitingTime 0x00bdc860), so through a wait at a waypoint in between the object goes on as it came.
+	NiPoint3 mVelocity{};
 	uint32_t mCurrentWaypointIndex = 0;
 	uint32_t mNextWaypointIndex = 0;
-	// Time spent at the waypoint, and how long it waits there (the waypoint's wait, at least 0.1 s)
+	// Time spent at the waypoint, and how long it waits there (LWOPlatform::SetWaitingTime 0x00bdc860: the waypoint's
+	// wait, at least 0.1 s); the wait only counts once it was set
 	float mIdleTimeElapsed = 0;
 	float mTimeToWait = 0;
-	// Whether it leaves when the wait is over (false: stopped until told otherwise)
-	bool mDepartAfterWait = false;
+	bool mWaitSet = false;
+	// The current waypoint's wait
+	float mWaitTime = 0;
+	// Whether it runs: a quick build's platform does not until it is built, nor while the quick build is open again
+	// (LWOPlatform::SendMessage 0x00bdc930, RebuildNotifyState)
+	bool mActive = true;
 	// Time travelled since the current waypoint (time based paths only)
 	float mMoveTimeElapsed = 0;
 	// The current and next waypoints' speeds; time based paths: the seconds from one to the next in mCurrentSpeed
@@ -111,11 +125,10 @@ public:
 
 /**
  * A mover along its path (4), as the client's LWOPlatformMover, run by the server as live ran it: the client's
- * LWOPlatform logic (ArrivedAtWaypoint 0x00c86c30, ProcessStateChange 0x00cce380, GetNextWaypoint 0x00bd4490 /
- * GetNextReversedWaypoint 0x00bd4420, the speeds of GetWaypointSpeed 0x00be90d0), with live's states: it travels (2),
- * and at a waypoint it is stopped (1) with ReachedDesiredWaypoint (8), and ReachedFinalDestination (16) at either end,
- * while it waits the waypoint's wait time; each arrival and departure is serialized (NT movers in the live captures:
- * 25 on arrival, 2 on departure).
+ * LWOPlatform logic (RunPlatform 0x00c86e10, ArrivedAtWaypoint 0x00c86c30, HandleWaypointArrived 0x00c17bc0,
+ * ResumeTravelling 0x00c86b90, ProcessStateChange 0x00cce380, GetNextWaypoint 0x00bd4490 / GetNextReversedWaypoint
+ * 0x00bd4420, the speeds of GetWaypointSpeed 0x00be90d0). Live serialized it when it began waiting at a waypoint and
+ * when it left one, not when it stopped (the client stops by itself).
  */
 class MoverSubComponent final : public PlatformSubComponent {
 public:
@@ -124,19 +137,43 @@ public:
 };
 
 /**
- * A rotator (6), as the client's LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate) while travelling; it sends
- * the LWOPlatform data a mover sends.
+ * The angular velocity of a rotator, as the client's LWOPlatformRotator::SetAngularVelocity 0x00bfa380 works it out:
+ * the rotation NiMatrix3::FromEulerAnglesXYZ 0x0116c3a0 makes of the three angles (radians; the matrix about x times
+ * the one about y times the one about z, each turning the other way round than the usual right-handed one), as a
+ * quaternion (NiQuaternion::FromRotation), and the velocity that turns from no rotation to it (from it to none in
+ * reverse) in half the rate, by the shortest way (hkpKeyFrameUtility::KeyFrameInfo::setUsingPositionOrientationPair
+ * 0x012a4050: the axis times the angle, at most half a turn, over the time). Angles that add up to whole turns give
+ * no velocity. The client divides by a rate of 0; here that gives none.
+ */
+NiPoint3 CalcRotatorAngularVelocity(float rotX, float rotY, float rotZ, float rate, bool reverse);
+
+/**
+ * A rotator (6), as the client's LWOPlatformRotator: on its path it does not move, it turns at its angular velocity
+ * while travelling (rotX/rotY/rotZ in half turns, at rate), and never waits or arrives (IncrementWaitingTime
+ * 0x004a0390, HandleStoppedLogic 0x00bdc660); it sends the LWOPlatform data a mover sends.
  */
 class RotatorSubComponent final : public PlatformSubComponent {
 public:
 	RotatorSubComponent(const NiPoint3& startPos) { mPosition = startPos; }
 	eMoverSubComponentType GetType() const override { return eMoverSubComponentType::rotater; }
+
+	// LWOPlatformRotator::LoadConfigData 0x00c33e10: rotX, rotY and rotZ times pi, and rate (seconds)
+	float mRotationX = 0.0f;
+	float mRotationY = 0.0f;
+	float mRotationZ = 0.0f;
+	float mRate = 0.0f;
+	// Whether its object was put at its waypoint (LWOPlatform::ProcessStateChange 0x00cce380, from SetupPath)
+	bool mPlaced = false;
+
+	NiPoint3 GetAngularVelocity() const { return CalcRotatorAngularVelocity(mRotationX, mRotationY, mRotationZ, mRate, mInReverse); }
 };
 
 /**
  * A simple mover (5), as the client's LWOPlatformSimpleMover: between a start point and that point moved by
  * platformMove (in the start rotation), taking platformMoveTime seconds, as GenerateSimpleMoverPath builds its two
- * waypoint path. Live constructed simple movers stopped at their desired waypoint.
+ * waypoint path. At an end it has stopped there (28), as any platform on a path run once. Like a mover it is made
+ * stopped at its waypoint (12) and, unless startPathingOnLoad is false, waits there (9, as live constructed the NJ
+ * counterweights) the shortest wait before it sets off for its other end, a quick build's once it is built.
  */
 class SimpleMoverSubComponent final : public PlatformSubComponent {
 public:
@@ -208,6 +245,12 @@ public:
 	void GotoWaypoint(uint32_t index, bool stopAtWaypoint = true);
 
 	/**
+	 * Puts the platform on a path of the zone, at one of its waypoints (the SetCurrentPath game message): a mover
+	 * starts over on it. False when the platform is not a mover or the zone has no such path.
+	 */
+	bool SetCurrentPath(const std::string& pathName, uint32_t startPoint = 0, bool reverse = false);
+
+	/**
 	 * Starts the pathing of this platform, setting appropriate waypoints and speeds
 	 */
 	void StartPathing();
@@ -260,6 +303,12 @@ public:
 	eMoverSubComponentType GetMoverSubComponentType() const { return m_MoverSubComponentType; }
 
 	/**
+	 * Calls back whenever the platform is at the last waypoint of its path (the PlatformAtLastWaypoint game message,
+	 * which live's scripts ask to be notified of on the NJ counterweights)
+	 */
+	void AddPlatformAtLastWaypointCallback(const std::function<void()>& callback);
+
+	/**
 	 * Called when a simple mover gets to the waypoint it was sent to: the client's LWOPlatform::ArrivedAtWaypoint
 	 * and HandleWaypointArrived (Arrived, then ArrivedAtDesiredWaypoint and PlatformAtLastWaypoint)
 	 */
@@ -284,6 +333,10 @@ private:
 
 	// The waypoint the path starts at (attached_path_start), written with the path
 	uint32_t m_StartWaypoint = 0;
+	// Whether it runs the path backwards from there (SetCurrentPath), written with the path
+	bool m_PathReverse = false;
+	// The path changed since it was last written
+	bool m_DirtyPath = false;
 
 	/**
 	 * The type of the first subcomponent, the one the server runs (none without one)
@@ -295,6 +348,12 @@ private:
 	 */
 	std::vector<std::unique_ptr<PlatformSubComponent>> m_SubComponents;
 
+	std::vector<std::function<void()>> m_AtLastWaypointCallbacks;
+
+	// The object's quick build, looked up when the platform first runs
+	class QuickBuildComponent* m_QuickBuild = nullptr;
+	bool m_CheckedQuickBuild = false;
+
 	/**
 	 * Counts sends so an arrival timer from an older send does nothing
 	 */
@@ -304,13 +363,30 @@ private:
 
 	void FireArrivalHooks(uint32_t index, bool atDesiredWaypoint, bool atLastWaypoint);
 
-	// The mover: index becomes the current waypoint (the next from the path's behavior and direction), at it
+	// LWOPlatform::ProcessStateChange: index becomes the current waypoint (the next from the path's behavior and direction)
 	void MoverProcessStateChange(uint32_t index);
-	// At its current waypoint, stopped; it leaves after the waypoint's wait when depart
-	void MoverStopAtWaypoint(bool depart);
-	// Leaves (or carries on) towards the next waypoint
-	void MoverDepart();
-	void MoverArrive();
+	// The mover at its starting waypoint on the path, started unless startPathingOnLoad is false
+	void SetupMoverPath();
+	// Puts the object where the mover is, without a serialization of its physics
+	void MoveObject();
+	// A simple mover's wait at its waypoint before it sets off by itself
+	void RunSimpleMover(float deltaTime);
+	// A rotator's settings from the level config, and where it is on its path
+	void SetupRotator();
+	// Turns a travelling rotator's object by its angular velocity
+	void RunRotator(float deltaTime);
+	// LWOPlatform::SetupPath and SendMessage (RebuildNotifyState): whether the platform of a quick build runs yet
+	bool UpdateActive(PlatformSubComponent& platform);
+	// LWOPlatform::SetWaitingTime: starts a wait of at least 0.1 s
+	void MoverSetWaitingTime(float waitTime, float idleTimeElapsed);
+	// LWOPlatform::UpdateVelocities 0x00bd4330: the velocity towards the next waypoint at the speed for where it is
+	void MoverUpdateVelocities();
+	// LWOPlatform::ResumeTravelling: stopped between two waypoints it travels on; at a waypoint it first waits there
+	void MoverResumeTravelling();
+	// LWOPlatform::ArrivedAtWaypoint: once it is at its next waypoint
+	void MoverArrivedAtWaypoint();
+	// LWOPlatform::HandleWaypointArrived: tells the scripts, then a platform that travels on waits at the waypoint
+	void MoverHandleWaypointArrived(uint32_t index, bool atDesiredWaypoint, bool atLastWaypoint);
 
 public:
 	void Run(float deltaTime) override;

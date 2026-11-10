@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <regex>
 #include "ActivityManager.h"
 
@@ -89,6 +90,10 @@ private:
 	void PauseChargeCannon(Entity* self);
 	void StopGame(Entity* self, bool cancel = false);
 	void RegisterHit(Entity* self, Entity* target, const std::string& timerName);
+	// sg_cannon.lua (checkSpawn): a target that respawns gets its next spawn, while its wave runs
+	void CheckSpawn(Entity* self, Entity* target, const std::string& timerName);
+	// SG_TARGET.lua (onArrived at the last waypoint): the cannon spawns the next one, and the target is gone a moment later
+	void TargetFinishedPath(Entity* self, Entity* target, const std::string& timerName, const std::shared_ptr<bool>& silentDeath);
 	void UpdateStreak(Entity* self);
 	float_t GetCurrentBonus(Entity* self);
 

@@ -15,6 +15,8 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL
 	"PropertyPlatform.cpp"
 	"QbEnemyStunner.cpp"
 	"QbSpawner.cpp"
+	"SimpleMoverSwitch.cpp"
+	"SimpleOnceOnlyMoverSpinnerEvent.cpp"
 	"StoryBoxInteractServer.cpp"
 	"TokenConsoleServer.cpp"
 	"TouchMissionUpdateServer.cpp"

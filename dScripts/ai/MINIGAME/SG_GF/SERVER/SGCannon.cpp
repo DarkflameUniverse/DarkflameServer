@@ -11,6 +11,7 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
+#include "MovingPlatformComponent.h"
 #include "MissionComponent.h"
 #include "Loot.h"
 #include "InventoryComponent.h"
@@ -286,7 +287,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		info.pos = path->pathWaypoints[0].position;
 
 		info.settings.Insert<SGEnemy>(u"SpawnData", toSpawn);
-		info.settings.Insert<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"); // this script is never loaded;
+		info.settings.Insert<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"); // never loaded (the targets have a script row): TargetFinishedPath does its part
 		info.settings.Insert<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua");
 		info.settings.Insert<std::string>(u"attached_path", path->pathName);
 		info.settings.Insert<uint32_t>(u"attached_path_start", 0);
@@ -295,7 +296,17 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
-		auto* movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
+		// sg_cannon.lua (onChildLoaded): a moving platform target gets SetPathingSpeed, which nothing on a moving platform
+		// reads, and SetCurrentPath{ pathName, startPoint = 0 }: its mover runs the path at the waypoints' speeds, as the
+		// client's does. Live constructed these targets with the path and the mover waiting at waypoint 0 (9), and
+		// serialized the mover at each waypoint. The other targets follow their waypoints.
+		auto* const movingPlatform = toSpawn.isMovingPlatform ? enemy->GetComponent<MovingPlatformComponent>() : nullptr;
+		MovementAIComponent* movementAI = nullptr;
+		if (movingPlatform) {
+			movingPlatform->SetCurrentPath(path->pathName, 0);
+		} else {
+			movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
+		}
 		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
 		if (simplePhysicsComponent) {
 			simplePhysicsComponent->SetPhysicsMotionState(4);
@@ -303,20 +314,38 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		Game::entityManager->ConstructEntity(enemy);
 
-		movementAI->SetMaxSpeed(toSpawn.initialSpeed);
-		movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
-		movementAI->SetHaltDistance(0.0f);
+		if (movementAI) {
+			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
+			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
+			movementAI->SetHaltDistance(0.0f);
 
-		movementAI->SetPath(path->pathWaypoints);
+			movementAI->SetPath(path->pathWaypoints);
+		}
 
-		enemy->AddDieCallback([this, self, enemy, name]() {
-			RegisterHit(self, enemy, name);
+		// A hit target scores (live's cannon ball tells the cannon of its kills). One that got to the end of its path
+		// tells the cannon and dies silently a moment later (SG_TARGET.lua), which is no hit.
+		const auto silentDeath = std::make_shared<bool>(false);
+		enemy->AddDieCallback([this, self, enemy, name, silentDeath]() {
+			if (!*silentDeath) RegisterHit(self, enemy, name);
 			});
 
-		// Save the enemy and tell it to start pathing
+		// SG_TARGET.lua (onArrived): the Arrived message says whether the waypoint is the path's last one, for a moving
+		// platform as for an object following waypoints (the script reads isLastPoint, which the client's PushToLua
+		// 0x00b1a910 sets from the path and the waypoint)
+		const auto lastWaypoint = static_cast<uint32_t>(path->pathWaypoints.size() - 1);
+		if (movingPlatform) {
+			movingPlatform->AddPlatformAtLastWaypointCallback([this, self, enemy, name, silentDeath]() {
+				TargetFinishedPath(self, enemy, name, silentDeath);
+				});
+		} else if (movementAI) {
+			movementAI->AddWaypointReachedCallback([this, self, enemy, name, silentDeath, lastWaypoint](const uint32_t waypoint) {
+				if (waypoint == lastWaypoint) TargetFinishedPath(self, enemy, name, silentDeath);
+				});
+		}
+
+		// Save the enemy
 		if (enemy != nullptr) {
 			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-			GameMessages::PlatformResync(*enemy).Send(UNASSIGNED_SYSTEM_ADDRESS);
 		}
 	}
 }
@@ -672,6 +701,37 @@ void SGCannon::OnActivityNotify(Entity* self, GameMessages::ActivityNotify& noti
 	self->SetVar<std::vector<LWOOBJID>>(u"CannonBallKills", {});
 }
 
+void SGCannon::CheckSpawn(Entity* self, Entity* target, const std::string& timerName) {
+	if (!self->GetVar<bool>(GameStartedVariable)) return;
+	const auto& spawnInfo = target->GetVar<SGEnemy>(u"SpawnData");
+
+	if (spawnInfo.respawns && target->GetVar<uint32_t>(u"wave") == self->GetVar<uint32_t>(ThisWaveVariable)) {
+		const auto respawnTime = GeneralUtils::GenerateRandomNumber<float_t>(spawnInfo.minRespawnTime, spawnInfo.maxRespawnTime);
+
+		ActivityTimerStart(self, timerName, respawnTime, respawnTime);
+	}
+}
+
+// SG_TARGET.lua: at the last waypoint of its path a target notifies the cannon (FinishedPath: sg_cannon.lua spawns the
+// next one as after a hit, without a score) and, when it is to despawn there, dies silently 1 s later, a moving
+// platform after 2 s (so the clients' platforms get to the end of the path first).
+void SGCannon::TargetFinishedPath(Entity* self, Entity* target, const std::string& timerName, const std::shared_ptr<bool>& silentDeath) {
+	// Once: a platform sent on would tell again
+	if (target->GetVar<bool>(u"FinishedPath")) return;
+	target->SetVar<bool>(u"FinishedPath", true);
+
+	CheckSpawn(self, target, timerName);
+
+	const auto& spawnInfo = target->GetVar<SGEnemy>(u"SpawnData");
+	if (!spawnInfo.despawnOnLastWaypoint) return;
+	target->AddCallbackTimer(spawnInfo.isMovingPlatform ? 2.0f : 1.0f, [target, silentDeath]() {
+		// Hit in the meantime
+		if (target->GetIsDead()) return;
+		*silentDeath = true;
+		target->Smash(target->GetObjectID(), eKillType::SILENT);
+		});
+}
+
 void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& timerName) {
 	if (!self->GetVar<bool>(GameStartedVariable)) return;
 
@@ -680,11 +740,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	self->SetVar<std::vector<LWOOBJID>>(u"CannonBallKills", cannonBallKills);
 	const auto& spawnInfo = target->GetVar<SGEnemy>(u"SpawnData");
 
-	if (spawnInfo.respawns && target->GetVar<uint32_t>(u"wave") == self->GetVar<uint32_t>(ThisWaveVariable)) {
-		const auto respawnTime = GeneralUtils::GenerateRandomNumber<float_t>(spawnInfo.minRespawnTime, spawnInfo.maxRespawnTime);
-
-		ActivityTimerStart(self, timerName, respawnTime, respawnTime);
-	}
+	CheckSpawn(self, target, timerName);
 
 	int32_t score = spawnInfo.score;
 
@@ -1104,21 +1160,13 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 			1.0, false, true
 		},
 
-		// Ness temp fix for dlu where speeds are set to 7 to match a speed closer to live while we work on movingplatform components.
+		// Ness
 		{
 			std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
 			2565, 10.0, 15.0, true, 10.0, 15.0,
-			7.0, 10000, false, 0.0, 7.0,
-			7.0, true, true
+			2.0, 10000, false, 0.0, 1.0,
+			1.0, true, true
 		},
-
-		// // Ness
-		// {
-		// 	std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
-		// 	2565, 10.0, 15.0, true, 10.0, 15.0,
-		// 	2.0, 10000, false, 0.0, 1.0,
-		// 	1.0, true, true
-		// },
 
 		// Friendly 1
 		{

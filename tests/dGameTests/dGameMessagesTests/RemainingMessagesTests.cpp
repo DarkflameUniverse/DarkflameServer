@@ -89,14 +89,21 @@ TEST_F(RemainingMessagesTests, TeleportMatchesLegacy) {
 }
 
 TEST_F(RemainingMessagesTests, StartPathingAndPlatformResyncMatchLegacy) {
-	for (const LOT lot : { 999, 12341, 9483, 11306, 6267 }) {
+	// The legacy sender overrode its arguments for a few LOTs; the message has no such cases, so only others compare
+	for (const LOT lot : { 999, 6267 }) {
 		info.lot = lot;
 		Entity entity(0x1000000000000001LL, info);
 		ExpectSameAsLegacyBroadcast([&] { LegacyGameMessages::SendStartPathing(&entity); }, [&] { GameMessages::StartPathing msg; msg.target = entity.GetObjectID(); return msg; }());
 		for (uint32_t mask = 0; mask < 4; mask++) {
 			for (const auto state : { eMovementPlatformState::Moving, eMovementPlatformState::Stationary, eMovementPlatformState::Stopped }) {
 				for (const int32_t index : { 0, 1, 5 }) {
-					GameMessages::PlatformResync msg(entity, Bit(mask, 0), index, index + 1, index + 2, state, Bit(mask, 1));
+					GameMessages::PlatformResync msg;
+					msg.target = entity.GetObjectID();
+					msg.bStopAtDesiredWaypoint = Bit(mask, 0);
+					msg.iIndex = index;
+					msg.iDesiredWaypointIndex = index + 1;
+					msg.iNextIndex = index + 2;
+					msg.eState = state;
 					ExpectSameAsLegacy([&](const SystemAddress& address) {
 						LegacyGameMessages::SendPlatformResync(&entity, address, Bit(mask, 0), index, index + 1, index + 2, state, Bit(mask, 1));
 						}, msg);

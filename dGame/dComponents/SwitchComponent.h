@@ -8,6 +8,7 @@
 #include "QuickBuildComponent.h"
 #include "BouncerComponent.h"
 #include <algorithm>
+#include <functional>
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
@@ -72,6 +73,12 @@ public:
 	 */
 	static SwitchComponent* GetClosestSwitch(NiPoint3 position);
 
+	/**
+	 * Calls back when the switch is activated (true) and when it is deactivated (false): what an object's script asks
+	 * a switch for with a notification request for ObjectActivated and ObjectDeactivated
+	 */
+	void AddActivationCallback(const std::function<void(bool)>& callback) { m_ActivationCallbacks.push_back(callback); }
+
 	const std::vector<int32_t>& GetFactionsToRespondTo() const {
 		return m_FactionsToRespondTo;
 	}
@@ -113,6 +120,8 @@ private:
 	BouncerComponent* m_PetBouncer = nullptr;
 
 	std::vector<int32_t> m_FactionsToRespondTo{};
+
+	std::vector<std::function<void(bool)>> m_ActivationCallbacks;
 };
 
 #endif // SWITCHCOMPONENT_H

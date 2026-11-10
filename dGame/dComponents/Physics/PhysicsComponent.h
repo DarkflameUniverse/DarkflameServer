@@ -37,6 +37,14 @@ public:
 	const NiQuaternion& GetRotation() const { return m_Rotation; }
 	virtual void SetRotation(const NiQuaternion& rot) { if (m_Rotation == rot) return; m_Rotation = rot; m_DirtyPosition = true; }
 
+	// As the client's SetPosition and SetRotation with bIgnoreDirtyFlags: moved without being serialized for it
+	void SetPositionAndRotationIgnoringDirtyFlags(const NiPoint3& pos, const NiQuaternion& rot) {
+		const bool dirty = m_DirtyPosition;
+		SetPosition(pos);
+		SetRotation(rot);
+		m_DirtyPosition = dirty;
+	}
+
 	int32_t GetCollisionGroup() const noexcept { return m_CollisionGroup; }
 	void SetCollisionGroup(int32_t group) noexcept { m_CollisionGroup = group; }
 

@@ -5,6 +5,8 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB
 	"CavePrisonCage.cpp"
 	"EnemySkeletonSpawner.cpp"
 	"FallingTile.cpp"
+	"FireTransRocks.cpp"
+	"FireTransRocksManager.cpp"
 	"FlameJetServer.cpp"
 	"LightningOrbServer.cpp"
 	"ImaginationShrineServer.cpp"

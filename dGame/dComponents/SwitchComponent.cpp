@@ -77,6 +77,7 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 		m_Active = true;
 		if (!m_Parent) return;
 		m_Parent->TriggerEvent(eTriggerEventType::ACTIVATED, entity);
+		for (const auto& callback : std::vector(m_ActivationCallbacks)) callback(true);
 
 		const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 
@@ -114,6 +115,7 @@ void SwitchComponent::Run(float deltaTime) {
 			m_Active = false;
 			if (!m_Parent) return;
 			m_Parent->TriggerEvent(eTriggerEventType::DEACTIVATED, m_Parent);
+			for (const auto& callback : std::vector(m_ActivationCallbacks)) callback(false);
 
 			const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 
