@@ -272,6 +272,7 @@
 #include "NjNPCMissionSpinjitzuServer.h"
 #include "NjJayMissionItems.h"
 #include "FallingTile.h"
+#include "SimpleMoverSwitch.h"
 #include "SimpleOnceOnlyMoverSpinnerEvent.h"
 #include "ImaginationShrineServer.h"
 #include "Lieutenant.h"
@@ -680,6 +681,7 @@ namespace {
 		{"scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_POST_SERVER.lua", []() {return new NjRailPostServer();}},
 		{"scripts\\02_server\\Map\\General\\Ninjago\\L_ICE_RAIL_ACTIVATOR_SERVER.lua", []() {return new NjIceRailActivator();}},
 		{"scripts\\02_server\\Map\\njhub\\L_FALLING_TILE.lua", []() {return new FallingTile();}},
+		{"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua", []() {return new SimpleMoverSwitch();}},
 		{"scripts\\02_server\\Map\\firetemple\\L_SIMPLE_ONCE_ONLY_MOVER_SPINNER_EVENT.lua", []() {return new SimpleOnceOnlyMoverSpinnerEvent();}},
 		{"scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF_STUN_IMMUNITY.lua", []() {return new EnemyNjBuff();}},
 		{"scripts\\02_server\\Map\\njhub\\L_IMAGINATION_SHRINE_SERVER.lua", []() {return new ImaginationShrineServer();}},
@@ -814,7 +816,6 @@ namespace {
 		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_WANDER_SMALL.lua", // Really old alpha script
 		"scripts\\zone\\LUPs\\Moonbase Intro\\WBL_Enemy_Grabbler.lua", // Really old alpha script, only sets wander variables
 		"scripts\\ai\\NP\\L_NPC_NP_OLD_MAN_SHERLAND.lua", // This NPC doesn't even exist in modern crux, the only place this is used...
-		"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua", // This platform does not exist even when moved manually on a client
 	};
 };
 
