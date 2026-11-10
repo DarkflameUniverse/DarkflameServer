@@ -1213,7 +1213,11 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 				}
 			}
 
+			// Their own client's construction of the player: one that kept its player (seamless instance move) is not
+			// to be put back where it was saved or shown a world transition
+			WorldMigration::KeepClientPlayer(player, true);
 			Game::entityManager->ConstructAllEntities(sysAddr);
+			WorldMigration::KeepClientPlayer(player, false);
 
 			characterComponent->RocketUnEquip(player);
 

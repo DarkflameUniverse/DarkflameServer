@@ -40,6 +40,10 @@ namespace {
 	// Give up on a migration after this long moving; whoever is left stays (or is saved when the world shuts down)
 	constexpr float MAX_MOVE_SECONDS = 150.0f;
 	constexpr float STATUS_INTERVAL = 1.0f;
+	// How long after it was sent a seamless arrival is expected (the reconnect takes a second or two)
+	constexpr float SEAMLESS_ARRIVAL_SECONDS = 30.0f;
+	// A client that arrived without reloading and hasn't sent PlayerLoaded after this gets it run for them
+	constexpr float SEAMLESS_LOADED_FALLBACK_SECONDS = 5.0f;
 	// Carried state for a player who never arrives
 	constexpr float CARRIED_EXPIRY_SECONDS = 300.0f;
 
@@ -185,10 +189,13 @@ namespace {
 			MasterPackets::SendToMaster(carried);
 		}
 
-		// Seamless: take every object we sent away first. The client deletes them but keeps its own player object when
-		// that ghost goes (LWOGhostComponent::OnGhostReceiveDestruction), and the target's construction of the
-		// player is adopted by it. Same ordered channel as the transfer, so these arrive before it.
-		if (order.seamless) Game::entityManager->DestructAllEntities(sysAddr);
+		// Seamless: take every object we sent away first, except their own player. The client keeps its player object
+		// either way (LWOGhostComponent::OnGhostReceiveDestruction, 0x00c99410), but losing its last ghost puts it out
+		// of scope: it fades out, and fades back in with the login effect when the target constructs it
+		// (LWOBaseRenderComponent::OnEnterScope, 0x00be2150). With its old ghost left alone, the target's
+		// construction just takes over (LwoClientGhostManager::OnReceiveConstruction, 0x00b31c30). Same ordered
+		// channel as the transfer, so these arrive before it.
+		if (order.seamless) Game::entityManager->DestructAllEntities(sysAddr, playerId);
 
 		ClientPackets::TransferToWorld transfer;
 		transfer.serverIP = LUString(order.targetIp);
@@ -391,7 +398,14 @@ void WorldMigration::OnDisconnected(const SystemAddress& sysAddr) {
 
 bool WorldMigration::ArrivesSeamlessly(LWOOBJID characterId) {
 	const auto it = g_Carried.find(characterId);
-	return it != g_Carried.end() && it->second.first.seamless;
+	// Only for a while: a client that logs in again later has no scene and needs LOAD_STATIC_ZONE
+	return it != g_Carried.end() && it->second.first.seamless && it->second.second <= SEAMLESS_ARRIVAL_SECONDS;
+}
+
+void WorldMigration::KeepClientPlayer(Entity* player, const bool keep) {
+	if (!player || (keep && !ArrivesSeamlessly(player->GetObjectID()))) return;
+	if (auto* physics = player->GetComponent<ControllablePhysicsComponent>()) physics->SetKeepClientPosition(keep);
+	if (auto* characterComponent = player->GetComponent<CharacterComponent>()) characterComponent->SetKeepClientScene(keep);
 }
 
 void WorldMigration::OnSeamlessArrival(Entity* player) {
@@ -399,10 +413,11 @@ void WorldMigration::OnSeamlessArrival(Entity* player) {
 	const auto playerId = player->GetObjectID();
 	const auto sysAddr = player->GetSystemAddress();
 	LOG("Player %llu arrived without reloading the zone", playerId);
-	// The client already finished loading on the old instance and won't send PlayerLoaded again: do what it would
-	// trigger, once the constructions have had a moment to arrive
-	player->AddCallbackTimer(1.0f, [playerId, sysAddr]() {
-		if (!Game::entityManager->GetEntity(playerId)) return;
+	// The client sends PlayerLoaded itself once its character got the construction
+	// (LWOCharacterComponent::PostCharacterLoaded, 0x00c71660). Should that not come, do what it would trigger.
+	player->AddCallbackTimer(SEAMLESS_LOADED_FALLBACK_SECONDS, [playerId, sysAddr]() {
+		if (!g_Carried.contains(playerId) || !Game::entityManager->GetEntity(playerId)) return;
+		LOG("Player %llu sent no PlayerLoaded after arriving without a reload, running it for them", playerId);
 		RakNet::BitStream empty;
 		GameMessageHandler::HandleMessage(empty, sysAddr, playerId, MessageType::Game::PLAYER_LOADED);
 	});
