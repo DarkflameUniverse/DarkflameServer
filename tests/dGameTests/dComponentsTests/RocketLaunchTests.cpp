@@ -1,6 +1,8 @@
 #include "GameDependencies.h"
 #include "dGameMessagesTests/GameMessageTestUtils.h"
 
+#include "CDClientDatabase.h"
+#include "Entity.h"
 #include "ObjectMessages.h"
 #include "RocketLaunchpadControlComponent.h"
 
@@ -48,4 +50,26 @@ TEST_F(RocketLaunchTests, RocketEquippedIsBroadcast) {
 		});
 	ASSERT_EQ(sent.size(), 1u);
 	EXPECT_TRUE(sent[0].broadcast);
+}
+
+// A pad's row can ask for a GM level (the AG test pad: 9); LWORocketLaunchComponentCommon::msgFireEventClientSide
+// (0x00cb78b0) does not launch a player under it
+TEST_F(RocketLaunchTests, APadWithAGmLevelLaunchesOnlyThoseAtIt) {
+	CDClientDatabase::Connect(":memory:");
+	CDClientDatabase::ExecuteDML("CREATE TABLE RocketLaunchpadControlComponent (id INTEGER, targetZone INTEGER, defaultZoneID INTEGER, targetScene TEXT, gmLevel INTEGER, useLaunchPrecondition INTEGER, launchPrecondition TEXT, useAltLandingPrecondition INTEGER, altLandingPrecondition TEXT, altLandingSpawnPointName TEXT);");
+	CDClientDatabase::ExecuteDML("INSERT INTO RocketLaunchpadControlComponent VALUES (1, 1100, 0, 'AGLaunch', 9, 0, '', 0, '', '');");
+	CDClientDatabase::ExecuteDML("INSERT INTO RocketLaunchpadControlComponent VALUES (2, 1200, 0, 'NS_NT', 0, 0, '47', 0, '', '');");
+
+	Entity gmPad(PAD, info);
+	auto* const gmOnly = gmPad.AddComponent<RocketLaunchpadControlComponent>(1);
+	gmOnly->LoadDataFromTemplate();
+	Entity openPad(PAD + 1, info);
+	auto* const open = openPad.AddComponent<RocketLaunchpadControlComponent>(2);
+	open->LoadDataFromTemplate();
+
+	Entity player(PLAYER, info);
+	EXPECT_FALSE(gmOnly->MayLaunch(player));
+	EXPECT_TRUE(open->MayLaunch(player)); // its precondition is not in use
+	player.SetGMLevel(eGameMasterLevel::OPERATOR);
+	EXPECT_TRUE(gmOnly->MayLaunch(player));
 }

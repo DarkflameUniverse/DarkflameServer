@@ -30,7 +30,7 @@ RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent,
 // The RocketLaunchpadControlComponent row
 void RocketLaunchpadControlComponent::LoadDataFromTemplate() {
 	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
+		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName, gmLevel, useLaunchPrecondition, launchPrecondition FROM RocketLaunchpadControlComponent WHERE id = ?;");
 	query.bind(1, m_ComponentID);
 
 	auto result = query.execQuery();
@@ -41,6 +41,8 @@ void RocketLaunchpadControlComponent::LoadDataFromTemplate() {
 		m_TargetScene = result.getStringField("targetScene");
 		m_AltPrecondition = new PreconditionExpression(result.getStringField("altLandingPrecondition"));
 		m_AltLandingScene = result.getStringField("altLandingSpawnPointName");
+		m_GMLevel = result.getIntField("gmLevel", 0);
+		if (result.getIntField("useLaunchPrecondition", 0) != 0) m_LaunchPrecondition = result.getStringField("launchPrecondition", "");
 	}
 
 	result.finalize();
@@ -57,12 +59,19 @@ GameMessages::FireEventClientSide RocketLaunchpadControlComponent::MakeRocketEqu
 	return rocketEquipped;
 }
 
+bool RocketLaunchpadControlComponent::MayLaunch(Entity& player) const {
+	if (static_cast<int32_t>(player.GetGMLevel()) < m_GMLevel) return false;
+	return m_LaunchPrecondition.empty() || PreconditionExpression(m_LaunchPrecondition).Check(&player);
+}
+
 void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId, LWOCLONEID cloneId, int32_t worldIndex) {
 	auto zone = mapId == LWOMAPID_INVALID ? m_TargetZone : mapId;
 
 	if (zone == 0) {
 		return;
 	}
+
+	if (!MayLaunch(*originator)) return;
 
 	// This also gets triggered by a proximity monitor + item equip, I will set that up when havok is ready
 	auto* characterComponent = originator->GetComponent<CharacterComponent>();
