@@ -213,10 +213,10 @@ void MovingPlatformComponent::SetupRotator() {
 	auto* const rotator = static_cast<RotatorSubComponent*>(GetMoverSubComponent());
 	// LWOPlatformRotator::LoadConfigData 0x00c33e10
 	constexpr float pi = 3.14159265358979323846f;
-	if (m_Parent->HasVar(u"rotX")) rotator->mRotationX = m_Parent->GetVar<float>(u"rotX") * pi;
-	if (m_Parent->HasVar(u"rotY")) rotator->mRotationY = m_Parent->GetVar<float>(u"rotY") * pi;
-	if (m_Parent->HasVar(u"rotZ")) rotator->mRotationZ = m_Parent->GetVar<float>(u"rotZ") * pi;
-	rotator->mRate = m_Parent->GetVar<float>(u"rate");
+	if (m_Parent->HasVar(u"rotX")) rotator->mRotationX = m_Parent->GetVarAs<float>(u"rotX") * pi;
+	if (m_Parent->HasVar(u"rotY")) rotator->mRotationY = m_Parent->GetVarAs<float>(u"rotY") * pi;
+	if (m_Parent->HasVar(u"rotZ")) rotator->mRotationZ = m_Parent->GetVarAs<float>(u"rotZ") * pi;
+	rotator->mRate = m_Parent->GetVarAs<float>(u"rate");
 
 	if (m_Path == nullptr || m_Path->pathWaypoints.empty()) return;
 	// LWOPlatform::SetupPath 0x00c17d10
