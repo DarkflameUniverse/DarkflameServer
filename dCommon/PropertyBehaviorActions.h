@@ -16,9 +16,11 @@ namespace PropertyBehaviorActions {
 	constexpr std::string_view ON_INTERACT = "OnInteract";
 	constexpr std::string_view ON_ATTACK = "OnAttack";
 	constexpr std::string_view ON_CHAT = "OnChat";
-	constexpr std::array TRIGGERS{ ON_INTERACT, ON_ATTACK, ON_CHAT };
+	constexpr std::string_view ON_STARTUP = "OnStartup";
+	constexpr std::string_view ON_TIMER = "OnTimer";
+	constexpr std::array TRIGGERS{ ON_INTERACT, ON_ATTACK, ON_CHAT, ON_STARTUP, ON_TIMER };
 
-	// Moves the block's distance along a world axis at the model's speed
+	// Moves the block's distance along one of the model's local axes (right x, up y, forward z) at the strip's speed
 	struct Move {
 		std::string_view type;
 		char axis; // 'x', 'y' or 'z'
@@ -28,6 +30,13 @@ namespace PropertyBehaviorActions {
 		Move{ "MoveRight", 'x', 1.0f }, Move{ "MoveLeft", 'x', -1.0f },
 		Move{ "FlyUp", 'y', 1.0f }, Move{ "FlyDown", 'y', -1.0f },
 		Move{ "MoveForward", 'z', 1.0f }, Move{ "MoveBackward", 'z', -1.0f },
+	};
+
+	// Turns the block's degrees about one of the model's local axes (tilt x, spin y, roll z) at the strip's speed
+	constexpr std::array ROTATIONS{
+		Move{ "Spin", 'y', 1.0f }, Move{ "SpinNegative", 'y', -1.0f },
+		Move{ "Tilt", 'x', 1.0f }, Move{ "TiltNegative", 'x', -1.0f },
+		Move{ "Roll", 'z', 1.0f }, Move{ "RollNegative", 'z', -1.0f },
 	};
 
 	// Blocks that make an object: spawns make one enemy at the model; drops give every player one powerup per unit of
@@ -63,6 +72,8 @@ namespace PropertyBehaviorActions {
 
 	// The rest, each with its own handling
 	constexpr std::string_view SET_SPEED = "SetSpeed";
+	constexpr std::string_view MOVE_BACK_TO_START = "MoveBackToStart";
+	constexpr std::string_view DO_DAMAGE = "DoDamage";
 	constexpr std::string_view SMASH = "Smash";
 	constexpr std::string_view UNSMASH = "UnSmash";
 	constexpr std::string_view WAIT = "Wait";
@@ -70,9 +81,9 @@ namespace PropertyBehaviorActions {
 	constexpr std::string_view PRIVATE_MESSAGE = "PrivateMessage";
 	constexpr std::string_view PLAY_SOUND = "PlaySound";
 	constexpr std::string_view RESTART = "Restart";
-	constexpr std::array OTHERS{ SET_SPEED, SMASH, UNSMASH, WAIT, CHAT, PRIVATE_MESSAGE, PLAY_SOUND, RESTART };
+	constexpr std::array OTHERS{ SET_SPEED, MOVE_BACK_TO_START, DO_DAMAGE, SMASH, UNSMASH, WAIT, CHAT, PRIVATE_MESSAGE, PLAY_SOUND, RESTART };
 
-	// The speed models move at until a Set Speed block (ModelComponent)
+	// The speed a strip's moves and rotations start at until a Set Speed block (Strip)
 	constexpr float DEFAULT_SPEED = 3.0f;
 
 	// The table entry for a block type, or nullptr

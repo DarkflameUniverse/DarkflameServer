@@ -196,6 +196,21 @@ namespace GameMessages {
 		bool bIgnoreChecks{ false };
 	};
 
+	struct GetAngularVelocity : public GameMsg {
+		GetAngularVelocity() : GameMsg(MessageType::Game::GET_ANGULAR_VELOCITY) {}
+
+		NiPoint3 angVelocity{};
+	};
+
+	struct SetAngularVelocity : public GameMsg {
+		SetAngularVelocity() : GameMsg(MessageType::Game::SET_ANGULAR_VELOCITY) {}
+
+		NiPoint3 angVelocity{};
+
+		bool bIgnoreDirtyFlags{};
+
+		bool bForceFlagDirty{};
+	};
 
 	struct GetMissionState : public GameMsg {
 		GetMissionState() : GameMsg(MessageType::Game::GET_MISSION_STATE) {}

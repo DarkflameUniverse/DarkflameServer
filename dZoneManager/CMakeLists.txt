@@ -1,5 +1,6 @@
 set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 	"Level.cpp"
+	"Raw.cpp"
 	"Spawner.cpp"
 	"Zone.cpp")
 
@@ -15,6 +16,7 @@ target_include_directories(dZoneManager PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # EntityInfo.h
 	PRIVATE
 	${DLU_COMPONENT_INCLUDE_DIRS} #InventoryComponent.h
+	"${PROJECT_SOURCE_DIR}/dCommon/dClient" # SceneColor.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" #InventoryComponent.h (transitive)
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" #BehaviorSlot.h
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" #GameMessages.h

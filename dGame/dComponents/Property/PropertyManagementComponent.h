@@ -202,7 +202,7 @@ public:
 	uint32_t GetReputation() const noexcept { return reputation; }
 
 
-	void OnChatMessageReceived(const std::string& sMessage) const;
+	void OnChatMessageReceived(const std::string& sMessage, const LWOOBJID sender) const;
 
 	/**
 	 * Live updates (docs/LiveUpdate.md): a new instance of this property is about to load it from the database. Takes

@@ -8,6 +8,8 @@ set(DCOMPONENTS_TESTS
 	"VendorBuybackTests.cpp"
 	"RacingWrongWayTests.cpp"
 	"DestroyableComponentTests.cpp"
+	"InventoryGroupTests.cpp"
+	"ModelComponentTests.cpp"
 	"PetComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
 	"MovementBlockerScenarioTests.cpp"

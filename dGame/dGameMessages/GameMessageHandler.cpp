@@ -260,6 +260,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 			}
 		}
 
+		msg->target = objectID;
 		if (!msg->Deserialize(inStream)) {
 			LOG("Dropping malformed GM %4i, %s from (%llu) targeting (%llu)", messageID, StringifiedEnum::ToString(messageID).data(), usr->GetLoggedInChar(), objectID);
 			return;

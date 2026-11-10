@@ -75,7 +75,7 @@ void PlayerContainer::InsertPlayer(const ChatPackets::LoginSessionNotify& notify
 	data.worldServerSysAddr = sysAddr;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
-	m_PlayerCount++;
+	if (isLogin) m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
 

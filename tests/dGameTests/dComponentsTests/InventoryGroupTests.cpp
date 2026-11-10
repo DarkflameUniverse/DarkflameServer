@@ -132,3 +132,11 @@ TEST_F(InventoryGroupTests, TheLockedFlagIsSavedAndLoaded) {
 	EXPECT_TRUE(groups[0].locked);
 	EXPECT_FALSE(groups[1].locked);
 }
+
+TEST_F(InventoryGroupTests, OnlyBricksAndModelsHaveGroups) {
+	Group("ADD", "user_group1", u"g", eInventoryType::ITEMS);
+	EXPECT_FALSE(inventory->GetGroups().contains(eInventoryType::ITEMS));
+
+	Group("ADD", "user_group1", u"g", eInventoryType::BRICKS);
+	EXPECT_EQ(inventory->GetGroups().at(eInventoryType::BRICKS).size(), 1u);
+}

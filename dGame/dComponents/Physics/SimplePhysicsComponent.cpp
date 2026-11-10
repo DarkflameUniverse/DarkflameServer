@@ -18,6 +18,8 @@
 #include "PhantomPhysicsComponent.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
+	RegisterMsg(&SimplePhysicsComponent::OnGetAngularVelocity);
+	RegisterMsg(&SimplePhysicsComponent::OnSetAngularVelocity);
 	RegisterMsg(&SimplePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Position = m_Parent->GetDefaultPosition();

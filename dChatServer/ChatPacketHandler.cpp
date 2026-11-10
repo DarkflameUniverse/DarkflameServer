@@ -418,6 +418,10 @@ void ChatPacketHandler::HandleShowAll(const ChatPackets::ShowAllRequest& request
 			if (!playerData) continue;
 			response.players.push_back({ playerData.playerName, playerData.zoneID });
 		}
+		// there is no terminator: the client reads playerCount entries, and prints garbage on a mismatch
+		if (response.players.size() != response.playerCount) {
+			LOG("Written players does not match actual players %zu != %i", response.players.size(), response.playerCount);
+		}
 	}
 	SendRouted(request.requestor, sender.worldServerSysAddr, response);
 }

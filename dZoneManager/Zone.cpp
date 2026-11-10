@@ -8,6 +8,7 @@
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
 #include "LUTriggers.h"
+#include "dConfig.h"
 
 #include "AssetManager.h"
 #include "CDClientManager.h"
@@ -22,6 +23,7 @@
 #include "eWaypointCommandType.h"
 #include "dNavMesh.h"
 #include "ZoneFileLog.h"
+#include "Raw.h"
 
 Zone::Zone(const LWOZONEID zoneID) :
 	m_ZoneID(zoneID) {
@@ -90,9 +92,36 @@ void Zone::LoadZoneIntoMemory() {
 		m_SceneTransitions = std::move(zoneFile.sceneTransitions);
 		m_NumberOfSceneTransitionsLoaded = m_SceneTransitions.size();
 
-		m_PathDataLength = zoneFile.pathDataLength;
-		m_PathChunkVersion = zoneFile.pathChunkVersion;
-		m_Paths = std::move(zoneFile.paths);
+		m_Boundaries = std::move(zoneFile.zoneBoundaries);
+
+		// The terrain gives the scene at a position. Like the client, a missing or unreadable .raw is logged
+		// and the zone loads without it.
+		const auto rawPath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1) + m_ZoneRawPath;
+		if (m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+			LOG("Zone %s uses the legacy raw terrain format (version %u), which is not supported; no scene lookups", m_ZoneFilePath.c_str(), static_cast<uint32_t>(m_FileFormatVersion));
+		} else if (!Game::assetManager->HasFile(rawPath)) {
+			LOG("Failed to find %s; no scene lookups", rawPath.c_str());
+		} else {
+			auto rawFile = Game::assetManager->GetFile(rawPath);
+			if (Raw::ReadRaw(rawFile, m_Raw)) {
+				LOG_DEBUG("Successfully parsed %s", rawPath.c_str());
+			} else {
+				LOG("Failed to parse %s; no scene lookups", rawPath.c_str());
+				m_Raw = Raw::Raw{};
+			}
+		}
+
+		// Optionally export terrain mesh to OBJ for debugging/visualization
+		if (Game::config->GetValue("export_terrain_to_obj") == "1") {
+			Raw::TerrainMesh terrainMesh;
+			Raw::GenerateTerrainMesh(m_Raw, terrainMesh);
+			LOG("Generated terrain mesh with %zu vertices and %zu triangles", terrainMesh.vertices.size(), terrainMesh.triangles.size() / 3);
+
+			const std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
+			if (Raw::WriteTerrainMeshToOBJ(terrainMesh, objFileName)) {
+				LOG("Exported terrain mesh to %s", objFileName.c_str());
+			}
+		}
 
 		// We verify the waypoint heights against the navmesh because in many movement paths,
 		// the waypoint is located near 0 height, 

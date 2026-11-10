@@ -1727,7 +1727,7 @@ namespace {
 				generalChat.senderID = user->GetLoggedInChar();
 				generalChat.message = message;
 				generalChat.Broadcast();
-				if (PropertyManagementComponent::Instance()) PropertyManagementComponent::Instance()->OnChatMessageReceived(sMessage);
+				if (PropertyManagementComponent::Instance()) PropertyManagementComponent::Instance()->OnChatMessageReceived(sMessage, user->GetLoggedInChar());
 			}
 		}
 	};

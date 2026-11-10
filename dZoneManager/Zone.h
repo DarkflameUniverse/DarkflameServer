@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "Raw.h"
 
 namespace LUTriggers {
 	struct Trigger;
@@ -61,6 +62,12 @@ public:
 	void SetSpawnPos(const NiPoint3& pos) { m_Spawnpoint = pos; }
 	void SetSpawnRot(const NiQuaternion& rot) { m_SpawnpointRotation = rot; }
 
+	const Raw::Raw& GetZoneRaw() const { return m_Raw; }
+	const SceneRef* GetScene(LWOSCENEID sceneID) const;
+	const std::vector<SceneTransition>& GetSceneTransitions() const { return m_SceneTransitions; }
+	const std::vector<ZoneBoundary>& GetBoundaries() const { return m_Boundaries; }
+	const std::map<LWOSCENEID, SceneRef>& GetScenes() const { return m_Scenes; }
+
 private:
 	LWOZONEID m_ZoneID;
 	std::string m_ZoneFilePath;
@@ -77,11 +84,13 @@ private:
 	std::string m_ZoneName; //Name given to the zone by a level designer
 	std::string m_ZoneDesc; //Description of the zone by a level designer
 	std::string m_ZoneRawPath; //Path to the .raw file of this zone.
+	Raw::Raw m_Raw; // The Raw data for this zone
 
 	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
 	ZoneScenes::SceneGraph m_SceneGraph;
 	ZoneScenes::SceneMap m_SceneMap;
+	std::vector<ZoneBoundary> m_Boundaries;
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;

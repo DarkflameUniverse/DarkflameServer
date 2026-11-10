@@ -28,16 +28,17 @@ namespace BehaviorXml {
 
 	/**
 	 * The blocks the server plays and how (PropertyBehaviorActions, which Strip.cpp runs on), for the viewer's behavior
-	 * player: {triggers: [type], moves: {type: [axis, sign]}, spawns: {type: {lot, name}}, drops: {type: {lot, name}},
+	 * player: {triggers: [type], moves: {type: [axis, sign]}, rotations: {type: [axis, sign]}, spawns: {type: {lot, name}}, drops: {type: {lot, name}},
 	 * stateChanges: {type: stateId}, others: [type], states: {id: name}, defaultSpeed}. itemName names a LOT.
 	 */
 	inline nlohmann::json Rules(const std::function<std::string(int32_t)>& itemName) {
 		using namespace PropertyBehaviorActions;
-		nlohmann::json rules{ {"triggers", nlohmann::json::array()}, {"moves", nlohmann::json::object()}, {"spawns", nlohmann::json::object()},
+		nlohmann::json rules{ {"triggers", nlohmann::json::array()}, {"moves", nlohmann::json::object()}, {"rotations", nlohmann::json::object()}, {"spawns", nlohmann::json::object()},
 			{"drops", nlohmann::json::object()}, {"stateChanges", nlohmann::json::object()}, {"others", nlohmann::json::array()},
 			{"states", nlohmann::json::object()}, {"defaultSpeed", DEFAULT_SPEED} };
 		for (const auto type : TRIGGERS) rules["triggers"].push_back(type);
 		for (const auto& move : MOVES) rules["moves"][std::string(move.type)] = { std::string(1, move.axis), move.sign };
+		for (const auto& rotation : ROTATIONS) rules["rotations"][std::string(rotation.type)] = { std::string(1, rotation.axis), rotation.sign };
 		for (const auto& spawn : SPAWNS) rules["spawns"][std::string(spawn.type)] = { {"lot", spawn.lot}, {"name", itemName(spawn.lot)} };
 		for (const auto& drop : DROPS) rules["drops"][std::string(drop.type)] = { {"lot", drop.lot}, {"name", itemName(drop.lot)} };
 		for (const auto& change : STATE_CHANGES) rules["stateChanges"][std::string(change.type)] = static_cast<int>(change.state);
