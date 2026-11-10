@@ -5,6 +5,7 @@
 #include "CDRailActivatorComponent.h"
 #include "Entity.h"
 #include "MovementMessages.h"
+#include "ObjectMessages.h"
 #include "dGameMessagesTests/GameMessageTestUtils.h"
 #include "RailActivatorComponent.h"
 
@@ -81,4 +82,25 @@ TEST_F(RailActivatorComponentTests, InactiveRailIsReportedInactive) {
 	GameMessages::NotifyRailActivatorStateChange notify;
 	notify.bActive = false;
 	EXPECT_FALSE(RoundTrip(notify).bActive);
+}
+
+// A rail that is off is not ridden: LWORailActivatorComponent::msgCheckUseRequirements (0x00c2c5b0) refuses the use, so a
+// client never asks for it
+TEST_F(RailActivatorComponentTests, ARailThatIsOffIsNotUsed) {
+	entity->SetVar<bool>(u"rail_activator_active", false);
+	auto* const rail = entity->AddComponent<RailActivatorComponent>(COMPONENT_ID);
+	Entity user(77, info);
+	GameMessages::RequestUse use;
+	GameMessages::RequestUseEvent event(use, user);
+	EXPECT_TRUE(rail->OnRequestUse(event));
+	EXPECT_TRUE(rail->GetEntitiesOnRail().empty());
+}
+
+TEST_F(RailActivatorComponentTests, ARailThatIsOnIsUsed) {
+	auto* const rail = entity->AddComponent<RailActivatorComponent>(COMPONENT_ID);
+	Entity user(78, info);
+	GameMessages::RequestUse use;
+	GameMessages::RequestUseEvent event(use, user);
+	EXPECT_TRUE(rail->OnRequestUse(event));
+	EXPECT_EQ(rail->GetEntitiesOnRail(), std::vector<LWOOBJID>{ 78 });
 }
