@@ -1,7 +1,5 @@
 #include "MountControlComponent.h"
 
-#include "Entity.h"
-#include "PossessorComponent.h"
 
 #include "tinyxml2.h"
 
@@ -18,6 +16,6 @@ void MountControlComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	auto* mount = obj->FirstChildElement("mnt");
 	if (!mount) mount = obj->InsertNewChildElement("mnt");
 
-	const auto* const possessor = m_Parent->GetComponent<PossessorComponent>();
-	mount->SetAttribute("a", possessor ? possessor->GetMountItemID() : LWOOBJID_EMPTY);
+	// 0 in every live save looked at (450), so 0 is written, riding or not
+	mount->SetAttribute("a", 0);
 }

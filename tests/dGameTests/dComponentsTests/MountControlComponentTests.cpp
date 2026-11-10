@@ -1,5 +1,5 @@
-// The mount item in a character's save: LWOMountControlComponent::LoadFromSaveData (0x00bf99c0) reads <mnt a>, and
-// every live save had the element (<mnt a="0"/> on the 450 looked at).
+// The mount element of a character's save: LWOMountControlComponent::LoadFromSaveData (0x00bf99c0) reads <mnt a>, and
+// every live save had the element, always as <mnt a="0"/> (450 looked at).
 #include "GameDependencies.h"
 
 #include "Entity.h"
@@ -38,8 +38,9 @@ TEST_F(MountControlComponentTests, OldSaveGainsTheElement) {
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><mf hc="1"/><char cc="5"/><dest hm="4"/><mnt a="0"/></obj>)");
 }
 
-// The item of the mount being ridden is saved, in the element's own place; on foot it is 0 again
-TEST_F(MountControlComponentTests, TheRiddenMountIsSaved) {
+// Live wrote 0 in every save, so 0 is written while a mount is ridden as well. A save that holds another value is
+// read without failing and gets 0 at the next save.
+TEST_F(MountControlComponentTests, ZeroIsWrittenAlsoWhileRiding) {
 	tinyxml2::XMLDocument doc;
 	ASSERT_EQ(doc.Parse(R"(<obj v="1"><mis/><mnt a="1152921510436607007"/><dest hm="4"/></obj>)"), tinyxml2::XML_SUCCESS);
 	Entity player(71, info);
@@ -48,15 +49,22 @@ TEST_F(MountControlComponentTests, TheRiddenMountIsSaved) {
 	mountControl->LoadFromSaveData(doc);
 	EXPECT_EQ(mountControl->GetSavedMountItemID(), 1152921510436607007LL);
 
-	// Nothing is ridden after a load
 	mountControl->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><mis/><mnt a="0"/><dest hm="4"/></obj>)");
 
 	possessor->SetMountItemID(1152921510436607123LL);
 	mountControl->WriteSaveData(doc);
-	EXPECT_EQ(Print(doc), R"(<obj v="1"><mis/><mnt a="1152921510436607123"/><dest hm="4"/></obj>)");
-
-	possessor->SetMountItemID(LWOOBJID_EMPTY);
-	mountControl->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><mis/><mnt a="0"/><dest hm="4"/></obj>)");
+}
+
+// An a that is not a number is not an error: nothing is read and 0 is written
+TEST_F(MountControlComponentTests, AnUnreadableValueDoesNotFail) {
+	tinyxml2::XMLDocument doc;
+	ASSERT_EQ(doc.Parse(R"(<obj v="1"><mnt a="x"/></obj>)"), tinyxml2::XML_SUCCESS);
+	Entity player(72, info);
+	auto* const mountControl = player.AddComponent<MountControlComponent>(-1);
+	mountControl->LoadFromSaveData(doc);
+	EXPECT_EQ(mountControl->GetSavedMountItemID(), LWOOBJID_EMPTY);
+	mountControl->WriteSaveData(doc);
+	EXPECT_EQ(Print(doc), R"(<obj v="1"><mnt a="0"/></obj>)");
 }
