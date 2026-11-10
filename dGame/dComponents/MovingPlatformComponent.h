@@ -133,13 +133,35 @@ public:
 };
 
 /**
- * A rotator (6), as the client's LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate) while travelling; it sends
- * the LWOPlatform data a mover sends.
+ * The angular velocity of a rotator, as the client's LWOPlatformRotator::SetAngularVelocity 0x00bfa380 works it out:
+ * the rotation NiMatrix3::FromEulerAnglesXYZ 0x0116c3a0 makes of the three angles (radians; the matrix about x times
+ * the one about y times the one about z, each turning the other way round than the usual right-handed one), as a
+ * quaternion (NiQuaternion::FromRotation), and the velocity that turns from no rotation to it (from it to none in
+ * reverse) in half the rate, by the shortest way (hkpKeyFrameUtility::KeyFrameInfo::setUsingPositionOrientationPair
+ * 0x012a4050: the axis times the angle, at most half a turn, over the time). Angles that add up to whole turns give
+ * no velocity. The client divides by a rate of 0; here that gives none.
+ */
+NiPoint3 CalcRotatorAngularVelocity(float rotX, float rotY, float rotZ, float rate, bool reverse);
+
+/**
+ * A rotator (6), as the client's LWOPlatformRotator: on its path it does not move, it turns at its angular velocity
+ * while travelling (rotX/rotY/rotZ in half turns, at rate), and never waits or arrives (IncrementWaitingTime
+ * 0x004a0390, HandleStoppedLogic 0x00bdc660); it sends the LWOPlatform data a mover sends.
  */
 class RotatorSubComponent final : public PlatformSubComponent {
 public:
 	RotatorSubComponent(const NiPoint3& startPos) { mPosition = startPos; }
 	eMoverSubComponentType GetType() const override { return eMoverSubComponentType::rotater; }
+
+	// LWOPlatformRotator::LoadConfigData 0x00c33e10: rotX, rotY and rotZ times pi, and rate (seconds)
+	float mRotationX = 0.0f;
+	float mRotationY = 0.0f;
+	float mRotationZ = 0.0f;
+	float mRate = 0.0f;
+	// Whether its object was put at its waypoint (LWOPlatform::ProcessStateChange 0x00cce380, from SetupPath)
+	bool mPlaced = false;
+
+	NiPoint3 GetAngularVelocity() const { return CalcRotatorAngularVelocity(mRotationX, mRotationY, mRotationZ, mRate, mInReverse); }
 };
 
 /**
@@ -343,6 +365,12 @@ private:
 	void SetupMoverPath();
 	// Puts the object where the mover is, without a serialization of its physics
 	void MoveObject();
+	// A rotator's settings from the level config, and where it is on its path
+	void SetupRotator();
+	// Turns a travelling rotator's object by its angular velocity
+	void RunRotator(float deltaTime);
+	// LWOPlatform::SetupPath and SendMessage (RebuildNotifyState): whether the platform of a quick build runs yet
+	bool UpdateActive(PlatformSubComponent& platform);
 	// LWOPlatform::SetWaitingTime: starts a wait of at least 0.1 s
 	void MoverSetWaitingTime(float waitTime, float idleTimeElapsed);
 	// LWOPlatform::ResumeTravelling: stopped between two waypoints it travels on; at a waypoint it first waits there

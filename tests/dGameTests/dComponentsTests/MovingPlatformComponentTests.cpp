@@ -434,3 +434,86 @@ TEST_F(MovingPlatformComponentTest, BuiltSimpleMoverSetsOffLikeLive) {
 	platform->Serialize(arrived, false);
 	EXPECT_EQ(Bits(arrived), "00");
 }
+
+// LWOPlatformRotator::SetAngularVelocity 0x00bfa380: the velocity that turns from no rotation to the configured one in
+// half the rate. The client's matrices about an axis turn the other way round than the usual ones, so a quarter turn
+// about x in 1 s is -pi/2 about x; in reverse it is the other way. Whole turns have no axis and give no velocity. Half
+// a turn can go either way round: the float pi is a little over pi, so the shortest way is the usual direction.
+TEST_F(MovingPlatformComponentTest, RotatorAngularVelocityAsTheClient) {
+	constexpr float pi = 3.14159265358979323846f;
+	const auto quarterX = CalcRotatorAngularVelocity(0.5f * pi, 0.0f, 0.0f, 2.0f, false);
+	EXPECT_NEAR(quarterX.x, -pi / 2.0f, 0.0001f);
+	EXPECT_NEAR(quarterX.y, 0.0f, 0.0001f);
+	EXPECT_NEAR(quarterX.z, 0.0f, 0.0001f);
+	const auto quarterXReverse = CalcRotatorAngularVelocity(0.5f * pi, 0.0f, 0.0f, 2.0f, true);
+	EXPECT_NEAR(quarterXReverse.x, pi / 2.0f, 0.0001f);
+
+	const auto eighthY = CalcRotatorAngularVelocity(0.0f, 0.25f * pi, 0.0f, 4.0f, false);
+	EXPECT_NEAR(eighthY.y, -pi / 8.0f, 0.0001f);
+	const auto quarterZ = CalcRotatorAngularVelocity(0.0f, 0.0f, 0.5f * pi, 1.0f, false);
+	EXPECT_NEAR(quarterZ.z, -pi, 0.0001f);
+
+	// x * (y * z): a quarter turn about x and one about y is a third of a turn about (-1, -1, 1)
+	const auto both = CalcRotatorAngularVelocity(0.5f * pi, 0.5f * pi, 0.0f, 2.0f, false);
+	const float third = 2.0f * pi / 3.0f / std::sqrt(3.0f);
+	EXPECT_NEAR(both.x, -third, 0.0001f);
+	EXPECT_NEAR(both.y, -third, 0.0001f);
+	EXPECT_NEAR(both.z, third, 0.0001f);
+
+	EXPECT_EQ(CalcRotatorAngularVelocity(2.0f * pi, 0.0f, 0.0f, 2.0f, false), NiPoint3Constant::ZERO);
+	EXPECT_EQ(CalcRotatorAngularVelocity(0.0f, 0.0f, 0.0f, 2.0f, false), NiPoint3Constant::ZERO);
+	EXPECT_EQ(CalcRotatorAngularVelocity(0.5f * pi, 0.0f, 0.0f, 0.0f, false), NiPoint3Constant::ZERO);
+
+	const auto halfX = CalcRotatorAngularVelocity(pi, 0.0f, 0.0f, 2.0f, false);
+	EXPECT_NEAR(halfX.x, pi, 0.0001f);
+}
+
+// A rotator on a path stays at its waypoint and turns its object at its angular velocity while it travels (rotY half a
+// half turn at rate 2: a quarter turn the client's way about y each second), without a serialization of its physics;
+// stopped it turns no more, started again it does
+TEST_F(MovingPlatformComponentTest, RotatorTurnsItsObject) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestRotatorPath";
+	path.pathBehavior = PathBehavior::Loop;
+	PathWaypoint first;
+	first.position = NiPoint3(1.0f, 2.0f, 3.0f);
+	PathWaypoint second = first;
+	second.position = NiPoint3(10.0f, 2.0f, 3.0f);
+	path.pathWaypoints = { first, second };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	info.pos = NiPoint3(1.0f, 2.0f, 3.0f);
+	info.rot = QuatUtils::IDENTITY;
+	info.settings.Insert<bool>(u"platformIsRotater", true);
+	info.settings.Insert<float>(u"rotY", 0.5f);
+	info.settings.Insert<float>(u"rate", 2.0f);
+	Entity entity(288300744895900113, info);
+	info.settings.values.clear();
+	auto* const simplePhysics = entity.AddComponent<SimplePhysicsComponent>(-1);
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestRotatorPath");
+	ASSERT_EQ(platform->GetMoverSubComponentType(), eMoverSubComponentType::rotater);
+	auto* const rotator = platform->GetMoverSubComponent();
+	EXPECT_EQ(rotator->mState, 2u);
+
+	RakNet::BitStream before;
+	simplePhysics->Serialize(before, false);
+	platform->Run(1.0f);
+	EXPECT_EQ(entity.GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
+	EXPECT_NEAR(entity.GetRotation().w, 0.7071f, 0.001f);
+	EXPECT_NEAR(entity.GetRotation().y, -0.7071f, 0.001f);
+	RakNet::BitStream moved;
+	simplePhysics->Serialize(moved, false);
+	EXPECT_LT(moved.GetNumberOfBitsUsed(), 7u * 32u);
+
+	platform->StopPathing();
+	EXPECT_EQ(rotator->mState & 7u, 4u);
+	platform->Run(1.0f);
+	EXPECT_NEAR(entity.GetRotation().y, -0.7071f, 0.001f);
+
+	platform->StartPathing();
+	EXPECT_EQ(rotator->mState, 2u);
+	platform->Run(1.0f);
+	EXPECT_NEAR(std::abs(entity.GetRotation().y), 1.0f, 0.001f);
+	EXPECT_EQ(entity.GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
+}

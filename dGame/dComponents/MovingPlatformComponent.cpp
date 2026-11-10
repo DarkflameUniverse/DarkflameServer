@@ -171,12 +171,9 @@ void MovingPlatformComponent::LoadConfigData() {
 		m_StartWaypoint = start >= 0 && static_cast<size_t>(start) < m_Path->pathWaypoints.size() ? start : 0;
 		SetupMoverPath();
 	} else if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
-		// LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate, its own path never arrives anywhere: its
-		// HandleStoppedLogic 0x00bdc660 only keeps the angular velocity), while travelling. Only one on a path runs
-		// (LWOMovingPlatformComponent::SetupPlatform 0x00ccea50), and the client reads a platform that is not at a
-		// waypoint from its path (LWOPlatform::Deserialize 0x00c870e0), so one without a path stays as it was made (12).
-		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
-		if (startOnLoad && m_Path != nullptr) GetMoverSubComponent()->mState = ePlatformStateFlag::Travelling;
+		const auto start = m_Parent->HasVar(u"attached_path_start") ? m_Parent->GetVar<int32_t>(u"attached_path_start") : 0;
+		m_StartWaypoint = start >= 0 ? start : 0;
+		SetupRotator();
 	}
 
 	// Live constructed every moving platform with simple physics as keyframed
@@ -193,6 +190,30 @@ void MovingPlatformComponent::SetupMoverPath() {
 	MoverProcessStateChange(m_StartWaypoint);
 	const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
 	if (startOnLoad) MoverResumeTravelling();
+}
+
+// LWOPlatformRotator: on its path it only turns (rotX/rotY/rotZ at rate; its HandleStoppedLogic 0x00bdc660 only keeps
+// the angular velocity, so it never arrives anywhere), while travelling. Only one on a path runs
+// (LWOMovingPlatformComponent::SetupPlatform 0x00ccea50), and the client reads a platform that is not at a waypoint
+// from its path (LWOPlatform::Deserialize 0x00c870e0), so one without a path stays as it was made (12). The client's
+// rotator starts turning when it is sent travelling (Deserialize: StartTravelling, ResumeTravelling, UpdateVelocities).
+void MovingPlatformComponent::SetupRotator() {
+	auto* const rotator = static_cast<RotatorSubComponent*>(GetMoverSubComponent());
+	// LWOPlatformRotator::LoadConfigData 0x00c33e10
+	constexpr float pi = 3.14159265358979323846f;
+	if (m_Parent->HasVar(u"rotX")) rotator->mRotationX = m_Parent->GetVar<float>(u"rotX") * pi;
+	if (m_Parent->HasVar(u"rotY")) rotator->mRotationY = m_Parent->GetVar<float>(u"rotY") * pi;
+	if (m_Parent->HasVar(u"rotZ")) rotator->mRotationZ = m_Parent->GetVar<float>(u"rotZ") * pi;
+	rotator->mRate = m_Parent->GetVar<float>(u"rate");
+
+	if (m_Path == nullptr || m_Path->pathWaypoints.empty()) return;
+	// LWOPlatform::SetupPath 0x00c17d10
+	rotator->mTimeBased = m_Path->movingPlatform.timeBasedMovement != 0;
+	rotator->mInReverse = m_PathReverse;
+	if (static_cast<size_t>(m_StartWaypoint) >= m_Path->pathWaypoints.size()) m_StartWaypoint = 0;
+	MoverProcessStateChange(m_StartWaypoint);
+	const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
+	if (startOnLoad) rotator->mState = ePlatformStateFlag::Travelling;
 }
 
 // LWOMovingPlatformComponent::SetCurrentPath 0x00d0f570 (the SetCurrentPath game message, 0x00d0f5d0): the path, the
@@ -219,6 +240,7 @@ bool MovingPlatformComponent::SetCurrentPath(const std::string& pathName, const 
 	} else {
 		m_StartWaypoint = startPoint;
 		if (m_Path == nullptr) LOG("Cannot setup platform on path %s", pathName.c_str());
+		else if (m_MoverSubComponentType == eMoverSubComponentType::rotater) SetupRotator();
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
 	return mover;
@@ -579,24 +601,123 @@ void MovingPlatformComponent::MoveObject() {
 	}
 }
 
-// LWOPlatform::Run 0x00c87080 and RunPlatform 0x00c86e10. The client's platform is moved by its physics, at the
-// velocity SetLinearVelocity 0x00be9200 gives it; the server moves it here by the same speed.
-void MovingPlatformComponent::Run(const float deltaTime) {
-	if (!IsMover()) return;
-	auto* mover = GetMoverSubComponent();
-
-	// LWOPlatform::SetupPath 0x00c17d10 and SendMessage 0x00bdc930 (RebuildNotifyState): a quick build's platform does not
-	// run until it is built, nor once the quick build is open again
+// LWOPlatform::SetupPath 0x00c17d10 and SendMessage 0x00bdc930 (RebuildNotifyState): a quick build's platform does not
+// run until it is built, nor once the quick build is open again
+bool MovingPlatformComponent::UpdateActive(PlatformSubComponent& platform) {
 	if (!m_CheckedQuickBuild) {
 		m_CheckedQuickBuild = true;
 		m_QuickBuild = m_Parent->GetComponent<QuickBuildComponent>();
-		if (m_QuickBuild) mover->mActive = false;
+		if (m_QuickBuild) platform.mActive = false;
 	}
 	if (m_QuickBuild) {
 		const auto quickBuildState = m_QuickBuild->GetState();
-		if (quickBuildState == eQuickBuildState::OPEN) mover->mActive = false;
-		else if (quickBuildState == eQuickBuildState::COMPLETED) mover->mActive = true;
+		if (quickBuildState == eQuickBuildState::OPEN) platform.mActive = false;
+		else if (quickBuildState == eQuickBuildState::COMPLETED) platform.mActive = true;
 	}
+	return platform.mActive;
+}
+
+NiPoint3 CalcRotatorAngularVelocity(const float rotX, const float rotY, const float rotZ, const float rate, const bool reverse) {
+	// NiMatrix3::MakeXRotation 0x0116c070, MakeYRotation 0x0116c020 and MakeZRotation 0x0116bfd0
+	const float sx = static_cast<float>(std::sin(static_cast<double>(rotX))), cx = static_cast<float>(std::cos(static_cast<double>(rotX)));
+	const float sy = static_cast<float>(std::sin(static_cast<double>(rotY))), cy = static_cast<float>(std::cos(static_cast<double>(rotY)));
+	const float sz = static_cast<float>(std::sin(static_cast<double>(rotZ))), cz = static_cast<float>(std::cos(static_cast<double>(rotZ)));
+	const float x[3][3] = { { 1.0f, 0.0f, 0.0f }, { 0.0f, cx, sx }, { 0.0f, -sx, cx } };
+	const float y[3][3] = { { cy, 0.0f, -sy }, { 0.0f, 1.0f, 0.0f }, { sy, 0.0f, cy } };
+	const float z[3][3] = { { cz, sz, 0.0f }, { -sz, cz, 0.0f }, { 0.0f, 0.0f, 1.0f } };
+	// NiMatrix3::FromEulerAnglesXYZ 0x0116c3a0: x * (y * z)
+	float yz[3][3]{};
+	float m[3][3]{};
+	for (int32_t i = 0; i < 3; i++) for (int32_t j = 0; j < 3; j++) for (int32_t k = 0; k < 3; k++) yz[i][j] += y[i][k] * z[k][j];
+	for (int32_t i = 0; i < 3; i++) for (int32_t j = 0; j < 3; j++) for (int32_t k = 0; k < 3; k++) m[i][j] += x[i][k] * yz[k][j];
+
+	// NiQuaternion::FromRotation
+	float q[4]{}; // x, y, z, w
+	const float trace = m[0][0] + m[1][1] + m[2][2];
+	if (trace > 0.0f) {
+		float root = std::sqrt(trace + 1.0f);
+		q[3] = 0.5f * root;
+		root = 0.5f / root;
+		q[0] = (m[2][1] - m[1][2]) * root;
+		q[1] = (m[0][2] - m[2][0]) * root;
+		q[2] = (m[1][0] - m[0][1]) * root;
+	} else {
+		constexpr int32_t next[3] = { 1, 2, 0 };
+		int32_t i = 0;
+		if (m[1][1] > m[0][0]) i = 1;
+		if (m[2][2] > m[i][i]) i = 2;
+		const int32_t j = next[i];
+		const int32_t k = next[j];
+		float root = std::sqrt(m[i][i] - m[j][j] - m[k][k] + 1.0f);
+		q[i] = 0.5f * root;
+		root = 0.5f / root;
+		q[3] = (m[k][j] - m[j][k]) * root;
+		q[j] = (m[j][i] + m[i][j]) * root;
+		q[k] = (m[k][i] + m[i][k]) * root;
+	}
+
+	// hkpKeyFrameUtility::KeyFrameInfo::setUsingPositionOrientationPair 0x012a4050: the rotation from the first to the
+	// second (the rotation itself, or its inverse in reverse), normalized; without an axis there is no velocity; else
+	// the axis (the other way for a negative w) times twice the arc cosine of |w| over the time
+	if (reverse) {
+		q[0] = -q[0];
+		q[1] = -q[1];
+		q[2] = -q[2];
+	}
+	const float length = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+	if (length <= 0.0f || rate == 0.0f) return NiPoint3Constant::ZERO;
+	for (auto& part : q) part /= length;
+	const float axisLength = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]);
+	if (!(axisLength > std::numeric_limits<float>::epsilon())) return NiPoint3Constant::ZERO;
+	const float angle = 2.0f * std::acos(std::min(std::abs(q[3]), 1.0f));
+	const float scale = (q[3] < 0.0f ? -1.0f : 1.0f) / axisLength * angle * (1.0f / (rate * 0.5f));
+	return NiPoint3(q[0] * scale, q[1] * scale, q[2] * scale);
+}
+
+// LWOPlatform::RunPlatform 0x00c86e10 for a rotator: its wait never ends (IncrementWaitingTime 0x004a0390) and it never
+// arrives (HandleStoppedLogic 0x00bdc660 keeps the object's angular velocity at the rotator's); it has no linear
+// velocity (SetLinearVelocity 0x00bd1660). The client's physics turn the object at that velocity; the server turns its
+// object here, without a serialization of its physics, as a mover's.
+void MovingPlatformComponent::RunRotator(const float deltaTime) {
+	auto* const rotator = static_cast<RotatorSubComponent*>(GetMoverSubComponent());
+	if (!rotator || m_Path == nullptr || m_Path->pathWaypoints.empty()) return;
+
+	auto rotation = m_Parent->GetRotation();
+	bool moved = false;
+	if (!rotator->mPlaced) {
+		// LWOPlatform::ProcessStateChange 0x00cce380 from SetupPath: the object is put at its waypoint
+		rotator->mPlaced = true;
+		rotation = m_Path->pathWaypoints[rotator->mCurrentWaypointIndex].rotation;
+		moved = true;
+	}
+	if (UpdateActive(*rotator) && (rotator->mState & ePlatformStateFlag::Travelling) != 0) {
+		const auto velocity = rotator->GetAngularVelocity();
+		const float speed = velocity.Length();
+		if (speed > 0.0f && std::isfinite(speed)) {
+			const glm::vec3 axis(velocity.x / speed, velocity.y / speed, velocity.z / speed);
+			rotation = glm::normalize(glm::angleAxis(speed * deltaTime, axis) * rotation);
+			moved = true;
+		}
+	}
+	if (!moved) return;
+	if (auto* const simplePhysics = m_Parent->GetComponent<SimplePhysicsComponent>()) {
+		simplePhysics->SetPositionAndRotationIgnoringDirtyFlags(rotator->mPosition, rotation);
+	}
+	if (auto* const phantomPhysics = m_Parent->GetComponent<PhantomPhysicsComponent>()) {
+		phantomPhysics->SetPositionAndRotationIgnoringDirtyFlags(rotator->mPosition, rotation);
+	}
+}
+
+// LWOPlatform::Run 0x00c87080 and RunPlatform 0x00c86e10. The client's platform is moved by its physics, at the
+// velocity SetLinearVelocity 0x00be9200 gives it; the server moves it here by the same speed.
+void MovingPlatformComponent::Run(const float deltaTime) {
+	if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
+		RunRotator(deltaTime);
+		return;
+	}
+	if (!IsMover()) return;
+	auto* mover = GetMoverSubComponent();
+	UpdateActive(*mover);
 	if (!mover->mActive || mover->mState == 0) return;
 
 	const bool travelling = (mover->mState & ePlatformStateFlag::Travelling) != 0;
