@@ -407,34 +407,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
-	phantomPhysicsComponent->SetPhysicsEffectActive(true);
-	ePhysicsEffectType effectType = ePhysicsEffectType::PUSH;
-	if (!argArray.empty()) {
-		std::transform(argArray.at(0).begin(), argArray.at(0).end(), argArray.at(0).begin(), ::tolower); //Transform to lowercase
-		if (argArray.at(0) == "push") effectType = ePhysicsEffectType::PUSH;
-		else if (argArray.at(0) == "attract") effectType = ePhysicsEffectType::ATTRACT;
-		else if (argArray.at(0) == "repulse") effectType = ePhysicsEffectType::REPULSE;
-		else if (argArray.at(0) == "gravity") effectType = ePhysicsEffectType::GRAVITY_SCALE;
-		else if (argArray.at(0) == "friction") effectType = ePhysicsEffectType::FRICTION;
-	}
-
-	phantomPhysicsComponent->SetEffectType(effectType);
-	if (argArray.size() > 1) {
-		phantomPhysicsComponent->SetDirectionalMultiplier(GeneralUtils::TryParse(argArray.at(1), 0.0f));
-	}
-	if (argArray.size() > 4) {
-		const NiPoint3 direction =
-			GeneralUtils::TryParse(argArray.at(2), argArray.at(3), argArray.at(4), NiPoint3Constant::ZERO);
-
-		phantomPhysicsComponent->SetDirection(direction);
-	}
-	if (argArray.size() > 6) {
-		const uint32_t min = GeneralUtils::TryParse(argArray.at(6), 0);
-		phantomPhysicsComponent->SetMin(min);
-
-		const uint32_t max = GeneralUtils::TryParse(argArray.at(7), 0);
-		phantomPhysicsComponent->SetMax(max);
-	}
+	phantomPhysicsComponent->SetVolumeEffect(argArray);
 
 	Game::entityManager->SerializeEntity(targetEntity);
 }

@@ -120,14 +120,16 @@ public:
 	void SpawnVertices() const;
 
 	/**
-	 * Legacy stuff no clue what this does
+	 * The distances the effect scales between; written only once one of them is set.
+	 * LWOPhantomPhysicsComponent::Deserialize (0x00c34db0) keeps the least of the min and 1, and a max of at least that.
 	 */
-	void SetMin(uint32_t min);
+	void SetMin(float min);
+	void SetMax(float max);
 
 	/**
-	 * Legacy stuff no clue what this does
+	 * A trigger's SetPhysicsVolumeEffect: type, amount, direction x, y, z, use distance, min, max
 	 */
-	void SetMax(uint32_t max);
+	void SetVolumeEffect(std::vector<std::string> args);
 
 private:
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
@@ -158,8 +160,8 @@ private:
 	float m_DirectionalMultiplier;
 
 	bool m_MinMax;
-	uint32_t m_Min;
-	uint32_t m_Max;
+	float m_Min;
+	float m_Max;
 
 	/**
 	 * Whether or not this physics object is pointed in some direction

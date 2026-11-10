@@ -21,6 +21,7 @@
 #include "Item.h"
 #include "ModelComponent.h"
 #include "MovingPlatformComponent.h"
+#include "PhantomPhysicsComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "User.h"
 #include "eGameActivity.h"
@@ -208,6 +209,111 @@ TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionCarriesJetPackMod
 
 	physics->SetJetPackMode(false, -1, false);
 	EXPECT_EQ(construct(), plain);
+}
+
+namespace {
+	struct VolumeEffect {
+		uint32_t type{};
+		float amount{};
+		bool hasDistance{};
+		float min{};
+		float max{};
+		bool isDirectional{};
+		NiPoint3 direction{};
+	};
+
+	// A phantom volume looks its LOT up in the registry when it is made
+	void ConnectRegistry() {
+		if (CDClientDatabase::isConnected) return;
+		CDClientDatabase::Connect(":memory:");
+		CDClientDatabase::ExecuteDML("CREATE TABLE ComponentsRegistry (id INTEGER, component_type INTEGER, component_id INTEGER);");
+	}
+
+	// The effect block of a phantom physics update made from a trigger's SetPhysicsVolumeEffect arguments
+	VolumeEffect ReadVolumeEffect(Entity& volume, const std::vector<std::string>& args) {
+		auto* const phantom = volume.AddComponent<PhantomPhysicsComponent>(-1);
+		phantom->SetVolumeEffect(args);
+		RakNet::BitStream stream;
+		phantom->Serialize(stream, false);
+
+		VolumeEffect effect;
+		bool flag{};
+		stream.Read(flag);
+		if (flag) stream.IgnoreBits(7 * 32); // position and rotation
+		stream.Read(flag);
+		EXPECT_TRUE(flag); // the effect block
+		stream.Read(flag);
+		EXPECT_TRUE(flag); // active
+		stream.Read(effect.type);
+		stream.Read(effect.amount);
+		stream.Read(effect.hasDistance);
+		if (effect.hasDistance) {
+			stream.Read(effect.min);
+			stream.Read(effect.max);
+		}
+		stream.Read(effect.isDirectional);
+		if (effect.isDirectional) {
+			stream.Read(effect.direction.x);
+			stream.Read(effect.direction.y);
+			stream.Read(effect.direction.z);
+		}
+		EXPECT_EQ(stream.GetNumberOfUnreadBits(), 0u);
+		return effect;
+	}
+}
+
+// Trigger volume effects as live sent them (phantom physics constructions in the live captures; the client reads
+// them in LWOPhantomPhysicsComponent::Deserialize): the direction has the amount as its length, the distances go out
+// for "true" only and as 1 and the max, and a zero direction is no direction.
+TEST_F(ReplicaConstructionTest, PhantomPhysicsVolumeEffectsAsLive) {
+	ConnectRegistry();
+	Entity pushWithDistance(1001, info);
+	auto effect = ReadVolumeEffect(pushWithDistance, { "Push", "50", "0.91", "-0.34", "-0.22", "true", "20", "50" });
+	EXPECT_EQ(effect.type, 0u);
+	EXPECT_EQ(effect.amount, 50.0f);
+	EXPECT_TRUE(effect.hasDistance);
+	EXPECT_EQ(effect.min, 1.0f);
+	EXPECT_EQ(effect.max, 50.0f);
+	EXPECT_TRUE(effect.isDirectional);
+	EXPECT_NEAR(effect.direction.x, 45.68f, 0.01f);
+	EXPECT_NEAR(effect.direction.y, -17.07f, 0.01f);
+	EXPECT_NEAR(effect.direction.z, -11.04f, 0.01f);
+
+	Entity pushFar(1002, info);
+	effect = ReadVolumeEffect(pushFar, { "Push", "200", "1", "0", "0", "true", "150", "175" });
+	EXPECT_TRUE(effect.hasDistance);
+	EXPECT_EQ(effect.min, 1.0f);
+	EXPECT_EQ(effect.max, 175.0f);
+	EXPECT_EQ(effect.direction, NiPoint3(200.0f, 0.0f, 0.0f));
+
+	// "1" is not "true": no distances
+	Entity updraft(1003, info);
+	effect = ReadVolumeEffect(updraft, { "Push", "40.0", "0", "1", "0", "1", "20", "50" });
+	EXPECT_EQ(effect.amount, 40.0f);
+	EXPECT_FALSE(effect.hasDistance);
+	EXPECT_TRUE(effect.isDirectional);
+	EXPECT_EQ(effect.direction, NiPoint3(0.0f, 40.0f, 0.0f));
+
+	Entity repulse(1004, info);
+	effect = ReadVolumeEffect(repulse, { "Repulse", "150", "0", "0", "0", "true", "25", "100" });
+	EXPECT_EQ(effect.type, 2u);
+	EXPECT_EQ(effect.amount, 150.0f);
+	EXPECT_TRUE(effect.hasDistance);
+	EXPECT_EQ(effect.min, 1.0f);
+	EXPECT_EQ(effect.max, 100.0f);
+	EXPECT_FALSE(effect.isDirectional);
+
+	Entity slanted(1005, info);
+	effect = ReadVolumeEffect(slanted, { "Push", " 35", " .79", " 0", " .61" });
+	EXPECT_FALSE(effect.hasDistance);
+	EXPECT_NEAR(effect.direction.x, 27.70f, 0.01f);
+	EXPECT_NEAR(effect.direction.z, 21.39f, 0.01f);
+
+	Entity friction(1006, info);
+	effect = ReadVolumeEffect(friction, { "Friction", "0" });
+	EXPECT_EQ(effect.type, 4u);
+	EXPECT_FALSE(effect.hasDistance);
+	EXPECT_FALSE(effect.isDirectional);
 }
 
 // A guild change (docs/Guilds.md) is written once: the client reads guild id, a u8 length and 16-bit characters, and
