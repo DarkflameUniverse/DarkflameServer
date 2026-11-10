@@ -43,7 +43,7 @@ std::optional<std::vector<TradeItem>> Trade::ResolveOffer(
 		if (tradeItem.itemCount == 0 || !seen.insert(tradeItem.itemId).second) return std::nullopt;
 
 		const auto held = findHeld(tradeItem.itemId);
-		if (!held || held->count == 0 || held->bound || held->equipped) return std::nullopt;
+		if (!held || held->count == 0 || held->bound || held->equipped || !held->deletable || !held->approved) return std::nullopt;
 
 		resolved.push_back({ tradeItem.itemId, held->lot, std::min(tradeItem.itemCount, held->count) });
 	}
@@ -55,8 +55,20 @@ std::function<std::optional<HeldTradeItem>(LWOOBJID)> Trade::HeldIn(const Invent
 	return [&inventory](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
 		const auto* const item = inventory.FindItemById(itemId);
 		if (!item) return std::nullopt;
-		return HeldTradeItem{ item->GetLot(), item->GetCount(), item->GetBound(), item->IsEquipped() };
+		return HeldTradeItem{
+			item->GetLot(), item->GetCount(), item->GetBound(), item->IsEquipped(),
+			inventory.CanDelete(*item), IsApproved(item->GetLot(), item->GetConfig())
+		};
 	};
+}
+
+bool Trade::IsApproved(const LOT lot, const LwoNameValue& config) {
+	if (lot != BrickBuiltModelLot) return true;
+
+	const auto status = config.find(u"userModelMod");
+	if (status == config.end() || status->second->GetValueType() != eLDFType::LDF_TYPE_S32) return false;
+
+	return static_cast<const LDFData<int32_t>*>(status->second.get())->GetValue() == ApprovedModerationStatus;
 }
 
 Trade::~Trade() {

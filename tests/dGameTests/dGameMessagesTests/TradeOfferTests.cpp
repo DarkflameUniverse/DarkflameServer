@@ -11,6 +11,8 @@ namespace {
 		{ 200, { 3040, 1 } },
 		{ 300, { 1727, 2, true, false } },
 		{ 400, { 1727, 2, false, true } },
+		{ 500, { 1727, 2, false, false, false, true } },
+		{ 600, { 6662, 1, false, false, true, false } },
 	};
 
 	class TradeAcceptTest : public GameDependenciesTest {
@@ -78,6 +80,43 @@ TEST(TradeOfferTest, ABoundItemIsRefused) {
 
 TEST(TradeOfferTest, AnEquippedItemIsRefused) {
 	EXPECT_FALSE(Trade::ResolveOffer({ { 400, 1727, 1 } }, FindHeld).has_value());
+}
+
+TEST(TradeOfferTest, AnItemThatMayNotBeDeletedIsRefused) {
+	EXPECT_FALSE(Trade::ResolveOffer({ { 500, 1727, 1 } }, FindHeld).has_value());
+	EXPECT_FALSE(Trade::ResolveOffer({ { 100, 1727, 1 }, { 500, 1727, 1 } }, FindHeld).has_value());
+}
+
+TEST(TradeOfferTest, AModelThatIsNotApprovedIsRefused) {
+	EXPECT_FALSE(Trade::ResolveOffer({ { 600, 6662, 1 } }, FindHeld).has_value());
+	EXPECT_FALSE(Trade::ResolveOffer({ { 100, 1727, 1 }, { 600, 6662, 1 } }, FindHeld).has_value());
+}
+
+TEST(TradeOfferTest, OnlyAnApprovedBrickBuiltModelIsApproved) {
+	LwoNameValue config;
+	// No moderation status
+	EXPECT_FALSE(Trade::IsApproved(Trade::BrickBuiltModelLot, config));
+
+	config.Insert<int32_t>(u"userModelMod", 0);
+	EXPECT_FALSE(Trade::IsApproved(Trade::BrickBuiltModelLot, config));
+
+	config.Insert<int32_t>(u"userModelMod", 2);
+	EXPECT_FALSE(Trade::IsApproved(Trade::BrickBuiltModelLot, config));
+
+	// Not a number
+	config.Insert<bool>(u"userModelMod", true);
+	EXPECT_FALSE(Trade::IsApproved(Trade::BrickBuiltModelLot, config));
+
+	config.Insert<int32_t>(u"userModelMod", Trade::ApprovedModerationStatus);
+	EXPECT_TRUE(Trade::IsApproved(Trade::BrickBuiltModelLot, config));
+}
+
+TEST(TradeOfferTest, AnItemThatIsNotAModelHasNoModerationStatus) {
+	LwoNameValue config;
+	EXPECT_TRUE(Trade::IsApproved(1727, config));
+
+	config.Insert<int32_t>(u"userModelMod", 0);
+	EXPECT_TRUE(Trade::IsApproved(1727, config));
 }
 
 TEST(TradeOfferTest, AnOfferFillsTheSlotsOfTheTradeWindowAtMost) {
