@@ -8,9 +8,11 @@
 #include "BitStream.h"
 #include "CDClientDatabase.h"
 #include "Entity.h"
+#include "GameMessages.h"
 #include "LDFFormat.h"
 #include "MovementMessages.h"
 #include "MovingPlatformComponent.h"
+#include "02_server/Map/General/SimpleOnceOnlyMoverSpinnerEvent.h"
 #include "SimplePhysicsComponent.h"
 #include "Zone.h"
 #include "dZoneManager.h"
@@ -621,4 +623,23 @@ TEST_F(MovingPlatformComponentTest, SimpleMoverSetsOffOnLoadUnlessToldNotTo) {
 		entity.Update(1.0f);
 		EXPECT_EQ(mover->mState, 12u);
 	}
+}
+
+// L_SIMPLE_ONCE_ONLY_MOVER_SPINNER_EVENT: the platform goes to its waypoint 1 when the event named in its
+// name_deactivated_event is fired at it, and at no other
+TEST_F(MovingPlatformComponentTest, OnceOnlyMoverGoesOnItsSpinnersEvent) {
+	info.lot = 16141;
+	info.settings.Insert<bool>(u"startPathingOnLoad", false);
+	info.settings.Insert<std::u16string>(u"name_deactivated_event", u"blades_off");
+	Entity entity(288300744895900118, info);
+	info.settings.values.clear();
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(41, "");
+	auto* const mover = platform->GetSimpleMoverSubComponent();
+	SimpleOnceOnlyMoverSpinnerEvent script;
+
+	script.OnFireEventServerSide(&entity, &entity, "blades_on", 0, 0, 0);
+	EXPECT_EQ(mover->mState, 12u);
+	script.OnFireEventServerSide(&entity, &entity, "blades_off", 0, 0, 0);
+	EXPECT_EQ(mover->mState, 2u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
 }

@@ -272,6 +272,7 @@
 #include "NjNPCMissionSpinjitzuServer.h"
 #include "NjJayMissionItems.h"
 #include "FallingTile.h"
+#include "SimpleOnceOnlyMoverSpinnerEvent.h"
 #include "ImaginationShrineServer.h"
 #include "Lieutenant.h"
 #include "RainOfArrows.h"
@@ -679,6 +680,7 @@ namespace {
 		{"scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_POST_SERVER.lua", []() {return new NjRailPostServer();}},
 		{"scripts\\02_server\\Map\\General\\Ninjago\\L_ICE_RAIL_ACTIVATOR_SERVER.lua", []() {return new NjIceRailActivator();}},
 		{"scripts\\02_server\\Map\\njhub\\L_FALLING_TILE.lua", []() {return new FallingTile();}},
+		{"scripts\\02_server\\Map\\firetemple\\L_SIMPLE_ONCE_ONLY_MOVER_SPINNER_EVENT.lua", []() {return new SimpleOnceOnlyMoverSpinnerEvent();}},
 		{"scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF_STUN_IMMUNITY.lua", []() {return new EnemyNjBuff();}},
 		{"scripts\\02_server\\Map\\njhub\\L_IMAGINATION_SHRINE_SERVER.lua", []() {return new ImaginationShrineServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_LIEUTENANT.lua", []() {return new Lieutenant();}},
