@@ -73,13 +73,14 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 		outBitStream.Write(m_Velocity);
 		outBitStream.Write(m_AngularVelocity);
 	}
-	if (writeVelocity || bIsInitialUpdate) m_DirtyVelocity = false;
+	// A construction goes to the one client the object came into range of; the others still need the change
+	if (writeVelocity && !bIsInitialUpdate) m_DirtyVelocity = false;
 
 	// Physics motion state
 	outBitStream.Write(m_DirtyPhysicsMotionState || bIsInitialUpdate);
 	if (m_DirtyPhysicsMotionState || bIsInitialUpdate) {
 		outBitStream.Write<uint32_t>(m_PhysicsMotionState);
-		m_DirtyPhysicsMotionState = false;
+		if (!bIsInitialUpdate) m_DirtyPhysicsMotionState = false;
 	}
 	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 }
