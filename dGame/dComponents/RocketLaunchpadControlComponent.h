@@ -28,6 +28,9 @@ public:
 	~RocketLaunchpadControlComponent() override;
 
 	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
+
+	const std::string& GetTargetScene() const { return m_TargetScene; }
 
 	/**
 	 * Whether the player may launch from this pad: LWORocketLaunchComponentCommon refuses a player under the pad's GM
@@ -146,12 +149,13 @@ private:
 	PreconditionExpression* m_AltPrecondition{};
 
 	/**
-	 * The GM level a player needs to launch from this pad (the row's gmLevel)
+	 * The GM level a player needs to launch from this pad (the row's gmLevel, or the level's GMLevel)
 	 */
 	int32_t m_GMLevel{};
 
 	/**
-	 * The row's launchPrecondition, when its useLaunchPrecondition is set: what a player has to pass to launch
+	 * The row's launchPrecondition, when its useLaunchPrecondition is set: what a player has to pass to launch. For a pad
+	 * whose level turns rocketLaunchUseDBDefaults off, the level's rocketLaunchPreCondition and rocketUseLaunchPrecondition.
 	 */
 	std::string m_LaunchPrecondition;
 
