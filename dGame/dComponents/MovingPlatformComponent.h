@@ -95,8 +95,12 @@ public:
 	bool mShouldStopAtDesiredWaypoint = false;
 	// From the current waypoint (0) to the next (1)
 	float mPercentBetweenPoints = 0;
-	// Where it is now (current waypoint + percent towards the next)
+	// Where it is now: its object's position, which its linear velocity moves
 	NiPoint3 mPosition{};
+	// The linear velocity LWOPlatform::SetLinearVelocity 0x00be9200 gave its object when it last set off (or last looked,
+	// between waypoints of different speeds). It is only taken away where the platform stops and at either end of the
+	// path (SetWaitingTime 0x00bdc860), so through a wait at a waypoint in between the object goes on as it came.
+	NiPoint3 mVelocity{};
 	uint32_t mCurrentWaypointIndex = 0;
 	uint32_t mNextWaypointIndex = 0;
 	// Time spent at the waypoint, and how long it waits there (LWOPlatform::SetWaitingTime 0x00bdc860: the waypoint's
@@ -373,6 +377,8 @@ private:
 	bool UpdateActive(PlatformSubComponent& platform);
 	// LWOPlatform::SetWaitingTime: starts a wait of at least 0.1 s
 	void MoverSetWaitingTime(float waitTime, float idleTimeElapsed);
+	// LWOPlatform::UpdateVelocities 0x00bd4330: the velocity towards the next waypoint at the speed for where it is
+	void MoverUpdateVelocities();
 	// LWOPlatform::ResumeTravelling: stopped between two waypoints it travels on; at a waypoint it first waits there
 	void MoverResumeTravelling();
 	// LWOPlatform::ArrivedAtWaypoint: once it is at its next waypoint

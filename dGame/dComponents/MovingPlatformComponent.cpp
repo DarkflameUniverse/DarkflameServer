@@ -363,6 +363,7 @@ void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) 
 		mover->mShouldStopAtDesiredWaypoint = false;
 		if (stopAtWaypoint) {
 			mover->mState = (mover->mState & ~(ePlatformStateFlag::Waiting | ePlatformStateFlag::Travelling)) | ePlatformStateFlag::Stopped;
+			mover->mVelocity = NiPoint3Constant::ZERO;
 		}
 		FireArrivalHooks(index, true, index == m_Path->pathWaypoints.size() - 1);
 		return;
@@ -444,6 +445,7 @@ void MovingPlatformComponent::StopPathing() {
 	auto* const mover = GetMoverSubComponent();
 	// LWOPlatform::StopPlatform 0x00c86b70: stopped where it is (the client stops on the stopped bit, 4)
 	mover->mState = (mover->mState & ~(ePlatformStateFlag::Waiting | ePlatformStateFlag::Travelling)) | ePlatformStateFlag::Stopped;
+	mover->mVelocity = NiPoint3Constant::ZERO;
 	mover->mDesiredWaypointIndex = -1;
 	mover->mShouldStopAtDesiredWaypoint = false;
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -507,6 +509,24 @@ void MovingPlatformComponent::MoverSetWaitingTime(const float waitTime, const fl
 	mover->mTimeToWait = std::max(0.1f, waitTime);
 	mover->mIdleTimeElapsed = idleTimeElapsed;
 	mover->mWaitSet = true;
+	// Only at an end of the path, or stopped, does the object lose its velocities here. Waiting at a waypoint in between
+	// it keeps them: live's platforms went on as they came for the wait (the GF shooting gallery subs 2 units past each
+	// waypoint, the FV dragons 5.33; a dragon met 2.2 s into a 5 s wait was 88 past its waypoint).
+	if ((mover->mState & (ePlatformStateFlag::ReachedFinalDestination | ePlatformStateFlag::Stopped)) != 0) mover->mVelocity = NiPoint3Constant::ZERO;
+}
+
+void MovingPlatformComponent::MoverUpdateVelocities() {
+	auto* const mover = GetMoverSubComponent();
+	auto direction = m_Path->pathWaypoints[mover->mNextWaypointIndex].position - m_Path->pathWaypoints[mover->mCurrentWaypointIndex].position;
+	const float distance = direction.Length();
+	if (distance > 0.0f) direction = direction / distance;
+	// LWOPlatform::GetSpeed 0x00bd40e0: a time based path's mCurrentSpeed is the seconds to the next waypoint; else from
+	// the waypoint's speed to the next one's along the way
+	float speed{};
+	if (mover->mTimeBased) speed = mover->mCurrentSpeed > 0.0f ? distance / mover->mCurrentSpeed : 0.0f;
+	else speed = mover->mCurrentSpeed + (mover->mNextSpeed - mover->mCurrentSpeed) * mover->mPercentBetweenPoints;
+	mover->mVelocity = direction * speed;
+	mover->mState &= ePlatformStateFlag::MovementMask;
 }
 
 void MovingPlatformComponent::MoverResumeTravelling() {
@@ -516,8 +536,7 @@ void MovingPlatformComponent::MoverResumeTravelling() {
 		mover->mState = (mover->mState & ~(ePlatformStateFlag::Waiting | ePlatformStateFlag::Stopped)) | ePlatformStateFlag::Travelling;
 	}
 	if ((mover->mState & ePlatformStateFlag::Travelling) != 0) {
-		// LWOPlatform::UpdateVelocities
-		mover->mState &= ePlatformStateFlag::MovementMask;
+		MoverUpdateVelocities();
 	} else {
 		mover->mState = (mover->mState & ~(ePlatformStateFlag::Travelling | ePlatformStateFlag::Stopped)) | ePlatformStateFlag::Waiting;
 		MoverSetWaitingTime(mover->mWaitTime, 0.0f);
@@ -564,6 +583,7 @@ void MovingPlatformComponent::MoverArrivedAtWaypoint() {
 	}
 	if (stopAtDesiredWaypoint || turnedAtEnd) {
 		mover->mState = (mover->mState & ~(ePlatformStateFlag::Waiting | ePlatformStateFlag::Travelling)) | ePlatformStateFlag::Stopped;
+		mover->mVelocity = NiPoint3Constant::ZERO;
 	} else {
 		mover->mState = (mover->mState & ~(ePlatformStateFlag::Waiting | ePlatformStateFlag::Stopped)) | ePlatformStateFlag::Travelling;
 	}
@@ -718,27 +738,27 @@ void MovingPlatformComponent::Run(const float deltaTime) {
 	if (!IsMover()) return;
 	auto* mover = GetMoverSubComponent();
 	UpdateActive(*mover);
-	if (!mover->mActive || mover->mState == 0) return;
+	if (!mover->mActive) {
+		// RebuildNotifyState: an open quick build's platform loses its velocities
+		mover->mVelocity = NiPoint3Constant::ZERO;
+		return;
+	}
+	if (mover->mState == 0) return;
 
 	const bool travelling = (mover->mState & ePlatformStateFlag::Travelling) != 0;
-	const auto& from = m_Path->pathWaypoints[mover->mCurrentWaypointIndex].position;
-	const auto& to = m_Path->pathWaypoints[mover->mNextWaypointIndex].position;
+	if (mover->mTimeBased && travelling) mover->mMoveTimeElapsed += deltaTime;
+	// The object's physics: it goes at its velocity, travelling or not
+	mover->mPosition = mover->mPosition + mover->mVelocity * deltaTime;
+
 	if (mover->mTimeBased) {
 		// LWOPlatform::TimeBasedCalculatePercentToNextWaypoint 0x00bd4090: mCurrentSpeed is the seconds to the next waypoint
-		if (travelling) mover->mMoveTimeElapsed += deltaTime;
 		mover->mMoveTimeElapsed = std::min(mover->mMoveTimeElapsed, mover->mCurrentSpeed);
 		mover->mPercentBetweenPoints = mover->mCurrentSpeed > 0.0f ? mover->mMoveTimeElapsed / mover->mCurrentSpeed : 1.0f;
-		if (travelling) mover->mPosition = from + (to - from) * mover->mPercentBetweenPoints;
-	} else if (travelling) {
-		// LWOPlatform::GetSpeed 0x00bd40e0: from the waypoint's speed to the next one's along the way
-		if (mover->mSegmentLength > 0.0f) {
-			const float speed = mover->mCurrentSpeed + (mover->mNextSpeed - mover->mCurrentSpeed) * mover->mPercentBetweenPoints;
-			const float travelled = mover->mPercentBetweenPoints * mover->mSegmentLength + std::max(speed, 0.0f) * deltaTime;
-			mover->mPercentBetweenPoints = std::min(travelled / mover->mSegmentLength, 1.0f);
-		} else {
-			mover->mPercentBetweenPoints = 1.0f;
-		}
-		mover->mPosition = from + (to - from) * mover->mPercentBetweenPoints;
+	} else {
+		// LWOPlatform::CalculatePercentTravelledToWaypoint 0x00be9050: how far the object is from the current waypoint,
+		// over the way to the next (live sent 1.219 for a dragon that far past its waypoint)
+		const auto& from = m_Path->pathWaypoints[mover->mCurrentWaypointIndex].position;
+		mover->mPercentBetweenPoints = mover->mSegmentLength > 0.0f ? Vector3::Distance(from, mover->mPosition) / mover->mSegmentLength : 0.0f;
 	}
 
 	MoveObject();
@@ -755,9 +775,11 @@ void MovingPlatformComponent::Run(const float deltaTime) {
 	}
 	if (doneWaiting) {
 		mover->mState = (mover->mState & ~(ePlatformStateFlag::Waiting | ePlatformStateFlag::Stopped)) | ePlatformStateFlag::Travelling;
-	} else if (!stopped && travelling) {
-		// LWOPlatform::HandleStoppedLogic 0x00bd16a0. The client also checks while it waits, which only matters where
-		// two waypoints are in one place: there it would arrive every frame.
+	} else if (!stopped && (travelling || mover->mSegmentLength > 0.0f)) {
+		// LWOPlatform::HandleStoppedLogic 0x00bd16a0: a platform that has not stopped looks whether it arrived, also while
+		// it waits. Live's FV dragons, going on as they came through the 5 s wait at their waypoint 4, were at waypoint 5
+		// (waiting there, then going on in the direction they came to 4 in) without ever having left 4. Where two
+		// waypoints are in one place the client arrives every frame of the wait; here only a travelling one arrives there.
 		MoverArrivedAtWaypoint();
 		// A script told of the arrival may have put the platform on another path
 		mover = GetMoverSubComponent();
@@ -765,8 +787,8 @@ void MovingPlatformComponent::Run(const float deltaTime) {
 	}
 
 	if ((mover->mState & ePlatformStateFlag::Travelling) != 0 && (doneWaiting || mover->mCurrentSpeed != mover->mNextSpeed)) {
-		mover->mState &= ePlatformStateFlag::MovementMask;
-		// Live serialized a platform leaving its waypoint
+		MoverUpdateVelocities();
+		// Live serialized a platform leaving its waypoint, where it then was: as far past the waypoint as the wait took it
 		if (doneWaiting) Game::entityManager->SerializeEntity(m_Parent);
 	}
 	if (IsMover()) MoveObject();
@@ -820,6 +842,7 @@ void MovingPlatformComponent::WarpToWaypoint(size_t index) {
 	auto* const mover = GetMoverSubComponent();
 	const bool atEnd = index == 0 || index == m_Path->pathWaypoints.size() - 1;
 	mover->mState = ePlatformStateFlag::Stopped | ePlatformStateFlag::ReachedDesiredWaypoint | (atEnd ? ePlatformStateFlag::ReachedFinalDestination : 0);
+	mover->mVelocity = NiPoint3Constant::ZERO;
 
 	m_Parent->SetPosition(waypoint.position);
 	m_Parent->SetRotation(waypoint.rotation);

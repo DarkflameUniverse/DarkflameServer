@@ -517,3 +517,61 @@ TEST_F(MovingPlatformComponentTest, RotatorTurnsItsObject) {
 	EXPECT_NEAR(std::abs(entity.GetRotation().y), 1.0f, 0.001f);
 	EXPECT_EQ(entity.GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
 }
+
+// Live's movers at a waypoint between the ends of their path: the object is put at the waypoint and serialized waiting
+// there (9), keeps the velocity it came with for the wait (LWOPlatform::SetWaitingTime 0x00bdc860 only takes it away at
+// an end or when stopped), and is serialized leaving (2) from where that took it, with the part of the next stretch it
+// is from the waypoint: the GF shooting gallery subs (speed 15, no wait, so the shortest, 0.1 s: two of live's frames)
+// left 2 units past each waypoint. From there it goes the next stretch's direction and arrives as it passes the
+// waypoint. At the end of the path it stops where the waypoint is.
+TEST_F(MovingPlatformComponentTest, MoverKeepsItsVelocityThroughAWaitLikeLive) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestCornerPath";
+	path.pathBehavior = PathBehavior::Once;
+	PathWaypoint first;
+	first.position = NiPoint3(0.0f, 0.0f, 0.0f);
+	first.speed = 15.0f;
+	PathWaypoint second = first;
+	second.position = NiPoint3(30.0f, 0.0f, 0.0f);
+	PathWaypoint third = first;
+	third.position = NiPoint3(30.0f, 0.0f, 30.0f);
+	path.pathWaypoints = { first, second, third };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	info.pos = NiPoint3(0.0f, 0.0f, 0.0f);
+	Entity entity(288300744895900114, info);
+	entity.AddComponent<SimplePhysicsComponent>(-1);
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestCornerPath");
+	auto* const mover = platform->GetMoverSubComponent();
+	platform->Run(0.11f);
+	EXPECT_EQ(mover->mState, 2u);
+	EXPECT_EQ(mover->mPercentBetweenPoints, 0.0f);
+
+	platform->Run(2.0f);
+	EXPECT_EQ(mover->mState, 9u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+	EXPECT_EQ(mover->mPosition, NiPoint3(30.0f, 0.0f, 0.0f));
+	EXPECT_EQ(mover->mPercentBetweenPoints, 0.0f);
+
+	platform->Run(1.0f / 15.0f);
+	EXPECT_EQ(mover->mState, 9u);
+	EXPECT_NEAR(mover->mPosition.x, 31.0f, 0.001f);
+	platform->Run(1.0f / 15.0f);
+	EXPECT_EQ(mover->mState, 2u);
+	EXPECT_NEAR(mover->mPosition.x, 32.0f, 0.001f);
+	EXPECT_NEAR(mover->mPosition.z, 0.0f, 0.001f);
+	EXPECT_NEAR(mover->mPercentBetweenPoints, 2.0f / 30.0f, 0.001f);
+	EXPECT_NEAR(entity.GetPosition().x, 32.0f, 0.001f);
+
+	platform->Run(1.0f);
+	EXPECT_NEAR(mover->mPosition.x, 32.0f, 0.001f);
+	EXPECT_NEAR(mover->mPosition.z, 15.0f, 0.001f);
+	platform->Run(1.0f);
+	EXPECT_EQ(mover->mState, 28u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 2u);
+	EXPECT_EQ(mover->mPosition, NiPoint3(30.0f, 0.0f, 30.0f));
+	platform->Run(1.0f);
+	EXPECT_EQ(mover->mPosition, NiPoint3(30.0f, 0.0f, 30.0f));
+	EXPECT_EQ(entity.GetPosition(), NiPoint3(30.0f, 0.0f, 30.0f));
+}
