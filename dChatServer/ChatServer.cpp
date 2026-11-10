@@ -130,7 +130,8 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServiceType::CHAT, Game::config, &Game::lastSignal, masterPassword);
+	// Only other servers connect to chat, so it listens with the password the servers share
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true /* Is internal */, true /* Use encryption */, Game::logger, masterIP, masterPort, ServiceType::CHAT, Game::config, &Game::lastSignal, masterPassword);
 
 	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
