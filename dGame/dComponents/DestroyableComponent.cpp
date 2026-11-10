@@ -532,6 +532,8 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
 	if (IsEnemyImplentation.ExecuteWithDefault(other, false)) return true;
 	if (m_Parent->IsPlayer() && other->IsPlayer()) {
+		// A player is never its own PVP target
+		if (other == m_Parent) return false;
 		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (!thisCharacterComponent) return false;
 		auto* otherCharacterComponent = other->GetComponent<CharacterComponent>();
