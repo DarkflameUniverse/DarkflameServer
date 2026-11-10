@@ -138,6 +138,8 @@ namespace BitStreamUtils {
 			if (length < 0) return false;
 		}
 		if (static_cast<uint64_t>(length) > maxLength) return false;
+		// The stream can not hold more characters than it has bytes left
+		if (static_cast<uint64_t>(length) * sizeof(typename StringT::value_type) * 8 > static_cast<uint64_t>(bitStream.GetNumberOfUnreadBits())) return false;
 		value.resize(length);
 		if (length == 0) return true;
 		return bitStream.ReadBits(reinterpret_cast<unsigned char*>(value.data()), BYTES_TO_BITS(value.size() * sizeof(typename StringT::value_type)), true);
