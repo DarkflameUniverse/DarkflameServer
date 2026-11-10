@@ -146,6 +146,9 @@ namespace MasterPackets {
 		uint32_t zoneID{};
 		uint32_t cloneID{};
 		std::string password; // u32 length, then 1 byte per character
+		// A GM's edit mode: the instance's world server constructs none of the zone's objects (docs/EditMode.md). Written
+		// only when set, so a plain private zone stays as it always was
+		uint8_t editMode{};
 
 		CreatePrivateZone() : LUBitStream(ServiceType::MASTER, MessageType::Master::CREATE_PRIVATE_ZONE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

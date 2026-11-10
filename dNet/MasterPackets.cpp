@@ -16,7 +16,12 @@ namespace {
 		uint32_t length{};
 		VALIDATE_READ(bitStream.Read(length));
 		value.resize(std::min(length, maxLength));
-		return value.empty() || bitStream.ReadBits(reinterpret_cast<unsigned char*>(value.data()), BYTES_TO_BITS(value.size()), true);
+		if (!value.empty() && !bitStream.ReadBits(reinterpret_cast<unsigned char*>(value.data()), BYTES_TO_BITS(value.size()), true)) return false;
+		const uint32_t rest = length - static_cast<uint32_t>(value.size());
+		if (rest == 0) return true;
+		if (BITS_TO_BYTES(bitStream.GetNumberOfUnreadBits()) < rest) return false;
+		bitStream.IgnoreBits(BYTES_TO_BITS(rest));
+		return true;
 	}
 }
 
@@ -147,12 +152,15 @@ namespace MasterPackets {
 		bitStream.Write(zoneID);
 		bitStream.Write(cloneID);
 		BitStreamUtils::WriteLengthPrefixed<uint32_t>(bitStream, password);
+		if (editMode != 0) bitStream.Write(editMode);
 	}
 
 	bool CreatePrivateZone::Deserialize(RakNet::BitStream& bitStream) {
 		VALIDATE_READ(bitStream.Read(zoneID));
 		VALIDATE_READ(bitStream.Read(cloneID));
 		VALIDATE_READ(ReadCappedString(bitStream, password, MAX_PASSWORD_LENGTH));
+		editMode = 0;
+		if (bitStream.GetNumberOfUnreadBits() >= 8) VALIDATE_READ(bitStream.Read(editMode));
 		return true;
 	}
 

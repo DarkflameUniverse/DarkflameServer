@@ -171,11 +171,11 @@ void MigrationCoordinator::SetObserver(std::function<void(const MigrationStatus&
 
 namespace {
 	// The new instance (REPLACE): a fresh world server from the binary on disk now, so an update takes effect. A private
-	// instance's replacement gets the same password; the source is draining already, so the password finds the new one.
+	// instance's replacement gets the same password and edit mode; the source is draining already, so the password finds the new one.
 	Instance* StartTarget(Instance& source) {
 		if (source.GetIsPrivate()) {
 			source.SetIsDraining(true);
-			const auto& started = Game::im->CreatePrivateInstance(source.GetMapID(), source.GetCloneID(), source.GetPassword());
+			const auto& started = Game::im->CreatePrivateInstance(source.GetMapID(), source.GetCloneID(), source.GetPassword(), source.GetIsEditMode());
 			return started ? started.get() : nullptr;
 		}
 		const auto& started = Game::im->StartNewInstance(source.GetMapID(), source.GetCloneID());

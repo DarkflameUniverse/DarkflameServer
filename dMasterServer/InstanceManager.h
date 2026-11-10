@@ -58,6 +58,10 @@ public:
 
 	bool GetIsPrivate() const { return m_IsPrivate; }
 	const std::string& GetPassword() const { return m_Password; }
+	// A GM's edit mode instance (docs/EditMode.md): private, and its world server constructs none of the zone's
+	// objects. Its replacement (a reload, a live update) is in edit mode too
+	bool GetIsEditMode() const { return m_IsEditMode; }
+	void SetIsEditMode(bool value) { m_IsEditMode = value; }
 
 	bool GetIsReady() const { return m_Ready; }
 	void SetIsReady(bool value) { m_Ready = value; }
@@ -156,6 +160,7 @@ private:
 
 	bool m_IsPrivate{};
 	std::string m_Password{};
+	bool m_IsEditMode{};
 
 	bool m_Shutdown{};
 
@@ -194,7 +199,8 @@ public:
 	const InstancePtr& FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID);
 	const InstancePtr& FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID);
 
-	const InstancePtr& CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
+	// editMode: a GM's edit mode instance. An instance that has the password already is returned as it is
+	const InstancePtr& CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password, bool editMode = false);
 	const InstancePtr& FindPrivateInstance(const std::string& password);
 	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
 	void PruneUnreadyInstances();

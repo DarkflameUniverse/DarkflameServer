@@ -893,12 +893,12 @@ namespace {
 
 	void OnCreatePrivateZone(const CreatePrivateZone& request, const SystemAddress& sysAddr) {
 		// Passwords were cut to 50 characters when read
-		const auto& newInst = Game::im->CreatePrivateInstance(request.zoneID, request.cloneID, request.password.c_str());
+		const auto& newInst = Game::im->CreatePrivateInstance(request.zoneID, request.cloneID, request.password.c_str(), request.editMode != 0);
 		if (!newInst) {
 			LOG("No private zone was created for map %i/%i", request.zoneID, request.cloneID);
 			return;
 		}
-		LOG("Creating private zone %i/%i/%i", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID());
+		LOG("Creating private zone %i/%i/%i%s", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID(), newInst->GetIsEditMode() ? " in edit mode" : "");
 	}
 
 	void OnRequestPrivateZone(const RequestPrivateZone& request, const SystemAddress& sysAddr) {
@@ -912,6 +912,12 @@ namespace {
 		if (instance == nullptr) {
 			// No private zone has this password, the player is told the transfer failed
 			InstanceManager::SendTransferFailure({ requestID, static_cast<bool>(mythranShift), sysAddr, {} }, 0, 0, eTransferFailure::Other);
+			return;
+		}
+
+		// Still starting (asked for right after it was created): answered when its world server is ready
+		if (!instance->GetIsReady()) {
+			instance->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), sysAddr, {} });
 			return;
 		}
 

@@ -62,7 +62,8 @@ public:
 	 */
 	void HandleRequestZoneTransferResponse(const MasterPackets::RequestZoneTransferResponse& response);
 
-	void CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password);
+	// editMode: a GM's edit mode instance, whose world server constructs none of the zone's objects
+	void CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password, bool editMode = false);
 
 	void RequestPrivateZone(dServer* server, bool mythranShift, const std::string& password, TransferCallback callback);
 };
