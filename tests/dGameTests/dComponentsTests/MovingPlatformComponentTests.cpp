@@ -9,6 +9,7 @@
 #include "CDClientDatabase.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "02_server/Map/njhub/FireTransRocks.h"
 #include "LDFFormat.h"
 #include "MovementMessages.h"
 #include "MovingPlatformComponent.h"
@@ -641,5 +642,43 @@ TEST_F(MovingPlatformComponentTest, OnceOnlyMoverGoesOnItsSpinnersEvent) {
 	EXPECT_EQ(mover->mState, 12u);
 	script.OnFireEventServerSide(&entity, &entity, "blades_off", 0, 0, 0);
 	EXPECT_EQ(mover->mState, 2u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
+}
+
+// L_FIRE_TRANS_ROCKS: a rock that arrived at its top (waypoint 1) holds there (the PlatHold timer) and is then sent
+// back down to waypoint 0
+TEST_F(MovingPlatformComponentTest, FireTransRockGoesBackDownAfterItsHold) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestRockPath";
+	path.pathBehavior = PathBehavior::Once;
+	PathWaypoint first;
+	first.position = NiPoint3(0.0f, 0.0f, 0.0f);
+	first.speed = 5.0f;
+	PathWaypoint second = first;
+	second.position = NiPoint3(0.0f, 10.0f, 0.0f);
+	path.pathWaypoints = { first, second };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	info.settings.Insert<bool>(u"startPathingOnLoad", false);
+	Entity entity(288300744895900119, info);
+	info.settings.values.clear();
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestRockPath");
+	auto* const mover = platform->GetMoverSubComponent();
+	FireTransRocks script;
+	script.OnStartup(&entity);
+	EXPECT_EQ(entity.GetVarAsString(u"RockManagerGroup"), "FireTransRocksManager");
+
+	platform->GotoWaypoint(1);
+	platform->Run(0.11f);
+	platform->Run(2.1f);
+	EXPECT_EQ(mover->mState, 28u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+
+	script.OnTimerDone(&entity, "PlatHold");
+	EXPECT_EQ(mover->mDesiredWaypointIndex, 0);
+	platform->Run(0.11f);
+	platform->Run(2.1f);
+	EXPECT_EQ(mover->mState, 28u);
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
 }

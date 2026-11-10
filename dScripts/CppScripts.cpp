@@ -272,6 +272,8 @@
 #include "NjNPCMissionSpinjitzuServer.h"
 #include "NjJayMissionItems.h"
 #include "FallingTile.h"
+#include "FireTransRocks.h"
+#include "FireTransRocksManager.h"
 #include "SimpleMoverSwitch.h"
 #include "SimpleOnceOnlyMoverSpinnerEvent.h"
 #include "ImaginationShrineServer.h"
@@ -681,6 +683,8 @@ namespace {
 		{"scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_POST_SERVER.lua", []() {return new NjRailPostServer();}},
 		{"scripts\\02_server\\Map\\General\\Ninjago\\L_ICE_RAIL_ACTIVATOR_SERVER.lua", []() {return new NjIceRailActivator();}},
 		{"scripts\\02_server\\Map\\njhub\\L_FALLING_TILE.lua", []() {return new FallingTile();}},
+		{"scripts\\02_server\\Map\\njhub\\L_FIRE_TRANS_ROCKS.lua", []() {return new FireTransRocks();}},
+		{"scripts\\02_server\\Map\\njhub\\L_FIRE_TRANS_ROCKS_MANAGER.lua", []() {return new FireTransRocksManager();}},
 		{"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua", []() {return new SimpleMoverSwitch();}},
 		{"scripts\\02_server\\Map\\firetemple\\L_SIMPLE_ONCE_ONLY_MOVER_SPINNER_EVENT.lua", []() {return new SimpleOnceOnlyMoverSpinnerEvent();}},
 		{"scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF_STUN_IMMUNITY.lua", []() {return new EnemyNjBuff();}},
