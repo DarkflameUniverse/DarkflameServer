@@ -171,12 +171,12 @@ public:
 /**
  * A simple mover (5), as the client's LWOPlatformSimpleMover: between a start point and that point moved by
  * platformMove (in the start rotation), taking platformMoveTime seconds, as GenerateSimpleMoverPath builds its two
- * waypoint path. At an end it has stopped there (28), as any platform on a path run once.
+ * waypoint path. At an end it has stopped there (28), as any platform on a path run once. Like a mover it is made
+ * stopped at its waypoint (12) and, unless startPathingOnLoad is false, waits there (9, as live constructed the NJ
+ * counterweights) the shortest wait before it sets off for its other end, a quick build's once it is built.
  */
 class SimpleMoverSubComponent final : public PlatformSubComponent {
 public:
-	// Live constructed the NJ counterweights waiting at their waypoint (9)
-	SimpleMoverSubComponent() { mState = ePlatformStateFlag::Waiting | ePlatformStateFlag::ReachedDesiredWaypoint; }
 	eMoverSubComponentType GetType() const override { return eMoverSubComponentType::simpleMover; }
 
 	// LWOPlatformSimpleMover::Deserialize: a dirty bit, then whether there is a starting point with its position and
@@ -369,6 +369,8 @@ private:
 	void SetupMoverPath();
 	// Puts the object where the mover is, without a serialization of its physics
 	void MoveObject();
+	// A simple mover's wait at its waypoint before it sets off by itself
+	void RunSimpleMover(float deltaTime);
 	// A rotator's settings from the level config, and where it is on its path
 	void SetupRotator();
 	// Turns a travelling rotator's object by its angular velocity

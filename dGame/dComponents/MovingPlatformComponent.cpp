@@ -157,6 +157,18 @@ void MovingPlatformComponent::LoadConfigData() {
 			if (m_Parent->HasVar(u"platformMoveTime")) simpleMover->mMoveTime = m_Parent->GetVar<float>(u"platformMoveTime");
 		}
 		simpleMover->mCurrentWaypointIndex = simpleMover->mStartAtEnd ? 1 : 0;
+
+		// As a mover on its path (LWOPlatform::ResumeTravelling 0x00c86b90 and SetWaitingTime 0x00bdc860): unless
+		// startPathingOnLoad is false it waits at its waypoint (9), for the shortest wait as its waypoints have none.
+		// Live's scripts for the NJ spinners, which are simple movers that only move when used, stop them when they
+		// start up (L_NJ_SPINNER_SERVER: StopPathing), and the simple movers that wait for an event without such a script
+		// have startPathingOnLoad 0.
+		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
+		if (startOnLoad) {
+			simpleMover->mState = ePlatformStateFlag::Waiting | ePlatformStateFlag::ReachedDesiredWaypoint;
+			simpleMover->mTimeToWait = 0.1f;
+			simpleMover->mWaitSet = true;
+		}
 	}
 
 	const auto pathName = GeneralUtils::UTF16ToWTF8(m_PathName);
@@ -313,17 +325,8 @@ void MovingPlatformComponent::OnCompleteQuickBuild() {
 		// about 0.1 s later travelling (2) to its other end, where it stops without a serialization and
 		// PlatformAtLastWaypoint tells the scripts. It is the client's LWOPlatform at work: active once its quick build
 		// is complete (SendMessage 0x00bdc930), it waits the shortest wait (SetWaitingTime 0x00bdc860) and sets off
-		// (RunPlatform 0x00c86e10).
-		auto* const simpleMover = GetSimpleMoverSubComponent();
-		simpleMover->mDirtyState = true;
-		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
-		if (!startOnLoad || (simpleMover->mState & ePlatformStateFlag::Travelling) != 0) return;
-		const auto generation = ++m_MoveGeneration;
-		m_Parent->AddCallbackTimer(0.1f, [this, generation] {
-			if (generation != m_MoveGeneration) return;
-			auto* const simpleMover = GetSimpleMoverSubComponent();
-			if (simpleMover) SimpleMoverGotoWaypoint(simpleMover->mCurrentWaypointIndex == 0 ? 1 : 0);
-		});
+		// (RunPlatform 0x00c86e10): RunSimpleMover.
+		GetSimpleMoverSubComponent()->mDirtyState = true;
 		return;
 	}
 
@@ -694,6 +697,20 @@ NiPoint3 CalcRotatorAngularVelocity(const float rotX, const float rotY, const fl
 	return NiPoint3(q[0] * scale, q[1] * scale, q[2] * scale);
 }
 
+// LWOPlatform::RunPlatform 0x00c86e10 for a simple mover waiting at its waypoint: once the wait is over it sets off for
+// its other end (LWOPlatform::IncrementWaitingTime 0x00bd4370, StartTravelling 0x0058b170). A quick build's does not
+// run until it is built (LWOPlatform::SendMessage 0x00bdc930). Live: a built counterweight was serialized waiting (9)
+// and about 0.1 s later travelling (2).
+void MovingPlatformComponent::RunSimpleMover(const float deltaTime) {
+	auto* const simpleMover = GetSimpleMoverSubComponent();
+	if (!UpdateActive(*simpleMover)) return;
+	if ((simpleMover->mState & ePlatformStateFlag::Waiting) == 0 || !simpleMover->mWaitSet) return;
+	simpleMover->mIdleTimeElapsed += deltaTime;
+	if (simpleMover->mIdleTimeElapsed < simpleMover->mTimeToWait) return;
+	simpleMover->mIdleTimeElapsed = 0.0f;
+	SimpleMoverGotoWaypoint(simpleMover->mCurrentWaypointIndex == 0 ? 1 : 0);
+}
+
 // LWOPlatform::RunPlatform 0x00c86e10 for a rotator: its wait never ends (IncrementWaitingTime 0x004a0390) and it never
 // arrives (HandleStoppedLogic 0x00bdc660 keeps the object's angular velocity at the rotator's); it has no linear
 // velocity (SetLinearVelocity 0x00bd1660). The client's physics turn the object at that velocity; the server turns its
@@ -733,6 +750,10 @@ void MovingPlatformComponent::RunRotator(const float deltaTime) {
 void MovingPlatformComponent::Run(const float deltaTime) {
 	if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
 		RunRotator(deltaTime);
+		return;
+	}
+	if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
+		RunSimpleMover(deltaTime);
 		return;
 	}
 	if (!IsMover()) return;

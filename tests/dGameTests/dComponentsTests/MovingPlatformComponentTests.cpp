@@ -575,3 +575,50 @@ TEST_F(MovingPlatformComponentTest, MoverKeepsItsVelocityThroughAWaitLikeLive) {
 	EXPECT_EQ(mover->mPosition, NiPoint3(30.0f, 0.0f, 30.0f));
 	EXPECT_EQ(entity.GetPosition(), NiPoint3(30.0f, 0.0f, 30.0f));
 }
+
+// A simple mover without a quick build runs from when it is loaded, as a mover does: waiting at its waypoint (9) for the
+// shortest wait, then off to its other end, where it has stopped (28). With startPathingOnLoad false it stays as it was
+// made (12), and so does one its script stops when it starts up (live's NJ spinner script, L_NJ_SPINNER_SERVER).
+TEST_F(MovingPlatformComponentTest, SimpleMoverSetsOffOnLoadUnlessToldNotTo) {
+	info.lot = 16141;
+	info.pos = NiPoint3(10.0f, 20.0f, 30.0f);
+	info.rot = QuatUtils::IDENTITY;
+	{
+		Entity entity(288300744895900115, info);
+		entity.AddComponent<SimplePhysicsComponent>(-1);
+		auto* const platform = entity.AddComponent<MovingPlatformComponent>(41, "");
+		auto* const mover = platform->GetSimpleMoverSubComponent();
+		EXPECT_EQ(mover->mState, 9u);
+		entity.Update(0.05f);
+		EXPECT_EQ(mover->mState, 9u);
+		entity.Update(0.06f);
+		EXPECT_EQ(mover->mState, 2u);
+		entity.Update(0.0f);
+		entity.Update(1.1f);
+		EXPECT_EQ(mover->mState, 28u);
+		EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+		// Stopped at its end it does not set off again by itself
+		entity.Update(1.0f);
+		EXPECT_EQ(mover->mState, 28u);
+	}
+	{
+		Entity entity(288300744895900116, info);
+		auto* const platform = entity.AddComponent<MovingPlatformComponent>(41, "");
+		auto* const mover = platform->GetSimpleMoverSubComponent();
+		platform->StopPathing();
+		EXPECT_EQ(mover->mState, 12u);
+		entity.Update(1.0f);
+		EXPECT_EQ(mover->mState, 12u);
+		EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
+	}
+	{
+		info.settings.Insert<bool>(u"startPathingOnLoad", false);
+		Entity entity(288300744895900117, info);
+		info.settings.values.clear();
+		auto* const platform = entity.AddComponent<MovingPlatformComponent>(41, "");
+		auto* const mover = platform->GetSimpleMoverSubComponent();
+		EXPECT_EQ(mover->mState, 12u);
+		entity.Update(1.0f);
+		EXPECT_EQ(mover->mState, 12u);
+	}
+}
