@@ -4,6 +4,7 @@
 #include "BitStream.h"
 #include "tinyxml2.h"
 #include "Game.h"
+#include "dConfig.h"
 #include "Logger.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
@@ -480,8 +481,12 @@ void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	// cm, the most coins the character can hold: always 9223372036854775807 on live, the client's own value without
 	// it. Nothing here caps coins by it, and one that is already in the save is left as it is.
 	if (!character->FindAttribute("cm")) character->SetAttribute("cm", std::numeric_limits<int64_t>::max());
-	// edit, the editor level: the client takes anything but 0 as the editor being on
-	character->SetAttribute("edit", m_EditorEnabled ? static_cast<uint32_t>(m_EditorLevel) : 0u);
+	// edit, the editor level: the client takes anything but 0 as the editor being on. 1 for a character whose account
+	// has the GM level of editor_gm_level (9 unless set), 0 for everyone else
+	const auto* const parentUser = m_Character ? m_Character->GetParentUser() : nullptr;
+	const auto accountLevel = parentUser ? parentUser->GetMaxGMLevel() : eGameMasterLevel::CIVILIAN;
+	const auto editorGmLevel = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("editor_gm_level")).value_or(DEFAULT_EDITOR_GM_LEVEL);
+	character->SetAttribute("edit", EditAttribute(accountLevel, editorGmLevel, m_EditorEnabled, m_EditorLevel));
 	// mldt, when the property moderation notice was last shown: not kept here, 0 as on most live saves
 	if (!character->FindAttribute("mldt")) character->SetAttribute("mldt", 0);
 	// gid and gn, the guild (0 and empty without one)

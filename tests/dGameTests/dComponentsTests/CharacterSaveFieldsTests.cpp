@@ -6,6 +6,8 @@
 #include "Character.h"
 #include "CharacterComponent.h"
 #include "Entity.h"
+#include "User.h"
+#include "dConfig.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "SkillComponent.h"
@@ -161,6 +163,43 @@ TEST_F(CharacterSaveFieldsTests, LiveCharacterAttributesRoundTrip) {
 	EXPECT_STREQ(saved->Attribute("v"), "2");
 	EXPECT_STREQ(saved->Attribute("gid"), "77");
 	EXPECT_STREQ(saved->Attribute("gn"), "Builders");
+}
+
+// edit: 1 for a character whose account has the GM level of editor_gm_level (9 unless set), 0 for everyone else
+TEST_F(CharacterSaveFieldsTests, EditAttributeFollowsTheAccountGmLevel) {
+	using enum eGameMasterLevel;
+	EXPECT_EQ(CharacterComponent::EditAttribute(OPERATOR, 9, false, OPERATOR), 1u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 9, false, DEVELOPER), 0u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(CIVILIAN, 9, false, CIVILIAN), 0u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 8, false, DEVELOPER), 1u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(JUNIOR_DEVELOPER, 8, false, JUNIOR_DEVELOPER), 0u);
+	// A civilian never, whatever the setting
+	EXPECT_EQ(CharacterComponent::EditAttribute(CIVILIAN, 0, false, CIVILIAN), 0u);
+	// The editor flag still writes its level
+	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 9, true, DEVELOPER), 8u);
+
+	const auto savedEdit = [this](const eGameMasterLevel accountLevel) {
+		tinyxml2::XMLDocument doc;
+		Parse(doc, R"(<obj v="1"><mf/><char ls="0" edit="0"/></obj>)");
+		User user(UNASSIGNED_SYSTEM_ADDRESS, "editor", "key");
+		user.SetMaxGMLevel(accountLevel);
+		Character character(1, &user);
+		Entity player(43, info);
+		auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+		characterComponent->LoadFromSaveData(doc);
+		characterComponent->WriteSaveData(doc);
+		return std::string(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("edit"));
+	};
+	// The default level, 9
+	EXPECT_EQ(savedEdit(OPERATOR), "1");
+	EXPECT_EQ(savedEdit(DEVELOPER), "0");
+	EXPECT_EQ(savedEdit(CIVILIAN), "0");
+
+	// editor_gm_level from the settings
+	Game::config->SetDatabaseValues({ { "editor_gm_level", "8" } }, {});
+	EXPECT_EQ(savedEdit(DEVELOPER), "1");
+	EXPECT_EQ(savedEdit(JUNIOR_DEVELOPER), "0");
+	Game::config->SetDatabaseValues({}, {});
 }
 
 // Saves from before they were written load as before and gain them with the values live had: the coins are not

@@ -159,6 +159,8 @@ namespace {
 		c.Add(Int(SHARED, "version_current", "Version: current", "", "10", 0, 65535));
 		c.Add(Int(SHARED, "version_minor", "Version: minor", "", "64", 0, 65535));
 
+		c.Add(Int(WORLD, "editor_gm_level", "Client editor from GM level", "Characters of accounts at or above this GM level are saved with the client's editor enabled (edit=\"1\" in the character data); everyone else with 0. Used the next time a character is saved.", "9", 1, 9));
+
 		c.AddSection("Logging and crashes");
 		c.Add(Bool(SHARED, "log_to_console", "Log to the console", "Also print log lines to the terminal.", true, true));
 		c.Add(Bool(SHARED, "log_debug_statements", "Debug logging", "Extra log lines for developers.", false, true));

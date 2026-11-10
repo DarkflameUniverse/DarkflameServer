@@ -1,6 +1,7 @@
 #ifndef CHARACTERCOMPONENT_H
 #define CHARACTERCOMPONENT_H
 
+#include "eGameMasterLevel.h"
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
 #include "Character.h"
@@ -476,6 +477,22 @@ private:
 	 * Whether the character has HF enabled
 	 */
 	bool m_EditorEnabled;
+
+public:
+	// editor_gm_level when the settings don't have it
+	static constexpr uint32_t DEFAULT_EDITOR_GM_LEVEL = 9;
+
+	/**
+	 * The save's edit attribute (the client takes anything but 0 as the editor being on): 1 for an account whose GM
+	 * level is at least editorGmLevel, else the editor level when the editor flag is on, else 0
+	 */
+	static uint32_t EditAttribute(const eGameMasterLevel accountLevel, const uint32_t editorGmLevel, const bool editorEnabled, const eGameMasterLevel editorLevel) {
+		// (a civilian never, whatever the setting)
+		if (accountLevel != eGameMasterLevel::CIVILIAN && static_cast<uint32_t>(accountLevel) >= editorGmLevel) return 1;
+		return editorEnabled ? static_cast<uint32_t>(editorLevel) : 0;
+	}
+
+private:
 
 	/**
 	 * The level of the character in HF
