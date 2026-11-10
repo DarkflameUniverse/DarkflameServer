@@ -124,9 +124,11 @@ void ZoneFile::ReadScene(std::istream& file, uint32_t index) {
 	}
 
 	if (fileFormatVersion >= FileFormatVersion::LatePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.color_r);
-		BinaryIO::BinaryRead(file, scene.color_b);
-		BinaryIO::BinaryRead(file, scene.color_g);
+		uint8_t r, b, g;
+		BinaryIO::BinaryRead(file, r);
+		BinaryIO::BinaryRead(file, b);
+		BinaryIO::BinaryRead(file, g);
+		scene.color = NiColor(r / 255.0f, g / 255.0f, b / 255.0f);
 	}
 
 	scenes.push_back(std::move(scene));
@@ -180,8 +182,8 @@ void ZoneFile::ReadZoneBoundaries(std::istream& file) {
 		LWOINSTANCEID instanceID = 0;
 		BinaryIO::BinaryRead(file, mapID);
 		BinaryIO::BinaryRead(file, instanceID);
-		boundary.destZoneID = LWOZONEID(mapID, instanceID, 0);
-		BinaryIO::BinaryRead(file, boundary.destSceneID);
+		boundary.destinationZone = LWOZONEID(mapID, instanceID, 0);
+		BinaryIO::BinaryRead(file, boundary.destinationSceneID);
 		BinaryIO::BinaryRead(file, boundary.spawnLocation);
 		zoneBoundaries.push_back(boundary);
 	}

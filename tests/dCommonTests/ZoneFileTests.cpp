@@ -121,10 +121,10 @@ TEST(ZoneFileTests, ReadsZoneBoundaries) {
 	const auto& boundary = zone.zoneBoundaries[0];
 	EXPECT_EQ(boundary.normal, NiPoint3(1, 0, 0));
 	EXPECT_EQ(boundary.point, NiPoint3(10, 20, 30));
-	EXPECT_EQ(boundary.destZoneID, LWOZONEID(1100, 7, 0));
-	EXPECT_EQ(boundary.destSceneID, 4u);
+	EXPECT_EQ(boundary.destinationZone, LWOZONEID(1100, 7, 0));
+	EXPECT_EQ(boundary.destinationSceneID, 4u);
 	EXPECT_EQ(boundary.spawnLocation, NiPoint3(5, 6, 7));
-	EXPECT_EQ(zone.zoneBoundaries[1].destZoneID, LWOZONEID(1200, 0, 0));
+	EXPECT_EQ(zone.zoneBoundaries[1].destinationZone, LWOZONEID(1200, 0, 0));
 	EXPECT_EQ(zone.zoneRawPath, "zone.raw");
 	EXPECT_EQ(zone.zoneName, "Name");
 	EXPECT_EQ(zone.zoneDesc, "Description");

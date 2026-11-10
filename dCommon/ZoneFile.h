@@ -11,6 +11,7 @@
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
+#include "NiColor.h"
 #include "LDFFormat.h"
 #include "eSceneType.h"
 #include "eWaypointCommandType.h"
@@ -34,17 +35,15 @@ struct ZoneScene {
 	std::string name;
 	NiPoint3 unknown1;
 	float unknown2{};
-	uint8_t color_r{};
-	uint8_t color_g{};
-	uint8_t color_b{};
+	NiColor color;
 };
 
 // A line the player crosses to leave the zone (the client's LuzReader::ReadZoneBoundaryLines)
 struct ZoneBoundary {
 	NiPoint3 normal;
 	NiPoint3 point;
-	LWOZONEID destZoneID; // clone 0
-	uint32_t destSceneID{};
+	LWOZONEID destinationZone; // clone 0
+	uint32_t destinationSceneID{};
 	NiPoint3 spawnLocation;
 };
 
