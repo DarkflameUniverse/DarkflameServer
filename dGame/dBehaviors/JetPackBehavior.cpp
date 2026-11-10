@@ -1,4 +1,5 @@
 #include "JetPackBehavior.h"
+#include "ControllablePhysicsComponent.h"
 
 #include "BehaviorBranchContext.h"
 #include "GameMessages.h"
@@ -21,6 +22,7 @@ void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_st
 	jetPackMode.fVertVel = this->m_VerticalVelocity;
 	jetPackMode.iWarningEffectID = this->m_WarningEffectID;
 	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	if (auto* const physics = entity->GetComponent<ControllablePhysicsComponent>()) physics->SetJetPackMode(jetPackMode.bUse, jetPackMode.effectID, jetPackMode.bBypassChecks);
 
 	if (entity->IsPlayer()) {
 		auto* character = entity->GetCharacter();
@@ -39,6 +41,7 @@ void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext bra
 	jetPackMode.target = entity->GetObjectID();
 	jetPackMode.bUse = false;
 	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	if (auto* const physics = entity->GetComponent<ControllablePhysicsComponent>()) physics->SetJetPackMode(jetPackMode.bUse, jetPackMode.effectID, jetPackMode.bBypassChecks);
 
 	if (entity->IsPlayer()) {
         auto* character = entity->GetCharacter();

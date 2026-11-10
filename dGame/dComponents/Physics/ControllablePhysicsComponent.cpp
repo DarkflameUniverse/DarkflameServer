@@ -125,7 +125,9 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	outBitStream.Write(m_DirtyEquippedItemInfo || bIsInitialUpdate);
 	if (m_DirtyEquippedItemInfo || bIsInitialUpdate) {
 		outBitStream.Write(m_PickupRadius);
-		outBitStream.Write(m_InJetpackMode);
+		// LWOControllablePhysComponent::Deserialize (0x00c45770) reads this into the same flag as the jetpack block's
+		// flying bit; live wrote 0, also for players in jetpack mode (10,069 player constructions)
+		outBitStream.Write(m_JetpackFlying);
 
 		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
@@ -179,6 +181,12 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 			m_IsTeleporting = false;
 		}
 	}
+}
+
+void ControllablePhysicsComponent::SetJetPackMode(const bool use, const int32_t effectID, const bool bypassChecks) {
+	m_InJetpackMode = use;
+	m_JetpackEffectID = effectID;
+	m_JetpackBypassChecks = bypassChecks;
 }
 
 // A character's save, then where it comes into this world

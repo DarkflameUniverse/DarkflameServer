@@ -173,6 +173,43 @@ TEST_F(ReplicaConstructionTest, CharacterActivityAndPvpChangesAreWrittenOnce) {
 	player.SetCharacter(nullptr);
 }
 
+// A player in jetpack mode is constructed in it: live player constructions carried the jetpack block (effect 167,
+// flying 0, bypass checks 1) and a 0 after the pickup radius. LWOControllablePhysComponent::Deserialize reads both.
+TEST_F(ReplicaConstructionTest, ControllablePhysicsConstructionCarriesJetPackMode) {
+	Entity player(1152921506064087006, info);
+	auto* const physics = player.AddComponent<ControllablePhysicsComponent>(-1);
+
+	const auto construct = [physics]() {
+		RakNet::BitStream construction;
+		physics->Serialize(construction, true);
+		return Bits(construction);
+	};
+	const auto bits = [](const RakNet::BitStream& stream) { return Bits(stream); };
+
+	// No jetpack: one 0 bit, then the stun immunities
+	const auto plain = construct();
+	EXPECT_EQ(plain.substr(0, 2), "01");
+
+	physics->SetJetPackMode(true, 167, true);
+	RakNet::BitStream head;
+	head.Write1(); // jetpack
+	head.Write<int32_t>(167); // effect
+	head.Write0(); // flying
+	head.Write1(); // bypass checks
+	head.Write1(); // stun immunities
+	const auto jetpack = construct();
+	EXPECT_EQ(jetpack.substr(0, head.GetNumberOfBitsUsed()), bits(head));
+	// After the 7 immunity counts: no cheats, then the pickup radius and a 0 (not the jetpack flag)
+	const size_t afterImmunities = head.GetNumberOfBitsUsed() + 7 * 32;
+	EXPECT_EQ(jetpack.substr(afterImmunities, 2), "01");
+	EXPECT_EQ(jetpack[afterImmunities + 2 + 32], '0');
+	// The rest is what a player without a jetpack gets
+	EXPECT_EQ(jetpack.substr(head.GetNumberOfBitsUsed()), plain.substr(2));
+
+	physics->SetJetPackMode(false, -1, false);
+	EXPECT_EQ(construct(), plain);
+}
+
 // A guild change (docs/Guilds.md) is written once: the client reads guild id, a u8 length and 16-bit characters, and
 // redraws the name billboard every time it reads a name.
 TEST_F(ReplicaConstructionTest, CharacterGuildChangeIsWrittenOnce) {

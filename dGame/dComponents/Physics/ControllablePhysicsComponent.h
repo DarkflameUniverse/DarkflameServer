@@ -151,6 +151,12 @@ public:
 	const bool GetJetpackBypassChecks() const { return m_JetpackBypassChecks; }
 
 	/**
+	 * Keeps what a SetJetPackMode sent to the clients said, for the construction of this object: use, effect and
+	 * bypass checks, as LWOControllablePhysComponent::SendMessage (0x00d2f020) keeps them
+	 */
+	void SetJetPackMode(bool use, int32_t effectID, bool bypassChecks);
+
+	/**
 	 * Set the jetpack effect ID
 	 * @param effectID the effect to play while using the jetpack
 	 */
@@ -337,12 +343,12 @@ private:
 	/**
 	 * Whether or not this entity is currently flying a jetpack
 	 */
-	bool m_JetpackFlying;
+	bool m_JetpackFlying{ false };
 
 	/**
-	 * Bypass jetpack checks, currently unused
+	 * Bypass jetpack checks, from the last SetJetPackMode
 	 */
-	bool m_JetpackBypassChecks;
+	bool m_JetpackBypassChecks{ false };
 
 	/**
 	 * The effect that plays while using the jetpack
