@@ -5,8 +5,8 @@
 #include <cstdint>
 
 namespace VendorPricing {
-	// The most of one item a vendor sells at once, a full stack is 999
-	constexpr uint32_t MaxBuyCount = 1000;
+	// The most of one item a vendor sells at once, the count the client's buy dialog stops at
+	constexpr uint32_t MaxBuyCount = 999;
 
 	/**
 	 * Whether a count a player asked to move out of a stack is one the stack can give

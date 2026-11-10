@@ -18,7 +18,7 @@ TEST(VendorPricingTest, AVendorSellsUpToAFullStackAtOnce) {
 	EXPECT_TRUE(VendorPricing::IsValidBuyCount(1));
 	EXPECT_TRUE(VendorPricing::IsValidBuyCount(999));
 	EXPECT_FALSE(VendorPricing::IsValidBuyCount(0));
-	EXPECT_FALSE(VendorPricing::IsValidBuyCount(1001));
+	EXPECT_FALSE(VendorPricing::IsValidBuyCount(1000));
 	// What a negative count becomes
 	EXPECT_FALSE(VendorPricing::IsValidBuyCount(static_cast<uint32_t>(-1)));
 }
