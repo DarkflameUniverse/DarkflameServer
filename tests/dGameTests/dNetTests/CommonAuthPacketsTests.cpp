@@ -48,11 +48,30 @@ namespace {
 		handler(inStream, sysAddr, header.internalPacketID);
 	}
 
+	// A session key is different every time it is made, so it is taken out of the two packets that carry one:
+	// the login response (33 wide characters after the response code, the 8 event names and the 3 version numbers)
+	// and the SET_SESSION_KEY sent to the master server (33 characters after the header)
+	CapturedPacket WithoutSessionKey(CapturedPacket packet) {
+		constexpr size_t headerSize = 8;
+		if (packet.bytes.size() < headerSize) return packet;
+		const auto blank = [&packet](const size_t offset, const size_t size) {
+			for (size_t i = offset; i < offset + size && i < packet.bytes.size(); i++) packet.bytes[i] = 0;
+		};
+		const auto service = static_cast<ServiceType>(packet.bytes[1] | (packet.bytes[2] << 8));
+		const auto messageId = packet.bytes[3];
+		if (service == ServiceType::CLIENT && messageId == static_cast<uint8_t>(MessageType::Client::LOGIN_RESPONSE)) {
+			blank(headerSize + 1 + 8 * 33 + 3 * 2, 33 * 2);
+		} else if (service == ServiceType::MASTER && messageId == static_cast<uint8_t>(MessageType::Master::SET_SESSION_KEY)) {
+			blank(headerSize, 33);
+		}
+		return packet;
+	}
+
 	void ExpectSamePackets(const std::vector<CapturedPacket>& expected, const std::vector<CapturedPacket>& actual) {
 		ASSERT_FALSE(expected.empty());
 		ASSERT_EQ(expected.size(), actual.size());
 		for (size_t i = 0; i < expected.size(); i++) {
-			EXPECT_PACKET_EQ(FromCapture(expected[i]), FromCapture(actual[i]));
+			EXPECT_PACKET_EQ(FromCapture(WithoutSessionKey(expected[i])), FromCapture(WithoutSessionKey(actual[i])));
 			EXPECT_EQ(expected[i].sysAddr, actual[i].sysAddr);
 			EXPECT_EQ(expected[i].broadcast, actual[i].broadcast);
 		}
@@ -432,6 +451,10 @@ TEST_F(CommonAuthPacketsTests, LoginRequestMatchesLegacy) {
 		const auto stamps = convertedResponse.stamps.list;
 		legacyResponse.stamps.list.clear();
 		convertedResponse.stamps.list.clear();
+		// Each response has a session key of its own
+		EXPECT_EQ(legacyResponse.userKey.GetAsString().size(), convertedResponse.userKey.GetAsString().size());
+		legacyResponse.userKey = LUWString();
+		convertedResponse.userKey = LUWString();
 		RakNet::BitStream legacyBytes;
 		legacyResponse.WritePacket(legacyBytes);
 		RakNet::BitStream convertedBytes;

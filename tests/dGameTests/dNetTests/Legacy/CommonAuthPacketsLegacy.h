@@ -117,10 +117,8 @@ inline void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLo
 	loginResponse.Write(version_minor);
 
 	// Writes the user key
-	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<uint32_t>();
-	std::string userHash = std::to_string(sessionKey);
-	userHash = md5(userHash);
-	loginResponse.Write(LUWString(userHash));
+	const std::string sessionKey = GeneralUtils::GenerateUnpredictableHexString(16);
+	loginResponse.Write(LUWString(sessionKey));
 
 	// World Server IP
 	loginResponse.Write(LUString(wServerIP));
@@ -162,7 +160,7 @@ inline void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLo
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SET_SESSION_KEY);
-		bitStream.Write(sessionKey);
+		bitStream.Write(LUString(sessionKey));
 		bitStream.Write(LUString(username));
 		server->SendToMaster(bitStream);
 
