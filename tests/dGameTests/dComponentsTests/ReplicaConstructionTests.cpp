@@ -19,6 +19,7 @@
 #include "InventoryComponent.h"
 #include "ItemComponent.h"
 #include "LevelProgressionComponent.h"
+#include "LUPExhibitComponent.h"
 #include "PlayerForcedMovementComponent.h"
 #include "Item.h"
 #include "ModelComponent.h"
@@ -368,6 +369,27 @@ TEST_F(ReplicaConstructionTest, AConstructionKeepsPendingLevelAndForcedMovementC
 	level->Serialize(again, false);
 	forcedMovement->Serialize(again, false);
 	EXPECT_EQ(again.GetNumberOfBitsUsed(), 2u);
+}
+
+// The client learns the exhibit's LOT only from the component's block (LWOLUPExhibitComponent::Deserialize: a flag
+// and the LOT). DLU wrote it on a construction only while it was dirty, so a player who came into range after the
+// first update saw no exhibit until the next one was picked.
+TEST_F(ReplicaConstructionTest, LupExhibitConstructionAlwaysCarriesTheExhibit) {
+	Entity exhibit(1009, info);
+	auto* const component = exhibit.AddComponent<LUPExhibitComponent>(-1);
+
+	RakNet::BitStream update;
+	component->Serialize(update, false);
+	RakNet::BitStream idle;
+	component->Serialize(idle, false);
+	EXPECT_EQ(idle.GetNumberOfBitsUsed(), 1u);
+
+	RakNet::BitStream construction;
+	component->Serialize(construction, true);
+	RakNet::BitStream expected;
+	expected.Write1();
+	expected.Write<LOT>(11121);
+	ExpectSameBits(construction, expected);
 }
 
 // A guild change (docs/Guilds.md) is written once: the client reads guild id, a u8 length and 16-bit characters, and
