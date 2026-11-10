@@ -622,6 +622,28 @@ TEST_F(DestroyableTest, PlayerDieDoesNotClaimAClientDeath) {
 	player.SetCharacter(nullptr);
 }
 
+// A construction goes to the one client the object came into range of; it must not use up the health change the
+// players already watching are waiting for (LWODestroyableComponent::Deserialize reads it behind a flag bit).
+TEST_F(DestroyableTest, AConstructionKeepsThePendingHealthChange) {
+	destroyableComponent->SetHealth(3);
+	RakNet::BitStream construction;
+	destroyableComponent->Serialize(construction, true);
+
+	RakNet::BitStream update;
+	destroyableComponent->Serialize(update, false);
+	bool hasHealth{};
+	uint32_t health{};
+	ASSERT_TRUE(update.Read(hasHealth));
+	ASSERT_TRUE(hasHealth);
+	ASSERT_TRUE(update.Read(health));
+	EXPECT_EQ(health, 3u);
+
+	// Written once
+	RakNet::BitStream again;
+	destroyableComponent->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 2u);
+}
+
 // LWOCharacterComponent::SendMessage, IsValidPVPTarget: two players with PVP on are enemies, a player is never its own
 TEST_F(DestroyableTest, APlayerWithPvpIsNotItsOwnEnemy) {
 	auto playerInfo = info;

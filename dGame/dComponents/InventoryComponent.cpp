@@ -1048,7 +1048,8 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 			outBitStream.Write(item.bound);
 		}
 
-		m_Dirty = false;
+		// A construction goes to one client; the players already watching still need a waiting equipment change
+		if (!bIsInitialUpdate) m_Dirty = false;
 	} else {
 		outBitStream.Write(false);
 	}

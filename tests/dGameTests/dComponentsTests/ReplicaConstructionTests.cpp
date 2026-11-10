@@ -700,6 +700,11 @@ TEST_F(InventoryConstructionTest, NpcItemsLikeLive) {
 	coleExpected.Write<uint32_t>(0);
 	ExpectSameBits(coleConstruction, coleExpected);
 
+	// The equipment put on before the construction still goes to the clients already watching, once
+	RakNet::BitStream pending;
+	coleInventory->Serialize(pending, false);
+	EXPECT_GT(pending.GetNumberOfBitsUsed(), 2u);
+
 	// A serialization with nothing changed writes neither list
 	RakNet::BitStream serialization;
 	coleInventory->Serialize(serialization, false);

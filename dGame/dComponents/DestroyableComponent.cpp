@@ -259,13 +259,14 @@ void DestroyableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIn
 				if (m_ExplodeFactor != 1.0f) outBitStream.Write(m_ExplodeFactor);
 			}
 		}
-		m_DirtyHealth = false;
+		// A construction goes to one client; the players already watching still need a waiting change
+		if (!bIsInitialUpdate) m_DirtyHealth = false;
 	}
 
 	outBitStream.Write(m_DirtyThreatList || bIsInitialUpdate);
 	if (m_DirtyThreatList || bIsInitialUpdate) {
 		outBitStream.Write(m_HasThreats);
-		m_DirtyThreatList = false;
+		if (!bIsInitialUpdate) m_DirtyThreatList = false;
 	}
 }
 
