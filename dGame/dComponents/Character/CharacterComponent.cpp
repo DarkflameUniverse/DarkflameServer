@@ -245,11 +245,15 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		outBitStream.Write(m_GMLevel);
 		outBitStream.Write(m_EditorEnabled);
 		outBitStream.Write(m_EditorLevel);
+		if (!bIsInitialUpdate) m_DirtyGMInfo = false;
 	}
 
 	const bool writeCurrentActivity = bIsInitialUpdate || m_DirtyCurrentActivity;
 	outBitStream.Write(writeCurrentActivity);
-	if (writeCurrentActivity) outBitStream.Write(m_CurrentActivity);
+	if (writeCurrentActivity) {
+		outBitStream.Write(m_CurrentActivity);
+		if (!bIsInitialUpdate) m_DirtyCurrentActivity = false;
+	}
 
 	const bool writeSocialInfo = bIsInitialUpdate || m_DirtySocialInfo;
 	outBitStream.Write(writeSocialInfo);

@@ -23,6 +23,7 @@
 #include "MovingPlatformComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "User.h"
+#include "eGameActivity.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
 
@@ -126,6 +127,48 @@ TEST_F(ReplicaConstructionTest, CharacterConstructionAlwaysWritesGmActivityAndSo
 	RakNet::BitStream serialization;
 	component->Serialize(serialization, false);
 	EXPECT_EQ(serialization.GetNumberOfBitsUsed(), 3u);
+
+	player.SetCharacter(nullptr);
+}
+
+// A current-activity or PVP change is written once, as a guild change is: LWOCharacterComponent::Deserialize reads each
+// block behind its own flag bit.
+TEST_F(ReplicaConstructionTest, CharacterActivityAndPvpChangesAreWrittenOnce) {
+	User user(UNASSIGNED_SYSTEM_ADDRESS, "tester", "key");
+	Character character(1, &user);
+	info.lot = 1;
+	Entity player(1152921506064087005, info);
+	player.SetCharacter(&character);
+	character.SetEntity(&player);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+
+	component->SetCurrentActivity(eGameActivity::QUICKBUILDING);
+	component->SetPvpEnabled(true);
+	RakNet::BitStream serialization;
+	component->Serialize(serialization, false);
+	RakNet::BitStream expected;
+	expected.Write1(); // gm_pvp_info
+	expected.Write1(); // pvp_enabled
+	expected.Write0(); // is_gm
+	expected.Write<uint8_t>(0); // gm_level
+	expected.Write0(); // editor_enabled
+	expected.Write<uint8_t>(0); // editor_level
+	expected.Write1(); // current_activity
+	expected.Write(eGameActivity::QUICKBUILDING);
+	expected.Write0(); // social_info
+	ExpectSameBits(serialization, expected);
+
+	RakNet::BitStream again;
+	component->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 3u);
+
+	// A construction in between (another player coming into range) doesn't swallow a pending change
+	component->SetCurrentActivity(eGameActivity::NONE);
+	RakNet::BitStream construction;
+	component->Serialize(construction, true);
+	RakNet::BitStream after;
+	component->Serialize(after, false);
+	EXPECT_EQ(after.GetNumberOfBitsUsed(), 3u + 32u);
 
 	player.SetCharacter(nullptr);
 }
