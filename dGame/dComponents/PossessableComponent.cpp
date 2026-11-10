@@ -37,7 +37,7 @@ void PossessableComponent::LoadDataFromTemplate() {
 void PossessableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write(m_DirtyPossessable || bIsInitialUpdate);
 	if (m_DirtyPossessable || bIsInitialUpdate) {
-		m_DirtyPossessable = false; // reset flag
+		if (!bIsInitialUpdate) m_DirtyPossessable = false; // reset flag
 		outBitStream.Write(m_Possessor != LWOOBJID_EMPTY);
 		if (m_Possessor != LWOOBJID_EMPTY) outBitStream.Write(m_Possessor);
 
@@ -45,7 +45,7 @@ void PossessableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIn
 		if (m_AnimationFlag != eAnimationFlags::IDLE_NONE) outBitStream.Write(m_AnimationFlag);
 
 		outBitStream.Write(m_ImmediatelyDepossess);
-		m_ImmediatelyDepossess = false; // reset flag
+		if (!bIsInitialUpdate) m_ImmediatelyDepossess = false; // reset flag
 	}
 }
 

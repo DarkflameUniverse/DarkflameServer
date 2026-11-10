@@ -41,7 +41,8 @@ void LevelProgressionComponent::LoadFromSaveData(const tinyxml2::XMLDocument& do
 void LevelProgressionComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write(bIsInitialUpdate || m_DirtyLevelInfo);
 	if (bIsInitialUpdate || m_DirtyLevelInfo) outBitStream.Write(m_Level);
-	m_DirtyLevelInfo = false;
+	// A construction goes to one client; the players already watching still need a waiting change
+	if (!bIsInitialUpdate) m_DirtyLevelInfo = false;
 }
 
 void LevelProgressionComponent::HandleLevelUp() {

@@ -18,6 +18,8 @@
 #include "Entity.h"
 #include "InventoryComponent.h"
 #include "ItemComponent.h"
+#include "LevelProgressionComponent.h"
+#include "PlayerForcedMovementComponent.h"
 #include "Item.h"
 #include "ModelComponent.h"
 #include "MovingPlatformComponent.h"
@@ -336,6 +338,36 @@ TEST_F(ReplicaConstructionTest, PhantomPhysicsConstructionKeepsThePendingEffect)
 	phantom->Serialize(again, false);
 	EXPECT_EQ(again.GetNumberOfBitsUsed(), 2u);
 	EXPECT_LE(again.GetNumberOfBitsUsed(), idle);
+}
+
+// A construction goes to the one client the object came into range of. It must not use up a change the clients
+// already watching are still waiting for (the level, rail and billboard flags are each read behind a flag bit).
+TEST_F(ReplicaConstructionTest, AConstructionKeepsPendingLevelAndForcedMovementChanges) {
+	Entity player(1152921506064087008, info);
+	auto* const level = player.AddComponent<LevelProgressionComponent>(-1);
+	auto* const forcedMovement = player.AddComponent<PlayerForcedMovementComponent>(-1);
+
+	level->SetLevel(7);
+	forcedMovement->SetPlayerOnRail(true);
+	RakNet::BitStream construction;
+	level->Serialize(construction, true);
+	forcedMovement->Serialize(construction, true);
+
+	RakNet::BitStream update;
+	level->Serialize(update, false);
+	forcedMovement->Serialize(update, false);
+	RakNet::BitStream expected;
+	expected.Write1();
+	expected.Write<uint32_t>(7);
+	expected.Write1();
+	expected.Write1(); // on rail
+	expected.Write0(); // show billboard
+	ExpectSameBits(update, expected);
+
+	RakNet::BitStream again;
+	level->Serialize(again, false);
+	forcedMovement->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 2u);
 }
 
 // A guild change (docs/Guilds.md) is written once: the client reads guild id, a u8 length and 16-bit characters, and

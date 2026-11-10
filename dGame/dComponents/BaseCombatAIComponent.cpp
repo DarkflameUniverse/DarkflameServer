@@ -551,7 +551,7 @@ void BaseCombatAIComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsI
 	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
 		outBitStream.Write(m_State);
 		outBitStream.Write(m_Target);
-		m_DirtyStateOrTarget = false;
+		if (!bIsInitialUpdate) m_DirtyStateOrTarget = false;
 	}
 }
 
