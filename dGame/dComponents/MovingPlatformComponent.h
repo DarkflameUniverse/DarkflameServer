@@ -218,6 +218,12 @@ public:
 	void GotoWaypoint(uint32_t index, bool stopAtWaypoint = true);
 
 	/**
+	 * Puts the platform on a path of the zone, at one of its waypoints (the SetCurrentPath game message): a mover
+	 * starts over on it. False when the platform is not a mover or the zone has no such path.
+	 */
+	bool SetCurrentPath(const std::string& pathName, uint32_t startPoint = 0, bool reverse = false);
+
+	/**
 	 * Starts the pathing of this platform, setting appropriate waypoints and speeds
 	 */
 	void StartPathing();
@@ -294,6 +300,10 @@ private:
 
 	// The waypoint the path starts at (attached_path_start), written with the path
 	uint32_t m_StartWaypoint = 0;
+	// Whether it runs the path backwards from there (SetCurrentPath), written with the path
+	bool m_PathReverse = false;
+	// The path changed since it was last written
+	bool m_DirtyPath = false;
 
 	/**
 	 * The type of the first subcomponent, the one the server runs (none without one)
@@ -320,6 +330,8 @@ private:
 
 	// LWOPlatform::ProcessStateChange: index becomes the current waypoint (the next from the path's behavior and direction)
 	void MoverProcessStateChange(uint32_t index);
+	// The mover at its starting waypoint on the path, started unless startPathingOnLoad is false
+	void SetupMoverPath();
 	// Puts the object where the mover is, without a serialization of its physics
 	void MoveObject();
 	// LWOPlatform::SetWaitingTime: starts a wait of at least 0.1 s

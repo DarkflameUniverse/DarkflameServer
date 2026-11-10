@@ -166,16 +166,10 @@ void MovingPlatformComponent::LoadConfigData() {
 		LOG("Path not found: %s", pathName.c_str());
 	}
 
-	// LWOPlatform::SetupPath: a mover is at its attached_path_start waypoint, stopped (12, as live constructed movers
-	// nothing had started). Unless startPathingOnLoad is false it then waits the waypoint's wait and leaves (live: 9).
 	if (IsMover()) {
-		auto* const mover = GetMoverSubComponent();
-		mover->mTimeBased = m_Path->movingPlatform.timeBasedMovement != 0;
 		const auto start = m_Parent->HasVar(u"attached_path_start") ? m_Parent->GetVar<int32_t>(u"attached_path_start") : 0;
 		m_StartWaypoint = start >= 0 && static_cast<size_t>(start) < m_Path->pathWaypoints.size() ? start : 0;
-		MoverProcessStateChange(m_StartWaypoint);
-		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
-		if (startOnLoad) MoverResumeTravelling();
+		SetupMoverPath();
 	} else if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
 		// LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate, its own path never arrives anywhere: its
 		// HandleStoppedLogic 0x00bdc660 only keeps the angular velocity), while travelling
@@ -186,6 +180,46 @@ void MovingPlatformComponent::LoadConfigData() {
 	// Live constructed every moving platform with simple physics as keyframed
 	auto* const simplePhysics = m_Parent->GetComponent<SimplePhysicsComponent>();
 	if (simplePhysics && !m_Parent->HasVar(u"motionType")) simplePhysics->SetPhysicsMotionState(SimplePhysicsComponent::MOTION_TYPE_KEYFRAMED);
+}
+
+// LWOPlatform::SetupPath 0x00c17d10: a mover is at its starting waypoint, stopped (12, as live constructed movers nothing
+// had started). Unless startPathingOnLoad is false it then waits the waypoint's wait and leaves (live: 9).
+void MovingPlatformComponent::SetupMoverPath() {
+	auto* const mover = GetMoverSubComponent();
+	mover->mTimeBased = m_Path->movingPlatform.timeBasedMovement != 0;
+	mover->mInReverse = m_PathReverse;
+	MoverProcessStateChange(m_StartWaypoint);
+	const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
+	if (startOnLoad) MoverResumeTravelling();
+}
+
+// LWOMovingPlatformComponent::SetCurrentPath 0x00d0f570 (the SetCurrentPath game message, 0x00d0f5d0): the path, the
+// waypoint it starts at and its direction, then SetupPlatform 0x00ccea50 makes the subcomponents anew and a mover takes
+// the path. Live wrote the path to the clients with the mover (the GF shooting gallery's targets), whose
+// LWOMovingPlatformComponent::Deserialize 0x00c88000 does the same there.
+bool MovingPlatformComponent::SetCurrentPath(const std::string& pathName, const uint32_t startPoint, const bool reverse) {
+	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
+	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
+	m_PathReverse = reverse;
+	m_DirtyPath = true;
+	m_PathingStopped = false;
+
+	for (auto& subComponent : m_SubComponents) {
+		if (subComponent->GetType() == eMoverSubComponentType::mover) subComponent = std::make_unique<MoverSubComponent>(m_Parent->GetPosition());
+		else if (subComponent->GetType() == eMoverSubComponentType::rotater) subComponent = std::make_unique<RotatorSubComponent>(m_Parent->GetPosition());
+	}
+
+	const bool mover = IsMover();
+	if (mover) {
+		m_StartWaypoint = static_cast<size_t>(startPoint) < m_Path->pathWaypoints.size() ? startPoint : 0;
+		SetupMoverPath();
+		MoveObject();
+	} else {
+		m_StartWaypoint = startPoint;
+		if (m_Path == nullptr) LOG("Cannot setup platform on path %s", pathName.c_str());
+	}
+	Game::entityManager->SerializeEntity(m_Parent);
+	return mover;
 }
 
 MovingPlatformComponent::~MovingPlatformComponent() = default;
@@ -210,11 +244,13 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 
 	// LWOMovingPlatformComponent::Deserialize: whether subcomponents follow, whether the path changed (then whether
 	// there is one: its name, starting waypoint and reverse), then the subcomponents. Live wrote the path with the
-	// construction and the mover's state with every serialization.
+	// construction and the mover's state with every serialization; a path set later (SetCurrentPath) is written once.
 	outBitStream.Write<bool>(true);
 
-	outBitStream.Write(bIsInitialUpdate);
-	if (bIsInitialUpdate) {
+	const bool writePath = bIsInitialUpdate || m_DirtyPath;
+	outBitStream.Write(writePath);
+	if (writePath) {
+		if (!bIsInitialUpdate) m_DirtyPath = false;
 		const auto hasPath = !m_PathName.empty() && m_Path != nullptr;
 		outBitStream.Write(hasPath);
 		if (hasPath) {
@@ -223,7 +259,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 				outBitStream.Write<uint16_t>(c);
 			}
 			outBitStream.Write<uint32_t>(m_StartWaypoint);
-			outBitStream.Write<bool>(false);
+			outBitStream.Write<bool>(m_PathReverse);
 		}
 	}
 

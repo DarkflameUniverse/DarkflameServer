@@ -337,3 +337,56 @@ TEST_F(MovingPlatformComponentTest, MoverCarriesItsObject) {
 	EXPECT_EQ(entity.GetPosition(), NiPoint3(10.0f, 0.0f, 0.0f));
 	EXPECT_NEAR(std::abs(entity.GetRotation().y), 1.0f, 0.001f);
 }
+
+// SetCurrentPath (live's shooting gallery script puts its moving platform targets on their paths with it): the mover
+// starts over at the path's waypoint, waiting there as live constructed the targets (9), and the path is written once
+TEST_F(MovingPlatformComponentTest, SetCurrentPathPutsTheMoverOnThePath) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestTargetPath";
+	path.pathBehavior = PathBehavior::Once;
+	PathWaypoint first;
+	first.position = NiPoint3(1.0f, 2.0f, 3.0f);
+	first.speed = 10.0f;
+	PathWaypoint second = first;
+	second.position = NiPoint3(1.0f, 2.0f, 23.0f);
+	PathWaypoint third = first;
+	third.position = NiPoint3(1.0f, 2.0f, 43.0f);
+	path.pathWaypoints = { first, second, third };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	Entity entity(288300744895900111, info);
+	entity.AddComponent<SimplePhysicsComponent>(-1);
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(0, "");
+	ASSERT_EQ(platform->GetMoverSubComponentType(), eMoverSubComponentType::mover);
+	EXPECT_FALSE(platform->IsMover());
+	EXPECT_FALSE(platform->SetCurrentPath("NoSuchPath"));
+
+	ASSERT_TRUE(platform->SetCurrentPath("TestTargetPath", 0));
+	ASSERT_TRUE(platform->IsMover());
+	auto* const mover = platform->GetMoverSubComponent();
+	EXPECT_EQ(mover->mState, 9u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
+	EXPECT_EQ(mover->mNextWaypointIndex, 1u);
+	EXPECT_EQ(entity.GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
+
+	// 1 (subcomponents), 1 (the path changed), 1 (there is one), its name's length
+	RakNet::BitStream withPath;
+	platform->Serialize(withPath, false);
+	EXPECT_EQ(Bits(withPath).substr(0, 3 + 16), "111" "0000111000000000");
+	RakNet::BitStream withoutPath;
+	platform->Serialize(withoutPath, false);
+	EXPECT_EQ(Bits(withoutPath).substr(0, 2), "10");
+
+	// It leaves after the shortest wait and passes the middle waypoint waiting there (9), as the live targets did
+	platform->Run(0.11f);
+	EXPECT_EQ(mover->mState, 2u);
+	platform->Run(2.1f);
+	EXPECT_EQ(mover->mState, 9u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+	platform->Run(0.11f);
+	EXPECT_EQ(mover->mState, 2u);
+	platform->Run(2.1f);
+	EXPECT_EQ(mover->mState, 28u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 2u);
+}
