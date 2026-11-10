@@ -97,7 +97,9 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   over. Properties are never moved (unsaved building): they keep the old build until everyone left, their players are
   reminded every 10 minutes, and instances on the old build take nobody new. See [docs/LiveUpdate.md](docs/LiveUpdate.md).
 * **Instance replace and merge:** move an instance's players to another instance of the same zone (GM commands and
-  master coordination). See [docs/SeamlessTransfer.md](docs/SeamlessTransfer.md).
+  master coordination). In the opt-in seamless mode a move within a zone keeps the player in scope and in place and
+  leaves out the white fade (merged 2026-11-10): the player's construction can leave out its position and world
+  transition, and taking every object from a client can leave one out. See [docs/SeamlessTransfer.md](docs/SeamlessTransfer.md).
 * Master's failed server starts no longer leave a second master running.
 
 ### Gameplay and world
@@ -107,6 +109,14 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   techniques and adjusted config), sounds and particles; scene objects of LOT 1 are not loaded. Brick by brick: splitting
   and normalizing a save moves only the bones (rigids stay as sent), each model is placed by the bottom middle of its
   bricks' boxes from the client's brickdb, and every save is kept as sent before it is split (`ugc_unsplit`).
+* **Component audit, rounds 2 to 4 (merged 2026-11-10):** what the server writes and saves for components, as live
+  did. A character saves its attributes, play time (the time before the session and the time in it), mount item and
+  mount save; the character data carries the reputation and the world keys. Constructions keep changes that were
+  still pending (health, quick build, equipment, physics effects and more), and an activity, a LUP exhibit, a chest, a
+  choice build, a roller, a trigger and a collectible are written as the client reads them. A launch pad checks its
+  level, GM level and launch precondition, a rail its state and preconditions, a property rent the level's mission.
+  Run speed modifiers stack as the client's do, a worn jetpack works again after a world change, and a player with
+  PVP on is not its own enemy.
 * **Properties:** optional rent; reputation from visitors that resists farming; best friends of the owner can build
   while the owner has build mode on (off by default); models remember who placed them; optionally log back in on a
   property.
