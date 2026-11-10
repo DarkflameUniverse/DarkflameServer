@@ -14,6 +14,7 @@
 #include "Entity.h"
 #include "StringifiedEnum.h"
 #include "Amf3.h"
+#include "GameMessages.h"
 #include "ObjectLoadState.h"
 #include "PhantomPhysicsComponent.h"
 
@@ -112,4 +113,17 @@ void SimplePhysicsComponent::Allocator(Entity& entity, ObjectLoadState& state) {
 		if (state.markedAsPhantom) entity.AddComponent<PhantomPhysicsComponent>(simplePhysicsComponentID)->SetPhysicsEffectActive(false);
 		else entity.AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 	}
+}
+
+bool SimplePhysicsComponent::OnSetAngularVelocity(GameMessages::SetAngularVelocity& setAngVel) {
+	m_DirtyVelocity |= setAngVel.bForceFlagDirty || (m_AngularVelocity != setAngVel.angVelocity);
+	m_AngularVelocity = setAngVel.angVelocity;
+	LOG_DEBUG("Angular velocity is now %f %f %f", m_AngularVelocity.x, m_AngularVelocity.y, m_AngularVelocity.z);
+	Game::entityManager->SerializeEntity(m_Parent);
+	return true;
+}
+
+bool SimplePhysicsComponent::OnGetAngularVelocity(GameMessages::GetAngularVelocity& getAngVel) {
+	getAngVel.angVelocity = m_AngularVelocity;
+	return true;
 }

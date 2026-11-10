@@ -363,3 +363,9 @@ const Path* Zone::GetPath(std::string name) const {
 
 	return nullptr;
 }
+
+const SceneRef* Zone::GetScene(LWOSCENEID sceneID) const {
+	auto it = m_Scenes.find(sceneID);
+	if (it != m_Scenes.end()) return &it->second;
+	return nullptr;
+}
