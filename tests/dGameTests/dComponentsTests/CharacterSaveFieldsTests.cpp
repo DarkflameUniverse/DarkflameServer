@@ -17,6 +17,7 @@
 
 #include "tinyxml2.h"
 
+#include <ctime>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -113,6 +114,81 @@ TEST_F(CharacterSaveFieldsTests, TooltipFlagsMissingInOldSave) {
 	EXPECT_EQ(characterComponent->GetTooltipFlags(), 0u);
 	characterComponent->WriteSaveData(doc);
 	EXPECT_STREQ(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("ttip"), "0");
+}
+
+// The <char> attributes live wrote on every character and the client reads: cm, edit, mldt, gid, gn, v, vd and the
+// last respawn point. A save that has them keeps what the server does not own, and nothing touches the coins.
+TEST_F(CharacterSaveFieldsTests, LiveCharacterAttributesRoundTrip) {
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"><mf/><char cc="22609" cm="5000" ls="0" mldt="1301715419" v="1" vd="1" lrx="1" lry="2" lrz="3" lrrx="0" lrry="0.5" lrrz="0" lrrw="0.5" stime="349" lzcs="2233038349"/></obj>)");
+
+	Character character(1, nullptr);
+	Entity player(40, info);
+	auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	characterComponent->LoadFromSaveData(doc);
+	EXPECT_EQ(characterComponent->GetVotesLeft(), 1);
+	EXPECT_EQ(characterComponent->GetVoteDay(), 1u);
+
+	characterComponent->WriteSaveData(doc);
+	const auto* const saved = doc.FirstChildElement("obj")->FirstChildElement("char");
+	EXPECT_STREQ(saved->Attribute("cc"), "22609");
+	EXPECT_STREQ(saved->Attribute("cm"), "5000"); // kept, not replaced and not applied
+	EXPECT_STREQ(saved->Attribute("mldt"), "1301715419");
+	EXPECT_STREQ(saved->Attribute("edit"), "0");
+	EXPECT_STREQ(saved->Attribute("gid"), "0");
+	EXPECT_STREQ(saved->Attribute("gn"), "");
+	// A new day: the votes are filled up
+	const uint64_t today = static_cast<uint64_t>(std::time(nullptr)) / 86400;
+	EXPECT_LE(saved->Unsigned64Attribute("vd") - today, 1u); // (the day may turn during the test)
+	EXPECT_STREQ(saved->Attribute("v"), "3");
+	// No respawn point was reached in this world: the saved one stays
+	EXPECT_STREQ(saved->Attribute("lrx"), "1");
+	EXPECT_STREQ(saved->Attribute("lrrw"), "0.5");
+	// Not written by the server: left alone
+	EXPECT_STREQ(saved->Attribute("stime"), "349");
+	EXPECT_STREQ(saved->Attribute("lzcs"), "2233038349");
+
+	// The same day: the votes left are kept
+	Entity reloaded(41, info);
+	auto* const reloadedComponent = reloaded.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	doc.FirstChildElement("obj")->FirstChildElement("char")->SetAttribute("v", 2);
+	reloadedComponent->LoadFromSaveData(doc);
+	EXPECT_EQ(reloadedComponent->GetVotesLeft(), 2);
+	reloadedComponent->SetGuild(77, u"Builders");
+	reloadedComponent->WriteSaveData(doc);
+	EXPECT_STREQ(saved->Attribute("v"), "2");
+	EXPECT_STREQ(saved->Attribute("gid"), "77");
+	EXPECT_STREQ(saved->Attribute("gn"), "Builders");
+}
+
+// Saves from before they were written load as before and gain them with the values live had: the coins are not
+// touched and cm is the client's own "no limit".
+TEST_F(CharacterSaveFieldsTests, LiveCharacterAttributesMissingInOldSave) {
+	tinyxml2::XMLDocument doc;
+	Parse(doc, R"(<obj v="1"><mf/><char acct="1" cc="123456789012" gm="0" ls="15700" ttip="4" time="54390"/></obj>)");
+
+	Character character(1, nullptr);
+	Entity player(42, info);
+	auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	characterComponent->LoadFromSaveData(doc);
+	EXPECT_EQ(characterComponent->GetVotesLeft(), 3);
+	EXPECT_EQ(characterComponent->GetTooltipFlags(), 4u);
+	EXPECT_EQ(characterComponent->GetUScore(), 15700);
+
+	characterComponent->WriteSaveData(doc);
+	const auto* const saved = doc.FirstChildElement("obj")->FirstChildElement("char");
+	EXPECT_STREQ(saved->Attribute("cc"), "123456789012");
+	EXPECT_STREQ(saved->Attribute("acct"), "1");
+	EXPECT_STREQ(saved->Attribute("ls"), "15700");
+	EXPECT_STREQ(saved->Attribute("cm"), "9223372036854775807");
+	EXPECT_STREQ(saved->Attribute("edit"), "0");
+	EXPECT_STREQ(saved->Attribute("mldt"), "0");
+	EXPECT_STREQ(saved->Attribute("gid"), "0");
+	EXPECT_STREQ(saved->Attribute("gn"), "");
+	EXPECT_STREQ(saved->Attribute("v"), "3");
+	EXPECT_NE(saved->Attribute("vd"), nullptr);
+	EXPECT_EQ(saved->Attribute("lrx"), nullptr); // no respawn point reached yet
+	EXPECT_EQ(saved->Attribute("stime"), nullptr);
 }
 
 // <skil sc>: the cooldown groups still running and the seconds left, as live wrote them (sc="17:15.6958;") and the

@@ -290,6 +290,8 @@ void Character::SaveXMLToDatabase() {
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
 			character->SetAttribute("lzid", lzidConcat);
+			// The checksum of that zone, as live wrote next to it (LWOCharacterComponent::LoadFromSaveData 0x00ca4910 reads it)
+			character->SetAttribute("lzcs", Game::zoneManager->GetZone()->GetChecksum());
 			character->SetAttribute("lnzid", GetLastNonInstanceZoneID());
 
 			//Darwin's backup:

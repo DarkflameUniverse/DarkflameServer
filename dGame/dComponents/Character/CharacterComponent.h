@@ -368,6 +368,11 @@ public:
 	void SetTooltipFlag(int32_t tooltip, bool flag);
 	uint64_t GetTooltipFlags() const { return m_TooltipFlags; }
 
+	// WorldConfig's character_votes_per_day
+	static constexpr int32_t VOTES_PER_DAY = 3;
+	int32_t GetVotesLeft() const { return m_VotesLeft; }
+	uint64_t GetVoteDay() const { return m_VoteDay; }
+
 	uint64_t GetTotalTimePlayed() const { return m_TotalTimePlayed; };
 
 	/**
@@ -407,6 +412,11 @@ private:
 
 	// The tooltips the player has seen, one bit each (char@ttip)
 	uint64_t m_TooltipFlags{};
+
+	// The votes the character has left today (char@v) and the day, in days since 1970, they were last filled up on
+	// (char@vd), as LWOCharacterComponent::LoadFromSaveData (0x00ca4910) reads them for GetVotesLeft
+	int32_t m_VotesLeft = VOTES_PER_DAY;
+	uint64_t m_VoteDay{};
 
 	/**
 	 * The lifetime reputation earned by the entity

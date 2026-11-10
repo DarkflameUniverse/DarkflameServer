@@ -1,3 +1,4 @@
+#include <limits>
 #include "CharacterComponent.h"
 #include "BitStream.h"
 #include "tinyxml2.h"
@@ -328,6 +329,12 @@ void CharacterComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	m_TooltipFlags = 0;
 	character->QueryUnsigned64Attribute("ttip", &m_TooltipFlags);
 
+	// Saves from before these were written have neither: a full day's votes, filled up at the next save
+	m_VotesLeft = VOTES_PER_DAY;
+	m_VoteDay = 0;
+	character->QueryIntAttribute("v", &m_VotesLeft);
+	character->QueryUnsigned64Attribute("vd", &m_VoteDay);
+
 	// Load the statistics
 	const auto* statisticsAttribute = character->FindAttribute("stt");
 	if (statisticsAttribute) {
@@ -448,6 +455,36 @@ void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	character->SetAttribute("ls", m_Uscore);
 	// Live wrote ttip on every character, 0 when no tooltip was flagged
 	character->SetAttribute("ttip", m_TooltipFlags);
+	// Live wrote these on every character (450 of 450 saves that had been saved once); the client reads them in
+	// LWOCharacterComponent::LoadFromSaveData (0x00ca4910).
+	// cm, the most coins the character can hold: always 9223372036854775807 on live, the client's own value without
+	// it. Nothing here caps coins by it, and one that is already in the save is left as it is.
+	if (!character->FindAttribute("cm")) character->SetAttribute("cm", std::numeric_limits<int64_t>::max());
+	// edit, the editor level: the client takes anything but 0 as the editor being on
+	character->SetAttribute("edit", m_EditorEnabled ? static_cast<uint32_t>(m_EditorLevel) : 0u);
+	// mldt, when the property moderation notice was last shown: not kept here, 0 as on most live saves
+	if (!character->FindAttribute("mldt")) character->SetAttribute("mldt", 0);
+	// gid and gn, the guild (0 and empty without one)
+	character->SetAttribute("gid", static_cast<int64_t>(m_GuildID));
+	character->SetAttribute("gn", GeneralUtils::UTF16ToWTF8(m_GuildName).c_str());
+	// v and vd, the votes left and the day they are for: a new day fills them up
+	const uint64_t today = static_cast<uint64_t>(std::time(nullptr)) / 86400;
+	if (m_VoteDay != today) {
+		m_VotesLeft = VOTES_PER_DAY;
+		m_VoteDay = today;
+	}
+	character->SetAttribute("v", m_VotesLeft);
+	character->SetAttribute("vd", m_VoteDay);
+	// lrx.., the last respawn point reached, once one was reached in this world
+	if (m_respawnPos != NiPoint3Constant::ZERO) {
+		character->SetAttribute("lrx", m_respawnPos.x);
+		character->SetAttribute("lry", m_respawnPos.y);
+		character->SetAttribute("lrz", m_respawnPos.z);
+		character->SetAttribute("lrrx", m_respawnRot.x);
+		character->SetAttribute("lrry", m_respawnRot.y);
+		character->SetAttribute("lrrz", m_respawnRot.z);
+		character->SetAttribute("lrrw", m_respawnRot.w);
+	}
 	// Custom attribute to keep track of reputation.
 	character->SetAttribute("rpt", GetReputation());
 	character->SetAttribute("stt", StatisticsToString().c_str());
