@@ -70,6 +70,7 @@
 #include "Entity.h"
 #include "Character.h"
 #include "ChatPackets.h"
+#include "ChatRouting.h"
 #include "ScriptedActivityComponent.h"
 #include "eReplicaComponentType.h"
 #include "WorldRoutePacket.h"
@@ -1564,13 +1565,23 @@ namespace {
 				return;
 			}
 
-			//We need to insert the player's objectID so the chat server can find who originated this request:
-			LWOOBJID objectID = 0;
-			auto user = UserManager::Instance()->GetUser(sysAddr);
-			if (user) {
-				const auto* const lastChar = user->GetLastUsedChar();
-				if (lastChar) objectID = lastChar->GetObjectID();
+			// The chat server looks the sender up by this ID, so there has to be a character to send as
+			auto* const user = UserManager::Instance()->GetUser(sysAddr);
+			const auto* const lastChar = user ? user->GetLastUsedChar() : nullptr;
+			if (!lastChar) {
+				LOG("Tried to route a chat packet without a character.");
+				return;
 			}
+
+			// The whole 32 bit ID is checked, the chat server gets its first byte
+			const auto chatMessageId = static_cast<MessageType::Chat>(routedMessageID);
+			if (!ChatRouting::CanRoute(chatMessageId, lastChar->GetGMLevel())) {
+				LOG("Character %llu tried to route chat message %u, which they may not send.", lastChar->GetObjectID(), routedMessageID);
+				return;
+			}
+
+			//We need to insert the player's objectID so the chat server can find who originated this request:
+			const LWOOBJID objectID = lastChar->GetObjectID();
 
 			ChatServerLink::Send(ToChat(objectID), SYSTEM_PRIORITY, RELIABLE_ORDERED);
 		}
