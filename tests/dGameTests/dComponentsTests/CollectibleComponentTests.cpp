@@ -2,6 +2,7 @@
 // the player has that mission.
 #include "GameDependencies.h"
 
+#include "BitStream.h"
 #include "GameMessages.h"
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
@@ -58,6 +59,24 @@ TEST_F(CollectibleComponentTests, RequirementMissionIsRead) {
 	EXPECT_EQ(object.AddComponent<CollectibleComponent>(78, 5)->GetRequirementMission(), 2040);
 	Entity other(41, info);
 	EXPECT_EQ(other.AddComponent<CollectibleComponent>(999, 5)->GetRequirementMission(), -1); // no row
+}
+
+// LWOCollectibleComponent::Deserialize reads the 16-bit id on construction and nothing on an update. DLU wrote the id
+// on updates too, which the client read as the next components' flag bits.
+TEST_F(CollectibleComponentTests, TheIdIsWrittenOnConstructionOnly) {
+	Entity object(22, info);
+	auto* const collectible = object.AddComponent<CollectibleComponent>(78, 5);
+
+	RakNet::BitStream construction;
+	collectible->Serialize(construction, true);
+	ASSERT_EQ(construction.GetNumberOfBitsUsed(), 16u);
+	int16_t id{};
+	construction.Read(id);
+	EXPECT_EQ(id, 5);
+
+	RakNet::BitStream update;
+	collectible->Serialize(update, false);
+	EXPECT_EQ(update.GetNumberOfBitsUsed(), 0u);
 }
 
 TEST_F(CollectibleComponentTests, AchievementsAndMissingMissionsAlwaysCount) {
