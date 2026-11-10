@@ -640,6 +640,13 @@ json ToJson(const ClientPackets::CreateCharacter& m) {
 	j["reputation"] = ToJson(m.reputation);
 	j["propertyCloneID"] = ToJson(m.propertyCloneID);
 	j["txfring"] = ToJson(m.txfring);
+	j["sendWorldKeys"] = ToJson(m.sendWorldKeys);
+	j["legoClub"] = ToJson(m.legoClub);
+	j["freeTrial"] = ToJson(m.freeTrial);
+	j["requiresRename"] = ToJson(m.requiresRename);
+	j["levelID"] = ToJson(m.levelID);
+	j["position"] = ToJson(m.position);
+	j["rotation"] = ToJson(m.rotation);
 	return j;
 }
 json ToJson(const ClientPackets::ChatModerationString& m) {

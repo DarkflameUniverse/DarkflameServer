@@ -27,6 +27,7 @@
 #include "MessageType/Client.h"
 #include "MessageType/Game.h"
 #include "NiPoint3.h"
+#include "NiQuaternion.h"
 #include "Stamps.h"
 
 enum class eCharacterCreationResponse : uint8_t;
@@ -189,6 +190,15 @@ namespace ClientPackets {
 		// packet, and with it false the client shows inventory-full tips on every world load. Not written when false
 		// (the client's default).
 		bool txfring = true;
+		// The keys below were in every live character data packet. LWOCharacterComponent::LoadConfigData (0x00c70f00)
+		// reads requiresrename, legoclub and freetrial. Not written when sendWorldKeys is false.
+		bool sendWorldKeys = true;
+		bool legoClub = true;
+		bool freeTrial = false;
+		bool requiresRename = false; // The name was refused and a new one is asked for
+		uint64_t levelID{}; // map id, instance id << 16, clone id << 32
+		NiPoint3 position{};
+		NiQuaternion rotation = QuatUtils::IDENTITY;
 
 		CreateCharacter() : LUBitStream(ServiceType::CLIENT, MessageType::Client::CREATE_CHARACTER) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;

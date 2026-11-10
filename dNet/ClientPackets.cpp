@@ -251,6 +251,19 @@ namespace ClientPackets {
 		ldfData.Insert<int64_t>(u"reputation", reputation);
 		ldfData.Insert<int32_t>(u"propertycloneid", propertyCloneID);
 		if (txfring) ldfData.Insert<bool>(u"txfring", true);
+		if (sendWorldKeys) {
+			ldfData.Insert<bool>(u"legoclub", legoClub);
+			ldfData.Insert<bool>(u"freetrial", freeTrial);
+			ldfData.Insert<bool>(u"requiresrename", requiresRename);
+			ldfData.Insert<uint64_t>(u"levelid", levelID);
+			ldfData.Insert<float>(u"position.x", position.x);
+			ldfData.Insert<float>(u"position.y", position.y);
+			ldfData.Insert<float>(u"position.z", position.z);
+			ldfData.Insert<float>(u"rotation.x", rotation.x);
+			ldfData.Insert<float>(u"rotation.y", rotation.y);
+			ldfData.Insert<float>(u"rotation.z", rotation.z);
+			ldfData.Insert<float>(u"rotation.w", rotation.w);
+		}
 
 		data.Write<uint32_t>(ldfData.values.size());
 		for (const auto& toSerialize : ldfData | std::views::values) toSerialize->WriteToPacket(data);
@@ -309,6 +322,8 @@ namespace ClientPackets {
 
 		RakNet::BitStream data(uncompressed.data(), uncompressed.size(), false);
 		txfring = false; // the client's value without the key
+		sendWorldKeys = false;
+		legoClub = false;
 		uint32_t count{};
 		VALIDATE_READ(data.Read(count));
 		for (uint32_t i = 0; i < count; i++) {
@@ -349,6 +364,27 @@ namespace ClientPackets {
 				uint8_t value{};
 				VALIDATE_READ(data.Read(value));
 				if (key == u"txfring") txfring = value != 0;
+				else if (key == u"legoclub") legoClub = value != 0;
+				else if (key == u"freetrial") freeTrial = value != 0;
+				else if (key == u"requiresrename") requiresRename = value != 0;
+				break;
+			}
+			case LDF_TYPE_U64: {
+				uint64_t value{};
+				VALIDATE_READ(data.Read(value));
+				if (key == u"levelid") { levelID = value; sendWorldKeys = true; }
+				break;
+			}
+			case LDF_TYPE_FLOAT: {
+				float value{};
+				VALIDATE_READ(data.Read(value));
+				if (key == u"position.x") position.x = value;
+				else if (key == u"position.y") position.y = value;
+				else if (key == u"position.z") position.z = value;
+				else if (key == u"rotation.x") rotation.x = value;
+				else if (key == u"rotation.y") rotation.y = value;
+				else if (key == u"rotation.z") rotation.z = value;
+				else if (key == u"rotation.w") rotation.w = value;
 				break;
 			}
 			default:

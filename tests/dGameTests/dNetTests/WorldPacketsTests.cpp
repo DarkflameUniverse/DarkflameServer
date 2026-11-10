@@ -310,6 +310,7 @@ TEST_F(WorldPacketsTests, CreateCharacterMatchesLegacy) {
 					packet.reputation = reputation;
 					packet.propertyCloneID = cloneID;
 					packet.txfring = false; // the legacy sender never wrote it
+					packet.sendWorldKeys = false; // nor the world keys
 					ExpectSameSend([&](const SystemAddress& a) { LegacyWorldPackets::SendCreateCharacter(a, reputation, objectID, xml, name, gm, cloneID); }, packet);
 
 					const auto copy = RoundTrip(packet);
@@ -338,6 +339,30 @@ TEST_F(WorldPacketsTests, CreateCharacterSendsTxfring) {
 
 	packet.txfring = false;
 	EXPECT_FALSE(RoundTrip(packet).txfring);
+}
+
+// Live sent legoclub=1, freetrial=0, requiresrename=0, levelid and position / rotation in 451 of 451 character data packets
+TEST_F(WorldPacketsTests, CreateCharacterSendsTheWorldKeys) {
+	ClientPackets::CreateCharacter packet;
+	packet.xmlData = "<obj/>";
+	packet.requiresRename = true;
+	packet.levelID = 1200ULL | 7ULL << 16 | 99ULL << 32;
+	packet.position = NiPoint3(1.5f, -2.0f, 3.25f);
+	packet.rotation = NiQuaternion(0.5f, 0.1f, 0.2f, 0.3f);
+	const auto copy = RoundTrip(packet);
+	EXPECT_TRUE(copy.sendWorldKeys);
+	EXPECT_TRUE(copy.legoClub);
+	EXPECT_FALSE(copy.freeTrial);
+	EXPECT_TRUE(copy.requiresRename);
+	EXPECT_EQ(copy.levelID, packet.levelID);
+	EXPECT_EQ(copy.position, packet.position);
+	EXPECT_EQ(copy.rotation, packet.rotation);
+
+	packet.sendWorldKeys = false;
+	const auto without = RoundTrip(packet);
+	EXPECT_FALSE(without.sendWorldKeys);
+	EXPECT_FALSE(without.legoClub); // the client's value without the key
+	EXPECT_FALSE(without.requiresRename);
 }
 
 TEST_F(WorldPacketsTests, CharacterListMatchesLegacy) {
