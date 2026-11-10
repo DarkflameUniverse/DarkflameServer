@@ -47,7 +47,7 @@ Level::Level(Zone* parentZone, const std::string& filepath, int32_t sceneID) {
 		static_cast<LevelFile::ChunkHeader&>(header) = chunkHeader;
 		m_ChunkHeaders.insert(std::make_pair(id, header));
 	}
-	LoadSceneObjects(levelFile.objects);
+	LoadSceneObjects(levelFile.objects, m_SceneID);
 }
 
 void Level::MakeSpawner(const SceneObject& obj, int32_t sceneID) {
@@ -120,7 +120,18 @@ void Level::MakeSpawner(const SceneObject& obj, int32_t sceneID) {
 	Game::zoneManager->MakeSpawner(spawnInfo);
 }
 
-void Level::LoadSceneObjects(const std::vector<SceneObject>& objects) {
+void Level::LoadSceneObjects(const std::vector<SceneObject>& objects, const int32_t sceneID) {
+	// Edit mode: the GM's client has the level's objects from its own files, so none is made here. The oldest files
+	// keep the spawn point in an object, which is still read.
+	if (Game::zoneManager->GetEditMode()) {
+		for (const auto& obj : objects) {
+			if (obj.lot != LOT_MARKER_PLAYER_START) continue;
+			Game::zoneManager->GetZoneMut()->SetSpawnPos(obj.position);
+			Game::zoneManager->GetZoneMut()->SetSpawnRot(obj.rotation);
+		}
+		return;
+	}
+
 	CDFeatureGatingTable* featureGatingTable = CDClientManager::GetTable<CDFeatureGatingTable>();
 
 	CDFeatureGating gating;
@@ -181,7 +192,7 @@ void Level::LoadSceneObjects(const std::vector<SceneObject>& objects) {
 		}
 
 		if (obj.lot == 176) { //Spawner
-			MakeSpawner(obj, m_SceneID);
+			MakeSpawner(obj, sceneID);
 		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
@@ -191,7 +202,7 @@ void Level::LoadSceneObjects(const std::vector<SceneObject>& objects) {
 			info.rot = obj.rotation;
 			info.settings = obj.settings;
 			info.scale = obj.scale;
-			info.scene = m_SceneID;
+			info.scene = sceneID;
 			Game::entityManager->CreateEntity(info);
 		}
 	}

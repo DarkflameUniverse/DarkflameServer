@@ -20,11 +20,12 @@ public:
 
 	static void MakeSpawner(const SceneObject& obj, int32_t sceneID = -1);
 
+	// Makes the objects and spawners of a level file. In edit mode (dZoneManager::GetEditMode) none: only the player
+	// start marker's place is taken
+	static void LoadSceneObjects(const std::vector<SceneObject>& objects, int32_t sceneID = -1);
+
 	std::map<uint32_t, Header> m_ChunkHeaders;
 private:
 	Zone* m_ParentZone;
 	int32_t m_SceneID = -1;
-
-	//private functions:
-	void LoadSceneObjects(const std::vector<SceneObject>& objects);
 };

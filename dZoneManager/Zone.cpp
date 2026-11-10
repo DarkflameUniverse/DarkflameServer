@@ -138,7 +138,8 @@ void Zone::LoadZoneIntoMemory() {
 			}
 		}
 
-		if (m_FileFormatVersion >= Zone::FileFormatVersion::EarlyAlpha) {
+		// Edit mode: no spawner networks (the paths themselves are kept, they are only data)
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::EarlyAlpha && !Game::zoneManager->GetEditMode()) {
 			for (const Path& path : m_Paths) {
 				if (path.pathType != PathType::Spawner) continue;
 				SpawnerInfo info{};
@@ -286,7 +287,8 @@ void Zone::LoadScene(ZoneScene&& zoneScene) {
 	LWOSCENEID lwoSceneID(scene.id, scene.sceneType);
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
-	if (Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) LoadLUTriggers(luTriggersPath, scene);
+	// Edit mode: no triggers
+	if (!Game::zoneManager->GetEditMode() && Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) LoadLUTriggers(luTriggersPath, scene);
 
 	m_Scenes[lwoSceneID] = std::move(scene);
 }

@@ -7,6 +7,7 @@ set(DGAMETEST_SOURCES
 	"MailPacketTests.cpp"
 	"MatchmakingTests.cpp"
 	"EconomyLedgerTests.cpp"
+	"EditModeTests.cpp"
 	"PlayerReportsLimitTests.cpp"
 	"SlashCommandPermissionTests.cpp"
 	"StaleSaveGuardTests.cpp"

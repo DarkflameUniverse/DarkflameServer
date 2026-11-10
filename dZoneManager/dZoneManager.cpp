@@ -57,8 +57,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	EntityInfo info;
 	info.lot = zoneControlTemplate;
 
-	/* Yep its hardcoded like this in the client too, this exact value. */
-	info.id = 0x3FFF'FFFFFFFELL;
+	info.id = ZONE_CONTROL_OBJECT_ID;
 	Entity* zoneControl = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
 	m_ZoneControlObject = zoneControl;
 
@@ -73,7 +72,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOG("Zone prepared in: %llu ms", (endTime - startTime));
 
-	VanityUtilities::SpawnVanity();
+	// The vanity objects are server objects the client's editor would not know
+	if (!m_EditMode) VanityUtilities::SpawnVanity();
+	else LOG("Zone %i is in edit mode: no level objects, spawners, triggers or vanity objects were loaded", zoneID.GetMapID());
 }
 
 dZoneManager::~dZoneManager() {
