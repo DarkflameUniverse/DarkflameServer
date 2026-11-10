@@ -172,9 +172,11 @@ void MovingPlatformComponent::LoadConfigData() {
 		SetupMoverPath();
 	} else if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
 		// LWOPlatformRotator: it only spins (rotX/rotY/rotZ at rate, its own path never arrives anywhere: its
-		// HandleStoppedLogic 0x00bdc660 only keeps the angular velocity), while travelling
+		// HandleStoppedLogic 0x00bdc660 only keeps the angular velocity), while travelling. Only one on a path runs
+		// (LWOMovingPlatformComponent::SetupPlatform 0x00ccea50), and the client reads a platform that is not at a
+		// waypoint from its path (LWOPlatform::Deserialize 0x00c870e0), so one without a path stays as it was made (12).
 		const bool startOnLoad = !m_Parent->HasVar(u"startPathingOnLoad") || m_Parent->GetVar<bool>(u"startPathingOnLoad");
-		if (startOnLoad) GetMoverSubComponent()->mState = ePlatformStateFlag::Travelling;
+		if (startOnLoad && m_Path != nullptr) GetMoverSubComponent()->mState = ePlatformStateFlag::Travelling;
 	}
 
 	// Live constructed every moving platform with simple physics as keyframed
@@ -381,7 +383,8 @@ void MovingPlatformComponent::StartPathing() {
 		return;
 	}
 	if (m_MoverSubComponentType == eMoverSubComponentType::rotater) {
-		// LWOPlatformRotator::StartLinearMovement: spinning again
+		// LWOPlatformRotator::StartLinearMovement: spinning again (only on a path, as above)
+		if (m_Path == nullptr) return;
 		GetMoverSubComponent()->mState = ePlatformStateFlag::Travelling;
 		Game::entityManager->SerializeEntity(m_Parent);
 		return;

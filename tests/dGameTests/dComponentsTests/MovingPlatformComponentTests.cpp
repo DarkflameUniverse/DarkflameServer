@@ -158,6 +158,10 @@ TEST_F(MovingPlatformComponentTest, RotaterIsWrittenAsTypeSix) {
 	ASSERT_EQ(platform->GetMoverSubComponentType(), eMoverSubComponentType::rotater);
 	ASSERT_NE(platform->GetMoverSubComponent(), nullptr);
 	platform->SetSerialized(true);
+	// Without a path it does not run: it stays stopped at its waypoint, also when started
+	EXPECT_EQ(platform->GetMoverSubComponent()->mState, 12u);
+	platform->StartPathing();
+	EXPECT_EQ(platform->GetMoverSubComponent()->mState, 12u);
 
 	RakNet::BitStream stream;
 	platform->Serialize(stream, true);
