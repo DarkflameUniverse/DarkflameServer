@@ -1,4 +1,5 @@
 #include "GMGreaterThanZeroCommands.h"
+#include "ControllablePhysicsComponent.h"
 #include "ChatServerLink.h"
 #include "DashboardNotify.h"
 #include "SlashCommandHandler.h"
@@ -206,6 +207,7 @@ namespace GMGreaterThanZeroCommands {
 				jetPackMode.target = entity->GetObjectID();
 				jetPackMode.bUse = false;
 				jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
+				if (auto* const physics = entity->GetComponent<ControllablePhysicsComponent>()) physics->SetJetPackMode(jetPackMode.bUse, jetPackMode.effectID, jetPackMode.bBypassChecks);
 
 				character->SetIsFlying(false);
 			} else {
@@ -235,6 +237,7 @@ namespace GMGreaterThanZeroCommands {
 				jetPackMode.fMaxAirspeed = maxAirSpeed;
 				jetPackMode.fVertVel = verticalVelocity;
 				jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
+				if (auto* const physics = entity->GetComponent<ControllablePhysicsComponent>()) physics->SetJetPackMode(jetPackMode.bUse, jetPackMode.effectID, jetPackMode.bBypassChecks);
 
 				character->SetIsFlying(true);
 			}

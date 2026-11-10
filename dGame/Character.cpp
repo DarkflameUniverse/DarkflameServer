@@ -54,6 +54,7 @@ void Character::UpdateInfoFromDatabase() {
 		m_NameRejected = charInfo->needsRename;
 		m_PropertyCloneID = charInfo->cloneId;
 		m_PermissionMap = charInfo->permissionMap;
+		m_SessionLogin = charInfo->lastLogin;
 	}
 
 	// Load the xmlData now. Loading takes the character over: saves from any server that loaded it before are refused.
@@ -290,6 +291,8 @@ void Character::SaveXMLToDatabase() {
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
 			character->SetAttribute("lzid", lzidConcat);
+			// The checksum of that zone, as live wrote next to it (LWOCharacterComponent::LoadFromSaveData 0x00ca4910 reads it)
+			character->SetAttribute("lzcs", Game::zoneManager->GetZone()->GetChecksum());
 			character->SetAttribute("lnzid", GetLastNonInstanceZoneID());
 
 			//Darwin's backup:

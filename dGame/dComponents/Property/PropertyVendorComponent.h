@@ -34,4 +34,16 @@ public:
 	 * @param count unused
 	 */
 	void OnBuyFromVendor(Entity* originator, bool confirmed, LOT lot, uint32_t count);
+
+	// PropertyRentalResponse code the client shows as "you failed to rent" with UGG_PROPRENT_Dont_have_achievement
+	// (LWOPropertyVendorComponent::onPropertyRentalResponse 0x00c56d70; 0 is a rented property)
+	static constexpr uint32_t RENTAL_MISSING_ACHIEVEMENT = 9;
+
+	// The level's property_required_mission (LWOPropertyVendorComponent::LoadConfigData 0x00c2e550), 0 without one
+	uint32_t GetRequiredMission() const;
+
+	// Whether the player has finished the level's property_required_mission, which the client asks for before the
+	// vendor can be used (LWOPropertyVendorComponent::onCheckUseRequirements 0x00c2e210). A vendor without the key
+	// asks for nothing here.
+	bool MayRent(Entity& player) const;
 };

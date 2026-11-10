@@ -162,7 +162,7 @@ void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIni
 			outBitStream.Write(m_ActivatorPosition);
 			outBitStream.Write(m_RepositionPlayer);
 		}
-		m_StateDirty = false;
+		if (!bIsInitialUpdate) m_StateDirty = false;
 	}
 }
 

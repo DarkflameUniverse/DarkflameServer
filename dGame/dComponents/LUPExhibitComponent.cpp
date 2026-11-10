@@ -16,8 +16,11 @@ void LUPExhibitComponent::NextLUPExhibit() {
 }
 
 void LUPExhibitComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
-	outBitStream.Write(m_DirtyLUPExhibit);
-	if (m_DirtyLUPExhibit) {
+	// LWOLUPExhibitComponent::Deserialize (0x00c63790) only learns the exhibit from this block, so a client the object
+	// comes into range of gets it too
+	const bool writeExhibit = bIsInitialUpdate || m_DirtyLUPExhibit;
+	outBitStream.Write(writeExhibit);
+	if (writeExhibit) {
 		outBitStream.Write(m_LUPExhibits[m_LUPExhibitIndex % m_LUPExhibits.size()]);
 		if (!bIsInitialUpdate) m_DirtyLUPExhibit = false;
 	}

@@ -30,7 +30,7 @@ RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent,
 // The RocketLaunchpadControlComponent row
 void RocketLaunchpadControlComponent::LoadDataFromTemplate() {
 	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
+		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName, gmLevel, useLaunchPrecondition, launchPrecondition FROM RocketLaunchpadControlComponent WHERE id = ?;");
 	query.bind(1, m_ComponentID);
 
 	auto result = query.execQuery();
@@ -41,9 +41,28 @@ void RocketLaunchpadControlComponent::LoadDataFromTemplate() {
 		m_TargetScene = result.getStringField("targetScene");
 		m_AltPrecondition = new PreconditionExpression(result.getStringField("altLandingPrecondition"));
 		m_AltLandingScene = result.getStringField("altLandingSpawnPointName");
+		m_GMLevel = result.getIntField("gmLevel", 0);
+		if (result.getIntField("useLaunchPrecondition", 0) != 0) m_LaunchPrecondition = result.getStringField("launchPrecondition", "");
 	}
 
 	result.finalize();
+}
+
+// The level's keys. LWORocketLaunchComponentCommon::LoadConfigData (0x00c55150) reads them into the fields the row
+// would fill, and the row replaces them only while rocketLaunchUseDBDefaults is true, its default (0x00c12ea0). A pad
+// that turns it off is ruled by its level: 31 pads in the 1.10.64 maps, whose zones and scenes are their rows' but
+// whose launch preconditions only the level has (the Venture Explorer's and Avant Gardens' pads).
+void RocketLaunchpadControlComponent::LoadConfigData() {
+	if (!m_Parent->HasVar(u"rocketLaunchUseDBDefaults") || m_Parent->GetVarAs<bool>(u"rocketLaunchUseDBDefaults")) return;
+
+	if (m_Parent->HasVar(u"targetZone")) m_TargetZone = m_Parent->GetVarAs<int32_t>(u"targetZone");
+	m_DefaultZone = m_Parent->GetVarAs<int32_t>(u"propertyDefaultTargetZone");
+	m_TargetScene = m_Parent->GetVarAsString(u"targetScene");
+	m_GMLevel = m_Parent->GetVarAs<int32_t>(u"GMLevel");
+	m_LaunchPrecondition = m_Parent->GetVarAs<bool>(u"rocketUseLaunchPrecondition") ? m_Parent->GetVarAsString(u"rocketLaunchPreCondition") : "";
+	m_AltLandingScene = m_Parent->GetVarAsString(u"rocketAltLandingSpawnName");
+	delete m_AltPrecondition;
+	m_AltPrecondition = new PreconditionExpression(m_Parent->GetVarAsString(u"rocketAltLandingPrecondition"));
 }
 
 RocketLaunchpadControlComponent::~RocketLaunchpadControlComponent() {
@@ -57,12 +76,19 @@ GameMessages::FireEventClientSide RocketLaunchpadControlComponent::MakeRocketEqu
 	return rocketEquipped;
 }
 
+bool RocketLaunchpadControlComponent::MayLaunch(Entity& player) const {
+	if (static_cast<int32_t>(player.GetGMLevel()) < m_GMLevel) return false;
+	return m_LaunchPrecondition.empty() || PreconditionExpression(m_LaunchPrecondition).Check(&player);
+}
+
 void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId, LWOCLONEID cloneId, int32_t worldIndex) {
 	auto zone = mapId == LWOMAPID_INVALID ? m_TargetZone : mapId;
 
 	if (zone == 0) {
 		return;
 	}
+
+	if (!MayLaunch(*originator)) return;
 
 	// This also gets triggered by a proximity monitor + item equip, I will set that up when havok is ready
 	auto* characterComponent = originator->GetComponent<CharacterComponent>();

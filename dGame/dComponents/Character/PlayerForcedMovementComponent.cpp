@@ -14,7 +14,7 @@ void PlayerForcedMovementComponent::Serialize(RakNet::BitStream& outBitStream, b
 		outBitStream.Write(m_PlayerOnRail);
 		outBitStream.Write(m_ShowBillboard);
 	}
-	m_DirtyInfo = false;
+	if (!bIsInitialUpdate) m_DirtyInfo = false;
 }
 
 void PlayerForcedMovementComponent::Allocator(Entity& entity, ObjectLoadState& state) {

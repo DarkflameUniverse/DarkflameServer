@@ -46,6 +46,9 @@ public:
 	 * Whether the rail can be used (level key rail_activator_active; every rail in the live levels has it set)
 	 */
 	bool GetActive() const { return m_Active; }
+
+	// The players that used the rail and have not left it yet
+	const std::vector<LWOOBJID>& GetEntitiesOnRail() const { return m_EntitiesOnRail; }
 	bool GetNoAggro() const { return m_NoAggro; }
 	bool GetShowNameBillboard() const { return m_ShowNameBillboard; }
 private:
@@ -130,6 +133,11 @@ private:
 	 * Client flag
 	 */
 	bool m_UseDB;
+
+	/**
+	 * The row's preconditions a player has to pass to use the rail
+	 */
+	std::string m_Preconditions;
 
 	/**
 	 * Client flag

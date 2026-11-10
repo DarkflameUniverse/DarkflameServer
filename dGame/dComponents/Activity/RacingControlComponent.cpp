@@ -3,6 +3,7 @@
  */
 
 #include "RacingControlComponent.h"
+#include "ControllablePhysicsComponent.h"
 
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
@@ -276,6 +277,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	jetPackMode.target = player->GetObjectID();
 	jetPackMode.bUse = false;
 	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	if (auto* const physics = player->GetComponent<ControllablePhysicsComponent>()) physics->SetJetPackMode(jetPackMode.bUse, jetPackMode.effectID, jetPackMode.bBypassChecks);
 
 	// Set the vehicle's state.
 	GameMessages::NotifyVehicleOfRacingObject notifyVehicle;

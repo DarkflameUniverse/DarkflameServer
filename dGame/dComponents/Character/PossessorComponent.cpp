@@ -38,7 +38,7 @@ PossessorComponent::~PossessorComponent() {
 void PossessorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write(m_DirtyPossesor || bIsInitialUpdate);
 	if (m_DirtyPossesor || bIsInitialUpdate) {
-		m_DirtyPossesor = false;
+		if (!bIsInitialUpdate) m_DirtyPossesor = false;
 		outBitStream.Write(m_Possessable != LWOOBJID_EMPTY);
 		if (m_Possessable != LWOOBJID_EMPTY) {
 			outBitStream.Write(m_Possessable);
@@ -70,6 +70,7 @@ void PossessorComponent::Mount(Entity* mount) {
 	jetPackMode.target = m_Parent->GetObjectID();
 	jetPackMode.bUse = false;
 	jetPackMode.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	if (auto* const physics = m_Parent->GetComponent<ControllablePhysicsComponent>()) physics->SetJetPackMode(jetPackMode.bUse, jetPackMode.effectID, jetPackMode.bBypassChecks);
 	if (mount->GetComponent<HavokVehiclePhysicsComponent>()) {
 		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SetIsRacing(true);

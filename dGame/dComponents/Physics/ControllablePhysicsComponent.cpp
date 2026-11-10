@@ -125,7 +125,9 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	outBitStream.Write(m_DirtyEquippedItemInfo || bIsInitialUpdate);
 	if (m_DirtyEquippedItemInfo || bIsInitialUpdate) {
 		outBitStream.Write(m_PickupRadius);
-		outBitStream.Write(m_InJetpackMode);
+		// LWOControllablePhysComponent::Deserialize (0x00c45770) reads this into the same flag as the jetpack block's
+		// flying bit; live wrote 0, also for players in jetpack mode (10,069 player constructions)
+		outBitStream.Write(m_JetpackFlying);
 
 		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
@@ -179,6 +181,12 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 			m_IsTeleporting = false;
 		}
 	}
+}
+
+void ControllablePhysicsComponent::SetJetPackMode(const bool use, const int32_t effectID, const bool bypassChecks) {
+	m_InJetpackMode = use;
+	m_JetpackEffectID = effectID;
+	m_JetpackBypassChecks = bypassChecks;
 }
 
 // A character's save, then where it comes into this world
@@ -325,8 +333,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 
 void ControllablePhysicsComponent::AddSpeedboost(float value) {
 	m_ActiveSpeedBoosts.push_back(value);
-	m_SpeedBoost = value;
-	SetSpeedMultiplier(value / 500.0f); // 500 being the base speed
+	UpdateSpeedBoost();
 }
 
 void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
@@ -338,16 +345,35 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 		return;
 	}
 
-	// Recalculate speedboost since we removed one
-	m_SpeedBoost = 500.0f; // Entities without level progression (enemies, pets) go back to the normal multiplier of 1
-	if (m_ActiveSpeedBoosts.empty()) { // no active speed boosts left, so return to base speed
+	UpdateSpeedBoost();
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void ControllablePhysicsComponent::UpdateSpeedBoost() {
+	// The client's rule (LWOControllablePhysComponent::msgAddRunspeedModifier 0x00be0af0, msgRemoveRunSpeedModifier
+	// 0x00be0720): a modifier over 1000 or of exactly the base 500 counts for nothing; with any slow (under 500) the
+	// lowest one is the speed, otherwise the highest boost is
+	constexpr float baseSpeed = 500.0f;
+	constexpr float maxModifier = 1000.0f;
+	float lowestSlow = baseSpeed;
+	float highestBoost = baseSpeed;
+	for (const auto boost : m_ActiveSpeedBoosts) {
+		if (boost > maxModifier) continue;
+		if (boost < lowestSlow) lowestSlow = boost;
+		if (boost > highestBoost) highestBoost = boost;
+	}
+
+	if (lowestSlow < baseSpeed) {
+		m_SpeedBoost = lowestSlow;
+	} else if (highestBoost > baseSpeed) {
+		m_SpeedBoost = highestBoost;
+	} else {
+		// No modifier counts: entities without level progression (enemies, pets) go back to the normal multiplier of 1
+		m_SpeedBoost = baseSpeed;
 		auto* levelProgressionComponent = m_Parent->GetComponent<LevelProgressionComponent>();
 		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
-	} else { // Used the last applied speedboost
-		m_SpeedBoost = m_ActiveSpeedBoosts.back();
 	}
-	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
-	Game::entityManager->SerializeEntity(m_Parent);
+	SetSpeedMultiplier(m_SpeedBoost / baseSpeed);
 }
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims) {

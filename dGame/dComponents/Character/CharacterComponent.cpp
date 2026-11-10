@@ -1,3 +1,4 @@
+#include <limits>
 #include "CharacterComponent.h"
 #include "WorldPackets.h"
 #include "BitStream.h"
@@ -81,7 +82,7 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 	cmptType.PushDebug<AMFIntValue>("Component ID") = GeneralUtils::ToUnderlying(ComponentType);
 	cmptType.PushDebug<AMFIntValue>("Character's account ID") = m_Character->GetParentUser()->GetAccountID();
 	cmptType.PushDebug<AMFBoolValue>("Last log out time") = m_Character->GetLastLogin();
-	cmptType.PushDebug<AMFDoubleValue>("Seconds played this session") = 0;
+	cmptType.PushDebug<AMFDoubleValue>("Seconds played this session") = m_SessionTimePlayed;
 	cmptType.PushDebug<AMFBoolValue>("Editor enabled") = false;
 	cmptType.PushDebug<AMFDoubleValue>("Total number of seconds played") = m_TotalTimePlayed;
 	cmptType.PushDebug<AMFStringValue>("Total currency") = std::to_string(m_Character->GetCoins());
@@ -246,11 +247,15 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		outBitStream.Write(m_GMLevel);
 		outBitStream.Write(m_EditorEnabled);
 		outBitStream.Write(m_EditorLevel);
+		if (!bIsInitialUpdate) m_DirtyGMInfo = false;
 	}
 
 	const bool writeCurrentActivity = bIsInitialUpdate || m_DirtyCurrentActivity;
 	outBitStream.Write(writeCurrentActivity);
-	if (writeCurrentActivity) outBitStream.Write(m_CurrentActivity);
+	if (writeCurrentActivity) {
+		outBitStream.Write(m_CurrentActivity);
+		if (!bIsInitialUpdate) m_DirtyCurrentActivity = false;
+	}
 
 	const bool writeSocialInfo = bIsInitialUpdate || m_DirtySocialInfo;
 	outBitStream.Write(writeSocialInfo);
@@ -325,6 +330,12 @@ void CharacterComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	m_TooltipFlags = 0;
 	character->QueryUnsigned64Attribute("ttip", &m_TooltipFlags);
 
+	// Saves from before these were written have neither: a full day's votes, filled up at the next save
+	m_VotesLeft = VOTES_PER_DAY;
+	m_VoteDay = 0;
+	character->QueryIntAttribute("v", &m_VotesLeft);
+	character->QueryUnsigned64Attribute("vd", &m_VoteDay);
+
 	// Load the statistics
 	const auto* statisticsAttribute = character->FindAttribute("stt");
 	if (statisticsAttribute) {
@@ -388,11 +399,22 @@ void CharacterComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 
 	LoadGuild();
 
-	if (character->FindAttribute("time")) {
-		character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);
-	} else {
-		m_TotalTimePlayed = 0;
-	}
+	// Play time as live saved it and the client reads it (LWOCharacterComponent::LoadFromSaveData 0x00ca4910): time is
+	// the total before the session, stime the seconds of the session so far; the client shows their sum (SendMessage
+	// 0x00d34330, GetTimePlayed). Saves from before stime was written hold everything in time.
+	uint64_t timeBeforeSession = 0;
+	character->QueryUnsigned64Attribute("time", &timeBeforeSession);
+	double savedSessionTime = 0.0; // the client reads a float
+	character->QueryDoubleAttribute("stime", &savedSessionTime);
+	m_SessionTimePlayed = savedSessionTime > 0.0 ? static_cast<uint64_t>(savedSessionTime) : 0;
+	m_TotalTimePlayed = timeBeforeSession + m_SessionTimePlayed;
+
+	// A session starts when the character is picked on the character list; live's llog (and time) changed there and
+	// stayed over the session's world transfers. A save of another login: its session is over, a new one starts at 0.
+	uint64_t savedSessionLogin = 0;
+	character->QueryUnsigned64Attribute("llog", &savedSessionLogin);
+	const auto sessionLogin = m_Character ? m_Character->GetSessionLogin() : 0;
+	if (sessionLogin != 0 && sessionLogin != savedSessionLogin) m_SessionTimePlayed = 0;
 
 	if (!m_Character) return;
 
@@ -445,6 +467,36 @@ void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	character->SetAttribute("ls", m_Uscore);
 	// Live wrote ttip on every character, 0 when no tooltip was flagged
 	character->SetAttribute("ttip", m_TooltipFlags);
+	// Live wrote these on every character (450 of 450 saves that had been saved once); the client reads them in
+	// LWOCharacterComponent::LoadFromSaveData (0x00ca4910).
+	// cm, the most coins the character can hold: always 9223372036854775807 on live, the client's own value without
+	// it. Nothing here caps coins by it, and one that is already in the save is left as it is.
+	if (!character->FindAttribute("cm")) character->SetAttribute("cm", std::numeric_limits<int64_t>::max());
+	// edit, the editor level: the client takes anything but 0 as the editor being on
+	character->SetAttribute("edit", m_EditorEnabled ? static_cast<uint32_t>(m_EditorLevel) : 0u);
+	// mldt, when the property moderation notice was last shown: not kept here, 0 as on most live saves
+	if (!character->FindAttribute("mldt")) character->SetAttribute("mldt", 0);
+	// gid and gn, the guild (0 and empty without one)
+	character->SetAttribute("gid", static_cast<int64_t>(m_GuildID));
+	character->SetAttribute("gn", GeneralUtils::UTF16ToWTF8(m_GuildName).c_str());
+	// v and vd, the votes left and the day they are for: a new day fills them up
+	const uint64_t today = static_cast<uint64_t>(std::time(nullptr)) / 86400;
+	if (m_VoteDay != today) {
+		m_VotesLeft = VOTES_PER_DAY;
+		m_VoteDay = today;
+	}
+	character->SetAttribute("v", m_VotesLeft);
+	character->SetAttribute("vd", m_VoteDay);
+	// lrx.., the last respawn point reached, once one was reached in this world
+	if (m_respawnPos != NiPoint3Constant::ZERO) {
+		character->SetAttribute("lrx", m_respawnPos.x);
+		character->SetAttribute("lry", m_respawnPos.y);
+		character->SetAttribute("lrz", m_respawnPos.z);
+		character->SetAttribute("lrrx", m_respawnRot.x);
+		character->SetAttribute("lrry", m_respawnRot.y);
+		character->SetAttribute("lrrz", m_respawnRot.z);
+		character->SetAttribute("lrrw", m_respawnRot.w);
+	}
 	// Custom attribute to keep track of reputation.
 	character->SetAttribute("rpt", GetReputation());
 	character->SetAttribute("stt", StatisticsToString().c_str());
@@ -490,8 +542,13 @@ void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	auto newUpdateTimestamp = std::time(nullptr);
 	LOG("Time since last save: %d", newUpdateTimestamp - m_LastUpdateTimestamp);
 
-	m_TotalTimePlayed += newUpdateTimestamp - m_LastUpdateTimestamp;
-	character->SetAttribute("time", m_TotalTimePlayed);
+	const auto sinceLastSave = newUpdateTimestamp > m_LastUpdateTimestamp ? static_cast<uint64_t>(newUpdateTimestamp - m_LastUpdateTimestamp) : 0;
+	m_TotalTimePlayed += sinceLastSave;
+	m_SessionTimePlayed += sinceLastSave;
+	// As live: the total before this session and the session's seconds (see LoadFromSaveData); their sum is the total
+	character->SetAttribute("time", m_TotalTimePlayed - m_SessionTimePlayed);
+	character->SetAttribute("stime", m_SessionTimePlayed);
+	if (m_Character && m_Character->GetSessionLogin() != 0) character->SetAttribute("llog", m_Character->GetSessionLogin());
 
 	m_LastUpdateTimestamp = newUpdateTimestamp;
 }

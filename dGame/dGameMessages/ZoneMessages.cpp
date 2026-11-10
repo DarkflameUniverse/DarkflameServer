@@ -151,6 +151,9 @@ namespace GameMessages {
 			character->OnZoneLoad();
 		}
 
+		// A jetpack that is worn works again in the new world (jetpack mode is not saved)
+		if (auto* const inventory = entity->GetComponent<InventoryComponent>()) inventory->RecastEquippedJetPacks();
+
 		// Moved here from another instance: put back what their save doesn't keep (the pet that was out)
 		WorldMigration::OnPlayerLoaded(entity);
 

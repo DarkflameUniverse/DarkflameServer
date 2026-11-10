@@ -1019,6 +1019,17 @@ void HandleMasterPacket(Packet* packet) {
 	}
 }
 
+// What every live character data packet also carried: the world the player loads into, where it stands there and
+// whether its name was refused (LWOCharacterComponent::LoadConfigData 0x00c70f00 reads requiresrename)
+void SetWorldKeys(ClientPackets::CreateCharacter& createCharacter, const Entity& player, const Character& character) {
+	const auto& zoneID = Game::zoneManager->GetZoneID();
+	createCharacter.levelID = static_cast<uint64_t>(zoneID.GetMapID()) | static_cast<uint64_t>(zoneID.GetInstanceID()) << 16 |
+		static_cast<uint64_t>(zoneID.GetCloneID()) << 32;
+	createCharacter.position = player.GetPosition();
+	createCharacter.rotation = player.GetRotation();
+	createCharacter.requiresRename = character.GetNameRejected();
+}
+
 // Creates the player's entity and sends the client everything in the world: after the client loaded the zone
 // (LEVEL_LOAD_COMPLETE), or at once when it kept its scene (an experimental seamless migration)
 // A player already in the world whose client reloaded the zone: its character again (from its current save), every
@@ -1037,6 +1048,7 @@ void ReloadPlayerInPlace(const SystemAddress& sysAddr, Entity& player, Character
 	createCharacter.chatMode = static_cast<int32_t>(character.GetGMLevel());
 	createCharacter.reputation = characterComponent->GetReputation();
 	createCharacter.propertyCloneID = character.GetPropertyCloneID();
+	SetWorldKeys(createCharacter, player, character);
 	createCharacter.Send(sysAddr);
 	ClientPackets::ServerStates serverStates;
 	serverStates.Send(sysAddr);
@@ -1194,6 +1206,7 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 			createCharacter.chatMode = static_cast<int32_t>(c->GetGMLevel());
 			createCharacter.reputation = characterComponent->GetReputation();
 			createCharacter.propertyCloneID = c->GetPropertyCloneID();
+			SetWorldKeys(createCharacter, *player, *c);
 			createCharacter.Send(sysAddr);
 			LOG("Sent CreateCharacter for ID: %llu", player->GetObjectID());
 			ClientPackets::ServerStates serverStates;

@@ -622,6 +622,63 @@ TEST_F(DestroyableTest, PlayerDieDoesNotClaimAClientDeath) {
 	player.SetCharacter(nullptr);
 }
 
+// A construction goes to the one client the object came into range of; it must not use up the health change the
+// players already watching are waiting for (LWODestroyableComponent::Deserialize reads it behind a flag bit).
+TEST_F(DestroyableTest, AConstructionKeepsThePendingHealthChange) {
+	destroyableComponent->SetHealth(3);
+	RakNet::BitStream construction;
+	destroyableComponent->Serialize(construction, true);
+
+	RakNet::BitStream update;
+	destroyableComponent->Serialize(update, false);
+	bool hasHealth{};
+	uint32_t health{};
+	ASSERT_TRUE(update.Read(hasHealth));
+	ASSERT_TRUE(hasHealth);
+	ASSERT_TRUE(update.Read(health));
+	EXPECT_EQ(health, 3u);
+
+	// Written once
+	RakNet::BitStream again;
+	destroyableComponent->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 2u);
+}
+
+// LWOCharacterComponent::SendMessage, IsValidPVPTarget: two players with PVP on are enemies, a player is never its own
+TEST_F(DestroyableTest, APlayerWithPvpIsNotItsOwnEnemy) {
+	auto playerInfo = info;
+	playerInfo.lot = 1;
+	SystemAddress address;
+	address.binaryAddress = 0x0100007f;
+	address.port = 2003;
+
+	Entity player(0x1000000000000001LL, playerInfo);
+	Character character(1, nullptr);
+	player.SetCharacter(&character);
+	character.SetEntity(&player);
+	auto* playerCharacter = player.AddComponent<CharacterComponent>(-1, &character, address);
+	auto* destroyable = player.AddComponent<DestroyableComponent>(-1);
+
+	Entity other(0x1000000000000002LL, playerInfo);
+	Character otherCharacter(2, nullptr);
+	other.SetCharacter(&otherCharacter);
+	otherCharacter.SetEntity(&other);
+	auto* otherCharacterComponent = other.AddComponent<CharacterComponent>(-1, &otherCharacter, address);
+	other.AddComponent<DestroyableComponent>(-1);
+	ASSERT_TRUE(player.IsPlayer());
+	ASSERT_TRUE(other.IsPlayer());
+
+	EXPECT_FALSE(destroyable->IsEnemy(&other));
+	playerCharacter->SetPvpEnabled(true);
+	EXPECT_FALSE(destroyable->IsEnemy(&other));
+	otherCharacterComponent->SetPvpEnabled(true);
+	EXPECT_TRUE(destroyable->IsEnemy(&other));
+	EXPECT_FALSE(destroyable->IsEnemy(&player));
+
+	player.SetCharacter(nullptr);
+	other.SetCharacter(nullptr);
+}
+
 // BasicAttack's dir_angle_* are degrees; live's Die carries them as these exact floats.
 TEST_F(DestroyableTest, DeathDirectionDegreesMatchLiveBits) {
 	const auto bits = [](float value) { uint32_t out; std::memcpy(&out, &value, sizeof(out)); return out; };

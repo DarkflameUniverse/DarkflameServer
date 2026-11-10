@@ -3,6 +3,7 @@
  * Copyright 2018
  */
 
+#include <algorithm>
 #include <sstream>
 #include <iostream>
 
@@ -136,13 +137,13 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 			outBitStream.Write(m_EffectType);
 			outBitStream.Write(m_DirectionalMultiplier);
 
-			// forgive me father for i have sinned
-			outBitStream.Write0();
-			//outBitStream.Write(m_MinMax);
-			//if (m_MinMax) {
-				//outBitStream.Write(m_Min);
-				//outBitStream.Write(m_Max);
-			//}
+			// Live wrote the distances as the client keeps them: "true,150,175" went out as 1 and 175
+			outBitStream.Write(m_MinMax);
+			if (m_MinMax) {
+				const float min = std::min(m_Min, 1.0f);
+				outBitStream.Write(min);
+				outBitStream.Write(std::max(m_Max, min));
+			}
 
 			outBitStream.Write(m_IsDirectional);
 			if (m_IsDirectional) {
@@ -152,7 +153,8 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bI
 			}
 		}
 
-		m_EffectInfoDirty = false;
+		// A construction goes to the one client the volume came into range of; the others still need the change
+		if (!bIsInitialUpdate) m_EffectInfoDirty = false;
 	}
 }
 
@@ -244,16 +246,48 @@ void PhantomPhysicsComponent::SetEffectType(ePhysicsEffectType type) {
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetMin(uint32_t min) {
+void PhantomPhysicsComponent::SetMin(const float min) {
 	m_Min = min;
 	m_MinMax = true;
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetMax(uint32_t max) {
+void PhantomPhysicsComponent::SetMax(const float max) {
 	m_Max = max;
 	m_MinMax = true;
 	m_EffectInfoDirty = true;
+}
+
+void PhantomPhysicsComponent::SetVolumeEffect(std::vector<std::string> args) {
+	for (auto& arg : args) {
+		arg.erase(0, arg.find_first_not_of(' '));
+		arg.erase(arg.find_last_not_of(' ') + 1);
+	}
+
+	SetPhysicsEffectActive(true);
+	ePhysicsEffectType effectType = ePhysicsEffectType::PUSH;
+	if (!args.empty()) {
+		std::transform(args.at(0).begin(), args.at(0).end(), args.at(0).begin(), ::tolower);
+		if (args.at(0) == "push") effectType = ePhysicsEffectType::PUSH;
+		else if (args.at(0) == "attract") effectType = ePhysicsEffectType::ATTRACT;
+		else if (args.at(0) == "repulse") effectType = ePhysicsEffectType::REPULSE;
+		else if (args.at(0) == "gravity") effectType = ePhysicsEffectType::GRAVITY_SCALE;
+		else if (args.at(0) == "friction") effectType = ePhysicsEffectType::FRICTION;
+	}
+
+	SetEffectType(effectType);
+	if (args.size() > 1) SetDirectionalMultiplier(GeneralUtils::TryParse(args.at(1), 0.0f));
+	if (args.size() > 4) {
+		// Live sent the direction with the amount as its length ("Push,50,0.91,-0.34,-0.22" as 45.68, -17.07, -11.04)
+		// and none when it was zero ("Repulse,150,0,0,0,true,25,100")
+		const NiPoint3 direction = GeneralUtils::TryParse(args.at(2), args.at(3), args.at(4), NiPoint3Constant::ZERO);
+		if (direction != NiPoint3Constant::ZERO) SetDirection(direction.Unitize());
+	}
+	// Live sent the distances for "true" only: volumes with "1,20,50" went out without them
+	if (args.size() > 7 && args.at(5) == "true") {
+		SetMin(GeneralUtils::TryParse(args.at(6), 0.0f));
+		SetMax(GeneralUtils::TryParse(args.at(7), 0.0f));
+	}
 }
 
 void PhantomPhysicsComponent::SetPosition(const NiPoint3& pos) {
@@ -281,8 +315,8 @@ bool PhantomPhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectRepor
 
 	if (m_MinMax) {
 		auto& minMaxInfo = info.PushDebug("Min Max Info");
-		minMaxInfo.PushDebug<AMFIntValue>("Min") = m_Min;
-		minMaxInfo.PushDebug<AMFIntValue>("Max") = m_Max;
+		minMaxInfo.PushDebug<AMFDoubleValue>("Min") = m_Min;
+		minMaxInfo.PushDebug<AMFDoubleValue>("Max") = m_Max;
 	}
 
 	if (m_IsRespawnVolume) {

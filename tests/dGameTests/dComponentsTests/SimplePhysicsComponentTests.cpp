@@ -131,6 +131,35 @@ TEST_F(SimplePhysicsTest, SimplePhysicsConstructionTest) {
 	ASSERT_EQ(rotation, NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));
 }
 
+// A construction (the object coming into one player's range) doesn't use up a velocity or motion state change the
+// players already watching it still have to get. LWOSimplePhysicsComponent::Deserialize (0x00be4b00) reads each
+// behind its own flag bit.
+TEST_F(SimplePhysicsTest, AConstructionKeepsPendingChangesForTheNextUpdate) {
+	RakNet::BitStream construction;
+	simplePhysicsComponent->Serialize(construction, true);
+
+	simplePhysicsComponent->Serialize(bitStream, false);
+	bool hasVelocity{};
+	bitStream.Read(hasVelocity);
+	ASSERT_TRUE(hasVelocity);
+	NiPoint3 velocity;
+	NiPoint3 angularVelocity;
+	bitStream.Read(velocity);
+	bitStream.Read(angularVelocity);
+	EXPECT_EQ(velocity, NiPoint3(5.0f, 6.0f, 7.0f));
+	bool hasMotionState{};
+	bitStream.Read(hasMotionState);
+	ASSERT_TRUE(hasMotionState);
+	uint32_t motionState{};
+	bitStream.Read(motionState);
+	EXPECT_EQ(motionState, 2u);
+
+	// Written once
+	RakNet::BitStream again;
+	simplePhysicsComponent->Serialize(again, false);
+	EXPECT_EQ(again.GetNumberOfBitsUsed(), 3u);
+}
+
 TEST_F(SimplePhysicsTest, SimplePhysicsGettersAndSettersTest) {
 	ASSERT_EQ(simplePhysicsComponent->GetClimabbleType(), eClimbableType::CLIMBABLE_TYPE_WALL);
 	ASSERT_EQ(simplePhysicsComponent->GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));

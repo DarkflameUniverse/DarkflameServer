@@ -42,8 +42,9 @@ bool CollectibleComponent::CountsFor(const Entity& player) const {
 	}
 }
 
+// LWOCollectibleComponent::Deserialize (0x00c45ec0) reads the id on construction only
 void CollectibleComponent::Serialize(RakNet::BitStream& outBitStream, bool isConstruction) {
-	outBitStream.Write(GetCollectibleId());
+	if (isConstruction) outBitStream.Write(GetCollectibleId());
 }
 
 bool CollectibleComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportMsg) {

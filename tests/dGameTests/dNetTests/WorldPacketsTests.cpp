@@ -1,3 +1,5 @@
+#include "ZCompression.h"
+#include "LDFFormat.h"
 #include "ChatPackets.h"
 #include "ClientPackets.h"
 #include "GameDependencies.h"
@@ -310,6 +312,7 @@ TEST_F(WorldPacketsTests, CreateCharacterMatchesLegacy) {
 					packet.reputation = reputation;
 					packet.propertyCloneID = cloneID;
 					packet.txfring = false; // the legacy sender never wrote it
+					packet.sendWorldKeys = false; // nor the world keys
 					ExpectSameSend([&](const SystemAddress& a) { LegacyWorldPackets::SendCreateCharacter(a, reputation, objectID, xml, name, gm, cloneID); }, packet);
 
 					const auto copy = RoundTrip(packet);
@@ -338,6 +341,90 @@ TEST_F(WorldPacketsTests, CreateCharacterSendsTxfring) {
 
 	packet.txfring = false;
 	EXPECT_FALSE(RoundTrip(packet).txfring);
+}
+
+// Live sent legoclub=1, freetrial=0, requiresrename=0, levelid and position / rotation in 451 of 451 character data packets
+TEST_F(WorldPacketsTests, CreateCharacterSendsTheWorldKeys) {
+	ClientPackets::CreateCharacter packet;
+	packet.xmlData = "<obj/>";
+	packet.requiresRename = true;
+	packet.levelID = 1200ULL | 7ULL << 16 | 99ULL << 32;
+	packet.position = NiPoint3(1.5f, -2.0f, 3.25f);
+	packet.rotation = NiQuaternion(0.5f, 0.1f, 0.2f, 0.3f);
+	const auto copy = RoundTrip(packet);
+	EXPECT_TRUE(copy.sendWorldKeys);
+	EXPECT_TRUE(copy.legoClub);
+	EXPECT_FALSE(copy.freeTrial);
+	EXPECT_TRUE(copy.requiresRename);
+	EXPECT_EQ(copy.levelID, packet.levelID);
+	EXPECT_EQ(copy.position, packet.position);
+	EXPECT_EQ(copy.rotation, packet.rotation);
+
+	packet.sendWorldKeys = false;
+	const auto without = RoundTrip(packet);
+	EXPECT_FALSE(without.sendWorldKeys);
+	EXPECT_FALSE(without.legoClub); // the client's value without the key
+	EXPECT_FALSE(without.requiresRename);
+}
+
+// Live sent reputation as LDF type 8 (a 64-bit number), not as an object ID (type 9), in every character data packet.
+// The entries are sorted by key: reputation follows propertycloneid.
+TEST_F(WorldPacketsTests, CreateCharacterSendsReputationAsLdfType8) {
+	const auto reputationType = [](const ClientPackets::CreateCharacter& packet) {
+		RakNet::BitStream bitStream;
+		packet.Serialize(bitStream);
+		// The LDF is compressed: size + 9, the compressed flag, the size, the compressed size, the data
+		uint32_t sizePlusHeader{};
+		uint8_t compressed{};
+		uint32_t uncompressedSize{};
+		uint32_t compressedSize{};
+		EXPECT_TRUE(bitStream.Read(sizePlusHeader));
+		EXPECT_TRUE(bitStream.Read(compressed));
+		EXPECT_TRUE(bitStream.Read(uncompressedSize));
+		EXPECT_TRUE(bitStream.Read(compressedSize));
+		std::vector<uint8_t> compressedData(compressedSize);
+		EXPECT_TRUE(bitStream.ReadAlignedBytes(compressedData.data(), compressedSize));
+		std::vector<uint8_t> uncompressed(uncompressedSize);
+		int32_t error{};
+		EXPECT_EQ(ZCompression::Decompress(compressedData.data(), compressedSize, uncompressed.data(), uncompressedSize, error), static_cast<int32_t>(uncompressedSize));
+		RakNet::BitStream data(uncompressed.data(), uncompressed.size(), false);
+		uint32_t count{};
+		EXPECT_TRUE(data.Read(count));
+		for (uint32_t i = 0; i < count; i++) {
+			uint8_t keyBytes{};
+			EXPECT_TRUE(data.Read(keyBytes));
+			std::u16string key(keyBytes / 2, u'\0');
+			for (auto& character : key) EXPECT_TRUE(data.Read(character));
+			uint8_t type{};
+			EXPECT_TRUE(data.Read(type));
+			if (key == u"reputation") {
+				int64_t value{};
+				EXPECT_TRUE(data.Read(value));
+				EXPECT_EQ(value, 300);
+				return static_cast<int32_t>(type);
+			}
+			switch (type) {
+			case LDF_TYPE_S32: case LDF_TYPE_U32: case LDF_TYPE_FLOAT: data.IgnoreBytes(4); break;
+			case LDF_TYPE_BOOLEAN: data.IgnoreBytes(1); break;
+			case LDF_TYPE_U64: case LDF_TYPE_OBJID: data.IgnoreBytes(8); break;
+			case LDF_TYPE_UTF_16: { uint32_t length{}; EXPECT_TRUE(data.Read(length)); data.IgnoreBytes(length * 2); break; }
+			case LDF_TYPE_UTF_8: { uint32_t length{}; EXPECT_TRUE(data.Read(length)); data.IgnoreBytes(length); break; }
+			default: ADD_FAILURE() << "LDF type " << static_cast<int32_t>(type); return -1;
+			}
+		}
+		return -1;
+	};
+
+	ClientPackets::CreateCharacter packet;
+	packet.xmlData = "<obj/>";
+	packet.reputation = 300;
+	EXPECT_EQ(reputationType(packet), 8);
+	EXPECT_EQ(RoundTrip(packet).reputation, 300);
+
+	// The packet from before the world keys keeps its type
+	packet.sendWorldKeys = false;
+	EXPECT_EQ(reputationType(packet), 9);
+	EXPECT_EQ(RoundTrip(packet).reputation, 300);
 }
 
 TEST_F(WorldPacketsTests, CharacterListMatchesLegacy) {

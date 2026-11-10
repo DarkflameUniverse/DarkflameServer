@@ -20,6 +20,8 @@ public:
 		bool needsRename{};
 		LWOCLONEID cloneId{};
 		ePermissionMap permissionMap{};
+		// charinfo.last_login: when the character was last picked on the character list (unix seconds)
+		uint64_t lastLogin{};
 	};
 
 	// Get the approved names of all characters.

@@ -28,6 +28,16 @@ public:
 	~RocketLaunchpadControlComponent() override;
 
 	void LoadDataFromTemplate() override;
+	void LoadConfigData() override;
+
+	const std::string& GetTargetScene() const { return m_TargetScene; }
+
+	/**
+	 * Whether the player may launch from this pad: LWORocketLaunchComponentCommon refuses a player under the pad's GM
+	 * level (msgFireEventClientSide 0x00cb78b0) or that fails its launch precondition (msgCheckUseRequirements
+	 * 0x00c7d0d0), so a client does not ask
+	 */
+	bool MayLaunch(Entity& player) const;
 
 	/**
 	 * Launches some entity to another world
@@ -136,7 +146,18 @@ private:
 	/**
 	 * Some precondition that needs to be met to trigger the alternative landing scene
 	 */
-	PreconditionExpression* m_AltPrecondition;
+	PreconditionExpression* m_AltPrecondition{};
+
+	/**
+	 * The GM level a player needs to launch from this pad (the row's gmLevel, or the level's GMLevel)
+	 */
+	int32_t m_GMLevel{};
+
+	/**
+	 * The row's launchPrecondition, when its useLaunchPrecondition is set: what a player has to pass to launch. For a pad
+	 * whose level turns rocketLaunchUseDBDefaults off, the level's rocketLaunchPreCondition and rocketUseLaunchPrecondition.
+	 */
+	std::string m_LaunchPrecondition;
 
 	/**
 	 * Notifies the master server to prepare some world for a player to be able to travel to it

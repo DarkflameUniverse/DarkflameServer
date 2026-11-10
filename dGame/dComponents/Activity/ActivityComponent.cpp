@@ -80,8 +80,11 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 }
 
 void ActivityComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
-	outBitStream.Write(m_DirtyActivityInfo);
-	if (m_DirtyActivityInfo) {
+	// A construction always carries the players: it is the only way a client coming into range learns who is in the
+	// activity (LWOActivityComponent::Deserialize 0x00d002b0), and live wrote the block, empty or not, on every one
+	const bool writeActivityInfo = m_DirtyActivityInfo || bIsInitialUpdate;
+	outBitStream.Write(writeActivityInfo);
+	if (writeActivityInfo) {
 		outBitStream.Write<uint32_t>(m_ActivityPlayers.size());
 		if (!m_ActivityPlayers.empty()) {
 			for (const auto& [playerID, values] : m_ActivityPlayers) {

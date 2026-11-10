@@ -6,7 +6,10 @@
 #include "CDClientDatabase.h"
 #include "CDComponentsRegistryTable.h"
 #include "CDItemComponentTable.h"
+#include "CDBehaviorTemplateTable.h"
 #include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
+#include "BehaviorTemplate.h"
 #include "Character.h"
 #include "CharacterComponent.h"
 #include "EffectsMessages.h"
@@ -209,4 +212,42 @@ TEST_F(EquipMessagesTests, UnequippingAndSlotsWithoutAnEffect) {
 	// Extra_1 (a rocket) has no effect; the world state still goes out
 	sent = Messages(Capture([&] { rocket->Equip(true); }));
 	EXPECT_EQ(sent, (std::vector<Sent>{ { CHANGE_OBJECT_WORLD_STATE, rocket->GetId(), true, "ATTACHED" } }));
+}
+
+// A worn jetpack is found again after a world load, so jetpack mode can be sent again: live sent SetJetPackMode (use,
+// bypass checks, effect 167) about 100 packets after the player's own construction in 12 of 28 world loads of a player
+// with a jetpack, and constructed the player in jetpack mode in the other 16.
+TEST_F(EquipMessagesTests, AWornJetPackIsFoundAfterAWorldLoad) {
+	constexpr LOT JETPACK = 1727; // skill 306, behavior 3569 on equip
+	RegisterLot(JETPACK, "back");
+	CDClientManager::GetEntriesMutable<CDObjectSkillsTable>().push_back({ JETPACK, 306, 1, 0 });
+	CDClientManager::GetEntriesMutable<CDObjectSkillsTable>().push_back({ SWORD, 400, 0, 0 }); // a use skill, not an equip one
+	auto& skills = CDClientManager::GetEntriesMutable<CDSkillBehaviorTable>();
+	CDSkillBehavior jetPackSkill{};
+	jetPackSkill.skillID = 306;
+	jetPackSkill.behaviorID = 3569;
+	skills.insert_or_assign(306, jetPackSkill);
+	CDSkillBehavior hoodSkill{};
+	hoodSkill.skillID = 362;
+	hoodSkill.behaviorID = 4000;
+	skills.insert_or_assign(362, hoodSkill);
+	auto& templates = CDClientManager::GetEntriesMutable<CDBehaviorTemplateTable>();
+	CDBehaviorTemplate jetPackTemplate{};
+	jetPackTemplate.behaviorID = 3569;
+	jetPackTemplate.templateID = static_cast<uint32_t>(BehaviorTemplate::JETPACK);
+	templates.insert_or_assign(3569, jetPackTemplate);
+	CDBehaviorTemplate buffTemplate{};
+	buffTemplate.behaviorID = 4000;
+	buffTemplate.templateID = static_cast<uint32_t>(BehaviorTemplate::BUFF);
+	templates.insert_or_assign(4000, buffTemplate);
+
+	EXPECT_TRUE(inventory->FindEquippedJetPacks().empty());
+	// What a save puts back: the equipped items, without their equip skills cast
+	auto* const hood = Give(HOOD);
+	auto* const jetPack = Give(JETPACK);
+	Give(SWORD);
+	inventory->UpdateSlot("hair", { hood->GetId(), HOOD, 1, 0 });
+	EXPECT_TRUE(inventory->FindEquippedJetPacks().empty());
+	inventory->UpdateSlot("back", { jetPack->GetId(), JETPACK, 1, 1 });
+	EXPECT_EQ(inventory->FindEquippedJetPacks(), std::vector<uint32_t>{ 3569 });
 }

@@ -9,6 +9,7 @@
 #include "CombatMessages.h"
 #include "MovementMessages.h"
 #include "QuickBuildComponent.h"
+#include "Preconditions.h"
 #include "Game.h"
 #include "Logger.h"
 #include "RenderComponent.h"
@@ -42,6 +43,7 @@ void RailActivatorComponent::LoadDataFromTemplate() {
 	m_ShowNameBillboard = tableData.showNameBillboard;
 	m_CameraLocked = tableData.cameraLocked;
 	m_CollisionEnabled = tableData.playerCollision;
+	m_Preconditions = tableData.preconditions;
 }
 
 // The level config: a key, when there, replaces the row's value, as StartRailMovement's flags replace the row's in
@@ -70,6 +72,11 @@ bool RailActivatorComponent::OnRequestUse(GameMessages::RequestUseEvent& event) 
 	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
 	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
 		return true;
+
+	// LWORailActivatorComponent::msgCheckUseRequirements (0x00c2c5b0): after the quick build, the row's preconditions
+	// have to pass and the rail has to be on; the client does not send a use otherwise ("-1": the table has none)
+	if (!m_Active) return true;
+	if (!m_Preconditions.empty() && m_Preconditions != "-1" && !PreconditionExpression(m_Preconditions).Check(originator)) return true;
 
 	if (quickBuildComponent != nullptr) {
 		// Don't want it to be destroyed while a player is using it

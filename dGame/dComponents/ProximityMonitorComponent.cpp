@@ -1,5 +1,6 @@
 #include "ProximityMonitorComponent.h"
 #include "CDClientManager.h"
+#include "CDClientDatabase.h"
 #include "CDProximityMonitorComponentTable.h"
 #include "GameMessages.h"
 #include "dZoneManager.h"
@@ -19,20 +20,29 @@ ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, const int32
 	RegisterMsg(&ProximityMonitorComponent::OnGetObjectReportInfo);
 }
 
-// The ProximityMonitorComponent row's radii, "small,large" (one value, as LOT 9833's "4", is both): the rocket
-// launch radii
+// The ProximityMonitorComponent row lists ProximityTypes ids ("7,8": RocketSign and WorldLauncher), not radii. Each
+// type has a name, a radius and where it is loaded: LWOProximityMonitorComponent::LoadDataFromTemplate (0x00c2dfb0)
+// keeps the ids and SendMessage (0x00cbb930), on AddedToWorld, sets a proximity up under the type's name for each one
+// that has LoadOnClient. The server's are the ones with LoadOnServer, of a row that has it too.
 void ProximityMonitorComponent::LoadDataFromTemplate() {
 	if (m_ComponentID <= 0) return;
 	const auto componentID = m_ComponentID;
 	const auto proxCompData = CDClientManager::GetTable<CDProximityMonitorComponentTable>()->Query([componentID](const CDProximityMonitorComponent& entry) { return (entry.id == componentID); });
-	if (proxCompData.empty()) return;
+	if (proxCompData.empty() || !proxCompData[0].LoadOnServer) return;
 
-	const auto radii = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
-	const auto small = radii.empty() ? std::nullopt : GeneralUtils::TryParse<int32_t>(radii[0]);
-	const auto large = radii.size() > 1 ? GeneralUtils::TryParse<int32_t>(radii[1]) : small;
-	if (!small || !large) return;
-	SetProximityRadius(*small, "rocketSmall");
-	SetProximityRadius(*large, "rocketLarge");
+	for (const auto& typeString : GeneralUtils::SplitString(proxCompData[0].Proximities, ',')) {
+		const auto typeID = GeneralUtils::TryParse<int32_t>(typeString);
+		if (!typeID) continue;
+		auto query = CDClientDatabase::CreatePreppedStmt("SELECT Name, Radius, LoadOnServer FROM ProximityTypes WHERE id = ?;");
+		query.bind(1, *typeID);
+		auto result = query.execQuery();
+		if (result.eof() || result.getIntField("LoadOnServer", 0) == 0) continue;
+		const std::string name = result.getStringField("Name", "");
+		if (name.empty()) continue;
+		// A missing or non-positive radius is 30, as the client takes it
+		const auto radius = result.getIntField("Radius", 30);
+		SetProximityRadius(static_cast<float>(radius > 0 ? radius : 30), name);
+	}
 }
 
 ProximityMonitorComponent::~ProximityMonitorComponent() {

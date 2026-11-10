@@ -28,19 +28,20 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(CppSQLite3Query stmt) {
 	toReturn.cloneId = stmt.getInt64Field("prop_clone_id");
 	toReturn.accountId = stmt.getIntField("account_id");
 	toReturn.permissionMap = static_cast<ePermissionMap>(stmt.getIntField("permission_map"));
+	toReturn.lastLogin = static_cast<uint64_t>(stmt.getInt64Field("last_login"));
 
 	return toReturn;
 }
 
 std::optional<ICharInfo::Info> SQLiteDatabase::GetCharacterInfo(const LWOOBJID charId) {
 	return CharInfoFromQueryResult(
-		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE id = ? LIMIT 1;", charId).second
+		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id, last_login FROM charinfo WHERE id = ? LIMIT 1;", charId).second
 	);
 }
 
 std::optional<ICharInfo::Info> SQLiteDatabase::GetCharacterInfo(const std::string_view name) {
 	return CharInfoFromQueryResult(
-		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE name = ? LIMIT 1;", name).second
+		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id, last_login FROM charinfo WHERE name = ? LIMIT 1;", name).second
 	);
 }
 

@@ -389,7 +389,8 @@ namespace {
 				}
 				if (r.Bit()) j["onThreatList"] = r.Bit();
 			} },
-			{ COLLECTIBLE, [](Reader& r, json& j, bool, const auto&) { j["collectibleID"] = r.Get<int16_t>(); } },
+			// LWOCollectibleComponent::Deserialize: the id on construction only
+			{ COLLECTIBLE, [](Reader& r, json& j, bool initial, const auto&) { if (initial) j["collectibleID"] = r.Get<int16_t>(); } },
 			// LWOPetComponent::Deserialize: everything under the dirty bit, the names on updates too
 			{ PET, [](Reader& r, json& j, bool, const auto&) {
 				if (!r.Bit()) return;

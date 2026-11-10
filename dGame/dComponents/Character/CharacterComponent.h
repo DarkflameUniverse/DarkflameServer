@@ -368,7 +368,19 @@ public:
 	void SetTooltipFlag(int32_t tooltip, bool flag);
 	uint64_t GetTooltipFlags() const { return m_TooltipFlags; }
 
+	// WorldConfig's character_votes_per_day
+	static constexpr int32_t VOTES_PER_DAY = 3;
+	int32_t GetVotesLeft() const { return m_VotesLeft; }
+	uint64_t GetVoteDay() const { return m_VoteDay; }
+
+	// Every second played, the running session included (saved as <char time> + <char stime>)
 	uint64_t GetTotalTimePlayed() const { return m_TotalTimePlayed; };
+
+	// The seconds played since the character was picked on the character list (saved as <char stime>)
+	uint64_t GetSessionTimePlayed() const { return m_SessionTimePlayed; };
+
+	// When the play time was last counted (construction, then every save); tests move it back to let time pass
+	void SetLastUpdateTimestamp(const time_t value) { m_LastUpdateTimestamp = value; }
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
@@ -407,6 +419,11 @@ private:
 
 	// The tooltips the player has seen, one bit each (char@ttip)
 	uint64_t m_TooltipFlags{};
+
+	// The votes the character has left today (char@v) and the day, in days since 1970, they were last filled up on
+	// (char@vd), as LWOCharacterComponent::LoadFromSaveData (0x00ca4910) reads them for GetVotesLeft
+	int32_t m_VotesLeft = VOTES_PER_DAY;
+	uint64_t m_VoteDay{};
 
 	/**
 	 * The lifetime reputation earned by the entity
@@ -522,6 +539,11 @@ private:
 	 * The total time the character has played, in MS
 	 */
 	uint64_t m_TotalTimePlayed;
+
+	/**
+	 * The part of m_TotalTimePlayed that was played in the running session, in seconds
+	 */
+	uint64_t m_SessionTimePlayed = 0;
 
 	/**
 	 * The total amount of currency collected by this character
