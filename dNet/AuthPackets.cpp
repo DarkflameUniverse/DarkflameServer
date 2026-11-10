@@ -276,6 +276,11 @@ void AuthPackets::LoginRequest::Handle() {
 		stamps.Add(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_START);
 		// The stamps go along: master adds its steps and sends them back with the world server
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, stamps, [system, server, username](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort, Stamps stamps) mutable {
+			// An empty address is the master server's answer when no character select runs
+			if (zoneIP.empty()) {
+				AuthPackets::SendLoginResponse(server, system, eLoginResponse::GENERAL_FAILED, "", "", 0, username, stamps);
+				return;
+			}
 			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username, stamps);
 			});
 	}

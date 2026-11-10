@@ -4,6 +4,7 @@
 
 using InstanceLimits::CheckNewInstance;
 using InstanceLimits::eNewInstance;
+using InstanceLimits::TransferFailure;
 
 TEST(InstanceLimitsTest, AZoneOfTheZoneTableIsStarted) {
 	EXPECT_EQ(CheckNewInstance(1000, true, 0, 256), eNewInstance::Allowed);
@@ -31,4 +32,20 @@ TEST(InstanceLimitsTest, TheCharacterSelectIsAlwaysStarted) {
 	// Zone 0 has no row in the ZoneTable
 	EXPECT_EQ(CheckNewInstance(0, false, 0, 256), eNewInstance::Allowed);
 	EXPECT_EQ(CheckNewInstance(0, false, 256, 256), eNewInstance::Allowed);
+}
+
+TEST(InstanceLimitsTest, ARefusedInstanceHasAReasonForThePlayer) {
+	// The limit: nothing is free to start the zone on
+	EXPECT_EQ(TransferFailure(CheckNewInstance(1000, true, 256, 256)), eTransferFailure::NoServer);
+	// No row in the ZoneTable: the zone can not be loaded
+	EXPECT_EQ(TransferFailure(CheckNewInstance(31337, false, 0, 256)), eTransferFailure::MapLoad);
+	// Refused for another reason, such as a master server that shuts down
+	EXPECT_EQ(TransferFailure(eNewInstance::Allowed), eTransferFailure::Other);
+}
+
+TEST(InstanceLimitsTest, TheReasonsAreTheValuesTheClientKnows) {
+	EXPECT_EQ(static_cast<uint16_t>(eTransferFailure::NoServer), 0);
+	EXPECT_EQ(static_cast<uint16_t>(eTransferFailure::MapLoad), 1);
+	EXPECT_EQ(static_cast<uint16_t>(eTransferFailure::InstanceFull), 2);
+	EXPECT_EQ(static_cast<uint16_t>(eTransferFailure::Other), 3);
 }

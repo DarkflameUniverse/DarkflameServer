@@ -1,4 +1,5 @@
 #include "DEVGMCommands.h"
+#include "WorldPackets.h"
 
 #include "UgcKeys.h"
 #include "UgcManifest.h"
@@ -1169,6 +1170,8 @@ namespace DEVGMCommands {
 				if (!entity) return;
 
 				const auto sysAddr = entity->GetSystemAddress();
+
+				if (WorldPackets::SendIfTransferFailed(sysAddr, serverIP, serverPort)) return;
 
 				ChatPackets::SendSystemMessage(sysAddr, u"Transfering map...");
 

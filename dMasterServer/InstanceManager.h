@@ -15,6 +15,7 @@
 #include "dZMCommon.h"
 #include "Logger.h"
 #include "master/InstanceMigration.h"
+#include "InstanceLimits.h"
 
 struct Player {
 	LWOOBJID id;
@@ -219,6 +220,16 @@ public:
 
 	// Mark the running instances which() picks outdated (old binary or old zone files); returns how many were new
 	uint32_t MarkOutdated(const std::function<bool(const Instance&)>& which);
+
+	/**
+	 * Whether a new instance may be started for a zone, and why not when it may not
+	 */
+	InstanceLimits::eNewInstance CheckNewInstance(LWOMAPID mapID) const;
+
+	/**
+	 * Answers a transfer request no instance was started for: an empty address, and the reason in place of the port
+	 */
+	static void SendTransferFailure(const PendingInstanceRequest& request, LWOMAPID mapID, LWOCLONEID cloneID, eTransferFailure failure);
 
 private:
 	std::string mExternalIP;

@@ -43,6 +43,17 @@ namespace {
 	}
 }
 
+void InstanceManager::SendTransferFailure(const PendingInstanceRequest& request, const LWOMAPID mapID, const LWOCLONEID cloneID, const eTransferFailure failure) {
+	MasterPackets::RequestZoneTransferResponse response;
+	response.requestID = request.id;
+	response.mythranShift = request.mythranShift;
+	response.zoneID = mapID;
+	response.zoneClone = cloneID;
+	response.serverPort = static_cast<uint16_t>(failure);
+	response.stamps = request.stamps;
+	MasterPackets::SendTo(request.sysAddr, response);
+}
+
 InstanceManager::InstanceManager(const std::string& externalIP) : mExternalIP{ externalIP } {
 	m_LastPort =
 		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("world_port_start")).value_or(m_LastPort);
@@ -51,10 +62,13 @@ InstanceManager::InstanceManager(const std::string& externalIP) : mExternalIP{ e
 		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_instances")).value_or(InstanceLimits::DefaultMaxInstances);
 }
 
-bool InstanceManager::CanCreateInstance(const LWOMAPID mapID, const LWOCLONEID cloneID) const {
+InstanceLimits::eNewInstance InstanceManager::CheckNewInstance(const LWOMAPID mapID) const {
 	const bool isInZoneTable = mapID != 0 && CDZoneTableTable::Query(mapID) != nullptr;
+	return InstanceLimits::CheckNewInstance(mapID, isInZoneTable, m_Instances.size(), m_MaxInstances);
+}
 
-	switch (InstanceLimits::CheckNewInstance(mapID, isInZoneTable, m_Instances.size(), m_MaxInstances)) {
+bool InstanceManager::CanCreateInstance(const LWOMAPID mapID, const LWOCLONEID cloneID) const {
+	switch (CheckNewInstance(mapID)) {
 	case InstanceLimits::eNewInstance::UnknownZone:
 		LOG("Tried to create an instance of map %i/%i, which is not in the ZoneTable.", mapID, cloneID);
 		return false;
@@ -314,6 +328,13 @@ void InstanceManager::RedirectPendingRequests(const InstancePtr& instance) {
 
 	for (const auto& request : instance->GetPendingAffirmations()) {
 		const auto& in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
+
+		if (!in) {
+			// No instance takes the place of the one that is gone, so the transfer fails
+			const auto failure = InstanceLimits::TransferFailure(CheckNewInstance(zoneId.GetMapID()));
+			SendTransferFailure(request, zoneId.GetMapID(), zoneId.GetCloneID(), failure);
+			continue;
+		}
 
 		if (in && !in->GetIsReady()) // Instance not ready, make a pending request
 		{

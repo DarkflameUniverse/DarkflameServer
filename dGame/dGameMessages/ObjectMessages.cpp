@@ -1,4 +1,5 @@
 #include "ObjectMessages.h"
+#include "WorldPackets.h"
 
 #include "BitStreamUtils.h"
 #include "Character.h"
@@ -100,6 +101,8 @@ namespace GameMessages {
 			if (launcher) launcher->UpdatePlayerStatistic(RocketsUsed);
 
 			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, mapId, cloneId, false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+				if (WorldPackets::SendIfTransferFailed(sysAddr, serverIP, serverPort)) return;
+
 				LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 				if (character) {

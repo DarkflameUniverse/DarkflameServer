@@ -1,4 +1,5 @@
 #include "CharacterComponent.h"
+#include "WorldPackets.h"
 #include "BitStream.h"
 #include "tinyxml2.h"
 #include "Game.h"
@@ -1010,6 +1011,8 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 		if (!entity) return;
 
 		const auto sysAddr = entity->GetSystemAddress();
+
+		if (WorldPackets::SendIfTransferFailed(sysAddr, serverIP, serverPort)) return;
 
 		auto* character = entity->GetCharacter();
 		auto* characterComponent = entity->GetComponent<CharacterComponent>();

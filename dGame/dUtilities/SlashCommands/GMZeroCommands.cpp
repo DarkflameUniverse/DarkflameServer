@@ -1,4 +1,5 @@
 #include "GMZeroCommands.h"
+#include "WorldPackets.h"
 
 // Classes
 #include "Amf3.h"
@@ -182,6 +183,8 @@ namespace GMZeroCommands {
 
 			const auto sysAddr = entity->GetSystemAddress();
 
+			if (WorldPackets::SendIfTransferFailed(sysAddr, serverIP, serverPort)) return;
+
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 			if (entity->GetCharacter()) {
@@ -217,6 +220,8 @@ namespace GMZeroCommands {
 		ChatPackets::SendSystemMessage(sysAddr, u"Requesting private map...");
 
 		ZoneInstanceManager::Instance()->RequestPrivateZone(Game::server, false, password, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+			if (WorldPackets::SendIfTransferFailed(sysAddr, serverIP, serverPort)) return;
+
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 			if (entity->GetCharacter()) {

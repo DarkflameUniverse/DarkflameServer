@@ -1,4 +1,5 @@
 #include "PropertyTeleportBehavior.h"
+#include "WorldPackets.h"
 
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
@@ -36,6 +37,8 @@ void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		if (!entity) return;
 
 		const auto sysAddr = entity->GetSystemAddress();
+
+		if (WorldPackets::SendIfTransferFailed(sysAddr, serverIP, serverPort)) return;
 
 		if (zoneClone != 0) ChatPackets::SendSystemMessage(sysAddr, u"Transfering to your property!");
 		else ChatPackets::SendSystemMessage(sysAddr, u"Transfering back to previous world!");

@@ -1,6 +1,8 @@
 #include "WorldPackets.h"
 
+#include "ClientPackets.h"
 #include "dCommonVars.h"
+#include "Logger.h"
 
 #include <algorithm>
 
@@ -18,6 +20,17 @@ namespace {
 }
 
 namespace WorldPackets {
+	bool SendIfTransferFailed(const SystemAddress& sysAddr, const std::string& serverIP, const uint32_t serverPort) {
+		if (!serverIP.empty()) return false;
+
+		LOG("No instance to transfer %s to (reason %u)", sysAddr.ToString(), serverPort);
+		// The client reads the port of a transfer without an address as the reason and tells the player
+		ClientPackets::TransferToWorld transfer;
+		transfer.serverPort = static_cast<uint16_t>(serverPort);
+		transfer.Send(sysAddr);
+		return true;
+	}
+
 	void Validation::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(username);
 		bitStream.Write(sessionKey);

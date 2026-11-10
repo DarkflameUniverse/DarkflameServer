@@ -19,6 +19,13 @@
 // Packets of ServiceType::WORLD: what a client sends to a world server. The server's answers are ClientPackets.
 // The structs only read and write bytes; the world server attaches the handlers (see WorldServer.cpp).
 namespace WorldPackets {
+	/**
+	 * Tells a player that the zone they were to go to has no instance. The master server answers a transfer
+	 * request with an empty address then, and with the eTransferFailure in place of the port.
+	 * @return whether the transfer failed, the caller has nothing left to do for it then
+	 */
+	bool SendIfTransferFailed(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort);
+
 	// Base of every world packet: the dispatcher sets sysAddr before Deserialize and Handle.
 	struct WorldLUBitStream : public LUBitStream {
 		SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;

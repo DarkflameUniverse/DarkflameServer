@@ -746,7 +746,10 @@ namespace {
 		}
 		const auto& in = Game::im->GetInstance(zoneID, false, zoneClone);
 		if (!in) {
+			// An empty address tells the world server there is no instance, the port is the reason
+			const auto failure = InstanceLimits::TransferFailure(Game::im->CheckNewInstance(zoneID));
 			LOG("No instance for transfer request %llu to zone %i %i", requestID, zoneID, zoneClone);
+			InstanceManager::SendTransferFailure({ requestID, static_cast<bool>(mythranShift), sysAddr, stamps }, zoneID, zoneClone, failure);
 			return;
 		}
 
@@ -907,6 +910,8 @@ namespace {
 		LOG("Join private zone: %llu %d %p", requestID, mythranShift, instance.get());
 
 		if (instance == nullptr) {
+			// No private zone has this password, the player is told the transfer failed
+			InstanceManager::SendTransferFailure({ requestID, static_cast<bool>(mythranShift), sysAddr, {} }, 0, 0, eTransferFailure::Other);
 			return;
 		}
 
