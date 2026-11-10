@@ -33,6 +33,7 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"ProximityMonitorComponent.cpp"
 	"Activity/RacingControlComponent.cpp"
 	"RailActivatorComponent.cpp"
+	"RollerComponent.cpp"
 	"Activity/QuickBuildComponent.cpp"
 	"RenderComponent.cpp"
 	"Physics/RigidbodyPhantomPhysicsComponent.cpp"

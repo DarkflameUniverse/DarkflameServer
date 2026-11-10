@@ -760,6 +760,14 @@ namespace {
 	 * The order the client reads components in (it builds an object's component list in this order in
 	 * ObjectLoader2::DoObjectComponentLoad). CHARACTER is preceded by POSSESSOR, LEVEL_PROGRESSION and
 	 * PLAYER_FORCED_MOVEMENT, which WriteComponents writes with it.
+	 *
+	 * LWOGameObject::Deserialize (0x00f99690) calls each component's Deserialize in the order of the object's component
+	 * list, which DoObjectComponentLoad (0x0105ebb0) fills in the order of ObjectLoader2::FillComponentOrder
+	 * (0x0101f8e0). From that list: ROLLER (105) comes after SHOOTING_GALLERY (19) and before SCRIPTED_ACTIVITY (39) and
+	 * MOVING_PLATFORM (25); CHOICE_BUILD (52) after MOVING_PLATFORM and before LUP_EXHIBIT (75) and MODEL (42); CHEST (22)
+	 * after MINI_GAME_CONTROL (50) and before RENDER (2). They are placed here against the components their objects
+	 * have (roller: physics, script, skill, inventory, moving platform, render; choice build: physics, destroyable,
+	 * script, render; chest: phantom physics, render).
 	 */
 	constexpr auto SERIALIZATION_ORDER = [] {
 		using enum eReplicaComponentType;
@@ -767,8 +775,8 @@ namespace {
 			POSSESSABLE, MODULE_ASSEMBLY, CONTROLLABLE_PHYSICS, SIMPLE_PHYSICS, RIGID_BODY_PHANTOM_PHYSICS, HAVOK_VEHICLE_PHYSICS,
 			PHANTOM_PHYSICS, SOUND_TRIGGER, RACING_SOUND_TRIGGER, BUFF, DESTROYABLE, COLLECTIBLE, PET, PLAYER_FORCED_MOVEMENT, CHARACTER,
 			INVENTORY,
-			SCRIPT, SKILL, BASE_COMBAT_AI, ITEM, QUICK_BUILD, MOVING_PLATFORM, SWITCH, VENDOR, DONATION_VENDOR, ACHIEVEMENT_VENDOR,
-			BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, LUP_EXHIBIT, MODEL, RENDER, MINI_GAME_CONTROL, BBB,
+			SCRIPT, SKILL, BASE_COMBAT_AI, ITEM, QUICK_BUILD, ROLLER, MOVING_PLATFORM, SWITCH, VENDOR, DONATION_VENDOR, ACHIEVEMENT_VENDOR,
+			BOUNCER, SCRIPTED_ACTIVITY, SHOOTING_GALLERY, RACING_CONTROL, CHOICE_BUILD, LUP_EXHIBIT, MODEL, CHEST, RENDER, MINI_GAME_CONTROL, BBB,
 		};
 	}();
 

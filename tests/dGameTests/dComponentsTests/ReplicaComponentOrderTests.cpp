@@ -18,6 +18,9 @@
 #include "BouncerComponent.h"
 #include "BuffComponent.h"
 #include "CharacterComponent.h"
+#include "ChestComponent.h"
+#include "ChoiceBuildComponent.h"
+#include "RollerComponent.h"
 #include "CollectibleComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "DestroyableComponent.h"
@@ -560,4 +563,103 @@ TEST_F(ReplicaComponentOrderTest, EveryListedComponent) {
 		entity.AddComponent<RenderComponent>(-1);
 		entity.AddComponent<MiniGameControlComponent>(-1);
 	});
+}
+
+namespace {
+	// The bits of `expected` are the first bits of `actual`
+	void ExpectStartsWith(RakNet::BitStream& actual, RakNet::BitStream& expected) {
+		ASSERT_GE(actual.GetNumberOfBitsUsed(), expected.GetNumberOfBitsUsed());
+		actual.ResetReadPointer();
+		expected.ResetReadPointer();
+		for (uint32_t i = 0; i < expected.GetNumberOfBitsUsed(); i++) {
+			ASSERT_EQ(actual.ReadBit(), expected.ReadBit()) << "bit " << i;
+		}
+	}
+}
+
+// LWOGameObject::Deserialize (0x00f99690) reads the components in the order ObjectLoader2::FillComponentOrder
+// (0x0101f8e0) lists them: a chest (22) after its phantom physics (40) and before its render component (2).
+// LOT 2196: phantom physics, chest, render.
+TEST_F(ReplicaComponentOrderTest, ChestIsWrittenBeforeRender) {
+	Entity entity(15, info);
+	auto* const physics = entity.AddComponent<PhantomPhysicsComponent>(-1);
+	auto* const chest = entity.AddComponent<ChestComponent>(0);
+	chest->SetPlayerID(0x1000000000000001LL);
+	chest->SetLootOfferCount(3);
+	auto* const render = entity.AddComponent<RenderComponent>(-1);
+
+	RakNet::BitStream actual;
+	entity.WriteComponents(actual, eReplicaPacketType::CONSTRUCTION);
+
+	Entity copy(15, info);
+	RakNet::BitStream expected;
+	copy.AddComponent<PhantomPhysicsComponent>(-1)->Serialize(expected, true);
+	expected.Write<LWOOBJID>(0x1000000000000001LL);
+	expected.Write<uint32_t>(3);
+	copy.AddComponent<RenderComponent>(-1)->Serialize(expected, true);
+	ExpectStartsWith(actual, expected);
+	static_cast<void>(physics);
+	static_cast<void>(render);
+}
+
+// A choice build (52) is read after physics, destroyable and script and before render. LOT 6414: simple physics,
+// destroyable, choice build, render; LOT 5668 has a script in place of the destroyable.
+TEST_F(ReplicaComponentOrderTest, ChoiceBuildIsWrittenAfterScriptAndBeforeRender) {
+	const auto build = [](Entity& entity) {
+		entity.AddComponent<SimplePhysicsComponent>(-1);
+		entity.AddComponent<BuffComponent>(-1);
+		entity.AddComponent<DestroyableComponent>(-1)->SetMaxHealth(1.0f);
+		entity.AddComponent<ScriptComponent>(-1, "", true);
+		entity.AddComponent<ChoiceBuildComponent>(1);
+		entity.AddComponent<RenderComponent>(-1);
+	};
+	Entity entity(15, info);
+	build(entity);
+	RakNet::BitStream actual;
+	entity.WriteComponents(actual, eReplicaPacketType::CONSTRUCTION);
+
+	Entity copy(15, info);
+	build(copy);
+	RakNet::BitStream expected;
+	copy.GetComponent<SimplePhysicsComponent>()->Serialize(expected, true);
+	copy.GetComponent<BuffComponent>()->Serialize(expected, true);
+	copy.GetComponent<DestroyableComponent>()->Serialize(expected, true);
+	copy.GetComponent<ScriptComponent>()->Serialize(expected, true);
+	expected.Write1();
+	expected.Write<uint32_t>(0); // waiting
+	expected.Write<LWOOBJID>(0); // nothing built
+	expected.Write<LWOOBJID>(0); // nobody using it
+	copy.GetComponent<RenderComponent>()->Serialize(expected, true);
+	ExpectStartsWith(actual, expected);
+}
+
+// A roller (105) is read after script, skill and inventory and before the moving platform (25) and render.
+// LOT 2714: simple physics, roller, moving platform, render; LOT 13951 adds script, skill and inventory.
+TEST_F(ReplicaComponentOrderTest, RollerIsWrittenBeforeTheMovingPlatform) {
+	const auto build = [](Entity& entity) {
+		entity.AddComponent<SimplePhysicsComponent>(-1);
+		entity.AddComponent<ScriptComponent>(-1, "", true);
+		entity.AddComponent<SkillComponent>(-1);
+		entity.AddComponent<RollerComponent>(13951);
+		entity.AddComponent<MovingPlatformComponent>(-1, "");
+		entity.AddComponent<RenderComponent>(-1);
+	};
+	for (const auto packetType : { eReplicaPacketType::CONSTRUCTION, eReplicaPacketType::SERIALIZATION }) {
+		const bool construction = packetType == eReplicaPacketType::CONSTRUCTION;
+		Entity entity(15, info);
+		build(entity);
+		RakNet::BitStream actual;
+		entity.WriteComponents(actual, packetType);
+
+		Entity copy(15, info);
+		build(copy);
+		RakNet::BitStream expected;
+		copy.GetComponent<SimplePhysicsComponent>()->Serialize(expected, construction);
+		copy.GetComponent<ScriptComponent>()->Serialize(expected, construction);
+		copy.GetComponent<SkillComponent>()->Serialize(expected, construction);
+		copy.GetComponent<RollerComponent>()->Serialize(expected, construction);
+		copy.GetComponent<MovingPlatformComponent>()->Serialize(expected, construction);
+		copy.GetComponent<RenderComponent>()->Serialize(expected, construction);
+		ExpectStartsWith(actual, expected);
+	}
 }
