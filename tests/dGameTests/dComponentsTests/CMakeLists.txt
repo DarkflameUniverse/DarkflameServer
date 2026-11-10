@@ -6,6 +6,7 @@ set(DCOMPONENTS_TESTS
 	"DestroyableLevelConfigTests.cpp"
 	"ProximityMonitorComponentTests.cpp"
 	"RailActivatorComponentTests.cpp"
+	"MountControlComponentTests.cpp"
 	"ConstructionOnlyComponentTests.cpp"
 	"PropertyVendorComponentTests.cpp"
 	"VendorBuybackTests.cpp"

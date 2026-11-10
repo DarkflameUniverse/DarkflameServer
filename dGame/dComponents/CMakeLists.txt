@@ -16,6 +16,7 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"Character/LevelProgressionComponent.cpp"
 	"LUPExhibitComponent.cpp"
 	"Character/MissionComponent.cpp"
+	"Character/MountControlComponent.cpp"
 	"MissionOfferComponent.cpp"
 	"ModelComponent.cpp"
 	"ModuleAssemblyComponent.cpp"
