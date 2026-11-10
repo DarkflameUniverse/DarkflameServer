@@ -223,6 +223,12 @@ namespace GameMessages {
 	void RequestLinkedMission::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* player = Game::entityManager->GetEntity(playerID);
 
+		// A player asks for the missions offered to themselves
+		if (!player || !player->IsPlayer() || player->GetSystemAddress() != sysAddr) {
+			LOG("Player %llu of a linked mission request is not the player that sent it", playerID);
+			return;
+		}
+
 		auto* missionOfferComponent = static_cast<MissionOfferComponent*>(entity.GetComponent(eReplicaComponentType::MISSION_OFFER));
 
 		if (missionOfferComponent != nullptr) {

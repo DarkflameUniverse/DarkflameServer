@@ -246,7 +246,7 @@ namespace GameMessages {
 			return;
 		}
 
-		if (interactedObject->GetLOT() == 9524) {
+		if (interactedObject->GetLOT() == 9524 && entity.GetCharacter()) {
 			entity.GetCharacter()->SetBuildMode(true);
 		}
 

@@ -114,8 +114,15 @@ namespace GameMessages {
 	}
 
 	void ClientTradeRequest::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A player asks for their own trade
+		if (!entity.IsPlayer() || entity.GetSystemAddress() != sysAddr) {
+			LOG("Object %llu (LOT %i) is not the player that sent a trade request for it", entity.GetObjectID(), entity.GetLOT());
+			return;
+		}
+
 		// Check if the player has restricted trade access
 		auto* character = entity.GetCharacter();
+		if (!character || !character->GetParentUser()) return;
 		const bool restrictTradeOnMute = UserManager::Instance()->GetMuteRestrictTrade();
 
 		if (character->HasPermission(ePermissionMap::RestrictedTradeAccess) || (restrictTradeOnMute && character->GetParentUser()->GetIsMuted())) {
@@ -132,6 +139,7 @@ namespace GameMessages {
 
 		if (invitee != nullptr && invitee->IsPlayer()) {
 			character = invitee->GetCharacter();
+			if (!character || !character->GetParentUser()) return;
 
 			if (character->HasPermission(ePermissionMap::RestrictedTradeAccess) || (restrictTradeOnMute && character->GetParentUser()->GetIsMuted())) {
 				// Send a message to the player

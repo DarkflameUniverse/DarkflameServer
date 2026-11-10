@@ -136,6 +136,11 @@ namespace GameMessages {
 	}
 
 	void MatchRequest::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A player asks for their own match
+		if (!entity.IsPlayer() || entity.GetSystemAddress() != sysAddr) {
+			LOG("Object %llu (LOT %i) is not the player that sent a match request for it", entity.GetObjectID(), entity.GetLOT());
+			return;
+		}
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		if (type == 0) { // join
 			if (value != 0) {

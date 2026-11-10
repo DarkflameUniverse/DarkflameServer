@@ -1,5 +1,6 @@
 #include "BuildingMessages.h"
 
+#include "PlayerManager.h"
 #include "BitStreamUtils.h"
 #include "Character.h"
 #include "ClientPackets.h"
@@ -99,9 +100,8 @@ namespace GameMessages {
 
 		LOG("Handling start building with item (%i): (%d) (%d) (%i) (%llu) (%i) (%i) (%llu) (%i) (%i)", entity.GetLOT(), firstTime, success, sourceBag, sourceId, sourceLot, arrangedSourceType, targetId, targetLot, targetType);
 
-		auto* user = UserManager::Instance()->GetUser(sysAddr);
-
-		auto* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
+		auto* player = PlayerManager::GetPlayer(sysAddr);
+		if (!player) return;
 
 		StartArrangingWithItem arranging;
 		arranging.target = player->GetObjectID();
@@ -435,7 +435,12 @@ namespace GameMessages {
 
 	void SetBuildMode::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* player = Game::entityManager->GetEntity(playerId);
-		if (!player || !player->GetCharacter()) return;
+
+		// A player sets their own build mode
+		if (!player || !player->IsPlayer() || player->GetSystemAddress() != sysAddr || !player->GetCharacter()) {
+			LOG("Player %llu of a build mode change is not the player that sent it", playerId);
+			return;
+		}
 
 		auto confirmedStartPos = startPos;
 		if (confirmedStartPos == NiPoint3Constant::ZERO) {

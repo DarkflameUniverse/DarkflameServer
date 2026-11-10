@@ -70,6 +70,7 @@
 namespace DEVGMCommands {
 	void SetGMLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		User* user = UserManager::Instance()->GetUser(entity->GetSystemAddress());
+		if (!user) return;
 
 		const auto level_intermed = GeneralUtils::TryParse<uint32_t>(args);
 		if (!level_intermed) {
