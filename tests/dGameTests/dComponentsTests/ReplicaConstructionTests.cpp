@@ -317,6 +317,13 @@ TEST_F(ReplicaConstructionTest, PhantomPhysicsVolumeEffectsAsLive) {
 	EXPECT_EQ(effect.type, 4u);
 	EXPECT_FALSE(effect.hasDistance);
 	EXPECT_FALSE(effect.isDirectional);
+
+	// The amount is a float all the way: LWOPhantomPhysicsComponent::Deserialize (0x00c34db0) reads 32 bits into a
+	// float, and trigger commands are run by the server only, so a fraction is kept as the zone file has it
+	Entity lowFriction(1007, info);
+	effect = ReadVolumeEffect(lowFriction, { "Friction", "0.1" });
+	EXPECT_EQ(effect.type, 4u);
+	EXPECT_EQ(effect.amount, 0.1f);
 }
 
 // A construction (the volume coming into one player's range) doesn't use up an effect change the players already
