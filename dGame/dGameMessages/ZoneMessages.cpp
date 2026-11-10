@@ -5,6 +5,8 @@
 #include "BitStreamUtils.h"
 #include "CDClientManager.h"
 #include "Character.h"
+#include "CDClientManager.h"
+#include "CDLevelProgressionLookupTable.h"
 #include "CharacterComponent.h"
 #include "CppScripts.h"
 #include "DestroyableComponent.h"
@@ -299,10 +301,24 @@ namespace GameMessages {
 	}
 
 	void NotifyServerLevelProcessingComplete::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// A player levels themselves up
+		if (!entity.IsPlayer() || entity.GetSystemAddress() != sysAddr) return;
+
 		auto* levelComp = entity.GetComponent<LevelProgressionComponent>();
 		if (!levelComp) return;
 		auto* character = entity.GetComponent<CharacterComponent>();
 		if (!character) return;
+
+		// The next level has to exist and the player needs the score for it
+		const uint32_t nextLevel = levelComp->GetLevel() + 1;
+		const auto nextLevelEntries = CDClientManager::GetTable<CDLevelProgressionLookupTable>()->Query([nextLevel](const CDLevelProgressionLookup& entry) {
+			return entry.id == nextLevel;
+			});
+
+		if (nextLevelEntries.empty() || character->GetUScore() < static_cast<int64_t>(nextLevelEntries.front().requiredUScore)) {
+			LOG("Player %llu asked for level %u with a score of %lld, which is not enough for it", entity.GetObjectID(), nextLevel, character->GetUScore());
+			return;
+		}
 
 		//Update our character's level in memory:
 		levelComp->SetLevel(levelComp->GetLevel() + 1);
