@@ -32,6 +32,7 @@
 #include "ZoneMessages.h"
 #include "MovementMessages.h"
 #include "SkillComponent.h"
+#include "Behavior.h"
 #include "Character.h"
 #include "EntityManager.h"
 #include "ItemSet.h"
@@ -1692,6 +1693,20 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 	}
 
 	return buffs;
+}
+
+std::vector<uint32_t> InventoryComponent::FindEquippedJetPacks() const {
+	std::vector<uint32_t> jetPacks;
+	for (const auto& equipped : m_Equipped | std::views::values) {
+		for (const auto behaviorID : FindBuffs(FindItemById(equipped.id), false)) {
+			if (Behavior::GetBehaviorTemplate(behaviorID) == BehaviorTemplate::JETPACK) jetPacks.push_back(behaviorID);
+		}
+	}
+	return jetPacks;
+}
+
+void InventoryComponent::RecastEquippedJetPacks() const {
+	for (const auto behaviorID : FindEquippedJetPacks()) SkillComponent::HandleUnmanaged(behaviorID, m_Parent->GetObjectID());
 }
 
 void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {

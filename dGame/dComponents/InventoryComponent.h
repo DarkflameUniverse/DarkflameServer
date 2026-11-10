@@ -365,6 +365,17 @@ public:
 	std::vector<uint32_t> FindBuffs(Item* item, bool castOnEquip) const;
 
 	/**
+	 * The jetpack behaviors among the equip skills of the equipped items
+	 */
+	std::vector<uint32_t> FindEquippedJetPacks() const;
+
+	/**
+	 * Puts a player that wears a jetpack back in jetpack mode after a world load: live sent SetJetPackMode again
+	 * shortly after the player's own construction in the next world, as the equip skill sends it
+	 */
+	void RecastEquippedJetPacks() const;
+
+	/**
 	 * One DeletionRestrictions row (CheckDeletionRestrictionIndex @ 00c94c20). visited stops rows that refer back to
 	 * themselves; the client lets such rows through.
 	 */
