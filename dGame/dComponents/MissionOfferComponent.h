@@ -96,6 +96,12 @@ public:
 	 */
 	void OfferMissions(Entity* entity, uint32_t specifiedMissionId = 0);
 
+	/**
+	 * Returns whether this entity offers or accepts a mission, on its own or as one of a random mission's pool
+	 * @param missionId the mission to look for
+	 */
+	bool HasMission(uint32_t missionId) const;
+
 	// RequestLinkedMission after a mission window: offers the next mission of this giver, if there is a new one
 	void OfferLinkedMission(Entity* entity, uint32_t missionID);
 

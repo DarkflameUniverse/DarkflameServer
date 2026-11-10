@@ -136,6 +136,21 @@ std::vector<uint32_t> MissionOfferComponent::ParseRandomPool(const std::string& 
 	return pool;
 }
 
+bool MissionOfferComponent::HasMission(const uint32_t missionId) const {
+	for (const auto& offeredMission : this->offeredMissions) {
+		if (offeredMission.GetMissionId() == missionId) return true;
+
+		// A random mission stands for the missions in its pool
+		CDMissions info{};
+		if (!Mission::IsValidMission(offeredMission.GetMissionId(), info) || !info.isRandom) continue;
+
+		const auto randomMissionPool = ParseRandomPool(info.randomPool);
+		if (std::ranges::find(randomMissionPool, missionId) != randomMissionPool.end()) return true;
+	}
+
+	return false;
+}
+
 const OfferedMission* MissionOfferComponent::GetOfferedMission(const uint32_t missionID) const {
 	const auto offered = std::ranges::find_if(offeredMissions, [missionID](const OfferedMission& other) { return other.GetMissionId() == missionID; });
 	return offered == offeredMissions.end() ? nullptr : &*offered;

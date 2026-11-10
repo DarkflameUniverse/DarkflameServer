@@ -143,12 +143,11 @@ namespace GameMessages {
 	void MissionDialogueOK::Handle(Entity& entityRef, const SystemAddress& sysAddr) {
 		Entity* entity = &entityRef;
 		Entity* player = Game::entityManager->GetEntity(responder);
-		if (!player) {
-			LOG("MissionDialogueOK for mission %i from unknown responder %llu", missionID, responder);
+		// A player answers a mission dialogue for themselves
+		if (!player || !player->IsPlayer() || player->GetSystemAddress() != sysAddr) {
+			LOG("Responder %llu of MissionDialogueOK for mission %i is not the player that sent it", responder, missionID);
 			return;
 		}
-
-		entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
 
 		// Get the player's mission component
 		MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
@@ -157,9 +156,35 @@ namespace GameMessages {
 			return;
 		}
 
-		if (iMissionState == eMissionState::AVAILABLE || iMissionState == eMissionState::COMPLETE_AVAILABLE) {
+		// The mission has to be one the object the dialogue belongs to gives or takes
+		const auto* const missionOfferComponent = entity->GetComponent<MissionOfferComponent>();
+		if (!missionOfferComponent || !missionOfferComponent->HasMission(missionID)) {
+			LOG("Object %llu (LOT %i) has no mission %i for player %llu to answer", entity->GetObjectID(), entity->GetLOT(), missionID, player->GetObjectID());
+			return;
+		}
+
+		const bool isAccepting = iMissionState == eMissionState::AVAILABLE || iMissionState == eMissionState::COMPLETE_AVAILABLE;
+		const bool isCompleting = iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE;
+
+		if (isAccepting && !missionComponent->CanAccept(missionID)) {
+			LOG("Player %llu tried to accept mission %i, which they can not accept", player->GetObjectID(), missionID);
+			return;
+		}
+
+		if (isCompleting) {
+			// Only a mission with all of its tasks done can be handed in
+			const auto* const readyMission = missionComponent->GetMission(missionID);
+			if (!readyMission || !readyMission->IsReadyToComplete()) {
+				LOG("Player %llu tried to hand in mission %i, which is not ready to complete", player->GetObjectID(), missionID);
+				return;
+			}
+		}
+
+		entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
+
+		if (isAccepting) {
 			missionComponent->AcceptMission(missionID);
-		} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
+		} else if (isCompleting) {
 			// LWOMissionComponent::MissionWindowOK (0x00d501f0) only turns a mission in when every reward fits
 			// (CanReceiveAllRewards, with the reward the player picked)
 			const auto* const mission = missionComponent->GetMission(missionID);
