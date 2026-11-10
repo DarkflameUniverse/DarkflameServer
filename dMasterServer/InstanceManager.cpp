@@ -11,6 +11,7 @@
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
 #include "Database.h"
+#include "InstanceLimits.h"
 #include "MasterPackets.h"
 #include "BitStreamUtils.h"
 #include "ServiceType.h"
@@ -46,6 +47,23 @@ InstanceManager::InstanceManager(const std::string& externalIP) : mExternalIP{ e
 	m_LastPort =
 		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("world_port_start")).value_or(m_LastPort);
 	m_LastInstanceID = LWOINSTANCEID_INVALID;
+	m_MaxInstances =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_instances")).value_or(InstanceLimits::DefaultMaxInstances);
+}
+
+bool InstanceManager::CanCreateInstance(const LWOMAPID mapID, const LWOCLONEID cloneID) const {
+	const bool isInZoneTable = mapID != 0 && CDZoneTableTable::Query(mapID) != nullptr;
+
+	switch (InstanceLimits::CheckNewInstance(mapID, isInZoneTable, m_Instances.size(), m_MaxInstances)) {
+	case InstanceLimits::eNewInstance::UnknownZone:
+		LOG("Tried to create an instance of map %i/%i, which is not in the ZoneTable.", mapID, cloneID);
+		return false;
+	case InstanceLimits::eNewInstance::TooManyInstances:
+		LOG("Tried to create an instance of map %i/%i, but %zu instances run already and max_instances is %u.", mapID, cloneID, m_Instances.size(), m_MaxInstances);
+		return false;
+	default:
+		return true;
+	}
 }
 
 const InstancePtr& InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
@@ -65,6 +83,9 @@ const InstancePtr& InstanceManager::CreateInstance(LWOMAPID mapID, LWOCLONEID cl
 			cloneID);
 		return g_Empty;
 	}
+
+	if (!CanCreateInstance(mapID, cloneID)) return g_Empty;
+
 	int softCap = 8;
 	int maxPlayers = 12;
 
@@ -359,6 +380,8 @@ const InstancePtr& InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLO
 			cloneID);
 		return g_Empty;
 	}
+
+	if (!CanCreateInstance(mapID, cloneID)) return g_Empty;
 
 	int maxPlayers = 999;
 

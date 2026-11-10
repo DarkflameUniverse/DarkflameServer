@@ -234,7 +234,17 @@ private:
 	std::map<LWOMAPID, IServerOperations::ZoneLimit> m_ZoneLimits;
 	std::map<LWOMAPID, SpareBackoff> m_SpareBackoff;
 
+	/**
+	 * The most instances that run at once, 0 for no limit
+	 */
+	uint32_t m_MaxInstances = 0;
+
 	//Private functions:
+
+	/**
+	 * Whether a new instance may be started for a zone, logs the reason when it may not
+	 */
+	bool CanCreateInstance(LWOMAPID mapID, LWOCLONEID cloneID) const;
 	int GetSoftCap(LWOMAPID mapID);
 	int GetHardCap(LWOMAPID mapID);
 	const InstancePtr& CreateInstance(LWOMAPID mapID, LWOCLONEID cloneID);

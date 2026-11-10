@@ -20,6 +20,7 @@ SET(DGAMEMESSAGES_TESTS
 	"ClientMessagesTests.cpp"
 	"LoadSequenceTests.cpp"
 	"ChatRoutingTests.cpp"
+	"InstanceLimitsTests.cpp"
 	"TradeOfferTests.cpp"
 	"VendorPricingTests.cpp")
 

@@ -745,6 +745,10 @@ namespace {
 			return;
 		}
 		const auto& in = Game::im->GetInstance(zoneID, false, zoneClone);
+		if (!in) {
+			LOG("No instance for transfer request %llu to zone %i %i", requestID, zoneID, zoneClone);
+			return;
+		}
 
 		for (const auto& instance : Game::im->GetInstances()) {
 			LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
@@ -887,6 +891,10 @@ namespace {
 	void OnCreatePrivateZone(const CreatePrivateZone& request, const SystemAddress& sysAddr) {
 		// Passwords were cut to 50 characters when read
 		const auto& newInst = Game::im->CreatePrivateInstance(request.zoneID, request.cloneID, request.password.c_str());
+		if (!newInst) {
+			LOG("No private zone was created for map %i/%i", request.zoneID, request.cloneID);
+			return;
+		}
 		LOG("Creating private zone %i/%i/%i", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID());
 	}
 
