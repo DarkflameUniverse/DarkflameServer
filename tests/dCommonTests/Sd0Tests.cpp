@@ -4,7 +4,10 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <vector>
 
+#include "Game.h"
+#include "Logger.h"
 #include "Sd0.h"
 #include "ZCompression.h"
 
@@ -64,4 +67,77 @@ TEST(Sd0, EmptyDataIsTheHeaderOnly) {
 	EXPECT_EQ(Sd0::Compress(""), std::string(Sd0::SD0_HEADER, 5));
 	Sd0 empty;
 	EXPECT_TRUE(empty.GetAsVector().empty());
+}
+
+class Sd0Test : public ::testing::Test {
+protected:
+	void SetUp() override {
+		Game::logger = new Logger("./testing.log", true, true);
+	}
+
+	void TearDown() override {
+		delete Game::logger;
+		Game::logger = nullptr;
+	}
+
+	// One zlib chunk as it sits in an sd0 buffer: its size and then its data
+	static std::string MakeChunk(const std::string& data) {
+		std::vector<uint8_t> compressed(ZCompression::GetMaxCompressedLength(data.size()));
+		const auto compressedSize = ZCompression::Compress(
+			reinterpret_cast<const uint8_t*>(data.data()), data.size(),
+			compressed.data(), compressed.size());
+		EXPECT_NE(compressedSize, -1);
+
+		std::string chunk;
+		const uint32_t size = compressedSize;
+		chunk.append(reinterpret_cast<const char*>(&size), sizeof(size));
+		chunk.append(reinterpret_cast<const char*>(compressed.data()), size);
+		return chunk;
+	}
+
+	static std::string Inflate(const std::string& sd0Data) {
+		std::istringstream stream(sd0Data);
+		const Sd0 sd0(stream);
+		return sd0.GetAsStringUncompressed();
+	}
+
+	const std::string m_Header = std::string(Sd0::SD0_HEADER, 5);
+};
+
+TEST_F(Sd0Test, DataOfSeveralChunksSurvivesARoundTrip) {
+	std::string data;
+	for (uint32_t i = 0; data.size() < Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE * 2 + 1000; i++) data += std::to_string(i) + ",";
+
+	std::istringstream empty;
+	Sd0 sd0(empty);
+	sd0.FromData(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+	EXPECT_EQ(sd0.GetAsVector().size(), 3);
+	EXPECT_EQ(sd0.GetAsStringUncompressed(), data);
+
+	EXPECT_EQ(Inflate(sd0.GetAsStream().str()), data);
+}
+
+TEST_F(Sd0Test, ChunksThatAreNotFullFollowOneAnother) {
+	EXPECT_EQ(Inflate(m_Header + MakeChunk("abc") + MakeChunk("def") + MakeChunk("ghi")), "abcdefghi");
+}
+
+TEST_F(Sd0Test, TooManyChunksAreRefused) {
+	const auto chunk = MakeChunk("a");
+
+	std::string allowed = m_Header;
+	for (uint32_t i = 0; i < Sd0::MAX_CHUNKS; i++) allowed += chunk;
+	EXPECT_EQ(Inflate(allowed), std::string(Sd0::MAX_CHUNKS, 'a'));
+
+	EXPECT_EQ(Inflate(allowed + chunk), "");
+}
+
+TEST_F(Sd0Test, TooMuchInflatedDataIsRefused) {
+	const auto chunk = MakeChunk(std::string(Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE, 'a'));
+	const uint32_t chunksToFill = Sd0::MAX_UNCOMPRESSED_SIZE / Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE;
+
+	std::string allowed = m_Header;
+	for (uint32_t i = 0; i < chunksToFill; i++) allowed += chunk;
+	EXPECT_EQ(Inflate(allowed).size(), Sd0::MAX_UNCOMPRESSED_SIZE);
+
+	EXPECT_EQ(Inflate(allowed + MakeChunk("a")), "");
 }

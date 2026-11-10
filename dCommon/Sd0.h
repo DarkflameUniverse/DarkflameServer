@@ -4,7 +4,9 @@
 #ifndef SD0_H
 #define SD0_H
 
+#include <cstdint>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,6 +24,16 @@ public:
 	 * @brief Max size of an inflated sd0 zlib chunk
 	 */
 	static constexpr inline size_t MAX_UNCOMPRESSED_CHUNK_SIZE = 1024 * 256;
+
+	/**
+	 * @brief Max number of zlib chunks in one sd0 buffer
+	 */
+	static constexpr inline uint32_t MAX_CHUNKS = 4096;
+
+	/**
+	 * @brief Max size of an sd0 buffer once all of its chunks are inflated, far above the size of a model
+	 */
+	static constexpr inline uint32_t MAX_UNCOMPRESSED_SIZE = 64 * 1024 * 1024;
 
 	// Empty, for FromData
 	Sd0() = default;

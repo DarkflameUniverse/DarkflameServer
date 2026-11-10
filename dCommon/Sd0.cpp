@@ -66,6 +66,11 @@ Sd0::Sd0(std::istream& buffer) {
 			LOG("Failed to read chunk size from stream %lld %zu", buffer.tellg(), m_Chunks.size());
 			break;
 		}
+		if (m_Chunks.size() >= MAX_CHUNKS) {
+			LOG("More than %u chunks in an sd0 buffer, rejecting.", MAX_CHUNKS);
+			m_Chunks.clear();
+			break;
+		}
 		auto& chunk = m_Chunks.emplace_back();
 		bool firstBuffer = m_Chunks.size() == 1;
 		auto dataOffset = GetDataOffset(firstBuffer);
@@ -155,7 +160,8 @@ std::string Sd0::GetAsStringUncompressed() const {
 			break;
 		}
 
-		auto oldSize = toReturn.size();
+		// Each chunk is inflated right after the one before it
+		const auto oldSize = toReturn.size();
 		toReturn.resize(oldSize + MAX_UNCOMPRESSED_CHUNK_SIZE);
 		int32_t error{};
 		const auto uncompressedSize = ZCompression::Decompress(
@@ -171,6 +177,14 @@ std::string Sd0::GetAsStringUncompressed() const {
 		}
 
 		totalSize += uncompressedSize;
+		toReturn.resize(totalSize);
+
+		if (totalSize > MAX_UNCOMPRESSED_SIZE) {
+			LOG("An sd0 buffer inflates to more than %u bytes, aborting", MAX_UNCOMPRESSED_SIZE);
+			toReturn = "";
+			totalSize = 0;
+			break;
+		}
 	}
 
 	toReturn.resize(totalSize);
