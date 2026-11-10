@@ -1,4 +1,5 @@
 #include "ActivityComponent.h"
+#include "WorldPackets.h"
 #include "ChatServerLink.h"
 #include "ChatPackets.h"
 #include "GameMessages.h"
@@ -303,6 +304,9 @@ void ActivityInstance::TransferParticipants(const ChatPackets::MatchTransfer& tr
 	const auto zoneInstance = transfer.zoneID.GetInstanceID();
 	const auto zoneClone = transfer.zoneID.GetCloneID();
 	for (Entity* player : GetParticipants()) {
+		// The match got no instance: the players stay, and each is told the map change failed
+		if (WorldPackets::SendIfTransferFailed(player->GetSystemAddress(), transfer.serverIP, transfer.serverPort)) continue;
+
 		LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, transfer.mythranShift == true ? "true" : "false", transfer.serverIP.c_str(), transfer.serverPort);
 		if (player->GetCharacter()) {
 			auto* characterComponent = player->GetComponent<CharacterComponent>();

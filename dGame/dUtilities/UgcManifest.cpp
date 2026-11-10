@@ -1,4 +1,5 @@
 #include "UgcManifest.h"
+#include "WorldPackets.h"
 
 #include <algorithm>
 #include <chrono>
@@ -331,6 +332,7 @@ namespace {
 				[objectId](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 					auto* const entity = Game::entityManager->GetEntity(objectId);
 					if (!entity || !entity->GetCharacter()) return;
+					if (WorldPackets::SendIfTransferFailed(entity->GetSystemAddress(), serverIP, serverPort)) return;
 					auto* const character = entity->GetCharacter();
 					character->SetZoneID(zoneID);
 					character->SetZoneInstance(zoneInstance);

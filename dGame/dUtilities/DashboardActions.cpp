@@ -1,4 +1,5 @@
 #include "DashboardActions.h"
+#include "WorldPackets.h"
 
 #include "master/PlayerAction.h"
 #include "Game.h"
@@ -144,6 +145,7 @@ namespace {
 			[objectId, spawnPoint](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 				auto* entity = Game::entityManager->GetEntity(objectId);
 				if (!entity || !entity->GetCharacter()) return;
+				if (WorldPackets::SendIfTransferFailed(entity->GetSystemAddress(), serverIP, serverPort)) return;
 
 				auto* character = entity->GetCharacter();
 				if (auto* characterComponent = entity->GetComponent<CharacterComponent>()) {
