@@ -154,6 +154,8 @@ namespace {
 	// Where the chat server is (to connect again at once when a live update started a new one)
 	std::string g_ChatIP;
 	uint32_t g_ChatPort = 0;
+	// The password the servers share, which the chat server listens with
+	std::string g_ChatPassword;
 	// A live update restarted chat: send it who is here once connected
 	bool g_ChatResyncPending = false;
 }; // namespace anonymous
@@ -207,7 +209,7 @@ void OnChatServerReady() {
 	}
 	g_ChatResyncPending = true;
 	LOG("A new chat server is up; connecting");
-	Game::chatServer->Connect(g_ChatIP.c_str(), g_ChatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
+	Game::chatServer->Connect(g_ChatIP.c_str(), g_ChatPort, g_ChatPassword.c_str(), g_ChatPassword.size());
 }
 
 void WorldShutdownSequence();
@@ -380,6 +382,7 @@ int main(int argc, char** argv) {
 	Game::chatServer->Connect(masterIP.c_str(), chatPort, masterPassword.c_str(), masterPassword.size());
 	g_ChatIP = masterIP;
 	g_ChatPort = chatPort;
+	g_ChatPassword = masterPassword;
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
