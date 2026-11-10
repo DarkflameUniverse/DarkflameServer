@@ -156,6 +156,16 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   with a log line. Servers build `blocklist.dcf` from a plain `blocklist.txt` next to them, and blocked entries can be
   phrases. See "Block list file" in [docs/Dashboard.md](docs/Dashboard.md).
 * The chat server's old web API is removed; the dashboard's API covers online players, teams and announcements.
+* **Checks on what clients and servers send (merged 2026-11-10 from a fix branch for `main`):** session keys are 16
+  bytes from the system entropy source, sent as 32 hex characters and passed between the auth, master and world servers
+  as a string; the chat server listens with the password the servers share; a world server only routes the chat
+  messages a client sends. A trade offer is checked against the items the player holds and against what the client's
+  trade window takes (8 items, none bound, equipped, undeletable or an unapproved model), and a changed offer takes
+  both accepts back. Vendor counts and prices, mission dialogues, level ups, property changes and a player's own
+  messages are checked against the player that sent them; lengths read from a message have to fit in it, and sd0 and
+  AMF3 data have limits. The master server only starts instances of zones in the ZoneTable and at most
+  `max_instances` (masterconfig.ini, 256 by default, 0 for no limit); a player whose zone gets no instance is told
+  that the map change failed.
 
 ## License
 Darkflame Universe is licensed under AGPLv3, please read [LICENSE](LICENSE). Some important points:
