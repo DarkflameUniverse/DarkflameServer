@@ -54,6 +54,7 @@ void Character::UpdateInfoFromDatabase() {
 		m_NameRejected = charInfo->needsRename;
 		m_PropertyCloneID = charInfo->cloneId;
 		m_PermissionMap = charInfo->permissionMap;
+		m_SessionLogin = charInfo->lastLogin;
 	}
 
 	// Load the xmlData now. Loading takes the character over: saves from any server that loaded it before are refused.

@@ -144,8 +144,10 @@ TEST_F(CharacterSaveFieldsTests, LiveCharacterAttributesRoundTrip) {
 	// No respawn point was reached in this world: the saved one stays
 	EXPECT_STREQ(saved->Attribute("lrx"), "1");
 	EXPECT_STREQ(saved->Attribute("lrrw"), "0.5");
+	// The session goes on (no other login is known): its seconds are kept
+	EXPECT_GE(saved->Unsigned64Attribute("stime"), 349u);
+	EXPECT_LE(saved->Unsigned64Attribute("stime"), 351u);
 	// Not written by the server: left alone
-	EXPECT_STREQ(saved->Attribute("stime"), "349");
 	EXPECT_STREQ(saved->Attribute("lzcs"), "2233038349");
 
 	// The same day: the votes left are kept
@@ -188,7 +190,120 @@ TEST_F(CharacterSaveFieldsTests, LiveCharacterAttributesMissingInOldSave) {
 	EXPECT_STREQ(saved->Attribute("v"), "3");
 	EXPECT_NE(saved->Attribute("vd"), nullptr);
 	EXPECT_EQ(saved->Attribute("lrx"), nullptr); // no respawn point reached yet
-	EXPECT_EQ(saved->Attribute("stime"), nullptr);
+	EXPECT_NE(saved->Attribute("stime"), nullptr);
+}
+
+namespace {
+	// Loads <char> with the given attributes for a character whose login (charinfo.last_login) is sessionLogin, lets
+	// seconds pass and saves. Returns the saved <char>.
+	const tinyxml2::XMLElement* LoadPlayAndSave(tinyxml2::XMLDocument& doc, Character& character, CharacterComponent& component,
+		const std::string& attributes, const uint64_t sessionLogin, const int64_t seconds) {
+		const auto xml = R"(<obj v="1"><mf/><char acct="1" cc="5" )" + attributes + "/></obj>";
+		EXPECT_EQ(doc.Parse(xml.c_str()), tinyxml2::XML_SUCCESS);
+		character.SetSessionLogin(sessionLogin);
+		component.LoadFromSaveData(doc);
+		component.SetLastUpdateTimestamp(std::time(nullptr) - seconds);
+		component.WriteSaveData(doc);
+		return doc.FirstChildElement("obj")->FirstChildElement("char");
+	}
+
+	// The seconds asked for, or one more when the clock ticked during the test
+	void ExpectAbout(const uint64_t value, const uint64_t expected) {
+		EXPECT_GE(value, expected);
+		EXPECT_LE(value, expected + 1);
+	}
+}
+
+// Play time as live saved it: time is the total before the session, stime the session's seconds, and the client
+// shows time + stime (LWOCharacterComponent::LoadFromSaveData 0x00ca4910, SendMessage 0x00d34330 GetTimePlayed).
+// A save from before stime was written has every past session in time: the total stays what it was.
+TEST_F(CharacterSaveFieldsTests, OldSavePlayTimeKeepsItsTotal) {
+	tinyxml2::XMLDocument doc;
+	Character character(1, nullptr);
+	Entity player(60, info);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	const auto* const saved = LoadPlayAndSave(doc, character, *component, R"(llog="1700000000" time="54390")", 1700090000, 0);
+	EXPECT_EQ(component->GetTotalTimePlayed() - component->GetSessionTimePlayed(), 54390u);
+	ExpectAbout(component->GetTotalTimePlayed(), 54390);
+	EXPECT_STREQ(saved->Attribute("time"), "54390");
+	ExpectAbout(saved->Unsigned64Attribute("stime"), 0);
+	EXPECT_STREQ(saved->Attribute("llog"), "1700090000");
+	EXPECT_EQ(saved->Unsigned64Attribute("time") + saved->Unsigned64Attribute("stime"), component->GetTotalTimePlayed());
+
+	// The same without a known login (no charinfo row): nothing is lost and llog is left alone
+	tinyxml2::XMLDocument unknownDoc;
+	Character unknown(2, nullptr);
+	Entity other(61, info);
+	auto* const otherComponent = other.AddComponent<CharacterComponent>(-1, &unknown, UNASSIGNED_SYSTEM_ADDRESS);
+	const auto* const otherSaved = LoadPlayAndSave(unknownDoc, unknown, *otherComponent, R"(llog="1700000000" time="54390")", 0, 0);
+	EXPECT_STREQ(otherSaved->Attribute("time"), "54390");
+	EXPECT_STREQ(otherSaved->Attribute("llog"), "1700000000");
+	ExpectAbout(otherComponent->GetTotalTimePlayed(), 54390);
+}
+
+// A session in progress: the seconds since the last save go to stime, time stays, and a world transfer in the same
+// session (the same login) goes on counting in stime. Live: time=262486 with stime=6795, then 7259 in the next world.
+TEST_F(CharacterSaveFieldsTests, SessionPlayTimeGrowsInStime) {
+	tinyxml2::XMLDocument doc;
+	Character character(1, nullptr);
+	Entity player(62, info);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	const auto* saved = LoadPlayAndSave(doc, character, *component, R"(llog="1327837739" time="262486" stime="6795")", 1327837739, 464);
+	EXPECT_STREQ(saved->Attribute("time"), "262486");
+	ExpectAbout(saved->Unsigned64Attribute("stime"), 7259);
+	EXPECT_STREQ(saved->Attribute("llog"), "1327837739");
+	ExpectAbout(component->GetTotalTimePlayed(), 262486 + 7259);
+	ExpectAbout(component->GetSessionTimePlayed(), 7259);
+
+	// A second save in the same world adds only what passed since the first
+	component->SetLastUpdateTimestamp(std::time(nullptr) - 10);
+	component->WriteSaveData(doc);
+	EXPECT_STREQ(saved->Attribute("time"), "262486");
+	EXPECT_GE(saved->Unsigned64Attribute("stime"), 7269u);
+	EXPECT_LE(saved->Unsigned64Attribute("stime"), 7271u);
+
+	// The next world of the session loads what this one saved and goes on
+	tinyxml2::XMLPrinter printer(nullptr, true);
+	doc.Print(&printer);
+	const std::string written = printer.CStr();
+	tinyxml2::XMLDocument next;
+	ASSERT_EQ(next.Parse(written.c_str()), tinyxml2::XML_SUCCESS);
+	Entity inNextWorld(63, info);
+	auto* const nextComponent = inNextWorld.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	nextComponent->LoadFromSaveData(next);
+	EXPECT_EQ(nextComponent->GetTotalTimePlayed(), component->GetTotalTimePlayed());
+	EXPECT_EQ(nextComponent->GetSessionTimePlayed(), component->GetSessionTimePlayed());
+	nextComponent->SetLastUpdateTimestamp(std::time(nullptr) - 30);
+	nextComponent->WriteSaveData(next);
+	const auto* const nextSaved = next.FirstChildElement("obj")->FirstChildElement("char");
+	EXPECT_STREQ(nextSaved->Attribute("time"), "262486");
+	EXPECT_GE(nextSaved->Unsigned64Attribute("stime"), 7299u);
+	EXPECT_LE(nextSaved->Unsigned64Attribute("stime"), 7302u);
+}
+
+// The next login: the last session's seconds join time and stime starts over. Live: time=262486 stime=7344 at the
+// end of one session, time=269830 in the next. The total is the same before and after.
+TEST_F(CharacterSaveFieldsTests, ANewSessionMovesStimeIntoTime) {
+	tinyxml2::XMLDocument doc;
+	Character character(1, nullptr);
+	Entity player(64, info);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	const auto* const saved = LoadPlayAndSave(doc, character, *component, R"(llog="1327837739" time="262486" stime="7344")", 1327848273, 74);
+	EXPECT_STREQ(saved->Attribute("time"), "269830");
+	ExpectAbout(saved->Unsigned64Attribute("stime"), 74);
+	EXPECT_STREQ(saved->Attribute("llog"), "1327848273");
+	ExpectAbout(component->GetTotalTimePlayed(), 269830 + 74);
+}
+
+// The client reads stime as a float; a fraction written by something else is read, not refused
+TEST_F(CharacterSaveFieldsTests, FractionalStimeIsRead) {
+	tinyxml2::XMLDocument doc;
+	Character character(1, nullptr);
+	Entity player(65, info);
+	auto* const component = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+	const auto* const saved = LoadPlayAndSave(doc, character, *component, R"(time="100" stime="15.6958")", 0, 0);
+	EXPECT_STREQ(saved->Attribute("time"), "100");
+	ExpectAbout(saved->Unsigned64Attribute("stime"), 15);
 }
 
 // <skil sc>: the cooldown groups still running and the seconds left, as live wrote them (sc="17:15.6958;") and the

@@ -133,6 +133,13 @@ public:
 	 */
 	uint64_t GetLastLogin() const { return m_LastLogin; }
 
+	/**
+	 * When this character was picked on the character list for the session it is in (charinfo.last_login, unix
+	 * seconds); 0 when not known. Live saved it as <char llog> and started a new session's play time there.
+	 */
+	uint64_t GetSessionLogin() const { return m_SessionLogin; }
+	void SetSessionLogin(const uint64_t value) { m_SessionLogin = value; }
+
 
 	/**
 	 * Gets the default shirt color for this character
@@ -692,6 +699,11 @@ private:
 	 * The last time this character logged in
 	 */
 	uint64_t m_LastLogin{};
+
+	/**
+	 * charinfo.last_login as it was when this character was loaded
+	 */
+	uint64_t m_SessionLogin{};
 
 	/**
 	 * Flags only set for the duration of a session

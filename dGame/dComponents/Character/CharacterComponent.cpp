@@ -81,7 +81,7 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 	cmptType.PushDebug<AMFIntValue>("Component ID") = GeneralUtils::ToUnderlying(ComponentType);
 	cmptType.PushDebug<AMFIntValue>("Character's account ID") = m_Character->GetParentUser()->GetAccountID();
 	cmptType.PushDebug<AMFBoolValue>("Last log out time") = m_Character->GetLastLogin();
-	cmptType.PushDebug<AMFDoubleValue>("Seconds played this session") = 0;
+	cmptType.PushDebug<AMFDoubleValue>("Seconds played this session") = m_SessionTimePlayed;
 	cmptType.PushDebug<AMFBoolValue>("Editor enabled") = false;
 	cmptType.PushDebug<AMFDoubleValue>("Total number of seconds played") = m_TotalTimePlayed;
 	cmptType.PushDebug<AMFStringValue>("Total currency") = std::to_string(m_Character->GetCoins());
@@ -398,11 +398,22 @@ void CharacterComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 
 	LoadGuild();
 
-	if (character->FindAttribute("time")) {
-		character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);
-	} else {
-		m_TotalTimePlayed = 0;
-	}
+	// Play time as live saved it and the client reads it (LWOCharacterComponent::LoadFromSaveData 0x00ca4910): time is
+	// the total before the session, stime the seconds of the session so far; the client shows their sum (SendMessage
+	// 0x00d34330, GetTimePlayed). Saves from before stime was written hold everything in time.
+	uint64_t timeBeforeSession = 0;
+	character->QueryUnsigned64Attribute("time", &timeBeforeSession);
+	double savedSessionTime = 0.0; // the client reads a float
+	character->QueryDoubleAttribute("stime", &savedSessionTime);
+	m_SessionTimePlayed = savedSessionTime > 0.0 ? static_cast<uint64_t>(savedSessionTime) : 0;
+	m_TotalTimePlayed = timeBeforeSession + m_SessionTimePlayed;
+
+	// A session starts when the character is picked on the character list; live's llog (and time) changed there and
+	// stayed over the session's world transfers. A save of another login: its session is over, a new one starts at 0.
+	uint64_t savedSessionLogin = 0;
+	character->QueryUnsigned64Attribute("llog", &savedSessionLogin);
+	const auto sessionLogin = m_Character ? m_Character->GetSessionLogin() : 0;
+	if (sessionLogin != 0 && sessionLogin != savedSessionLogin) m_SessionTimePlayed = 0;
 
 	if (!m_Character) return;
 
@@ -530,8 +541,13 @@ void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	auto newUpdateTimestamp = std::time(nullptr);
 	LOG("Time since last save: %d", newUpdateTimestamp - m_LastUpdateTimestamp);
 
-	m_TotalTimePlayed += newUpdateTimestamp - m_LastUpdateTimestamp;
-	character->SetAttribute("time", m_TotalTimePlayed);
+	const auto sinceLastSave = newUpdateTimestamp > m_LastUpdateTimestamp ? static_cast<uint64_t>(newUpdateTimestamp - m_LastUpdateTimestamp) : 0;
+	m_TotalTimePlayed += sinceLastSave;
+	m_SessionTimePlayed += sinceLastSave;
+	// As live: the total before this session and the session's seconds (see LoadFromSaveData); their sum is the total
+	character->SetAttribute("time", m_TotalTimePlayed - m_SessionTimePlayed);
+	character->SetAttribute("stime", m_SessionTimePlayed);
+	if (m_Character && m_Character->GetSessionLogin() != 0) character->SetAttribute("llog", m_Character->GetSessionLogin());
 
 	m_LastUpdateTimestamp = newUpdateTimestamp;
 }

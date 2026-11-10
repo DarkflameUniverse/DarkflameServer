@@ -27,17 +27,18 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(PreparedStmtResultSet& st
 	toReturn.cloneId = stmt->getUInt64("prop_clone_id");
 	toReturn.accountId = stmt->getUInt("account_id");
 	toReturn.permissionMap = static_cast<ePermissionMap>(stmt->getUInt("permission_map"));
+	toReturn.lastLogin = stmt->getUInt64("last_login");
 
 	return toReturn;
 }
 
 std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const LWOOBJID charId) {
-	auto result = ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE id = ? LIMIT 1;", charId);
+	auto result = ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id, last_login FROM charinfo WHERE id = ? LIMIT 1;", charId);
 	return CharInfoFromQueryResult(result);
 }
 
 std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const std::string_view name) {
-	auto result = ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE name = ? LIMIT 1;", name);
+	auto result = ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id, last_login FROM charinfo WHERE name = ? LIMIT 1;", name);
 	return CharInfoFromQueryResult(result);
 }
 

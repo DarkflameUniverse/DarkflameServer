@@ -135,7 +135,7 @@ namespace CharacterXmlCheck {
 				Numbers(c, where, eKind::INT, { "gm", "ft" });
 				Numbers(c, where, eKind::UINT, { "lwid", "lnzid", "acct" });
 				Numbers(c, where, eKind::UINT64, { "lzid", "co", "co1", "co2", "co3", "time" });
-				Numbers(c, where, eKind::FLOAT, { "lzx", "lzy", "lzz", "lzrx", "lzry", "lzrz", "lzrw" });
+				Numbers(c, where, eKind::FLOAT, { "lzx", "lzy", "lzz", "lzrx", "lzry", "lzrz", "lzrw", "stime" });
 
 				if (c.Attribute("acct") && Parses(c, "acct", eKind::UINT) && c.UnsignedAttribute("acct") != context.ownerAccountId) {
 					Error(where + ": acct=\"" + c.Attribute("acct") + "\" is not the account of this character (" + std::to_string(context.ownerAccountId) + ")");
