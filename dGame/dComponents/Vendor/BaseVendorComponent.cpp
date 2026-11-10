@@ -18,6 +18,7 @@
 #include "InventoryMessages.h"
 #include "Item.h"
 #include "EconomyLedger.h"
+#include "VendorPricing.h"
 
 #include <algorithm>
 #include <ranges>
@@ -284,15 +285,36 @@ void BaseVendorComponent::SellToVendor(Entity& player, const SystemAddress& sysA
 		return;
 	}
 
-	float sellScalar = GetSellScalar();
-	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
-		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
+	// Only a count the stack holds can be sold, and an item the vendor already has can not be sold again
+	const auto* const itemInventory = item->GetInventory();
+	if (!VendorPricing::IsValidStackCount(count, item->GetCount()) || !itemInventory || itemInventory->GetType() == eInventoryType::VENDOR_BUYBACK) {
+		SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::SELL_FAIL);
+		return;
 	}
 
-	MakeRoomInBuyback(*inv, *item, static_cast<uint32_t>(std::max(count, 0)));
+	const float sellScalar = GetSellScalar();
+	const LOT soldLot = item->GetLot();
+	const uint32_t heldBefore = itemInventory->GetLotCount(soldLot);
+
+	MakeRoomInBuyback(*inv, *item, static_cast<uint32_t>(count));
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
+
+	// Pay for the items that left the inventory
+	const uint32_t heldAfter = itemInventory->GetLotCount(soldLot);
+	const uint32_t soldCount = heldBefore > heldAfter ? heldBefore - heldAfter : 0;
+	if (soldCount == 0) {
+		SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::SELL_FAIL);
+		return;
+	}
+
+	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
+		const uint64_t altCurrency = VendorPricing::GetPricePerItem(itemComp.altCurrencyCost, sellScalar, soldCount);
+		// Return alt currencies like faction tokens.
+		if (altCurrency > 0) inv->AddItem(itemComp.currencyLOT, static_cast<uint32_t>(std::min<uint64_t>(altCurrency, UINT32_MAX)), eLootSourceType::VENDOR);
+	}
+
+	const uint64_t coins = VendorPricing::GetPricePerItem(itemComp.baseValue, sellScalar, soldCount);
+	character->SetCoins(character->GetCoins() + static_cast<int64_t>(coins), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::SELL_SUCCESS);
 }
 
@@ -311,18 +333,25 @@ void BaseVendorComponent::BuybackFromVendor(Entity& player, const SystemAddress&
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
 
-	float sellScalar = GetSellScalar();
+	// Only an item the vendor holds for the player can be bought back, and only as many as there are
+	const auto* const itemInventory = item->GetInventory();
+	if (!VendorPricing::IsValidStackCount(count, item->GetCount()) || !itemInventory || itemInventory->GetType() != eInventoryType::VENDOR_BUYBACK) {
+		SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
+		return;
+	}
 
-	const auto cost = static_cast<uint32_t>(std::floor(((itemComp.baseValue * sellScalar) * count)));
+	const float sellScalar = GetSellScalar();
 
-	if (character->GetCoins() < cost) {
+	const uint64_t cost = VendorPricing::GetPriceTotal(itemComp.baseValue, sellScalar, count);
+
+	if (character->GetCoins() < 0 || static_cast<uint64_t>(character->GetCoins()) < cost) {
 		SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * sellScalar) * count;
-		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost || !inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost, eInventoryType::ALL)) {
+		const uint64_t altCurrencyCost = VendorPricing::GetPricePerItem(itemComp.altCurrencyCost, sellScalar, count);
+		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost || !inv->RemoveItem(itemComp.currencyLOT, static_cast<uint32_t>(altCurrencyCost), eInventoryType::ALL)) {
 			SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
@@ -330,7 +359,7 @@ void BaseVendorComponent::BuybackFromVendor(Entity& player, const SystemAddress&
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
+	character->SetCoins(character->GetCoins() - static_cast<int64_t>(cost), eLootSourceType::VENDOR, CoinSource::Object(*m_Parent));
 	//Game::entityManager->SerializeEntity(player); // so inventory updates
 	SendTransactionResult(m_Parent->GetObjectID(), sysAddr, eVendorTransactionResult::PURCHASE_SUCCESS);
 }
