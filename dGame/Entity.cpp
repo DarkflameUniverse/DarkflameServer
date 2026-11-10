@@ -810,6 +810,16 @@ void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType
 		}
 		component->Serialize(outBitStream, bIsInitialUpdate);
 	}
+
+	// The client makes the trigger component of an object whose header sets the trigger bit after the others, so it is
+	// read last. LWOTriggerComponent::Deserialize (0x00bd78c0): a flag and the pick type; live constructions carried
+	// the flag and -1 (no pick type).
+	const auto* const triggerComponent = GetComponent<TriggerComponent>();
+	const auto* const trigger = triggerComponent ? triggerComponent->GetTrigger() : nullptr;
+	if (trigger && !trigger->events.empty()) {
+		outBitStream.Write(bIsInitialUpdate);
+		if (bIsInitialUpdate) outBitStream.Write<int32_t>(-1);
+	}
 }
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {
