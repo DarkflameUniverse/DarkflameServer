@@ -21,6 +21,7 @@
 #include "LevelProgressionComponent.h"
 #include "LUPExhibitComponent.h"
 #include "PlayerForcedMovementComponent.h"
+#include "ScriptedActivityComponent.h"
 #include "Item.h"
 #include "ModelComponent.h"
 #include "MovingPlatformComponent.h"
@@ -437,6 +438,47 @@ TEST_F(ReplicaConstructionTest, CharacterGuildChangeIsWrittenOnce) {
 	EXPECT_EQ(same.GetNumberOfBitsUsed(), 3u);
 
 	player.SetCharacter(nullptr);
+}
+
+// A client that comes into range of an activity is told its players, whether or not they changed since the last
+// update. Live finish line constructions (LOT 4967): flag 1 and the count in 40 of 40, one of them with a player.
+TEST_F(ReplicaConstructionTest, AnActivityConstructionAlwaysCarriesItsPlayers) {
+	ConnectRegistry();
+	Entity activity(1010, info);
+	auto* const component = activity.AddComponent<ScriptedActivityComponent>(-1);
+	const LWOOBJID player = 1152921506064087006;
+	component->SetActivityValue(player, 1, 42.0f);
+
+	RakNet::BitStream update;
+	component->Serialize(update, false);
+	RakNet::BitStream idle;
+	component->Serialize(idle, false);
+	EXPECT_EQ(Bits(idle), "0"); // nothing changed since
+
+	RakNet::BitStream construction;
+	component->Serialize(construction, true);
+	EXPECT_EQ(Bits(construction), Bits(update));
+	EXPECT_TRUE(construction.ReadBit());
+	uint32_t count{};
+	ASSERT_TRUE(construction.Read(count));
+	EXPECT_EQ(count, 1u);
+	LWOOBJID id{};
+	ASSERT_TRUE(construction.Read(id));
+	EXPECT_EQ(id, player);
+	for (uint32_t i = 0; i < 10; i++) {
+		float value{};
+		ASSERT_TRUE(construction.Read(value));
+		EXPECT_EQ(value, i == 1 ? 42.0f : 0.0f);
+	}
+	EXPECT_EQ(construction.GetNumberOfUnreadBits(), 0u);
+
+	// Without players: the flag and a count of 0
+	component->RemoveActivityPlayerData(player);
+	RakNet::BitStream cleared;
+	component->Serialize(cleared, false);
+	RakNet::BitStream empty;
+	component->Serialize(empty, true);
+	EXPECT_EQ(Bits(empty), "1" + std::string(32, '0'));
 }
 
 // Run speed modifiers stack as in LWOControllablePhysComponent::msgAddRunspeedModifier (0x00be0af0) and
