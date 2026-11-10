@@ -3,6 +3,7 @@
 #include "AMFDeserialize.h"
 #include "ClientPackets.h"
 #include "GameMessages.h"
+#include "PropertyMessages.h"
 #include "GameDependencies.h"
 
 #include <gtest/gtest.h>
@@ -96,7 +97,12 @@ TEST_F(GameMessageTests, SendBlueprintLoadItemResponse) {
  */
 TEST_F(GameMessageTests, SendPlaceModelResponse) {
 	const NiQuaternion rotation = NiQuaternion(0.5f, 0.1f, 0.2f, 0.3f); // w, x, y, z
-	GameMessages::SendPlaceModelResponse(77, UNASSIGNED_SYSTEM_ADDRESS, NiPoint3(1.0f, 2.0f, 3.0f), LWOOBJID_EMPTY, 14, rotation);
+	GameMessages::PlaceModelResponse msg;
+	msg.target = 77;
+	msg.position = NiPoint3(1.0f, 2.0f, 3.0f);
+	msg.response = 14;
+	msg.rotation = rotation;
+	msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	auto* bitStream = static_cast<dServerMock*>(Game::server)->GetMostRecentBitStream();
 	ASSERT_NE(bitStream, nullptr);
 	bitStream->IgnoreBits(64); // packet header
