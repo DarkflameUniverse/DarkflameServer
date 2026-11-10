@@ -92,7 +92,8 @@ bool shutdownSequenceStarted = false;
 int ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
 void HandlePacket(Packet* packet);
-std::map<uint32_t, std::string> activeSessions;
+// The session key of each logged in account, by username
+std::map<std::string, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 SystemAddress dashboardServerMasterPeerSysAddr;
@@ -830,37 +831,30 @@ namespace {
 	}
 
 	void OnSetSessionKey(const SetSessionKey& request, const SystemAddress& sysAddr) {
-		const uint32_t sessionKey = request.sessionKey;
+		const LUString& sessionKey = request.sessionKey;
 		const LUString& username = request.username;
 
-		for (auto it : activeSessions) {
-			if (it.second == username.string) {
-				activeSessions.erase(it.first);
-
-				NewSessionAlert alert;
-				alert.sessionKey = sessionKey;
-				alert.username = username;
-				alert.Broadcast();
-
-				break;
-			}
+		// A new login replaces the key, so tell the worlds to drop the old session
+		if (activeSessions.contains(username.string)) {
+			NewSessionAlert alert;
+			alert.sessionKey = sessionKey;
+			alert.username = username;
+			alert.Broadcast();
 		}
 
-		activeSessions.insert(std::make_pair(sessionKey, username.string));
+		activeSessions.insert_or_assign(username.string, sessionKey.string);
 		LOG("Got a session key for user %s", username.string.c_str());
 	}
 
 	void OnRequestSessionKey(const RequestSessionKey& request, const SystemAddress& sysAddr) {
 		const LUWString& username = request.username;
 		LOG("Requesting session key for %s", username.GetAsString().c_str());
-		for (auto key : activeSessions) {
-			if (key.second == username.GetAsString()) {
-				SessionKeyResponse response;
-				response.sessionKey = key.first;
-				response.username = username;
-				MasterPackets::SendTo(sysAddr, response);
-				break;
-			}
+		const auto session = activeSessions.find(username.GetAsString());
+		if (session != activeSessions.end()) {
+			SessionKeyResponse response;
+			response.sessionKey = LUString(session->second);
+			response.username = username;
+			MasterPackets::SendTo(sysAddr, response);
 		}
 	}
 

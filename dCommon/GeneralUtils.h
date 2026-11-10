@@ -401,6 +401,18 @@ namespace GeneralUtils {
 		return value;
 	}
 
+	/**
+	 * Generates byteCount bytes from the operating system's entropy source
+	 * and returns them as lowercase hex, two characters for each byte.
+	 */
+	std::string GenerateUnpredictableHexString(const uint32_t byteCount);
+
+	/**
+	 * Compares two strings in a time that depends on their lengths only, not on where they differ.
+	 * Strings of different lengths are never equal.
+	 */
+	bool EqualsInConstantTime(const std::string_view a, const std::string_view b);
+
 	// https://www.quora.com/How-do-you-round-to-specific-increments-like-0-5-in-C
 	// Rounds to the nearest floating point value specified.
 	template <typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>

@@ -369,3 +369,30 @@ namespace GeneralUtils::details {
 }
 
 #endif
+
+std::string GeneralUtils::GenerateUnpredictableHexString(const uint32_t byteCount) {
+	constexpr std::string_view hexDigits = "0123456789abcdef";
+
+	std::string hex;
+	hex.reserve(static_cast<uint64_t>(byteCount) * 2);
+	uint32_t word = 0;
+	for (uint32_t i = 0; i < byteCount; i++) {
+		// One 32 bit draw gives four bytes
+		if (i % 4 == 0) word = GenerateUnpredictableNumber<uint32_t>();
+		const uint8_t byte = static_cast<uint8_t>(word >> ((i % 4) * 8));
+		hex.push_back(hexDigits[byte >> 4]);
+		hex.push_back(hexDigits[byte & 0x0F]);
+	}
+	return hex;
+}
+
+bool GeneralUtils::EqualsInConstantTime(const std::string_view a, const std::string_view b) {
+	if (a.size() != b.size()) return false;
+
+	// volatile keeps the compiler from leaving the loop at the first difference
+	volatile uint8_t difference = 0;
+	for (uint64_t i = 0; i < a.size(); i++) {
+		difference = difference | (static_cast<uint8_t>(a[i]) ^ static_cast<uint8_t>(b[i]));
+	}
+	return difference == 0;
+}

@@ -873,19 +873,16 @@ void HandlePacketChat(Packet* packet) {
 namespace {
 	void OnSessionKeyResponse(const MasterPackets::SessionKeyResponse& response, const SystemAddress& masterAddr) {
 		//Read our session key and to which user it belongs:
-		const uint32_t sessionKey = response.sessionKey;
+		const LUString& sessionKey = response.sessionKey;
 		const LUWString& username = response.username;
 
 		//Find them:
 		auto it = g_PendingUsers.find(username.GetAsString());
 		if (it == g_PendingUsers.end()) return;
 
-		//Convert our key:
-		std::string userHash = std::to_string(sessionKey);
-		userHash = md5(userHash);
-
-		//Verify it:
-		if (userHash != it->second.hash) {
+		//Verify it, the key the client sent has to be the one master holds:
+		const std::string& userHash = sessionKey.string;
+		if (userHash.empty() || !GeneralUtils::EqualsInConstantTime(userHash, it->second.hash)) {
 			LOG("Session key mismatch for user %s", username.GetAsString().c_str());
 			Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
@@ -958,7 +955,7 @@ namespace {
 	}
 
 	void OnNewSessionAlert(const MasterPackets::NewSessionAlert& alert, const SystemAddress& sysAddr) {
-		const uint32_t sessionKey = alert.sessionKey;
+		const LUString& sessionKey = alert.sessionKey;
 		const LUString& username = alert.username;
 		LOG("Got new session alert for user %s", username.string.c_str());
 		//Find them:
@@ -969,7 +966,7 @@ namespace {
 		}
 
 		//Check the key:
-		if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
+		if (!GeneralUtils::EqualsInConstantTime(sessionKey.string, user->GetSessionKey())) {
 			LOG("But the session key is invalid!", username.string.c_str());
 			Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;

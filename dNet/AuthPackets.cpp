@@ -308,10 +308,9 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor")).value_or(ClientVersion::minor);
 
 	// The user key
-	uint32_t sessionKey = GeneralUtils::GenerateUnpredictableNumber<uint32_t>();
-	std::string userHash = std::to_string(sessionKey);
-	userHash = md5(userHash);
-	loginResponse.userKey = LUWString(userHash);
+	// 16 bytes as 32 hex characters, which fills the client's key field
+	const std::string sessionKey = GeneralUtils::GenerateUnpredictableHexString(16);
+	loginResponse.userKey = LUWString(sessionKey);
 
 	// World Server IP
 	loginResponse.worldServerIP = LUString(wServerIP);
@@ -325,7 +324,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	if (responseCode == eLoginResponse::SUCCESS) {
 		stamps.Add(eStamps::PASSPORT_AUTH_IM_COMMUNICATION_START);
 		MasterPackets::SetSessionKey setSessionKey;
-		setSessionKey.sessionKey = sessionKey;
+		setSessionKey.sessionKey = LUString(sessionKey);
 		setSessionKey.username = LUString(username);
 		stamps.Add(eStamps::PASSPORT_AUTH_IM_LOGIN_START);
 		MasterPackets::SendToMaster(setSessionKey, server);
