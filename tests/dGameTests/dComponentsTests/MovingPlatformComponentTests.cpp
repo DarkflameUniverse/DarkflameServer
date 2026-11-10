@@ -89,7 +89,7 @@ TEST_F(MovingPlatformComponentTest, OneSubcomponentPerSetting) {
 }
 
 // Live: 1 (subcomponents), 1 (dirty), 0 (no path), 1, type 5, the starting point (the object's position and
-// rotation, w first), state 9 (stopped at its desired waypoint), waypoint 0, not reversing, then the ending 0 bit
+// rotation, w first), state 9 (waiting at its desired waypoint), waypoint 0, not reversing, then the ending 0 bit
 TEST_F(MovingPlatformComponentTest, SimpleMoverConstructionMatchesLive) {
 	info.lot = 16141;
 	info.pos = NiPoint3(Float(0xc2e02255), Float(0x436d1992), Float(0xc32347e8));
@@ -167,9 +167,9 @@ TEST_F(MovingPlatformComponentTest, RotaterIsWrittenAsTypeSix) {
 	EXPECT_EQ(bits.back(), '0');
 }
 
-// A mover runs on the server as live ran it (the NT movers in the live captures): stopped at its first waypoint with
-// the time waited (25), travelling after the waypoint's wait (2), arriving at the other end stopped there (25, turned
-// round on a bounce path), and a GoToWaypoint that stops keeps it there
+// A mover runs on the server as live ran it: it waits at its first waypoint (9: waiting at a waypoint, as the GF
+// shooting gallery targets were constructed), travels after the waypoint's wait (2), waits at the other end (25, turned
+// round on a bounce path); sent to a waypoint to stop it waits with the desired waypoint, leaves and stops there (28)
 TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	Path path;
 	path.pathType = PathType::MovingPlatform;
@@ -189,12 +189,12 @@ TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestMoverPath");
 	ASSERT_TRUE(platform->IsMover());
 	auto* const mover = platform->GetMoverSubComponent();
-	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mState, 9u);
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
 	EXPECT_EQ(mover->mNextWaypointIndex, 1u);
 
 	platform->Run(1.9f);
-	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mState, 9u);
 	EXPECT_FLOAT_EQ(mover->mIdleTimeElapsed, 1.9f);
 	platform->Run(0.2f);
 	EXPECT_EQ(mover->mState, 2u);
@@ -217,28 +217,85 @@ TEST_F(MovingPlatformComponentTest, MoverRunsLikeLive) {
 	EXPECT_TRUE(mover->mInReverse);
 	EXPECT_EQ(mover->mPercentBetweenPoints, 0.0f);
 
-	// Sent back to the start to stop there: it leaves at once and stays
+	// Sent back to the start to stop there: it waits out the waypoint's wait, leaves and stays
 	platform->GotoWaypoint(0, true);
+	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mDesiredWaypointIndex, 0);
+	EXPECT_TRUE(mover->mShouldStopAtDesiredWaypoint);
+	platform->Run(1.1f);
 	EXPECT_EQ(mover->mState, 2u);
 	EXPECT_EQ(mover->mDesiredWaypointIndex, 0);
 	platform->Run(2.5f);
-	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mState, 28u);
 	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
 	EXPECT_EQ(mover->mDesiredWaypointIndex, -1);
 	platform->Run(10.0f);
-	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mState, 28u);
 
-	// Started at a waypoint it first waits there (issue 964), then stopped mid way and started again
+	// Started at a waypoint it first waits there (issue 964), then stopped mid way (4, the bit the client stops on) and
+	// started again
 	platform->StartPathing();
 	EXPECT_EQ(mover->mState, 25u);
 	platform->Run(2.1f);
 	EXPECT_EQ(mover->mState, 2u);
 	platform->Run(1.0f);
 	platform->StopPathing();
-	EXPECT_EQ(mover->mState & 1u, 1u);
+	EXPECT_EQ(mover->mState, 4u);
 	const auto percent = mover->mPercentBetweenPoints;
 	platform->Run(1.0f);
 	EXPECT_EQ(mover->mPercentBetweenPoints, percent);
 	platform->StartPathing();
 	EXPECT_EQ(mover->mState, 2u);
+}
+
+// The NJ falling tiles in the live captures (LOT 14335, a two waypoint path run once, not started on load): 12 until
+// stepped on, sent to waypoint 1 it waits (9) and leaves (2); there it has stopped and turned round (28), and sent back
+// it waits (25, reversed, towards 0) and leaves (2), to stop at the start as live constructed used tiles (28, forwards)
+TEST_F(MovingPlatformComponentTest, MoverOnceLikeLiveFallingTile) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestDropPath";
+	path.pathBehavior = PathBehavior::Once;
+	PathWaypoint first;
+	first.position = NiPoint3(0.0f, 10.0f, 0.0f);
+	first.speed = 5.0f;
+	PathWaypoint second = first;
+	second.position = NiPoint3(0.0f, 0.0f, 0.0f);
+	path.pathWaypoints = { first, second };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	info.settings.Insert<bool>(u"startPathingOnLoad", false);
+	Entity entity(288300744895900109, info);
+	info.settings.values.clear();
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestDropPath");
+	auto* const mover = platform->GetMoverSubComponent();
+	EXPECT_EQ(mover->mState, 12u);
+	platform->Run(5.0f);
+	EXPECT_EQ(mover->mState, 12u);
+
+	platform->GotoWaypoint(1);
+	EXPECT_EQ(mover->mState, 9u);
+	EXPECT_EQ(mover->mDesiredWaypointIndex, 1);
+	EXPECT_TRUE(mover->mShouldStopAtDesiredWaypoint);
+	platform->Run(0.11f);
+	EXPECT_EQ(mover->mState, 2u);
+	platform->Run(1.0f);
+	EXPECT_EQ(mover->mState, 2u);
+	platform->Run(1.1f);
+	EXPECT_EQ(mover->mState, 28u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 1u);
+	EXPECT_EQ(mover->mNextWaypointIndex, 0u);
+	EXPECT_TRUE(mover->mInReverse);
+	EXPECT_EQ(mover->mDesiredWaypointIndex, -1);
+
+	platform->GotoWaypoint(0);
+	EXPECT_EQ(mover->mState, 25u);
+	EXPECT_EQ(mover->mDesiredWaypointIndex, 0);
+	platform->Run(0.11f);
+	EXPECT_EQ(mover->mState, 2u);
+	platform->Run(2.1f);
+	EXPECT_EQ(mover->mState, 28u);
+	EXPECT_EQ(mover->mCurrentWaypointIndex, 0u);
+	EXPECT_EQ(mover->mNextWaypointIndex, 1u);
+	EXPECT_FALSE(mover->mInReverse);
 }
