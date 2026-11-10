@@ -1,4 +1,5 @@
 #include "TradingManager.h"
+#include "BrickByBrick.h"
 #include "EconomyLedger.h"
 #include "dServer.h"
 #include "EntityManager.h"
@@ -55,9 +56,13 @@ std::function<std::optional<HeldTradeItem>(LWOOBJID)> Trade::HeldIn(const Invent
 	return [&inventory](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
 		const auto* const item = inventory.FindItemById(itemId);
 		if (!item) return std::nullopt;
+		// The blueprint data sent for a stored model says it is approved (BlueprintMetadata), and the client goes
+		// by that over the status the item itself carries
+		const bool hasBlueprint = item->GetLot() == BrickBuiltModelLot
+			&& BrickByBrick::ConfigObjectId(item->GetConfig(), u"blueprintid") != LWOOBJID_EMPTY;
 		return HeldTradeItem{
 			item->GetLot(), item->GetCount(), item->GetBound(), item->IsEquipped(),
-			inventory.CanDelete(*item), IsApproved(item->GetLot(), item->GetConfig())
+			inventory.CanDelete(*item), hasBlueprint || IsApproved(item->GetLot(), item->GetConfig())
 		};
 	};
 }
