@@ -13,7 +13,9 @@
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include <algorithm>
 #include <ranges>
+#include <set>
 
 namespace {
 	std::unique_ptr<Trade> g_EmptyTrade;
@@ -25,6 +27,26 @@ Trade::Trade(LWOOBJID tradeId, LWOOBJID participantA, LWOOBJID participantB) {
 	m_TradeId = tradeId;
 	m_ParticipantA = participantA;
 	m_ParticipantB = participantB;
+}
+
+std::optional<std::vector<TradeItem>> Trade::ResolveOffer(
+	const std::vector<TradeItem>& offered,
+	const std::function<std::optional<HeldTradeItem>(LWOOBJID)>& findHeld) {
+	std::vector<TradeItem> resolved;
+	resolved.reserve(offered.size());
+	std::set<LWOOBJID> seen;
+
+	for (const auto& tradeItem : offered) {
+		// The client keeps its offer by item ID, so an item is only ever in it once
+		if (tradeItem.itemCount == 0 || !seen.insert(tradeItem.itemId).second) return std::nullopt;
+
+		const auto held = findHeld(tradeItem.itemId);
+		if (!held || held->count == 0) return std::nullopt;
+
+		resolved.push_back({ tradeItem.itemId, held->lot, std::min(tradeItem.itemCount, held->count) });
+	}
+
+	return resolved;
 }
 
 Trade::~Trade() {
@@ -149,6 +171,20 @@ void Trade::Complete() {
 		return;
 	}
 
+	// The inventories may have changed since the offers were made, so check the offers against them again
+	const auto holds = [](const InventoryComponent* const inventory) {
+		return [inventory](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
+			const auto* const item = inventory->FindItemById(itemId);
+			if (!item) return std::nullopt;
+			return HeldTradeItem{ item->GetLot(), item->GetCount() };
+		};
+	};
+
+	if (ResolveOffer(m_ItemsA, holds(inventoryA)) != m_ItemsA || ResolveOffer(m_ItemsB, holds(inventoryB)) != m_ItemsB) {
+		LOG("The items offered by %s and %s no longer match what they hold, aborting trade", characterA->GetName().c_str(), characterB->GetName().c_str());
+		return;
+	}
+
 	for (const auto& tradeItem : m_ItemsA) {
 		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
 		if (itemToRemove) {
@@ -194,7 +230,7 @@ void Trade::Complete() {
 		InventoryComponent* to, const LWOOBJID fromCharacter, const LWOOBJID toCharacter) {
 		for (const auto& tradeItem : items) {
 			auto* itemToRemove = from->FindItemById(tradeItem.itemId);
-			if (!itemToRemove) continue;
+			if (!itemToRemove || itemToRemove->GetCount() < tradeItem.itemCount) continue;
 
 			// A whole item keeps its data (subkey, config) but gets a new object id, as upstream: reusing the id would
 			// leave two objects with one id if the server stopped between the two players' saves. A stack merges into
@@ -203,17 +239,19 @@ void Trade::Complete() {
 			const auto config = itemToRemove->GetConfig();
 			const auto subKey = itemToRemove->GetSubKey();
 			const auto bound = itemToRemove->GetBound();
+			// Taking the whole stack removes the item, so read its LOT first
+			const LOT lot = itemToRemove->GetLot();
 			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
-			fromMissions->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(tradeItem.itemCount));
+			fromMissions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(tradeItem.itemCount));
 			// Live sent the trade's ID with the traded items
 			ReceiveItemOptions options{};
 			options.metrics.transactionId = tradeId;
 			const auto received = whole
-				? to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE, config, subKey, bound, options)
-				: to->ReceiveItem(LWOOBJID_EMPTY, tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE, {}, LWOOBJID_EMPTY, false, options);
+				? to->ReceiveItem(LWOOBJID_EMPTY, lot, tradeItem.itemCount, eLootSourceType::TRADE, config, subKey, bound, options)
+				: to->ReceiveItem(LWOOBJID_EMPTY, lot, tradeItem.itemCount, eLootSourceType::TRADE, {}, LWOOBJID_EMPTY, false, options);
 
 			EconomyLedger::RecordTransfer({ .method = IEconomyLedger::eTransferMethod::TRADE, .itemId = tradeItem.itemId, .newItemId = received.id,
-				.lot = tradeItem.itemLot, .count = tradeItem.itemCount, .fromCharacter = fromCharacter, .toCharacter = toCharacter, .zone = zone,
+				.lot = lot, .count = tradeItem.itemCount, .fromCharacter = fromCharacter, .toCharacter = toCharacter, .zone = zone,
 				.merged = received.merged });
 		}
 	};

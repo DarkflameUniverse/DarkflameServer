@@ -19,7 +19,8 @@ SET(DGAMEMESSAGES_TESTS
 	"HotPropertyMessageTests.cpp"
 	"ClientMessagesTests.cpp"
 	"LoadSequenceTests.cpp"
-	"ChatRoutingTests.cpp")
+	"ChatRoutingTests.cpp"
+	"TradeOfferTests.cpp")
 
 # Get the folder name and prepend it to the files above
 get_filename_component(thisFolderName ${CMAKE_CURRENT_SOURCE_DIR} NAME)

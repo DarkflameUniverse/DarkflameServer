@@ -2,17 +2,39 @@
 
 #include "Entity.h"
 
+#include <functional>
 #include <map>
 #include <memory>
+#include <optional>
+#include <vector>
 
 struct TradeItem {
 	LWOOBJID itemId;
 	LOT itemLot;
 	uint32_t itemCount;
+
+	bool operator==(const TradeItem& other) const = default;
+};
+
+// What a player holds of an item they offered
+struct HeldTradeItem {
+	LOT lot;
+	uint32_t count;
 };
 
 class Trade {
 public:
+	/**
+	 * Checks the items a player offered against the items they hold.
+	 * @param offered the items as the player sent them
+	 * @param findHeld gives the held item with an ID, or nothing if the player has no such item
+	 * @return the offer with every LOT taken from the held item and every count limited to the held count,
+	 * or nothing if the offer names an item the player does not hold, the same item twice or a count of 0
+	 */
+	static std::optional<std::vector<TradeItem>> ResolveOffer(
+		const std::vector<TradeItem>& offered,
+		const std::function<std::optional<HeldTradeItem>(LWOOBJID)>& findHeld);
+
 	explicit Trade(LWOOBJID tradeId, LWOOBJID participantA, LWOOBJID participantB);
 	~Trade();
 

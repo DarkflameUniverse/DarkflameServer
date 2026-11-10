@@ -9,6 +9,8 @@
 #include "ePermissionMap.h"
 #include "Game.h"
 #include "GeneralUtils.h"
+#include "InventoryComponent.h"
+#include "Item.h"
 #include "Logger.h"
 #include "TradingManager.h"
 #include "User.h"
@@ -233,8 +235,23 @@ namespace GameMessages {
 
 		if (trade == nullptr) return;
 
+		const auto* const inventoryComponent = entity.GetComponent<InventoryComponent>();
+		if (!inventoryComponent) return;
+
+		// The LOT and the count the trade works with come from the items the player holds
+		const auto resolvedItems = Trade::ResolveOffer(items, [inventoryComponent](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
+			const auto* const item = inventoryComponent->FindItemById(itemId);
+			if (!item) return std::nullopt;
+			return HeldTradeItem{ item->GetLot(), item->GetCount() };
+			});
+
+		if (!resolvedItems) {
+			LOG("Trade update from (%llu) does not match the items they hold, ignoring it", entity.GetObjectID());
+			return;
+		}
+
 		trade->SetCoins(entity.GetObjectID(), i64Currency);
-		trade->SetItems(entity.GetObjectID(), items);
+		trade->SetItems(entity.GetObjectID(), *resolvedItems);
 		trade->SendUpdateToOther(entity.GetObjectID());
 	}
 
