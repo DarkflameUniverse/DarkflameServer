@@ -541,6 +541,9 @@ void MovementAIComponent::SetMaxSpeed(const float value) {
 
 void MovementAIComponent::RunWaypointCommands(uint32_t waypointNum) {
 	m_Parent->GetScript()->OnWaypointReached(m_Parent, waypointNum);
+	// A callback may add another
+	const auto callbacks = m_WaypointReachedCallbacks;
+	for (const auto& callback : callbacks) callback(waypointNum);
 
 	if (!m_Path || waypointNum >= m_Path->pathWaypoints.size()) return;
 	const auto& commands = m_Path->pathWaypoints[waypointNum].commands;

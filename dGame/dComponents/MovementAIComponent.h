@@ -16,6 +16,7 @@
 #include "eReplicaComponentType.h"
 #include "Zone.h"
 #include "dpKnockback.h"
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -187,6 +188,12 @@ public:
 	 * @return if the entity is at its final waypoint
 	 */
 	bool AtFinalWaypoint() const { return m_AtFinalWaypoint; }
+
+	/**
+	 * Calls back at each waypoint of the path the entity follows, with the waypoint's number (what the Arrived game
+	 * message tells an object's script)
+	 */
+	void AddWaypointReachedCallback(const std::function<void(uint32_t)>& callback) { m_WaypointReachedCallbacks.push_back(callback); }
 
 	/**
 	 * Renders the entity stationary
@@ -379,6 +386,8 @@ private:
 
 	// The number of waypoints that were on the path in the call to SetPath
 	uint32_t m_CurrentPathWaypointCount{ 0 };
+
+	std::vector<std::function<void(uint32_t)>> m_WaypointReachedCallbacks;
 
 	LWOOBJID m_FollowedTarget{ LWOOBJID_EMPTY };
 
