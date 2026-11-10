@@ -308,7 +308,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor")).value_or(ClientVersion::minor);
 
 	// The user key
-	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<uint32_t>();
+	uint32_t sessionKey = GeneralUtils::GenerateUnpredictableNumber<uint32_t>();
 	std::string userHash = std::to_string(sessionKey);
 	userHash = md5(userHash);
 	loginResponse.userKey = LUWString(userHash);

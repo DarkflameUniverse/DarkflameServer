@@ -882,7 +882,7 @@ namespace {
 
 		//Verify it:
 		if (userHash != it->second.hash) {
-			LOG("SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
+			LOG("Session key mismatch for user %s", username.GetAsString().c_str());
 			Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
 		} else {

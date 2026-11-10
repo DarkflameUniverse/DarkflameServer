@@ -847,7 +847,7 @@ namespace {
 		}
 
 		activeSessions.insert(std::make_pair(sessionKey, username.string));
-		LOG("Got sessionKey %i for user %s", sessionKey, username.string.c_str());
+		LOG("Got a session key for user %s", username.string.c_str());
 	}
 
 	void OnRequestSessionKey(const RequestSessionKey& request, const SystemAddress& sysAddr) {

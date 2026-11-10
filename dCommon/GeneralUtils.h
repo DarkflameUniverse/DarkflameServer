@@ -372,6 +372,23 @@ namespace GeneralUtils {
 		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 
+	/**
+	 * Generates a number from the operating system's entropy source instead of the shared game engine.
+	 * Use this for values that must not be predictable from earlier ones, such as session keys.
+	 */
+	template <typename T>
+	inline T GenerateUnpredictableNumber() {
+		static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Not an unsigned integral type");
+
+		std::random_device device;
+		T value = 0;
+		for (uint32_t bytesFilled = 0; bytesFilled < sizeof(T); bytesFilled += sizeof(uint32_t)) {
+			// Two half shifts, a full 32 bit shift is not valid on a 32 bit type
+			value = static_cast<T>(static_cast<T>(value << 16) << 16) | static_cast<T>(device());
+		}
+		return value;
+	}
+
 	// https://www.quora.com/How-do-you-round-to-specific-increments-like-0-5-in-C
 	// Rounds to the nearest floating point value specified.
 	template <typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
