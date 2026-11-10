@@ -444,11 +444,11 @@ namespace GameMessages {
 	}
 
 	void PropertyContentsFromClient::Handle(Entity& entity, const SystemAddress& sysAddr) {
-		User* user = UserManager::Instance()->GetUser(sysAddr);
+		const auto* const player = PlayerManager::GetPlayer(sysAddr);
+		const auto* const propertyManagementComponent = PropertyManagementComponent::Instance();
+		if (!player || !propertyManagementComponent) return;
 
-		Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
-
-		const auto& models = PropertyManagementComponent::Instance()->GetModels();
+		const auto& models = propertyManagementComponent->GetModels();
 		GetModelsOnProperty modelsOnProperty;
 		modelsOnProperty.target = player->GetObjectID();
 		modelsOnProperty.models = { models.begin(), models.end() };

@@ -529,6 +529,15 @@ void PropertyManagementComponent::UpdateModelPosition(Entity& builder, const LWO
 		return;
 	}
 
+	// Only a model is placed on a property
+	const auto* const itemInventory = item->GetInventory();
+	const auto itemInventoryType = itemInventory ? itemInventory->GetType() : eInventoryType::INVALID;
+	if (itemInventoryType != eInventoryType::MODELS && itemInventoryType != eInventoryType::MODELS_IN_BBB && itemInventoryType != eInventoryType::TEMP_MODELS) {
+		LOG("Item %llu (LOT %i) is not in a model inventory and can not be placed", id, item->GetLot());
+
+		return;
+	}
+
 	const NiQuaternion originalRotation = rotation;
 	if (rotation != QuatUtils::IDENTITY) {
 		rotation = { rotation.w, rotation.z, rotation.y, rotation.x };
