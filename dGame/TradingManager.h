@@ -20,7 +20,12 @@ struct TradeItem {
 struct HeldTradeItem {
 	LOT lot;
 	uint32_t count;
+	// The trade window takes neither a bound item nor an equipped one
+	bool bound = false;
+	bool equipped = false;
 };
+
+class InventoryComponent;
 
 class Trade {
 public:
@@ -29,11 +34,20 @@ public:
 	 * @param offered the items as the player sent them
 	 * @param findHeld gives the held item with an ID, or nothing if the player has no such item
 	 * @return the offer with every LOT taken from the held item and every count limited to the held count,
-	 * or nothing if the offer names an item the player does not hold, the same item twice or a count of 0
+	 * or nothing if the offer names an item the player does not hold, the same item twice, a count of 0,
+	 * a bound or equipped item, or more items than the trade window has slots
 	 */
 	static std::optional<std::vector<TradeItem>> ResolveOffer(
 		const std::vector<TradeItem>& offered,
 		const std::function<std::optional<HeldTradeItem>(LWOOBJID)>& findHeld);
+
+	/**
+	 * Gives the lookup ResolveOffer needs for the items in an inventory
+	 */
+	static std::function<std::optional<HeldTradeItem>(LWOOBJID)> HeldIn(const InventoryComponent& inventory);
+
+	// The slots one side of the trade window has
+	static constexpr uint32_t MaxOfferedItems = 8;
 
 	explicit Trade(LWOOBJID tradeId, LWOOBJID participantA, LWOOBJID participantB);
 	~Trade();

@@ -36,17 +36,27 @@ std::optional<std::vector<TradeItem>> Trade::ResolveOffer(
 	resolved.reserve(offered.size());
 	std::set<LWOOBJID> seen;
 
+	if (offered.size() > MaxOfferedItems) return std::nullopt;
+
 	for (const auto& tradeItem : offered) {
 		// The client keeps its offer by item ID, so an item is only ever in it once
 		if (tradeItem.itemCount == 0 || !seen.insert(tradeItem.itemId).second) return std::nullopt;
 
 		const auto held = findHeld(tradeItem.itemId);
-		if (!held || held->count == 0) return std::nullopt;
+		if (!held || held->count == 0 || held->bound || held->equipped) return std::nullopt;
 
 		resolved.push_back({ tradeItem.itemId, held->lot, std::min(tradeItem.itemCount, held->count) });
 	}
 
 	return resolved;
+}
+
+std::function<std::optional<HeldTradeItem>(LWOOBJID)> Trade::HeldIn(const InventoryComponent& inventory) {
+	return [&inventory](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
+		const auto* const item = inventory.FindItemById(itemId);
+		if (!item) return std::nullopt;
+		return HeldTradeItem{ item->GetLot(), item->GetCount(), item->GetBound(), item->IsEquipped() };
+	};
 }
 
 Trade::~Trade() {
@@ -172,15 +182,7 @@ void Trade::Complete() {
 	}
 
 	// The inventories may have changed since the offers were made, so check the offers against them again
-	const auto holds = [](const InventoryComponent* const inventory) {
-		return [inventory](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
-			const auto* const item = inventory->FindItemById(itemId);
-			if (!item) return std::nullopt;
-			return HeldTradeItem{ item->GetLot(), item->GetCount() };
-		};
-	};
-
-	if (ResolveOffer(m_ItemsA, holds(inventoryA)) != m_ItemsA || ResolveOffer(m_ItemsB, holds(inventoryB)) != m_ItemsB) {
+	if (ResolveOffer(m_ItemsA, HeldIn(*inventoryA)) != m_ItemsA || ResolveOffer(m_ItemsB, HeldIn(*inventoryB)) != m_ItemsB) {
 		LOG("The items offered by %s and %s no longer match what they hold, aborting trade", characterA->GetName().c_str(), characterB->GetName().c_str());
 		return;
 	}

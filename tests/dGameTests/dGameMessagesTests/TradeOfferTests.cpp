@@ -8,6 +8,8 @@ namespace {
 	const std::map<LWOOBJID, HeldTradeItem> g_Held = {
 		{ 100, { 1727, 5 } },
 		{ 200, { 3040, 1 } },
+		{ 300, { 1727, 2, true, false } },
+		{ 400, { 1727, 2, false, true } },
 	};
 
 	std::optional<HeldTradeItem> FindHeld(const LWOOBJID itemId) {
@@ -50,9 +52,31 @@ TEST(TradeOfferTest, AnItemOfferedTwiceIsRefused) {
 }
 
 TEST(TradeOfferTest, AnItemThePlayerDoesNotHoldIsRefused) {
-	EXPECT_FALSE(Trade::ResolveOffer({ { 300, 1727, 1 } }, FindHeld).has_value());
+	EXPECT_FALSE(Trade::ResolveOffer({ { 900, 1727, 1 } }, FindHeld).has_value());
 }
 
 TEST(TradeOfferTest, ACountOfZeroIsRefused) {
 	EXPECT_FALSE(Trade::ResolveOffer({ { 100, 1727, 0 } }, FindHeld).has_value());
+}
+
+TEST(TradeOfferTest, ABoundItemIsRefused) {
+	EXPECT_FALSE(Trade::ResolveOffer({ { 300, 1727, 1 } }, FindHeld).has_value());
+	EXPECT_FALSE(Trade::ResolveOffer({ { 100, 1727, 1 }, { 300, 1727, 1 } }, FindHeld).has_value());
+}
+
+TEST(TradeOfferTest, AnEquippedItemIsRefused) {
+	EXPECT_FALSE(Trade::ResolveOffer({ { 400, 1727, 1 } }, FindHeld).has_value());
+}
+
+TEST(TradeOfferTest, AnOfferFillsTheSlotsOfTheTradeWindowAtMost) {
+	const auto findAny = [](const LWOOBJID) -> std::optional<HeldTradeItem> {
+		return HeldTradeItem{ 1727, 1 };
+	};
+
+	std::vector<TradeItem> offered;
+	for (LWOOBJID itemId = 1; itemId <= Trade::MaxOfferedItems; itemId++) offered.push_back({ itemId, 1727, 1 });
+	EXPECT_TRUE(Trade::ResolveOffer(offered, findAny).has_value());
+
+	offered.push_back({ Trade::MaxOfferedItems + 1, 1727, 1 });
+	EXPECT_FALSE(Trade::ResolveOffer(offered, findAny).has_value());
 }

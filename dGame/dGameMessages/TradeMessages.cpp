@@ -247,11 +247,7 @@ namespace GameMessages {
 		if (!inventoryComponent) return;
 
 		// The LOT and the count the trade works with come from the items the player holds
-		const auto resolvedItems = Trade::ResolveOffer(items, [inventoryComponent](const LWOOBJID itemId) -> std::optional<HeldTradeItem> {
-			const auto* const item = inventoryComponent->FindItemById(itemId);
-			if (!item) return std::nullopt;
-			return HeldTradeItem{ item->GetLot(), item->GetCount() };
-			});
+		const auto resolvedItems = Trade::ResolveOffer(items, Trade::HeldIn(*inventoryComponent));
 
 		if (!resolvedItems) {
 			LOG("Trade update from (%llu) does not match the items they hold, ignoring it", entity.GetObjectID());
