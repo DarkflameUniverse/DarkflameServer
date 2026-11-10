@@ -320,6 +320,8 @@ private:
 
 	// LWOPlatform::ProcessStateChange: index becomes the current waypoint (the next from the path's behavior and direction)
 	void MoverProcessStateChange(uint32_t index);
+	// Puts the object where the mover is, without a serialization of its physics
+	void MoveObject();
 	// LWOPlatform::SetWaitingTime: starts a wait of at least 0.1 s
 	void MoverSetWaitingTime(float waitTime, float idleTimeElapsed);
 	// LWOPlatform::ResumeTravelling: stopped between two waypoints it travels on; at a waypoint it first waits there

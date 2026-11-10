@@ -21,6 +21,7 @@
 #include "ObjectLoadState.h"
 #include "MovementAIComponent.h"
 #include "QuickBuildComponent.h"
+#include "PhantomPhysicsComponent.h"
 #include "eQuickBuildState.h"
 
 void PlatformSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -509,6 +510,22 @@ void MovingPlatformComponent::MoverHandleWaypointArrived(const uint32_t index, c
 	if ((mover->mState & ePlatformStateFlag::Stopped) == 0) Game::entityManager->SerializeEntity(m_Parent);
 }
 
+// LWOPlatform moves its object with SetPosition and SetRotation ignoring the dirty flags (ProcessStateChange 0x00cce380,
+// Resync 0x00be9310), and its physics carry it between waypoints: live did not serialize a mover's physics for it, each
+// client moves its own. The server's object goes with the mover, turned between the two waypoints' rotations.
+void MovingPlatformComponent::MoveObject() {
+	const auto* const mover = GetMoverSubComponent();
+	const auto& from = m_Path->pathWaypoints[mover->mCurrentWaypointIndex].rotation;
+	const auto& to = m_Path->pathWaypoints[mover->mNextWaypointIndex].rotation;
+	const auto rotation = from == to ? from : glm::slerp(from, to, std::min(mover->mPercentBetweenPoints, 1.0f));
+	if (auto* const simplePhysics = m_Parent->GetComponent<SimplePhysicsComponent>()) {
+		simplePhysics->SetPositionAndRotationIgnoringDirtyFlags(mover->mPosition, rotation);
+	}
+	if (auto* const phantomPhysics = m_Parent->GetComponent<PhantomPhysicsComponent>()) {
+		phantomPhysics->SetPositionAndRotationIgnoringDirtyFlags(mover->mPosition, rotation);
+	}
+}
+
 // LWOPlatform::Run 0x00c87080 and RunPlatform 0x00c86e10. The client's platform is moved by its physics, at the
 // velocity SetLinearVelocity 0x00be9200 gives it; the server moves it here by the same speed.
 void MovingPlatformComponent::Run(const float deltaTime) {
@@ -550,6 +567,8 @@ void MovingPlatformComponent::Run(const float deltaTime) {
 		mover->mPosition = from + (to - from) * mover->mPercentBetweenPoints;
 	}
 
+	MoveObject();
+
 	const bool stopped = (mover->mState & ePlatformStateFlag::Stopped) != 0;
 	// LWOPlatform::IncrementWaitingTime 0x00bd4370
 	bool doneWaiting = false;
@@ -576,6 +595,7 @@ void MovingPlatformComponent::Run(const float deltaTime) {
 		// Live serialized a platform leaving its waypoint
 		if (doneWaiting) Game::entityManager->SerializeEntity(m_Parent);
 	}
+	if (IsMover()) MoveObject();
 }
 
 void MovingPlatformComponent::FillResync(GameMessages::PlatformResync& resync) const {

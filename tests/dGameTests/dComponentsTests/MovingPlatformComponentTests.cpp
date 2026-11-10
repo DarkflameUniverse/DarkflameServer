@@ -299,3 +299,41 @@ TEST_F(MovingPlatformComponentTest, MoverOnceLikeLiveFallingTile) {
 	EXPECT_EQ(mover->mNextWaypointIndex, 1u);
 	EXPECT_FALSE(mover->mInReverse);
 }
+
+// The object goes with its mover on the server (LWOPlatform moves it ignoring the dirty flags), turned between the
+// waypoints' rotations, and its physics are not serialized for it: live sent a moving target's mover data only
+TEST_F(MovingPlatformComponentTest, MoverCarriesItsObject) {
+	Path path;
+	path.pathType = PathType::MovingPlatform;
+	path.pathName = "TestCarryPath";
+	path.pathBehavior = PathBehavior::Once;
+	PathWaypoint first;
+	first.position = NiPoint3(0.0f, 0.0f, 0.0f);
+	first.speed = 5.0f;
+	PathWaypoint second = first;
+	second.position = NiPoint3(10.0f, 0.0f, 0.0f);
+	second.rotation = NiQuaternion(0.0f, 0.0f, 1.0f, 0.0f);
+	path.pathWaypoints = { first, second };
+	const_cast<Zone*>(Game::zoneManager->GetZone())->AddPath(path);
+
+	info.pos = NiPoint3(0.0f, 0.0f, 0.0f);
+	Entity entity(288300744895900110, info);
+	auto* const simplePhysics = entity.AddComponent<SimplePhysicsComponent>(-1);
+	auto* const platform = entity.AddComponent<MovingPlatformComponent>(-1, "TestCarryPath");
+
+	RakNet::BitStream before;
+	simplePhysics->Serialize(before, false);
+	platform->Run(0.11f);
+	platform->Run(1.0f);
+	EXPECT_NEAR(entity.GetPosition().x, 5.0f, 0.01f);
+	EXPECT_NEAR(std::abs(entity.GetRotation().y), 0.7071f, 0.001f);
+
+	RakNet::BitStream moved;
+	simplePhysics->Serialize(moved, false);
+	// No position and rotation (seven floats) in it
+	EXPECT_LT(moved.GetNumberOfBitsUsed(), 7u * 32u);
+
+	platform->Run(1.1f);
+	EXPECT_EQ(entity.GetPosition(), NiPoint3(10.0f, 0.0f, 0.0f));
+	EXPECT_NEAR(std::abs(entity.GetRotation().y), 1.0f, 0.001f);
+}
