@@ -76,11 +76,8 @@ namespace GameMessages {
 
 			cloneId = rocketPad->GetSelectedCloneId(player->GetObjectID());
 
-			if (param2) {
-				mapId = rocketPad->GetDefaultZone();
-			} else {
-				mapId = param3;
-			}
+			// The launchpad decides where its rockets go: its own zone, or the one the player picked on it
+			mapId = rocketPad->GetDefaultZone();
 
 			if (mapId == 0) {
 				mapId = rocketPad->GetSelectedMapId(player->GetObjectID());
@@ -90,11 +87,11 @@ namespace GameMessages {
 				mapId = Game::zoneManager->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
 			}
 
-			LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), static_cast<int>(mapId), static_cast<int>(cloneId));
+			LOG("Player %llu has requested zone transfer to (%i, %i).", player->GetObjectID(), static_cast<int>(mapId), static_cast<int>(cloneId));
 
 			auto* character = player->GetCharacter();
 
-			if (mapId <= 0) {
+			if (mapId <= 0 || !character) {
 				return;
 			}
 
