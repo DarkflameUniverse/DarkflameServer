@@ -28,6 +28,11 @@ namespace ApiKeys {
 		bool Has(const std::string& permission) const { return allPermissions || permissions.contains(permission); }
 	};
 
+	// Whether a key can still be used: not revoked, and not past its expiry (0: none). Times are unix seconds.
+	inline bool InUse(int64_t revokedAt, int64_t expiresAt, int64_t now) {
+		return revokedAt == 0 && (expiresAt == 0 || expiresAt > now);
+	}
+
 	// "*" or a comma-separated list, as stored in the database
 	inline std::string JoinPermissions(bool all, const std::set<std::string>& permissions) {
 		if (all) return std::string(ALL_PERMISSIONS);

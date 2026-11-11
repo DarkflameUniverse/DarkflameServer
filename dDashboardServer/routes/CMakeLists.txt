@@ -21,6 +21,7 @@ set(DASHBOARDROUTES_SOURCES
 	"LiveWorld.cpp"
 	"LiveUpdateRoutes.cpp"
 	"WorldReloadRoutes.cpp"
+	"ZonePublishRoutes.cpp"
 	"SettingsRoutes.cpp"
 	"Background.cpp"
 	"DatabaseUsage.cpp"

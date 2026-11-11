@@ -14,7 +14,8 @@
  * description in the house style become query parameters and a request body:
  *   "Query: ?range=24h|7d|30d, &files= (newest per server)"  or  "Query: after (the last id), limit (max 500)"
  *   "Body: {name, enabled, parent (default root.xml)}"        (also "Body (optional): {...}", "Body adds {...}")
- * Routes described as "(DataTables)" take the DataTables paging body. Pure (routes in, JSON out) so it can be tested.
+ * Routes described as "(DataTables)" take the DataTables paging body; ones described as "(multipart)" take
+ * multipart/form-data: the fields of their "Body: {...}" and file parts. Pure (routes in, JSON out) so it can be tested.
  */
 namespace OpenApi {
 	struct Route {
@@ -203,7 +204,18 @@ namespace OpenApi {
 					properties[param.name] = schema;
 					example[param.name] = param.isList ? nlohmann::json::array() : nlohmann::json(param.choices.empty() ? "" : param.choices.front());
 				}
-				operation["requestBody"] = { {"required", false}, {"content", { {"application/json", { {"schema", { {"type", "object"}, {"properties", properties} }}, {"example", example} }} }} };
+				if (route.description.find("(multipart)") != std::string::npos) {
+					// File uploads: the fields from "Body: {...}", and any number of file parts
+					properties["files"] = { {"type", "array"}, {"items", { {"type", "string"}, {"format", "binary"} }},
+						{"description", "One part per file; each part's filename is the file's path"} };
+					operation["requestBody"] = { {"required", true}, {"content", { {"multipart/form-data", { {"schema", { {"type", "object"}, {"properties", properties} }} }} }} };
+					operation["responses"]["409"] = { {"description", "Conflict: {error, message}"} };
+					operation["responses"]["413"] = { {"description", "Too large"} };
+					operation["responses"]["422"] = { {"description", "Refused: {error: validation_failed, files: [{path, ok, errors: [{code, message, offset}]}]}"} };
+					operation["responses"]["429"] = { {"description", "Too many requests"} };
+				} else {
+					operation["requestBody"] = { {"required", false}, {"content", { {"application/json", { {"schema", { {"type", "object"}, {"properties", properties} }}, {"example", example} }} }} };
+				}
 			}
 			paths[path][method] = operation;
 		}

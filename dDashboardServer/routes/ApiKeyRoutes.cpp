@@ -14,6 +14,7 @@
 #include "PermissionGrantsLoader.h"
 #include "RequireAuthMiddleware.h"
 #include "RouteUtils.h"
+#include "ZonePublishAuth.h"
 
 using namespace RouteUtils;
 using AccountRules::eAccountAction;
@@ -213,7 +214,12 @@ namespace ApiKeyRoutes {
 					key.permissions = std::string(ApiKeys::ALL_PERMISSIONS);
 				} else if (requested.is_array()) {
 					std::set<std::string> permissions;
-					for (const auto& permission : requested) if (permission.is_string()) permissions.insert(permission.get<std::string>());
+					for (const auto& permission : requested) {
+						if (!permission.is_string()) continue;
+						// The zone file API's scope is written zones.publish; permission names have no dots
+						auto name = permission.get<std::string>();
+						permissions.insert(name == ZonePublishAuth::SCOPE_ALIAS ? std::string(ZonePublishAuth::SCOPE) : name);
+					}
 					if (permissions.empty()) return JsonError(reply, eHTTPStatusCode::BAD_REQUEST, "Pick at least one permission");
 					// Staff can't hand a key more than they have
 					const auto refused = Permissions::NotGrantable(context.gmLevel, permissions, context.grants.get());

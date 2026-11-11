@@ -92,6 +92,10 @@ namespace RouteUtils {
 		Register(method, path, std::move(middleware), std::move(handler));
 	}
 
+	void Document(eHTTPMethod method, const std::string& path, const std::string& permission, const std::string& description) {
+		g_RouteDocs.push_back({ std::string(magic_enum::enum_name(method)), path, Permissions::Level(permission), description, permission, method == eHTTPMethod::GET });
+	}
+
 	bool Can(const HTTPContext& context, const std::string& permission) {
 		return context.isAuthenticated && Permissions::Allowed(context.gmLevel, permission, context.apiKey.get(), context.grants.get());
 	}

@@ -53,6 +53,8 @@ set(DWEBTESTS_SOURCES
 	"LogBundleTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/LogBundle.cpp"
 	"SecurityFixesTests.cpp"
+	"ZonePublishApiTests.cpp"
+	"UploadRouteTests.cpp"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes/BackupFiles.cpp"
 	"MetricsFormatTests.cpp"
 	"TrafficHistoryTests.cpp"

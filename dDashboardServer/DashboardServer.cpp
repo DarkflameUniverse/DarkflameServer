@@ -67,6 +67,7 @@
 #include "LiveWorld.h"
 #include "LiveUpdateRoutes.h"
 #include "WorldReloadRoutes.h"
+#include "ZonePublishRoutes.h"
 #include "master/WorldFiles.h"
 #include "Scenery.h"
 #include "Workers.h"
@@ -377,7 +378,10 @@ namespace {
 			handlers.On<ServerTraffic>(Master::SERVER_TRAFFIC, [](const ServerTraffic& report, const SystemAddress&) { Traffic::Ingest(report); });
 			handlers.On<ProfileResult>(Master::PROFILE_RESULT, [](const ProfileResult& result, const SystemAddress&) { Performance::IngestProfile(result); });
 			handlers.On<LiveUpdateStatus>(Master::LIVE_UPDATE_STATUS, [](const LiveUpdateStatus& status, const SystemAddress&) { LiveUpdateRoutes::HandleStatus(status); });
-			handlers.On<WorldFilesStatus>(Master::WORLD_FILES_STATUS, [](const WorldFilesStatus& status, const SystemAddress&) { WorldReloadRoutes::HandleStatus(status); });
+			handlers.On<WorldFilesStatus>(Master::WORLD_FILES_STATUS, [](const WorldFilesStatus& status, const SystemAddress&) {
+				WorldReloadRoutes::HandleStatus(status);
+				ZonePublishRoutes::HandleStatus(status);
+			});
 			return handlers;
 		}();
 		return handlers;
@@ -594,6 +598,7 @@ int main(int argc, char** argv) {
 	LiveWorld::RegisterRoutes();
 	LiveUpdateRoutes::RegisterRoutes();
 	WorldReloadRoutes::RegisterRoutes();
+	ZonePublishRoutes::RegisterRoutes();
 	Inspector::RegisterRoutes();
 	CaptureReplay::RegisterRoutes();
 	RegisterCDClientBrowserRoutes();
@@ -683,6 +688,7 @@ int main(int argc, char** argv) {
 			{ Profiler::Scope scope("Traffic::Update"); Traffic::Update(); }
 			{ Profiler::Scope scope("Performance::Update"); Performance::Update(); }
 			{ Profiler::Scope scope("ApiKeyService::Update"); ApiKeyService::Update(); }
+			{ Profiler::Scope scope("ZonePublishRoutes::Update"); ZonePublishRoutes::Update(); }
 
 			// Broadcast dashboard updates periodically
 			if (elapsedSinceBroadcast >= broadcastInterval) {
@@ -697,6 +703,7 @@ int main(int argc, char** argv) {
 
 	// Cleanup: the worker threads first (they answer deferred requests), then the web server's connections
 	Workers::Stop();
+	ZonePublishRoutes::Shutdown();
 	Game::web.Shutdown();
 	ApiKeyService::Flush();
 	Inspector::Shutdown();

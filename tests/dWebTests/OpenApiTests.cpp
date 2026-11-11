@@ -58,3 +58,18 @@ TEST(OpenApiTests, BuildsPathsWithParameters) {
 	EXPECT_TRUE(table["schema"]["properties"].contains("channel"));
 	EXPECT_EQ(table["example"]["length"], 25);
 }
+
+TEST(OpenApiTests, MultipartRoutesTakeFilesAndFields) {
+	const auto doc = OpenApi::Build({
+		{ "POST", "/api/v1/zones/:zoneid/publish", "Send a zone's edited files (multipart). Body: {reload=true|false (default true), dryRun=true|false, note, ifPlayersPresent=hold|move}. Returns {publishId}", 9, "zones_publish" },
+	}, "Test");
+	const auto& publish = doc["paths"]["/api/v1/zones/{zoneid}/publish"]["post"];
+	EXPECT_EQ(publish["x-permission"], "zones_publish");
+	EXPECT_EQ(publish["parameters"][0]["name"], "zoneid");
+	ASSERT_TRUE(publish["requestBody"]["content"].contains("multipart/form-data"));
+	const auto& properties = publish["requestBody"]["content"]["multipart/form-data"]["schema"]["properties"];
+	EXPECT_EQ(properties["files"]["items"]["format"], "binary");
+	EXPECT_EQ(properties["ifPlayersPresent"]["enum"], (std::vector<std::string>{ "hold", "move" }));
+	EXPECT_TRUE(properties.contains("dryRun"));
+	EXPECT_TRUE(publish["responses"].contains("422"));
+}

@@ -260,6 +260,10 @@ namespace RouteUtils {
 	void Route(eHTTPMethod method, const std::string& path, int16_t minGmLevel, const std::string& description, Handler handler);
 	void Route(eHTTPMethod method, const std::string& path, const Perm& permission, const std::string& description, Handler handler);
 
+	// List a route that was registered with its own middleware (not through Route) in the API documentation;
+	// permission: the permission its callers need
+	void Document(eHTTPMethod method, const std::string& path, const std::string& permission, const std::string& description);
+
 	// Routes registered while one of these lives only read, even POSTs (lookups that send their query as a body), so
 	// read-only API keys may use them. POST /api/tables/... (DataTables) always counts as a read.
 	struct ReadRoutes {

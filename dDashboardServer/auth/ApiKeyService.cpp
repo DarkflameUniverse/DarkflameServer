@@ -82,7 +82,7 @@ namespace {
 	// The key is in use and its owner may still sign in; the owner's GM level as of now
 	std::optional<Owner> CheckKeyAndOwner(const IApiKeys::ApiKey& key) {
 		const auto now = static_cast<int64_t>(std::time(nullptr));
-		if (key.revokedAt != 0 || (key.expiresAt != 0 && key.expiresAt <= now)) return std::nullopt;
+		if (!ApiKeys::InUse(key.revokedAt, key.expiresAt, now)) return std::nullopt;
 		const auto account = Database::Get()->GetAccountById(key.accountId);
 		if (account.contains("error") || account.value("banned", false) || account.value("locked", false)) return std::nullopt;
 		const auto gmLevel = static_cast<uint8_t>(account.value("gm_level", 0));

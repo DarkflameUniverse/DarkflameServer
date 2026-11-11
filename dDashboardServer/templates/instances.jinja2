@@ -97,6 +97,27 @@
 	</div>
 </div>
 {% endif %}
+{% if can.zone_editors_manage %}
+<div class="card mt-3" id="zoneEditingCard">
+	<div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+		<h5 class="mb-0">Zone editors and locks</h5>
+		<span class="small text-body-secondary" id="zoneEditingState"></span>
+	</div>
+	<div class="card-body">
+		<p class="small text-body-secondary">Who may send a zone's edited files through the zone file API (<code>/api/v1/zones</code>). A zone has up to
+			<span id="zoneEditingMax">10</span> editors; one account at a time holds its lock, and only the holder can send, restore or clear its files.
+			A lock is kept until its holder releases it or it is taken away here.</p>
+		<form class="row g-2 align-items-end mb-3" id="zoneEditorForm">
+			<div class="col-auto"><label class="form-label small mb-0" for="zoneEditorZone">Zone ID</label>
+				<input type="number" min="1" class="form-control form-control-sm" id="zoneEditorZone" required></div>
+			<div class="col-auto"><label class="form-label small mb-0" for="zoneEditorAccount">Account (name or ID)</label>
+				<input type="text" class="form-control form-control-sm" id="zoneEditorAccount" maxlength="64" required></div>
+			<div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Add editor</button></div>
+		</form>
+		<div id="zoneEditingZones"><p class="text-body-secondary mb-0">Loading&hellip;</p></div>
+	</div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -285,6 +306,60 @@
 		api.action('/api/worlds/reload', { zone: +button.dataset.reloadZone }, 'Reload requested').then(load).catch(function () {});
 	});
 	if (window.Live) Live.onTopic('world_files', show);
+	load();
+})();
+</script>
+{% endif %}
+{% if can.zone_editors_manage %}
+<script>
+(function () {
+	var box = document.getElementById('zoneEditingZones');
+	function when(seconds) { return seconds ? new Date(seconds * 1000).toLocaleString() : ''; }
+
+	function show(d) {
+		document.getElementById('zoneEditingMax').textContent = d.maxEditors;
+		document.getElementById('zoneEditingState').textContent = d.enabled
+			? 'Sending files needs GM ' + d.publishLevel + '+; managing this needs GM ' + d.adminLevel + '+'
+			: 'Turned off (zone_override_dir is empty)';
+		if (!d.zones.length) { box.innerHTML = '<p class="text-body-secondary mb-0">No zone has editors or a held lock.</p>'; return; }
+		var rows = d.zones.map(function (z) {
+			var editors = z.editors.map(function (e) {
+				return '<span class="me-2 text-nowrap" title="Added by ' + esc(e.assignedBy) + ', ' + esc(when(e.assignedAt)) + '">' + esc(e.name) +
+					' <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-remove-editor="' + esc(e.accountId) + '" data-zone="' + esc(z.zone) + '">remove</button></span>';
+			}).join('') || '<span class="text-body-secondary">none</span>';
+			var lock = z.holder
+				? esc(z.holder) + ' <span class="text-body-secondary">since ' + esc(when(z.since)) + '</span> ' +
+					'<button type="button" class="btn btn-outline-danger btn-sm ms-1" data-release-zone="' + esc(z.zone) + '">Take away</button>'
+				: '<span class="text-body-secondary">nobody</span>';
+			return '<tr><td>' + fmt.zone(z.zone, z.zoneName) + (z.state ? ' ' + fmt.badge(z.state, 'info') : '') + '</td><td>' + editors + '</td><td>' + lock + '</td></tr>';
+		}).join('');
+		box.innerHTML = '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Zone</th><th>Editors</th><th>Lock held by</th></tr></thead><tbody>' +
+			rows + '</tbody></table></div>';
+	}
+
+	function load() { api.get('/api/zone-editing').then(function (d) { if (d.success) show(d); }).catch(function () {}); }
+
+	document.getElementById('zoneEditorForm').addEventListener('submit', function (e) {
+		e.preventDefault();
+		var zone = +document.getElementById('zoneEditorZone').value;
+		var account = document.getElementById('zoneEditorAccount').value.trim();
+		if (!zone || !account) return;
+		api.action('/api/zone-editing/' + zone + '/editors', { account: account }, 'Editor added').then(function () {
+			document.getElementById('zoneEditorAccount').value = '';
+			load();
+		}).catch(function () {});
+	});
+	box.addEventListener('click', function (e) {
+		var remove = e.target.closest('[data-remove-editor]');
+		if (remove) {
+			api.action('/api/zone-editing/' + remove.dataset.zone + '/editors/remove', { accountId: +remove.dataset.removeEditor }, 'Editor removed').then(load).catch(function () {});
+			return;
+		}
+		var release = e.target.closest('[data-release-zone]');
+		if (!release) return;
+		if (!confirm('Take this zone\'s lock away from its holder? They can no longer send its files until they take the lock again.')) return;
+		api.action('/api/zone-editing/' + release.dataset.releaseZone + '/release', {}, 'Lock released').then(load).catch(function () {});
+	});
 	load();
 })();
 </script>
