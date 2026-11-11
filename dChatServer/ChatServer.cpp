@@ -18,6 +18,7 @@
 #include "MessageType/Master.h"
 #include "Diagnostics.h"
 #include "AssetManager.h"
+#include "ZoneOverrideStore.h"
 #include "BinaryPathFinder.h"
 #include "ServiceType.h"
 #include "PlayerContainer.h"
@@ -92,6 +93,8 @@ int main(int argc, char** argv) {
 		}
 
 		Game::assetManager = new AssetManager(clientPath);
+		// Edited zone files are read in place of the client's (docs/ZonePublish.md)
+		Game::assetManager->SetOverrideDir(ZoneOverrideStore::RootFromSetting(Game::config->GetValue("zone_override_dir")));
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
 		delete Game::logger;

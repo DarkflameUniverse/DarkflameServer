@@ -88,6 +88,7 @@
 #include "PropertyManagementComponent.h"
 #include "EditMode.h"
 #include "AssetManager.h"
+#include "ZoneOverrideStore.h"
 #include "LevelProgressionComponent.h"
 #include "eBlueprintSaveResponseType.h"
 #include "Amf3.h"
@@ -289,6 +290,8 @@ int main(int argc, char** argv) {
 			clientPath = BinaryPathFinder::GetBinaryDir() / clientPath;
 		}
 		Game::assetManager = new AssetManager(clientPath);
+		// Edited zone files are read in place of the client's (docs/ZonePublish.md)
+		Game::assetManager->SetOverrideDir(ZoneOverrideStore::RootFromSetting(Game::config->GetValue("zone_override_dir")));
 	} catch (const std::exception& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
 

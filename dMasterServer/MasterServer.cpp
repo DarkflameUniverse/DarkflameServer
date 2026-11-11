@@ -29,6 +29,7 @@
 #include "Logger.h"
 #include "dServer.h"
 #include "AssetManager.h"
+#include "ZoneOverrideStore.h"
 #include "BinaryPathFinder.h"
 #include "ServiceType.h"
 #include "MessageType/Master.h"
@@ -313,6 +314,8 @@ int main(int argc, char** argv) {
 		}
 
 		Game::assetManager = new AssetManager(clientPath);
+		// Edited zone files are read in place of the client's (docs/ZonePublish.md)
+		Game::assetManager->SetOverrideDir(ZoneOverrideStore::RootFromSetting(Game::config->GetValue("zone_override_dir")));
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
 		LOG("Is the provided client_location in Windows Onedrive? If so, remove it from Onedrive.");

@@ -152,6 +152,16 @@ namespace {
 		c.Add(Unit(Int(MASTER, "live_update_service_timeout", "Server restart timeout", "How long auth, chat, the UGC server or the dashboard may take to stop or come back before master starts it again (3 tries).", "30", 10, 600), "seconds"));
 		c.Add(Bool(MASTER, "live_update_run_migrations", "Run database migrations", "Run the new build's database migrations first. The running servers must cope with the new schema until they are replaced.", true));
 
+		c.AddSection("Edited zone files", "Zone files sent by an external level editor through the dashboard's API (docs/ZonePublish.md): they are kept in their own folder and read in place of the client's, which are never written.");
+		c.Add(Format(Text(SHARED, "zone_override_dir", "Override folder", "A file under maps/ is read from this folder's maps/ when it is there, and from the client otherwise. Also holds the sets being checked and the replaced sets. Relative to the server binaries unless absolute. Empty turns the feature off.", "", true), eFormat::PATH));
+		c.Add(Int(SHARED, "zone_publish_gm_level", "Level to send zone files", "The lowest GM level that may send, restore or clear a zone's edited files. The account also has to hold the zone's lock, and its API key needs the zones.publish permission.", "9", 1, 9));
+		c.Add(Int(SHARED, "zone_lock_admin_gm_level", "Level to manage zone locks", "The lowest GM level that may take any zone's lock without being one of its editors, take a lock away from its holder, and assign editors.", "9", 1, 9));
+		c.Add(Unit(Int(SHARED, "zone_publish_max_file_mb", "Largest file", "The largest single file of a set.", "64", 1, 1024), "MiB"));
+		c.Add(Unit(Int(SHARED, "zone_publish_max_total_mb", "Largest set", "The largest set, all its files together.", "256", 1, 4096), "MiB"));
+		c.Add(Int(SHARED, "zone_publish_max_files", "Files in a set", "The most files one set can have.", "128", 1, 1024));
+		c.Add(Int(SHARED, "zone_publish_max_objects", "Objects in a set", "The most objects the scenes of one set can place, all together.", "100000", 1, 10000000));
+		c.Add(Int(SHARED, "zone_publish_max_backups", "Replaced sets kept", "How many of a zone's replaced sets are kept to go back to; older ones are deleted.", "20", 0, 1000));
+
 		c.AddSection("Game client");
 		c.Add(Format(Text(SHARED, "client_location", "Client folder", "The folder with res/, or the one with client/ and versions/.", "", true), eFormat::PATH));
 		c.Add(Int(SHARED, "client_net_version", "Network version", "Clients reporting another version are refused. 171022 for the retail client, 171023 for Darkflame Universe clients.", "171022", 0, std::nullopt, true));
