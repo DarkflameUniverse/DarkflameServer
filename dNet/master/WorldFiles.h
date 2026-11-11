@@ -103,6 +103,30 @@ struct WorldReloadRequest : public LUBitStream {
 };
 
 /**
+ * WORLD_RELOAD_HOLD (dashboard -> master): while hold is set, master does not replace zoneId's instances by itself
+ * when their files change (a set of edited files is in place and its reload waits for someone to say so). A
+ * WORLD_RELOAD of the zone still reloads it, and ends the hold.
+ */
+struct WorldReloadHold : public LUBitStream {
+	WorldReloadHold() : LUBitStream(ServiceType::MASTER, MessageType::Master::WORLD_RELOAD_HOLD) {}
+
+	uint32_t zoneId{};
+	bool hold{};
+
+	void Serialize(RakNet::BitStream& stream) const override {
+		stream.Write(zoneId);
+		stream.Write<uint8_t>(hold ? 1 : 0);
+	}
+
+	bool Deserialize(RakNet::BitStream& stream) override {
+		uint8_t value{};
+		if (!stream.Read(zoneId) || !stream.Read(value)) return false;
+		hold = value != 0;
+		return true;
+	}
+};
+
+/**
  * WORLD_FILES_STATUS (master -> dashboard): every zone that runs, the files its instances loaded as they are on disk
  * now, and which instances loaded an older version. Sent when something changes and when the dashboard connects.
  */
@@ -137,6 +161,12 @@ struct WorldFilesStatus : public LUBitStream {
 		std::vector<File> files;
 		std::vector<Instance> instances;
 		std::string message;       // the last reload of the zone
+		// Since master started (or the zone last had no instance), so a reader can tell what one request did
+		uint32_t requests{};       // reloads asked for (WORLD_RELOAD)
+		uint32_t acted{};          // instances replaced, stopped or left to empty
+		uint32_t playersMoved{};
+		uint32_t failed{};         // instances that could not be replaced (message says why)
+		uint16_t pending{};        // instances being replaced right now
 
 		bool operator==(const Zone& other) const = default;
 	};
@@ -172,6 +202,11 @@ struct WorldFilesStatus : public LUBitStream {
 				stream.Write<uint8_t>((instance.stale ? 1 : 0) | (instance.reloading ? 2 : 0) | (instance.outdated ? 4 : 0));
 			}
 			InstanceMigration::WriteText(stream, zone.message, WorldFiles::MAX_MESSAGE);
+			stream.Write(zone.requests);
+			stream.Write(zone.acted);
+			stream.Write(zone.playersMoved);
+			stream.Write(zone.failed);
+			stream.Write(zone.pending);
 		}
 	}
 
@@ -205,6 +240,7 @@ struct WorldFilesStatus : public LUBitStream {
 				instance.outdated = flags & 4;
 			}
 			if (!InstanceMigration::ReadText(stream, zone.message, WorldFiles::MAX_MESSAGE)) return false;
+			if (!stream.Read(zone.requests) || !stream.Read(zone.acted) || !stream.Read(zone.playersMoved) || !stream.Read(zone.failed) || !stream.Read(zone.pending)) return false;
 		}
 		return true;
 	}

@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 
+#include "AssetManager.h"
 #include "Game.h"
 #include "GeneralUtils.h"
 #include "InstanceManager.h"
@@ -29,6 +30,59 @@ namespace {
 		std::optional<uint64_t> hash;
 		uint64_t size{};
 	};
+
+	// What the worker reads for a job: the file that is read for the path now, or a hash known without reading
+	struct HashTarget {
+		HashJob job;
+		std::string readPath;
+		std::optional<uint64_t> knownHash;
+	};
+
+	/**
+	 * A file under maps/ is read from the override folder when it is there (AssetManager::SetOverrideDir), so that is
+	 * the file watched for it, whichever of the two a world reported. name: the file's name under res/ ("maps/...").
+	 */
+	std::optional<std::string> MapsName(const std::string& path) {
+		if (!Game::assetManager || Game::assetManager->GetOverrideDir().empty()) return std::nullopt;
+		std::error_code code;
+		const std::filesystem::path file(path);
+		for (const auto& base : { Game::assetManager->GetOverrideDir(), Game::assetManager->GetResPath() }) {
+			if (!file.is_absolute()) break;
+			const auto absolute = std::filesystem::absolute(base, code).lexically_normal();
+			const auto relative = file.lexically_normal().lexically_relative(absolute).generic_string();
+			if (!relative.empty() && !relative.starts_with("..")) return AssetManager::OverrideName(relative);
+		}
+		// A name in the client's packs
+		return file.is_absolute() ? std::nullopt : AssetManager::OverrideName(path);
+	}
+
+	// The loose file read for a name under maps/ now: the override, else the client's; nullopt when it is in the packs
+	std::optional<std::string> LooseFile(const std::string& name) {
+		if (const auto overridden = Game::assetManager->GetOverridePath(name)) return overridden->string();
+		std::error_code code;
+		const auto client = Game::assetManager->GetResPath() / name;
+		if (std::filesystem::is_regular_file(client, code)) return client.string();
+		return std::nullopt;
+	}
+
+	FdbSnapshot::Stamp StampNow(const std::string& path) {
+		const auto name = MapsName(path);
+		if (!name) return FdbSnapshot::StampOf(path);
+		if (const auto loose = LooseFile(*name)) return FdbSnapshot::StampOf(*loose);
+		// Read from the packs: there, and never changing, until an override shows up
+		return FdbSnapshot::Stamp{ 0, 0, true };
+	}
+
+	// What reloads did per zone, for the dashboard (WorldFilesStatus::Zone)
+	struct ZoneCounters {
+		uint32_t requests{};
+		uint32_t acted{};
+		uint32_t playersMoved{};
+		uint32_t failed{};
+	};
+	std::map<uint32_t, ZoneCounters> g_ZoneCounters;
+
+	std::set<uint32_t> g_Held; // zones whose automatic reloads wait (SetHold)
 
 	Tracker g_Tracker;
 	std::future<std::vector<HashResult>> g_Job;
@@ -65,21 +119,48 @@ namespace {
 	}
 
 	// The worker gets copies of the paths; it only reads the files and never logs or touches shared state
-	std::vector<HashResult> HashFiles(std::vector<HashJob> jobs) {
+	std::vector<HashResult> HashFiles(std::vector<HashTarget> targets) {
 		std::vector<HashResult> results;
-		results.reserve(jobs.size());
-		for (auto& job : jobs) {
+		results.reserve(targets.size());
+		for (auto& target : targets) {
 			HashResult result;
-			std::error_code code;
-			const auto size = std::filesystem::file_size(job.path, code);
-			if (!code) {
-				result.size = static_cast<uint64_t>(size);
-				result.hash = FdbSnapshot::HashFile(job.path);
+			if (target.knownHash) {
+				result.hash = target.knownHash;
+			} else {
+				std::error_code code;
+				const auto size = std::filesystem::file_size(target.readPath, code);
+				if (!code) {
+					result.size = static_cast<uint64_t>(size);
+					result.hash = FdbSnapshot::HashFile(target.readPath);
+				}
 			}
-			result.job = std::move(job);
+			result.job = std::move(target.job);
 			results.push_back(std::move(result));
 		}
 		return results;
+	}
+
+	// Main thread: which file each job reads (the settings and the asset manager stay off the worker)
+	std::vector<HashTarget> Targets(std::vector<HashJob> jobs) {
+		std::vector<HashTarget> targets;
+		targets.reserve(jobs.size());
+		for (auto& job : jobs) {
+			HashTarget target;
+			target.readPath = job.path;
+			if (const auto name = MapsName(job.path)) {
+				if (const auto loose = LooseFile(*name)) {
+					target.readPath = *loose;
+				} else {
+					// Back to the client's packs: what a world read from them, or (a world only ever read an override
+					// of it) a hash no world read
+					const auto file = g_Tracker.Files().find(job.path);
+					target.knownHash = file != g_Tracker.Files().end() && file->second.packed ? file->second.reportedHash : 0;
+				}
+			}
+			target.job = std::move(job);
+			targets.push_back(std::move(target));
+		}
+		return targets;
 	}
 
 	std::vector<InstanceMigration::InstanceView> Views() {
@@ -160,6 +241,7 @@ namespace {
 				if (refusal != InstanceMigration::eRefusal::NONE) {
 					g_Migrations.erase(request.requestId);
 					LOG("World reload (%s): zone %u instance %u could not be replaced: %s", by.c_str(), view.zoneId, view.instanceId, InstanceMigration::Describe(refusal));
+					g_ZoneCounters[view.zoneId].failed++;
 					counts.second++;
 					continue;
 				}
@@ -170,6 +252,7 @@ namespace {
 			}
 		}
 		for (const auto& [zone, counts] : perZone) {
+			g_ZoneCounters[zone].acted += counts.first;
 			std::string message = "Reload (" + by + "): " + std::to_string(counts.first) + " instance(s) replaced, stopped or left to empty";
 			if (counts.second) message += ", " + std::to_string(counts.second) + " left alone";
 			SetZoneMessage(zone, message);
@@ -181,6 +264,7 @@ namespace {
 	void ReloadStale() {
 		std::set<InstanceKey> wanted;
 		for (const auto& key : g_Tracker.Stale()) {
+			if (g_Held.contains(key.zone)) continue;
 			const auto tried = g_Tried.find(key);
 			if (tried != g_Tried.end() && tried->second == g_Tracker.Signature(key)) continue;
 			wanted.insert(key);
@@ -239,6 +323,13 @@ namespace {
 				zone.instances.push_back(row);
 			}
 			if (const auto message = g_ZoneMessages.find(zoneId); message != g_ZoneMessages.end()) zone.message = message->second;
+			if (const auto counters = g_ZoneCounters.find(zoneId); counters != g_ZoneCounters.end()) {
+				zone.requests = counters->second.requests;
+				zone.acted = counters->second.acted;
+				zone.playersMoved = counters->second.playersMoved;
+				zone.failed = counters->second.failed;
+			}
+			for (const auto& [id, key] : g_Migrations) zone.pending += key.zone == zoneId ? 1 : 0;
 			status.zones.push_back(std::move(zone));
 		}
 		return status;
@@ -282,6 +373,9 @@ void WorldReloader::HandleRequest(const WorldReloadRequest& request, const std::
 		return;
 	}
 	const auto zone = request.zoneId;
+	g_ZoneCounters[zone].requests++;
+	g_Dirty = true;
+	if (g_Held.erase(zone)) LOG("World reload of zone %u: its automatic reloads are no longer held", zone);
 	const auto choices = Choose(Views(), [zone](const InstanceMigration::InstanceView& view) { return view.zoneId == zone; }, KeepZones());
 	if (choices.empty()) {
 		LOG("World reload of zone %u asked for by %s: no instance of it runs", zone, who.c_str());
@@ -296,6 +390,13 @@ void WorldReloader::HandleRequest(const WorldReloadRequest& request, const std::
 	Apply(choices, std::min(request.warnSeconds, InstanceMigrationRequest::MAX_WARN_SECONDS), request.requesterId, who);
 }
 
+void WorldReloader::SetHold(uint32_t zoneId, bool hold) {
+	if (zoneId == 0) return;
+	if (hold ? g_Held.insert(zoneId).second : g_Held.erase(zoneId) > 0) {
+		LOG("World reload: zone %u's instances are %s when its files change", zoneId, hold ? "left alone" : "replaced again");
+	}
+}
+
 void WorldReloader::OnMigrationStatus(const MigrationStatus& status) {
 	const auto it = g_Migrations.find(status.migrationId);
 	if (it == g_Migrations.end()) return;
@@ -306,6 +407,8 @@ void WorldReloader::OnMigrationStatus(const MigrationStatus& status) {
 	const auto key = it->second;
 	g_Migrations.erase(it);
 	std::string message = "Instance " + std::to_string(key.instance);
+	if (status.state == InstanceMigration::eState::DONE) g_ZoneCounters[key.zone].playersMoved += status.moved;
+	else g_ZoneCounters[key.zone].failed++;
 	if (status.state == InstanceMigration::eState::DONE) {
 		message += " replaced by " + std::to_string(status.targetInstance) + " (" + std::to_string(status.moved) + " player(s) moved)";
 	} else {
@@ -319,7 +422,10 @@ void WorldReloader::OnInstanceGone(const Instance& instance) {
 	const InstanceKey key{ instance.GetMapID(), instance.GetInstanceID() };
 	g_Tracker.Forget(key.zone, key.instance);
 	g_Tried.erase(key);
-	if (g_Tracker.Zones().count(key.zone) == 0) g_ZoneMessages.erase(key.zone);
+	if (g_Tracker.Zones().count(key.zone) == 0) {
+		g_ZoneMessages.erase(key.zone);
+		g_ZoneCounters.erase(key.zone);
+	}
 	g_Dirty = true;
 }
 
@@ -347,8 +453,8 @@ void WorldReloader::Update() {
 		if (seconds > 0) {
 			// Worlds that reported after the last change are caught here too
 			ReloadStale();
-			auto due = g_Tracker.Poll([](const std::string& path) { return FdbSnapshot::StampOf(path); });
-			if (!due.empty()) g_Job = std::async(std::launch::async, HashFiles, std::move(due));
+			auto due = g_Tracker.Poll(StampNow, [](const std::string& path) { return MapsName(path).has_value(); });
+			if (!due.empty()) g_Job = std::async(std::launch::async, HashFiles, Targets(std::move(due)));
 		}
 		// Player counts change without telling us; the status is compared before it is sent
 		g_Dirty = true;

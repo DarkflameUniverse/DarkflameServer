@@ -250,3 +250,40 @@ TEST(WorldFileWatchTests, ChooseKeepsAnInstanceOfKeptZones) {
 		EXPECT_EQ(choices[1].action, eAction::STOP);
 	}
 }
+
+// A file a world read from the client's packs is watched once the caller says a folder can replace it: an override
+// showing up for it makes the instances that read the pack's version stale
+TEST(WorldFileWatchTests, PackedFilesAreWatchedWhenAnOverrideCanReplaceThem) {
+	Tracker tracker;
+	tracker.Report(1100, 1, 0, { File("maps/a.lvl", 7, Kind::SCENE, true) });
+	const auto inPack = At(0, 0);
+	Stamp now = inPack;
+	const auto poll = [&] {
+		return tracker.Poll([&](const std::string&) { return now; }, [](const std::string& path) { return path.starts_with("maps/"); });
+	};
+	// Not watched without the second argument
+	EXPECT_TRUE(tracker.Poll([&](const std::string&) { return now; }).empty());
+
+	// First read: what the pack holds
+	auto due = poll();
+	ASSERT_EQ(due.size(), 1u);
+	EXPECT_FALSE(tracker.Hashed(due[0], 7, 100));
+	EXPECT_TRUE(tracker.Stale().empty());
+	EXPECT_TRUE(poll().empty());
+
+	// An override appears and holds still for a poll
+	now = At(50, 9);
+	EXPECT_TRUE(poll().empty());
+	due = poll();
+	ASSERT_EQ(due.size(), 1u);
+	EXPECT_TRUE(tracker.Hashed(due[0], 8, 50));
+	EXPECT_EQ(tracker.Stale().size(), 1u);
+
+	// It is taken away again: the pack's version is what is read, and the instance matches it again
+	now = inPack;
+	EXPECT_TRUE(poll().empty());
+	due = poll();
+	ASSERT_EQ(due.size(), 1u);
+	EXPECT_TRUE(tracker.Hashed(due[0], 7, 100));
+	EXPECT_TRUE(tracker.Stale().empty());
+}

@@ -14,7 +14,8 @@ struct WorldReloadRequest;
 
 /**
  * Master's side of world hot reload (docs/WorldHotReload.md). Worlds report the zone files they loaded (WORLD_FILES);
- * master watches them (size and mtime every world_watch_seconds, then a hash on a worker thread) and, when one changes
+ * master watches them (size and mtime every world_watch_seconds, then a hash on a worker thread; for a file under
+ * maps/ that is the file in the override folder, zone_override_dir, when one is there) and, when one changes
  * or a GM or the dashboard asks (WORLD_RELOAD), replaces the affected instances with new ones on the files on disk,
  * moving their players with the instance migration (MigrationCoordinator). Main thread only.
  */
@@ -27,6 +28,9 @@ namespace WorldReloader {
 
 	// A GM's /reloadworld or the dashboard; who is for the log
 	void HandleRequest(const WorldReloadRequest& request, const std::string& who);
+
+	// The dashboard holds (or stops holding) a zone's automatic reloads; a request for the zone ends a hold
+	void SetHold(uint32_t zoneId, bool hold);
 
 	// Every migration's progress (MigrationCoordinator's observer)
 	void OnMigrationStatus(const MigrationStatus& status);

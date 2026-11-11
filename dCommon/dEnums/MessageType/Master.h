@@ -105,5 +105,9 @@ namespace MessageType {
 
 		// Dashboard -> master: what the update check found about this build (see UpdateStatus.h), for master's log
 		UPDATE_STATUS,
+
+		// Dashboard -> master: stop (or go back to) replacing a zone's instances by itself when its files change, while
+		// a set of edited zone files waits for its reload (see WorldFiles.h, docs/ZonePublish.md)
+		WORLD_RELOAD_HOLD,
 	};
 }

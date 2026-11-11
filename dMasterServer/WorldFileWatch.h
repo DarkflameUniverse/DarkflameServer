@@ -21,7 +21,8 @@
  *
  * Master reads (hashes) each watched file itself: once when a world first reports it, and again whenever its size or
  * mtime changed and then held still for one poll (FdbSnapshot::Watcher). An instance is stale when a file it loaded
- * has another hash on disk now. Files a world read from the client's packs are listed but not watched.
+ * has another hash on disk now. Files a world read from the client's packs are listed but not watched, unless the
+ * caller watches a folder whose files replace them (Poll's watchPacked).
  */
 namespace WorldFileWatch {
 	using Stamp = FdbSnapshot::Stamp;
@@ -85,10 +86,11 @@ namespace WorldFileWatch {
 		 * read yet, and files whose size or mtime changed and held still since the last poll. Those are marked as
 		 * being hashed until Hashed is called for them.
 		 */
-		std::vector<HashJob> Poll(const std::function<Stamp(const std::string&)>& stampOf) {
+		std::vector<HashJob> Poll(const std::function<Stamp(const std::string&)>& stampOf, const std::function<bool(const std::string&)>& watchPacked = nullptr) {
 			std::vector<HashJob> due;
 			for (auto& [path, file] : m_Files) {
-				if (file.packed || file.hashing) continue;
+				// A file from the client's packs is only looked at when the caller can say what replaces it (an override folder)
+				if (file.hashing || (file.packed && !(watchPacked && watchPacked(path)))) continue;
 				const auto stamp = stampOf(path);
 				file.missing = !stamp.exists;
 				const bool first = !file.hash && stamp.exists;

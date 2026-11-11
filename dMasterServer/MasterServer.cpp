@@ -1187,6 +1187,15 @@ namespace {
 		WorldReloader::HandleRequest(request, fromDashboard ? "the dashboard, " + by : by);
 	}
 
+	// The dashboard, while a set of edited zone files waits for its reload (docs/ZonePublish.md)
+	void OnWorldReloadHold(const WorldReloadHold& hold, const SystemAddress& sysAddr) {
+		if (sysAddr != dashboardServerMasterPeerSysAddr || sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+			LOG("Ignoring a world reload hold from a server that is not the dashboard");
+			return;
+		}
+		WorldReloader::SetHold(hold.zoneId, hold.hold);
+	}
+
 	void OnConfigReload(const ConfigReload& reload, const SystemAddress& sysAddr) {
 		if (sysAddr != dashboardServerMasterPeerSysAddr) {
 			LOG("Ignoring config reload from a server that is not the dashboard");
@@ -1301,6 +1310,7 @@ namespace {
 			handlers.On<MessageCaptureControl>(Master::MESSAGE_CAPTURE_CONTROL, OnMessageCaptureControl);
 			handlers.On<CDClientReload>(Master::CDCLIENT_RELOAD, OnCDClientReload);
 			handlers.On<WorldFilesReport>(Master::WORLD_FILES, OnWorldFiles);
+			handlers.On<WorldReloadHold>(Master::WORLD_RELOAD_HOLD, OnWorldReloadHold);
 			handlers.On<WorldReloadRequest>(Master::WORLD_RELOAD, OnWorldReload);
 			handlers.On<MessageCaptureData>(Master::MESSAGE_CAPTURE_DATA, OnMessageCaptureData);
 			handlers.On<RequestServerList>(Master::REQUEST_SERVER_LIST, OnRequestServerList);
