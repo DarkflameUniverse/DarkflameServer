@@ -23,9 +23,6 @@ private:
 	void LoadWorldConfig();
 
 public:
-	// The zone control object's ID, the same fixed value in the client (LevelManager::LoadZoneControlObject, 0x01082660)
-	static constexpr LWOOBJID ZONE_CONTROL_OBJECT_ID = 0x3FFF'FFFFFFFELL;
-
 	void Initialize(const LWOZONEID& zoneID);
 	~dZoneManager();
 
@@ -33,13 +30,6 @@ public:
 	Zone* GetZoneMut() const;
 	const Zone* GetZone() const { return GetZoneMut(); };
 	bool HasZone() const { return m_pZone != nullptr; };
-
-	/**
-	 * A GM's edit mode (docs/EditMode.md): the zone's level objects, spawners, spawner networks and triggers are not
-	 * loaded, so the GM's client is the only one that has them. Set before Initialize.
-	 */
-	bool GetEditMode() const { return m_EditMode; }
-	void SetEditMode(bool value) { m_EditMode = value; }
 	void LoadZone(const LWOZONEID& zoneID); //Discard the current zone (if any) and loads a new zone.
 
 	/* Adds a spawner to the zone with the specified ID. */
@@ -113,7 +103,6 @@ private:
 	bool m_PlayerLoseCoinsOnDeath = false;
 	bool m_DisableSaveLocation = false;
 	bool m_MountsAllowed = true;
-	bool m_EditMode = false;
 	bool m_PetsAllowed = true;
 	std::map<LWOOBJID, Spawner*> m_Spawners;
 	std::optional<WorldConfig> m_WorldConfig = std::nullopt;

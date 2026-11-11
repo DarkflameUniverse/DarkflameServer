@@ -118,8 +118,7 @@ namespace GameMessages {
 		std::vector<Entity*> racingControllers = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
 			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
-			// Edit mode: a race track's zone control doesn't take the GM into a race (or send them out for having no car)
-			if (racingComponent != nullptr && !Game::zoneManager->GetEditMode()) {
+			if (racingComponent != nullptr) {
 				racingComponent->OnPlayerLoaded(entity);
 			}
 		}

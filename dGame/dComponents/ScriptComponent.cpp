@@ -98,11 +98,6 @@ CppScripts::Script* const ScriptComponent::GetScript() {
 void ScriptComponent::SetScript(const std::string& scriptName) {
 	// Scripts are managed by the CppScripts class and are effecitvely singletons
 	// and they may also be used by other script components so DON'T delete them.
-	// Edit mode (docs/EditMode.md): the zone control object stays, its zone script does not run
-	if (Game::zoneManager && Game::zoneManager->GetEditMode() && m_Parent->GetObjectID() == dZoneManager::ZONE_CONTROL_OBJECT_ID) {
-		m_Script = CppScripts::GetInvalidScript();
-		return;
-	}
 	m_Script = CppScripts::GetScript(m_Parent, scriptName);
 }
 

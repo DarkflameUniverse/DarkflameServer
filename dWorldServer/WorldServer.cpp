@@ -86,7 +86,6 @@
 #include "DestroyableComponent.h"
 #include "Game.h"
 #include "PropertyManagementComponent.h"
-#include "EditMode.h"
 #include "AssetManager.h"
 #include "ZoneOverrideStore.h"
 #include "LevelProgressionComponent.h"
@@ -245,7 +244,6 @@ int main(int argc, char** argv) {
 	uint32_t cloneID = 0;
 	uint32_t maxClients = 8;
 	uint32_t ourPort = 2007;
-	bool editMode = false;
 
 	//Check our arguments:
 	for (int32_t i = 0; (i + 1) < argc; i++) {
@@ -260,7 +258,6 @@ int main(int argc, char** argv) {
 		else if (argument == "-clone") cloneID = valOptional.value_or(0);
 		else if (argument == "-maxclients") maxClients = valOptional.value_or(8);
 		else if (argument == "-port") ourPort = valOptional.value_or(2007);
-		else if (argument == "-editmode") editMode = valOptional.value_or(0) != 0;
 	}
 
 	Game::config = new dConfig("worldconfig.ini");
@@ -429,8 +426,6 @@ int main(int argc, char** argv) {
 			Profiler::Scope navmesh("Navmesh and physics load", Profiler::Phase::PHYSICS);
 			dpWorld::Initialize(zoneID);
 		}
-		// A GM's edit mode instance (docs/EditMode.md): master says so when it starts the world
-		Game::zoneManager->SetEditMode(editMode);
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, g_InstanceID, cloneID));
 		PacketCapture::SetClone(cloneID);
 		g_CloneID = cloneID;
@@ -586,8 +581,7 @@ int main(int argc, char** argv) {
 			DashboardNotify::Flush();
 			DashboardNotify::SendPlayerPositions(g_InstanceID);
 			MessageInspector::Update();
-			// (an edit mode instance has no server objects, so no live events either)
-			if (!Game::zoneManager->GetEditMode()) LiveEvents::Update();
+			LiveEvents::Update();
 			UgcManifest::Update();
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
@@ -897,17 +891,6 @@ namespace {
 			return;
 		} else {
 			LOG("User %s authenticated with correct key.", username.GetAsString().c_str());
-
-			// An edit mode instance takes only accounts that may use /editmode, however they found its address
-			if (Game::zoneManager->GetEditMode()) {
-				const auto account = Database::Get()->GetAccountInfo(username.GetAsString());
-				if (!EditMode::MayEnter(account ? account->maxGmLevel : eGameMasterLevel::CIVILIAN, EditMode::RequiredLevel())) {
-					LOG("User %s may not enter an edit mode instance; disconnecting them", username.GetAsString().c_str());
-					Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::KICK);
-					g_PendingUsers.erase(it);
-					return;
-				}
-			}
 
 			UserManager::Instance()->DeleteUser(masterAddr);
 
