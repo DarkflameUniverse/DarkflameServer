@@ -22,6 +22,7 @@ set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
 	"LiveOps.cpp"
 	"FeaturedProperties.cpp"
 	"Contraband.cpp"
+	"ZoneEditing.cpp"
 	"PropertyRent.cpp"
 	"PropertyReputation.cpp"
 	"BbbAutosave.cpp"

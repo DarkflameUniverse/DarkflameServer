@@ -321,6 +321,28 @@ class TestSQLDatabase : public GameDatabase {
 	void SetPropertyRent(LWOOBJID propertyId, int64_t amount, int64_t due) override {}
 	void SetPropertyPrivacy(LWOOBJID propertyId, int32_t privacyOption) override {}
 
+	// IZoneEditing: kept in memory, so tests can use the locks and editors
+	std::optional<ZoneLock> GetZoneLock(uint32_t zoneId) override {
+		const auto it = m_ZoneLocks.find(zoneId);
+		return it == m_ZoneLocks.end() ? std::nullopt : std::optional<ZoneLock>(it->second);
+	}
+	std::vector<ZoneLock> GetZoneLocks() override {
+		std::vector<ZoneLock> locks;
+		for (const auto& [_, lock] : m_ZoneLocks) locks.push_back(lock);
+		return locks;
+	}
+	bool TakeZoneLock(uint32_t zoneId, uint32_t accountId, int64_t time) override {
+		return m_ZoneLocks.try_emplace(zoneId, ZoneLock{ zoneId, accountId, time }).second;
+	}
+	bool ReleaseZoneLock(uint32_t zoneId) override { return m_ZoneLocks.erase(zoneId) > 0; }
+	std::vector<ZoneEditor> GetZoneEditors(uint32_t zoneId) override {
+		std::vector<ZoneEditor> editors;
+		for (const auto& [key, editor] : m_ZoneEditors) if (zoneId == 0 || key.first == zoneId) editors.push_back(editor);
+		return editors;
+	}
+	bool IsZoneEditor(uint32_t zoneId, uint32_t accountId) override { return m_ZoneEditors.contains({ zoneId, accountId }); }
+	void AddZoneEditor(const ZoneEditor& editor) override { m_ZoneEditors.try_emplace({ editor.zoneId, editor.accountId }, editor); }
+	bool RemoveZoneEditor(uint32_t zoneId, uint32_t accountId) override { return m_ZoneEditors.erase({ zoneId, accountId }) > 0; }
 	// IContraband
 	std::vector<ContrabandItem> GetContrabandItems() override { return {}; }
 	void SetContrabandItem(const ContrabandItem& item) override {}
@@ -483,6 +505,10 @@ class TestSQLDatabase : public GameDatabase {
 	void DeleteAccount(const uint32_t accountId) override {};
 	void InsertAuditLog(uint32_t accountId, const std::string_view accountName, const std::string_view action, const std::string_view description, uint32_t targetAccountId, LWOOBJID targetCharacterId) override {};
 	std::string GetAuditLogTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return "{}"; };
+
+private:
+	std::map<uint32_t, ZoneLock> m_ZoneLocks;
+	std::map<std::pair<uint32_t, uint32_t>, ZoneEditor> m_ZoneEditors;
 };
 
 #endif  //!TESTSQLDATABASE_H

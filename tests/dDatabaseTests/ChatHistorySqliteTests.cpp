@@ -455,3 +455,37 @@ TEST(DatabaseUsageSqlite, MeasuresTablesAndKeepsHistory) {
 	EXPECT_TRUE(g_Db->GetDatabaseUsageTables(1000).empty());
 	EXPECT_EQ(g_Db->GetDatabaseUsageTotals(0, 5000).size(), 1u);
 }
+
+// A zone's lock has one holder, taken in one statement; its editors are a set (docs/ZonePublish.md)
+TEST(ZoneEditingSqliteTests, LocksAndEditors) {
+	auto& db = *g_Db;
+	EXPECT_FALSE(db.GetZoneLock(1900));
+	EXPECT_TRUE(db.TakeZoneLock(1900, 5, 1000));
+	EXPECT_FALSE(db.TakeZoneLock(1900, 6, 1001)); // held: the second taker gets nothing
+	auto lock = db.GetZoneLock(1900);
+	ASSERT_TRUE(lock);
+	EXPECT_EQ(lock->accountId, 5u);
+	EXPECT_EQ(lock->lockedAt, 1000);
+	EXPECT_TRUE(db.TakeZoneLock(1901, 6, 1002));
+	EXPECT_EQ(db.GetZoneLocks().size(), 2u);
+	EXPECT_TRUE(db.ReleaseZoneLock(1900));
+	EXPECT_FALSE(db.ReleaseZoneLock(1900));
+	EXPECT_TRUE(db.TakeZoneLock(1900, 6, 1003));
+	EXPECT_TRUE(db.ReleaseZoneLock(1900));
+	EXPECT_TRUE(db.ReleaseZoneLock(1901));
+
+	db.AddZoneEditor({ 1900, 5, "admin", 2000 });
+	db.AddZoneEditor({ 1900, 5, "other", 2001 });
+	db.AddZoneEditor({ 1900, 6, "admin", 2002 });
+	db.AddZoneEditor({ 1901, 5, "admin", 2003 });
+	const auto editors = db.GetZoneEditors(1900);
+	ASSERT_EQ(editors.size(), 2u);
+	EXPECT_EQ(editors[0].accountId, 5u);
+	EXPECT_EQ(editors[0].assignedBy, "admin");
+	EXPECT_EQ(db.GetZoneEditors(0).size(), 3u);
+	EXPECT_TRUE(db.IsZoneEditor(1900, 6));
+	EXPECT_FALSE(db.IsZoneEditor(1901, 6));
+	EXPECT_TRUE(db.RemoveZoneEditor(1900, 6));
+	EXPECT_FALSE(db.RemoveZoneEditor(1900, 6));
+	EXPECT_FALSE(db.IsZoneEditor(1900, 6));
+}

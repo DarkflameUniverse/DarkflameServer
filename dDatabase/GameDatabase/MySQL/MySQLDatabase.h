@@ -287,6 +287,15 @@ public:
 	void SetPropertyRent(LWOOBJID propertyId, int64_t amount, int64_t due) override;
 	void SetPropertyPrivacy(LWOOBJID propertyId, int32_t privacyOption) override;
 
+	// IZoneEditing
+	std::optional<ZoneLock> GetZoneLock(uint32_t zoneId) override;
+	std::vector<ZoneLock> GetZoneLocks() override;
+	bool TakeZoneLock(uint32_t zoneId, uint32_t accountId, int64_t time) override;
+	bool ReleaseZoneLock(uint32_t zoneId) override;
+	std::vector<ZoneEditor> GetZoneEditors(uint32_t zoneId) override;
+	bool IsZoneEditor(uint32_t zoneId, uint32_t accountId) override;
+	void AddZoneEditor(const ZoneEditor& editor) override;
+	bool RemoveZoneEditor(uint32_t zoneId, uint32_t accountId) override;
 	// IContraband
 	std::vector<ContrabandItem> GetContrabandItems() override;
 	void SetContrabandItem(const ContrabandItem& item) override;

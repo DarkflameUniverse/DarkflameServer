@@ -72,6 +72,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::Event, id, guildId, time, kind, char
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::GuildSummary, guild, memberCount, leaderId, leaderName);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IGuilds::GuildPage, total, filtered, guilds);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IApiKeys::ApiKey, id, accountId, name, note, keyHash, keyPrefix, permissions, readOnly, allowedIps, allowedPaths, rateLimit, dailyQuota, createdAt, createdBy, issuedAt, expiresAt, revokedAt, revokedBy, lastUsedAt, lastIp, requestCount, quotaDay, dayCount);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IZoneEditing::ZoneLock, zoneId, accountId, lockedAt);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IZoneEditing::ZoneEditor, zoneId, accountId, assignedBy, assignedAt);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ICharacterSnapshots::CharacterSnapshot, id, characterId, takenAt, reason, actor, size, hash, compressed);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::ChatMessage, id, time, channel, senderId, senderName, accountId, recipientId, recipientName, zoneId, instanceId, cloneId, message, blocked, guildId, teamId, filtered);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IChatLog::WhisperPartner, characterId, name, messages, firstTime, lastTime);
@@ -1412,6 +1414,26 @@ TEST_F(ParitySeeded, ApiKeys) {
 	Both("RevokeApiKey", [](GameDatabase& db) { db.RevokeApiKey(1, "gm", 1700000800); db.RevokeApiKey(1, "late", 1700000900); return db.GetApiKey(1); });
 	Both("RotateApiKey revoked", [](GameDatabase& db) { db.RotateApiKey(1, std::string(64, 'e'), "dlk_eeee", 1700001000); return db.GetApiKey(1); });
 	Both("RevokeAccountApiKeys", [](GameDatabase& db) { return json{ db.RevokeAccountApiKeys(2, "bob", 1700001100), db.GetApiKeys(2), db.GetApiKeys(1) }; });
+}
+
+TEST_F(ParitySeeded, ZoneEditing) {
+	Both("AddZoneEditor", [](GameDatabase& db) {
+		db.AddZoneEditor({ 1100, 2, "alice", 1700000000 });
+		db.AddZoneEditor({ 1100, 2, "again", 1700000050 }); // already one: kept as it was
+		db.AddZoneEditor({ 1100, 1, "alice", 1700000100 });
+		db.AddZoneEditor({ 1200, 2, "alice", 1700000200 });
+		return json{ db.GetZoneEditors(1100), db.GetZoneEditors(0), db.GetZoneEditors(1300), db.IsZoneEditor(1100, 2), db.IsZoneEditor(1200, 1) };
+	});
+	Both("TakeZoneLock", [](GameDatabase& db) {
+		return json{ db.TakeZoneLock(1100, 2, 1700000300), db.TakeZoneLock(1100, 1, 1700000400), db.TakeZoneLock(1200, 1, 1700000500),
+			db.GetZoneLock(1100), db.GetZoneLock(1300), db.GetZoneLocks() };
+	});
+	Both("ReleaseZoneLock", [](GameDatabase& db) {
+		return json{ db.ReleaseZoneLock(1100), db.ReleaseZoneLock(1100), db.GetZoneLock(1100), db.TakeZoneLock(1100, 1, 1700000600), db.GetZoneLocks() };
+	});
+	Both("RemoveZoneEditor", [](GameDatabase& db) {
+		return json{ db.RemoveZoneEditor(1100, 2), db.RemoveZoneEditor(1100, 2), db.GetZoneEditors(0) };
+	});
 }
 
 TEST_F(ParitySeeded, Moderation) {
