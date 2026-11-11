@@ -255,6 +255,66 @@ namespace WorldPackets {
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
+
+	/**
+	 * The client's level editor (docs/ZonePublish.md). fileType: 0 the whole map, 1 a scene, 2 the terrain, 3 the zone
+	 * file, 4 a scene's triggers; levelFileId names the scene for 1 and 4 and means nothing for the others.
+	 */
+
+	// Client -> server. The client's level editor was started (1) or ended (0). Not answered.
+	struct HappyFlowerModeNotify : public WorldLUBitStream {
+		uint8_t on{};
+
+		HappyFlowerModeNotify() : WorldLUBitStream(MessageType::World::HAPPY_FLOWER_MODE_NOTIFY) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Client -> server. Reload the zone from its files. No payload.
+	struct SlashReloadMap : public WorldLUBitStream {
+		SlashReloadMap() : WorldLUBitStream(MessageType::World::SLASH_RELOAD_MAP) {}
+	};
+
+	// Client -> server. Asks whether it may send the zone's files; answered with ClientPackets::SlashPushMapResponse.
+	struct SlashPushMapRequest : public WorldLUBitStream {
+		uint8_t fileType{};
+		int32_t levelFileId{};
+
+		SlashPushMapRequest() : WorldLUBitStream(MessageType::World::SLASH_PUSH_MAP_REQUEST) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Client -> server. The zone's files (ZoneFilePack), sent after a push request was answered with 0.
+	struct SlashPushMap : public WorldLUBitStream {
+		uint8_t fileType{};
+		int32_t levelFileId{};
+		// Everything after the level file ID, as sent
+		std::string packedFiles{};
+
+		SlashPushMap() : WorldLUBitStream(MessageType::World::SLASH_PUSH_MAP) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Client -> server. Asks for the zone's files; answered with ClientPackets::SlashPullMapResponse.
+	struct SlashPullMap : public WorldLUBitStream {
+		uint8_t fileType{};
+		int32_t levelFileId{};
+
+		SlashPullMap() : WorldLUBitStream(MessageType::World::SLASH_PULL_MAP) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Client -> server. Take (1) or give up (0) the zone's edit lock; answered with ClientPackets::SlashLockMapResponse.
+	struct LockMapRequest : public WorldLUBitStream {
+		uint8_t lock{};
+
+		LockMapRequest() : WorldLUBitStream(MessageType::World::LOCK_MAP_REQUEST) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
 }
 
 #endif // WORLDPACKETS_H

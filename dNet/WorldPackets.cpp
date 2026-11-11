@@ -400,4 +400,58 @@ namespace WorldPackets {
 		VALIDATE_READ(bitStream.Read(language));
 		return true;
 	}
+
+	void HappyFlowerModeNotify::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(on);
+	}
+
+	bool HappyFlowerModeNotify::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(on));
+		return true;
+	}
+
+	void SlashPushMapRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(fileType);
+		bitStream.Write(levelFileId);
+	}
+
+	bool SlashPushMapRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(fileType));
+		VALIDATE_READ(bitStream.Read(levelFileId));
+		return true;
+	}
+
+	void SlashPushMap::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(fileType);
+		bitStream.Write(levelFileId);
+		bitStream.Write(packedFiles.data(), static_cast<uint32_t>(packedFiles.size()));
+	}
+
+	bool SlashPushMap::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(fileType));
+		VALIDATE_READ(bitStream.Read(levelFileId));
+		packedFiles.resize(BITS_TO_BYTES(bitStream.GetNumberOfUnreadBits()));
+		if (!packedFiles.empty()) VALIDATE_READ(bitStream.Read(packedFiles.data(), static_cast<uint32_t>(packedFiles.size())));
+		return true;
+	}
+
+	void SlashPullMap::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(fileType);
+		bitStream.Write(levelFileId);
+	}
+
+	bool SlashPullMap::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(fileType));
+		VALIDATE_READ(bitStream.Read(levelFileId));
+		return true;
+	}
+
+	void LockMapRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(lock);
+	}
+
+	bool LockMapRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(lock));
+		return true;
+	}
 }

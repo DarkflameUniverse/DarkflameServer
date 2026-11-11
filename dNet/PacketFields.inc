@@ -89,6 +89,10 @@ json ToJson(const ClientPackets::GuildRemovePlayer& m);
 json ToJson(const ClientPackets::GuildLoginLogout& m);
 json ToJson(const ClientPackets::GuildData& m);
 json ToJson(const ClientPackets::GuildData::Member& m);
+json ToJson(const ClientPackets::ImpendingReloadNotify& m);
+json ToJson(const ClientPackets::SlashPushMapResponse& m);
+json ToJson(const ClientPackets::SlashPullMapResponse& m);
+json ToJson(const ClientPackets::SlashLockMapResponse& m);
 json ToJson(const CommonPackets::ClientVersionConfirm& m);
 json ToJson(const CommonPackets::ServerVersionConfirm& m);
 json ToJson(const CommonPackets::DisconnectNotify& m);
@@ -141,6 +145,12 @@ json ToJson(const WorldPackets::HandleFunness& m);
 json ToJson(const WorldPackets::RequestUgcManifestInfo& m);
 json ToJson(const WorldPackets::UgcDownloadFailed& m);
 json ToJson(const WorldPackets::UIHelpTop5& m);
+json ToJson(const WorldPackets::HappyFlowerModeNotify& m);
+json ToJson(const WorldPackets::SlashReloadMap& m);
+json ToJson(const WorldPackets::SlashPushMapRequest& m);
+json ToJson(const WorldPackets::SlashPushMap& m);
+json ToJson(const WorldPackets::SlashPullMap& m);
+json ToJson(const WorldPackets::LockMapRequest& m);
 json ToJson(const ChatPackets::WorldRoutePacket& m);
 json ToJson(const CDClientReload& m);
 json ToJson(const PlayerPositions& m);
@@ -909,6 +919,32 @@ json ToJson(const ClientPackets::GuildData::Member& m) {
 	j["name"] = ToJson(m.name);
 	return j;
 }
+json ToJson(const ClientPackets::ImpendingReloadNotify& m) {
+	json j = json::object();
+	return j;
+}
+json ToJson(const ClientPackets::SlashPushMapResponse& m) {
+	json j = json::object();
+	j["result"] = ToJson(m.result);
+	j["fileType"] = ToJson(m.fileType);
+	j["levelFileId"] = ToJson(m.levelFileId);
+	j["lockedBy"] = ToJson(m.lockedBy);
+	return j;
+}
+json ToJson(const ClientPackets::SlashPullMapResponse& m) {
+	json j = json::object();
+	j["fileType"] = ToJson(m.fileType);
+	j["levelFileId"] = ToJson(m.levelFileId);
+	j["packedFiles"] = ToJson(m.packedFiles);
+	return j;
+}
+json ToJson(const ClientPackets::SlashLockMapResponse& m) {
+	json j = json::object();
+	j["result"] = ToJson(m.result);
+	j["lockedBy"] = ToJson(m.lockedBy);
+	j["locked"] = ToJson(m.locked);
+	return j;
+}
 json ToJson(const CommonPackets::ClientVersionConfirm& m) {
 	json j = json::object();
 	j["netVersion"] = ToJson(m.netVersion);
@@ -1252,6 +1288,39 @@ json ToJson(const WorldPackets::UgcDownloadFailed& m) {
 json ToJson(const WorldPackets::UIHelpTop5& m) {
 	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
 	j["language"] = ToJson(m.language);
+	return j;
+}
+json ToJson(const WorldPackets::HappyFlowerModeNotify& m) {
+	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
+	j["on"] = ToJson(m.on);
+	return j;
+}
+json ToJson(const WorldPackets::SlashReloadMap& m) {
+	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
+	return j;
+}
+json ToJson(const WorldPackets::SlashPushMapRequest& m) {
+	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
+	j["fileType"] = ToJson(m.fileType);
+	j["levelFileId"] = ToJson(m.levelFileId);
+	return j;
+}
+json ToJson(const WorldPackets::SlashPushMap& m) {
+	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
+	j["fileType"] = ToJson(m.fileType);
+	j["levelFileId"] = ToJson(m.levelFileId);
+	j["packedFiles"] = ToJson(m.packedFiles);
+	return j;
+}
+json ToJson(const WorldPackets::SlashPullMap& m) {
+	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
+	j["fileType"] = ToJson(m.fileType);
+	j["levelFileId"] = ToJson(m.levelFileId);
+	return j;
+}
+json ToJson(const WorldPackets::LockMapRequest& m) {
+	json j = ToJson(static_cast<const WorldPackets::WorldLUBitStream&>(m));
+	j["lock"] = ToJson(m.lock);
 	return j;
 }
 json ToJson(const ChatPackets::WorldRoutePacket& m) {
@@ -1873,6 +1942,10 @@ const std::vector<Entry>& Entries() {
 		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::GUILD_REMOVE_PLAYER), "GuildRemovePlayer", false, &ReadWith<ClientPackets::GuildRemovePlayer> },
 		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::GUILD_LOGIN_LOGOUT), "GuildLoginLogout", false, &ReadWith<ClientPackets::GuildLoginLogout> },
 		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::GUILD_DATA), "GuildData", false, &ReadWith<ClientPackets::GuildData> },
+		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::IMPENDING_RELOAD_NOTIFY), "ImpendingReloadNotify", false, &ReadWith<ClientPackets::ImpendingReloadNotify> },
+		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::SLASH_PUSH_MAP_RESPONSE), "SlashPushMapResponse", false, &ReadWith<ClientPackets::SlashPushMapResponse> },
+		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::SLASH_PULL_MAP_RESPONSE), "SlashPullMapResponse", false, &ReadWith<ClientPackets::SlashPullMapResponse> },
+		{ ServiceType::CLIENT, static_cast<uint32_t>(MessageType::Client::SLASH_LOCK_MAP_RESPONSE), "SlashLockMapResponse", false, &ReadWith<ClientPackets::SlashLockMapResponse> },
 		{ ServiceType::COMMON, static_cast<uint32_t>(MessageType::Server::VERSION_CONFIRM), "ClientVersionConfirm", true, &ReadWith<CommonPackets::ClientVersionConfirm> },
 		{ ServiceType::COMMON, static_cast<uint32_t>(MessageType::Server::VERSION_CONFIRM), "ServerVersionConfirm", false, &ReadWith<CommonPackets::ServerVersionConfirm> },
 		{ ServiceType::COMMON, static_cast<uint32_t>(MessageType::Server::DISCONNECT_NOTIFY), "DisconnectNotify", false, &ReadWith<CommonPackets::DisconnectNotify> },
@@ -1920,6 +1993,12 @@ const std::vector<Entry>& Entries() {
 		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::REQUEST_UGC_MANIFEST_INFO), "RequestUgcManifestInfo", false, &ReadWith<WorldPackets::RequestUgcManifestInfo> },
 		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::UGC_DOWNLOAD_FAILED), "UgcDownloadFailed", false, &ReadWith<WorldPackets::UgcDownloadFailed> },
 		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::UI_HELP_TOP_5), "UIHelpTop5", false, &ReadWith<WorldPackets::UIHelpTop5> },
+		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::HAPPY_FLOWER_MODE_NOTIFY), "HappyFlowerModeNotify", false, &ReadWith<WorldPackets::HappyFlowerModeNotify> },
+		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::SLASH_RELOAD_MAP), "SlashReloadMap", false, &ReadWith<WorldPackets::SlashReloadMap> },
+		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::SLASH_PUSH_MAP_REQUEST), "SlashPushMapRequest", false, &ReadWith<WorldPackets::SlashPushMapRequest> },
+		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::SLASH_PUSH_MAP), "SlashPushMap", false, &ReadWith<WorldPackets::SlashPushMap> },
+		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::SLASH_PULL_MAP), "SlashPullMap", false, &ReadWith<WorldPackets::SlashPullMap> },
+		{ ServiceType::WORLD, static_cast<uint32_t>(MessageType::World::LOCK_MAP_REQUEST), "LockMapRequest", false, &ReadWith<WorldPackets::LockMapRequest> },
 		{ ServiceType::CHAT, static_cast<uint32_t>(MessageType::Chat::WORLD_ROUTE_PACKET), "WorldRoutePacket", false, &ReadWith<ChatPackets::WorldRoutePacket> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::CDCLIENT_RELOAD), "CDClientReload", false, &ReadWith<CDClientReload> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::PLAYER_POSITIONS), "PlayerPositions", false, &ReadWith<PlayerPositions> },

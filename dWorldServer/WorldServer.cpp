@@ -13,6 +13,7 @@
 #include "PropertyRent.h"
 #include "PropertyReputation.h"
 #include "LiveEvents.h"
+#include "ZoneEditor.h"
 #include "UgcManifest.h"
 #include <iostream>
 #include <string>
@@ -582,6 +583,7 @@ int main(int argc, char** argv) {
 			DashboardNotify::SendPlayerPositions(g_InstanceID);
 			MessageInspector::Update();
 			LiveEvents::Update();
+			ZoneEditor::Update();
 			UgcManifest::Update();
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
@@ -903,7 +905,8 @@ namespace {
 			const auto* lastCharacter = newUser ? newUser->GetLastUsedChar() : nullptr;
 			const auto seamlessCharacter = lastCharacter && WorldMigration::ArrivesSeamlessly(lastCharacter->GetObjectID()) ? lastCharacter->GetObjectID() : LWOOBJID_EMPTY;
 
-			if (Game::zoneManager->HasZone() && seamlessCharacter == LWOOBJID_EMPTY) {
+			// (never to a client whose level editor is on: it drops its connection when told to load a zone)
+			if (Game::zoneManager->HasZone() && seamlessCharacter == LWOOBJID_EMPTY && ZoneEditor::MaySendZoneLoad(it->second.sysAddr)) {
 				float x = 0.0f;
 				float y = 0.0f;
 				float z = 0.0f;
@@ -1333,6 +1336,7 @@ void LoadPlayer(const SystemAddress& sysAddr) {
 // Save and remove a user whose connection closed (or who is being dropped). Safe to call twice: the second call finds
 // no user and does nothing.
 void CleanupDisconnectedUser(const SystemAddress& sysAddr) {
+	ZoneEditor::Forget(sysAddr);
 	// Players moved to another instance were saved when they were sent; saving again could overwrite what the
 	// other instance has saved since
 	const bool savedByMigration = WorldMigration::IsLeaving(sysAddr);
@@ -1883,6 +1887,35 @@ namespace {
 		}
 	};
 
+	// The client's level editor (ZoneEditor.h). Only from a signed-in client; who may do what is ZoneEditor's.
+	struct HappyFlowerModeNotifyPacket final : public WorldPackets::HappyFlowerModeNotify {
+		void Handle() override {
+			if (!UserManager::Instance()->GetUser(sysAddr)) return;
+			LOG("Client %s %s its level editor", sysAddr.ToString(), on != 0 ? "started" : "ended");
+			ZoneEditor::SetEditing(sysAddr, on != 0);
+		}
+	};
+
+	struct SlashReloadMapPacket final : public WorldPackets::SlashReloadMap {
+		void Handle() override { ZoneEditor::HandleReload(sysAddr); }
+	};
+
+	struct SlashPushMapRequestPacket final : public WorldPackets::SlashPushMapRequest {
+		void Handle() override { ZoneEditor::HandlePushRequest(sysAddr, fileType, levelFileId); }
+	};
+
+	struct SlashPushMapPacket final : public WorldPackets::SlashPushMap {
+		void Handle() override { ZoneEditor::HandlePush(sysAddr, fileType, levelFileId, std::move(packedFiles)); }
+	};
+
+	struct SlashPullMapPacket final : public WorldPackets::SlashPullMap {
+		void Handle() override { ZoneEditor::HandlePull(sysAddr, fileType, levelFileId); }
+	};
+
+	struct LockMapRequestPacket final : public WorldPackets::LockMapRequest {
+		void Handle() override { ZoneEditor::HandleLock(sysAddr, lock != 0); }
+	};
+
 	template<typename T>
 	std::unique_ptr<WorldPackets::WorldLUBitStream> Create() { return std::make_unique<T>(); }
 
@@ -1894,6 +1927,13 @@ namespace {
 		{ MessageType::World::LOGIN_REQUEST, Create<CharacterLoginRequestPacket> },
 		{ MessageType::World::CHARACTER_DELETE_REQUEST, Create<CharacterDeleteRequestPacket> },
 		{ MessageType::World::CHARACTER_RENAME_REQUEST, Create<CharacterRenameRequestPacket> },
+		{ MessageType::World::HAPPY_FLOWER_MODE_NOTIFY, Create<HappyFlowerModeNotifyPacket> },
+		{ MessageType::World::SLASH_RELOAD_MAP, Create<SlashReloadMapPacket> },
+		{ MessageType::World::SLASH_PUSH_MAP_REQUEST, Create<SlashPushMapRequestPacket> },
+		{ MessageType::World::SLASH_PUSH_MAP, Create<SlashPushMapPacket> },
+		{ MessageType::World::SLASH_PULL_MAP, Create<SlashPullMapPacket> },
+		{ MessageType::World::LOCK_MAP_REQUEST, Create<LockMapRequestPacket> },
+		// (also what a client sends when its level editor ends: its player is here, so the world is sent to it again)
 		{ MessageType::World::LEVEL_LOAD_COMPLETE, Create<LevelLoadCompletePacket> },
 		{ MessageType::World::POSITION_UPDATE, Create<PositionUpdatePacket> },
 		{ MessageType::World::MAIL, Create<MailPacket> },
@@ -2003,6 +2043,7 @@ void WorldShutdownSequence() {
 }
 
 void FinalizeShutdown() {
+	ZoneEditor::Shutdown();
 	LOG("Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), g_InstanceID);
 
 	//Delete our objects here:

@@ -705,6 +705,53 @@ namespace ClientPackets {
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 	};
+
+	/**
+	 * Answers to the client's level editor (docs/ZonePublish.md). result: 0 allowed, 1 the account's editor level is
+	 * too low, 2 the account is not one of the zone's editors, 3 another account holds the zone's lock (lockedBy
+	 * says who), 4 nothing changed (lock answers only).
+	 */
+
+	// Server -> client. The zone is about to be reloaded from its files. No payload.
+	struct ImpendingReloadNotify : public LUBitStream {
+		ImpendingReloadNotify() : LUBitStream(ServiceType::CLIENT, MessageType::Client::IMPENDING_RELOAD_NOTIFY) {}
+	};
+
+	// Server -> client. Whether the client may send the files it asked to (it then sends them when result is 0).
+	struct SlashPushMapResponse : public LUBitStream {
+		uint8_t result{};
+		uint8_t fileType{};    // as asked
+		int32_t levelFileId{}; // as asked
+		// Written as UTF-16 characters and a null
+		std::u16string lockedBy{};
+
+		SlashPushMapResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::SLASH_PUSH_MAP_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Server -> client. The zone's files the client asked for (ZoneFilePack).
+	struct SlashPullMapResponse : public LUBitStream {
+		uint8_t fileType{};
+		int32_t levelFileId{};
+		// Everything after the level file ID
+		std::string packedFiles{};
+
+		SlashPullMapResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::SLASH_PULL_MAP_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
+
+	// Server -> client. How taking or giving up the zone's lock went, and whether the client holds it now.
+	struct SlashLockMapResponse : public LUBitStream {
+		uint8_t result{};
+		LUWString lockedBy{ 33 };
+		uint8_t locked{};
+
+		SlashLockMapResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::SLASH_LOCK_MAP_RESPONSE) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+	};
 }
 
 #endif // CLIENTPACKETS_H

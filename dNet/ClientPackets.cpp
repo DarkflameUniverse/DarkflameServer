@@ -1146,4 +1146,55 @@ namespace ClientPackets {
 		}
 		return true;
 	}
+
+	void SlashPushMapResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(result);
+		bitStream.Write(fileType);
+		bitStream.Write(levelFileId);
+		for (const char16_t character : lockedBy) {
+			if (character == u'\0') break;
+			bitStream.Write<uint16_t>(character);
+		}
+		bitStream.Write<uint16_t>(0);
+	}
+
+	bool SlashPushMapResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(result));
+		VALIDATE_READ(bitStream.Read(fileType));
+		VALIDATE_READ(bitStream.Read(levelFileId));
+		lockedBy.clear();
+		for (uint16_t character = 0; ;) {
+			VALIDATE_READ(bitStream.Read(character));
+			if (character == 0) break;
+			lockedBy += static_cast<char16_t>(character);
+		}
+		return true;
+	}
+
+	void SlashPullMapResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(fileType);
+		bitStream.Write(levelFileId);
+		bitStream.Write(packedFiles.data(), static_cast<uint32_t>(packedFiles.size()));
+	}
+
+	bool SlashPullMapResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(fileType));
+		VALIDATE_READ(bitStream.Read(levelFileId));
+		packedFiles.resize(BITS_TO_BYTES(bitStream.GetNumberOfUnreadBits()));
+		if (!packedFiles.empty()) VALIDATE_READ(bitStream.Read(packedFiles.data(), static_cast<uint32_t>(packedFiles.size())));
+		return true;
+	}
+
+	void SlashLockMapResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(result);
+		bitStream.Write(lockedBy);
+		bitStream.Write(locked);
+	}
+
+	bool SlashLockMapResponse::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(result));
+		VALIDATE_READ(bitStream.Read(lockedBy));
+		VALIDATE_READ(bitStream.Read(locked));
+		return true;
+	}
 }
