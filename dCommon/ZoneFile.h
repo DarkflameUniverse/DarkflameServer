@@ -233,6 +233,8 @@ struct ZoneFile {
 	uint32_t pathDataLength{};
 	uint32_t pathChunkVersion{};
 	std::vector<Path> paths;
+	// Set when the path chunk was not one the client reads (the zone then has no paths, as in the client)
+	bool pathsRefused = false;
 
 	/**
 	 * Reads the whole file. Throws std::runtime_error (BinaryIO) if it ends early; the last value read may still come up

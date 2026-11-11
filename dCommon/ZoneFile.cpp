@@ -72,6 +72,7 @@ void ZoneFile::Read(std::istream& file) {
 		if (!ReadPaths(pathChunk)) {
 			LOG("The zone file's paths are not ones the client reads; the zone has no paths, as in the client");
 			paths.clear();
+			pathsRefused = true;
 		}
 	}
 }

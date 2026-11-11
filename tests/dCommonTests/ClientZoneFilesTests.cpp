@@ -17,6 +17,7 @@
 #include "Raw.h"
 #include "Sd0.h"
 #include "ZoneFile.h"
+#include "ZonePublish.h"
 
 /**
  * Reads every zone (.luz), scene (.lvl) and terrain (.raw) file of the clients on disk: each must read in full, as it
@@ -157,4 +158,30 @@ TEST_F(ClientZoneFilesTests, EverySceneFileReads) {
 		try { level.Read(stream); } catch (const std::runtime_error&) { threw = true; }
 		EXPECT_TRUE(!threw || IsDamaged(path)) << path;
 	}
+}
+
+// The checks a set of edited zone files goes through (ZonePublish) must take the files the game itself ships:
+// nothing the clients have reads as damaged, apart from the files that are
+TEST_F(ClientZoneFilesTests, PublishChecksTakeEveryClientFile) {
+	std::set<std::tuple<std::string, uintmax_t>> seen;
+	size_t checked = 0;
+	for (const auto* extension : { ".luz", ".lvl", ".raw", ".lutriggers" }) {
+		for (const auto& path : FilesWithExtension(extension)) {
+			std::error_code error;
+			auto name = path.filename().string();
+			std::ranges::transform(name, name.begin(), ::tolower);
+			if (!seen.insert({ name, std::filesystem::file_size(path, error) }).second || IsDamaged(path)) continue;
+			checked++;
+			uint32_t version = 0;
+			for (const auto& problem : ZonePublish::CheckContents(name, Contents(path), &version)) {
+				// What must never happen is a file the game ships reading as damaged. Triggers and object settings
+				// the server doesn't know are in shipped files (a misspelt command in one live zone, more in test
+				// maps), and so are test maps' zone files from before launch with bytes after their last part.
+				if (problem.code != "parse_failed") continue;
+				if (name.ends_with(".luz") && version < static_cast<uint32_t>(ZoneFile::FileFormatVersion::Launch)) continue;
+				ADD_FAILURE() << path << ": " << problem.code << ": " << problem.message << (problem.offset ? " at " + std::to_string(*problem.offset) : "");
+			}
+		}
+	}
+	if (checked == 0) GTEST_SKIP() << "No client zone files under " << ClientsDir();
 }

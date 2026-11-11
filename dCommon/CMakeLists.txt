@@ -37,6 +37,8 @@ set(DCOMMON_SOURCES
 		"ZoneFile.cpp"
 		"LevelFile.cpp"
 		"ZoneScenes.cpp"
+		"ZonePublish.cpp"
+		"ZoneOverrideStore.cpp"
 		"Process.cpp"
 		"Permissions.cpp"
 		"PermissionGrants.cpp"
@@ -119,7 +121,7 @@ add_dependencies(dBuildInfo BuildInfoGenerate)
 
 target_link_libraries(dCommon
 	PUBLIC glm::glm dBuildInfo
-	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
+	PRIVATE ZLIB::ZLIB bcrypt tinyxml2 OpenSSL::Crypto
 	INTERFACE dDatabase)
 
 # Profiler.h's frames and scopes also go to Tracy (thirdparty/CMakeLists.txt, DLU_TRACY)
