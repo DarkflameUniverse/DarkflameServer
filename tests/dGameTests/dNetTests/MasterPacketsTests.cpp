@@ -720,3 +720,20 @@ TEST(MasterPacketsTests, ServerListWithoutOutdatedFlags) {
 	ASSERT_TRUE(withFlag.Deserialize(again));
 	EXPECT_EQ(withFlag.instances[0].outdated, 1);
 }
+
+// A password longer than master keeps is cut, and the characters cut are skipped: nothing of it is left to be read
+// as what follows
+TEST(MasterPacketsTests, CappedPasswordSkipsWhatItCut) {
+	for (const auto& password : g_Strings) {
+		MasterPackets::CreatePrivateZone sent;
+		sent.zoneID = 1100;
+		sent.cloneID = 7;
+		sent.password = password;
+		RakNet::BitStream stream;
+		LoadPayload(stream, sent);
+		MasterPackets::CreatePrivateZone read;
+		ASSERT_TRUE(read.Deserialize(stream));
+		EXPECT_EQ(read.password, password.substr(0, MasterPackets::CreatePrivateZone::MAX_PASSWORD_LENGTH));
+		EXPECT_EQ(stream.GetNumberOfUnreadBits(), 0u);
+	}
+}

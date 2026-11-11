@@ -918,6 +918,12 @@ namespace {
 			return;
 		}
 
+		// Still starting (asked for right after it was created): answered when its world server is ready
+		if (!instance->GetIsReady()) {
+			instance->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), sysAddr, {} });
+			return;
+		}
+
 		const auto& zone = instance->GetZoneID();
 
 		RequestZoneTransferResponse response;
