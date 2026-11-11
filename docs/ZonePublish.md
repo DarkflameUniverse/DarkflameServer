@@ -8,8 +8,9 @@ Code: `dCommon/ZonePublish` (checking a set), `dCommon/ZoneOverrideStore` (the o
 restore, clear), `dCommon/ZoneEditLock.h` (who may: lock and reload rules), `dCommon/dClient/AssetManager` (reading
 overrides), `dDatabase/.../IZoneEditing.h` (locks and editors), `dWeb/MultipartFile` and `Web::RegisterUploadRoute`
 (large uploads), `dDashboardServer/auth/ZonePublishAuth.h` (the API's gate),
-`dDashboardServer/routes/ZonePublishRoutes` (the API). The first four know nothing of HTTP, so another way in uses the
-same checks, store, locks and reload.
+`dDashboardServer/routes/ZonePublishRoutes` (the API), `dCommon/ZoneFilePack` and `dGame/dUtilities/ZoneEditor` (the
+game client's level editor, on a world server). The first four know nothing of how files arrive: the API and the
+world server use the same checks, store, locks and reload.
 
 ## Override folder
 
@@ -120,3 +121,41 @@ the instances as they are; the files are read when an instance next starts, or o
 
 The dashboard's Worlds page lists each zone's editors and lock holder (permission `zone_editors_manage` and GM level
 `zone_lock_admin_gm_level`): add and remove editors, take a lock away.
+
+## The game client's level editor
+
+A world server answers the client's own level editor packets with the same backend. World packets, IDs as the
+1.10.64 client has them:
+
+| From the client | Holds | Answer |
+| --- | --- | --- |
+| 8 editor mode | u8 on | none; the server remembers it per connection |
+| 9 reload map | nothing | 15, then the zone's reload |
+| 10 push request | u8 fileType, i32 levelFileId | 18: u8 result, u8 fileType, i32 levelFileId, UTF-16 lockedBy with its null |
+| 11 push | u8 fileType, i32 levelFileId, packed files | none; when the set is applied 15 to every client of the instance, then the zone's reload |
+| 12 pull | u8 fileType, i32 levelFileId | 19: u8 fileType, i32 levelFileId, packed files |
+| 13 lock | u8 lock (1 take, 0 give up) | 20: u8 result, 33 UTF-16 characters lockedBy, u8 locked (the client holds it now) |
+
+fileType: 0 the whole map, 1 a scene, 2 the terrain, 3 the zone file, 4 a scene's triggers. levelFileId is the
+scene's ID in the zone file for 1 and 4 when pulling; a push is matched by its file's name. Results: 0 ok, 1 the
+account's editor level is too low, 2 not one of the zone's editors, 3 locked by another account (lockedBy says who; a
+push without any lock held is 3 with a hint to lock first), 4 no change (lock only).
+
+Packed files (`ZoneFilePack`): an entry is u32 nameBytes (UTF-16LE with its null), u32 dataBytes, the name, the data.
+A whole map is the zone entry, the terrain entry, u16 N and N scene entries, u16 M and M trigger entries; any other
+type is one entry. Data is always sd0, each chunk inflating to at most 256 KiB; anything else is refused. Only a
+name's base name is used, lowercased into the zone's folder and checked like any other name. There is no checksum.
+
+Gates, looked up on the server for every packet: the account's editor level (its GM level when at
+`editor_gm_level`, else 0) at `zone_publish_gm_level` or above; one of the zone's editors or an admin to lock, pull or
+reload; the lock's holder to push. A push is only taken after a push request for the same file type and ID was
+answered with 0. A single file replaces that file in the zone's set and keeps the rest; a whole map replaces the set.
+A push that is refused changes nothing and tells the sender why in chat. Every request is in the audit log (action
+`zone_publish`, "in game").
+
+While a client's editor is on it is never sent a zone load. The level load complete it sends when its editor ends is
+answered as any other: its player is here, so the world is sent to it again. The reload after a push moves normal
+clients to the new instance as any world reload does; a client with its editor on loses its connection there.
+
+A character's editor level is told to the client in the character's save (`edit`), with the character (the editor
+flag and level after the GM level) and in answer to the GetEditorLevel game message.

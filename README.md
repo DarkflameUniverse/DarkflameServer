@@ -142,10 +142,14 @@ locally. See [docs/UgcServer.md](docs/UgcServer.md).
   (merged 2026-11-10): the mover's states as the client and live have them, the object goes with its mover on the
   server, `SetCurrentPath`, a rotator turns its object, a mover keeps its velocity through a wait, and the scripts
   that depend on them (shooting gallery targets, the Ninjago counterweights, attic switches and fire transition rocks).
-* **Client editor accounts (merged 2026-11-10):** a character's save has `edit="1"` for accounts at `editor_gm_level`
-  (default 9) and up, 0 for everyone else. Master and the world servers also carry an edit mode flag for a private
-  instance whose world constructs none of the zone's level objects, spawners or triggers; no command starts one yet
-  ([docs/EditMode.md](docs/EditMode.md)).
+* **Edited zone files (merged 2026-11-10):** an external level editor sends a zone's files through the dashboard's
+  zone file API (`/api/v1/zones`), or the game client's own level editor sends them to its world server. Either way
+  the set is checked whole with the server's own readers, kept in an override folder (`zone_override_dir`; the
+  client's files are never written) with the sets before it as backups, and loaded by replacing the zone's instances,
+  held while players are there unless told to move them. A zone has assigned editors and one lock holder; the API
+  takes an API key made for it, over HTTPS or from the server's own machine. A character's editor level is its
+  account's GM level for accounts at `editor_gm_level` (default 9) and up, 0 for everyone else
+  ([docs/ZonePublish.md](docs/ZonePublish.md)).
 * **Zones:** level and zone files read for every version the client reads.
 * Server-side knockback for AI-moved objects, switchable trigger volumes, missing force field, jetpack NPC and
   Skullkin volume scripts, deletion restrictions enforced, cross-world new-mail notices, pet LOTs stored with names,
