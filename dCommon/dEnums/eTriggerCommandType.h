@@ -104,7 +104,8 @@ public:
 			{ "setModelToBuild", eTriggerCommandType::SET_MODEL_TO_BUILD},
 			{ "spawnModelBricks", eTriggerCommandType::SPAWN_MODEL_BRICKS},
 			{ "ActivateSpawnerNetwork", eTriggerCommandType::ACTIVATE_SPAWNER_NETWORK},
-			{ "DeactivateSpawnerNetwork", eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK},
+			{ "DectivateSpawnerNetwork", eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK}, // the name the game's trigger files use (fv_pp_01_instance.lutriggers)
+			{ "DeactivateSpawnerNetwork", eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK}, // alias, kept for anything written with the correct spelling
 			{ "ResetSpawnerNetwork", eTriggerCommandType::RESET_SPAWNER_NETWORK},
 			{ "DestroySpawnerNetworkObjects", eTriggerCommandType::DESTROY_SPAWNER_NETWORK_OBJECTS},
 			{ "Go_To_Waypoint", eTriggerCommandType::GO_TO_WAYPOINT},

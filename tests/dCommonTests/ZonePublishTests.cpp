@@ -10,6 +10,9 @@
 #include "ZoneEditLock.h"
 #include "ZoneOverrideStore.h"
 #include "ZonePublish.h"
+#include <map>
+#include <string>
+#include "eTriggerCommandType.h"
 
 namespace fs = std::filesystem;
 
@@ -316,6 +319,14 @@ TEST_F(ZonePublishTests, TriggerChecks) {
 	EXPECT_EQ(ZonePublish::CheckTriggers("<other/>").at(0).code, "parse_failed");
 	EXPECT_TRUE(ZonePublish::CheckTriggers("").empty());
 	EXPECT_TRUE(ZonePublish::CheckTriggers(GOOD_TRIGGERS).empty());
+
+	// The name the game's fv_pp_01_instance.lutriggers uses is the deactivate command, a different misspelling is not
+	EXPECT_TRUE(ZonePublish::CheckTriggers("<triggers><trigger id=\"1\"><event id=\"OnCreate\">"
+		"<command id=\"DectivateSpawnerNetwork\" target=\"objGroup\"/></event></trigger></triggers>").empty());
+	EXPECT_EQ(TriggerCommandType::StringToTriggerCommandType("DectivateSpawnerNetwork"), eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK);
+	EXPECT_EQ(TriggerCommandType::StringToTriggerCommandType("DeactivateSpawnerNetwork"), eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK);
+	EXPECT_EQ(ZonePublish::CheckTriggers("<triggers><trigger id=\"1\"><event id=\"OnCreate\">"
+		"<command id=\"DectivateSpawnerNetworks\" target=\"objGroup\"/></event></trigger></triggers>").at(0).code, "unknown_trigger_command");
 }
 
 TEST_F(ZonePublishTests, BadObjectConfigAndObjectCap) {

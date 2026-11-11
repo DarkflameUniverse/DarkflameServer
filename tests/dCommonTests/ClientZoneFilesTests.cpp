@@ -177,7 +177,12 @@ TEST_F(ClientZoneFilesTests, PublishChecksTakeEveryClientFile) {
 				// What must never happen is a file the game ships reading as damaged. Triggers and object settings
 				// the server doesn't know are in shipped files (a misspelt command in one live zone, more in test
 				// maps), and so are test maps' zone files from before launch with bytes after their last part.
-				if (problem.code != "parse_failed") continue;
+				// Retail files must pass the trigger checks as they are. The pre-launch builds (the 0.179 client and the
+				// alpha leaks) have test maps with commands and events from before launch that the server doesn't know.
+				const auto text = path.generic_string();
+				const bool preLaunch = text.find("/0.179.12/") != std::string::npos || text.find("/leaks/") != std::string::npos;
+				if (problem.code.starts_with("unknown_trigger") && preLaunch) continue;
+				if (problem.code != "parse_failed" && !problem.code.starts_with("unknown_trigger")) continue;
 				if (name.ends_with(".luz") && version < static_cast<uint32_t>(ZoneFile::FileFormatVersion::Launch)) continue;
 				ADD_FAILURE() << path << ": " << problem.code << ": " << problem.message << (problem.offset ? " at " + std::to_string(*problem.offset) : "");
 			}
