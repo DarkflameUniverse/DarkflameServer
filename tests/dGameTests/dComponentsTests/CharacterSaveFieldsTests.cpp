@@ -5,6 +5,7 @@
 #include "CDClientDatabase.h"
 #include "Character.h"
 #include "CharacterComponent.h"
+#include "PlayerMessages.h"
 #include "Entity.h"
 #include "User.h"
 #include "dConfig.h"
@@ -165,18 +166,18 @@ TEST_F(CharacterSaveFieldsTests, LiveCharacterAttributesRoundTrip) {
 	EXPECT_STREQ(saved->Attribute("gn"), "Builders");
 }
 
-// edit: 1 for a character whose account has the GM level of editor_gm_level (9 unless set), 0 for everyone else
+// edit, the editor level: the account's GM level for an account at editor_gm_level (9 unless set) or above, 0 for
+// everyone else
 TEST_F(CharacterSaveFieldsTests, EditAttributeFollowsTheAccountGmLevel) {
 	using enum eGameMasterLevel;
-	EXPECT_EQ(CharacterComponent::EditAttribute(OPERATOR, 9, false, OPERATOR), 1u);
-	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 9, false, DEVELOPER), 0u);
-	EXPECT_EQ(CharacterComponent::EditAttribute(CIVILIAN, 9, false, CIVILIAN), 0u);
-	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 8, false, DEVELOPER), 1u);
-	EXPECT_EQ(CharacterComponent::EditAttribute(JUNIOR_DEVELOPER, 8, false, JUNIOR_DEVELOPER), 0u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(OPERATOR, 9), 9u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 9), 0u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(CIVILIAN, 9), 0u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 8), 8u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(OPERATOR, 8), 9u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(JUNIOR_DEVELOPER, 8), 0u);
 	// A civilian never, whatever the setting
-	EXPECT_EQ(CharacterComponent::EditAttribute(CIVILIAN, 0, false, CIVILIAN), 0u);
-	// The editor flag still writes its level
-	EXPECT_EQ(CharacterComponent::EditAttribute(DEVELOPER, 9, true, DEVELOPER), 8u);
+	EXPECT_EQ(CharacterComponent::EditAttribute(CIVILIAN, 0), 0u);
 
 	const auto savedEdit = [this](const eGameMasterLevel accountLevel) {
 		tinyxml2::XMLDocument doc;
@@ -191,13 +192,13 @@ TEST_F(CharacterSaveFieldsTests, EditAttributeFollowsTheAccountGmLevel) {
 		return std::string(doc.FirstChildElement("obj")->FirstChildElement("char")->Attribute("edit"));
 	};
 	// The default level, 9
-	EXPECT_EQ(savedEdit(OPERATOR), "1");
+	EXPECT_EQ(savedEdit(OPERATOR), "9");
 	EXPECT_EQ(savedEdit(DEVELOPER), "0");
 	EXPECT_EQ(savedEdit(CIVILIAN), "0");
 
 	// editor_gm_level from the settings
 	Game::config->SetDatabaseValues({ { "editor_gm_level", "8" } }, {});
-	EXPECT_EQ(savedEdit(DEVELOPER), "1");
+	EXPECT_EQ(savedEdit(DEVELOPER), "8");
 	EXPECT_EQ(savedEdit(JUNIOR_DEVELOPER), "0");
 	Game::config->SetDatabaseValues({}, {});
 }
@@ -409,4 +410,48 @@ TEST_F(CharacterSaveFieldsTests, PetsAsLiveWroteThem) {
 	EXPECT_EQ(inventory->GetDatabasePet(1152921510000000001LL).lot, 3254);
 	inventory->WriteSaveData(doc);
 	EXPECT_EQ(Print(doc), R"(<obj v="1"><pet a="0"><p id="1152921510000000001" l="3254" m="2" n="Fluffy" t="0"/></pet></obj>)");
+}
+
+// The editor level is told to the client with the character: after the GM level, whether the editor is on and at
+// which level
+TEST_F(CharacterSaveFieldsTests, EditorLevelIsSerializedAfterTheGmLevel) {
+	const auto gmBlock = [this](const eGameMasterLevel accountLevel) {
+		User user(UNASSIGNED_SYSTEM_ADDRESS, "editor", "key");
+		user.SetMaxGMLevel(accountLevel);
+		Character character(1, &user);
+		Entity player(44, info);
+		auto* const characterComponent = player.AddComponent<CharacterComponent>(-1, &character, UNASSIGNED_SYSTEM_ADDRESS);
+		EXPECT_EQ(characterComponent->GetEditorLevel(), accountLevel == eGameMasterLevel::OPERATOR ? 9 : 0);
+		EXPECT_EQ(characterComponent->GetEditorEnabled(), accountLevel == eGameMasterLevel::OPERATOR);
+		// An update with the GM block: its flag, PvP, is a GM, the GM level, then the two editor fields
+		characterComponent->SetGMLevel(eGameMasterLevel::CIVILIAN);
+		RakNet::BitStream stream;
+		characterComponent->Serialize(stream, false);
+		bool written{}, pvp{}, isGm{}, editorEnabled{};
+		uint8_t gmLevel{}, editorLevel{};
+		EXPECT_TRUE(stream.Read(written) && stream.Read(pvp) && stream.Read(isGm) && stream.Read(gmLevel) && stream.Read(editorEnabled) && stream.Read(editorLevel));
+		EXPECT_TRUE(written);
+		EXPECT_EQ(gmLevel, 0);
+		return std::pair<bool, uint8_t>{ editorEnabled, editorLevel };
+	};
+	EXPECT_EQ(gmBlock(eGameMasterLevel::OPERATOR), (std::pair<bool, uint8_t>{ true, 9 }));
+	EXPECT_EQ(gmBlock(eGameMasterLevel::DEVELOPER), (std::pair<bool, uint8_t>{ false, 0 }));
+	EXPECT_EQ(gmBlock(eGameMasterLevel::CIVILIAN), (std::pair<bool, uint8_t>{ false, 0 }));
+}
+
+// GetEditorLevel's answer: one bit, then the level as 32 bits
+TEST_F(CharacterSaveFieldsTests, GetEditorLevelAnswerLayout) {
+	GameMessages::GetEditorLevel answer;
+	answer.editorEnabled = true;
+	answer.editorLevel = 9;
+	RakNet::BitStream stream;
+	answer.Serialize(stream);
+	EXPECT_EQ(stream.GetNumberOfBitsUsed(), 33u);
+	GameMessages::GetEditorLevel read;
+	ASSERT_TRUE(read.Deserialize(stream));
+	EXPECT_TRUE(read.editorEnabled);
+	EXPECT_EQ(read.editorLevel, 9);
+	// A question with nothing in it reads too
+	RakNet::BitStream empty;
+	EXPECT_TRUE(GameMessages::GetEditorLevel().Deserialize(empty));
 }

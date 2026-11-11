@@ -64,8 +64,7 @@ CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID
 	m_PvpEnabled = false;
 	m_GMLevel = character->GetGMLevel();
 
-	m_EditorEnabled = false;
-	m_EditorLevel = m_GMLevel;
+	RefreshEditorLevel();
 	m_Reputation = 0;
 
 	m_CurrentActivity = eGameActivity::NONE;
@@ -307,6 +306,16 @@ void CharacterComponent::SetPvpEnabled(const bool value) {
 	m_PvpEnabled = value;
 }
 
+void CharacterComponent::RefreshEditorLevel() {
+	const auto* const parentUser = m_Character ? m_Character->GetParentUser() : nullptr;
+	const auto accountLevel = parentUser ? parentUser->GetMaxGMLevel() : eGameMasterLevel::CIVILIAN;
+	const auto editorGmLevel = Game::config ? GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("editor_gm_level")).value_or(DEFAULT_EDITOR_GM_LEVEL) : DEFAULT_EDITOR_GM_LEVEL;
+	const auto level = static_cast<eGameMasterLevel>(EditAttribute(accountLevel, editorGmLevel));
+	if (level != m_EditorLevel) m_DirtyGMInfo = true;
+	m_EditorLevel = level;
+	m_EditorEnabled = level != eGameMasterLevel::CIVILIAN;
+}
+
 void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_DirtyGMInfo = true;
 	if (gmlevel > eGameMasterLevel::CIVILIAN) m_IsGM = true;
@@ -402,8 +411,6 @@ void CharacterComponent::LoadFromSaveData(const tinyxml2::XMLDocument& doc) {
 	if (m_GMLevel > eGameMasterLevel::CIVILIAN) {
 		m_IsGM = true;
 		m_DirtyGMInfo = true;
-		m_EditorLevel = m_GMLevel;
-		m_EditorEnabled = false; //We're not currently in HF if we're loading in
 	}
 
 	LoadGuild();
@@ -481,12 +488,10 @@ void CharacterComponent::WriteSaveData(tinyxml2::XMLDocument& doc) {
 	// cm, the most coins the character can hold: always 9223372036854775807 on live, the client's own value without
 	// it. Nothing here caps coins by it, and one that is already in the save is left as it is.
 	if (!character->FindAttribute("cm")) character->SetAttribute("cm", std::numeric_limits<int64_t>::max());
-	// edit, the editor level: the client takes anything but 0 as the editor being on. 1 for a character whose account
-	// has the GM level of editor_gm_level (9 unless set), 0 for everyone else
-	const auto* const parentUser = m_Character ? m_Character->GetParentUser() : nullptr;
-	const auto accountLevel = parentUser ? parentUser->GetMaxGMLevel() : eGameMasterLevel::CIVILIAN;
-	const auto editorGmLevel = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("editor_gm_level")).value_or(DEFAULT_EDITOR_GM_LEVEL);
-	character->SetAttribute("edit", EditAttribute(accountLevel, editorGmLevel, m_EditorEnabled, m_EditorLevel));
+	// edit, the editor level: the client takes anything but 0 as the editor being on. The account's GM level for an
+	// account at editor_gm_level (9 unless set) or above, 0 for everyone else
+	RefreshEditorLevel();
+	character->SetAttribute("edit", static_cast<uint32_t>(m_EditorLevel));
 	// mldt, when the property moderation notice was last shown: not kept here, 0 as on most live saves
 	if (!character->FindAttribute("mldt")) character->SetAttribute("mldt", 0);
 	// gid and gn, the guild (0 and empty without one)

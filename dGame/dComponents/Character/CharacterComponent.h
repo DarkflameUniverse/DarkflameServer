@@ -474,30 +474,37 @@ private:
 	eGameMasterLevel m_GMLevel;
 
 	/**
-	 * Whether the character has HF enabled
+	 * Whether the client's level editor is on for the character: its editor level is not 0
 	 */
-	bool m_EditorEnabled;
+	bool m_EditorEnabled{};
 
 public:
 	// editor_gm_level when the settings don't have it
 	static constexpr uint32_t DEFAULT_EDITOR_GM_LEVEL = 9;
 
 	/**
-	 * The save's edit attribute (the client takes anything but 0 as the editor being on): 1 for an account whose GM
-	 * level is at least editorGmLevel, else the editor level when the editor flag is on, else 0
+	 * A character's editor level, which is also the save's edit attribute (the client takes anything but 0 as the
+	 * editor being on): the account's GM level for an account at editorGmLevel or above, 0 for everyone else
 	 */
-	static uint32_t EditAttribute(const eGameMasterLevel accountLevel, const uint32_t editorGmLevel, const bool editorEnabled, const eGameMasterLevel editorLevel) {
+	static uint32_t EditAttribute(const eGameMasterLevel accountLevel, const uint32_t editorGmLevel) {
 		// (a civilian never, whatever the setting)
-		if (accountLevel != eGameMasterLevel::CIVILIAN && static_cast<uint32_t>(accountLevel) >= editorGmLevel) return 1;
-		return editorEnabled ? static_cast<uint32_t>(editorLevel) : 0;
+		if (accountLevel == eGameMasterLevel::CIVILIAN || static_cast<uint32_t>(accountLevel) < editorGmLevel) return 0;
+		return static_cast<uint32_t>(accountLevel);
 	}
+
+	// The editor level as the client is told it (construction, the save, GetEditorLevel): 0 when the editor is off
+	uint8_t GetEditorLevel() const { return static_cast<uint8_t>(m_EditorLevel); }
+	bool GetEditorEnabled() const { return m_EditorEnabled; }
+
+	// Works the editor level out again from the account's GM level and editor_gm_level
+	void RefreshEditorLevel();
 
 private:
 
 	/**
-	 * The level of the character in HF
+	 * The character's editor level (EditAttribute), 0 for none
 	 */
-	eGameMasterLevel m_EditorLevel;
+	eGameMasterLevel m_EditorLevel{};
 
 	/**
 	 * Whether the currently active activity has been changed

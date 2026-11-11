@@ -1,5 +1,7 @@
 #include "PlayerMessages.h"
 
+#include "PlayerManager.h"
+
 #include "Logger.h"
 #include "BitStreamUtils.h"
 #include "Character.h"
@@ -264,5 +266,29 @@ namespace GameMessages {
 
 	bool DisplayGuildCreateBox::Deserialize(RakNet::BitStream& bitStream) {
 		return bitStream.Read(bShow);
+	}
+
+	void GetEditorLevel::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(editorEnabled);
+		bitStream.Write(editorLevel);
+	}
+
+	bool GetEditorLevel::Deserialize(RakNet::BitStream& bitStream) {
+		// A question: whatever it carries is not needed to answer it
+		if (bitStream.GetNumberOfUnreadBits() < 33) return true;
+		return bitStream.Read(editorEnabled) && bitStream.Read(editorLevel);
+	}
+
+	void GetEditorLevel::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		// Only about the asker's own character
+		auto* const player = PlayerManager::GetPlayer(sysAddr);
+		if (!player || player != &entity) return;
+		const auto* const character = entity.GetComponent<CharacterComponent>();
+		if (!character) return;
+		GetEditorLevel answer;
+		answer.target = entity.GetObjectID();
+		answer.editorEnabled = character->GetEditorEnabled();
+		answer.editorLevel = character->GetEditorLevel();
+		answer.SendToClient(sysAddr);
 	}
 }

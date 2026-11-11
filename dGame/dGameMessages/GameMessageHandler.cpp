@@ -222,6 +222,7 @@ namespace {
 		{ TOGGLE_GHOST_REFERENCE_OVERRIDE, []() { return std::make_unique<ToggleGhostReferenceOverride>(); } },
 		{ SET_GHOST_REFERENCE_POSITION, []() { return std::make_unique<SetGhostReferencePosition>(); } },
 		{ MODIFY_GHOSTING_DISTANCE, []() { return std::make_unique<ModifyGhostingDistance>(); } },
+		{ GET_EDITOR_LEVEL, []() { return std::make_unique<GetEditorLevel>(); } },
 	};
 };
 
@@ -270,8 +271,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	}
 
 	// The Happy Flower editor's messages, logged always until the server handles them (what a client sends while editing)
-	const bool isHappyFlower = messageID == MessageType::Game::GET_EDITOR_LEVEL
-		|| (messageID >= MessageType::Game::HF_ATTRIBUTES_PUSH && messageID <= MessageType::Game::HF_GETS_WANT_PATH);
+	const bool isHappyFlower = messageID >= MessageType::Game::HF_ATTRIBUTES_PUSH && messageID <= MessageType::Game::HF_GETS_WANT_PATH;
 	if (isHappyFlower) LOG("Received unhandled Happy Flower GM: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 	else LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 }

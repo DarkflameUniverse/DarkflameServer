@@ -204,6 +204,7 @@ json ToJson(const GameMessages::ReportBug& m);
 json ToJson(const GameMessages::VerifyAck& m);
 json ToJson(const GameMessages::Help& m);
 json ToJson(const GameMessages::DisplayGuildCreateBox& m);
+json ToJson(const GameMessages::GetEditorLevel& m);
 json ToJson(const GameMessages::OpenPropertyVendor& m);
 json ToJson(const GameMessages::OpenPropertyManagement& m);
 json ToJson(const GameMessages::DownloadPropertyData& m);
@@ -1806,6 +1807,12 @@ json ToJson(const GameMessages::DisplayGuildCreateBox& m) {
 	j["bShow"] = ToJson(m.bShow);
 	return j;
 }
+json ToJson(const GameMessages::GetEditorLevel& m) {
+	json j = json::object();
+	j["editorEnabled"] = ToJson(m.editorEnabled);
+	j["editorLevel"] = ToJson(m.editorLevel);
+	return j;
+}
 json ToJson(const GameMessages::OpenPropertyVendor& m) {
 	json j = json::object();
 	return j;
@@ -2724,6 +2731,7 @@ const std::vector<Entry>& Entries() {
 		{ MessageType::Game::VERIFY_ACK, eDirection::TO_CLIENT, "VerifyAck", &ReadWith<GameMessages::VerifyAck> },
 		{ MessageType::Game::HELP, eDirection::TO_CLIENT, "Help", &ReadWith<GameMessages::Help> },
 		{ MessageType::Game::DISPLAY_GUILD_CREATE_BOX, eDirection::TO_CLIENT, "DisplayGuildCreateBox", &ReadWith<GameMessages::DisplayGuildCreateBox> },
+		{ MessageType::Game::GET_EDITOR_LEVEL, eDirection::TO_SERVER, "GetEditorLevel", &ReadWith<GameMessages::GetEditorLevel> },
 		{ MessageType::Game::OPEN_PROPERTY_VENDOR, eDirection::TO_CLIENT, "OpenPropertyVendor", &ReadWith<GameMessages::OpenPropertyVendor> },
 		{ MessageType::Game::OPEN_PROPERTY_MANAGEMENT, eDirection::TO_CLIENT, "OpenPropertyManagement", &ReadWith<GameMessages::OpenPropertyManagement> },
 		{ MessageType::Game::DOWNLOAD_PROPERTY_DATA, eDirection::TO_CLIENT, "DownloadPropertyData", &ReadWith<GameMessages::DownloadPropertyData> },

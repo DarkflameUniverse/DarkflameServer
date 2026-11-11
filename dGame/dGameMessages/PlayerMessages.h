@@ -193,6 +193,18 @@ namespace GameMessages {
 
 		bool bShow{ true };
 	};
+
+	// Client -> server, and the server's answer to that client: whether the client's level editor is on for the
+	// player and at which level (the character's editor level, 0 for none). What a client sends is not used.
+	struct GetEditorLevel : public NetGameMsg {
+		GetEditorLevel() : NetGameMsg(MessageType::Game::GET_EDITOR_LEVEL) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		bool editorEnabled{ false };
+		int32_t editorLevel{ 0 };
+	};
 }
 
 #endif // PLAYERMESSAGES_H
