@@ -1,6 +1,7 @@
 set(DWEB_SOURCES
 	"Web.cpp"
-	"DeferredReply.cpp")
+	"DeferredReply.cpp"
+	"MultipartFile.cpp")
 
 add_library(dWeb STATIC ${DWEB_SOURCES})
 

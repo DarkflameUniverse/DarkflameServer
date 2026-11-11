@@ -37,6 +37,23 @@ struct HTTPRoute {
 	std::function<void(HTTPReply&, const HTTPContext&)> handle;
 };
 
+/**
+ * A route whose body is too large to hold in memory (file uploads): the request's headers go through the middleware
+ * first, so a request that isn't allowed is answered before any of its body is taken; the body is then written to a
+ * file as it arrives, and the handler is called once all of it is there (HTTPContext::bodyFile). The connection
+ * closes after the reply.
+ */
+struct HTTPUploadRoute {
+	std::string path;
+	eHTTPMethod method;
+	std::vector<MiddlewarePtr> middleware;
+	// The largest body taken, asked for each request; a longer one is answered 413
+	std::function<uint64_t()> maxBytes;
+	// Where this request's body is written: a new file's path, or empty when there is nowhere (answered 503)
+	std::function<std::string(const HTTPContext&)> spoolFile;
+	std::function<void(HTTPReply&, const HTTPContext&)> handle;
+};
+
 // WebSocket event structure
 // This structure is used to register WebSocket events
 // with the server. Each event has a name and a handler function
@@ -82,6 +99,10 @@ public:
 	bool Startup(const std::string& listen_ip, const uint32_t listen_port);
 	// Register HTTP route to be handled by the server
 	void RegisterHTTPRoute(HTTPRoute route);
+	// Register a route whose body is written to a file as it arrives (see HTTPUploadRoute)
+	void RegisterUploadRoute(HTTPUploadRoute route);
+	// Uploads whose bodies are still arriving
+	size_t PendingUploads() const;
 	// Register WebSocket event to be handled by the server
 	void RegisterWSEvent(WSEvent event);
 	// Register WebSocket subscription to be handled by the server.

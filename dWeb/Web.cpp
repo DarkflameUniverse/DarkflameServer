@@ -27,6 +27,7 @@ namespace {
 	const std::string wsSubscribed = "{\"status\":\"subscribed\"}";
 	const std::string wsUnsubscribed = "{\"status\":\"unsubscribed\"}";
 	std::map<std::pair<eHTTPMethod, std::string>, HTTPRoute> g_HTTPRoutes;
+	std::map<std::pair<eHTTPMethod, std::string>, HTTPUploadRoute> g_UploadRoutes;
 	std::map<std::string, WSEvent> g_WSEvents;
 	std::vector<std::string> g_WSSubscriptions;
 	// Minimum permission level per subscription, parallel to g_WSSubscriptions
@@ -151,6 +152,41 @@ namespace {
 		// Get client IP
 		context.clientIP = GetClientIP(connection);
 		context.connectionId = connection ? connection->id : 0;
+	}
+
+	// Whether a route pattern with :param segments matches a (lowercased) path
+	bool PatternMatches(const std::string& pattern, const std::string& uri) {
+		if (pattern.find(':') == std::string::npos) return false;
+		const auto split = [](const std::string& text) {
+			std::vector<std::string_view> segments;
+			size_t pos = 0;
+			while (pos < text.length()) {
+				size_t slash = text.find('/', pos);
+				if (slash == std::string::npos) slash = text.length();
+				if (slash > pos) segments.emplace_back(text.data() + pos, slash - pos); // Skip empty segments
+				pos = slash + 1;
+			}
+			return segments;
+		};
+		const auto patternSegments = split(pattern);
+		const auto uriSegments = split(uri);
+		if (patternSegments.size() != uriSegments.size()) return false;
+		for (size_t i = 0; i < patternSegments.size(); ++i) {
+			// A parameter (starts with :) always matches; anything else must be the same
+			if (!patternSegments[i].empty() && patternSegments[i][0] != ':' && patternSegments[i] != uriSegments[i]) return false;
+		}
+		return true;
+	}
+
+	// The route for a method and (lowercased) path: the exact path, else the first pattern that matches
+	template<typename Routes>
+	auto FindRoute(Routes& routes, eHTTPMethod method, const std::string& uri) {
+		auto it = routes.find({ method, uri });
+		if (it != routes.end()) return it;
+		for (it = routes.begin(); it != routes.end(); ++it) {
+			if (it->first.first == method && PatternMatches(it->first.second, uri)) return it;
+		}
+		return routes.end();
 	}
 
 	const char* ContentTypeToString(eContentType contentType) {
@@ -419,65 +455,8 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		}
 
 		// Handle HTTP request
-		auto routeItr = g_HTTPRoutes.find({method, uri});
-		
-		// If exact match not found, try pattern matching with :param syntax
-		if (routeItr == g_HTTPRoutes.end()) {
-			for (const auto& [key, route] : g_HTTPRoutes) {
-				if (key.first != method) continue;
-				
-				const std::string& pattern = key.second;
-				// Simple pattern matching for :param syntax
-				if (pattern.find(':') != std::string::npos) {
-					// Split by '/' and compare segments
-					std::vector<std::string> patternSegments;
-					std::vector<std::string> uriSegments;
-					
-					size_t pos = 0;
-					const std::string& str = pattern;
-					while (pos < str.length()) {
-						size_t slash = str.find('/', pos);
-						if (slash == std::string::npos) slash = str.length();
-						if (slash > pos) { // Skip empty segments
-							patternSegments.push_back(str.substr(pos, slash - pos));
-						}
-						pos = slash + 1;
-					}
-					
-					pos = 0;
-					while (pos < uri.length()) {
-						size_t slash = uri.find('/', pos);
-						if (slash == std::string::npos) slash = uri.length();
-						if (slash > pos) { // Skip empty segments
-							uriSegments.push_back(uri.substr(pos, slash - pos));
-						}
-						pos = slash + 1;
-					}
-					
-					// Check if segment counts match
-					if (patternSegments.size() == uriSegments.size()) {
-						bool matches = true;
-						for (size_t i = 0; i < patternSegments.size(); ++i) {
-							const auto& patternSeg = patternSegments[i];
-							const auto& uriSeg = uriSegments[i];
-							
-							// If pattern segment is a parameter (starts with :), it always matches
-							// Otherwise it must be an exact match
-							if (!patternSeg.empty() && patternSeg[0] != ':' && patternSeg != uriSeg) {
-								matches = false;
-								break;
-							}
-						}
-						
-						if (matches) {
-							routeItr = g_HTTPRoutes.find({method, pattern});
-							break;
-						}
-					}
-				}
-			}
-		}
-		
+		auto routeItr = FindRoute(g_HTTPRoutes, method, uri);
+
 		if (routeItr != g_HTTPRoutes.end()) {
 			const auto& route = routeItr->second;
 			trafficRoute = method_string + " " + routeItr->first.second;
@@ -549,6 +528,186 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 }
 
 
+
+namespace {
+	// An upload whose body is arriving. Its connection's HTTP parsing is off (the body never sits in mongoose's
+	// buffer), so the connection carries this one request and closes after its reply.
+	struct Upload {
+		const HTTPUploadRoute* route{};
+		HTTPContext context;
+		FILE* file{};
+		uint64_t expected{};
+		uint64_t received{};
+		bool discard{};   // answered already (refused): what still arrives is dropped
+		TrafficClock::time_point started;
+		TrafficClock::time_point lastData;
+		std::string trafficRoute;
+	};
+	std::unordered_map<unsigned long, Upload> g_Uploads;
+	constexpr auto UPLOAD_IDLE_TIMEOUT = std::chrono::seconds(60);
+
+	void AbortUpload(Upload& upload) {
+		if (upload.file) {
+			fclose(upload.file);
+			upload.file = nullptr;
+			std::error_code ec;
+			std::filesystem::remove(upload.context.bodyFile, ec);
+		}
+	}
+
+	// Answer an upload now and close its connection once the answer is out; what else arrives is dropped
+	void ReplyAndClose(mg_connection* connection, Upload& upload, HTTPReply& reply) {
+		AbortUpload(upload);
+		upload.discard = true;
+		reply.headers.push_back("Connection: close");
+		SendReply(connection, reply, nullptr);
+		CountRequest(upload.trafficRoute, static_cast<uint16_t>(reply.status), upload.started, ReplyBytes(reply), false, upload.context.clientIP,
+			upload.received, upload.context.accountId, upload.context.authenticatedUser, upload.context.apiKey ? upload.context.apiKey->name : std::string());
+		connection->is_draining = 1;
+	}
+
+	void JsonUploadError(HTTPReply& reply, eHTTPStatusCode status, const char* code, const char* message) {
+		reply = HTTPReply{};
+		reply.status = status;
+		reply.contentType = eContentType::APPLICATION_JSON;
+		reply.message = json{ {"success", false}, {"error", code}, {"message", message} }.dump();
+	}
+
+	void FinishUpload(mg_connection* connection, Upload& upload) {
+		fflush(upload.file);
+		const bool written = !ferror(upload.file);
+		fclose(upload.file);
+		upload.file = nullptr;
+		upload.context.bodyBytes = upload.received;
+		HTTPReply reply;
+		if (!written) {
+			std::error_code ec;
+			std::filesystem::remove(upload.context.bodyFile, ec);
+			JsonUploadError(reply, eHTTPStatusCode::INSUFFICIENT_STORAGE, "storage", "The upload could not be written");
+			return ReplyAndClose(connection, upload, reply);
+		}
+		{
+			Profiler::Scope profile(Profiler::Intern(upload.trafficRoute), Profiler::Phase::WEB);
+			try {
+				upload.route->handle(reply, upload.context);
+			} catch (const std::exception& ex) {
+				LOG("Error handling %s %s: %s", upload.context.method.c_str(), upload.context.path.c_str(), ex.what());
+				if (g_Deferred.IsPending(connection->id)) g_Deferred.Close(connection->id);
+				JsonUploadError(reply, eHTTPStatusCode::INTERNAL_SERVER_ERROR, "internal", "Internal server error");
+			}
+		}
+		upload.discard = true;
+		if (reply.deferred) {
+			g_Deferred.SetReplyOptions(connection->id, reply.headers, true);
+			if (g_DeferredTiming.size() > 10000) g_DeferredTiming.clear();
+			g_DeferredTiming[connection->id] = { upload.trafficRoute, upload.started, false, upload.context.clientIP, upload.received,
+				upload.context.accountId, upload.context.authenticatedUser, upload.context.apiKey ? upload.context.apiKey->name : std::string() };
+			return;
+		}
+		ReplyAndClose(connection, upload, reply);
+	}
+
+	// Write what has arrived of an upload's body to its file
+	void ReadUpload(mg_connection* connection, Upload& upload, size_t skip) {
+		const size_t available = connection->recv.len > skip ? connection->recv.len - skip : 0;
+		if (upload.discard) {
+			connection->recv.len = 0;
+			return;
+		}
+		const auto take = static_cast<size_t>(std::min<uint64_t>(available, upload.expected - upload.received));
+		if (take > 0 && fwrite(connection->recv.buf + skip, 1, take, upload.file) != take) {
+			HTTPReply reply;
+			JsonUploadError(reply, eHTTPStatusCode::INSUFFICIENT_STORAGE, "storage", "The upload could not be written");
+			connection->recv.len = 0;
+			return ReplyAndClose(connection, upload, reply);
+		}
+		upload.received += take;
+		upload.lastData = TrafficClock::now();
+		// Anything past the body is not ours to read: this connection carries one request
+		connection->recv.len = 0;
+		if (upload.received >= upload.expected) FinishUpload(connection, upload);
+	}
+
+	/**
+	 * A request's headers are in: when it is for an upload route, take the request over from here (the middleware
+	 * first, then its body straight to a file). Called again for the same request while an ordinary route's body is
+	 * still arriving, so it does nothing unless an upload route matches.
+	 */
+	void HandleHTTPHeaders(mg_connection* connection, mg_http_message* http_msg) {
+		if (g_UploadRoutes.empty() || !http_msg || g_Uploads.contains(connection->id)) return;
+		const std::string methodString(http_msg->method.buf, http_msg->method.len);
+		const eHTTPMethod method = magic_enum::enum_cast<eHTTPMethod>(methodString).value_or(eHTTPMethod::INVALID);
+		std::string uri(http_msg->uri.buf, http_msg->uri.len);
+		std::transform(uri.begin(), uri.end(), uri.begin(), ::tolower);
+		const auto routeItr = FindRoute(g_UploadRoutes, method, uri);
+		if (routeItr == g_UploadRoutes.end()) return;
+		const auto& route = routeItr->second;
+
+		auto& upload = g_Uploads[connection->id];
+		upload.route = &route;
+		upload.started = upload.lastData = TrafficClock::now();
+		upload.trafficRoute = methodString + " " + routeItr->first.second;
+		// The body is not in the message yet (and never will be): only the head is read here
+		mg_http_message head = *http_msg;
+		head.body.len = 0;
+		PopulateHTTPContext(upload.context, &head, connection);
+		const size_t headLength = http_msg->head.len;
+
+		HTTPReply reply;
+		const auto refuse = [&] {
+			// Taking bytes out of the buffer is what tells mongoose the request is ours now
+			connection->recv.len = 0;
+			ReplyAndClose(connection, upload, reply);
+		};
+
+		std::vector<MiddlewarePtr> chain = g_GlobalMiddleware;
+		chain.insert(chain.end(), route.middleware.begin(), route.middleware.end());
+		for (const auto& middleware : chain) {
+			bool passed = false;
+			try {
+				passed = middleware->Process(upload.context, reply);
+			} catch (const std::exception& ex) {
+				LOG("Error in middleware %s for %s: %s", middleware->GetName().c_str(), upload.context.path.c_str(), ex.what());
+				JsonUploadError(reply, eHTTPStatusCode::INTERNAL_SERVER_ERROR, "internal", "Internal server error");
+			}
+			if (!passed) return refuse();
+		}
+
+		// The length has to be known before any of the body is taken
+		const auto* length = mg_http_get_header(http_msg, "Content-Length");
+		const auto parsed = length ? GeneralUtils::TryParse<uint64_t>(std::string_view(length->buf, length->len)) : std::nullopt;
+		if (mg_http_get_header(http_msg, "Transfer-Encoding") || !parsed) {
+			JsonUploadError(reply, eHTTPStatusCode::LENGTH_REQUIRED, "length_required", "Send the body with a Content-Length");
+			return refuse();
+		}
+		if (*parsed > (route.maxBytes ? route.maxBytes() : 0)) {
+			JsonUploadError(reply, eHTTPStatusCode::PAYLOAD_TOO_LARGE, "too_large", "The request is larger than this server takes");
+			return refuse();
+		}
+		upload.expected = *parsed;
+		upload.context.bodyFile = route.spoolFile ? route.spoolFile(upload.context) : std::string();
+		if (!upload.context.bodyFile.empty()) upload.file = fopen(upload.context.bodyFile.c_str(), "wb");
+		if (!upload.file) {
+			JsonUploadError(reply, eHTTPStatusCode::SERVICE_UNAVAILABLE, "unavailable", "There is nowhere to keep the upload");
+			return refuse();
+		}
+
+		if (const auto* expect = mg_http_get_header(http_msg, "Expect"); expect && mg_strcasecmp(*expect, mg_str("100-continue")) == 0) {
+			static const char proceed[] = "HTTP/1.1 100 Continue\r\n\r\n";
+			mg_send(connection, proceed, sizeof(proceed) - 1);
+		}
+		ReadUpload(connection, upload, headLength);
+		// An empty buffer with an empty body would look untouched to mongoose; the head is always taken out above
+	}
+
+	void CloseIdleUploads(mg_connection* connection) {
+		const auto it = g_Uploads.find(connection->id);
+		if (it == g_Uploads.end() || it->second.discard) return;
+		if (TrafficClock::now() - it->second.lastData < UPLOAD_IDLE_TIMEOUT) return;
+		LOG_DEBUG("Closing an upload that stopped arriving");
+		connection->is_closing = 1;
+	}
+}
 
 void HandleWSMessage(mg_connection* connection, const mg_ws_message* ws_msg) {
 	// Check if connection is authenticated
@@ -657,6 +816,15 @@ void HandleWSGetSubscriptions(mg_connection* connection, json data) {
 void HandleMessages(mg_connection* connection, int message, void* message_data) {
 	if (!Game::web.IsEnabled()) return;
 	switch (message) {
+		case MG_EV_HTTP_HDRS:
+			HandleHTTPHeaders(connection, static_cast<mg_http_message*>(message_data));
+			break;
+		case MG_EV_READ:
+			if (const auto upload = g_Uploads.find(connection->id); upload != g_Uploads.end()) ReadUpload(connection, upload->second, 0);
+			break;
+		case MG_EV_POLL:
+			if (!g_Uploads.empty()) CloseIdleUploads(connection);
+			break;
 		case MG_EV_HTTP_MSG:
 			HandleHTTPMessage(connection, static_cast<mg_http_message*>(message_data));
 			break;
@@ -667,6 +835,10 @@ void HandleMessages(mg_connection* connection, int message, void* message_data) 
 			g_AuthenticatedWSConnections.erase(connection);
 			// A deferred answer that comes after this is dropped
 			g_Deferred.Close(connection->id);
+			if (const auto upload = g_Uploads.find(connection->id); upload != g_Uploads.end()) {
+				AbortUpload(upload->second);
+				g_Uploads.erase(upload);
+			}
 			break;
 		default:
 			break;
@@ -696,6 +868,20 @@ void Web::RegisterHTTPRoute(HTTPRoute route) {
 	} else {
 		LOG_DEBUG("Registered HTTP route %s", route.path.c_str());
 	}
+}
+
+void Web::RegisterUploadRoute(HTTPUploadRoute route) {
+	if (!Game::web.enabled) {
+		LOG_DEBUG("Failed to register upload route %s: web server not enabled", route.path.c_str());
+		return;
+	}
+	const auto path = route.path;
+	const auto [_, success] = g_UploadRoutes.try_emplace({ route.method, path }, std::move(route));
+	LOG_DEBUG("%s upload route %s", success ? "Registered" : "Failed to register", path.c_str());
+}
+
+size_t Web::PendingUploads() const {
+	return g_Uploads.size();
 }
 
 void Web::RegisterWSEvent(WSEvent event) {
@@ -771,6 +957,8 @@ void Web::Shutdown() {
 	managerFreed = true;
 	enabled = false;
 	g_AuthenticatedWSConnections.clear();
+	for (auto& [_, upload] : g_Uploads) AbortUpload(upload);
+	g_Uploads.clear();
 }
 
 bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {

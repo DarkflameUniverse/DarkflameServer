@@ -23,6 +23,10 @@ struct HTTPContext {
 	std::string originalPath{}; // as sent, for parameters whose case matters (file names)
 	std::string queryString{};
 	std::string body{};
+	// An upload route's body (Web::RegisterUploadRoute): the file it was written to as it arrived, and its size.
+	// `body` is empty then. The handler owns the file from the moment it is called.
+	std::string bodyFile{};
+	uint64_t bodyBytes = 0;
 	
 	// Request headers (header name -> value)
 	// Header names are lowercase for case-insensitive lookup
