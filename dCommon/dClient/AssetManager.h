@@ -85,6 +85,29 @@ public:
 		return m_AssetBundleType;
 	}
 
+	/**
+	 * A folder of edited zone files (zone_override_dir): a file under maps/ is read from <dir>/maps/... when it is
+	 * there, and from the client otherwise. Nothing else is looked for in it, and the client's files are never
+	 * written. Empty turns it off.
+	 */
+	void SetOverrideDir(const std::filesystem::path& dir);
+
+	[[nodiscard]]
+	const std::filesystem::path& GetOverrideDir() const {
+		return m_OverrideDir;
+	}
+
+	// Where name is read from in the override folder: only for a name under maps/ whose file is there
+	[[nodiscard]]
+	std::optional<std::filesystem::path> GetOverridePath(std::string name) const;
+
+	/**
+	 * The path inside an override folder a name under maps/ is kept at (lowercase, forward slashes), whether or not
+	 * a file is there. nullopt for any other name and for one with an empty, "." or ".." part.
+	 */
+	[[nodiscard]]
+	static std::optional<std::string> OverrideName(std::string name);
+
 	[[nodiscard]]
 	bool HasFile(std::string name) const;
 
@@ -111,6 +134,7 @@ private:
 	std::filesystem::path m_Path;
 	std::filesystem::path m_RootPath;
 	std::filesystem::path m_ResPath;
+	std::filesystem::path m_OverrideDir;
 
 	eAssetBundleType m_AssetBundleType = eAssetBundleType::None;
 

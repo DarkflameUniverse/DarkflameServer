@@ -70,7 +70,64 @@ void AssetManager::LoadPackIndex() {
 	m_PackIndex = PackIndex(m_RootPath);
 }
 
+namespace {
+	// The whole file, malloc'd as GetFile's callers free it
+	bool ReadLooseFile(const std::filesystem::path& path, char** data, uint32_t* len) {
+		FILE* file;
+#ifdef _WIN32
+		fopen_s(&file, path.string().c_str(), "rb");
+#elif __APPLE__
+		// macOS has 64bit file IO by default
+		file = fopen(path.string().c_str(), "rb");
+#else
+		file = fopen64(path.string().c_str(), "rb");
+#endif
+		if (!file) return false;
+		fseek(file, 0, SEEK_END);
+		*len = ftell(file);
+		*data = static_cast<char*>(malloc(*len));
+		fseek(file, 0, SEEK_SET);
+		const auto read = fread(*data, sizeof(uint8_t), *len, file);
+		fclose(file);
+		if (read != *len) {
+			free(*data);
+			*data = nullptr;
+			return false;
+		}
+		return true;
+	}
+}
+
+void AssetManager::SetOverrideDir(const std::filesystem::path& dir) {
+	m_OverrideDir = dir;
+}
+
+std::optional<std::string> AssetManager::OverrideName(std::string name) {
+	std::transform(name.begin(), name.end(), name.begin(), [](uint8_t c) { return std::tolower(c); });
+	std::replace(name.begin(), name.end(), '\\', '/');
+	if (!name.starts_with("maps/") || name.find('\0') != std::string::npos) return std::nullopt;
+	size_t start = 0;
+	while (start <= name.size()) {
+		const auto end = std::min(name.find('/', start), name.size());
+		const auto part = std::string_view(name).substr(start, end - start);
+		if (part.empty() || part == "." || part == "..") return std::nullopt;
+		start = end + 1;
+	}
+	return name;
+}
+
+std::optional<std::filesystem::path> AssetManager::GetOverridePath(std::string name) const {
+	if (m_OverrideDir.empty()) return std::nullopt;
+	const auto relative = OverrideName(std::move(name));
+	if (!relative) return std::nullopt;
+	const auto path = m_OverrideDir / *relative;
+	std::error_code code;
+	if (!std::filesystem::is_regular_file(path, code)) return std::nullopt;
+	return path;
+}
+
 bool AssetManager::HasFile(std::string fixedName) const {
+	if (GetOverridePath(fixedName)) return true;
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 
 	// Special case for unpacked client have BrickModels in upper case
@@ -96,6 +153,7 @@ bool AssetManager::HasFile(std::string fixedName) const {
 }
 
 bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) const {
+	if (const auto overridden = GetOverridePath(fixedName)) return ReadLooseFile(*overridden, data, len);
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '\\', '/'); // On the off chance someone has the wrong slashes, force forward slashes
 
@@ -103,23 +161,7 @@ bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) co
 	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) GeneralUtils::ReplaceInString(fixedName, "brickmodels", "BrickModels");
 
 	if (std::filesystem::exists(m_ResPath / fixedName)) {
-		FILE* file;
-#ifdef _WIN32
-		fopen_s(&file, (m_ResPath / fixedName).string().c_str(), "rb");
-#elif __APPLE__
-		// macOS has 64bit file IO by default
-		file = fopen((m_ResPath / fixedName).string().c_str(), "rb");
-#else
-		file = fopen64((m_ResPath / fixedName).string().c_str(), "rb");
-#endif
-		fseek(file, 0, SEEK_END);
-		*len = ftell(file);
-		*data = static_cast<char*>(malloc(*len));
-		fseek(file, 0, SEEK_SET);
-		int32_t readInData = fread(*data, sizeof(uint8_t), *len, file);
-		fclose(file);
-
-		return true;
+		return ReadLooseFile(m_ResPath / fixedName, data, len);
 	}
 
 	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) return false;
@@ -155,6 +197,7 @@ bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) co
 }
 
 std::optional<std::filesystem::path> AssetManager::GetLoosePath(std::string fixedName) const {
+	if (auto overridden = GetOverridePath(fixedName)) return overridden;
 	// The same name fixing as GetFile
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '\\', '/');
