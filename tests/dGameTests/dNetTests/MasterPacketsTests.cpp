@@ -237,32 +237,6 @@ TEST(MasterPacketsTests, PrivateZonesMatchLegacy) {
 	}
 }
 
-// The edit mode flag of a private zone: one more byte, only when set, and read after a password of any length
-TEST(MasterPacketsTests, CreatePrivateZoneEditMode) {
-	for (const auto& password : g_Strings) {
-		MasterPackets::CreatePrivateZone plain;
-		plain.zoneID = 1100;
-		plain.password = password;
-		MasterPackets::CreatePrivateZone edit = plain;
-		edit.editMode = 1;
-
-		RakNet::BitStream plainStream; LoadPayload(plainStream, plain);
-		RakNet::BitStream editStream; LoadPayload(editStream, edit);
-		EXPECT_EQ(editStream.GetNumberOfUnreadBits(), plainStream.GetNumberOfUnreadBits() + 8);
-
-		MasterPackets::CreatePrivateZone readPlain;
-		readPlain.editMode = 1;
-		ASSERT_TRUE(readPlain.Deserialize(plainStream));
-		EXPECT_EQ(readPlain.editMode, 0);
-
-		MasterPackets::CreatePrivateZone readEdit;
-		ASSERT_TRUE(readEdit.Deserialize(editStream));
-		EXPECT_EQ(readEdit.editMode, 1);
-		EXPECT_EQ(readEdit.zoneID, 1100u);
-		EXPECT_EQ(readEdit.password, password.substr(0, MasterPackets::CreatePrivateZone::MAX_PASSWORD_LENGTH));
-	}
-}
-
 TEST(MasterPacketsTests, WorldStateMatchesLegacy) {
 	for (const LWOMAPID zone : { static_cast<LWOMAPID>(0), static_cast<LWOMAPID>(1100), static_cast<LWOMAPID>(0xFFFF) }) {
 		for (const LWOINSTANCEID instance : { static_cast<LWOINSTANCEID>(0), static_cast<LWOINSTANCEID>(3), static_cast<LWOINSTANCEID>(0xFFFF) }) {

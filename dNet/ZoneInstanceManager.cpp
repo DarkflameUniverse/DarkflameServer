@@ -35,12 +35,11 @@ void ZoneInstanceManager::HandleRequestZoneTransferResponse(const MasterPackets:
 	}
 }
 
-void ZoneInstanceManager::CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password, const bool editMode) {
+void ZoneInstanceManager::CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password) {
 	MasterPackets::CreatePrivateZone request;
 	request.zoneID = zoneID;
 	request.cloneID = zoneClone;
 	request.password = password;
-	request.editMode = editMode ? 1 : 0;
 	MasterPackets::SendToMaster(request, server);
 }
 

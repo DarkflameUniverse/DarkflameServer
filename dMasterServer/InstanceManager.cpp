@@ -387,7 +387,7 @@ const InstancePtr& InstanceManager::FindInstanceWithPrivate(LWOMAPID mapID, LWOI
 	return g_Empty;
 }
 
-const InstancePtr& InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password, const bool editMode) {
+const InstancePtr& InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password) {
 	const auto& instance = FindPrivateInstance(password);
 
 	if (instance != nullptr) {
@@ -408,10 +408,9 @@ const InstancePtr& InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLO
 
 	uint32_t port = GetFreePort();
 	auto newInstance = make_unique<Instance>(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
-	newInstance->SetIsEditMode(editMode);
 
 	//Start the actual process:
-	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID, editMode);
+	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
 	m_Instances.push_back(std::move(newInstance));
 	if (m_OnInstancesChanged) m_OnInstancesChanged();

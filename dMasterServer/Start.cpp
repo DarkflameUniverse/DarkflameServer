@@ -192,13 +192,13 @@ uint32_t StartUgcServer() {
 	return ugc_pid;
 }
 
-uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID, const bool editMode) {
+uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 	auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
 #ifdef _WIN32
 	world_path.replace_extension(".exe");
 	auto cmd = world_path.wstring() + L" -zone " + std::to_wstring(mapID) + L" -port " + std::to_wstring(port) +
 		L" -instance " + std::to_wstring(lastInstanceID) + L" -maxclients " + std::to_wstring(maxPlayers) +
-		L" -clone " + std::to_wstring(cloneID) + L" -editmode " + std::to_wstring(editMode ? 1 : 0);
+		L" -clone " + std::to_wstring(cloneID);
 
 	auto world_startup = startup;
 	auto world_info = PROCESS_INFORMATION{};
@@ -226,8 +226,7 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 			"-port", std::to_string(port).c_str(),
 			"-instance", std::to_string(lastInstanceID).c_str(),
 			"-maxclients", std::to_string(maxPlayers).c_str(),
-			"-clone", std::to_string(cloneID).c_str(),
-			"-editmode", editMode ? "1" : "0", nullptr);
+			"-clone", std::to_string(cloneID).c_str(), nullptr);
 		// exec failed (e.g. the binary is being rebuilt): the child must not carry on as a second master
 		perror("exec");
 		_exit(127);

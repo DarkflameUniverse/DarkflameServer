@@ -1009,7 +1009,6 @@ json ToJson(const MasterPackets::CreatePrivateZone& m) {
 	json j = json::object();
 	j["zoneID"] = ToJson(m.zoneID);
 	j["cloneID"] = ToJson(m.cloneID);
-	j["editMode"] = ToJson(m.editMode);
 	return j;
 }
 json ToJson(const MasterPackets::RequestPrivateZone& m) {
