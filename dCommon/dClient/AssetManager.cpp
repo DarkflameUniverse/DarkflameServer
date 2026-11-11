@@ -126,8 +126,27 @@ std::optional<std::filesystem::path> AssetManager::GetOverridePath(std::string n
 	return path;
 }
 
-bool AssetManager::HasFile(std::string fixedName) const {
-	if (GetOverridePath(fixedName)) return true;
+bool AssetManager::HasFile(std::string name) const {
+	return HasFile(std::move(name), true);
+}
+
+bool AssetManager::HasClientFile(const std::string& name) const {
+	return HasFile(name, false);
+}
+
+bool AssetManager::GetFile(std::string name, char** data, uint32_t* len) const {
+	return GetFile(std::move(name), data, len, true);
+}
+
+AssetStream AssetManager::GetClientFile(const std::string& name) const {
+	char* buf = nullptr;
+	uint32_t len = 0;
+	const bool success = GetFile(name, &buf, &len, false);
+	return AssetStream(buf, len, success);
+}
+
+bool AssetManager::HasFile(std::string fixedName, const bool useOverride) const {
+	if (useOverride && GetOverridePath(fixedName)) return true;
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 
 	// Special case for unpacked client have BrickModels in upper case
@@ -152,8 +171,10 @@ bool AssetManager::HasFile(std::string fixedName) const {
 	return false;
 }
 
-bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) const {
-	if (const auto overridden = GetOverridePath(fixedName)) return ReadLooseFile(*overridden, data, len);
+bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len, const bool useOverride) const {
+	if (useOverride) {
+		if (const auto overridden = GetOverridePath(fixedName)) return ReadLooseFile(*overridden, data, len);
+	}
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '\\', '/'); // On the off chance someone has the wrong slashes, force forward slashes
 

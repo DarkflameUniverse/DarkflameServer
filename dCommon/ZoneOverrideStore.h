@@ -20,8 +20,9 @@
  * swapped in with a rename; the set it replaces goes to backups first. Restoring a backup and clearing a zone's set
  * are the same swap. Knows nothing of who may do this (ZoneEditLock) or how files arrive.
  *
- * Only reads and writes files under root, and takes no lock of its own: callers apply one set at a time. No
- * settings, database or logging, so it can run on a worker thread.
+ * Only reads and writes files under root. Changes in one override folder happen one at a time, whichever server
+ * makes them (a file lock, where the system has one). No settings, database or logging, so it can run on a worker
+ * thread.
  */
 namespace ZoneOverrideStore {
 	struct StoreError : std::runtime_error {
@@ -45,7 +46,7 @@ namespace ZoneOverrideStore {
 		std::vector<Entry> files;
 	};
 
-	// A file of a new set: where its bytes are now (moved or copied into the store)
+	// A file of a new set: where its bytes are now (linked or copied into the store; the source stays)
 	struct NewFile {
 		std::string path;
 		std::filesystem::path source;

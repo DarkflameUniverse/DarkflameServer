@@ -68,6 +68,27 @@ namespace ZoneEditLock {
 		return eResult::OK;
 	}
 
+	/**
+	 * Reading the zone's files as they are on the server: an account at the level that is one of the zone's
+	 * editors, or an admin. OK, LEVEL_TOO_LOW or NOT_ASSIGNED; the lock is not needed to look.
+	 */
+	inline eResult Read(const Actor& actor, const Levels& levels) {
+		if (actor.accountId == 0 || actor.gmLevel < levels.publish) return eResult::LEVEL_TOO_LOW;
+		if (!actor.assigned && !IsAdmin(actor, levels)) return eResult::NOT_ASSIGNED;
+		return eResult::OK;
+	}
+
+	/**
+	 * Change, for a requester that is only ever told 0 to 3: an account that could take the lock and hasn't is
+	 * told LOCKED_BY_OTHER (by nobody: it has to lock the zone first), any other account without the lock what
+	 * keeps it from taking it.
+	 */
+	inline eResult ChangeOrWhyNot(const Actor& actor, std::optional<uint32_t> holder, const Levels& levels) {
+		const auto result = Change(actor, holder, levels);
+		if (result != eResult::NOT_ASSIGNED) return result;
+		return Read(actor, levels) == eResult::OK ? eResult::LOCKED_BY_OTHER : eResult::NOT_ASSIGNED;
+	}
+
 	// What happens to the zone's running instances after its files changed
 	enum class eReload : uint8_t {
 		SKIPPED,  // not asked for: the files are read when an instance next starts

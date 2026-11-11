@@ -39,6 +39,8 @@ set(DCOMMON_SOURCES
 		"ZoneScenes.cpp"
 		"ZonePublish.cpp"
 		"ZoneOverrideStore.cpp"
+		"ZoneFilePack.cpp"
+		"ZoneFilePush.cpp"
 		"Process.cpp"
 		"Permissions.cpp"
 		"PermissionGrants.cpp"

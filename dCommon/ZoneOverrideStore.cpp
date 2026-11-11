@@ -13,6 +13,7 @@
 #include <io.h>
 #else
 #include <fcntl.h>
+#include <sys/file.h>
 #include <unistd.h>
 #endif
 #ifdef __linux__
@@ -67,15 +68,6 @@ namespace {
 		MakeDirs(to.parent_path());
 		std::error_code code;
 		fs::create_hard_link(from, to, code);
-		if (!code) return;
-		fs::copy_file(from, to, fs::copy_options::overwrite_existing, code);
-		if (code) Fail("Could not copy " + from.string());
-	}
-
-	void MoveOrCopy(const fs::path& from, const fs::path& to) {
-		MakeDirs(to.parent_path());
-		std::error_code code;
-		fs::rename(from, to, code);
 		if (!code) return;
 		fs::copy_file(from, to, fs::copy_options::overwrite_existing, code);
 		if (code) Fail("Could not copy " + from.string());
@@ -196,6 +188,27 @@ namespace {
 		for (size_t i = keep; i < ids.size(); ++i) fs::remove_all(backups / ids[i], code);
 	}
 
+	// One change at a time in an override folder, whichever server makes it (the lock goes when its holder does)
+	struct FolderLock {
+		explicit FolderLock(const fs::path& root) {
+#ifndef _WIN32
+			m_File = ::open((root / ".lock").c_str(), O_CREAT | O_RDWR, 0644);
+			if (m_File < 0 || ::flock(m_File, LOCK_EX) != 0) Fail("The override folder can't be locked");
+#else
+			(void)root;
+#endif
+		}
+		~FolderLock() {
+#ifndef _WIN32
+			if (m_File >= 0) ::close(m_File);
+#endif
+		}
+		FolderLock(const FolderLock&) = delete;
+		FolderLock& operator=(const FolderLock&) = delete;
+	private:
+		int m_File = -1;
+	};
+
 	/**
 	 * The one way a zone's set changes. `place` puts the new set's files under the folder it is given (laid out as
 	 * under res/maps/) and returns their entries; everything else is the same for a new set, a restore and a clear.
@@ -203,6 +216,7 @@ namespace {
 	template<typename Place>
 	Applied Replace(const fs::path& root, const Change& change, Place place) {
 		const auto folders = Resolve(root, change.zoneId, change.zoneFolder, change.id);
+		const FolderLock lock(folders.root);
 		const auto incomingMaps = folders.staging / "incoming";
 		const auto incoming = incomingMaps / folders.folder;
 		std::error_code code;
@@ -322,7 +336,8 @@ namespace ZoneOverrideStore {
 				if (ZonePublish::Canonical(file.path) != file.path || !seen.insert(file.path).second) Fail("Not a usable file name: " + file.path);
 				const auto target = ZonePublish::ResolveInside(incomingMaps, file.path);
 				if (!target) Fail("Not a usable file name: " + file.path);
-				MoveOrCopy(file.source, *target);
+				// Linked, never moved: a file may be one the zone has in use already, carried over into the new set
+				LinkOrCopy(file.source, *target);
 				entries.push_back({ file.path, file.bytes, file.sha256, file.version, change.who, change.now });
 			}
 			return entries;

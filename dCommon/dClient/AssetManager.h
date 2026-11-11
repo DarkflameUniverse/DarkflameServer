@@ -121,11 +121,20 @@ public:
 	[[nodiscard]]
 	AssetStream GetFile(const char* name) const;
 
+	// The client's own file, whatever the override folder holds for the name
+	[[nodiscard]]
+	AssetStream GetClientFile(const std::string& name) const;
+
+	[[nodiscard]]
+	bool HasClientFile(const std::string& name) const;
+
 	[[nodiscard]]
 	AssetStream GetFile(const std::string& name) const { return GetFile(name.c_str()); };
 
 private:
 	void LoadPackIndex();
+	bool HasFile(std::string name, bool useOverride) const;
+	bool GetFile(std::string name, char** data, uint32_t* len, bool useOverride) const;
 
 	// Modified crc algorithm (mpeg2)
 	// Reference: https://stackoverflow.com/questions/54339800/how-to-modify-crc-32-to-crc-32-mpeg-2

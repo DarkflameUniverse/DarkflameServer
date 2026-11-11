@@ -43,6 +43,7 @@ set(DCOMMONTEST_SOURCES
 	"ChatFilterCoreTests.cpp"
 	"BrickBoundsTests.cpp"
 	"ZonePublishTests.cpp"
+	"ZoneFilePackTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)

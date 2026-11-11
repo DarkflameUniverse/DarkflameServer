@@ -546,3 +546,135 @@ TEST(ZoneEditLockTests, ReloadHoldsWhilePlayersAreThere) {
 	EXPECT_EQ(PlanReload(true, 3, false), eReload::HELD);
 	EXPECT_EQ(PlanReload(true, 3, true), eReload::STARTED);
 }
+
+// ---- Files sent by the game client's level editor (ZoneFilePush): the same checks, store and backups ----
+
+#include "ZoneFilePush.h"
+
+namespace {
+	struct PushFixture : Fixture {
+		uint32_t pushes = 0;
+
+		ZoneFilePush::Job Job(ZoneFilePack::eFileType type, const ZoneFilePack::Files& files) {
+			ZoneFilePush::Job job;
+			job.zoneId = zone.zoneId;
+			job.luzPath = LUZ;
+			job.fileType = type;
+			job.packedFiles = ZoneFilePack::Pack(type, files);
+			job.root = root;
+			job.id = "w" + std::to_string(++pushes);
+			job.who = "editor";
+			job.now = 1000 + pushes;
+			job.clientScenes = zone.clientScenes;
+			job.clientFiles = { FOLDER + "a.lvl", FOLDER + "b.lvl", FOLDER + "test_zone.raw" };
+			job.clientLuz = ZoneBytes({ "a.lvl", "b.lvl" });
+			return job;
+		}
+	};
+	using ZoneFilePushTests = PushFixture;
+}
+
+// One scene sent: the set is that scene and the zone's .luz (the client's own, as none was sent)
+TEST_F(ZoneFilePushTests, OneFileBecomesASetWithTheZoneFile) {
+	ZoneFilePack::Files files;
+	files.scenes = { { "A.lvl", LevelBytes({ "pushed=0:yes" }) } };
+	const auto result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, files));
+	ASSERT_TRUE(result.applied) << result.problem;
+	EXPECT_EQ(result.files, 2u);
+	EXPECT_FALSE(result.backupId);
+	EXPECT_EQ(Slurp(root / "maps" / FOLDER / "a.lvl"), LevelBytes({ "pushed=0:yes" }));
+	EXPECT_EQ(Slurp(root / "maps" / LUZ), ZoneBytes({ "a.lvl", "b.lvl" }));
+	EXPECT_FALSE(fs::exists(root / "staging" / "w1"));
+}
+
+// A second single file keeps the rest of the set, and the set before is a backup
+TEST_F(ZoneFilePushTests, OneFileKeepsTheRestOfTheSet) {
+	ZoneFilePack::Files first;
+	first.scenes = { { "a.lvl", LevelBytes({ "first=0:a" }) } };
+	ASSERT_TRUE(ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, first)).applied);
+	ZoneFilePack::Files second;
+	second.triggers = { { "a.lutriggers", GOOD_TRIGGERS } };
+	const auto result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::TRIGGERS, second));
+	ASSERT_TRUE(result.applied) << result.problem;
+	EXPECT_EQ(result.files, 3u);
+	ASSERT_TRUE(result.backupId);
+	EXPECT_EQ(Slurp(root / "maps" / FOLDER / "a.lvl"), LevelBytes({ "first=0:a" }));
+	EXPECT_EQ(Slurp(root / "maps" / FOLDER / "a.lutriggers"), GOOD_TRIGGERS);
+	// The backup still holds the first set, whole
+	const auto backups = ZoneOverrideStore::Backups(root, zone.zoneId);
+	ASSERT_EQ(backups.size(), 1u);
+	EXPECT_EQ(backups[0].files.size(), 2u);
+	EXPECT_EQ(Slurp(root / "backups" / "1900" / backups[0].id / "files" / FOLDER / "a.lvl"), LevelBytes({ "first=0:a" }));
+}
+
+// A whole map is checked whole: one bad file in it and the set the zone has stays as it is
+TEST_F(ZoneFilePushTests, ARefusedWholeMapLeavesTheSetAlone) {
+	ZoneFilePack::Files first;
+	first.triggers = { { "a.lutriggers", GOOD_TRIGGERS } };
+	ASSERT_TRUE(ZoneFilePush::Run(Job(ZoneFilePack::eFileType::TRIGGERS, first)).applied);
+
+	ZoneFilePack::Files whole;
+	whole.zone = ZoneFilePack::Entry{ "test_zone.luz", ZoneBytes({ "a.lvl" }) };
+	whole.terrain = ZoneFilePack::Entry{ "test_zone.raw", "not a terrain file" };
+	whole.scenes = { { "a.lvl", LevelBytes({ "whole=0:map" }) } };
+	auto result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::WHOLE_MAP, whole));
+	EXPECT_FALSE(result.applied);
+	EXPECT_NE(result.problem.find("test_zone.raw"), std::string::npos);
+	EXPECT_NE(result.problem.find("parse_failed"), std::string::npos);
+	// Refused whole: the set before is untouched
+	EXPECT_EQ(Slurp(root / "maps" / FOLDER / "a.lutriggers"), GOOD_TRIGGERS);
+	EXPECT_FALSE(fs::exists(root / "maps" / FOLDER / "a.lvl"));
+	EXPECT_FALSE(fs::exists(root / "staging" / "w2"));
+}
+
+// Whatever folder a sent name has, the file can only become one of this zone's own
+TEST_F(ZoneFilePushTests, NamesNeverLeaveTheZoneFolder) {
+	ZoneFilePack::Files files;
+	files.scenes = { { "x", LevelBytes({}) } };
+	// (Pack writes the name as given; a client could send any)
+	files.scenes[0].name = "../../../../etc/a.lvl";
+	auto result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, files));
+	ASSERT_TRUE(result.applied) << result.problem;
+	EXPECT_TRUE(fs::exists(root / "maps" / FOLDER / "a.lvl")); // its base name, in the zone's folder
+	EXPECT_FALSE(fs::exists(dir / "etc"));
+
+	// A base name the zone has no file for is refused, and so is a file of another kind
+	files.scenes[0].name = "..\\other_zone\\c.lvl";
+	result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, files));
+	EXPECT_FALSE(result.applied);
+	EXPECT_NE(result.problem.find("name_not_allowed"), std::string::npos);
+	files.scenes[0].name = "passwd";
+	result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, files));
+	EXPECT_FALSE(result.applied);
+	files.scenes[0].name = "..";
+	result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, files));
+	EXPECT_FALSE(result.applied);
+	EXPECT_NE(result.problem.find("unpacked"), std::string::npos);
+}
+
+TEST_F(ZoneFilePushTests, DamagedPacksAndFilesAreRefusedWithNothingWritten) {
+	ZoneFilePack::Files files;
+	files.scenes = { { "a.lvl", LevelBytes({ "a=0:b", "c=0:d" }) } };
+	auto job = Job(ZoneFilePack::eFileType::SCENE, files);
+	job.packedFiles.resize(job.packedFiles.size() - 3);
+	auto result = ZoneFilePush::Run(job);
+	EXPECT_FALSE(result.applied);
+	EXPECT_NE(result.problem.find("unpacked"), std::string::npos);
+
+	// A scene cut short inside good packing
+	auto level = LevelBytes({ "a=0:b", "c=0:d" });
+	files.scenes[0].data = level.substr(0, level.size() - 2);
+	result = ZoneFilePush::Run(Job(ZoneFilePack::eFileType::SCENE, files));
+	EXPECT_FALSE(result.applied);
+	EXPECT_NE(result.problem.find("parse_failed"), std::string::npos);
+
+	// Larger than a file may be
+	files.scenes[0].data = level;
+	job = Job(ZoneFilePack::eFileType::SCENE, files);
+	job.limits.maxFileBytes = 16;
+	result = ZoneFilePush::Run(job);
+	EXPECT_FALSE(result.applied);
+
+	EXPECT_TRUE(ZoneOverrideStore::Current(root, zone.zoneId, FOLDER).empty());
+	EXPECT_FALSE(fs::exists(root / "maps" / FOLDER / "a.lvl"));
+}
