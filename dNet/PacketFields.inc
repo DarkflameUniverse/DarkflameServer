@@ -172,6 +172,7 @@ json ToJson(const UgcModelsMade& m);
 json ToJson(const UpdateStatus& m);
 json ToJson(const WorldFilesReport& m);
 json ToJson(const WorldReloadRequest& m);
+json ToJson(const WorldReloadHold& m);
 json ToJson(const WorldFilesStatus& m);
 json ToJson(const WorldFilesStatus::File& m);
 json ToJson(const WorldFilesStatus::Instance& m);
@@ -1546,6 +1547,12 @@ json ToJson(const WorldReloadRequest& m) {
 	j["requestedBy"] = ToJson(m.requestedBy);
 	return j;
 }
+json ToJson(const WorldReloadHold& m) {
+	json j = json::object();
+	j["zoneId"] = ToJson(m.zoneId);
+	j["hold"] = ToJson(m.hold);
+	return j;
+}
 json ToJson(const WorldFilesStatus& m) {
 	json j = json::object();
 	j["watching"] = ToJson(m.watching);
@@ -1578,6 +1585,11 @@ json ToJson(const WorldFilesStatus::Zone& m) {
 	j["files"] = ToJson(m.files);
 	j["instances"] = ToJson(m.instances);
 	j["message"] = ToJson(m.message);
+	j["requests"] = ToJson(m.requests);
+	j["acted"] = ToJson(m.acted);
+	j["playersMoved"] = ToJson(m.playersMoved);
+	j["failed"] = ToJson(m.failed);
+	j["pending"] = ToJson(m.pending);
 	return j;
 }
 json ToJson(const RemoteInputInfo& m) {
@@ -1934,6 +1946,7 @@ const std::vector<Entry>& Entries() {
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::UPDATE_STATUS), "UpdateStatus", false, &ReadWith<UpdateStatus> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_FILES), "WorldFilesReport", false, &ReadWith<WorldFilesReport> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_RELOAD), "WorldReloadRequest", false, &ReadWith<WorldReloadRequest> },
+		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_RELOAD_HOLD), "WorldReloadHold", false, &ReadWith<WorldReloadHold> },
 		{ ServiceType::MASTER, static_cast<uint32_t>(MessageType::Master::WORLD_FILES_STATUS), "WorldFilesStatus", false, &ReadWith<WorldFilesStatus> },
 	};
 	return entries;
